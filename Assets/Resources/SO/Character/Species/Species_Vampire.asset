@@ -52,6 +52,9 @@ MonoBehaviour:
     visualStrainMultiplier: 1
     preferredHumidity: 0.5
     drynessSensitivity: 1
+  lifeHistory: {fileID: 11400000, guid: f44d45b581aaf314883fe7eb6b412357, type: 2}
+  reproduction: {fileID: 11400000, guid: d0e10731ca756b94a802b757d03fac90, type: 2}
+  funeralCulture: {fileID: 11400000, guid: 240637442e51b6b4f9ebd85ba25fa289, type: 2}
   relationTags:
   - "\uACE0\uAE09"
   - "\uB9C8\uB825"
@@ -88,6 +91,14 @@ MonoBehaviour:
   incidentName: "\uD761\uD608 \uACF5\uD3EC"
   incidentDescription: 
   incidentMitigatingRoles: 2052
+  combatPassive:
+    passiveId: species-passive:vampire
+    displayName: "\uC57C\uD589\uC131 \uC704\uC555"
+    description: "\uB3C5\xB7\uB0C9\uAE30\xB7\uACF5\uD3EC \uBC29\uC5B4\uC2DC\uC124\uC758
+      \uD1B5\uC81C\uB825\uC774 \uB192\uB2E4."
+    mechanicTags:
+    - "\uACF5\uD3EC"
+    - "\uC57C\uAC04"
   statBonus:
     entries:
     - statId: stat:attack
@@ -123,14 +134,6 @@ MonoBehaviour:
     dislikedFacilityRoles: 1
     preferredWorkTypes: 17
     dislikedWorkTypes: 8
-  combatPassive:
-    passiveId: species-passive:vampire
-    displayName: "\uC57C\uD589\uC131 \uC704\uC555"
-    description: "\uB3C5\xB7\uB0C9\uAE30\xB7\uACF5\uD3EC \uBC29\uC5B4\uC2DC\uC124\uC758
-      \uD1B5\uC81C\uB825\uC774 \uB192\uB2E4."
-    mechanicTags:
-    - "\uACF5\uD3EC"
-    - "\uC57C\uAC04"
   combatAbilities:
     abilities: []
   references:

@@ -6,14 +6,14 @@
 [PASS] SERVICE_MODE_TARGET_1600x900 ServiceModeManaged
 [PASS] SERVICE_MODE_POINTER_1600x900_HIT_TEST top=ServiceModeManaged; expected=ServiceModeManaged
 [PASS] SERVICE_MODE_POINTER_1600x900_DISPATCH Unity EventSystem pointer dispatch
-[PASS] SERVICE_CAPTURE_1600x900 size=1600x900; bytes=170601; visible=1413164; path=Artifacts/QA/service-room-1600x900.png
+[PASS] SERVICE_CAPTURE_1600x900 size=1600x900; bytes=170192; visible=1415104; path=Artifacts/QA/service-room-1600x900.png
 [PASS] RESOLUTION_900x1600 actual=900x1600
 [PASS] SERVICE_PANEL_VISIBLE_900x1600 BuildingInfoPanel
 [PASS] SERVICE_PANEL_BOUNDS_900x1600 (x:36.00, y:561.93, width:828.00, height:476.14)
 [PASS] SERVICE_MODE_TARGET_900x1600 ServiceModeManaged
 [PASS] SERVICE_MODE_POINTER_900x1600_HIT_TEST top=ServiceModeManaged; expected=ServiceModeManaged
 [PASS] SERVICE_MODE_POINTER_900x1600_DISPATCH Unity EventSystem pointer dispatch
-[PASS] SERVICE_CAPTURE_900x1600 size=900x1600; bytes=146196; visible=1416192; path=Artifacts/QA/service-room-900x1600.png
+[PASS] SERVICE_CAPTURE_900x1600 size=900x1600; bytes=134694; visible=1439772; path=Artifacts/QA/service-room-900x1600.png
 capturedErrors=0; <none>
 capturedWarnings=0; <none>
 RESULT=PASS; failures=0; <none>

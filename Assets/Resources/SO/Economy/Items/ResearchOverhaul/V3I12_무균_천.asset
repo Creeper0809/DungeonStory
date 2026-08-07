@@ -31,17 +31,17 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 34
   features:
-  - rid: 7737211730927813377
-  - rid: 7737211730927813378
+  - rid: 7737211794726585032
+  - rid: 7737211794726585033
   references:
     version: 2
     RefIds:
-    - rid: 7737211730927813377
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726585032
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:surgery
-    - rid: 7737211730927813378
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726585033
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 128

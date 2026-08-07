@@ -31,17 +31,17 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 22
   features:
-  - rid: 7737211730927813105
-  - rid: 7737211730927813106
+  - rid: 7737211794726584735
+  - rid: 7737211794726584736
   references:
     version: 2
     RefIds:
-    - rid: 7737211730927813105
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726584735
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:metallurgy:iron
-    - rid: 7737211730927813106
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726584736
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 512

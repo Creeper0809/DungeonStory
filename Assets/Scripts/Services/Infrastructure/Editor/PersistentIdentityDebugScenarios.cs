@@ -277,9 +277,11 @@ public static class PersistentIdentityDebugScenarios
         DungeonGameRestoreReport preflightReport = new();
         new DungeonAggregateReferencePreflight(
                 new ResourceItemDefinitionCatalog(Array.Empty<ItemDefinitionSO>()),
-                new EmptyBuildingDefinitionLookup(),
-                new EmptyCombatEquipmentCatalog(),
-                new EmptyResourceEconomyContentCatalog())
+                 new EmptyBuildingDefinitionLookup(),
+                 new EmptyCombatEquipmentCatalog(),
+                 new EmptyResourceEconomyContentCatalog(),
+                 new EmptyCharacterLifeDefinitionCatalog(),
+                 new EmptyDiseaseDefinitionCatalog())
             .Validate(save, preflightReport);
         Require(
             !preflightReport.Success
@@ -963,6 +965,33 @@ public static class PersistentIdentityDebugScenarios
             definition = default;
             return false;
         }
+    }
+
+    private sealed class EmptyCharacterLifeDefinitionCatalog :
+        ICharacterLifeDefinitionCatalog
+    {
+        public SpeciesLifeHistoryDefinition RequireLifeHistory(
+            CharacterSpeciesId speciesId) =>
+            throw new KeyNotFoundException(
+                $"No life-history definition '{speciesId.Value}'.");
+
+        public IReadOnlyList<AgeConditionDefinition> GetAgeConditions(
+            bool construct) => Array.Empty<AgeConditionDefinition>();
+
+        public AgeConditionDefinition RequireAgeCondition(string conditionId) =>
+            throw new KeyNotFoundException(
+                $"No age-condition definition '{conditionId}'.");
+    }
+
+    private sealed class EmptyDiseaseDefinitionCatalog :
+        IDiseaseDefinitionCatalog
+    {
+        public IReadOnlyList<DiseaseDefinition> Definitions =>
+            Array.Empty<DiseaseDefinition>();
+
+        public DiseaseDefinition Require(string diseaseId) =>
+            throw new KeyNotFoundException(
+                $"No disease definition '{diseaseId}'.");
     }
 }
 #endif

@@ -10,33 +10,16 @@ using VContainer;
 public class CharacterStats :
     SerializedMonoBehaviour
 {
-    [SerializeField]
-    [ReadOnly]
-    private CharacterActor actor;
-    [SerializeField]
-    [ReadOnly]
-    private CharacterIdentity identity;
-    [SerializeField]
-    [ReadOnly]
-    private CharacterVisual visual;
-    [SerializeField]
-    [ReadOnly]
-    private CharacterLifecycle lifecycle;
-    [SerializeField]
-    [ReadOnly]
-    private CharacterLog log;
+    [SerializeField, ReadOnly] private CharacterActor actor;
+    [SerializeField, ReadOnly] private CharacterIdentity identity;
+    [SerializeField, ReadOnly] private CharacterVisual visual;
+    [SerializeField, ReadOnly] private CharacterLifecycle lifecycle;
+    [SerializeField, ReadOnly] private CharacterLog log;
     [SerializeField]
     private Dictionary<CharacterCondition, float> stats;
-    [SerializeField]
-    [ReadOnly]
-    private float maxHealth = 100f;
-    [SerializeField]
-    [ReadOnly]
-    private float currentHealth = 100f;
-    [SerializeField]
-    [ReadOnly]
-    [Range(0f, 1f)]
-    private float injurySeverity;
+    [SerializeField, ReadOnly] private float maxHealth = 100f;
+    [SerializeField, ReadOnly] private float currentHealth = 100f;
+    [SerializeField, ReadOnly, Range(0f, 1f)] private float injurySeverity;
     [SerializeField, Range(0f, 100f)]
     private float baseMood = CharacterMoodRules.DefaultBaseMood;
     [SerializeField, ReadOnly]
@@ -538,14 +521,19 @@ public class CharacterStats :
             allowAggregateDeath);
     }
 
-    internal void NotifyAggregateDamage(float amount, string reason, bool died)
+    internal void NotifyAggregateDamage(
+        float amount,
+        string reason,
+        bool died,
+        CharacterDeathCauseCode deathCause)
     {
         RequireVitalsService().NotifyDamage(
             this,
             log,
             amount,
             reason,
-            died);
+            died,
+            deathCause);
     }
 
     public void Heal(float amount)
@@ -576,7 +564,12 @@ public class CharacterStats :
     public void Die(string reason = "") =>
         RequireVitalsService().Kill(actor, reason);
 
-    internal void NotifyAggregateDeath(string reason)
+    public void Die(CharacterDeathCauseCode cause, string reasonCode) =>
+        RequireVitalsService().Kill(actor, cause, reasonCode);
+
+    internal void NotifyAggregateDeath(
+        CharacterDeathCauseCode cause,
+        string reasonCode)
     {
         RequireVitalsService().NotifyDeath(
             this,
@@ -585,7 +578,8 @@ public class CharacterStats :
             visual,
             lifecycle,
             log,
-            reason);
+            cause,
+            reasonCode);
     }
 
     public void RecalculateVitals(bool resetCurrentHealth)

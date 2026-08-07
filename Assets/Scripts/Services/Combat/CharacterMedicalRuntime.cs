@@ -204,13 +204,13 @@ public sealed partial class CharacterMedicalRuntime :
 
     private void OnCharacterDeath(CharacterDeathEvent eventType)
     {
-        CharacterActor actor = eventType.Actor;
+        string id = eventType.CharacterId.Value;
+        CharacterActor actor = FindCharacter(id);
         if (actor == null)
         {
             return;
         }
 
-        string id = GetId(actor);
         foreach (CharacterMedicalOrder order in orders.Where(item => item.IsActive).ToArray())
         {
             if (string.Equals(order.patientId, id, StringComparison.Ordinal))
@@ -650,6 +650,11 @@ public sealed partial class CharacterMedicalRuntime :
                 180f,
                 1);
         }
+
+        gameEventBus.Publish(new CharacterMedicalBloodContactEvent(
+            CharacterPersistentIdentity.Require(patient),
+            CharacterPersistentIdentity.Require(rescuer),
+            usedExtractedBlood));
 
         order.treatmentSupply = CharacterMedicalSupplyKind.None;
         order.treatmentSupplyConsumed = false;

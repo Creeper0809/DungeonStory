@@ -61,9 +61,16 @@ public static class DungeonCoreInfrastructureRegistration
         builder.Register<ScopedGameSessionStateStore>(Lifetime.Singleton)
             .As<IGameSessionStateProvider>()
             .As<IGameSessionStateStore>()
-            .As<IGameSessionPauseAuthority>();
+            .As<IGameSessionPauseAuthority>()
+            .As<IGameSessionPersistence>()
+            .As<IDungeonRestoreTransactionParticipant>();
         builder.RegisterEntryPoint<GameCalendarRuntime>(Lifetime.Singleton)
             .As<IGameCalendar>();
+        builder.Register<ResourceClimateDefinitionCatalog>(Lifetime.Singleton)
+            .As<IClimateDefinitionCatalog>();
+        builder.RegisterEntryPoint<ClimateRuntime>(Lifetime.Singleton)
+            .As<IClimateQuery>()
+            .As<IClimatePersistence>();
         builder.Register<GameSpeedController>(Lifetime.Singleton)
             .As<IGameSpeedController>();
         builder.Register<TreasuryEconomyAggregateStateStore>(Lifetime.Singleton);

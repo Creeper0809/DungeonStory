@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11ae014e162ff064183241287201fd7b, type: 3}
+  m_Name: life-event_disputed-thesis
+  m_EditorClassIdentifier: DungeonStory.Content::LifeEventDefinitionSO
+  stableId: life-event:disputed-thesis
+  displayName: "\uB17C\uC7C1\uC801\uC778 \uB17C\uBB38"
+  description: "\uC0C8 \uBC1C\uACAC\uC774 \uC218\uC11D \uC5F0\uAD6C\uC6D0\uC758 \uAE30\uC874
+    \uC774\uB860\uC744 \uC815\uBA74\uC73C\uB85C \uBC18\uBC15\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  category: 3
+  automatic: 0
+  emergency: 0
+  responseDeadlineDays: 3
+  cooldownDays: 90
+  frequencyRule: 1
+  triggerRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  choices:
+  - choiceId: first
+    title: "\uC99D\uAC70\uB97C \uACF5\uAC1C \uAC80\uC99D\uD55C\uB2E4"
+    outcomeText: "\uC99D\uAC70\uB97C \uACF5\uAC1C \uAC80\uC99D\uD55C\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 3
+      targetId: life-event:disputed-thesis
+      amount: 30
+      durationDays: 0
+  - choiceId: second
+    title: "\uCD94\uAC00 \uC2E4\uD5D8\uAE4C\uC9C0 \uBCF4\uB958\uD55C\uB2E4"
+    outcomeText: "\uCD94\uAC00 \uC2E4\uD5D8\uAE4C\uC9C0 \uBCF4\uB958\uD55C\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 13
+      targetId: life-event:disputed-thesis
+      amount: 2
+      durationDays: 0
+  automaticEffects: []

@@ -14,6 +14,7 @@ public sealed class OffenseBattleSession
     private readonly IReadOnlyList<string> logView;
     private readonly ICombatResolutionService combatResolution;
     private readonly ICombatEquipmentRuntime combatEquipmentRuntime;
+    private readonly OffenseBattleEncounterRules encounterRules;
     private readonly Dictionary<string, string> thrownOwnerByInstance =
         new Dictionary<string, string>(StringComparer.Ordinal);
     private bool recoverableEquipmentFinalized;
@@ -27,7 +28,8 @@ public sealed class OffenseBattleSession
         DungeonDifficulty difficulty,
         IEnumerable<OffenseBattleCombatant> combatants,
         ICombatResolutionService combatResolution,
-        ICombatEquipmentRuntime combatEquipmentRuntime)
+        ICombatEquipmentRuntime combatEquipmentRuntime,
+        OffenseBattleEncounterRules encounterRules = null)
         : this(
             battleId,
             expeditionId,
@@ -37,6 +39,7 @@ public sealed class OffenseBattleSession
             combatants,
             combatResolution,
             combatEquipmentRuntime,
+            encounterRules,
             true)
     {
     }
@@ -50,6 +53,7 @@ public sealed class OffenseBattleSession
         IEnumerable<OffenseBattleCombatant> combatants,
         ICombatResolutionService combatResolution,
         ICombatEquipmentRuntime combatEquipmentRuntime,
+        OffenseBattleEncounterRules encounterRules,
         bool startImmediately)
     {
         BattleId = string.IsNullOrWhiteSpace(battleId) ? Guid.NewGuid().ToString("N") : battleId;
@@ -69,6 +73,13 @@ public sealed class OffenseBattleSession
             ?? throw new ArgumentNullException(nameof(combatResolution));
         this.combatEquipmentRuntime = combatEquipmentRuntime
             ?? throw new ArgumentNullException(nameof(combatEquipmentRuntime));
+        this.encounterRules = encounterRules ?? new OffenseBattleEncounterRules(
+            OffenseEncounterObjective.DefeatAll,
+            0,
+            string.Empty,
+            string.Empty,
+            Array.Empty<BattlefieldModifierDefinitionSO>());
+        this.encounterRules.ResolveProtectedCombatant(this.combatants);
 
         Outcome = startImmediately ? ResolveOutcome() : OffenseBattleOutcome.InProgress;
         if (startImmediately && Outcome == OffenseBattleOutcome.InProgress)
@@ -83,6 +94,7 @@ public sealed class OffenseBattleSession
                 AdvanceTurn();
             }
             AddLog($"{TargetTitle} 전투가 시작되었습니다.");
+            AddLog(CreateObjectiveLog());
         }
     }
 
@@ -92,6 +104,7 @@ public sealed class OffenseBattleSession
     public string TargetTitle { get; }
     public DungeonDifficulty Difficulty { get; }
     public OffenseBattleOutcome Outcome { get; private set; }
+    public OffenseBattleEncounterRules EncounterRules => encounterRules;
     public int RoundNumber { get; private set; }
     public long LastProcessedCommandId { get; private set; }
     public int CurrentOrderIndex => currentOrderIndex;
@@ -146,6 +159,7 @@ public sealed class OffenseBattleSession
                 moveSpeed = combatant.Stats.MoveSpeed,
                 shooting = combatant.Stats.Shooting,
                 evasion = combatant.Stats.Evasion,
+                participatesInInitiative = combatant.ParticipatesInInitiative,
                 currentHealth = combatant.CurrentHealth,
                 totalDamageTaken = combatant.TotalDamageTaken,
                 initiativePenalty = combatant.InitiativePenalty,
@@ -189,7 +203,8 @@ public sealed class OffenseBattleSession
         OffenseBattlePersistenceState state,
         IEnumerable<OffenseBattleCombatant> configuredCombatants,
         ICombatResolutionService combatResolution,
-        ICombatEquipmentRuntime combatEquipmentRuntime)
+        ICombatEquipmentRuntime combatEquipmentRuntime,
+        OffenseBattleEncounterRules encounterRules = null)
     {
         if (state == null)
         {
@@ -205,6 +220,7 @@ public sealed class OffenseBattleSession
             configuredCombatants,
             combatResolution,
             combatEquipmentRuntime,
+            encounterRules,
             false);
         foreach (OffenseBattleCombatantPersistenceState saved in state.combatants
             ?? new List<OffenseBattleCombatantPersistenceState>())
@@ -453,6 +469,7 @@ public sealed class OffenseBattleSession
                 + (weapon.IsRanged ? source.Stats.Shooting * 0.45f : source.Stats.Attack * 0.75f)
                 + source.Stats.Strength * 0.35f)
             * rangeDamage
+            * encounterRules.DamageMultiplier
             * Mathf.Max(0.1f, attackMultiplier)
             - target.Stats.Toughness * 0.2f);
     }
@@ -480,8 +497,8 @@ public sealed class OffenseBattleSession
             $"{BattleId}:preview",
             source.PersistentId,
             target.PersistentId,
-            OffenseBattleSessionRules.CreateCombatStats(source),
-            OffenseBattleSessionRules.CreateCombatStats(target),
+            CreateModifiedCombatStats(source, attacking: true),
+            CreateModifiedCombatStats(target, attacking: false),
             source.Weapon ?? CombatWeaponSnapshot.CreateUnarmed(),
             distance,
             source.FireMode,
@@ -528,7 +545,12 @@ public sealed class OffenseBattleSession
             .Select(status => status.Value)
             .DefaultIfEmpty(0f)
             .Max();
-        float finalAmount = Mathf.Max(1f, rawAmount * (1f - Mathf.Clamp01(guard)) * (1f + vulnerability));
+        float finalAmount = Mathf.Max(
+            1f,
+            rawAmount
+            * encounterRules.DamageMultiplier
+            * (1f - Mathf.Clamp01(guard))
+            * (1f + vulnerability));
         float applied = target.ApplyRawDamage(finalAmount);
         if (target.IsDead)
         {
@@ -658,6 +680,22 @@ public sealed class OffenseBattleSession
                     return false;
                 }
 
+                if (encounterRules.Objective == OffenseEncounterObjective.Escape)
+                {
+                    if (RoundNumber < encounterRules.RoundLimit)
+                    {
+                        result = new OffenseBattleCommandResult(
+                            false,
+                            $"탈출로 확보까지 {encounterRules.RoundLimit - RoundNumber}라운드 남았습니다.");
+                        return false;
+                    }
+
+                    Outcome = OffenseBattleOutcome.Victory;
+                    AddLog($"{actor.DisplayName}의 지시로 원정대가 탈출로를 돌파했습니다.");
+                    result = new OffenseBattleCommandResult(true, "전장에서 탈출했습니다.");
+                    return true;
+                }
+
                 Outcome = OffenseBattleOutcome.Retreated;
                 AddLog($"{actor.DisplayName}의 지시로 원정대가 후퇴했습니다.");
                 result = new OffenseBattleCommandResult(true, "후퇴했습니다.");
@@ -695,8 +733,8 @@ public sealed class OffenseBattleSession
             $"{BattleId}:{LastProcessedCommandId + 1}:basic",
             actor.PersistentId,
             target.PersistentId,
-            OffenseBattleSessionRules.CreateCombatStats(actor),
-            OffenseBattleSessionRules.CreateCombatStats(target),
+            CreateModifiedCombatStats(actor, attacking: true),
+            CreateModifiedCombatStats(target, attacking: false),
             weapon,
             distance,
             actor.FireMode,
@@ -978,14 +1016,22 @@ public sealed class OffenseBattleSession
     {
         initiativeOrder.Clear();
         initiativeOrder.AddRange(combatants
-            .Where(combatant => !combatant.IsDead && !combatant.IsDowned)
-            .OrderByDescending(combatant => combatant.Initiative)
+            .Where(combatant => combatant.ParticipatesInInitiative
+                && !combatant.IsDead
+                && !combatant.IsDowned)
+            .OrderByDescending(combatant =>
+                combatant.Initiative * encounterRules.MovementMultiplier)
             .ThenBy(combatant => combatant.PersistentId, StringComparer.Ordinal)
             .Select(combatant => combatant.PersistentId));
     }
 
     private OffenseBattleOutcome ResolveOutcome()
     {
+        if (Outcome != OffenseBattleOutcome.InProgress)
+        {
+            return Outcome;
+        }
+
         bool alliesAlive = combatants.Any(combatant =>
             combatant.Team == OffenseBattleTeam.Allies
             && !combatant.IsDead
@@ -994,11 +1040,102 @@ public sealed class OffenseBattleSession
             combatant.Team == OffenseBattleTeam.Enemies
             && !combatant.IsDead
             && !combatant.IsDowned);
-        if (!alliesAlive) return OffenseBattleOutcome.Defeat;
-        if (!enemiesAlive) return OffenseBattleOutcome.Victory;
-        return Outcome is OffenseBattleOutcome.Retreated or OffenseBattleOutcome.AbortedOwnerDeath
-            ? Outcome
-            : OffenseBattleOutcome.InProgress;
+        OffenseBattleCombatant objectiveTarget = FindCombatant(
+            encounterRules.ObjectiveCombatantId);
+        bool deadlineExpired = encounterRules.RoundLimit > 0
+            && RoundNumber > encounterRules.RoundLimit;
+
+        switch (encounterRules.Objective)
+        {
+            case OffenseEncounterObjective.SurviveRounds:
+                if (!alliesAlive) return OffenseBattleOutcome.Defeat;
+                if (deadlineExpired || !enemiesAlive)
+                    return OffenseBattleOutcome.Victory;
+                return OffenseBattleOutcome.InProgress;
+            case OffenseEncounterObjective.ProtectTarget:
+                bool escortAlive = combatants.Any(value =>
+                    value.Team == OffenseBattleTeam.Allies
+                    && !string.Equals(
+                        value.PersistentId,
+                        encounterRules.ObjectiveCombatantId,
+                        StringComparison.Ordinal)
+                    && !value.IsDead
+                    && !value.IsDowned);
+                if (objectiveTarget == null
+                    || objectiveTarget.IsDead
+                    || objectiveTarget.IsDowned
+                    || !escortAlive)
+                    return OffenseBattleOutcome.Defeat;
+                if (deadlineExpired || !enemiesAlive)
+                    return OffenseBattleOutcome.Victory;
+                return OffenseBattleOutcome.InProgress;
+            case OffenseEncounterObjective.SabotageTarget:
+                if (!alliesAlive) return OffenseBattleOutcome.Defeat;
+                if (objectiveTarget == null)
+                    return OffenseBattleOutcome.Defeat;
+                if (objectiveTarget.IsDead || objectiveTarget.IsDowned)
+                    return OffenseBattleOutcome.Victory;
+                return deadlineExpired
+                    ? OffenseBattleOutcome.Defeat
+                    : OffenseBattleOutcome.InProgress;
+            case OffenseEncounterObjective.Escape:
+                if (!alliesAlive) return OffenseBattleOutcome.Defeat;
+                return !enemiesAlive
+                    ? OffenseBattleOutcome.Victory
+                    : OffenseBattleOutcome.InProgress;
+            case OffenseEncounterObjective.CaptureLeader:
+                if (!alliesAlive || objectiveTarget == null || objectiveTarget.IsDead)
+                    return OffenseBattleOutcome.Defeat;
+                if (objectiveTarget.IsDowned)
+                    return OffenseBattleOutcome.Victory;
+                return deadlineExpired
+                    ? OffenseBattleOutcome.Defeat
+                    : OffenseBattleOutcome.InProgress;
+            default:
+                if (!alliesAlive) return OffenseBattleOutcome.Defeat;
+                if (!enemiesAlive) return OffenseBattleOutcome.Victory;
+                return OffenseBattleOutcome.InProgress;
+        }
+    }
+
+    private CombatStatSnapshot CreateModifiedCombatStats(
+        OffenseBattleCombatant combatant,
+        bool attacking)
+    {
+        CombatStatSnapshot value = OffenseBattleSessionRules.CreateCombatStats(combatant);
+        float accuracy = attacking ? encounterRules.AccuracyMultiplier : 1f;
+        return new CombatStatSnapshot(
+            value.Melee * accuracy,
+            value.Shooting * accuracy,
+            value.Evasion * encounterRules.MovementMultiplier,
+            value.MoveSpeed * encounterRules.MovementMultiplier,
+            value.Strength,
+            value.Toughness,
+            value.Dexterity * accuracy,
+            value.HealthMultiplier);
+    }
+
+    private string CreateObjectiveLog()
+    {
+        string objective = encounterRules.Objective switch
+        {
+            OffenseEncounterObjective.SurviveRounds =>
+                $"목표: {encounterRules.RoundLimit}라운드 동안 생존",
+            OffenseEncounterObjective.ProtectTarget =>
+                $"목표: 보호 대상을 {encounterRules.RoundLimit}라운드까지 방어",
+            OffenseEncounterObjective.SabotageTarget =>
+                $"목표: {encounterRules.RoundLimit}라운드 안에 핵심 장치 파괴",
+            OffenseEncounterObjective.Escape =>
+                $"목표: {encounterRules.RoundLimit}라운드부터 후퇴 명령으로 탈출",
+            OffenseEncounterObjective.CaptureLeader =>
+                $"목표: {encounterRules.RoundLimit}라운드 안에 지휘관을 죽이지 않고 제압",
+            _ => "목표: 적 전멸"
+        };
+        string modifiers = encounterRules.Modifiers.Count == 0
+            ? string.Empty
+            : " | 전장: " + string.Join(", ",
+                encounterRules.Modifiers.Select(value => value.displayName));
+        return objective + modifiers;
     }
 
     private bool IsValidTarget(
@@ -1109,6 +1246,7 @@ public sealed class OffenseBattleSession
         float adjustedDamage = Mathf.Max(
             0.5f,
             resolved.AppliedDamage
+            * encounterRules.DamageMultiplier
             * (1f - Mathf.Clamp01(guard))
             * (1f + vulnerability));
         CombatAttackResult adjusted = new CombatAttackResult(

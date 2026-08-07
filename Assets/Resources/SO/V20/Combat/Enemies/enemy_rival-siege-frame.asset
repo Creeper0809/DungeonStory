@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8080a982ba741ff4e8ae644f419d70cb, type: 3}
+  m_Name: enemy_rival-siege-frame
+  m_EditorClassIdentifier: DungeonStory.Offense::EnemyArchetypeDefinitionSO
+  stableId: enemy:rival-siege-frame
+  displayName: "\uACBD\uC7C1 \uB358\uC804 \uACF5\uC131\uACE8\uB818"
+  description: "\uAC11\uC8FC\uB97C \uD30C\uC1C4\uD558\uACE0 \uC2A4\uC2A4\uB85C \uD575\uC744
+    \uC218\uB9AC\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored enemy archetype.
+  factionId: rival:dungeon
+  speciesTag: Golem
+  role: 1
+  maxHealth: 175
+  attack: 13
+  strength: 11.05
+  toughness: 15
+  dexterity: 5
+  moveSpeed: 3
+  equipment:
+    weaponDefinitionId: weapon:mana-lance
+    armorDefinitionId: armor:blacksteel-carapace
+    shieldDefinitionId: 
+    ammunitionItemId: 
+  abilityIds:
+  - enemy-ability:armor-break
+  - enemy-ability:core-repair
+  tacticalProfile:
+    attackWeight: 4
+    protectWeight: 5
+    abilityWeight: 3
+    retreatWeight: 2
+    retreatHealthFraction: 0.08
+    preferredTargetTags:
+    - nearest
+    avoidedTargetTags:
+    - none
+    formationTag: siege-column
+  counterTags:
+  - counter:mana-disrupt
+  rewardItemIds:
+  - loot:enemy-salvage
+  bossPhases: []
+  individualGeneration:
+    minimumGeneralTraits: 2
+    maximumGeneralTraits: 3
+    minimumExpressedHeritableTraits: 0
+    maximumExpressedHeritableTraits: 2
+    maximumLatentHeritableTraits: 1
+    aptitudeVariance: 15
+    combatStatVariance: 0.12
+    minimumLoyalty: 20
+    maximumLoyalty: 75
+    recruitable: 1
+    militaryTrainingId: training:rival-siege-frame
+    allowedBackgroundIds: []

@@ -1079,7 +1079,9 @@ public sealed class SurgeryRuntime :
                     out _);
                 break;
             case SurgeryFailureSeverity.Fatal:
-                patient.Die(SurgeryStatusCode.FailedFatal.ToString());
+                patient.Die(
+                    CharacterDeathCauseCode.MedicalProcedureFailure,
+                    "surgery:fatal-procedure-failure");
                 break;
         }
     }

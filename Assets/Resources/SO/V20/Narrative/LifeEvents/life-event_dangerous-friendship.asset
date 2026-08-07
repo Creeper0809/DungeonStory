@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11ae014e162ff064183241287201fd7b, type: 3}
+  m_Name: life-event_dangerous-friendship
+  m_EditorClassIdentifier: DungeonStory.Content::LifeEventDefinitionSO
+  stableId: life-event:dangerous-friendship
+  displayName: "\uC704\uD5D8 \uAD6C\uC5ED\uC758 \uCE5C\uAD6C"
+  description: "\uB450 \uC544\uC774\uAC00 \uAC10\uB3C5 \uC5C6\uC774 \uC0B0\uC5C5
+    \uAD6C\uC5ED\uC744 \uC9C0\uB984\uAE38\uB85C \uC4F0\uB2E4 \uC801\uBC1C\uB410\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  category: 0
+  automatic: 0
+  emergency: 0
+  responseDeadlineDays: 3
+  cooldownDays: 90
+  frequencyRule: 1
+  triggerRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  choices:
+  - choiceId: first
+    title: "\uC548\uC804 \uAD50\uC721\uC5D0 \uD568\uAED8 \uCC38\uC5EC\uC2DC\uD0A8\uB2E4"
+    outcomeText: "\uC548\uC804 \uAD50\uC721\uC5D0 \uD568\uAED8 \uCC38\uC5EC\uC2DC\uD0A8\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 3
+      targetId: life-event:dangerous-friendship
+      amount: 15
+      durationDays: 0
+  - choiceId: second
+    title: "\uD1B5\uD589\uC744 \uC5C4\uACA9\uD788 \uAE08\uC9C0\uD55C\uB2E4"
+    outcomeText: "\uD1B5\uD589\uC744 \uC5C4\uACA9\uD788 \uAE08\uC9C0\uD55C\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 1
+      targetId: life-event:dangerous-friendship
+      amount: -3
+      durationDays: 0
+  automaticEffects: []

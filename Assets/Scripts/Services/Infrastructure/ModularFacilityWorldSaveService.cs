@@ -6,7 +6,7 @@ using VContainer;
 
 public interface IModularFacilityWorldSaveService
 {
-    ModularFacilityWorldSaveData CreateSnapshot(Grid grid, GameSessionState gameData);
+    ModularFacilityWorldSaveData CreateSnapshot(Grid grid);
     ModularFacilityWorldRestoreReport ValidateRestore(
         Grid grid,
         ModularFacilityWorldSaveData snapshot);
@@ -14,7 +14,6 @@ public interface IModularFacilityWorldSaveService
     ModularFacilityWorldSaveData FromJson(string json);
     ModularFacilityWorldRestoreCandidate PrepareRestoreCandidate(
         Grid grid,
-        GameSessionState gameData,
         ModularFacilityWorldSaveData snapshot);
     void StageRestoreCandidate(ModularFacilityWorldRestoreCandidate candidate);
 }
@@ -79,7 +78,6 @@ public sealed class ModularFacilityWorldSaveService :
     private readonly IObjectResolver objectResolver;
     private readonly IGridTextureProvider gridTextureProvider;
     private readonly IFacilityRelocationWorldService facilityRelocationWorldService;
-    private readonly IGameSessionStateStore sessionStateStore;
     private readonly IGridSystemPublisher gridSystemPublisher;
     private readonly IRestoreWorldCandidatePublisher restoreWorldCandidates;
     private readonly Action<BuildableObject> injectBuilding;
@@ -90,13 +88,13 @@ public sealed class ModularFacilityWorldSaveService :
 
     public string ParticipantId => "100.world.facilities";
 
+    [Inject]
     public ModularFacilityWorldSaveService(
         IBuildingDefinitionLookup buildingLookup,
         IGridBuildingObjectFactory objectFactory,
         IObjectResolver objectResolver,
         IGridTextureProvider gridTextureProvider,
         IFacilityRelocationWorldService facilityRelocationWorldService,
-        IGameSessionStateStore sessionStateStore,
         IGridSystemPublisher gridSystemPublisher,
         IRestoreWorldCandidatePublisher restoreWorldCandidates)
     {
@@ -106,8 +104,6 @@ public sealed class ModularFacilityWorldSaveService :
         this.gridTextureProvider = gridTextureProvider ?? throw new ArgumentNullException(nameof(gridTextureProvider));
         this.facilityRelocationWorldService = facilityRelocationWorldService
             ?? throw new ArgumentNullException(nameof(facilityRelocationWorldService));
-        this.sessionStateStore = sessionStateStore
-            ?? throw new ArgumentNullException(nameof(sessionStateStore));
         this.gridSystemPublisher = gridSystemPublisher
             ?? throw new ArgumentNullException(nameof(gridSystemPublisher));
         this.restoreWorldCandidates = restoreWorldCandidates
@@ -140,7 +136,7 @@ public sealed class ModularFacilityWorldSaveService :
             ?? throw new ArgumentNullException(nameof(gridTextureProvider));
         this.facilityRelocationWorldService = facilityRelocationWorldService
             ?? throw new ArgumentNullException(nameof(facilityRelocationWorldService));
-        this.sessionStateStore = sessionStateStore
+        _ = sessionStateStore
             ?? throw new ArgumentNullException(nameof(sessionStateStore));
         this.gridSystemPublisher = gridSystemPublisher
             ?? throw new ArgumentNullException(nameof(gridSystemPublisher));
@@ -185,7 +181,7 @@ public sealed class ModularFacilityWorldSaveService :
             objectFactory);
     }
 
-    public ModularFacilityWorldSaveData CreateSnapshot(Grid grid, GameSessionState gameData)
+    public ModularFacilityWorldSaveData CreateSnapshot(Grid grid)
     {
         if (grid == null)
         {
@@ -197,7 +193,6 @@ public sealed class ModularFacilityWorldSaveService :
             version = CurrentVersion,
             gridWidth = grid.width,
             gridHeight = grid.height,
-            gameData = ModularFacilityGameDataSaveData.From(gameData),
             buildings = grid.FindAllOccupants(null)
                 .OfType<BuildableObject>()
                 .Where(IsPersistentWorldBuilding)
@@ -209,6 +204,18 @@ public sealed class ModularFacilityWorldSaveService :
                 .ToList()
         };
     }
+
+#if UNITY_EDITOR
+    [Obsolete("V19 persists session state in foundation.session, not world.facilities.")]
+    public ModularFacilityWorldSaveData CreateSnapshot(
+        Grid grid,
+        GameSessionState legacyEditorSession)
+    {
+        ModularFacilityWorldSaveData snapshot = CreateSnapshot(grid);
+        snapshot.gameData = ModularFacilityGameDataSaveData.From(legacyEditorSession);
+        return snapshot;
+    }
+#endif
 
     public void BeginRestoreCandidate()
     {
@@ -247,8 +254,6 @@ public sealed class ModularFacilityWorldSaveService :
         }
 
         publication.GridPublished = true;
-        publication.GameDataMayHaveChanged = candidate.GameData != null;
-        ApplyGameData(candidate.GameData, candidate.SavedGameData);
         restoreTransactionActive = false;
     }
 
@@ -285,17 +290,6 @@ public sealed class ModularFacilityWorldSaveService :
                 rollbackFailure = new InvalidOperationException(publishFailure);
             }
 
-            if (publication.GameDataMayHaveChanged)
-            {
-                try
-                {
-                    sessionStateStore.Restore(publication.PreviousGameData);
-                }
-                catch (Exception exception)
-                {
-                    rollbackFailure ??= exception;
-                }
-            }
         }
         finally
         {
@@ -341,7 +335,6 @@ public sealed class ModularFacilityWorldSaveService :
 
     public ModularFacilityWorldRestoreCandidate PrepareRestoreCandidate(
         Grid grid,
-        GameSessionState gameData,
         ModularFacilityWorldSaveData snapshot)
     {
         ModularFacilityWorldRestoreReport report = ValidateRestore(grid, snapshot);
@@ -354,7 +347,6 @@ public sealed class ModularFacilityWorldSaveService :
 
         if (!TryBuildDetachedCandidate(
                 grid,
-                gameData,
                 snapshot,
                 report,
                 out DetachedFacilityWorldCandidate world))
@@ -380,6 +372,15 @@ public sealed class ModularFacilityWorldSaveService :
             world,
             report.restoredCount);
     }
+
+#if UNITY_EDITOR
+    [Obsolete("V19 restores session state through foundation.session.")]
+    public ModularFacilityWorldRestoreCandidate PrepareRestoreCandidate(
+        Grid grid,
+        GameSessionState legacyEditorSession,
+        ModularFacilityWorldSaveData snapshot) =>
+        PrepareRestoreCandidate(grid, snapshot);
+#endif
 
     public void StageRestoreCandidate(
         ModularFacilityWorldRestoreCandidate candidate)
@@ -565,7 +566,6 @@ public sealed class ModularFacilityWorldSaveService :
 
     private bool TryBuildDetachedCandidate(
         Grid liveGrid,
-        GameSessionState gameData,
         ModularFacilityWorldSaveData snapshot,
         ModularFacilityWorldRestoreReport report,
         out DetachedFacilityWorldCandidate worldCandidate)
@@ -598,8 +598,6 @@ public sealed class ModularFacilityWorldSaveService :
             new DetachedFacilityWorldCandidate(
                 liveGrid,
                 candidateGrid,
-                gameData,
-                snapshot.gameData,
                 candidates);
         report.restoredBuildings.AddRange(
             candidates.Select(candidate => candidate.SaveData));
@@ -962,25 +960,6 @@ public sealed class ModularFacilityWorldSaveService :
             .ThenBy(entry => entry.buildingId);
     }
 
-    private void ApplyGameData(GameSessionState gameData, ModularFacilityGameDataSaveData data)
-    {
-        if (gameData == null || data == null)
-        {
-            return;
-        }
-
-        GameSessionSnapshot current = gameData.Capture();
-        GameSessionSnapshot restored = new GameSessionSnapshot(
-            data.hasHoldingMoney ? data.holdingMoney : current.Money,
-            data.hasDay ? data.day : current.Day,
-            data.hasGameSpeed ? data.gameSpeed : current.GameSpeed,
-            data.hasCurTime ? data.curTime : current.ElapsedSeconds,
-            data.hasHour ? data.hour : current.Hour,
-            data.hasTimeOfDay ? data.timeOfDay : current.TimeOfDay,
-            current.IsPaused);
-        sessionStateStore.Restore(restored);
-    }
-
     internal sealed class DetachedBuildingRestoreCandidate
     {
         public DetachedBuildingRestoreCandidate(
@@ -1000,15 +979,11 @@ public sealed class ModularFacilityWorldSaveService :
         public DetachedFacilityWorldCandidate(
             Grid liveGrid,
             Grid candidateGrid,
-            GameSessionState gameData,
-            ModularFacilityGameDataSaveData savedGameData,
             IReadOnlyList<DetachedBuildingRestoreCandidate> buildings)
         {
             LiveGrid = liveGrid ?? throw new ArgumentNullException(nameof(liveGrid));
             CandidateGrid = candidateGrid
                 ?? throw new ArgumentNullException(nameof(candidateGrid));
-            GameData = gameData;
-            SavedGameData = savedGameData;
             Buildings = buildings
                 ?? throw new ArgumentNullException(nameof(buildings));
             BuildingView = buildings
@@ -1018,8 +993,6 @@ public sealed class ModularFacilityWorldSaveService :
 
         public Grid LiveGrid { get; }
         public Grid CandidateGrid { get; }
-        public GameSessionState GameData { get; }
-        public ModularFacilityGameDataSaveData SavedGameData { get; }
         public IReadOnlyList<DetachedBuildingRestoreCandidate> Buildings { get; }
         public IReadOnlyList<BuildableObject> BuildingView { get; }
     }
@@ -1030,16 +1003,10 @@ public sealed class ModularFacilityWorldSaveService :
             DetachedFacilityWorldCandidate world)
         {
             World = world ?? throw new ArgumentNullException(nameof(world));
-            if (world.GameData != null)
-            {
-                PreviousGameData = world.GameData.Capture();
-            }
         }
 
         public DetachedFacilityWorldCandidate World { get; }
-        public GameSessionSnapshot PreviousGameData { get; }
         public bool GridPublished { get; set; }
-        public bool GameDataMayHaveChanged { get; set; }
     }
 
     private sealed class RestoreFootprintReservation :
@@ -1068,7 +1035,10 @@ public sealed class ModularFacilityWorldSaveData
     public int version = ModularFacilityWorldSaveService.CurrentVersion;
     public int gridWidth;
     public int gridHeight;
+#if UNITY_EDITOR
+    [NonSerialized, Obsolete("V19 session state is stored in foundation.session.")]
     public ModularFacilityGameDataSaveData gameData = new ModularFacilityGameDataSaveData();
+#endif
     public List<ModularFacilityBuildingSaveData> buildings = new List<ModularFacilityBuildingSaveData>();
 }
 

@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86bca71163e51a84b8d8bdc8d4d069d3, type: 3}
+  m_Name: culture_harpy-aerie
+  m_EditorClassIdentifier: DungeonStory.Content::SpeciesCultureDefinitionSO
+  stableId: culture:harpy-aerie
+  displayName: "\uB192\uC740 \uB465\uC9C0 \uBB38\uD654"
+  description: "\uB192\uC740 \uACF5\uAC04\uACFC \uBC14\uB78C\uAE38\uC744 \uC120\uD638\uD558\uBA70
+    \uC18C\uC2DD\uACFC \uB178\uB798\uB97C \uACF5\uB3D9 \uC790\uC0B0\uC73C\uB85C \uC5EC\uAE34\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  defaultSpeciesId: Harpy
+  preferredItemIds:
+  - food:dried-fruit
+  forbiddenItemIds:
+  - food:heavy-oil-stew
+  preferredFacilityIds: []
+  environmentalPreferences:
+  - high airy rooms
+  etiquetteRules:
+  - "\uB178\uB798 \uC911\uAC04\uC5D0 \uB9D0\uC744 \uB04A\uB294 \uAC83\uC740 \uACF5\uAC1C\uC801\uC778
+    \uB3C4\uC804\uC774\uB2E4."
+  ceremonyIds:
+  - practice:harpy-dawn-chorus
+  - practice:harpy-first-flight
+  otherCultureAttitudes:
+  - id: culture:adventurer-frontier
+    weight: 1
+  - id: culture:beastkin-pack
+    weight: 1
+  - id: culture:demon-contract
+    weight: 1
+  - id: culture:golem-core
+    weight: 1
+  - id: culture:kobold-toolclan
+    weight: 1
+  - id: culture:myconid-grove
+    weight: 1
+  - id: culture:orc-vigil
+    weight: 1
+  - id: culture:slime-confluence
+    weight: 1
+  - id: culture:vampire-nightcourt
+    weight: 1
+  assimilationDays: 120

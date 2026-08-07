@@ -33,12 +33,12 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 384fd6100cc64734395a73a48b3b8f45, type: 3}
   abilityModules:
     items:
-    - rid: 7737211730889016238
-    - rid: 7737211730889016239
-    - rid: 7737211730889016240
-    - rid: 7737211730889016241
-    - rid: 7737211730889016242
-    - rid: 7737211730889016243
+    - rid: 7737211792998531428
+    - rid: 7737211792998531429
+    - rid: 7737211792998531430
+    - rid: 7737211792998531431
+    - rid: 7737211792998531432
+    - rid: 7737211792998531433
   width: 2
   height: 1
   layer: 1
@@ -54,8 +54,8 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730889016238
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531428
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 24
@@ -63,7 +63,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7737211730889016239
+    - rid: 7737211792998531429
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -75,23 +75,23 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: material:lumber
           amount: 2
-    - rid: 7737211730889016240
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531430
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: SR13
-    - rid: 7737211730889016241
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531431
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211730889016242
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531432
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - ServiceRoom
         - Stage
-    - rid: 7737211730889016243
+    - rid: 7737211792998531433
       type: {class: BuildingServiceSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceSupportAbility

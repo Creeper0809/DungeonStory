@@ -94,7 +94,7 @@ internal abstract class CaptivityAbilityUnityPort
             destination,
             GridPathSearchPriority.Urgent,
             GridTraversalContext.ForCharacter(
-                Actor,
+                CharacterPersistentIdentity.Require(Actor),
                 ToDoorAccessOverride(accessKind)));
         if (path == null || path.Count == 0)
         {

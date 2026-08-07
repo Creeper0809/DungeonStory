@@ -1,0 +1,307 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using DungeonStory.Foundation;
+using UnityEngine;
+
+public interface IPhysicalSeedLotGateway
+{
+    bool RequestBestSeedLot(
+        string seedItemId,
+        string cropId,
+        Vector2Int destinationPosition,
+        string destinationId,
+        out int requested,
+        out DomainFailure failure);
+    bool TryConsumeSowingInputs(
+        string destinationId,
+        IReadOnlyDictionary<string, int> requirements,
+        string seedItemId,
+        string cropId,
+        out SeedLotState seedLot,
+        out string failureReason);
+    bool SpawnSeedLot(
+        string seedItemId,
+        int amount,
+        SeedLotState seedLot,
+        Vector2Int position);
+}
+
+public sealed class PhysicalSeedLotGateway : IPhysicalSeedLotGateway
+{
+    private readonly IStockQuery stock;
+    private readonly IItemTransferService transfers;
+
+    public PhysicalSeedLotGateway(IStockQuery stock, IItemTransferService transfers)
+    {
+        this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
+        this.transfers = transfers ?? throw new ArgumentNullException(nameof(transfers));
+    }
+
+    public bool RequestBestSeedLot(
+        string seedItemId,
+        string cropId,
+        Vector2Int destinationPosition,
+        string destinationId,
+        out int requested,
+        out DomainFailure failure)
+    {
+        requested = 0;
+        failure = DomainFailure.None;
+        WorldItemStackSnapshot candidate = stock.GetAllStacks()
+            .Where(value => value != null
+                && value.Quantity > 0
+                && !value.IsReserved
+                && !value.Forbidden
+                && value.State is WorldItemStackState.Loose or WorldItemStackState.Stored
+                && string.Equals(value.ItemId, seedItemId, StringComparison.Ordinal))
+            .Select(value => (stack: value, seed: TryDecode(value.Components)))
+            .Where(value => value.seed != null
+                && string.Equals(value.seed.cropId, cropId, StringComparison.Ordinal))
+            .OrderByDescending(value => value.seed.quality)
+            .ThenBy(value => value.seed.pathogenLoad)
+            .ThenBy(value => value.stack.StackId, StringComparer.Ordinal)
+            .Select(value => value.stack)
+            .FirstOrDefault();
+        if (candidate == null)
+        {
+            failure = new DomainFailure(FailureCode.ItemTransferStackUnavailable, seedItemId);
+            return false;
+        }
+        return transfers.TryRequestStackDelivery(
+            (ItemStackId)candidate.StackId,
+            1,
+            destinationPosition,
+            destinationId,
+            out requested,
+            out failure);
+    }
+
+    public bool TryConsumeSowingInputs(
+        string destinationId,
+        IReadOnlyDictionary<string, int> requirements,
+        string seedItemId,
+        string cropId,
+        out SeedLotState seedLot,
+        out string failureReason)
+    {
+        seedLot = null;
+        failureReason = string.Empty;
+        WorldItemStackSnapshot[] delivered = stock.GetAllStacks()
+            .Where(value => value != null
+                && value.Quantity > 0
+                && value.State == WorldItemStackState.FacilityBuffer
+                && string.Equals(value.DestinationId, destinationId, StringComparison.Ordinal)
+                && string.Equals(value.ItemId, seedItemId, StringComparison.Ordinal))
+            .ToArray();
+        if (delivered.Sum(value => value.Quantity) != 1 || delivered.Length != 1)
+        {
+            failureReason = "crop.seed_lot.delivery_ambiguous";
+            return false;
+        }
+        try
+        {
+            seedLot = SeedLotItemStateCodec.Decode(delivered[0].Components);
+        }
+        catch (Exception exception)
+        {
+            failureReason = "crop.seed_lot.component_invalid:" + exception.Message;
+            return false;
+        }
+        if (!string.Equals(seedLot.cropId, cropId, StringComparison.Ordinal))
+        {
+            seedLot = null;
+            failureReason = "crop.seed_lot.crop_mismatch";
+            return false;
+        }
+        if (!transfers.TryConsumeFacilityItemBuffer(destinationId, requirements, out failureReason))
+        {
+            seedLot = null;
+            return false;
+        }
+        return true;
+    }
+
+    public bool SpawnSeedLot(
+        string seedItemId,
+        int amount,
+        SeedLotState seedLot,
+        Vector2Int position) =>
+        transfers.TrySpawnItemWithComponents(
+            seedItemId,
+            amount,
+            position,
+            WorldItemStackState.Loose,
+            string.Empty,
+            new[] { SeedLotItemStateCodec.Encode(seedLot) },
+            out int spawned)
+        && spawned == amount;
+
+    private static SeedLotState TryDecode(IReadOnlyList<ItemInstanceComponentSaveData> components)
+    {
+        try { return SeedLotItemStateCodec.Decode(components); }
+        catch { return null; }
+    }
+}
+
+public sealed class CropEcologyRuntime :
+    ICropEcologyService,
+    ICropEcologyPersistence,
+    IInitialCropSeedGrant
+{
+    private const string MutationRandomStreamId = "crop:genetics";
+    private readonly DungeonRuntimeAggregateRootStore rootStore;
+    private readonly CropGenomeDefinitionSO[] authoredGenomes;
+    private readonly CropGenomeDefinitionSO[] baseGenomes;
+    private readonly IRandomStream random;
+    private readonly IStockQuery stock;
+    private int version = 1;
+
+    public CropEcologyRuntime(
+        DungeonRuntimeAggregateRootStore rootStore,
+        IGameContentCatalog content,
+        IRandomStreamProvider randomStreams,
+        IStockQuery stock)
+    {
+        this.rootStore = rootStore ?? throw new ArgumentNullException(nameof(rootStore));
+        authoredGenomes = (content ?? throw new ArgumentNullException(nameof(content)))
+            .GetAll<CropGenomeDefinitionSO>()
+            .OrderBy(value => value.GenomeId, StringComparer.Ordinal)
+            .ToArray();
+        baseGenomes = authoredGenomes
+            .Where(value => value.GenomeId.EndsWith(
+                ":base",
+                StringComparison.Ordinal))
+            .ToArray();
+        if (authoredGenomes.Length != 20
+            || authoredGenomes.Any(value => string.IsNullOrWhiteSpace(value.GenomeId)
+                || string.IsNullOrWhiteSpace(value.CropId))
+            || authoredGenomes.Select(value => value.GenomeId)
+                .Distinct(StringComparer.Ordinal).Count() != 20
+            || baseGenomes.Length != 8
+            || baseGenomes.Select(value => value.CropId).Distinct(StringComparer.Ordinal).Count() != 8)
+            throw new InvalidOperationException(
+                "V20 requires 20 valid authored genomes and exactly one base genome for each of 8 crops.");
+        random = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams)))
+            .Get(MutationRandomStreamId);
+        this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
+    }
+
+    public int Version => version;
+    public IReadOnlyList<CropEcologyPlotSaveData> Plots => Current.Plots;
+    public void Sow(string plotId, CropFamilyGroup group, SeedLotState seed)
+    {
+        Writable.Sow(plotId, group, seed);
+        version = unchecked(version + 1);
+    }
+    public bool AdvanceDay(string plotId, bool lethalTemperature)
+    {
+        bool alive = Writable.AdvanceDay(plotId, lethalTemperature, () => random.NextFloat());
+        version = unchecked(version + 1);
+        return alive;
+    }
+    public CropHarvestEcologyResult Harvest(string plotId)
+    {
+        CropHarvestEcologyResult result = Writable.Harvest(
+            plotId,
+            () => random.NextFloat(),
+            ResolvePhysicalGenomeReferences());
+        version = unchecked(version + 1);
+        return result;
+    }
+    public void ApplyCompost(string plotId)
+    {
+        Writable.ApplyCompost(plotId);
+        version = unchecked(version + 1);
+    }
+    public void ApplyPestControl(string plotId, float amount)
+    {
+        Writable.ApplyPestControl(plotId, amount);
+        version = unchecked(version + 1);
+    }
+    public void ApplyFungicide(string plotId, float amount)
+    {
+        Writable.ApplyFungicide(plotId, amount);
+        version = unchecked(version + 1);
+    }
+    public CropEcologyWorldSaveData Capture() => Current.Capture();
+    public bool TryClaim(out IReadOnlyList<SeedLotState> seedLots)
+    {
+        bool claimed = Writable.TryClaimInitialSeedGrant(out seedLots);
+        if (claimed) version = unchecked(version + 1);
+        return claimed;
+    }
+    public CropEcologyAggregateState PrepareRestore(CropEcologyWorldSaveData data)
+    {
+        CropEcologyAggregateState candidate = CropEcologyAggregateState.Restore(data);
+        foreach (CropGenomeDefinitionSO definition in authoredGenomes)
+            candidate.RegisterBaseGenome(definition.CreateRuntimeDefinition());
+        return candidate;
+    }
+    public void PublishRestore(CropEcologyAggregateState candidate)
+    {
+        rootStore.Replace(candidate ?? throw new ArgumentNullException(nameof(candidate)));
+        version = unchecked(version + 1);
+    }
+
+    private CropEcologyAggregateState Current => rootStore.GetOrCreate(CreateFresh);
+    private CropEcologyAggregateState Writable => rootStore.GetOrCreateWritable(
+        CreateFresh,
+        value => CropEcologyAggregateState.Restore(value.Capture()));
+    private CropEcologyAggregateState CreateFresh()
+    {
+        CropEcologyAggregateState state = new();
+        foreach (CropGenomeDefinitionSO definition in authoredGenomes)
+            state.RegisterBaseGenome(definition.CreateRuntimeDefinition());
+        return state;
+    }
+
+    private IReadOnlyCollection<string> ResolvePhysicalGenomeReferences()
+    {
+        HashSet<string> references = new(StringComparer.Ordinal);
+        foreach (WorldItemStackSnapshot stack in stock.GetAllStacks())
+        {
+            if (stack == null || stack.Quantity <= 0) continue;
+            try
+            {
+                SeedLotState seed = SeedLotItemStateCodec.Decode(stack.Components);
+                references.Add(seed.cultivarGenomeId);
+            }
+            catch (InvalidOperationException)
+            {
+                // Non-seed physical stacks intentionally have no seed-lot component.
+            }
+        }
+        return references;
+    }
+}
+
+public sealed class CropSeedBootstrapRuntime : VContainer.Unity.IInitializable
+{
+    private readonly IInitialCropSeedGrant grant;
+    private readonly IPhysicalSeedLotGateway seedLots;
+    private readonly IResourceEconomyContentCatalog content;
+
+    public CropSeedBootstrapRuntime(
+        IInitialCropSeedGrant grant,
+        IPhysicalSeedLotGateway seedLots,
+        IResourceEconomyContentCatalog content)
+    {
+        this.grant = grant ?? throw new ArgumentNullException(nameof(grant));
+        this.seedLots = seedLots ?? throw new ArgumentNullException(nameof(seedLots));
+        this.content = content ?? throw new ArgumentNullException(nameof(content));
+    }
+
+    public void Initialize()
+    {
+        if (!grant.TryClaim(out IReadOnlyList<SeedLotState> initial)) return;
+        foreach (SeedLotState seed in initial)
+        {
+            CropDefinitionSO crop = content.Crops.Single(value =>
+                string.Equals(value.CropId, seed.cropId, StringComparison.Ordinal));
+            if (!seedLots.SpawnSeedLot(crop.SeedItemId, 4, seed, Vector2Int.zero))
+                throw new InvalidOperationException(
+                    $"Initial physical seed grant failed for crop '{seed.cropId}'.");
+        }
+    }
+}

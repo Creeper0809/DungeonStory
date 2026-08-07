@@ -33,14 +33,14 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
   abilityModules:
     items:
-    - rid: 7737211730927813239
-    - rid: 7737211730927813240
-    - rid: 7737211730927813241
-    - rid: 7737211730927813242
-    - rid: 7737211730927813243
-    - rid: 7737211730927813244
-    - rid: 7737211730927813245
-    - rid: 7737211730927813246
+    - rid: 7737211794726584883
+    - rid: 7737211794726584884
+    - rid: 7737211794726584885
+    - rid: 7737211794726584886
+    - rid: 7737211794726584887
+    - rid: 7737211794726584888
+    - rid: 7737211794726584889
+    - rid: 7737211794726584890
   width: 1
   height: 1
   layer: 1
@@ -56,33 +56,35 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730927813239
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726584883
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF08
-    - rid: 7737211730927813240
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726584884
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - research-overhaul
         - research:control:blood-show
         - workstation:v3:blood-stage
-    - rid: 7737211730927813241
+    - rid: 7737211794726584885
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v3:blood-stage
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211730927813242
+    - rid: 7737211794726584886
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
         defaultBatchCapacity: 4
         outputCapacities: []
-    - rid: 7737211730927813243
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}
+    - rid: 7737211794726584887
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
@@ -90,7 +92,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211730927813244
+    - rid: 7737211794726584888
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -101,11 +103,11 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 0
           disabledWhenDamaged: 1
-    - rid: 7737211730927813245
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726584889
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211730927813246
+    - rid: 7737211794726584890
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility

@@ -214,11 +214,10 @@ internal static class CharacterAiPlanDebugFixtures
         string characterName,
         string speciesTag)
     {
-        CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
-        data.characterType = type;
-        data.characterName = characterName;
-        data.speciesTag = speciesTag;
-        return data;
+        return CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+            type,
+            characterName,
+            speciesTag);
     }
 
     public static BuildingSO CreateBuildingData(int id, string objectName)

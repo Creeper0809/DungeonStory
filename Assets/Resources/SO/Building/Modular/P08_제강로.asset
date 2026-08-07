@@ -39,12 +39,12 @@ MonoBehaviour:
     - rid: 7737211730834227634
     - rid: 7737211730834227635
     - rid: 7737211730834227636
-    - rid: 7737211730889016009
-    - rid: 7737211730889016010
-    - rid: 7737211730889016011
-    - rid: 7737211730889016012
-    - rid: 7737211730889016265
-    - rid: 7737211730889016266
+    - rid: 7737211792998531187
+    - rid: 7737211792998531188
+    - rid: 7737211792998531189
+    - rid: 7737211792998531190
+    - rid: 7737211792998531452
+    - rid: 7737211792998531453
   width: 3
   height: 1
   layer: 1
@@ -61,18 +61,18 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730834227630
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: P08
     - rid: 7737211730834227631
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - steelworks
     - rid: 7737211730834227633
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 150
@@ -120,21 +120,21 @@ MonoBehaviour:
           - key: Steel
             value: 2
           metrics: []
-    - rid: 7737211730889016009
+    - rid: 7737211792998531187
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7737211730889016010
+    - rid: 7737211792998531188
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7737211730889016011
+    - rid: 7737211792998531189
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -145,20 +145,20 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7737211730889016012
+    - rid: 7737211792998531190
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7737211730889016265
+    - rid: 7737211792998531452
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:steelworks
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211730889016266
+    - rid: 7737211792998531453
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -178,3 +178,5 @@ MonoBehaviour:
           capacity: 16
         - itemId: component:precision-parts
           capacity: 16
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}

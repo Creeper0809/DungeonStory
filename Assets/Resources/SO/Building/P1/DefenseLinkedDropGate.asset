@@ -37,8 +37,8 @@ MonoBehaviour:
     - rid: 7302563312817144073
     - rid: 7302563312817144076
     - rid: 7302563313672520649
-    - rid: 7737211772876620345
-    - rid: 7737211772876620346
+    - rid: 7737211792998531319
+    - rid: 7737211792998531320
   width: 2
   height: 1
   layer: 1
@@ -76,7 +76,7 @@ MonoBehaviour:
         toughness: 24
         repairHitPointsPerWork: 2
         breachable: 1
-    - rid: 7737211772876620345
+    - rid: 7737211792998531319
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -87,7 +87,7 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 4
           disabledWhenDamaged: 1
-    - rid: 7737211772876620346
+    - rid: 7737211792998531320
       type: {class: BuildingDefenseAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingDefenseAbility

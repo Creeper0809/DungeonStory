@@ -920,7 +920,7 @@ public static class P1P2FeatureSurfacePlayModeVerifier
 
             bool profileClicked = ClickExact("P1Action_StaffProfile");
             AddResult(lines, "P1-13 CHARACTER_PROFILE", profileClicked && guard.Identity?.Profile != null,
-                $"clicked={profileClicked}; name={guard.Identity?.DisplayName}; species={guard.Identity?.SpeciesTag}; traits={guard.Identity?.Profile?.Traits.Count ?? -1}");
+                $"clicked={profileClicked}; name={guard.Identity?.DisplayName}; species={guard.Identity?.SpeciesTag}; traits={guard.Identity?.Profile?.ExpressedTraitIds.Count ?? -1}");
 
             bool personaStateVisible = HasActiveObject("P1State_StaffPersona");
             bool moodStateVisible = HasActiveObject("P1State_StaffMood");

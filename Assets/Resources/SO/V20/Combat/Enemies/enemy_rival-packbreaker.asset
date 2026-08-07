@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8080a982ba741ff4e8ae644f419d70cb, type: 3}
+  m_Name: enemy_rival-packbreaker
+  m_EditorClassIdentifier: DungeonStory.Offense::EnemyArchetypeDefinitionSO
+  stableId: enemy:rival-packbreaker
+  displayName: "\uACBD\uC7C1 \uB358\uC804 \uBB34\uB9AC\uD30C\uC1C4\uC790"
+  description: "\uAC08\uACE0\uB9AC\uB85C \uD6C4\uC5F4\uC744 \uB04C\uC5B4\uB0B4 \uC218\uC778
+    \uB3CC\uACA9\uB300\uC5D0 \uB118\uAE34\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored enemy archetype.
+  factionId: rival:dungeon
+  speciesTag: Beastkin
+  role: 0
+  maxHealth: 124
+  attack: 12
+  strength: 10.200001
+  toughness: 9
+  dexterity: 10
+  moveSpeed: 5
+  equipment:
+    weaponDefinitionId: weapon:halberd
+    armorDefinitionId: armor:scale
+    shieldDefinitionId: 
+    ammunitionItemId: 
+  abilityIds:
+  - enemy-ability:hook-pull
+  - enemy-ability:charge
+  tacticalProfile:
+    attackWeight: 4
+    protectWeight: 1
+    abilityWeight: 3
+    retreatWeight: 2
+    retreatHealthFraction: 0.2
+    preferredTargetTags:
+    - nearest
+    avoidedTargetTags:
+    - none
+    formationTag: pack-wedge
+  counterTags:
+  - counter:guard-backline
+  rewardItemIds:
+  - loot:enemy-salvage
+  bossPhases: []
+  individualGeneration:
+    minimumGeneralTraits: 2
+    maximumGeneralTraits: 3
+    minimumExpressedHeritableTraits: 0
+    maximumExpressedHeritableTraits: 2
+    maximumLatentHeritableTraits: 1
+    aptitudeVariance: 15
+    combatStatVariance: 0.12
+    minimumLoyalty: 20
+    maximumLoyalty: 75
+    recruitable: 1
+    militaryTrainingId: training:rival-packbreaker
+    allowedBackgroundIds: []

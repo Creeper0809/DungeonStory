@@ -261,21 +261,17 @@ public static class OffenseBattleDebugScenarios
 
     private static bool VerifyDifficultyMultipliers()
     {
-        OffenseTargetDefinition target = new OffenseTargetDefinition
-        {
-            id = "difficulty-test",
-            title = "Difficulty",
-            campaignOrder = 1,
-            requiredMembers = 1
-        };
-        OffenseBattleCombatant easy = OffenseEncounterCatalog.CreateEnemies(target, DungeonDifficulty.Easy).Single();
-        OffenseBattleCombatant normal = OffenseEncounterCatalog.CreateEnemies(target, DungeonDifficulty.Normal).Single();
-        OffenseBattleCombatant hard = OffenseEncounterCatalog.CreateEnemies(target, DungeonDifficulty.Hard).Single();
-        Require(Mathf.Approximately(easy.Stats.MaxHealth, normal.Stats.MaxHealth * 0.8f),
+        DungeonDifficultyMultipliers easy =
+            DungeonDifficultyRules.GetOffenseMultipliers(DungeonDifficulty.Easy);
+        DungeonDifficultyMultipliers normal =
+            DungeonDifficultyRules.GetOffenseMultipliers(DungeonDifficulty.Normal);
+        DungeonDifficultyMultipliers hard =
+            DungeonDifficultyRules.GetOffenseMultipliers(DungeonDifficulty.Hard);
+        Require(Mathf.Approximately(easy.EnemyHealth, normal.EnemyHealth * 0.8f),
             "Easy enemy health multiplier is incorrect.");
-        Require(Mathf.Approximately(hard.Stats.MaxHealth, normal.Stats.MaxHealth * 1.25f),
+        Require(Mathf.Approximately(hard.EnemyHealth, normal.EnemyHealth * 1.25f),
             "Hard enemy health multiplier is incorrect.");
-        Require(Mathf.Approximately(hard.Stats.Attack, normal.Stats.Attack * 1.2f),
+        Require(Mathf.Approximately(hard.EnemyAttack, normal.EnemyAttack * 1.2f),
             "Hard enemy attack multiplier is incorrect.");
         return true;
     }

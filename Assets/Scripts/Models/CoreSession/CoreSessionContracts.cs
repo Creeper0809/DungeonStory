@@ -10,13 +10,113 @@ public enum TimeOfDay
     Night = 4
 }
 
+public enum Season
+{
+    Spring = 0,
+    Summer = 1,
+    Autumn = 2,
+    Winter = 3
+}
+
+public static class GameCalendarRules
+{
+    public const int HoursPerDay = 24;
+    public const int DaysPerSeason = 30;
+    public const int SeasonsPerYear = 4;
+    public const int DaysPerYear = DaysPerSeason * SeasonsPerYear;
+    public const float SecondsPerDay = 180f;
+
+    public static CalendarDateTime Project(int absoluteDay, int hour)
+    {
+        int day = Math.Max(1, absoluteDay);
+        int normalizedHour = Math.Clamp(hour, 0, HoursPerDay - 1);
+        int zeroBasedDay = day - 1;
+        int dayOfYear = zeroBasedDay % DaysPerYear + 1;
+        int zeroBasedSeason = (dayOfYear - 1) / DaysPerSeason;
+        return new CalendarDateTime(
+            day,
+            zeroBasedDay / DaysPerYear + 1,
+            dayOfYear,
+            (Season)zeroBasedSeason,
+            (dayOfYear - 1) % DaysPerSeason + 1,
+            normalizedHour);
+    }
+
+    public static CalendarDateTime ProjectRegional(
+        int absoluteDay,
+        int hour,
+        int utcOffsetHours)
+    {
+        int offset = Math.Clamp(utcOffsetHours, -6, 6);
+        long absoluteHour = ((long)Math.Max(1, absoluteDay) - 1L)
+            * HoursPerDay
+            + Math.Clamp(hour, 0, HoursPerDay - 1)
+            + offset;
+        long regionalDayIndex = Math.Max(0L, absoluteHour / HoursPerDay);
+        int regionalHour = (int)(absoluteHour % HoursPerDay);
+        if (regionalHour < 0)
+        {
+            regionalHour += HoursPerDay;
+            regionalDayIndex = Math.Max(0L, regionalDayIndex - 1L);
+        }
+
+        return Project(
+            checked((int)Math.Min(int.MaxValue, regionalDayIndex + 1L)),
+            regionalHour);
+    }
+}
+
+public readonly struct CalendarDateTime : IEquatable<CalendarDateTime>
+{
+    public CalendarDateTime(
+        int absoluteDay,
+        int year,
+        int dayOfYear,
+        Season season,
+        int dayOfSeason,
+        int hour)
+    {
+        AbsoluteDay = absoluteDay;
+        Year = year;
+        DayOfYear = dayOfYear;
+        Season = season;
+        DayOfSeason = dayOfSeason;
+        Hour = hour;
+    }
+
+    public int AbsoluteDay { get; }
+    public int Year { get; }
+    public int DayOfYear { get; }
+    public Season Season { get; }
+    public int DayOfSeason { get; }
+    public int Hour { get; }
+    public long AbsoluteHour => ((long)AbsoluteDay - 1L)
+        * GameCalendarRules.HoursPerDay
+        + Hour;
+
+    public bool Equals(CalendarDateTime other) =>
+        AbsoluteDay == other.AbsoluteDay && Hour == other.Hour;
+
+    public override bool Equals(object obj) =>
+        obj is CalendarDateTime other && Equals(other);
+
+    public override int GetHashCode() => HashCode.Combine(AbsoluteDay, Hour);
+}
+
 public interface IGameCalendar
 {
     int Day { get; }
     int Hour { get; }
+    int Year { get; }
+    int DayOfYear { get; }
+    Season Season { get; }
+    int DayOfSeason { get; }
+    long AbsoluteHour { get; }
     float ElapsedSeconds { get; }
     TimeOfDay TimeOfDay { get; }
     bool IsRunning { get; }
+    CalendarDateTime Current { get; }
+    CalendarDateTime GetRegionalTime(int utcOffsetHours);
     void Start();
     void SetDateTime(int day, int hour);
 }

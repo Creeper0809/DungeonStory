@@ -23,6 +23,13 @@ public interface IAnatomyHealthRuntime
         float damage,
         float bleeding,
         string reason);
+    bool TryDamageNodeWithCause(
+        CharacterActor actor,
+        string nodeId,
+        float damage,
+        float bleeding,
+        CharacterDeathCauseCode deathCause,
+        string reasonCode);
     bool TryHealNode(
         CharacterActor actor,
         string nodeId,

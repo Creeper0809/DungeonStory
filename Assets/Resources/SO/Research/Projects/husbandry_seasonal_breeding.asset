@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: husbandry_seasonal_breeding
+  m_EditorClassIdentifier: DungeonStory.Research::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7254
+  projectId: research:husbandry:seasonal-breeding
+  displayName: "\uACC4\uC808 \uBC88\uC2DD"
+  description: "\uC0DD\uBB3C\uACC4\uC808 \uAE30\uB85D\uC744 \uBC88\uC2DD \uC77C\uC815\uACFC
+    \uD68C\uBCF5 \uC8FC\uAE30\uC5D0 \uBC18\uC601\uD55C\uB2E4."
+  field: 9
+  requiredWork: 420
+  prerequisites:
+  - {fileID: 11400000, guid: 15debf0ab3fbbed42baae417568308af, type: 2}
+  - {fileID: 11400000, guid: 80c33ed657a2d1c4eb1266d6f8826dd2, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:agriculture:phenology
+    prerequisite: {fileID: 11400000, guid: 15debf0ab3fbbed42baae417568308af, type: 2}
+    kind: 2
+    reason: "\uC0DD\uBB3C\uACC4\uC808\uD559\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uACC4\uC808 \uBC88\uC2DD \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:husbandry:breeding
+    prerequisite: {fileID: 11400000, guid: 80c33ed657a2d1c4eb1266d6f8826dd2, type: 2}
+    kind: 2
+    reason: "\uBC88\uC2DD \uAD00\uB9AC\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uACC4\uC808 \uBC88\uC2DD \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7737211793001939571
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 3
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211793001939571
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 8855

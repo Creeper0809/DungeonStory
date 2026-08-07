@@ -21,14 +21,26 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 170400
+  id: 1
   encounterId: encounter:01
-  displayName: "\uBCC0\uACBD \uC21C\uCC30\uB300"
+  displayName: "\uC655\uB839 \uB18D\uC9C0 \uC9D5\uBC1C"
   minimumSiteStrength: 1
-  maximumSiteStrength: 3
+  maximumSiteStrength: 4
   elite: 0
   boss: 0
+  objective: 0
+  objectiveRoundLimit: 0
+  objectiveTargetId: 
+  battlefieldModifierIds:
+  - battlefield:narrow-bridge
+  counterTags:
+  - counter:reach
+  rewardItemIds:
+  - loot:enemy-salvage
   enemies:
-  - enemyArchetypeId: human_guard
+  - enemyArchetypeId: enemy:crown-levy
+    minimumCount: 1
+    maximumCount: 2
+  - enemyArchetypeId: enemy:legion-arquebus
     minimumCount: 1
     maximumCount: 2

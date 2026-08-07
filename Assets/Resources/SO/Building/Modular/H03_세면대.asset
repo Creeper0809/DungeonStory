@@ -43,9 +43,9 @@ MonoBehaviour:
     - rid: 7737211730538791841
     - rid: 7737211730538791842
     - rid: 7737211730538791843
-    - rid: 7737211730889015867
-    - rid: 7737211730889015868
-    - rid: 7737211730889016316
+    - rid: 7737211792661414894
+    - rid: 7737211792661414895
+    - rid: 7737211792998531503
   width: 1
   height: 1
   layer: 1
@@ -62,12 +62,12 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730538791834
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: H03
     - rid: 7737211730538791835
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 95
@@ -99,7 +99,7 @@ MonoBehaviour:
           supportedWorkTypes: 536879116
           disabledWhenDamaged: 1
     - rid: 7737211730538791838
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
     - rid: 7737211730538791839
@@ -126,31 +126,31 @@ MonoBehaviour:
           excretion: 0
           hygiene: 62
     - rid: 7737211730538791841
-      type: {class: BuildingCleaningAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingCleaningAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingCleaningAbility
         restoredCleanliness: 100
     - rid: 7737211730538791842
-      type: {class: BuildingWaterSourceAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingWaterSourceAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingWaterSourceAbility
         waterPerWork: 4
         workSeconds: 0.9
         blockedByFreezingWeather: 1
     - rid: 7737211730538791843
-      type: {class: BuildingVentilationAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingVentilationAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingVentilationAbility
         hygieneRiskReduction: 10
         smokeRiskReduction: 4
-    - rid: 7737211730889015867
+    - rid: 7737211792661414894
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737211730889015868
+    - rid: 7737211792661414895
       type: {class: BuildingWaterFixtureAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWaterFixtureAbility
@@ -160,7 +160,7 @@ MonoBehaviour:
         allowsManualWaterFallback: 1
         allowsDryFallback: 0
         manualWasteItemId: industrial:sludge
-    - rid: 7737211730889016316
+    - rid: 7737211792998531503
       type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceHubAbility

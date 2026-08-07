@@ -365,7 +365,7 @@ public class AIAction
             actor.GetNowXY(),
             pathDestination,
             GridPathSearchPriority.Normal,
-            GridTraversalContext.ForCharacter(actor));
+            GridTraversalContext.ForCharacter(CharacterPersistentIdentity.Require(actor)));
         if (resolvedPath == null)
         {
             failure = AIActionFailure.Create(
@@ -451,7 +451,7 @@ public class AIAction
                 actor.GetNowXY(),
                 pathDestination,
                 GridPathSearchPriority.Urgent,
-                GridTraversalContext.ForCharacter(actor));
+                GridTraversalContext.ForCharacter(CharacterPersistentIdentity.Require(actor)));
         if (rebuiltPath == null)
         {
             failure = AIActionFailure.Create(

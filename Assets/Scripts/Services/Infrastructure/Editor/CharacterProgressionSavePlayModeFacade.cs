@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 using VContainer;
@@ -50,6 +51,10 @@ public static class CharacterProgressionSavePlayModeFacade
         scope.Container.Resolve<ICharacterBodyHealthQuery>()
             .GetSnapshot(ownerManager.CurrentOwnerActor);
         DungeonGameSaveData baseline = saveService.Capture();
+        string pristineBaselineCanonical = Canonicalize(baseline);
+        string pristineBaselineJson = saveService.ToJson(
+            baseline,
+            prettyPrint: false);
         try
         {
             if (!ValidateStrictCharacterRestoreContracts(
@@ -177,6 +182,36 @@ public static class CharacterProgressionSavePlayModeFacade
                 DungeonSaveRestorePhase.RuntimeState,
                 bodyHealth);
 
+            CharacterLifeWorldSaveData life =
+                DungeonSaveSectionPayload.ReadOrNew<CharacterLifeWorldSaveData>(
+                    captured,
+                    CharacterLifeSaveSection.Id);
+            CharacterLifeRecordSaveData ownerLife = life.characters
+                .FirstOrDefault(record => record != null
+                    && string.Equals(
+                        record.characterId,
+                        savedOwner.persistentId,
+                        StringComparison.Ordinal));
+            if (ownerLife == null)
+            {
+                message = "Legacy V18 integration fixture requires a captured owner life record.";
+                return false;
+            }
+            CharacterLifeRecordSaveData staffLife =
+                JsonUtility.FromJson<CharacterLifeRecordSaveData>(
+                    JsonUtility.ToJson(ownerLife));
+            staffLife.characterId = CanonicalStaffWorkRoundTripId;
+            life.characters.Add(staffLife);
+            life.characters = life.characters
+                .OrderBy(record => record?.characterId, StringComparer.Ordinal)
+                .ToList();
+            DungeonSaveSectionPayload.Write(
+                captured,
+                CharacterLifeSaveSection.Id,
+                CharacterLifeWorldSaveData.CurrentVersion,
+                DungeonSaveRestorePhase.Characters,
+                life);
+
             ICharacterWorldSaveService directWorldSave =
                 scope.Container.Resolve<ICharacterWorldSaveService>();
             IGridSystemProvider directGridProvider =
@@ -206,7 +241,7 @@ public static class CharacterProgressionSavePlayModeFacade
             if (saveService.TryRestore(incompatible, out DungeonGameRestoreReport incompatibleReport)
                 || !incompatibleReport.Errors.Any(error => string.Equals(
                     error,
-                    DungeonSaveCompatibility.PreV18IncompatibilityReason,
+                    DungeonSaveCompatibility.PreV20IncompatibilityReason,
                     StringComparison.Ordinal)))
             {
                 message = "Legacy growth save was not rejected with the new-game compatibility message.";
@@ -359,12 +394,80 @@ public static class CharacterProgressionSavePlayModeFacade
         }
         finally
         {
-            if (!saveService.TryRestore(baseline, out DungeonGameRestoreReport baselineReport))
+            DungeonGameSaveData pristineBaseline = saveService.FromJson(
+                pristineBaselineJson);
+            if (!saveService.TryRestore(
+                    pristineBaseline,
+                    out DungeonGameRestoreReport baselineReport))
             {
-                Debug.LogError("Failed to restore the progression verification baseline: "
+                throw new InvalidOperationException(
+                    "Failed to restore the progression verification baseline: "
                     + string.Join(" | ", baselineReport.Errors));
             }
+
+            DungeonGameSaveData restoredBaseline = saveService.Capture();
+            string restoredBaselineCanonical = Canonicalize(restoredBaseline);
+            if (!string.Equals(
+                    pristineBaselineCanonical,
+                    restoredBaselineCanonical,
+                    StringComparison.Ordinal))
+            {
+                DungeonCharacterWorldSaveData expectedCharacters =
+                    DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterWorldSaveData>(
+                        pristineBaseline,
+                        CharacterWorldSaveSection.Id);
+                DungeonCharacterWorldSaveData actualCharacters =
+                    DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterWorldSaveData>(
+                        saveService.Capture(),
+                        CharacterWorldSaveSection.Id);
+                ICharacterLifetimeQuery lifetime =
+                    scope.Container.Resolve<ICharacterLifetimeQuery>();
+                string liveActors = string.Join(
+                    ",",
+                    lifetime.AllCharacters.Select(actor => actor == null
+                        ? "<null>"
+                        : $"{actor.Identity?.PersistentId ?? "<none>"}"
+                            + $"[active={actor.gameObject.activeInHierarchy};"
+                            + $"type={actor.Identity?.CharacterType};"
+                            + $"work={actor.TryGetAbility(out AbilityWork _)};"
+                            + $"state={actor.CurrentLifecycleState};dead={actor.IsDead}]"));
+                throw new InvalidOperationException(
+                    "Progression verification baseline restore returned success "
+                    + "without restoring the exact captured aggregate state. "
+                    + "expectedActors="
+                    + string.Join(",", expectedCharacters.actors.Select(actor => actor?.persistentId))
+                    + "; actualActors="
+                    + string.Join(",", actualCharacters.actors.Select(actor => actor?.persistentId))
+                    + "; lifetime=" + liveActors);
+            }
         }
+    }
+
+    private static string Canonicalize(DungeonGameSaveData save)
+    {
+        StringBuilder builder = new StringBuilder();
+        builder.Append(save?.version ?? 0).Append('\n');
+        AppendCanonicalField(builder, save?.sceneName);
+        foreach (DungeonSaveSectionEnvelope section in
+                 save?.sections?
+                     .Where(candidate => candidate != null)
+                     .OrderBy(candidate => candidate.sectionId, StringComparer.Ordinal)
+                 ?? Enumerable.Empty<DungeonSaveSectionEnvelope>())
+        {
+            AppendCanonicalField(builder, section.sectionId);
+            builder.Append(section.sectionVersion).Append('\n');
+            builder.Append((int)section.restorePhase).Append('\n');
+            builder.Append(section.optional ? '1' : '0').Append('\n');
+            AppendCanonicalField(builder, section.payloadJson);
+        }
+
+        return builder.ToString();
+    }
+
+    private static void AppendCanonicalField(StringBuilder builder, string value)
+    {
+        string safe = value ?? string.Empty;
+        builder.Append(safe.Length).Append(':').Append(safe).Append('\n');
     }
 
     private static bool ValidateStrictCharacterRestoreContracts(
@@ -667,6 +770,8 @@ public static class CharacterProgressionSavePlayModeFacade
             return false;
         }
 
+        MarkerDependencySection sessionDependency =
+            new MarkerDependencySection(FoundationSessionSaveSection.Id);
         MarkerDependencySection runDependency =
             new MarkerDependencySection(RunVariableSaveSection.Id);
         MarkerDependencySection metaDependency =
@@ -677,6 +782,7 @@ public static class CharacterProgressionSavePlayModeFacade
         DungeonSaveSectionRegistry isolated = new DungeonSaveSectionRegistry(
             new IDungeonSaveSection[]
             {
+                sessionDependency,
                 runDependency,
                 metaDependency,
                 facilitySection,
@@ -687,6 +793,7 @@ public static class CharacterProgressionSavePlayModeFacade
             new[] { facilityParticipant, characterParticipant });
         List<DungeonSaveSectionEnvelope> envelopes = new List<DungeonSaveSectionEnvelope>
         {
+            CreateEnvelope(sessionDependency),
             CreateEnvelope(runDependency),
             CreateEnvelope(metaDependency),
             CloneEnvelope(baseline, ModularFacilityWorldSaveSection.Id),

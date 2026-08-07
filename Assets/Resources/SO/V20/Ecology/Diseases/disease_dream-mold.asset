@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82b02484904f4d439a8a5bb501a7ba0f, type: 3}
+  m_Name: disease_dream-mold
+  m_EditorClassIdentifier: DungeonStory.Content::DiseaseDefinitionSO
+  stableId: disease:dream-mold
+  displayName: "\uAFC8\uACF0\uD321\uC774\uC99D"
+  routes: 1
+  incubationDays: 7
+  contagiousDays: 20
+  baseInfectionProbability: 0.08
+  baseSeverity: 57
+  targetSystem: 1
+  vaccineAllowed: 1
+  chronic: 0
+  description: "\uC218\uBA74 \uC911 \uD3EC\uC790\uC131 \uD658\uAC01\uC744 \uACF5\uC720\uD558\uAC8C
+    \uB9CC\uB4E4\uC5B4 \uC9D1\uB2E8 \uD310\uB2E8\uC744 \uD750\uB9B0\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored disease.
+  symptomProfileId: symptom:shared-dream-delirium
+  fieldResponseIds:
+  - response:dreamless-sedative
+  - response:spore-filter

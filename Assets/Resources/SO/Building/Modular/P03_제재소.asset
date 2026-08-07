@@ -39,12 +39,12 @@ MonoBehaviour:
     - rid: 7737211730538791695
     - rid: 7737211730538791696
     - rid: 7737211730538791697
-    - rid: 7737211730889015746
-    - rid: 7737211730889015747
-    - rid: 7737211730889015748
-    - rid: 7737211730889015749
-    - rid: 7737211730889016077
-    - rid: 7737211730889016078
+    - rid: 7737211792661414758
+    - rid: 7737211792661414759
+    - rid: 7737211792661414760
+    - rid: 7737211792661414761
+    - rid: 7737211792998531270
+    - rid: 7737211792998531271
   width: 3
   height: 1
   layer: 1
@@ -61,18 +61,18 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730538791691
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: P03
     - rid: 7737211730538791692
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - sawmill
     - rid: 7737211730538791694
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 125
@@ -118,21 +118,21 @@ MonoBehaviour:
           - key: Wood
             value: 2
           metrics: []
-    - rid: 7737211730889015746
+    - rid: 7737211792661414758
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7737211730889015747
+    - rid: 7737211792661414759
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7737211730889015748
+    - rid: 7737211792661414760
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -143,20 +143,20 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7737211730889015749
+    - rid: 7737211792661414761
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7737211730889016077
+    - rid: 7737211792998531270
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:sawmill
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211730889016078
+    - rid: 7737211792998531271
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -176,3 +176,5 @@ MonoBehaviour:
           capacity: 16
         - itemId: component:precision-parts
           capacity: 16
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}

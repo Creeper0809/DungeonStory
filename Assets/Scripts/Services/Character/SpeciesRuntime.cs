@@ -153,10 +153,12 @@ public sealed class SpeciesIncidentHandlerRegistry :
     public SpeciesIncidentHandlerRegistry(
         IWorldItemStackRuntime items,
         IWorldFilthQuery filth,
+        IWorldWaterContaminationCommand water,
         ICharacterAiWorldRegistry world)
     {
         ISpeciesIncidentHandler[] values =
         {
+            new SlimeContaminationHandler(filth, water),
             new BeastkinCommotionHandler(world),
             new DemonContractCurseHandler(world),
             new KoboldPartsHoardingHandler(items),
@@ -416,8 +418,7 @@ public sealed class CharacterSpeciesRuntime :
     {
         string incidentId = species.IncidentId;
         if (string.IsNullOrWhiteSpace(incidentId)
-            || incidentId is CharacterSpeciesIncidentIds.SlimeContamination
-                or CharacterSpeciesIncidentIds.OrcRampage
+            || incidentId is CharacterSpeciesIncidentIds.OrcRampage
                 or CharacterSpeciesIncidentIds.VampireFear
             || state.NextIncidentAt > clock.Time)
         {
@@ -516,6 +517,45 @@ internal abstract class SpeciesIncidentHandlerBase : ISpeciesIncidentHandler
             && Mathf.Abs(actor.GetNowXY().x - origin.x)
                 + Mathf.Abs(actor.GetNowXY().y - origin.y)
                 <= radius);
+    }
+}
+
+internal sealed class SlimeContaminationHandler : SpeciesIncidentHandlerBase
+{
+    private const string SlimeBlightDiseaseId = "disease:slime-blight";
+    private readonly IWorldFilthQuery filth;
+    private readonly IWorldWaterContaminationCommand water;
+
+    public SlimeContaminationHandler(
+        IWorldFilthQuery filth,
+        IWorldWaterContaminationCommand water)
+    {
+        this.filth = filth ?? throw new ArgumentNullException(nameof(filth));
+        this.water = water ?? throw new ArgumentNullException(nameof(water));
+    }
+
+    public override string IncidentId => CharacterSpeciesIncidentIds.SlimeContamination;
+
+    public override bool Execute(SpeciesIncidentContext context, out string summary)
+    {
+        Vector2Int origin = context.Actor.GetNowXY();
+        string characterId = CharacterPersistentIdentity.Require(context.Actor).Value;
+        filth.AddFilth(
+            WorldFilthType.Stain,
+            origin,
+            20f,
+            characterId,
+            0.65f);
+        bool contaminated = water.TryContaminateNearest(
+            origin,
+            4,
+            SlimeBlightDiseaseId,
+            WorldWaterQuality.Unsafe,
+            out string sourceId);
+        summary = contaminated
+            ? $"점액 오염이 수원 '{sourceId}'에 번져 점액역병 위험이 생겼습니다."
+            : "점액 오염이 바닥에 남았지만 반경 안에 오염될 수원은 없습니다.";
+        return true;
     }
 }
 

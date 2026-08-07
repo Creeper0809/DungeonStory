@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f7513029e620ee4481ed23352a360f1, type: 3}
+  m_Name: ambition_guard-captain
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterAmbitionDefinitionSO
+  stableId: ambition:guard-captain
+  displayName: "\uACBD\uBE44\uB300\uC758 \uC2E0\uB8B0"
+  description: "\uC2B9\uB9AC\uAC00 \uC544\uB2C8\uB77C \uBAA8\uB450\uB97C \uADC0\uD658\uC2DC\uD0A4\uB294
+    \uC9C0\uD718\uAD00\uC73C\uB85C \uC778\uC815\uBC1B\uC73C\uB824 \uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  category: 2
+  targetProgress: 280
+  activationRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters:
+    - minimumLifeStage: 3
+      maximumLifeStage: 4
+      requiredTraitId: 
+      excludedTraitId: 
+      minimumHealth: 0
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  failureConditions:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  completionRewards:
+  - kind: 5
+    targetId: guards
+    amount: 1
+    durationDays: 0
+  relatedEventWeights:
+  - id: life-event:captains-test
+    weight: 2
+  cooperationAmbitionIds: []
+  conflictAmbitionIds: []

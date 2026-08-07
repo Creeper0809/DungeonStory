@@ -198,6 +198,9 @@ public abstract class CharacterSpeciesDefinitionSO : SerializedScriptableObject
     public string anatomyProfileId = "anatomy:humanoid";
     public SpeciesNeedProfile needs = new();
     public SpeciesEnvironmentProfile environment = new();
+    public SpeciesLifeHistorySO lifeHistory;
+    public ReproductionProfileSO reproduction;
+    public FuneralCultureSO funeralCulture;
     public string[] relationTags = Array.Empty<string>();
     public string[] defenseAffinityTags = Array.Empty<string>();
     public string[] strongWorkTypeIds = Array.Empty<string>();
@@ -264,6 +267,14 @@ public static class CharacterSpeciesDefinitionCatalogRequirements
                 || string.IsNullOrWhiteSpace(species.displayName)
                 || species.needs == null
                 || species.environment == null
+                || species.lifeHistory == null
+                || species.reproduction == null
+                || species.funeralCulture == null
+                || !species.lifeHistory.SpeciesId.Equals(species.DefinitionId)
+                || !species.reproduction.SpeciesId.Equals(species.DefinitionId)
+                || !species.funeralCulture.SpeciesId.Equals(species.DefinitionId)
+                || species.lifeHistory.ValidateDefinition().Count > 0
+                || species.reproduction.ValidateDefinition().Count > 0
                 || string.IsNullOrWhiteSpace(species.anatomyProfileId)
                 || species.incident == null
                 || string.IsNullOrWhiteSpace(species.incident.StableId)

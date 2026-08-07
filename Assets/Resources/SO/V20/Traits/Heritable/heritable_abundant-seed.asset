@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e299ffa39eb64f5aa2a777c1be71b5bc, type: 3}
+  m_Name: heritable_abundant-seed
+  m_EditorClassIdentifier: DungeonStory.Species::HeritableTraitDefinitionSO
+  traitId: heritable:abundant-seed
+  displayName: "\uD48D\uBD80\uD55C \uC885\uC790"
+  description: "\uC0DD\uC2DD \uC131\uACF5\uB960\uC774 \uB192\uC9C0\uB9CC \uD68C\uBCF5
+    \uAE30\uAC04\uC758 \uC601\uC591 \uC694\uAD6C\uAC00 \uB298\uC5B4\uB09C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored hereditary trait manifest.
+  category: 3
+  incompatibilityGroup: reproduction:slow-fertility
+  aptitudeModifier: 2
+  compatibleSpeciesTags: []
+  consequences:
+  - kind: 4
+    targetId: success-rate
+    multiplierDelta: 0.12

@@ -21,14 +21,26 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 170402
+  id: 3
   encounterId: encounter:03
-  displayName: "\uBD09\uC778 \uC218\uC0C9\uC870"
-  minimumSiteStrength: 2
-  maximumSiteStrength: 5
+  displayName: "\uB3C4\uC2DC\uC5F0\uB9F9 \uBB34\uAE30\uACE0"
+  minimumSiteStrength: 1
+  maximumSiteStrength: 4
   elite: 0
   boss: 0
+  objective: 2
+  objectiveRoundLimit: 6
+  objectiveTargetId: target:field-medic
+  battlefieldModifierIds:
+  - battlefield:elevated-gallery
+  counterTags:
+  - counter:smoke
+  rewardItemIds:
+  - loot:enemy-salvage
   enemies:
-  - enemyArchetypeId: human_guard
-    minimumCount: 3
-    maximumCount: 4
+  - enemyArchetypeId: enemy:crown-longbow
+    minimumCount: 1
+    maximumCount: 2
+  - enemyArchetypeId: enemy:legion-captain
+    minimumCount: 1
+    maximumCount: 2

@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23de0c160ab9df54eb2ace98a4a93e08, type: 3}
+  m_Name: background_mine-bondworker
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterBackgroundDefinitionSO
+  stableId: background:mine-bondworker
+  displayName: "\uAD11\uC0B0 \uACC4\uC57D\uB178\uB3D9\uC790"
+  description: "\uBB34\uB108\uC9C0\uB294 \uAC31\uB3C4\uC640 \uBD80\uB2F9\uD55C \uD560\uB2F9\uB7C9
+    \uC18D\uC5D0\uC11C \uAD11\uB9E5\uACFC \uC704\uD5D8 \uC9D5\uD6C4\uB97C \uC77D\uC5C8\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  startingSkills:
+  - skillId: mining
+    experience: 90
+  startingEffects:
+  - kind: 1
+    targetId: background-confidence
+    amount: 2
+    durationDays: 10
+  factionReactions:
+  - id: faction:iron-consortium
+    weight: 0.1
+  initialMemoryCode: memory:collapsed-shaft

@@ -1,10 +1,10 @@
 POINTER_OwnerOption_1001=PASS; OwnerOption_1001
-POINTER_DISPATCH=PASS; target=OwnerOption_1001; point=(385.47, 503.00)
+POINTER_DISPATCH=PASS; target=OwnerOption_1001; point=(770.93, 1006.00)
 PLAYABLE_RUN_READY=PASS; owner=Leon
 RUN_OVERLAYS_CLEARED=PASS; owner selection overlays cleared
 RESOLUTION_1600x900=PASS; actual=1600x900
 SCOPE=PASS; gameplay lifetime scope resolved
-CATALOG_COUNT=PASS; projects=168
+CATALOG_COUNT=PASS; projects=216
 RUNTIME=PASS; research runtime resolved
 DETAIL_MODEL_PROJECT=PASS; research:equipment:powered-armor
 DETAIL_REWARD_CATALOG=PASS; resolved
@@ -12,7 +12,7 @@ POINTER_TopTabButton_Research_연구=PASS; TopTabButton_Research_연구
 POINTER_DISPATCH=PASS; target=TopTabButton_Research_연구; point=(1233.41, 26.67)
 WINDOW_OPEN=PASS; research tree opened by pointer
 DEFAULT_NO_PAUSE=PASS; timeScale=1; paused=False
-ALL_NODES_VISIBLE=PASS; nodes=168
+ALL_NODES_VISIBLE=PASS; nodes=216
 SURFACE_STRUCTURE=PASS; graph and inspector are present
 DESKTOP_DETAIL_NODE_VISIBLE=PASS; project=research:equipment:powered-armor; centered=True; node=True; viewport=GraphViewport:(0.00, 53.33)->(1266.67, 783.33)
 POINTER_Node_research:equipment:powered-armor=PASS; Node_research:equipment:powered-armor
@@ -25,7 +25,7 @@ DESKTOP_DETAIL_PREREQUISITE_WORK=PASS; deduplicated=5308
 DESKTOP_DETAIL_ESTIMATE=PASS; shifts=66; gameDays=65.7
 DESKTOP_DETAIL_REWARD_CARDS=PASS; cards=3; text=[ProductionItem] 동력 갑주 관절, [ProductionRecipe] 동력 갑주 관절, [CombatEquipment] 동력 보조 갑주
 DESKTOP_DETAIL_LOCK_REASON=PASS; state=Locked; blocker=Missing prerequisite research: 관절식 판금, 정밀 부품 장착, 배전
-DESKTOP_CAPTURE=PASS; size=1600x900; visible=1439997
+DESKTOP_CAPTURE=PASS; size=1600x900; visible=1439993
 QUEUE_CANDIDATE_1=PASS; research:agriculture:gathering
 POINTER_Node_research:agriculture:gathering=PASS; Node_research:agriculture:gathering
 POINTER_DISPATCH=PASS; target=Node_research:agriculture:gathering; point=(633.33, 418.33)
@@ -46,11 +46,11 @@ POINTER_DISPATCH=PASS; target=ProjectAction; point=(1433.33, 406.20)
 QUEUE_POINTER_3=PASS; project=research:authority:quarters; queue=3
 QUEUE_THREE=PASS; queue=3
 QUEUE_DRAG_REORDER=PASS; before=research:arcane:records,research:authority:quarters; afterSecond=research:authority:quarters
-GRAPH_PAN=PASS; position=(658.80, 735.70)->(808.80, 680.70)
+GRAPH_PAN=PASS; position=(658.80, 1663.00)->(808.80, 1608.00)
 CURSOR_ZOOM=PASS; zoom=0.55->0.605
 POINTER_Search=PASS; Search
 POINTER_DISPATCH=PASS; target=Search; point=(536.00, 807.50)
-SEARCH_DIMMING=PASS; matchingAlpha=1; dimmed=165
+SEARCH_DIMMING=PASS; matchingAlpha=1; dimmed=209
 POINTER_Close=PASS; Close
 POINTER_DISPATCH=PASS; target=Close; point=(1520.00, 807.50)
 CLOSE_POINTER=PASS; close button closed research tree
@@ -76,10 +76,10 @@ PORTRAIT_DETAIL_PREREQUISITE_WORK=PASS; deduplicated=5308
 PORTRAIT_DETAIL_ESTIMATE=PASS; shifts=66; gameDays=65.7
 PORTRAIT_DETAIL_REWARD_CARDS=PASS; cards=3; text=[ProductionItem] 동력 갑주 관절, [ProductionRecipe] 동력 갑주 관절, [CombatEquipment] 동력 보조 갑주
 PORTRAIT_DETAIL_LOCK_REASON=PASS; state=Locked; blocker=Missing prerequisite research: 관절식 판금, 정밀 부품 장착, 배전
-PORTRAIT_DETAIL_CAPTURE=PASS; size=900x1600; visible=1439992
+PORTRAIT_DETAIL_CAPTURE=PASS; size=900x1600; visible=1439990
 POINTER_QueueTab=PASS; QueueTab
 POINTER_DISPATCH=PASS; target=QueueTab; point=(674.17, 477.47)
-PORTRAIT_QUEUE_CAPTURE=PASS; size=900x1600; visible=1440000
+PORTRAIT_QUEUE_CAPTURE=PASS; size=900x1600; visible=1439998
 RESOLUTION_1600x900=PASS; actual=1600x900
 POINTER_Close=PASS; Close
 POINTER_DISPATCH=PASS; target=Close; point=(1520.00, 807.50)

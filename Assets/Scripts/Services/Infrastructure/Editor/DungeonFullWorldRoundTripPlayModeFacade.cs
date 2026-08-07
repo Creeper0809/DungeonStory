@@ -258,7 +258,7 @@ public static class DungeonFullWorldRoundTripPlayModeFacade
 
 public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
 {
-    private const int ExpectedSectionCount = 54;
+    private const int ExpectedSectionCount = 68;
     private const float RuntimeReadyTimeoutSeconds = 45f;
 
     private readonly List<string> warnings = new();
@@ -452,7 +452,7 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
                 && warnings.Count == 0
                 && errors.Count == 0;
             detail = passed
-                ? "Live 54-section full-world round trip and baseline restoration passed."
+                ? "Live 68-section full-world round trip and baseline restoration passed."
                 : "The round trip emitted Console warnings or errors.";
         }
         catch (Exception exception)

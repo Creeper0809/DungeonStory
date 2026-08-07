@@ -205,6 +205,27 @@ public sealed class CharacterActorRuntimeBridge : MonoBehaviour
         RegisterIfActive();
     }
 
+    internal void ReconcilePublishedRegistration()
+    {
+        if (detachedRestoreCandidate
+            || unpublishedComposition
+            || actor == null
+            || !actor.isActiveAndEnabled
+            || worldRegistry == null
+            || aiSchedulingService == null)
+        {
+            throw new InvalidOperationException(
+                "Only an active, configured, published character can reconcile runtime registration.");
+        }
+
+        worldRegistry.RegisterCharacterLifetime(actor);
+        registeredWithLifetimeRegistry = true;
+        worldRegistry.RegisterCharacter(actor);
+        registeredWithWorldRegistry = true;
+        aiSchedulingService.Register(actor);
+        registeredWithAiScheduler = true;
+    }
+
     public void OnActorDisabled()
     {
         UnregisterFromAiScheduler();

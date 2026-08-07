@@ -130,7 +130,13 @@ namespace DungeonStory.Tests.Architecture
                 "abilityBridge.Initialize(abilityCache, data);",
                 "lifecycleCoordinator.MarkInitializedBeforeFirstStart();");
             Assert.That(coordinator, Does.Contain(
-                "isPersistentRestore || initializedBeforeFirstStart"));
+                "bool skipInitialDataInitialization ="));
+            Assert.That(coordinator, Does.Contain(
+                "isPersistentRestore"));
+            Assert.That(coordinator, Does.Contain(
+                "|| initializedBeforeFirstStart"));
+            Assert.That(coordinator, Does.Contain(
+                "|| explicitInitializationCompleted"));
             AssertInOrder(
                 coordinator,
                 "if (!skipInitialDataInitialization)",
@@ -140,7 +146,7 @@ namespace DungeonStory.Tests.Architecture
                 "initializedBeforeFirstStart = false;",
                 "stats?.BeginNeedDecaySchedule();");
             Assert.That(coordinator, Does.Contain(
-                "if (unpublishedComposition)"));
+                "if (unpublishedComposition || detachedRestoreCandidate)"));
             Assert.That(coordinator, Does.Contain(
                 "initializedBeforeFirstStart = true;"));
 

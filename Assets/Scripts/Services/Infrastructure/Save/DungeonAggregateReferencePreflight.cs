@@ -17,12 +17,16 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
     private readonly IBuildingDefinitionLookup buildingDefinitions;
     private readonly ICombatEquipmentCatalog combatEquipmentDefinitions;
     private readonly IResourceEconomyContentCatalog economyContent;
+    private readonly ICharacterLifeDefinitionCatalog lifeDefinitions;
+    private readonly IDiseaseDefinitionCatalog diseaseDefinitions;
 
     public DungeonAggregateReferencePreflight(
         IItemDefinitionCatalog itemDefinitions,
         IBuildingDefinitionLookup buildingDefinitions,
         ICombatEquipmentCatalog combatEquipmentDefinitions,
-        IResourceEconomyContentCatalog economyContent)
+        IResourceEconomyContentCatalog economyContent,
+        ICharacterLifeDefinitionCatalog lifeDefinitions,
+        IDiseaseDefinitionCatalog diseaseDefinitions)
     {
         this.itemDefinitions = itemDefinitions
             ?? throw new ArgumentNullException(nameof(itemDefinitions));
@@ -32,6 +36,10 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             ?? throw new ArgumentNullException(nameof(combatEquipmentDefinitions));
         this.economyContent = economyContent
             ?? throw new ArgumentNullException(nameof(economyContent));
+        this.lifeDefinitions = lifeDefinitions
+            ?? throw new ArgumentNullException(nameof(lifeDefinitions));
+        this.diseaseDefinitions = diseaseDefinitions
+            ?? throw new ArgumentNullException(nameof(diseaseDefinitions));
     }
 
     public void Validate(
@@ -81,6 +89,34 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             DungeonSaveSectionPayload.ReadOrNew<TreasuryEconomySaveData>(
                 saveData,
                 TreasuryEconomySaveSection.Id);
+        CharacterLifeWorldSaveData life =
+            DungeonSaveSectionPayload.ReadOrNew<CharacterLifeWorldSaveData>(
+                saveData,
+                CharacterLifeSaveSection.Id);
+        KinshipHouseholdWorldSaveData kinshipHouseholds =
+            DungeonSaveSectionPayload.ReadOrNew<KinshipHouseholdWorldSaveData>(
+                saveData,
+                KinshipHouseholdSaveSection.Id);
+        ReproductionWorldSaveData reproduction =
+            DungeonSaveSectionPayload.ReadOrNew<ReproductionWorldSaveData>(
+                saveData,
+                ReproductionSaveSection.Id);
+        PopulationHealthWorldSaveData populationHealth =
+            DungeonSaveSectionPayload.ReadOrNew<PopulationHealthWorldSaveData>(
+                saveData,
+                PopulationHealthSaveSection.Id);
+        CharacterCareerWorldSaveData careers =
+            DungeonSaveSectionPayload.ReadOrNew<CharacterCareerWorldSaveData>(
+                saveData,
+                CharacterCareerSaveSection.Id);
+        CharacterPsychosocialWorldSaveData psychosocial =
+            DungeonSaveSectionPayload.ReadOrNew<CharacterPsychosocialWorldSaveData>(
+                saveData,
+                CharacterPsychosocialSaveSection.Id);
+        CropEcologyWorldSaveData cropEcology =
+            DungeonSaveSectionPayload.ReadOrNew<CropEcologyWorldSaveData>(
+                saveData,
+                CropEcologySaveSection.Id);
 
         // ReadOrNew deserializes detached DTO graphs. Normalize only the explicitly
         // typed early-V18 character-reference paths on those graphs before building
@@ -123,6 +159,43 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             buildingIds.InstanceIds,
             physical.EquipmentInstanceIds,
             report);
+        HashSet<string> lifeCharacterIds = ValidateCharacterLife(
+            life,
+            characterIds,
+            report);
+        KinshipReferenceIndex kinship = ValidateKinshipHouseholds(
+            kinshipHouseholds,
+            characterIds,
+            buildingIds.InstanceIds,
+            report);
+        ValidateReproduction(
+            reproduction,
+            characterIds,
+            kinship.AllCharacterIds,
+            report);
+        ValidatePopulationHealth(populationHealth, characterIds, report);
+        ValidateCareers(
+            careers,
+            characterIds,
+            buildingIds.InstanceIds,
+            report);
+        ValidatePsychosocial(
+            psychosocial,
+            characterIds,
+            kinship.AllCharacterIds,
+            report);
+        ValidateCropEcology(
+            cropEcology,
+            cropPlots,
+            buildingIds.InstanceIds,
+            physical.SeedLots,
+            report);
+
+        foreach (string characterId in characterIds.Except(lifeCharacterIds))
+        {
+            report.AddError(
+                $"Character '{characterId}' has no V19 life record.");
+        }
     }
 
     private static void NormalizeEarlyV18CharacterReferences(
@@ -248,6 +321,8 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             {
                 report.AddError($"Item stack '{stack.stackId}' has non-positive quantity {stack.quantity}.");
             }
+
+            CollectSeedLot(stack.components, stack.itemId, result, report);
         }
 
         foreach (UniqueItemInstanceSaveData unique in source?.uniqueItems
@@ -276,6 +351,7 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
                 result.ItemInstanceIds.Add(uniqueItemInstanceId);
             }
             RequireItemDefinition(unique.definitionId, report);
+            CollectSeedLot(unique.components, unique.definitionId, result, report);
             ItemInstanceComponentSaveData equipmentComponent = unique.components?
                 .FirstOrDefault(component => component != null
                     && string.Equals(
@@ -312,6 +388,34 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
         }
 
         return result;
+    }
+
+    private static void CollectSeedLot(
+        IReadOnlyList<ItemInstanceComponentSaveData> components,
+        string itemDefinitionId,
+        PhysicalReferenceIndex index,
+        DungeonGameRestoreReport report)
+    {
+        if (!(components ?? Array.Empty<ItemInstanceComponentSaveData>()).Any(
+                component => component != null
+                    && string.Equals(
+                        component.componentTypeId,
+                        ItemInstanceComponentIds.SeedLot,
+                        StringComparison.Ordinal)))
+        {
+            return;
+        }
+
+        try
+        {
+            SeedLotState seedLot = SeedLotItemStateCodec.Decode(components);
+            index.SeedLots.Add((itemDefinitionId?.Trim() ?? string.Empty, seedLot));
+        }
+        catch (Exception exception)
+        {
+            report.AddError(
+                $"Physical seed lot '{itemDefinitionId}' is invalid: {exception.Message}");
+        }
     }
 
     private HashSet<string> ValidateCharacters(
@@ -945,6 +1049,483 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
         }
     }
 
+    private HashSet<string> ValidateCharacterLife(
+        CharacterLifeWorldSaveData source,
+        ISet<string> characterIds,
+        DungeonGameRestoreReport report)
+    {
+        HashSet<string> lifeIds = new(StringComparer.Ordinal);
+        foreach (CharacterLifeRecordSaveData record in source?.characters
+                     ?? new List<CharacterLifeRecordSaveData>())
+        {
+            if (record == null)
+            {
+                report.AddError("Character-life aggregate contains a null record.");
+                continue;
+            }
+
+            RequireUniqueId(record.characterId, "character-life record", lifeIds, report);
+            RequireReference(record.characterId, characterIds, "Character-life record", report);
+            CharacterSpeciesId speciesId = new(record.phenotypeSpeciesId);
+            if (!speciesId.IsValid)
+            {
+                report.AddError(
+                    $"Character-life record '{record.characterId}' has invalid phenotype species '{record.phenotypeSpeciesId}'.");
+            }
+            else
+            {
+                try
+                {
+                    SpeciesLifeHistoryDefinition history =
+                        lifeDefinitions.RequireLifeHistory(speciesId);
+                    CharacterLifeStage expected = history.ResolveStage(
+                        record.biologicalAgeDayUnits);
+                    if (expected != record.lifeStage)
+                    {
+                        report.AddError(
+                            $"Character-life record '{record.characterId}' has life stage {record.lifeStage}, expected {expected}.");
+                    }
+                }
+                catch (Exception)
+                {
+                    report.AddError(
+                        $"Character-life record '{record.characterId}' references unknown phenotype species '{record.phenotypeSpeciesId}'.");
+                }
+            }
+
+            HashSet<string> conditionIds = new(StringComparer.Ordinal);
+            foreach (CharacterAgeConditionSaveData condition in record.ageConditions
+                         ?? new List<CharacterAgeConditionSaveData>())
+            {
+                if (condition == null
+                    || string.IsNullOrWhiteSpace(condition.conditionId)
+                    || !conditionIds.Add(condition.conditionId))
+                {
+                    report.AddError(
+                        $"Character-life record '{record.characterId}' contains an invalid or duplicate aging condition.");
+                }
+            }
+        }
+
+        return lifeIds;
+    }
+
+    private static KinshipReferenceIndex ValidateKinshipHouseholds(
+        KinshipHouseholdWorldSaveData source,
+        ISet<string> livingCharacterIds,
+        ISet<string> buildingIds,
+        DungeonGameRestoreReport report)
+    {
+        KinshipReferenceIndex result = new(livingCharacterIds);
+        HashSet<string> tombstoneIds = result.TombstoneIds;
+        foreach (CharacterTombstoneSaveData tombstone in source?.kinship?.tombstones
+                     ?? new List<CharacterTombstoneSaveData>())
+        {
+            if (tombstone == null)
+            {
+                report.AddError("Kinship aggregate contains a null tombstone.");
+                continue;
+            }
+
+            RequireUniqueId(tombstone.characterId, "tombstone", tombstoneIds, report);
+            if (livingCharacterIds.Contains(tombstone.characterId))
+            {
+                report.AddError(
+                    $"Character '{tombstone.characterId}' is both living and archived as a tombstone.");
+            }
+            if (!new CharacterSpeciesId(tombstone.phenotypeSpeciesId).IsValid)
+            {
+                report.AddError(
+                    $"Tombstone '{tombstone.characterId}' has invalid phenotype species '{tombstone.phenotypeSpeciesId}'.");
+            }
+            if (tombstone.deathAbsoluteDay < 1
+                || tombstone.deathAbsoluteDay < tombstone.birthAbsoluteDay
+                || tombstone.generation < 0
+                || !string.IsNullOrWhiteSpace(tombstone.householdId)
+                && !new HouseholdId(tombstone.householdId).IsValid)
+            {
+                report.AddError(
+                    $"Tombstone '{tombstone.characterId}' has invalid temporal, household, or generation data.");
+            }
+        }
+
+        result.AllCharacterIds.UnionWith(tombstoneIds);
+        HashSet<string> linkKeys = new(StringComparer.Ordinal);
+        foreach (CharacterKinshipLinkSaveData link in source?.kinship?.links
+                     ?? new List<CharacterKinshipLinkSaveData>())
+        {
+            if (link == null)
+            {
+                report.AddError("Kinship aggregate contains a null relationship link.");
+                continue;
+            }
+            RequireReference(link.sourceCharacterId, result.AllCharacterIds, "Kinship source", report);
+            RequireReference(link.targetCharacterId, result.AllCharacterIds, "Kinship target", report);
+            string key = $"{(int)link.kind}:{link.sourceCharacterId}:{link.targetCharacterId}";
+            if (!linkKeys.Add(key))
+            {
+                report.AddError($"Kinship aggregate contains duplicate relationship '{key}'.");
+            }
+        }
+
+        HashSet<string> assignedCharacters = new(StringComparer.Ordinal);
+        HashSet<string> assignedBeds = new(StringComparer.Ordinal);
+        foreach (CharacterRoomAssignmentSaveData assignment in source?.households?.assignments
+                     ?? new List<CharacterRoomAssignmentSaveData>())
+        {
+            if (assignment == null)
+            {
+                report.AddError("Household aggregate contains a null room assignment.");
+                continue;
+            }
+            RequireReference(assignment.characterId, livingCharacterIds, "Household character", report);
+            RequireReference(assignment.roomBuildingId, buildingIds, "Household room", report);
+            RequireReference(assignment.bedBuildingId, buildingIds, "Household bed", report);
+            if (!new HouseholdId(assignment.householdId).IsValid)
+            {
+                report.AddError(
+                    $"Household assignment for '{assignment.characterId}' has invalid household ID '{assignment.householdId}'.");
+            }
+            if (!assignedCharacters.Add(assignment.characterId))
+            {
+                report.AddError(
+                    $"Character '{assignment.characterId}' has multiple room assignments.");
+            }
+            if (!assignedBeds.Add(assignment.bedBuildingId))
+            {
+                report.AddError(
+                    $"Bed '{assignment.bedBuildingId}' is assigned to multiple characters.");
+            }
+            result.HouseholdIds.Add(assignment.householdId);
+        }
+
+        foreach (LineageSummarySaveData summary in source?.kinship?.lineageSummaries
+                     ?? new List<LineageSummarySaveData>())
+        {
+            if (summary == null || !new HouseholdId(summary.householdId).IsValid)
+            {
+                report.AddError("Kinship aggregate contains an invalid lineage summary.");
+            }
+            else
+            {
+                result.HouseholdIds.Add(summary.householdId);
+            }
+        }
+
+        return result;
+    }
+
+    private void ValidateReproduction(
+        ReproductionWorldSaveData source,
+        ISet<string> livingCharacterIds,
+        ISet<string> knownCharacterIds,
+        DungeonGameRestoreReport report)
+    {
+        HashSet<string> processIds = new(StringComparer.Ordinal);
+        foreach (ReproductionProcessSaveData process in source?.processes
+                     ?? new List<ReproductionProcessSaveData>())
+        {
+            if (process == null)
+            {
+                report.AddError("Reproduction aggregate contains a null process.");
+                continue;
+            }
+            RequireUniqueId(process.processId, "reproduction process", processIds, report);
+            RequireReference(process.firstParentId, knownCharacterIds, "Reproduction first parent", report);
+            if (process.mode != ReproductionMode.GolemAssembly)
+            {
+                RequireReference(process.secondParentId, knownCharacterIds, "Reproduction second parent", report);
+            }
+            if (!string.IsNullOrWhiteSpace(process.carrierId))
+            {
+                RequireReference(process.carrierId, knownCharacterIds, "Reproduction carrier", report);
+                if (process.status is ReproductionProcessStatus.Active
+                        or ReproductionProcessStatus.WaitingForEnvironment
+                        or ReproductionProcessStatus.WaitingForEmergencyExtraction
+                    && process.carrierDeathAbsoluteDay <= 0
+                    && !livingCharacterIds.Contains(process.carrierId))
+                {
+                    report.AddError(
+                        $"Active reproduction carrier '{process.carrierId}' is not a living character.");
+                }
+            }
+            if (process.resultPublished)
+            {
+                RequireReference(
+                    process.resultCharacterId,
+                    livingCharacterIds,
+                    "Published reproduction result",
+                    report);
+            }
+            else if (!string.IsNullOrWhiteSpace(process.resultCharacterId))
+            {
+                report.AddError(
+                    $"Unpublished reproduction process '{process.processId}' contains a result character ID.");
+            }
+            CharacterSpeciesId speciesId = new(process.phenotypeSpeciesId);
+            try
+            {
+                if (!speciesId.IsValid)
+                    throw new InvalidOperationException();
+                lifeDefinitions.RequireLifeHistory(speciesId);
+            }
+            catch (Exception)
+            {
+                report.AddError(
+                    $"Reproduction process '{process.processId}' references unknown phenotype species '{process.phenotypeSpeciesId}'.");
+            }
+        }
+    }
+
+    private void ValidatePopulationHealth(
+        PopulationHealthWorldSaveData source,
+        ISet<string> livingCharacterIds,
+        DungeonGameRestoreReport report)
+    {
+        HashSet<string> recordIds = new(StringComparer.Ordinal);
+        foreach (CharacterPopulationHealthSaveData health in source?.characters
+                     ?? new List<CharacterPopulationHealthSaveData>())
+        {
+            if (health == null)
+            {
+                report.AddError("Population-health aggregate contains a null character record.");
+                continue;
+            }
+            RequireUniqueId(health.characterId, "population-health character", recordIds, report);
+            RequireReference(health.characterId, livingCharacterIds, "Population-health character", report);
+            foreach (string diseaseId in (health.immunity ?? new List<DiseaseImmunitySaveData>())
+                         .Where(value => value != null).Select(value => value.diseaseId)
+                         .Concat((health.activeDiseases ?? new List<ActiveDiseaseSaveData>())
+                             .Where(value => value != null).Select(value => value.diseaseId)))
+            {
+                RequireDiseaseDefinition(diseaseId, report);
+            }
+        }
+        foreach (DiseaseExposureSaveData exposure in source?.pendingExposures
+                     ?? new List<DiseaseExposureSaveData>())
+        {
+            if (exposure == null)
+            {
+                report.AddError("Population-health aggregate contains a null exposure.");
+                continue;
+            }
+            RequireReference(exposure.characterId, livingCharacterIds, "Disease exposure character", report);
+            RequireDiseaseDefinition(exposure.diseaseId, report);
+        }
+        foreach (EpidemicStateSaveData epidemic in source?.epidemics
+                     ?? new List<EpidemicStateSaveData>())
+        {
+            if (epidemic == null)
+            {
+                report.AddError("Population-health aggregate contains a null epidemic state.");
+                continue;
+            }
+            RequireDiseaseDefinition(epidemic.diseaseId, report);
+        }
+    }
+
+    private static void ValidateCareers(
+        CharacterCareerWorldSaveData source,
+        ISet<string> livingCharacterIds,
+        ISet<string> buildingIds,
+        DungeonGameRestoreReport report)
+    {
+        HashSet<string> careerIds = new(StringComparer.Ordinal);
+        foreach (CharacterCareerSaveData career in source?.characters
+                     ?? new List<CharacterCareerSaveData>())
+        {
+            if (career == null)
+            {
+                report.AddError("Career aggregate contains a null character record.");
+                continue;
+            }
+            RequireUniqueId(career.characterId, "career character", careerIds, report);
+            RequireReference(career.characterId, livingCharacterIds, "Career character", report);
+            if (career.retiredWorkAbsoluteDay < 0
+                || career.retiredWorkSeconds < 0f
+                || float.IsNaN(career.retiredWorkSeconds)
+                || float.IsInfinity(career.retiredWorkSeconds)
+                || career.retiredWorkSeconds
+                    > CareerRules.RetireeMaximumSafeWorkSeconds + 0.001f)
+            {
+                report.AddError(
+                    $"Career character '{career.characterId}' has invalid retiree work time.");
+            }
+        }
+        HashSet<string> mentoredStudents = new(StringComparer.Ordinal);
+        foreach (CareerMentorshipSaveData mentorship in source?.mentorships
+                     ?? new List<CareerMentorshipSaveData>())
+        {
+            if (mentorship == null)
+            {
+                report.AddError("Career aggregate contains a null mentorship.");
+                continue;
+            }
+            RequireReference(
+                mentorship.mentorCharacterId,
+                livingCharacterIds,
+                "Mentorship mentor",
+                report);
+            RequireReference(
+                mentorship.studentCharacterId,
+                livingCharacterIds,
+                "Mentorship student",
+                report);
+            RequireReference(
+                mentorship.academyBuildingId,
+                buildingIds,
+                "Mentorship academy",
+                report);
+            if (!mentoredStudents.Add(mentorship.studentCharacterId)
+                || string.Equals(
+                    mentorship.mentorCharacterId,
+                    mentorship.studentCharacterId,
+                    StringComparison.Ordinal)
+                || mentorship.lastAwardAbsoluteDay < 0)
+            {
+                report.AddError(
+                    $"Mentorship for '{mentorship.studentCharacterId}' is invalid or duplicated.");
+            }
+        }
+    }
+
+    private static void ValidatePsychosocial(
+        CharacterPsychosocialWorldSaveData source,
+        ISet<string> livingCharacterIds,
+        ISet<string> knownCharacterIds,
+        DungeonGameRestoreReport report)
+    {
+        HashSet<string> recordIds = new(StringComparer.Ordinal);
+        foreach (CharacterPsychosocialRecordSaveData record in source?.characters
+                     ?? new List<CharacterPsychosocialRecordSaveData>())
+        {
+            if (record == null)
+            {
+                report.AddError("Psychosocial aggregate contains a null character record.");
+                continue;
+            }
+            RequireUniqueId(record.characterId, "psychosocial character", recordIds, report);
+            RequireReference(record.characterId, livingCharacterIds, "Psychosocial character", report);
+            if (record.lastLongNightMemorialYear < 0)
+            {
+                report.AddError(
+                    $"Psychosocial record '{record.characterId}' has an invalid long-night year.");
+            }
+            HashSet<string> festivals = new(StringComparer.Ordinal);
+            foreach (FestivalAttendanceSaveData attendance in record.festivalAttendance
+                         ?? new List<FestivalAttendanceSaveData>())
+            {
+                if (attendance == null
+                    || string.IsNullOrWhiteSpace(attendance.festivalId)
+                    || attendance.year < 1
+                    || !festivals.Add(attendance.festivalId))
+                {
+                    report.AddError(
+                        $"Psychosocial record '{record.characterId}' has invalid festival attendance.");
+                }
+            }
+            foreach (GriefIncidentSaveData incident in record.grief
+                         ?? new List<GriefIncidentSaveData>())
+            {
+                if (incident == null)
+                {
+                    report.AddError(
+                        $"Psychosocial record '{record.characterId}' contains a null grief incident.");
+                    continue;
+                }
+                RequireReference(
+                    incident.deceasedCharacterId,
+                    knownCharacterIds,
+                    "Grief deceased character",
+                    report);
+            }
+        }
+    }
+
+    private void ValidateCropEcology(
+        CropEcologyWorldSaveData source,
+        DungeonCropPlotSaveData cropPlots,
+        ISet<string> buildingIds,
+        IReadOnlyList<(string itemDefinitionId, SeedLotState state)> physicalSeedLots,
+        DungeonGameRestoreReport report)
+    {
+        HashSet<string> cropPlotIds = (cropPlots?.plots ?? new List<CropPlotSaveData>())
+            .Where(value => value != null)
+            .Select(value => value.buildingInstanceId)
+            .ToHashSet(StringComparer.Ordinal);
+        Dictionary<string, string> genomes = new(StringComparer.Ordinal);
+        foreach (CultivarGenomeSaveData genome in (source?.activeCultivars
+                     ?? new List<CultivarGenomeSaveData>())
+                 .Concat(source?.frozenCultivars ?? new List<CultivarGenomeSaveData>()))
+        {
+            if (genome == null || string.IsNullOrWhiteSpace(genome.genomeId)
+                || !genomes.TryAdd(genome.genomeId, genome.cropId))
+            {
+                report.AddError("Crop-ecology aggregate contains an invalid or duplicate cultivar genome.");
+                continue;
+            }
+            RequireCropDefinition(genome.cropId, $"Cultivar genome '{genome.genomeId}'", report);
+        }
+        foreach (CropEcologyPlotSaveData plot in source?.plots
+                     ?? new List<CropEcologyPlotSaveData>())
+        {
+            if (plot == null)
+            {
+                report.AddError("Crop-ecology aggregate contains a null plot.");
+                continue;
+            }
+            RequireReference(plot.plotId, buildingIds, "Crop-ecology plot building", report);
+            if (!cropPlotIds.Contains(plot.plotId))
+            {
+                report.AddError(
+                    $"Crop-ecology plot '{plot.plotId}' has no matching crop-plot aggregate record.");
+            }
+            if (!string.IsNullOrWhiteSpace(plot.cropId))
+                RequireCropDefinition(plot.cropId, $"Crop-ecology plot '{plot.plotId}'", report);
+            if (!string.IsNullOrWhiteSpace(plot.cultivarGenomeId)
+                && (!genomes.TryGetValue(plot.cultivarGenomeId, out string genomeCropId)
+                    || !string.Equals(genomeCropId, plot.cropId, StringComparison.Ordinal)))
+            {
+                report.AddError(
+                    $"Crop-ecology plot '{plot.plotId}' references missing or mismatched genome '{plot.cultivarGenomeId}'.");
+            }
+        }
+        foreach ((string itemDefinitionId, SeedLotState seedLot) in physicalSeedLots)
+        {
+            RequireCropDefinition(seedLot.cropId, $"Physical seed lot '{itemDefinitionId}'", report);
+            if (!genomes.TryGetValue(seedLot.cultivarGenomeId, out string genomeCropId)
+                || !string.Equals(genomeCropId, seedLot.cropId, StringComparison.Ordinal))
+            {
+                report.AddError(
+                    $"Physical seed lot '{itemDefinitionId}' references missing or mismatched genome '{seedLot.cultivarGenomeId}'.");
+            }
+        }
+    }
+
+    private void RequireCropDefinition(
+        string cropId,
+        string label,
+        DungeonGameRestoreReport report)
+    {
+        if (!economyContent.TryGetCrop(cropId?.Trim() ?? string.Empty, out _))
+            report.AddError($"{label} references unknown crop '{cropId ?? string.Empty}'.");
+    }
+
+    private void RequireDiseaseDefinition(
+        string diseaseId,
+        DungeonGameRestoreReport report)
+    {
+        try
+        {
+            diseaseDefinitions.Require(diseaseId);
+        }
+        catch (Exception)
+        {
+            report.AddError(
+                $"Save references unknown disease definition '{diseaseId ?? string.Empty}'.");
+        }
+    }
+
     private static void RequireReference(
         string id,
         ISet<string> existing,
@@ -1027,6 +1608,7 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             new HashSet<string>(StringComparer.Ordinal);
         internal Dictionary<string, string> EquipmentDefinitionIds { get; } =
             new Dictionary<string, string>(StringComparer.Ordinal);
+        internal List<(string itemDefinitionId, SeedLotState state)> SeedLots { get; } = new();
     }
 
     private sealed class BuildingReferenceIndex
@@ -1035,5 +1617,20 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             new HashSet<string>(StringComparer.Ordinal);
         internal Dictionary<string, BuildingSO> InstanceDefinitions { get; } =
             new Dictionary<string, BuildingSO>(StringComparer.Ordinal);
+    }
+
+    private sealed class KinshipReferenceIndex
+    {
+        internal KinshipReferenceIndex(IEnumerable<string> livingCharacterIds)
+        {
+            AllCharacterIds.UnionWith(livingCharacterIds ?? Array.Empty<string>());
+        }
+
+        internal HashSet<string> TombstoneIds { get; } =
+            new(StringComparer.Ordinal);
+        internal HashSet<string> AllCharacterIds { get; } =
+            new(StringComparer.Ordinal);
+        internal HashSet<string> HouseholdIds { get; } =
+            new(StringComparer.Ordinal);
     }
 }

@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82b02484904f4d439a8a5bb501a7ba0f, type: 3}
+  m_Name: disease_deep-parasitosis
+  m_EditorClassIdentifier: DungeonStory.Content::DiseaseDefinitionSO
+  stableId: disease:deep-parasitosis
+  displayName: "\uC2EC\uCE35 \uAE30\uC0DD\uCDA9\uC99D"
+  routes: 24
+  incubationDays: 3
+  contagiousDays: 12
+  baseInfectionProbability: 0.18
+  baseSeverity: 48
+  targetSystem: 3
+  vaccineAllowed: 1
+  chronic: 0
+  description: "\uC624\uC5FC\uB41C \uACE0\uAE30\uC640 \uBB3C\uC758 \uAE30\uC0DD\uCDA9\uC774
+    \uC601\uC591\uC744 \uBE7C\uC557\uACE0 \uBE48\uD608\uC744 \uB9CC\uB4E0\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored disease.
+  symptomProfileId: symptom:wasting-anemia
+  fieldResponseIds:
+  - response:boil-water
+  - response:antiparasitic

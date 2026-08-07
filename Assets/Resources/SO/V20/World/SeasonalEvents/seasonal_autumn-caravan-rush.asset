@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 454c3edcc06dfbe40b8088f448f07f38, type: 3}
+  m_Name: seasonal_autumn-caravan-rush
+  m_EditorClassIdentifier: DungeonStory.Content::SeasonalWorldEventDefinitionSO
+  stableId: seasonal:autumn-caravan-rush
+  displayName: "\uACA8\uC6B8 \uC804 \uB300\uC0C1\uD589\uB82C"
+  description: "\uB300\uC0C1\uB2E8\uC774 \uB300\uB7C9 \uACC4\uC57D\uC744 \uC81C\uC548\uD574
+    \uC0DD\uC0B0\uACFC \uAC1D\uC2E4\uC744 \uB3D9\uC2DC\uC5D0 \uC810\uC720\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored seasonal world event manifest.
+  season: 2
+  minimumDurationDays: 2
+  maximumDurationDays: 4
+  affectedDomainIds:
+  - faction
+  - production
+  triggerRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  startEffects:
+  - kind: 9
+    targetId: contract
+    amount: 180
+    durationDays: 4
+  dailyEffects: []
+  endEffects:
+  - kind: 12
+    targetId: resolved:seasonal:autumn-caravan-rush
+    amount: 1
+    durationDays: 0

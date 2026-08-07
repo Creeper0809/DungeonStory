@@ -208,6 +208,7 @@ public static class ItemInstanceComponentIds
     public const string Equipment = "item-state:equipment";
     public const string EquipmentModule = "item-state:equipment-module";
     public const string Provenance = "item-state:provenance";
+    public const string SeedLot = "item-state:seed-lot";
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

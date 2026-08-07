@@ -146,7 +146,9 @@ public sealed class AbilitySurgicalWildlifeTransport : MonoBehaviour
             actor.GetNowXY(),
             destination,
             GridPathSearchPriority.Urgent,
-            GridTraversalContext.ForCharacter(actor, overrideKind));
+            GridTraversalContext.ForCharacter(
+                CharacterPersistentIdentity.Require(actor),
+                overrideKind));
         return path != null && path.Count > 0;
     }
 

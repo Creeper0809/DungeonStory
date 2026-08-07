@@ -196,6 +196,7 @@ public static class DungeonPresentationRegistration
         builder.Register<CharacterSummaryHealthPresenter>(Lifetime.Singleton);
         builder.Register<CharacterSummaryAiPresenter>(Lifetime.Singleton);
         builder.Register<CharacterSummaryGrowthPresenter>(Lifetime.Singleton);
+        builder.Register<CharacterSummaryPopulationPresenter>(Lifetime.Singleton);
         builder.Register<CharacterSummaryStatusPresenter>(Lifetime.Singleton);
         builder.Register<CharacterSummaryShellPresenter>(Lifetime.Singleton);
         builder.Register<CharacterDetailedStatsRuntime>(Lifetime.Singleton)

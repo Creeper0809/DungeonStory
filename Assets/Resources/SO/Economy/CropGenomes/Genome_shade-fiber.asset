@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc6b8ba36b9d0d44ea0ef167ffca5446, type: 3}
+  m_Name: Genome_shade-fiber
+  m_EditorClassIdentifier: DungeonStory.Economy::CropGenomeDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 93008
+  genomeId: genome:shade-fiber:base
+  cropId: crop:shade-fiber
+  cultivarName: "shade-fiber \uAE30\uBCF8\uC885"
+  description: "\uAE30\uBCF8 \uD658\uACBD\uC5D0 \uC801\uC751\uD55C \uD45C\uC900 \uD488\uC885."
+  authoringRevision: 1
+  tradeoffTags: []
+  loci:
+  - locus: 0
+    alleleA: 0
+    alleleB: 0
+  - locus: 1
+    alleleA: 0
+    alleleB: 0
+  - locus: 2
+    alleleA: 0
+    alleleB: 0
+  - locus: 3
+    alleleA: 0
+    alleleB: 0
+  - locus: 4
+    alleleA: 0
+    alleleB: 0
+  - locus: 5
+    alleleA: 0
+    alleleB: 0

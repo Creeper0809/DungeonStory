@@ -2395,3 +2395,155 @@
 - Final project-scoped Unity MCP coordinator passed all seven targets with 30 fresh captures. Full World registered, captured, and recaptured `54/54/54` sections; canonical baseline restoration passed.
 - Final Console capture is warnings `0`, errors `0`, exceptions `0`, asserts `0`. Fresh ArchitectureMetrics reports 1,388 runtime files / 4,330 types and zero mutable statics, oversized types, large constructors, cross-domain cycle candidates, content escapes, and direct session mutations.
 - Final test-only camera and layout residues were reset only for exact known values and cleared after a save-as-copy byte comparison proved the active Gameplay scene identical to the on-disk original. No operating-system input was used and no user scene was saved or overwritten.
+# 2026-08-06 Phase 123 V19 implementation started
+
+- Read the project agent contract and the planning-with-files, Unity ScriptableObject, Unity C# scripting, and game-AI skill contracts before modifying source.
+- Recovered the prior session context, re-read the authoritative planning records, and confirmed a clean Git worktree.
+- Added Phase 123 with explicit domain, content, save, AI, UI, and final Unity MCP gates. No gameplay source or asset has been changed yet.
+- Initial parallel source read used an incorrect species-definition path and returned no file batch. Resolved the authoritative path to `Assets/Scripts/Models/Species/Core/CharacterSpeciesDefinitionSO.cs`; the failed command made no changes and will not be repeated.
+- Audited CoreSession/Characters/Species/Grid boundaries and selected calendar + authored species life/reproduction + character life Aggregate as the first vertical slice.
+- Recoverable inspection error: attempted to read a separate `CharacterSpeciesId.cs`; the type is defined in `CharacterSpeciesDefinitionSO.cs`. No source mutation occurred.
+- Unity compilation passed for the first calendar/life slice. The first content build exposed missing MonoScript links because five SO types shared one source file; split every authored SO into its own matching file and restricted repair deletion to the newly owned `Assets/Resources/SO/Population/*` subtree.
+- Unity MCP helper transiently returned no response during domain reload and once reported stale discovery; both were non-mutating transport timing failures. Fresh DLL timestamps and the subsequent successful MCP command confirmed compilation recovered.
+
+## 2026-08-06 V19 life publication and child-safety routing slice
+
+- Added typed world-hazard and child-safety contracts, policy-issued apprenticeship tokens, per-character permission, work confirmation, PPE proof, adult supervision within six cells, and direct A* rejection for combat supply, combat, forbidden cells, and unauthorized restricted work.
+- Added the approved escape exception: a minor already inside danger may take only a strictly lower-risk step. Authorized apprenticeship searches bypass shared path-result caching so supervisor movement cannot reuse a stale route.
+- Projected environmental air/thermal risk, severe physical filth, explicit overlays, and a six-cell active-combat region into one hazard query. The combat overlay changes its version only when its cell set changes.
+- Registered the child-aware cost policy as the gameplay `IGridTraversalCostPolicy`; non-gameplay scopes retain the terrain policy. Focused NUnit cases compile and the project-scoped Unity MCP gate reports `V19_CHILD_SAFETY_GATE=PASS` for five direct-rule cases.
+- Added central fresh-publication life registration in `CharacterSpawnObjectFactory`. Initial biological ages follow the approved 40/35/20/5 bands, birthdays are uniform over 120 days, and chronological age derives from the 4x minor/6x adult biological rates.
+- A compile collision revealed the legacy Unity-object `CharacterDeathEvent`; the new serializable contract is now `CharacterLifeDeathRecord` pending a one-way adapter. `TraumaThresholdEffect` was also corrected to true bit flags.
+- Recoverable validation events: a dynamic MCP test command observed a pre-reload test assembly, the guessed `Unity_RunTests` tool is not provided by this Unity MCP server, and refresh calls twice landed during domain reload. No gameplay state changed. Final runtime/editor assemblies compiled at 08:18 with no `error CS` in the final import window.
+# 2026-08-06 - V19 climate and population-health vertical slice
+
+- Added five immutable climate-zone definitions and six weather-front definitions, deterministic front duration/noise, the exact 120-day temperature curve, and calendar-driven climate runtime registration.
+- Added eight authored disease/condition definitions, room/cell exposure aggregation, bounded infection probability, recovery/vaccine immunity decay, deterministic epidemic declaration/closure, and existing-anatomy burden projection.
+- Added explicit chronic-condition handling for golem core corrosion, including persistent save state and explicit maintenance removal; it is neither contagious nor vaccine eligible.
+- Unity MCP focused evidence: `V19_CLIMATE_RULES=PASS`, `V19_POPULATION_HEALTH_RULES=PASS`, and `V19_POPULATION_HEALTH_CHRONIC_GATE=PASS`. Fresh project assemblies compiled after the changes and all eight disease assets retain valid MonoScript references.
+
+# 2026-08-06 - V19 value-only character profile and advanced aging-care slice
+
+- Added stable `CharacterArchetypeId` and `CharacterTraitId` contracts, `CharacterSpawnRequest`, and the sole `ICharacterRuntimeProfileFactory` creation path.
+- Removed stored `CharacterSO`, `CharacterSpeciesSO`, and `CharacterTraitSO` references from `CharacterRuntimeProfile`; it now retains stable content IDs and copied immutable values only.
+- Migrated all 14 root character archetypes to explicit stable archetype/visual IDs. Added an authored enemy-only Adventurer species/life/reproduction/funeral definition instead of retaining a missing-species fallback.
+- Added geriatric medicine, chronic care, rune hibernation, blood rejuvenation, whole-body regeneration, and temporal-stasis runtime/save state.
+- Added physical whole-body medium and temporal-stasis seal consumption. Temporal stasis requires its exact persistent facility, continuous rune power 10, and consumes one rune conductor plus one mana crystal every 30 days.
+- Focused Unity MCP evidence passes: `V19_CHARACTER_ARCHETYPE_MIGRATION`, `V19_LIFE_WITH_ADVENTURER`, `V19_ADVENTURER_ASSIGN`, `V19_VALUE_ONLY_PROFILE`, `V19_WHOLE_BODY_REGEN_TEST`, `V19_AGE_TREATMENT_TESTS`, `V19_TEMPORAL_STASIS_DOMAIN_TEST`, and `V19_RUNTIME_COMPOSITION`.
+
+## 2026-08-06 V19 death, kinship, anatomy, and reproduction integration
+
+- Replaced the actor-bearing death event with a value-only event and propagated explicit combat, infection, aging-organ-failure, starvation, dehydration, execution, surgery-failure, and expedition causes through the authoritative body-health death path.
+- Added death application wiring for pregnancy carrier death, aggregate grief/memorial mood projection, partner clearing, tombstones, household removal, deterministic minor guardian succession, and daily cold-data archiving.
+- Extended kinship with child/generation queries, household member queries, three-generation ancestry retention, 120-day recent-death retention, unrelated-death lineage summaries, and the 512 unrelated-famous tombstone cap without dangling links.
+- Whole-body regeneration now prevalidates authored anatomy targets before physical supply consumption and heals resolved mild/moderate damage plus the severe-to-mild differential.
+- Added reproduction day advancement, adjusted conception chance, deterministic initial reproductive roles, completed-process physical character publication, newborn versus activated-golem life registration, genetic-parent/guardian linkage, and persisted result character IDs.
+- Fresh Unity compilation succeeded after each slice. Project-scoped Unity MCP markers passed: `V19_DEATH_SOCIAL_COMPOSITION`, `V19_KINSHIP_COLD_ARCHIVE`, `V19_REGEN_ANATOMY_COMPOSITION`, `V19_REPRODUCTION_PUBLICATION`, `V19_REPRODUCTION_ROLE_COMPOSITION`, and `V19_REPRODUCTION_RULES_AND_COMPOSITION`.
+- Fresh `Assembly-CSharp.dll` and architecture test assembly compilation completed without C# errors. The next authority cut is the legacy `CharacterDeathEvent`, followed by body-health-only natural death.
+
+## 2026-08-06 V19 funeral, festival, career, and ingestion exposure integration
+
+- Added four authored festival SOs, strict funeral-culture/facility validation, joint memorials, one-per-year festival attendance, birthdays, adulthood ceremonies, and exact long-night grief conversion.
+- Added six authored career-position SOs, retirement safe-work routing with persisted four-hour/day usage, scoped mentor-academy assignments, and one progression-XP award per student/day.
+- Added persistent water pathogen state and commands, successful-drink events for normal and breakdown consumption, contaminated-meal and unsafe/foul-water population exposure, and the concrete slime-blight water contamination incident.
+- Regenerated the festival/career assets through project-scoped Unity MCP. Fresh compilation after the ingestion and water-pathogen changes produced `Assembly-CSharp.dll` at 21:17:53, `DungeonStory.Species.dll` at 21:17:43, and the architecture test assembly at 21:17:48 with no new C# errors.
+- Real extracted-blood treatment now publishes patient/clinician blood exposure, and real mana-facility work/use publishes mana-pox exposure through the same population-health Aggregate. All approved infectious routes are connected without a second health authority.
+- Remaining V19 work is the full loaded save round trip plus final-section failure injection, player-facing UI, both-resolution pointer/capture evidence, and final Console 0/0.
+- 2026-08-07: V19 기능 회귀를 현재 Unity에서 다시 실행해 최종 동기 수용 검증 `33/33 PASS`를 확보했다.
+- 2026-08-07: 800/1,200줄과 생성자 8개 기준을 강제 분할선에서 검토 신호로 변경했다. 하드 실패선은 타입 2,000줄, 생성자 의존성 16개이며 fresh ArchitectureMetrics는 review `3/1`, hard `0/0`, mutable statics `0`으로 통과했다.
+- 2026-08-07: V19 SO·카탈로그·저장 섹션·응용 어댑터·UI 포맷 경계를 다시 감사했다. 줄 수나 파일 수만 줄이는 병합/분리는 하지 않았고, 현재 네 검토 항목의 유지 사유를 `OVER_SEPARATION_AUDIT.md`와 `AGENT.md`에 고정했다.
+- 2026-08-07: 프로젝트 전용 Unity MCP 최종 PlayMode 요청은 dirty `GameplayScene` 보호 장치가 Title 전환 전에 중단했다. 사용자 씬을 임의 저장/폐기하지 않았으며, 남은 외부 게이트는 seven targets / 32 captures / 63-section round trip / final Console 0/0이다.
+- 2026-08-07: 독립 V19 UI 재시도에서 Editor 회귀가 남긴 `RegularCustomerRuntime` 테스트 루트 4개가 조립 루트를 막는 실제 누출을 발견했다. 정확한 QA 이름만 Unity Undo로 제거하고 시나리오를 `try/finally` 정리로 보강했으며, 연속 2회 실행 후 운영 1개/테스트 잔해 0개를 확인했다.
+- 2026-08-07: 정리 후 캐릭터 생애·가족·질병·경력·아동 안전·수술 UI를 `1600x900`/`900x1600`에서 Unity MCP 요청으로 검증했다. EventSystem 포인터 흐름, 6개 캡처, 캡처 구간 Error/Warning `0/0`, `RESULT=PASS`를 확보했다.
+- 2026-08-07: 프로젝트 전용 Unity MCP로 과거 실패 이력을 Console에서 제거한 뒤 Error/Warning을 다시 조회해 0건을 확인했다. 현재 Editor 기준선은 Console `0/0`이며, dirty Gameplay 씬 때문에 보류된 전체 7-target/32-capture 매트릭스와는 별도 증거다.
+- 2026-08-07: 연구 에셋은 216개였지만 루트 도메인 카탈로그가 168개만 참조하던 불일치를 수정했다. 연구 빌더는 다른 도메인 정의를 덮지 않는 연구 전용 재색인을 수행하고, 전체 재빌드는 중복 StableId를 가진 구형 던전 진영 그림자 에셋 6개를 제외한다.
+- 2026-08-07: 생산 세로 UI에서 11개 분기 행이 고정 52px 높이 때문에 뷰포트를 벗어나던 문제를 수정했다. 7개 이상 경로는 24px 밀도 행을 사용하며 데스크톱/세로 단독 검증에서 모든 행, 재고 감지반, 실물 출력, 출력 버퍼 상태가 PASS했다.
+- 2026-08-07: 최종 실행기의 900초 제한이 915초 GameplayScene 통합 중 검증 본체 시작 전에 발동하는 인프라 실패를 확인했다. 제한을 1,800초로 조정하고, 이전 PASS 보고서·캡처·복원·콘솔 증거가 모두 재검증된 경우에만 다음 타깃부터 이어가는 fail-closed 재개 경로를 추가했다.
+- 2026-08-07: 재개 전 사전검사는 Architecture `154/154`, Transactional Restore `33/33`, synchronous acceptance `33/33`으로 PASS했다. 최종 Unity MCP coordinator는 7/7 타깃, 32개 캡처, Full World 63/63/63, canonical baseline 복원, Console `0/0/0/0`으로 PASS했다.
+- 2026-08-07: 최종 Unity MCP 확인에서 `Assets/Scenes/GameplayScene.unity`은 `dirty=False`, 루트 4개(`__Scene`, `__Systems`, `__Runtime`, `__Debug`), PlayMode 정지 상태였다. Unity Console Error/Warning 재조회도 0건이며 추가 씬 저장은 필요하지 않았다.
+# 2026-08-07 Phase 124 V20 implementation started
+
+- Read the project agent contract and the complete planning-with-files, Unity ScriptableObject, Unity C# scripting, and game-AI skill contracts.
+- Recovered the prior planning context and confirmed V19 is complete; added Phase 124 for the approved 450-definition V20 expansion.
+- Locked the implementation boundary around immutable SO content, mutable runtime Aggregates, typed IDs, strict catalog registration, decision/execution-separated enemy AI, exactly 216 research nodes, and V20 new-game-only persistence.
+- Recorded the very dirty worktree as user-owned and constrained future edits to V20-related files without destructive cleanup or bulk normalization.
+- Located the current domain assemblies and the V19 exact-count validators that must be revised for V20; no gameplay source has been modified yet.
+- Inspected the root domain catalog, character trait, disease, crop genome, and offense encounter schemas. Logged and corrected three guessed source paths without modifying source.
+- Confirmed the hard-coded enemy template authority, shallow festival/heritable-trait contracts, root V19 version constant, and 63-section QA assumptions that V20 must replace.
+- Resolved the authoritative authored-content read port and the consolidated Character Life/V19 save-section source locations after non-mutating path misses.
+- Inspected the strict staged-save base and Character Life aggregate pattern selected for the V20 narrative vertical slice.
+- Confirmed the shared aggregate-root and day-end application-adapter patterns plus the exact VContainer registration points for the first implementation slice.
+- Added the V20 authored-content base, typed item/facility/research/character/faction/world requirements, typed mechanical effects, and the twelve new non-combat SO contracts.
+- Extended character traits with behavior/mood/event consequences, heritable traits with categorized gameplay consequences, and festivals with physical inputs, facilities, participation, and three outcome bands.
+- Added SO-authored enemy ability, enemy archetype, tactical profile, battlefield modifier, and encounter objective contracts while deliberately retaining the old hard-coded enemy path until the new catalog/runtime is connected.
+- Validation note: `dotnet build` is unavailable because the machine has no .NET SDK. A combined Unity-player status request also hung for 30 seconds and was terminated without scene or input mutation; validation is switching to Unity assembly timestamps and Editor-log compiler output.
+- Confirmed the correct Unity version and a responsive locked Editor, but the assemblies have not yet refreshed after the V20 source additions. Compile status remains pending rather than assumed.
+- Located the project-scoped Unity MCP refresh helper mandated by `.codex/config.toml`; validation can now use the live Editor without global MCP registration or mouse/keyboard automation.
+- First Unity import rebuilt Content/Offense/Species and found one V20 naming collision with the existing faction-domain contract. Renamed the authored-content enum to `V20FactionContractKind`; no existing faction API was changed.
+- The corrected contracts passed a full Unity clean compilation (`Tundra build success`, 103 items updated) with no remaining C# errors.
+- Added typed background/ambition/culture/event IDs, exact-count root-catalog projection, character narrative Aggregate, deterministic background/default-culture registration, adult ambition selection, 10-day ambition cooldown, 120-day assimilation, four/six heritable-trait limits, recent-12 event history, summary compression, command/query APIs, and staged persistence contracts.
+- Narrative compile attempt exposed only unsupported `init` accessors in the Unity API profile. Replaced them with internal setters while keeping external callers read-only.
+- Unity automatically completed the corrected narrative compilation and restarted its named-pipe bridge. `Assembly-CSharp.dll` was rebuilt at 20:16:13 with no compiler-error lines in the completed reload window.
+- Project-scoped Unity MCP console proof after the narrative build is Error `0` / Warning `0`. The valid invocation uses Base64-encoded arguments to avoid PowerShell JSON quoting loss.
+- Resolved the ten exact authored species tags that the culture builder and narrative default-culture lookup must use.
+- Rechecked the V20 narrative SO contracts and root catalog mutation API before asset authoring. The next builder is scoped to five owned definition types and will not rewrite unrelated catalog content.
+- Added `V20NarrativeContentAssetBuilder` with 92 explicit definitions: 12 backgrounds, 18 ambitions, 20 major and 12 automatic life events, 10 species cultures, and 20 cultural practices. Unity refreshed successfully despite the known MCP domain-reload response loss; the project-scoped Console reports Error 0 / Warning 0.
+- Executed the V20 narrative builder through the project-scoped Unity MCP. Unity compiled the command and completed the authoring transaction successfully (`Built and registered 92 V20 narrative definitions`).
+- Verified the live root catalog through Unity MCP: all 92 narrative assets are registered with exact 12/18/32/10/20 counts and zero definition validation errors.
+- Audited the trait asset baseline for the next V20 batch: nine existing general traits are present and no hereditary trait assets exist.
+- Locked the V20 general-trait numeric range to 200-246; legacy IDs 101-109 remain untouched.
+- Added and executed `V20TraitContentAssetBuilder`: 47 new general traits, 24 hereditary traits, and behavior/mood/event consequences for all nine preserved legacy traits are now authored and registered. Unity completed the transaction successfully.
+- Added the next authored batch: 16 fully physical festivals and 28 two-domain seasonal world events. Updated the festival catalog contract from the V19 count of four to the V20 count of sixteen.
+- Unity compiled and executed the society/world builder successfully. The first implementation block now accounts for all 203 planned character/culture/world definitions: 47 traits + 24 hereditary + 12 backgrounds + 18 ambitions + 32 life events + 10 cultures + 20 practices + 12 new festivals + 28 seasonal events.
+- Resolved the six canonical faction IDs and inspected the next 82 authored faction/service definition contracts.
+- Confirmed the non-craftable relic implementation path: immutable `GenericItemDefinitionSO` assets plus explicit item-catalog registration, without production recipes or runtime synthesis.
+- Added and executed the V20 faction/service builder. Unity registered 6 arcs, 36 chapters, 18 contracts, 14 guest requests, 8 service incidents, and 18 non-craftable physical relics; all authored definitions passed their typed validation.
+- Audited the combat authority boundary and preserved encounter IDs before the 96-definition combat authoring pass.
+- Added and executed the V20 combat content builder. Unity registered 18 abilities, 36 enemy archetypes, 12 battlefield modifiers, and 36 total encounters while rewriting the six preserved encounter assets; the net-new manifest contribution is 96.
+- Audited the ecology authority boundary for the final 33-definition wildlife/disease/cultivar content pass.
+- Extended wildlife, disease, and crop genome SO contracts for V20 ecology metadata. The first compile exposed and then fixed the missing Wildlife -> CoreSession assembly reference needed for authored seasonal activity.
+- Recovered the interrupted V20 session and added the user-approved enemy-individuality correction to Phase 124. The remaining implementation now explicitly includes shared offense/defense persistent enemy generation and state-preserving prisoner recruitment rather than archetype-to-generic-recruit conversion.
+- Verified the resumed live Unity Editor through the project-scoped MCP relay: the ecology contract/asmdef fix compiles with Console Error 0 / Warning 0.
+- Executed the V20 ecology asset transaction through project-scoped Unity MCP. Unity authored/updated 18 wildlife, 16 diseases, and 20 crop genomes, validated their V20 contracts, and registered the definitions; the builder reported compile/execution success.
+- Located the concrete enemy archetype, character profile factory, offense catalog/runtime, and captivity recruitment sources for the persistent-enemy correction. A broad initial search was truncated and replaced with declaration-specific file discovery.
+- Confirmed the defect boundary in source: offense enemies are still transient hard-coded battle combatants while captivity expects real actors. The correction will generate/persist the character before combat and keep combat archetype data as role/equipment/training metadata only.
+- Verified recruitment itself is already state-preserving; it mutates control/status only. Work is focused on creating and persisting an individual character record before offense/defense combat and projecting that record into combatants.
+- Identified the second identity-loss path: offense prisoner return stores counts rather than captured enemy IDs and materializes generic intruders. This queue/save contract must preserve concrete enemy instance records.
+- Confirmed the existing actor initialization API can accept deterministic trait/aptitude selections without creating SOs. The enemy factory will use that path and explicitly register life/narrative state before captivity.
+- Selected the existing CharacterNarrative Aggregate as owner for background/culture/hereditary traits plus enemy-origin/faction/training/loyalty metadata; body health and character progression remain the separate authorities for injuries and skills.
+- Found an unfinished integration seam: CharacterNarrativeCatalog/Runtime/ApplicationAdapter are not registered in the live container. This will be closed as part of the enemy-individual vertical slice rather than adding a parallel service.
+- Selected `OffenseReturnArrivalAggregateState` as owner for queued-but-not-yet-materialized prisoner blueprints. Materialized actors will use the same saved CharacterId; recruitment then keeps the already-published profile.
+- Extended enemy archetype content with a validated individual-generation profile and extended character narrative state with persistent enemy origin, faction, training, and loyalty fields. These remain definition/state authorities respectively.
+- Added the initial V20 enemy combat catalog and deterministic individual blueprint factory. It selects bounded general/hereditary traits, background, phenotype, aptitudes, loyalty, display identity, and combat variance from authored definitions and can register life/narrative state before publication.
+- Updated the combat asset builder so all 36 enemy SOs receive explicit generation bounds, combat variance, aptitude variance, loyalty range, recruitability, and a stable military-training origin ID.
+- Requested a clean Unity compilation for the enemy-individual slice. The relay disconnected during domain reload as expected; compile outcome remains pending the post-reload Console check.
+- Post-reload project-scoped Console confirmed the enemy-individual contracts compile at Error 0 / Warning 0.
+- Re-executed `V20CombatContentAssetBuilder`; all 36 existing enemy archetype assets now carry the validated individual-generation profile and the Unity command reported compilation/execution success.
+- Wired CharacterNarrativeCatalog/Runtime/ApplicationAdapter and EnemyCombatContentCatalog/EnemyIndividualFactory into the existing character and offense composition roots. No new singleton dictionary or parallel catalog was introduced.
+- The first all-at-once return-arrival patch was rejected before mutation due to an encoded status-literal context mismatch. Integration is being reapplied as narrow ASCII-anchored patches.
+- Added enemy catalog/factory dependencies to the return-arrival domain service and introduced V2 queued-prisoner blueprint storage in the arrival save state.
+- Queued prisoner rewards now populate deterministic individual blueprints at queue creation through an encoding-safe structural patch; the chosen CharacterIds exist before materialization.
+- Return restore now validates each saved blueprint against live authored catalogs. Prisoner materialization uses the saved CharacterId and `CharacterSpawnRequest`, registers life/narrative origin before publication, and no longer calls generic `actor.Initialize(data)`.
+- Added strict arrival validation requiring exactly one ordered prisoner blueprint per requested prisoner and matching deterministic CharacterIds; non-prisoner arrivals must contain none.
+- Applied the blueprint's deterministic personal display name after the legacy generic GameObject label, then requested a clean Unity compile. The relay disconnected during reload; validation is awaiting the republished Console.
+- Verified the completed return-arrival enemy-individual integration through the project-scoped Unity MCP Console: Error 0 / Warning 0. Queued prisoner blueprints now compile as the identity-preserving bridge into captivity and recruitment.
+- Audited the defense invasion path and the life-registration path. Defense still uses a single generic `CharacterSO`, while initial life registration consumes a mutable shared random stream; both are now explicit remaining identity gaps.
+- Added chronological age, biological age, and birthday to the enemy individual blueprint. Their values now derive from the blueprint's stable deterministic cursor and are registered verbatim through the life Aggregate; Unity MCP confirms Error 0 / Warning 0.
+- Confirmed defense persistence currently stores only the generic CharacterSO data ID and runtime combat state. Preserving recruitable defense enemies requires carrying the individual blueprint through the invasion persistence codec and restore candidate, not merely changing the live spawn call.
+- Moved the engine-neutral enemy individual save contract into the Characters model assembly so both offense and invasion persistence can share one DTO without a reverse dependency on runtime services.
+- Defense invasion spawning now selects a recruitable authored enemy archetype, creates one persistent individual blueprint, initializes the actor from that profile, registers life/narrative state, and retains the personal display identity.
+- Upgraded invasion persistence to payload V6 and threaded the complete enemy individual blueprint through capture, validation, DTO conversion, detached restore, and actor reconstruction. Unity MCP confirms the integrated offense/defense path compiles at Error 0 / Warning 0.
+- Authored nine non-terminal milestones and nine 3x3 physical landmark BuildingSO definitions with explicit construction BOMs, structural durability, stable content IDs, revisions, permanent rewards, and counter-pressure effects.
+- Executed the milestone builder through project-scoped Unity MCP. It registered all 18 definitions and reported compilation/execution success.
+- Ran an exact registered-content probe in Unity: `V20_MANIFEST=PASS; netNew=450; research=216; milestones=9; landmarks=9`.
+- Replaced the remaining transient enemy-template behavior with deterministic individual generation. The 25 human-faction entries remain tactical archetypes, while each offense/defense spawn now receives its own persistent CharacterId, age, name, visual variant, background, culture, ambition, general/hereditary traits, aptitudes, loyalty, and combat variance.
+- Preserved enemy identity through offense battle save/restore, return-arrival prisoner queues, invasion save/restore, captivity, and recruitment. Generic archetype-to-recruit conversion is no longer the authority path.
+- Implemented all six encounter objectives in the battle runtime (`DefeatAll`, `SurviveRounds`, `ProtectTarget`, `SabotageTarget`, `Escape`, `CaptureLeader`) and made the twelve battlefield modifiers affect real movement/accuracy/damage calculations.
+- Added focused enemy-individual regression coverage for exact 25 human-faction archetypes, deterministic variety, identity round trips, prisoner continuity, all objective outcomes, and twelve mechanical modifiers. The focused Unity scenario passed.
+- Added the live milestone world projector and wired daily society/seasonal evaluation, nine milestone completion, Legacy/Endless phase changes, and five-domain endless crisis composition into the operating-day event path.
+- Corrected the milestone test to honor the designed 120 consecutive self-sufficient days rather than granting all nine milestones on day one.
+- Fixed a deterministic sampling defect where low stable-hash bits exposed only 6 of 12 backgrounds; the enemy cursor now applies an avalanche mix before bounded selection.
+- Fixed campaign faction-effect context and validation, applied seasonal start/daily/end effects through the application adapter, separated ordinary/emergency event capacities, and added scoped recurrence plus category cooldown persistence.
+- The focused V20 campaign test now passes through milestones, 6x6 faction chapters, contracts, 120-day self-sufficiency, a ten-year bounded event simulation, endless composition, and save round trip.
+- Removed eager life/narrative registration for transient battle/invasion enemies. Only actual capture candidates are materialized into those aggregates, preventing dead/despawned enemies from polluting full-world save references.
+- Requested the 68-section full-world PlayMode round trip. Unity completed script-domain reload but then stopped advancing the Editor main thread before the runner could delete its request or emit a report. The process was intentionally not killed; project Enter Play Mode Options were restored to the previously working no-domain-reload mode for the required retry after Editor restart.

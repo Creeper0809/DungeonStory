@@ -1,0 +1,71 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8080a982ba741ff4e8ae644f419d70cb, type: 3}
+  m_Name: enemy_crown-marshal
+  m_EditorClassIdentifier: DungeonStory.Offense::EnemyArchetypeDefinitionSO
+  stableId: enemy:crown-marshal
+  displayName: "\uC655\uB839 \uC6D0\uC218"
+  description: "\uBCF4\uD638\uC640 \uC7AC\uC9D1\uACB0\uC744 \uBC18\uBCF5\uD558\uB294
+    \uC9C0\uD718\uAD00."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored enemy archetype.
+  factionId: human:crown
+  speciesTag: Human
+  role: 5
+  maxHealth: 150
+  attack: 12
+  strength: 10.200001
+  toughness: 12
+  dexterity: 9
+  moveSpeed: 4.5
+  equipment:
+    weaponDefinitionId: weapon:longsword
+    armorDefinitionId: armor:plate
+    shieldDefinitionId: 
+    ammunitionItemId: 
+  abilityIds:
+  - enemy-ability:rally
+  - enemy-ability:armor-break
+  tacticalProfile:
+    attackWeight: 4
+    protectWeight: 1
+    abilityWeight: 6
+    retreatWeight: 0
+    retreatHealthFraction: 0.2
+    preferredTargetTags:
+    - nearest
+    avoidedTargetTags:
+    - none
+    formationTag: command-center
+  counterTags:
+  - counter:isolate-leader
+  rewardItemIds:
+  - loot:enemy-salvage
+  bossPhases:
+  - healthThreshold: 0.5
+    abilityIds:
+    - enemy-ability:rally
+    - enemy-ability:armor-break
+    tacticalProfileOverrideTag: desperate
+  individualGeneration:
+    minimumGeneralTraits: 2
+    maximumGeneralTraits: 4
+    minimumExpressedHeritableTraits: 0
+    maximumExpressedHeritableTraits: 2
+    maximumLatentHeritableTraits: 1
+    aptitudeVariance: 15
+    combatStatVariance: 0.12
+    minimumLoyalty: 55
+    maximumLoyalty: 90
+    recruitable: 1
+    militaryTrainingId: training:crown-marshal
+    allowedBackgroundIds: []

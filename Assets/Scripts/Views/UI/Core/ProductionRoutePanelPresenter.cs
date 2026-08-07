@@ -79,6 +79,8 @@ public sealed class ProductionRoutePanelPresenter
             return;
         }
 
+        float routeRowHeight = policies.Length > 6 ? 24f : 52f;
+
         ProductionBuildingViewFactory.AddText(
             parent,
             text.Get(ProductionUiTextId.Header),
@@ -95,7 +97,8 @@ public sealed class ProductionRoutePanelPresenter
                 parent,
                 $"ProductionRoute_{billIndex}_{routeIndex}",
                 ResolveConsumerLabel(bill, policy.consumerId),
-                font);
+                font,
+                routeRowHeight);
             created.Add(controls);
 
             AddAdjustment(

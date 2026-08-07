@@ -1,5 +1,39 @@
 # Over-Separation Audit
 
+## V19 Follow-up (2026-08-07)
+
+### Current policy
+
+- The former 800-line MonoBehaviour/Presenter and 1,200-line runtime limits are review thresholds, not automatic split gates.
+- ArchitectureMetrics now records review findings at 800/1,200 lines and more than 8 constructor dependencies. Hard failures remain only above 2,000 lines or 16 constructor dependencies.
+- A split is accepted only when the extracted owner has an independent invariant, state/lifecycle boundary, change reason, or test surface. Partial files, dependency bags, one-method aliases, and forwarding providers do not count as decomposition.
+
+### Fresh metrics
+
+`ArchitectureMetrics -Verify` passes at `1,431 files / 4,532 types / mutable statics 0 / review types 3 / hard oversized types 0 / review constructors 1 / hard large constructors 0 / content escapes 0 / direct session mutations 0`.
+
+| Review item | Decision | Reason |
+| --- | --- | --- |
+| `CharacterActor` (819 lines) | Keep | It is the serialized Unity composition/facade boundary. Lifecycle, identity publication, ability forwarding, and existing prefab compatibility converge here; another wrapper would add indirection without creating a new authority. |
+| `CharacterBodyHealthRuntime` (1,291 lines) | Keep under review | It is the single application boundary over the body-health Aggregate and already delegates state rules and persistence authority. A future anatomy/vitals split is allowed only with an independent transaction boundary; splitting now would risk two health write paths. |
+| `DungeonAggregateReferencePreflight` (1,623 lines) | Keep | Its one responsibility is validating all cross-Aggregate references before any live publication. Domain-specific checks are private, stateless stages of one atomic preflight; registering many tiny validators would make ordering/completeness harder to prove. |
+| `PhysicalAgeTreatmentRuntime` constructor (10 dependencies) | Keep | Whole-body regeneration and temporal stasis are physical, atomic application commands spanning authored items, transfer consumption, life state, anatomy, facilities, power, and calendar. A dependency bag would only hide the real dependencies, while splitting consumption from mutation would weaken atomicity. |
+
+### V19 boundary audit
+
+- The short `*DefinitionSO` files are retained because each is an authored Unity content type with a stable MonoScript/asset boundary.
+- Festival and career catalogs are retained because each validates a different authored key space and provides fail-fast lookup to different consumers.
+- V19 save-section classes remain co-located in `V19SimulationSaveSections.cs`; they are distinct manifest/restore boundaries but were not expanded into one file per section.
+- `CharacterSummaryViewFormatting` is retained as a pure presentation rule owner shared by the summary coordinator; it owns no state and prevents localization/formatting branches from returning to the Unity view.
+- The V19 adapters publish operating-day, death, anatomy, celebration, reproduction, and career effects across domain boundaries. They are event/application boundaries rather than forwarding aliases.
+- No new V19 pure pass-through provider, sibling-only runtime source, or dependency-bag abstraction was found. No merge was performed solely to reduce file count.
+
+### Result
+
+The V19 work is not considered over-separated. The three long types and one larger constructor are explicit review records, not forced refactor work. Future changes must re-evaluate their cohesion when behavior in those areas changes, but line-count-only splitting is prohibited.
+
+Final integration did not add a new merge candidate. The production route presenter owns route-density choice while the view factory owns row geometry; combining them would mix policy and Unity construction. The final acceptance timeout/resume code remains inside the one Editor coordinator and validates prior reports, captures, persistence restoration, and clean console evidence before resuming. Fresh ArchitectureMetrics and the seven-target PlayMode matrix both pass after these changes.
+
 ## Scope
 - Target: all project-owned non-Editor C# scripts under `Assets/Scripts/**/*.cs` plus `Assets/DataManager.cs`.
 - Excluded: `Assets/**/Editor/**` and vendor/plugin scripts. Vendor function coverage remains in `SCRIPT_FUNCTION_AUDIT_VENDOR.md`.

@@ -28,12 +28,12 @@ MonoBehaviour:
   canEnterDungeon: 0
   carcassWeight: 22
   diet: 0
-  preferredHabitats:
+  preferredHabitats: 00000000
   territoryRadius: 6
   dailyFoodNeed: 1
   dailyWaterNeed: 1
   restPreference: 0.45
-  predationDrive: 0
+  predationDrive: 0.15
   fleePreference: 0.55
   butcherYields:
   - itemId: resource:meat
@@ -49,3 +49,14 @@ MonoBehaviour:
   bodySize: 1
   manureIntervalDays: 2
   husbandryProducts: []
+  authoringRevision: 1
+  preySpeciesIds:
+  - cave_rat
+  predatorSpeciesIds:
+  - shadow_wolf
+  nestTag: nest:rune_deer
+  breedingSeason: 0
+  migrationPatternId: migration:rune_deer
+  diseaseVectorIds:
+  - disease:cave-flu
+  activeSeasons: 000000000100000002000000

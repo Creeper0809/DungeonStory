@@ -52,6 +52,12 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 0.6
     heatExposureMultiplier: 1
+  incompatibilityGroups: []
+  behaviorPreferences:
+  - behaviorTag: legacy-trait:109
+    utilityDelta: -0.2
+  moodReactions: []
+  eventWeights: []
   references:
     version: 2
     RefIds: []

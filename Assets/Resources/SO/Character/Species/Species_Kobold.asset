@@ -52,6 +52,9 @@ MonoBehaviour:
     visualStrainMultiplier: 1
     preferredHumidity: 0.5
     drynessSensitivity: 1
+  lifeHistory: {fileID: 11400000, guid: bd495604825435c4d983169f4b1d0507, type: 2}
+  reproduction: {fileID: 11400000, guid: e1b6a6a491b5aeb499e1599c87b456d1, type: 2}
+  funeralCulture: {fileID: 11400000, guid: 135364852ab37314bb84114bb22d1d5c, type: 2}
   relationTags:
   - "\uC9C8\uC11C"
   - "\uD611\uC18C"
@@ -98,6 +101,14 @@ MonoBehaviour:
   incidentDescription: "\uBD88\uB9CC\uC774 \uCEE4\uC9C0\uBA74 \uC2E4\uC81C \uAE08\uC18D
     \uBD80\uD488\uACFC \uD0C4\uC57D\uC744 \uC740\uB2C9 \uC2A4\uD0DD\uC73C\uB85C \uC62E\uAE34\uB2E4."
   incidentMitigatingRoles: 1088
+  combatPassive:
+    passiveId: species-passive:kobold
+    displayName: "\uD1B1\uB2C8 \uAC10\uAC01"
+    description: "\uAE30\uACC4 \uD568\uC815 \uC7AC\uC124\uC815\uACFC \uC218\uB9AC\xB7\uD0C4\uC57D
+      \uBCF4\uAE09\uC774 \uBE60\uB974\uB2E4."
+    mechanicTags:
+    - "\uAE30\uACC4"
+    - "\uC815\uBE44"
   statBonus:
     entries:
     - statId: stat:attack
@@ -139,14 +150,6 @@ MonoBehaviour:
     dislikedFacilityRoles: 0
     preferredWorkTypes: 16842756
     dislikedWorkTypes: 525312
-  combatPassive:
-    passiveId: species-passive:kobold
-    displayName: "\uD1B1\uB2C8 \uAC10\uAC01"
-    description: "\uAE30\uACC4 \uD568\uC815 \uC7AC\uC124\uC815\uACFC \uC218\uB9AC\xB7\uD0C4\uC57D
-      \uBCF4\uAE09\uC774 \uBE60\uB974\uB2E4."
-    mechanicTags:
-    - "\uAE30\uACC4"
-    - "\uC815\uBE44"
   combatAbilities:
     abilities:
     - rid: 7302563319989403741

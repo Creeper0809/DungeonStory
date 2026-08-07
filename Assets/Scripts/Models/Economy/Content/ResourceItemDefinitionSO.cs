@@ -28,6 +28,16 @@ public sealed class ResourceItemDefinitionSO : ItemDefinitionSO
     public float InfectionReduction => Mathf.Max(0f, GetFeatureOrDefault<MedicineItemFeature>()?.infectionReduction ?? 0f);
     public float DetoxReduction => Mathf.Max(0f, GetFeatureOrDefault<MedicineItemFeature>()?.detoxReduction ?? 0f);
     public float PainReduction => Mathf.Max(0f, GetFeatureOrDefault<MedicineItemFeature>()?.painReduction ?? 0f);
+    public string VaccineDiseaseId => GetFeatureOrDefault<VaccineItemFeature>()?.diseaseId?.Trim() ?? string.Empty;
+    public int VaccineDoses => Mathf.Max(0, GetFeatureOrDefault<VaccineItemFeature>()?.doses ?? 0);
+    public string PathogenSampleDiseaseId => GetFeatureOrDefault<PathogenSampleItemFeature>()?.diseaseId?.Trim() ?? string.Empty;
+    public string MedicalProcedureId => GetFeatureOrDefault<MedicalProcedureSupplyItemFeature>()?.procedureId?.Trim() ?? string.Empty;
+    public bool TryGetCropTreatment(out CropTreatmentKind kind)
+    {
+        CropTreatmentItemFeature feature = GetFeatureOrDefault<CropTreatmentItemFeature>();
+        kind = feature?.treatmentKind ?? default;
+        return feature != null;
+    }
 
 #if UNITY_EDITOR
     public void Configure(
@@ -99,6 +109,36 @@ public sealed class ResourceItemDefinitionSO : ItemDefinitionSO
             detoxReduction = Mathf.Max(0f, detox),
             painReduction = Mathf.Max(0f, pain)
         });
+    }
+
+    public void ConfigureVaccine(string diseaseId, int doses)
+    {
+        SetFeature(new VaccineItemFeature
+        {
+            diseaseId = ItemDefinitionId.Normalize(diseaseId),
+            doses = Mathf.Max(1, doses)
+        });
+    }
+
+    public void ConfigurePathogenSample(string diseaseId)
+    {
+        SetFeature(new PathogenSampleItemFeature
+        {
+            diseaseId = ItemDefinitionId.Normalize(diseaseId)
+        });
+    }
+
+    public void ConfigureMedicalProcedureSupply(string procedureId)
+    {
+        SetFeature(new MedicalProcedureSupplyItemFeature
+        {
+            procedureId = ItemDefinitionId.Normalize(procedureId)
+        });
+    }
+
+    public void ConfigureCropTreatment(CropTreatmentKind kind)
+    {
+        SetFeature(new CropTreatmentItemFeature { treatmentKind = kind });
     }
 
     public void ConfigureSubstance(

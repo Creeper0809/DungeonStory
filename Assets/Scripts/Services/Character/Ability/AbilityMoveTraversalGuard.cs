@@ -70,7 +70,9 @@ internal sealed class AbilityMoveTraversalGuard
         return doorAccessQuery.CanTraverse(
             grid,
             position,
-            GridTraversalContext.ForCharacter(actor, overrideProvider()),
+            GridTraversalContext.ForCharacter(
+                CharacterPersistentIdentity.Require(actor),
+                overrideProvider()),
             out denialReason);
     }
 

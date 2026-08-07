@@ -33,14 +33,14 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
   abilityModules:
     items:
-    - rid: 7737211730927812912
-    - rid: 7737211730927812913
-    - rid: 7737211730927812914
-    - rid: 7737211730927812915
-    - rid: 7737211730927812916
-    - rid: 7737211730927812917
-    - rid: 7737211730927812918
-    - rid: 7737211730927812919
+    - rid: 7737211794726584416
+    - rid: 7737211794726584417
+    - rid: 7737211794726584418
+    - rid: 7737211794726584419
+    - rid: 7737211794726584420
+    - rid: 7737211794726584421
+    - rid: 7737211794726584422
+    - rid: 7737211794726584423
   width: 1
   height: 1
   layer: 1
@@ -56,33 +56,35 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730927812912
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726584416
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF02
-    - rid: 7737211730927812913
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726584417
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - research-overhaul
         - research:agriculture:irrigation
         - workstation:v3:irrigation
-    - rid: 7737211730927812914
+    - rid: 7737211794726584418
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v3:irrigation
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211730927812915
+    - rid: 7737211794726584419
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
         defaultBatchCapacity: 4
         outputCapacities: []
-    - rid: 7737211730927812916
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}
+    - rid: 7737211794726584420
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
@@ -90,7 +92,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211730927812917
+    - rid: 7737211794726584421
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -101,11 +103,11 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 0
           disabledWhenDamaged: 1
-    - rid: 7737211730927812918
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726584422
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211730927812919
+    - rid: 7737211794726584423
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility

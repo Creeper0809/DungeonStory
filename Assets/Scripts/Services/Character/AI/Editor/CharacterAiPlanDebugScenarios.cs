@@ -1052,7 +1052,7 @@ public static class CharacterAiPlanDebugScenarios
         GameObject unrelatedFacilityObject = new GameObject("PlayRelationshipUnrelatedFacility", typeof(BuildableObject));
         CharacterSO speakerData = CreateCharacterData(CharacterType.NPC, "Play Trusted Speaker", "Slime");
         CharacterSO listenerData = CreateCharacterData(CharacterType.NPC, "Play Relationship Listener", "Slime");
-        CharacterSO targetData = CreateCharacterData(CharacterType.NPC, "Play Rude Guest", "Imp");
+        CharacterSO targetData = CreateCharacterData(CharacterType.NPC, "Play Rude Guest", "Demon");
         BuildingSO unrelatedFacilityData = CreateBuildingData(918204, "Play Relationship Unrelated Rest");
         speakerData.id = 918201;
         listenerData.id = 918202;
@@ -1940,7 +1940,7 @@ public static class CharacterAiPlanDebugScenarios
         GameObject unrelatedFacilityObject = new GameObject("RelationshipRumorUnrelatedFacility", typeof(BuildableObject));
         CharacterSO speakerData = CreateCharacterData(CharacterType.Customer, "Trusted Speaker", "Slime");
         CharacterSO listenerData = CreateCharacterData(CharacterType.Customer, "Relationship Listener", "Slime");
-        CharacterSO targetData = CreateCharacterData(CharacterType.Customer, "Rude Guest", "Imp");
+        CharacterSO targetData = CreateCharacterData(CharacterType.Customer, "Rude Guest", "Demon");
         BuildingSO unrelatedFacilityData = CreateBuildingData(777204, "Relationship Unrelated Rest");
         speakerData.id = 777201;
         listenerData.id = 777202;

@@ -35,6 +35,7 @@ public sealed class OffenseReturnArrivalState
     public float escapeRisk;
     public List<string> materializedIds = new List<string>();
     public List<string> escapedIds = new List<string>();
+    public List<EnemyIndividualSaveData> prisonerIndividuals = new();
     public string lastStatus = string.Empty;
 
     public OffenseReturnArrivalState Clone()
@@ -58,19 +59,39 @@ public sealed class OffenseReturnArrivalState
                 .Where(id => !string.IsNullOrWhiteSpace(id))
                 .Distinct(StringComparer.Ordinal)
                 .ToList() ?? new List<string>(),
+            prisonerIndividuals = (prisonerIndividuals
+                    ?? new List<EnemyIndividualSaveData>())
+                .Select(value => value?.Clone())
+                .ToList(),
             lastStatus = lastStatus ?? string.Empty
         };
     }
 }
 
 [Serializable]
+public sealed class OffensePrisonerCandidatePoolState
+{
+    public string expeditionId = string.Empty;
+    public List<EnemyIndividualSaveData> individuals = new();
+
+    public OffensePrisonerCandidatePoolState Clone() => new()
+    {
+        expeditionId = expeditionId ?? string.Empty,
+        individuals = (individuals ?? new List<EnemyIndividualSaveData>())
+            .Select(value => value?.Clone())
+            .ToList()
+    };
+}
+
+[Serializable]
 public sealed class DungeonOffenseReturnArrivalSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 3;
 
     public int version = CurrentVersion;
     public int nextArrivalSequence = 1;
     public List<OffenseReturnArrivalState> arrivals = new List<OffenseReturnArrivalState>();
+    public List<OffensePrisonerCandidatePoolState> prisonerCandidatePools = new();
 }
 
 public interface IOffenseReturnArrivalRuntime
@@ -80,6 +101,10 @@ public interface IOffenseReturnArrivalRuntime
     void RegisterReturningMember(string expeditionId);
     void CompleteReturningMember(string expeditionId);
     void SealExpeditionReturn(string expeditionId);
+    void RegisterBattlePrisonerCandidates(
+        string expeditionId,
+        IEnumerable<EnemyIndividualSaveData> individuals);
+    void DiscardBattlePrisonerCandidates(string expeditionId);
     int QueueArrival(
         string expeditionId,
         string targetId,
@@ -116,6 +141,8 @@ public sealed class OffenseReturnArrivalRuntime :
     private readonly ICaptivityCommandService captivityCommands;
     private readonly IWildlifeRuntime wildlife;
     private readonly IWildlifeCaptureRuntime wildlifeCapture;
+    private readonly IEnemyArchetypeCatalog enemyArchetypes;
+    private readonly IEnemyIndividualFactory enemyIndividuals;
     private readonly IBuildingWorldQuery buildingWorld;
     private readonly IGameClock clock;
     private readonly IGameEventBus eventBus;
@@ -132,6 +159,8 @@ public sealed class OffenseReturnArrivalRuntime :
         writableAggregateState.Arrivals;
     private Dictionary<string, OffenseReturnBarrier> barriers =>
         writableAggregateState.Barriers;
+    private Dictionary<string, List<EnemyIndividualSaveData>>
+        prisonerCandidatePools => writableAggregateState.PrisonerCandidatePools;
     private int nextArrivalSequence
     {
         get => aggregateState.NextArrivalSequence;
@@ -165,6 +194,8 @@ public sealed class OffenseReturnArrivalRuntime :
         captivityCommands = requiredDomain.CaptivityCommands;
         wildlife = requiredDomain.Wildlife;
         wildlifeCapture = requiredDomain.WildlifeCapture;
+        enemyArchetypes = requiredDomain.EnemyArchetypes;
+        enemyIndividuals = requiredDomain.EnemyIndividuals;
         clock = requiredDomain.Clock;
         eventBus = requiredDomain.EventBus;
     }
@@ -278,6 +309,78 @@ public sealed class OffenseReturnArrivalRuntime :
         MaterializeReadyArrivals();
     }
 
+    public void RegisterBattlePrisonerCandidates(
+        string expeditionId,
+        IEnumerable<EnemyIndividualSaveData> candidates)
+    {
+        string normalizedExpeditionId = Normalize(expeditionId);
+        if (normalizedExpeditionId.Length == 0)
+        {
+            throw new ArgumentException(
+                "A canonical expedition ID is required.",
+                nameof(expeditionId));
+        }
+
+        if (!prisonerCandidatePools.TryGetValue(
+                normalizedExpeditionId,
+                out List<EnemyIndividualSaveData> pool))
+        {
+            if (prisonerCandidatePools.Count >=
+                OffenseReturnArrivalSaveValidation.MaximumCandidatePools)
+            {
+                throw new InvalidOperationException(
+                    "The offense prisoner candidate-pool limit has been reached.");
+            }
+            pool = new List<EnemyIndividualSaveData>();
+            prisonerCandidatePools.Add(normalizedExpeditionId, pool);
+        }
+
+        HashSet<string> existing = pool
+            .Select(value => value.characterId)
+            .ToHashSet(StringComparer.Ordinal);
+        int totalCandidateCount = prisonerCandidatePools.Values.Sum(
+            values => values.Count);
+        foreach (EnemyIndividualSaveData candidate in
+            candidates ?? Array.Empty<EnemyIndividualSaveData>())
+        {
+            EnemyIndividualBlueprint blueprint =
+                enemyIndividuals.RequireBlueprint(candidate);
+            if (!blueprint.Archetype.individualGeneration.recruitable
+                || !existing.Add(blueprint.SaveData.characterId))
+            {
+                continue;
+            }
+
+            if (pool.Count >=
+                    OffenseReturnArrivalSaveValidation.MaximumCandidatesPerPool
+                || totalCandidateCount >=
+                    OffenseReturnArrivalSaveValidation.MaximumCandidateIndividuals)
+            {
+                break;
+            }
+
+            pool.Add(blueprint.SaveData.Clone());
+            totalCandidateCount++;
+        }
+
+        pool.Sort((left, right) => string.CompareOrdinal(
+            left.characterId,
+            right.characterId));
+        if (pool.Count == 0)
+        {
+            prisonerCandidatePools.Remove(normalizedExpeditionId);
+        }
+    }
+
+    public void DiscardBattlePrisonerCandidates(string expeditionId)
+    {
+        string normalized = Normalize(expeditionId);
+        if (normalized.Length > 0)
+        {
+            prisonerCandidatePools.Remove(normalized);
+        }
+    }
+
     public int QueueArrival(
         string expeditionId,
         string targetId,
@@ -313,6 +416,7 @@ public sealed class OffenseReturnArrivalRuntime :
             stage = OffenseReturnArrivalStage.WaitingForParty,
             lastStatus = "원정대 귀환을 기다리는 중입니다."
         };
+        PopulatePrisonerIndividuals(state);
         arrivals.Add(state);
         MaterializeReadyArrivals();
         return safeAmount;
@@ -324,8 +428,68 @@ public sealed class OffenseReturnArrivalRuntime :
         {
             version = DungeonOffenseReturnArrivalSaveData.CurrentVersion,
             nextArrivalSequence = Mathf.Max(1, nextArrivalSequence),
-            arrivals = arrivals.Select(state => state.Clone()).ToList()
+            arrivals = arrivals.Select(state => state.Clone()).ToList(),
+            prisonerCandidatePools = prisonerCandidatePools
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .Select(pair => new OffensePrisonerCandidatePoolState
+                {
+                    expeditionId = pair.Key,
+                    individuals = pair.Value
+                        .OrderBy(value => value.characterId, StringComparer.Ordinal)
+                        .Select(value => value.Clone())
+                        .ToList()
+                })
+                .ToList()
         };
+    }
+
+    private void PopulatePrisonerIndividuals(OffenseReturnArrivalState state)
+    {
+        if (state.kind != OffenseReturnArrivalKind.Prisoner)
+        {
+            return;
+        }
+
+        if (prisonerCandidatePools.TryGetValue(
+                state.expeditionId,
+                out List<EnemyIndividualSaveData> candidates))
+        {
+            int take = Math.Min(state.requestedAmount, candidates.Count);
+            state.prisonerIndividuals.AddRange(candidates
+                .Take(take)
+                .Select(value => value.Clone()));
+            candidates.RemoveRange(0, take);
+            if (candidates.Count == 0)
+            {
+                prisonerCandidatePools.Remove(state.expeditionId);
+            }
+        }
+
+        EnemyArchetypeDefinitionSO[] recruitable = enemyArchetypes.All
+            .Where(value => value.individualGeneration?.recruitable == true)
+            .OrderBy(value => value.stableId, StringComparer.Ordinal)
+            .ToArray();
+        if (recruitable.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "V20 prisoner rewards require at least one recruitable enemy archetype.");
+        }
+
+        for (int index = state.prisonerIndividuals.Count;
+             index < state.requestedAmount;
+             index++)
+        {
+            CharacterId characterId = CharacterId.FromStableSuffix(
+                $"{state.arrivalId}:prisoner:{index + 1}");
+            uint selector = PersistentEntityId.GetStableHash32(
+                $"{state.targetId}:{state.arrivalId}:{index + 1}");
+            EnemyArchetypeDefinitionSO archetype = recruitable[
+                (int)(selector % (uint)recruitable.Length)];
+            state.prisonerIndividuals.Add(enemyIndividuals.Create(
+                archetype.stableId,
+                characterId,
+                $"return:{state.expeditionId}:{state.targetId}:{index + 1}"));
+        }
     }
 
     public OffenseReturnArrivalRestoreCandidate BuildRestoreCandidate(
@@ -333,6 +497,47 @@ public sealed class OffenseReturnArrivalRuntime :
         DungeonGameRestoreReport report)
     {
         OffenseReturnArrivalSaveValidation.Validate(saveData, report);
+        if (report.Success)
+        {
+            foreach (OffenseReturnArrivalState arrival in saveData.arrivals)
+            {
+                foreach (EnemyIndividualSaveData individual in
+                    arrival.prisonerIndividuals ?? new List<EnemyIndividualSaveData>())
+                {
+                    try
+                    {
+                        enemyIndividuals.RequireBlueprint(individual);
+                    }
+                    catch (Exception exception)
+                    {
+                        report.AddError(
+                            $"Offense return-arrival '{arrival.arrivalId}' has invalid prisoner individual: {exception.Message}");
+                    }
+                }
+            }
+            foreach (OffensePrisonerCandidatePoolState pool in
+                saveData.prisonerCandidatePools)
+            {
+                foreach (EnemyIndividualSaveData individual in pool.individuals)
+                {
+                    try
+                    {
+                        EnemyIndividualBlueprint blueprint =
+                            enemyIndividuals.RequireBlueprint(individual);
+                        if (!blueprint.Archetype.individualGeneration.recruitable)
+                        {
+                            report.AddError(
+                                $"Offense candidate pool '{pool.expeditionId}' contains a non-recruitable individual.");
+                        }
+                    }
+                    catch (Exception exception)
+                    {
+                        report.AddError(
+                            $"Offense candidate pool '{pool.expeditionId}' has an invalid individual: {exception.Message}");
+                    }
+                }
+            }
+        }
         return report.Success
             ? new OffenseReturnArrivalRestoreCandidate(
                 OffenseReturnArrivalSaveValidation.CreateStrictState(
@@ -457,15 +662,25 @@ public sealed class OffenseReturnArrivalRuntime :
             return false;
         }
 
-        CharacterId characterId = CharacterId.FromStableSuffix(
-            $"{arrival.arrivalId}:prisoner:{arrival.materializedIds.Count + 1}");
+        int individualIndex = arrival.materializedIds.Count;
+        if (individualIndex < 0
+            || individualIndex >= arrival.prisonerIndividuals.Count)
+        {
+            characterFactory.Destroy(characterObject);
+            return false;
+        }
+        EnemyIndividualBlueprint blueprint = enemyIndividuals.RequireBlueprint(
+            arrival.prisonerIndividuals[individualIndex]);
+        CharacterId characterId = blueprint.CharacterId;
         actorId = characterId.Value;
         characterObject.name = $"귀환 포로 {arrival.materializedIds.Count + 1}";
         characterObject.transform.position = grid.GetWorldPos(position);
-        actor.Initialize(data);
+        characterObject.name = blueprint.SaveData.displayName;
+        actor.Initialize(data, blueprint.SpawnRequest);
         actor.characterType = CharacterType.Intruder;
         actor.Identity?.SetCharacterType(CharacterType.Intruder);
         actor.Identity?.SetPersistentId(characterId);
+        enemyIndividuals.EnsureCharacterDomains(blueprint);
         ApplyDownedArrivalHealth(actor);
         actor.SetLifecycleState(CharacterLifecycleState.Downed);
         characterFactory.Publish(characterObject);

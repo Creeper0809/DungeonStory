@@ -114,6 +114,7 @@ public static class ResearchProjectAssetBuilder
         }
 
         AttachArchiveAbility();
+        GameContentCatalogAssetBuilder.ReindexResearchProjects();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
 
@@ -869,7 +870,64 @@ public static class ResearchProjectAssetBuilder
             S("research:equipment:industrial-metrology", 7244, "산업 계측학", "시제품 공정과 정밀 자동화의 편차를 공장 규모에서 계측한다.", ResearchField.IndustryAndAutomation, 960, prerequisites: new[] { "research:equipment:prototype-engineering", "research:industry:precision" }),
             S("research:equipment:field-maintenance", 7245, "야전 정비학", "방어 보급 절차와 재봉 수선법을 휴대 가능한 수리 규격으로 묶는다.", ResearchField.DefenseAndTactics, 184, prerequisites: new[] { "research:defense:supply", "research:textile:tailoring" }),
             S("research:equipment:standard-ammunition", 7246, "탄약 규격화", "화약과 물류, 전동 공구 규격을 종이 탄약통 생산에 통합한다.", ResearchField.IndustryAndAutomation, 720, prerequisites: new[] { "research:equipment:black-powder", "research:commerce:logistics", "research:industry:powered-tools" }),
-            S("research:equipment:powered-armor", 7247, "동력 보조 갑주", "관절식 판금에 배전과 정밀 부품 구동계를 결합한다.", ResearchField.IndustryAndAutomation, 1200, prerequisites: new[] { "research:equipment:articulated-plate", "research:industry:distribution", "research:equipment:precision-fitting" })
+            S("research:equipment:powered-armor", 7247, "동력 보조 갑주", "관절식 판금에 배전과 정밀 부품 구동계를 결합한다.", ResearchField.IndustryAndAutomation, 1200, prerequisites: new[] { "research:equipment:articulated-plate", "research:industry:distribution", "research:equipment:precision-fitting" }),
+
+            S("research:life:seasonal-calendar", 7248, "계절 역법", "절대 달력의 계절 경계와 생업 주기를 기록한다.", ResearchField.RecordsAndArcane, 184, prerequisites: new[] { "research:arcane:records", "research:agriculture:field" }),
+            S("research:agriculture:phenology", 7249, "생물계절학", "계절 변화와 작물 생장 단계를 대응시킨다.", ResearchField.Agriculture, 252, prerequisites: new[] { "research:life:seasonal-calendar", "research:agriculture:field" }),
+            S("research:climate:weather-observation", 7250, "기상 관측", "경계 근무 관측법으로 기온과 기상 전선을 측정한다.", ResearchField.RecordsAndArcane, 336, prerequisites: new[] { "research:life:seasonal-calendar", "research:defense:watch" }),
+            S("research:agriculture:soil-cycles", 7251, "토양 순환", "생물계절 기록과 퇴비 순환을 토양 관리 기준으로 만든다.", ResearchField.Agriculture, 252, prerequisites: new[] { "research:agriculture:phenology", "research:agriculture:compost" }),
+            S("research:survival:seasonal-storage", 7252, "계절 저장", "계절력에 맞춰 저장품의 입고와 소비 시기를 관리한다.", ResearchField.LifeAndSurvival, 336, prerequisites: new[] { "research:life:seasonal-calendar", "research:survival:preservation" }),
+            S("research:agriculture:greenhouse-horticulture", 7253, "온실 원예", "관측 기후와 실내 재배, 급수 설비를 폐쇄형 온실에 통합한다.", ResearchField.Agriculture, 560, prerequisites: new[] { "research:climate:weather-observation", "research:agriculture:indoor", "research:plumbing:pumped-water" }),
+            S("research:husbandry:seasonal-breeding", 7254, "계절 번식", "생물계절 기록을 번식 일정과 회복 주기에 반영한다.", ResearchField.Husbandry, 420, prerequisites: new[] { "research:agriculture:phenology", "research:husbandry:breeding" }),
+            S("research:climate:environment-control", 7255, "기후 제어", "관측·온실·냉각·단열 기술을 능동 환경 제어로 결합한다.", ResearchField.IndustryAndAutomation, 960, prerequisites: new[] { "research:climate:weather-observation", "research:agriculture:greenhouse-horticulture", "research:industry:industrial-cooling", "research:environment:rune-insulation" }),
+
+            S("research:society:household-records", 7256, "가구 기록", "거주자와 가족 관계를 가구 단위 기록으로 관리한다.", ResearchField.AuthorityAndHousing, 184, prerequisites: new[] { "research:arcane:records", "research:authority:quarters" }),
+            S("research:life:infant-care", 7257, "영아 돌봄", "가구 기록과 의료 회복 지식을 영아 보육 절차로 만든다.", ResearchField.LifeAndSurvival, 252, prerequisites: new[] { "research:society:household-records", "research:survival:medical" }),
+            S("research:medical:reproductive-medicine", 7258, "생식 의학", "영아 돌봄, 해부학과 마취를 산과 진료에 적용한다.", ResearchField.SurgeryAndTransplant, 560, prerequisites: new[] { "research:life:infant-care", "research:medical:anatomy", "research:pharmacology:anesthesia" }),
+            S("research:society:child-education", 7259, "아동 교육", "보육과 기록 체계를 안전한 기초 교육 과정으로 만든다.", ResearchField.AuthorityAndHousing, 336, prerequisites: new[] { "research:life:infant-care", "research:arcane:records" }),
+            S("research:society:apprenticeship", 7260, "도제 제도", "청소년 교육과 공학 도면을 감독형 실습으로 확장한다.", ResearchField.CommerceAndCraft, 560, prerequisites: new[] { "research:society:child-education", "research:equipment:engineering-drawing" }),
+            S("research:society:generation-management", 7261, "세대 관리", "도제·가구·집무 기록으로 세대 승계를 관리한다.", ResearchField.AuthorityAndHousing, 960, prerequisites: new[] { "research:society:apprenticeship", "research:society:household-records", "research:authority:office" }),
+
+            S("research:medical:gerontology", 7262, "노인학", "해부학과 가구 기록을 이용해 노화 변화를 장기간 관찰한다.", ResearchField.SurgeryAndTransplant, 420, prerequisites: new[] { "research:medical:anatomy", "research:society:household-records" }),
+            S("research:medical:biological-age-measurement", 7263, "생물학적 연령 계측", "노인학, 고급 약학과 재료 계측으로 생물학적 연령을 측정한다.", ResearchField.SurgeryAndTransplant, 720, prerequisites: new[] { "research:medical:gerontology", "research:pharmacology:advanced", "research:equipment:material-testing" }),
+            S("research:medical:geriatric-medicine", 7264, "노인의학", "노인학과 의료 회복을 노화 질환 완화 치료로 정립한다.", ResearchField.SurgeryAndTransplant, 560, prerequisites: new[] { "research:medical:gerontology", "research:survival:medical" }),
+            S("research:medical:chronic-care", 7265, "만성 관리", "노인의학과 위생 설비를 지속적인 만성 질환 관리로 결합한다.", ResearchField.SurgeryAndTransplant, 720, prerequisites: new[] { "research:medical:geriatric-medicine", "research:plumbing:flush-sanitation" }),
+            S("research:medical:regenerative-culture", 7266, "재생 배양", "생물학적 연령 계측, 장기 보존과 균사 이식으로 재생 조직을 배양한다.", ResearchField.SurgeryAndTransplant, 4800, prerequisites: new[] { "research:medical:biological-age-measurement", "research:medical:organ-preservation", "research:medical:mycelial-grafting" }),
+            S("research:medical:organ-regeneration", 7267, "장기 재생", "재생 배양과 수술, 이종 이식으로 손상 장기를 교체한다.", ResearchField.SurgeryAndTransplant, 7200, prerequisites: new[] { "research:medical:regenerative-culture", "research:medical:surgery", "research:medical:xenotransplant" }),
+            S("research:medical:blood-rejuvenation", 7268, "혈액 회춘", "장기 재생과 혈술, 고급 약학을 회춘 수혈에 적용한다.", ResearchField.SurgeryAndTransplant, 4800, prerequisites: new[] { "research:medical:organ-regeneration", "research:medical:bloodcraft-augmentation", "research:pharmacology:advanced" }),
+            S("research:medical:rune-hibernation", 7269, "룬 동면", "생물학적 연령 계측과 공명, 룬 전력·냉각을 동면 유지에 통합한다.", ResearchField.RecordsAndArcane, 4800, prerequisites: new[] { "research:medical:biological-age-measurement", "research:arcane:resonance", "research:industry:rune-grid", "research:industry:industrial-cooling" }),
+            S("research:medical:whole-body-regeneration", 7270, "전신 재생", "장기 재생, 혈액 회춘, 룬 동면과 점액 생체공학을 전신 치료로 통합한다.", ResearchField.SurgeryAndTransplant, 12000, prerequisites: new[] { "research:medical:organ-regeneration", "research:medical:blood-rejuvenation", "research:medical:rune-hibernation", "research:medical:slime-bioengineering" }),
+            S("research:medical:temporal-stasis", 7271, "시간 고정", "전신 재생과 시각 항법, 교차계통 안정화, 룬 조율로 생물학적 시간을 고정한다.", ResearchField.RecordsAndArcane, 12000, prerequisites: new[] { "research:medical:whole-body-regeneration", "research:climate:chronometric-navigation", "research:genetics:cross-lineage-stabilization", "research:equipment:rune-module-tuning" }),
+
+            S("research:health:pathogen-observation", 7272, "병원체 관찰", "해부학과 위생 지식으로 병원체와 증상을 구분한다.", ResearchField.SurgeryAndTransplant, 420, prerequisites: new[] { "research:medical:anatomy", "research:survival:sanitation" }),
+            S("research:health:isolation-medicine", 7273, "격리 의학", "병원체 관찰, 의료 접수와 위생 설비를 격리 병동 운영으로 만든다.", ResearchField.SurgeryAndTransplant, 560, prerequisites: new[] { "research:health:pathogen-observation", ServiceRoomResearchIds.MedicalReception, "research:plumbing:flush-sanitation" }),
+            S("research:health:immunoserology", 7274, "면역 혈청학", "병원체 관찰과 고급 약학, 연령 계측으로 항체 반응을 분석한다.", ResearchField.SurgeryAndTransplant, 720, prerequisites: new[] { "research:health:pathogen-observation", "research:pharmacology:advanced", "research:medical:biological-age-measurement" }),
+            S("research:health:vaccination", 7275, "예방접종", "혈청학, 마취제 조제와 자동 위생 공정으로 백신을 생산한다.", ResearchField.SurgeryAndTransplant, 1200, prerequisites: new[] { "research:health:immunoserology", "research:pharmacology:anesthesia", "research:industry:automatic-sanitation" }),
+            S("research:health:epidemic-control", 7276, "유행병 통제", "격리와 예방접종, 물류·기록을 유행 감시 체계로 통합한다.", ResearchField.AuthorityAndHousing, 960, prerequisites: new[] { "research:health:isolation-medicine", "research:health:vaccination", "research:commerce:logistics", "research:arcane:records" }),
+
+            S("research:genetics:hereditary-records", 7277, "유전 기록", "가구 기록, 해부학과 선별 사육으로 유전 형질을 기록한다.", ResearchField.RecordsAndArcane, 560, prerequisites: new[] { "research:society:household-records", "research:medical:anatomy", "research:husbandry:selective" }),
+            S("research:genetics:trait-analysis", 7278, "형질 분석", "유전 기록과 연령·재료 계측으로 발현 형질을 분석한다.", ResearchField.RecordsAndArcane, 960, prerequisites: new[] { "research:genetics:hereditary-records", "research:medical:biological-age-measurement", "research:equipment:material-testing" }),
+            S("research:genetics:controlled-heredity", 7279, "통제 유전", "형질 분석과 생식 의학, 선별 사육을 유전 상담에 적용한다.", ResearchField.SurgeryAndTransplant, 1800, prerequisites: new[] { "research:genetics:trait-analysis", "research:medical:reproductive-medicine", "research:husbandry:selective" }),
+            S("research:genetics:cross-lineage-stabilization", 7280, "교차계통 안정화", "통제 유전, 재생 배양, 이종 이식과 비전 공명으로 다른 생식 계통을 안정화한다.", ResearchField.SurgeryAndTransplant, 9600, prerequisites: new[] { "research:genetics:controlled-heredity", "research:medical:regenerative-culture", "research:medical:xenotransplant", "research:arcane:resonance" }),
+
+            S("research:housing:room-assignment", 7281, "방 배정", "숙소와 가구 기록을 개인 침대·방 배정으로 연결한다.", ResearchField.AuthorityAndHousing, 184, prerequisites: new[] { "research:authority:quarters", "research:society:household-records" }),
+            S("research:housing:family-quarters", 7282, "가족 생활구획", "방 배정과 물류 구획을 가족 생활 공간으로 세분한다.", ResearchField.AuthorityAndHousing, 336, prerequisites: new[] { "research:housing:room-assignment", "research:commerce:logistics" }),
+            S("research:housing:guardian-succession", 7283, "보호자 승계", "가족 구획과 집무·세대 기록으로 보호자 승계를 관리한다.", ResearchField.AuthorityAndHousing, 560, prerequisites: new[] { "research:housing:family-quarters", "research:authority:office", "research:society:generation-management" }),
+            S("research:medical:trauma-medicine", 7284, "트라우마 의학", "의료 접수와 고급 약학, 가구 기록으로 심리 외상을 상담한다.", ResearchField.SurgeryAndTransplant, 560, prerequisites: new[] { ServiceRoomResearchIds.MedicalReception, "research:pharmacology:advanced", "research:society:household-records" }),
+            S("research:society:corpse-care", 7285, "시신 관리", "위생, 가구 기록과 보존 기술로 시신을 안전하게 처리한다.", ResearchField.LifeAndSurvival, 252, prerequisites: new[] { "research:survival:sanitation", "research:society:household-records", "research:survival:preservation" }),
+            S("research:society:funeral-rites", 7286, "장례 의식", "시신 관리와 의식 장식을 종족별 장례 절차로 정립한다.", ResearchField.AuthorityAndHousing, 420, prerequisites: new[] { "research:society:corpse-care", "research:authority:ritual" }),
+
+            S("research:climate:regional-climatology", 7287, "지역 기후학", "기상 관측과 기후 제어, 기록 체계로 지역 기후대를 분석한다.", ResearchField.RecordsAndArcane, 1200, prerequisites: new[] { "research:climate:weather-observation", "research:climate:environment-control", "research:arcane:records" }),
+            S("research:climate:chronometric-navigation", 7288, "시각 항법", "지역 기후학과 산업 계측, 비전 공명으로 원정지 시차를 계산한다.", ResearchField.RecordsAndArcane, 7200, prerequisites: new[] { "research:climate:regional-climatology", "research:equipment:industrial-metrology", "research:arcane:resonance" }),
+
+            S("research:agriculture:seed-selection", 7289, "종자 선별", "생물계절학과 경작 지식을 물리 종자 로트 선별에 적용한다.", ResearchField.Agriculture, 336, prerequisites: new[] { "research:agriculture:phenology", "research:agriculture:field" }),
+            S("research:agriculture:pest-control", 7290, "해충 방제", "종자 선별, 약초학과 위생 지식으로 방제제를 조제한다.", ResearchField.Agriculture, 560, prerequisites: new[] { "research:agriculture:seed-selection", "research:pharmacology:herbalism", "research:survival:sanitation" }),
+            S("research:agriculture:crop-pathology", 7291, "작물 병리학", "해충 방제, 병원체 관찰과 균목 재배 지식으로 작물병을 진단한다.", ResearchField.Agriculture, 720, prerequisites: new[] { "research:agriculture:pest-control", "research:health:pathogen-observation", "research:forestry:fungal" }),
+            S("research:agriculture:cultivar-breeding", 7292, "품종 개량", "작물 병리, 형질 분석과 선별 사육을 육종 온실에 적용한다.", ResearchField.Agriculture, 1200, prerequisites: new[] { "research:agriculture:crop-pathology", "research:genetics:trait-analysis", "research:husbandry:selective" }),
+
+            S("research:society:career-records", 7293, "경력 기록", "가구와 집무 기록으로 역할·등급·직위 변화를 보존한다.", ResearchField.AuthorityAndHousing, 252, prerequisites: new[] { "research:society:household-records", "research:authority:office" }),
+            S("research:society:retirement", 7294, "은퇴 제도", "경력 기록과 노인학을 안전 작업 중심의 은퇴 정책으로 만든다.", ResearchField.AuthorityAndHousing, 420, prerequisites: new[] { "research:society:career-records", "research:medical:gerontology" }),
+            S("research:society:mentor-academy", 7295, "멘토 학원", "도제·경력·세대 관리 기록을 체계적인 멘토링으로 통합한다.", ResearchField.AuthorityAndHousing, 960, prerequisites: new[] { "research:society:apprenticeship", "research:society:career-records", "research:society:generation-management" })
         };
     }
 

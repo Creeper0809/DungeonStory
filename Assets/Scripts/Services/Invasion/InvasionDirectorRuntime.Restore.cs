@@ -30,6 +30,7 @@ internal sealed class InvasionDirectorRestoreCoordinator
         IEnumerable<InvasionIntruderPersistenceState> restoredIntruders,
         DungeonGameRestoreReport report,
         Func<CharacterSO> resolveIntruderData,
+        Func<EnemyIndividualSaveData, EnemyIndividualBlueprint> requireIndividual,
         Func<InvasionIntruderPersistenceState, InvasionIntruderRuntime> createDetached,
         Action<InvasionIntruderRuntime> initialize,
         Action<InvasionIntruderRuntime> destroyDetached)
@@ -71,9 +72,14 @@ internal sealed class InvasionDirectorRestoreCoordinator
                         ?? throw new ArgumentNullException(nameof(createDetached)))(source);
                 (initialize
                     ?? throw new ArgumentNullException(nameof(initialize)))(runtime);
+                EnemyIndividualBlueprint individual =
+                    (requireIndividual
+                        ?? throw new ArgumentNullException(nameof(requireIndividual)))(
+                        source.EnemyIndividual);
                 if (!runtime.TryPrepareRestore(
                         data,
                         source,
+                        individual,
                         finalDefenseTarget: null,
                         out string error))
                 {

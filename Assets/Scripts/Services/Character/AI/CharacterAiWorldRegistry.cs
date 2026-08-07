@@ -79,6 +79,7 @@ public sealed class CharacterAiWorldRegistry :
     private readonly ISceneRuntimeRegistry<IRetailFacility> retailFacilities;
     private readonly IGameSessionStateProvider gameDataProvider;
     private readonly IRestoreWorldCandidateQuery restoreCandidates;
+    private readonly ICharacterLifePublicationService lifePublication;
     private Grid grid;
     private int gridVersion;
 
@@ -89,7 +90,8 @@ public sealed class CharacterAiWorldRegistry :
         ISceneRuntimeRegistry<IWarehouseFacility> warehouses,
         ISceneRuntimeRegistry<IRetailFacility> retailFacilities,
         IGameSessionStateProvider gameDataProvider,
-        IRestoreWorldCandidateQuery restoreCandidates)
+        IRestoreWorldCandidateQuery restoreCandidates,
+        ICharacterLifePublicationService lifePublication)
     {
         this.characters = characters ?? throw new ArgumentNullException(nameof(characters));
         this.wildlife = wildlife ?? throw new ArgumentNullException(nameof(wildlife));
@@ -100,6 +102,8 @@ public sealed class CharacterAiWorldRegistry :
         this.gameDataProvider = gameDataProvider ?? throw new ArgumentNullException(nameof(gameDataProvider));
         this.restoreCandidates = restoreCandidates
             ?? throw new ArgumentNullException(nameof(restoreCandidates));
+        this.lifePublication = lifePublication
+            ?? throw new ArgumentNullException(nameof(lifePublication));
     }
 
     public int Version => unchecked(
@@ -191,9 +195,17 @@ public sealed class CharacterAiWorldRegistry :
     public void RegisterCharacterLifetime(CharacterActor actor)
     {
         CharacterActor canonical = CharacterActorCollection.GetCanonical(actor);
-        if (canonical != null)
+        if (canonical != null && lifetimeCharacters.Register(canonical))
         {
-            lifetimeCharacters.Register(canonical);
+            try
+            {
+                lifePublication.EnsureRegistered(canonical);
+            }
+            catch
+            {
+                lifetimeCharacters.Unregister(canonical);
+                throw;
+            }
         }
     }
 

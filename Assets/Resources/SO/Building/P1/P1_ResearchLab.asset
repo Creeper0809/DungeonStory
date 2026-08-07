@@ -38,7 +38,7 @@ MonoBehaviour:
     - rid: 7302562985835495562
     - rid: 7302562985835495563
     - rid: 7302562987322638439
-    - rid: 7737211730927812830
+    - rid: 7737211793001939217
   width: 4
   height: 1
   layer: 1
@@ -66,22 +66,22 @@ MonoBehaviour:
           supportedWorkTypes: 20
           disabledWhenDamaged: 1
     - rid: 7302562985835495562
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
     - rid: 7302562985835495563
-      type: {class: BuildingSelfContainedRoomAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSelfContainedRoomAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSelfContainedRoomAbility
     - rid: 7302562987322638439
-      type: {class: BuildingSpeciesAffinityAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSpeciesAffinityAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSpeciesAffinityAbility
         preferredTags:
         - Vampire
         dislikedTags:
         - Orc
-    - rid: 7737211730927812830
+    - rid: 7737211793001939217
       type: {class: BuildingResearchCapacityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingResearchCapacityAbility

@@ -21,14 +21,26 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 170401
+  id: 2
   encounterId: encounter:02
-  displayName: "\uBB34\uAE30\uACE0 \uC218\uBE44\uB300"
+  displayName: "\uC655\uB839 \uD638\uC1A1\uB300"
   minimumSiteStrength: 1
   maximumSiteStrength: 4
   elite: 0
   boss: 0
+  objective: 1
+  objectiveRoundLimit: 8
+  objectiveTargetId: 
+  battlefieldModifierIds:
+  - battlefield:broken-pillars
+  counterTags:
+  - counter:armor-break
+  rewardItemIds:
+  - loot:enemy-salvage
   enemies:
-  - enemyArchetypeId: human_guard
-    minimumCount: 2
-    maximumCount: 3
+  - enemyArchetypeId: enemy:crown-tower-guard
+    minimumCount: 1
+    maximumCount: 2
+  - enemyArchetypeId: enemy:legion-surgeon
+    minimumCount: 1
+    maximumCount: 2

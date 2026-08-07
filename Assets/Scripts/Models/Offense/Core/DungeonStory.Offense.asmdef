@@ -3,6 +3,7 @@
   "rootNamespace": "DungeonStory.Offense",
   "references": [
     "DungeonStory.Buildings",
+    "DungeonStory.Characters",
     "DungeonStory.Combat",
     "DungeonStory.CoreSession",
     "DungeonStory.Economy",

@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32c13160994648f4d837f914ae04f4c5, type: 3}
+  m_Name: festival_spore-bloom
+  m_EditorClassIdentifier: DungeonStory.Species::FestivalDefinitionSO
+  festivalId: festival:spore-bloom
+  displayName: "\uD3EC\uC790 \uAC1C\uD654\uC81C"
+  description: "\uADE0\uC0AC\uCCB4\uAC00 \uBC30\uC591 \uC815\uC6D0\uC758 \uD5A5\uACFC
+    \uD3EC\uC790\uB97C \uC11E\uC5B4 \uACF5\uB3D9 \uAE30\uC5B5\uC744 \uAC31\uC2E0\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored festival manifest.
+  season: 0
+  dayOfSeason: 25
+  convertsActiveGrief: 0
+  cultureId: culture:myconid-grove
+  requiredBuildingDefinitionId: building:cave-growing-rack
+  requiredItems:
+  - itemDefinitionId: food:cultured-mushroom
+    amount: 14
+  minimumParticipants: 6
+  successOutcome:
+    moodDelta: 6
+    moodDurationDays: 10
+    factionRapportDelta: 0
+    griefConversionPercent: 0
+  partialOutcome:
+    moodDelta: 2
+    moodDurationDays: 5
+    factionRapportDelta: 0
+    griefConversionPercent: 0
+  failureOutcome:
+    moodDelta: -3
+    moodDurationDays: 4
+    factionRapportDelta: 0
+    griefConversionPercent: 0

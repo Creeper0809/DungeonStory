@@ -9,41 +9,87 @@ public sealed class CharacterRuntimeProfile
 
     private readonly CharacterStatBlock finalStats;
     private readonly CharacterModelModifiers finalModifiers;
-    private readonly List<CharacterTraitSO> traits;
-    private readonly IReadOnlyList<CharacterTraitSO> traitsView;
+    private readonly IReadOnlyList<string> expressedTraitIds;
+    private readonly IReadOnlyList<string> latentTraitIds;
+    private readonly IReadOnlyList<string> traitDisplayNames;
+    private readonly IReadOnlyDictionary<string, int> innateAptitudes;
+    private readonly SpeciesNeedProfile needProfile;
+    private readonly SpeciesEnvironmentProfile environmentProfile;
+    private readonly float speciesStayDurationMultiplier;
+    private readonly float speciesCrimeRiskMultiplier;
+    private readonly CharacterSpeciesIncidentType incidentType;
+    private readonly string incidentId;
+    private readonly string incidentName;
+    private readonly string incidentDescription;
+    private readonly string anatomyProfileId;
+    private readonly string shortDescription;
 
     private CharacterRuntimeProfile(
-        CharacterSO source,
+        CharacterSpawnRequest request,
+        CharacterStatBlock finalStats,
+        CharacterModelModifiers finalModifiers,
+        IEnumerable<CharacterTraitSO> expressedTraits,
+        CharacterSpeciesSO species)
+    {
+        CharacterArchetypeId = request.CharacterArchetypeId;
+        PhenotypeSpeciesId = request.PhenotypeSpeciesId;
+        VisualVariantId = request.VisualVariantId;
+        ReproductiveRole = request.ReproductiveRole;
+        expressedTraitIds = request.ExpressedTraitIds
+            .Select(value => value.Value)
+            .ToArray();
+        latentTraitIds = request.LatentTraitIds
+            .Select(value => value.Value)
+            .ToArray();
+        traitDisplayNames = (expressedTraits ?? Array.Empty<CharacterTraitSO>())
+            .Select(value => value?.traitName?.Trim() ?? string.Empty)
+            .ToArray();
+        innateAptitudes = new Dictionary<string, int>(
+            request.InnateAptitudes,
+            StringComparer.Ordinal);
+        this.finalStats = CopyStats(finalStats);
+        this.finalModifiers = CopyModifiers(finalModifiers);
+        SpeciesTag = species.speciesTag?.Trim() ?? string.Empty;
+        needProfile = CopyNeeds(species.needs);
+        environmentProfile = CopyEnvironment(species.environment);
+        speciesStayDurationMultiplier = Mathf.Max(0f, species.stayDurationMultiplier);
+        speciesCrimeRiskMultiplier = Mathf.Max(0f, species.crimeRiskMultiplier);
+        incidentType = species.incidentType;
+        incidentId = species.IncidentId;
+        incidentName = species.IncidentDisplayName;
+        incidentDescription = species.IncidentDescription;
+        anatomyProfileId = species.anatomyProfileId?.Trim() ?? string.Empty;
+        shortDescription = species.shortDescription?.Trim() ?? string.Empty;
+    }
+
+    public CharacterArchetypeId CharacterArchetypeId { get; }
+    public CharacterSpeciesId PhenotypeSpeciesId { get; }
+    public string VisualVariantId { get; }
+    public ReproductiveRole ReproductiveRole { get; }
+    public IReadOnlyList<string> ExpressedTraitIds => expressedTraitIds;
+    public IReadOnlyList<string> LatentTraitIds => latentTraitIds;
+    public IReadOnlyList<string> TraitDisplayNames => traitDisplayNames;
+    public IReadOnlyDictionary<string, int> InnateAptitudes => innateAptitudes;
+    public string SpeciesTag { get; }
+
+    internal static CharacterRuntimeProfile Create(
+        CharacterSpawnRequest request,
+        CharacterSO archetype,
         CharacterSpeciesSO species,
-        IEnumerable<CharacterTraitSO> traits)
+        IEnumerable<CharacterTraitSO> expressedTraits)
     {
-        Source = source;
-        Species = species;
-        this.traits = traits?.Where((trait) => trait != null).ToList() ?? new List<CharacterTraitSO>();
-        traitsView = ReadOnlyView.List(this.traits);
-        finalStats = BuildFinalStats(source, species, this.traits);
-        finalModifiers = BuildFinalModifiers(species, this.traits);
-    }
+        if (request == null) throw new ArgumentNullException(nameof(request));
+        if (archetype == null) throw new ArgumentNullException(nameof(archetype));
+        if (species == null) throw new ArgumentNullException(nameof(species));
 
-    public CharacterSO Source { get; }
-    public CharacterSpeciesSO Species { get; }
-    public IReadOnlyList<CharacterTraitSO> Traits => traitsView;
-    public string SpeciesTag => !string.IsNullOrWhiteSpace(Species?.speciesTag)
-        ? Species.speciesTag
-        : Source != null
-            ? Source.speciesTag
-            : string.Empty;
-
-    public static CharacterRuntimeProfile From(CharacterSO source)
-    {
-        return new CharacterRuntimeProfile(source, source != null ? source.species : null, source?.traits);
-    }
-
-    public static CharacterRuntimeProfile From(
-        CharacterSO source,
-        IEnumerable<CharacterTraitSO> traits)
-    {
-        return new CharacterRuntimeProfile(source, source != null ? source.species : null, traits);
+        CharacterTraitSO[] traits = (expressedTraits ?? Array.Empty<CharacterTraitSO>())
+            .ToArray();
+        return new CharacterRuntimeProfile(
+            request,
+            BuildFinalStats(archetype, species, traits),
+            BuildFinalModifiers(species, traits),
+            traits,
+            species);
     }
 
     public int GetStat(CharacterStatType type)
@@ -85,8 +131,8 @@ public sealed class CharacterRuntimeProfile
 
     public float GetStayDurationMultiplier()
     {
-        float speciesStay = Species != null ? Mathf.Max(0f, Species.stayDurationMultiplier) : 1f;
-        return speciesStay * Mathf.Max(0f, finalModifiers.stayDurationMultiplier);
+        return speciesStayDurationMultiplier
+            * Mathf.Max(0f, finalModifiers.stayDurationMultiplier);
     }
 
     public float GetCrowdSensitivityMultiplier()
@@ -113,52 +159,52 @@ public sealed class CharacterRuntimeProfile
 
     public float GetCrimeRiskMultiplier()
     {
-        return Species != null ? Mathf.Max(0f, Species.crimeRiskMultiplier) : 1f;
+        return speciesCrimeRiskMultiplier;
     }
 
     public CharacterSpeciesIncidentType GetIncidentType()
     {
-        return Species != null ? Species.incidentType : CharacterSpeciesIncidentType.None;
+        return incidentType;
     }
 
     public string GetIncidentId()
     {
-        return Species?.IncidentId ?? CharacterSpeciesIncidentIds.None;
+        return incidentId;
     }
 
     public string GetIncidentName()
     {
-        return Species?.IncidentDisplayName ?? string.Empty;
+        return incidentName;
     }
 
     public string GetIncidentDescription()
     {
-        return Species?.IncidentDescription ?? string.Empty;
+        return incidentDescription;
     }
 
     public SpeciesNeedProfile GetNeedProfile()
     {
-        return Species?.needs ?? new SpeciesNeedProfile();
+        return CopyNeeds(needProfile);
     }
 
     public SpeciesEnvironmentProfile GetEnvironmentProfile()
     {
-        return Species?.environment ?? new SpeciesEnvironmentProfile();
+        return CopyEnvironment(environmentProfile);
     }
 
     public string GetAnatomyProfileId()
     {
-        return Species?.anatomyProfileId?.Trim() ?? string.Empty;
+        return anatomyProfileId;
     }
 
     public bool UsesMechanicalMaintenance()
     {
-        return Species?.needs?.UsesMaintenanceInsteadOfSurgery ?? false;
+        return needProfile.UsesMaintenanceInsteadOfSurgery;
     }
 
     public string GetShortDescription()
     {
-        return Species != null ? Species.shortDescription : string.Empty;
+        return shortDescription;
     }
 
     public float GetCombatPowerMultiplier()
@@ -263,7 +309,9 @@ public sealed class CharacterRuntimeProfile
     {
         if (string.IsNullOrWhiteSpace(traitName)) return false;
 
-        return traits.Any((trait) => trait != null && trait.traitName == traitName);
+        string normalized = traitName.Trim();
+        return expressedTraitIds.Contains(normalized, StringComparer.Ordinal)
+            || traitDisplayNames.Contains(normalized, StringComparer.Ordinal);
     }
 
     private float ClampStatMultiplier(
@@ -335,5 +383,54 @@ public sealed class CharacterRuntimeProfile
         CharacterStatBlock result = new CharacterStatBlock();
         result.Add(source);
         return result;
+    }
+
+    private static CharacterModelModifiers CopyModifiers(
+        CharacterModelModifiers source)
+    {
+        CharacterModelModifiers result = new CharacterModelModifiers();
+        result.Multiply(source);
+        return result;
+    }
+
+    private static SpeciesNeedProfile CopyNeeds(SpeciesNeedProfile source)
+    {
+        SpeciesNeedProfile required = source ?? new SpeciesNeedProfile();
+        return new SpeciesNeedProfile
+        {
+            hungerRateMultiplier = required.hungerRateMultiplier,
+            thirstRateMultiplier = required.thirstRateMultiplier,
+            sleepRateMultiplier = required.sleepRateMultiplier,
+            hygieneRateMultiplier = required.hygieneRateMultiplier,
+            socialNeedMultiplier = required.socialNeedMultiplier,
+            chargeRateMultiplier = required.chargeRateMultiplier,
+            integrityWearMultiplier = required.integrityWearMultiplier,
+            diet = required.diet,
+            metabolism = required.metabolism,
+            treatment = required.treatment
+        };
+    }
+
+    private static SpeciesEnvironmentProfile CopyEnvironment(
+        SpeciesEnvironmentProfile source)
+    {
+        SpeciesEnvironmentProfile required = source
+            ?? new SpeciesEnvironmentProfile();
+        return new SpeciesEnvironmentProfile
+        {
+            comfortMinimum = required.comfortMinimum,
+            comfortMaximum = required.comfortMaximum,
+            safeMinimum = required.safeMinimum,
+            safeMaximum = required.safeMaximum,
+            lethalMinimum = required.lethalMinimum,
+            lethalMaximum = required.lethalMaximum,
+            comfortableAirMinimum = required.comfortableAirMinimum,
+            comfortableLightMinimum = required.comfortableLightMinimum,
+            comfortableLightMaximum = required.comfortableLightMaximum,
+            airborneExposureMultiplier = required.airborneExposureMultiplier,
+            visualStrainMultiplier = required.visualStrainMultiplier,
+            preferredHumidity = required.preferredHumidity,
+            drynessSensitivity = required.drynessSensitivity
+        };
     }
 }

@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d73e94ec113318588b25eed8f9f9ee0, type: 3}
+  m_Name: Trait_236_outsider-friendly
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterTraitSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 236
+  traitName: "\uB0AF\uC120 \uBB38\uD654\uC5D0 \uD638\uC758\uC801"
+  description: "\uB2E4\uB978 \uBB38\uD654\uC758 \uAD00\uC2B5\uC5D0 \uCC38\uC5EC\uD558\uBA70
+    \uC0C8\uB85C\uC6B4 \uC2DD\uC0AC\uC640 \uC758\uC2DD\uC744 \uC990\uAE34\uB2E4."
+  statBonus:
+    entries: []
+  modifiers:
+    consumptionMultiplier: 1
+    spendingMultiplier: 1
+    waitPatienceMultiplier: 1
+    crowdSensitivityMultiplier: 1
+    accidentChanceMultiplier: 1
+    workSpeedMultiplier: 1
+    researchSpeedMultiplier: 1
+    combatPowerMultiplier: 1
+    moveSpeedMultiplier: 1
+    stayDurationMultiplier: 1
+    preferredFacilityRoles: 0
+    dislikedFacilityRoles: 0
+    preferredWorkTypes: 0
+    dislikedWorkTypes: 0
+  combatAbilities:
+    abilities: []
+  environmentalProtection:
+    comfortMinimumOffset: 0
+    comfortMaximumOffset: 0
+    safeMinimumOffset: 0
+    safeMaximumOffset: 0
+    coldExposureMultiplier: 1
+    heatExposureMultiplier: 1
+  incompatibilityGroups: []
+  behaviorPreferences:
+  - behaviorTag: culture:join-other
+    utilityDelta: 0.5
+  moodReactions:
+  - triggerTag: culture:harmony
+    moodDelta: 3
+    durationDays: 3
+  eventWeights:
+  - eventCategoryId: festival
+    multiplier: 1.45
+  references:
+    version: 2
+    RefIds: []

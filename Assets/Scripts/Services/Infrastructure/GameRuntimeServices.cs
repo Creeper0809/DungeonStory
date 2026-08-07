@@ -13,6 +13,13 @@ public interface IGameSessionStateStore : IGameSessionStateProvider
     void Restore(GameSessionSnapshot snapshot);
 }
 
+public interface IGameSessionPersistence
+{
+    GameSessionSaveData CaptureSession();
+    GameSessionSnapshot PrepareSessionRestore(GameSessionSaveData data);
+    void StageSessionRestore(GameSessionSnapshot candidate);
+}
+
 public interface IGameSessionPauseAuthority
 {
     void SetPaused(bool paused);
@@ -39,11 +46,16 @@ public interface IFloatingNumberFeedbackService
 
 public sealed class ScopedGameSessionStateStore :
     IGameSessionStateStore,
-    IGameSessionPauseAuthority
+    IGameSessionPauseAuthority,
+    IGameSessionPersistence,
+    IDungeonRestoreTransactionParticipant
 {
     private readonly GameSessionState state;
     private readonly IGameSessionStateMutation mutation;
     private readonly IGameTimeScaleController timeScaleController;
+    private GameSessionSnapshot? restoreCandidate;
+    private GameSessionSnapshot? previousSnapshot;
+    private bool published;
 
     public ScopedGameSessionStateStore(
         DungeonSceneRuntimeReferences sceneReferences,
@@ -80,6 +92,53 @@ public sealed class ScopedGameSessionStateStore :
     public void SetPaused(bool paused)
     {
         mutation.SetPaused(paused);
+    }
+
+    public GameSessionSaveData CaptureSession() =>
+        GameSessionSaveData.From(state.Capture());
+
+    public GameSessionSnapshot PrepareSessionRestore(GameSessionSaveData data) =>
+        (data ?? throw new ArgumentNullException(nameof(data))).ToSnapshot();
+
+    public void StageSessionRestore(GameSessionSnapshot candidate)
+    {
+        if (!previousSnapshot.HasValue || restoreCandidate.HasValue)
+            throw new InvalidOperationException(
+                "Foundation session restore candidate is not in an empty active transaction.");
+        restoreCandidate = candidate;
+    }
+
+    public string ParticipantId => "foundation.session";
+
+    public void BeginRestoreCandidate()
+    {
+        if (previousSnapshot.HasValue || restoreCandidate.HasValue)
+            throw new InvalidOperationException("Foundation session restore transaction is already active.");
+        previousSnapshot = state.Capture();
+        published = false;
+    }
+
+    public void PublishRestoreCandidate()
+    {
+        if (!restoreCandidate.HasValue)
+            throw new InvalidOperationException("Foundation session restore candidate is missing.");
+        Restore(restoreCandidate.Value);
+        published = true;
+    }
+
+    public void RollbackPublishedRestoreCandidate()
+    {
+        if (published && previousSnapshot.HasValue) Restore(previousSnapshot.Value);
+        DiscardRestoreCandidate();
+    }
+
+    public void CompleteRestoreCandidate() => DiscardRestoreCandidate();
+
+    public void DiscardRestoreCandidate()
+    {
+        restoreCandidate = null;
+        previousSnapshot = null;
+        published = false;
     }
 }
 

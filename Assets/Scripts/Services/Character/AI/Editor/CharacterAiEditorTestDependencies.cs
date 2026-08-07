@@ -56,7 +56,13 @@ internal static class CharacterAiEditorTestDependencies
             new SceneRuntimeRegistry<IWarehouseFacility>(),
             new SceneRuntimeRegistry<IRetailFacility>(),
             new FixedGameDataProvider(GetGameData()),
-            new RestoreWorldCandidateIndex());
+            new RestoreWorldCandidateIndex(),
+            new EditorNoCharacterLifePublicationService());
+    internal static readonly IGameCalendar GameCalendar =
+        new GameCalendarRuntime(
+            new FixedGameDataProvider(GetGameData()),
+            GameEvents,
+            GameClock);
     private static readonly ICharacterAiWorldSignalQuery WorldSignalQuery =
         new DefaultCharacterAiWorldSignalQuery(
             WorldRegistry,
@@ -88,6 +94,8 @@ internal static class CharacterAiEditorTestDependencies
         new EditorNoWorkOrderRuntime();
     private static readonly IWorkAmountCalculator WorkAmounts =
         new EditorFixedWorkAmountCalculator();
+    private static readonly ICareerService Careers =
+        new CareerRuntime(new DungeonRuntimeAggregateRootStore());
     private static readonly IRoomEnvironmentExperienceService RoomExperience =
         new EditorNoRoomEnvironmentExperienceService();
     private static readonly IPaidFacilityContractRuntime PaidFacilities =
@@ -211,6 +219,37 @@ internal static class CharacterAiEditorTestDependencies
     private static readonly IOwnerCandidateCatalog OwnerCandidates =
         new EditorOwnerCandidateCatalog();
     private static GameSessionState gameData;
+
+    public static CharacterSO RequireAuthoredCharacterDefinition(
+        string speciesTag,
+        CharacterRole role = CharacterRole.Regular)
+    {
+        CharacterSO definition = GameContent.GetAll<CharacterSO>()
+            .FirstOrDefault(candidate => candidate != null
+                && candidate.species != null
+                && candidate.role == role
+                && string.Equals(
+                    candidate.SpeciesTag,
+                    speciesTag,
+                    StringComparison.OrdinalIgnoreCase));
+        return definition ?? throw new InvalidOperationException(
+            $"No authored {role} character archetype exists for species '{speciesTag}'.");
+    }
+
+    public static CharacterSO CreateCharacterFixtureData(
+        CharacterType type,
+        string characterName,
+        string speciesTag,
+        CharacterRole role = CharacterRole.Regular)
+    {
+        CharacterSO fixture = UnityEngine.Object.Instantiate(
+            RequireAuthoredCharacterDefinition(speciesTag, role));
+        fixture.hideFlags = HideFlags.HideAndDontSave;
+        fixture.characterType = type;
+        fixture.characterName = characterName;
+        fixture.role = role;
+        return fixture;
+    }
 
     public static void Inject(GameObject actorObject)
     {
@@ -356,7 +395,10 @@ internal static class CharacterAiEditorTestDependencies
             CharacterMedical,
             null,
             null,
-            GameClock, tmpKoreanFontService: null, presentationScheduler: null);
+            GameClock,
+            tmpKoreanFontService: null,
+            presentationScheduler: null,
+            runtimeProfileFactory: new CharacterRuntimeProfileFactory(GameContent));
 
     }
 
@@ -372,7 +414,32 @@ internal static class CharacterAiEditorTestDependencies
                     ?? throw new ArgumentNullException(nameof(blueprintResearch))),
                 new EditorRepairCandidateProvider()
             },
-            Array.Empty<IWorkUrgencyProvider>());
+            Array.Empty<IWorkUrgencyProvider>(),
+            Careers,
+            GameCalendar);
+    }
+
+    private sealed class EditorNoCharacterLifePublicationService :
+        ICharacterLifePublicationService
+    {
+        public void EnsureRegistered(CharacterActor actor)
+        {
+            if (actor == null)
+            {
+                throw new ArgumentNullException(nameof(actor));
+            }
+        }
+
+        public void EnsureRegistered(
+            CharacterId characterId,
+            CharacterSpeciesId phenotypeSpeciesId)
+        {
+            if (!characterId.IsValid || !phenotypeSpeciesId.IsValid)
+            {
+                throw new ArgumentException(
+                    "Editor character life publication requires valid IDs.");
+            }
+        }
     }
 
     internal static void EnsureCharacterProgression(GameObject actorObject)
@@ -393,7 +460,9 @@ internal static class CharacterAiEditorTestDependencies
             SkillGeneration,
             SkillSettings,
             GameEvents,
-            new CharacterProgressionProfileProjector(GameContent));
+            new CharacterProgressionProfileProjector(
+                GameContent,
+                new CharacterRuntimeProfileFactory(GameContent)));
     }
 
     internal static void InjectCharacterStats(
@@ -434,6 +503,7 @@ internal static class CharacterAiEditorTestDependencies
                 BodyHealth.Value,
                 BodyHealth.Value,
                 GameEvents,
+                new CharacterDeathEventFactory(WorldRegistry, GameCalendar),
                 new NoopOwnerRunLifecycleService()));
     }
 

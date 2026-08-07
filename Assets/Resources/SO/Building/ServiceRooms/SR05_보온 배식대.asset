@@ -33,13 +33,13 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 384fd6100cc64734395a73a48b3b8f45, type: 3}
   abilityModules:
     items:
-    - rid: 7737211730927812628
-    - rid: 7737211730927812629
-    - rid: 7737211730927812630
-    - rid: 7737211730927812631
-    - rid: 7737211730927812632
-    - rid: 7737211730927812633
-    - rid: 7737211730927812634
+    - rid: 7737211792998531527
+    - rid: 7737211792998531528
+    - rid: 7737211792998531529
+    - rid: 7737211792998531530
+    - rid: 7737211792998531531
+    - rid: 7737211792998531532
+    - rid: 7737211792998531533
   width: 2
   height: 1
   layer: 1
@@ -55,8 +55,8 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730927812628
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531527
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 40
@@ -64,7 +64,7 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211730927812629
+    - rid: 7737211792998531528
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -76,23 +76,23 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: component:machine-parts
           amount: 2
-    - rid: 7737211730927812630
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531529
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: SR05
-    - rid: 7737211730927812631
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531530
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211730927812632
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531531
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - ServiceRoom
         - WorkSpeed
-    - rid: 7737211730927812633
+    - rid: 7737211792998531532
       type: {class: BuildingServiceSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceSupportAbility
@@ -110,7 +110,7 @@ MonoBehaviour:
         workSpeedMultiplier: 1.35
         satisfactionModifier: 6
         revenueModifier: 0
-    - rid: 7737211730927812634
+    - rid: 7737211792998531533
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility

@@ -33,6 +33,7 @@ internal interface IWorldWaterRestoreCandidatePort
 
 public sealed class WorldWaterRuntime :
     IWorldWaterQuery,
+    IWorldWaterContaminationCommand,
     IWorldWaterRestoreCandidatePort,
     IStartable,
     ITickable,
@@ -44,6 +45,7 @@ public sealed class WorldWaterRuntime :
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IGameClock gameClock;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly IDiseaseDefinitionCatalog diseaseDefinitions;
     private readonly Tile waterTile;
     private GameObject visualRoot;
     private Tilemap waterTilemap;
@@ -64,12 +66,15 @@ public sealed class WorldWaterRuntime :
         IGridSystemProvider gridSystemProvider,
         IGameClock gameClock,
         IGameContentCatalog contentCatalog,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IDiseaseDefinitionCatalog diseaseDefinitions)
     {
         this.gridSystemProvider = gridSystemProvider ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.diseaseDefinitions = diseaseDefinitions
+            ?? throw new ArgumentNullException(nameof(diseaseDefinitions));
         if (contentCatalog == null)
         {
             throw new ArgumentNullException(nameof(contentCatalog));
@@ -186,6 +191,70 @@ public sealed class WorldWaterRuntime :
         return consumed > 0f;
     }
 
+    public bool TryContaminate(
+        string sourceId,
+        string pathogenDiseaseId,
+        WorldWaterQuality minimumQuality)
+    {
+        EnsureProjectionCurrent();
+        string normalizedDiseaseId = pathogenDiseaseId?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(sourceId)
+            || string.IsNullOrWhiteSpace(normalizedDiseaseId)
+            || !byId.TryGetValue(sourceId, out WorldWaterSourceSaveData source)
+            || source == null)
+        {
+            return false;
+        }
+
+        DiseaseDefinition disease = diseaseDefinitions.Require(normalizedDiseaseId);
+        if ((disease.Routes & DiseaseTransmissionRoute.Water) == 0)
+            throw new InvalidOperationException(
+                $"Disease '{disease.Id}' cannot contaminate a water source.");
+
+        source.pathogenDiseaseId = normalizedDiseaseId;
+        if (source.quality < minimumQuality)
+            source.quality = minimumQuality;
+        RefreshCell(source);
+        return true;
+    }
+
+    public bool TryContaminateNearest(
+        Vector2Int origin,
+        int maximumDistance,
+        string pathogenDiseaseId,
+        WorldWaterQuality minimumQuality,
+        out string sourceId)
+    {
+        EnsureProjectionCurrent();
+        WorldWaterSourceSaveData source = sources
+            .Where(candidate => candidate != null)
+            .Select(candidate => (candidate, distance:
+                Mathf.Abs(candidate.gridX - origin.x) + Mathf.Abs(candidate.gridY - origin.y)))
+            .Where(candidate => candidate.distance <= Mathf.Max(0, maximumDistance))
+            .OrderBy(candidate => candidate.distance)
+            .ThenBy(candidate => candidate.candidate.sourceId, StringComparer.Ordinal)
+            .Select(candidate => candidate.candidate)
+            .FirstOrDefault();
+        sourceId = source?.sourceId ?? string.Empty;
+        return source != null
+            && TryContaminate(source.sourceId, pathogenDiseaseId, minimumQuality);
+    }
+
+    public bool TryClearPathogen(string sourceId)
+    {
+        EnsureProjectionCurrent();
+        if (string.IsNullOrWhiteSpace(sourceId)
+            || !byId.TryGetValue(sourceId, out WorldWaterSourceSaveData source)
+            || source == null)
+        {
+            return false;
+        }
+
+        source.pathogenDiseaseId = string.Empty;
+        RefreshCell(source);
+        return true;
+    }
+
     public bool DebugCreateSource(
         Vector2Int position,
         WorldWaterQuality quality,
@@ -277,6 +346,13 @@ public sealed class WorldWaterRuntime :
                     "World-water restore candidate contains a null entry.");
             }
             WorldWaterSourceSaveData copy = Clone(source);
+            if (!string.IsNullOrWhiteSpace(copy.pathogenDiseaseId))
+            {
+                DiseaseDefinition disease = diseaseDefinitions.Require(copy.pathogenDiseaseId);
+                if ((disease.Routes & DiseaseTransmissionRoute.Water) == 0)
+                    throw new InvalidOperationException(
+                        $"Water source '{copy.sourceId}' references non-water disease '{disease.Id}'.");
+            }
             restored.Sources.Add(copy);
             restored.ById.Add(copy.sourceId, copy);
         }
@@ -397,7 +473,8 @@ public sealed class WorldWaterRuntime :
             quality = quality,
             capacity = capacity,
             remaining = capacity,
-            regenerationPerSecond = regeneration
+            regenerationPerSecond = regeneration,
+            pathogenDiseaseId = string.Empty
         };
     }
 
@@ -525,7 +602,8 @@ public sealed class WorldWaterRuntime :
             source.quality,
             source.capacity,
             source.remaining,
-            source.regenerationPerSecond);
+            source.regenerationPerSecond,
+            source.pathogenDiseaseId);
     }
 
     private static WorldWaterSourceSaveData Clone(WorldWaterSourceSaveData source)
@@ -539,7 +617,8 @@ public sealed class WorldWaterRuntime :
             quality = source.quality,
             capacity = source.capacity,
             remaining = source.remaining,
-            regenerationPerSecond = source.regenerationPerSecond
+            regenerationPerSecond = source.regenerationPerSecond,
+            pathogenDiseaseId = source.pathogenDiseaseId ?? string.Empty
         };
     }
 }

@@ -56,6 +56,7 @@ public class InvasionIntruderRuntime :
     private float restoredStructureAttackDelay;
     private float restoredTrappedSeconds;
     private bool restoredEnragedBreach;
+    private EnemyIndividualSaveData enemyIndividual;
     private InvasionIntruderExecutionCoordinator executionCoordinator;
     private InvasionIntruderRestoreCoordinator restoreCoordinator;
 
@@ -79,6 +80,7 @@ public class InvasionIntruderRuntime :
     public Vector2Int FinalDefenseTarget => finalDefenseTarget;
     public int FacilityDamageCount => facilityDamageCount;
     public string RuntimeId => runtimeId;
+    public EnemyIndividualSaveData EnemyIndividual => enemyIndividual?.Clone();
     public string RaidId => InvasionIntruderCombatRules.ResolveRaidId(settings, runtimeId);
     public InvasionOperationKind OperationKind =>
         settings?.operationKind ?? InvasionOperationKind.FrontalAssault;
@@ -380,7 +382,9 @@ public class InvasionIntruderRuntime :
         InvasionIntruderSettings settings,
         Vector3 outsidePosition,
         Vector2Int? finalDefenseTarget = null,
-        bool isBoss = false)
+        bool isBoss = false,
+        EnemyIndividualBlueprint individualBlueprint = null,
+        string preparedRuntimeId = "")
     {
         if (routine != null)
         {
@@ -409,15 +413,26 @@ public class InvasionIntruderRuntime :
         nextDamageTime = ResolveGameClock().Time
             + this.settings.facilityDamageIntervalSeconds;
         resolved = false;
-        runtimeId = $"invasion:{Guid.NewGuid():N}";
+        runtimeId = string.IsNullOrWhiteSpace(preparedRuntimeId)
+            ? $"invasion:{Guid.NewGuid():N}"
+            : preparedRuntimeId.Trim();
         pathRandomStream = ResolvePathRandomStream();
         RequireRuntimeComponents();
 
         transform.position = outsidePosition;
         intruderActor.SetLifecycleState(CharacterLifecycleState.SpawningOutside);
-        intruderActor.Initialize(data);
+        enemyIndividual = individualBlueprint?.SaveData.Clone();
+        if (individualBlueprint != null)
+        {
+            intruderActor.Initialize(data, individualBlueprint.SpawnRequest);
+        }
+        else
+        {
+            intruderActor.Initialize(data);
+        }
         intruderActor.Identity?.SetPersistentId(
-            CharacterId.FromStableSuffix(runtimeId));
+            individualBlueprint?.CharacterId
+            ?? CharacterId.FromStableSuffix(runtimeId));
         intruderActor.ScaleMaxHealth(this.settings.healthMultiplier);
         intruderActor.SetLifecycleState(CharacterLifecycleState.SpawningOutside);
     }
@@ -478,19 +493,25 @@ public class InvasionIntruderRuntime :
             raidAwareness?.Capture(InvasionIntruderCombatRules.ResolveRaidId(settings, runtimeId)),
             damagedFacilityIds.OrderBy(
                 id => id.Value,
-                StringComparer.Ordinal));
+                StringComparer.Ordinal),
+            enemyIndividual);
     }
 
     public bool TryPrepareRestore(
         CharacterSO data,
         InvasionIntruderPersistenceState source,
+        EnemyIndividualBlueprint individualBlueprint,
         Vector2Int? finalDefenseTarget,
-        out string warning) =>
-        RestoreCoordinator.TryPrepare(
+        out string warning)
+    {
+        enemyIndividual = individualBlueprint?.SaveData.Clone();
+        return RestoreCoordinator.TryPrepare(
             data,
             source,
+            individualBlueprint,
             finalDefenseTarget,
             out warning);
+    }
 
     public void PublishPreparedRestore() => RestoreCoordinator.Publish();
 

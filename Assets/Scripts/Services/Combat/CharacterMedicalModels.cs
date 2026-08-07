@@ -121,6 +121,23 @@ public sealed class CharacterMedicalOrder
         && state != CharacterMedicalOrderState.Cancelled;
 }
 
+public readonly struct CharacterMedicalBloodContactEvent
+{
+    public CharacterMedicalBloodContactEvent(
+        CharacterId patientId,
+        CharacterId clinicianId,
+        bool usedExtractedBlood)
+    {
+        PatientId = patientId;
+        ClinicianId = clinicianId;
+        UsedExtractedBlood = usedExtractedBlood;
+    }
+
+    public CharacterId PatientId { get; }
+    public CharacterId ClinicianId { get; }
+    public bool UsedExtractedBlood { get; }
+}
+
 [Serializable]
 public sealed class DungeonCharacterMedicalSaveData
 {

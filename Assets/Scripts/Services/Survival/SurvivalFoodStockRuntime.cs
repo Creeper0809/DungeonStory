@@ -192,7 +192,8 @@ public sealed class SurvivalFoodRuntimeDependencies
         IGridSystemProvider gridSystemProvider,
         IWorldItemStackRuntime itemStackRuntime,
         IItemDefinitionCatalog itemCatalog,
-        IStockQuery stockQuery)
+        IStockQuery stockQuery,
+        IClimateQuery climate)
     {
         GridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
@@ -202,6 +203,7 @@ public sealed class SurvivalFoodRuntimeDependencies
             ?? throw new ArgumentNullException(nameof(itemCatalog));
         StockQuery = stockQuery
             ?? throw new ArgumentNullException(nameof(stockQuery));
+        Climate = climate ?? throw new ArgumentNullException(nameof(climate));
     }
 
     public IGridSystemProvider GridSystemProvider { get; }
@@ -211,6 +213,8 @@ public sealed class SurvivalFoodRuntimeDependencies
     public IItemDefinitionCatalog ItemCatalog { get; }
 
     public IStockQuery StockQuery { get; }
+
+    public IClimateQuery Climate { get; }
 }
 
 internal sealed class SurvivalFoodOverviewCache

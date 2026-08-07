@@ -1,0 +1,71 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8080a982ba741ff4e8ae644f419d70cb, type: 3}
+  m_Name: enemy_inquisition-high-judge
+  m_EditorClassIdentifier: DungeonStory.Offense::EnemyArchetypeDefinitionSO
+  stableId: enemy:inquisition-high-judge
+  displayName: "\uC131\uD654 \uB300\uC2EC\uBB38\uAD00"
+  description: "\uC804\uC7A5\uC758 \uCD5C\uACE0 \uC804\uB825\uC744 \uBD09\uC778\uD55C
+    \uB4A4 \uC815\uD654\uBCD1\uC744 \uC9D1\uC911\uC2DC\uD0A8\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored enemy archetype.
+  factionId: human:inquisition
+  speciesTag: Human
+  role: 5
+  maxHealth: 158
+  attack: 13
+  strength: 11.05
+  toughness: 12
+  dexterity: 11
+  moveSpeed: 4.5
+  equipment:
+    weaponDefinitionId: weapon:rune-sword
+    armorDefinitionId: armor:plate
+    shieldDefinitionId: 
+    ammunitionItemId: 
+  abilityIds:
+  - enemy-ability:truth-seal
+  - enemy-ability:rally
+  tacticalProfile:
+    attackWeight: 4
+    protectWeight: 1
+    abilityWeight: 6
+    retreatWeight: 0
+    retreatHealthFraction: 0.2
+    preferredTargetTags:
+    - nearest
+    avoidedTargetTags:
+    - none
+    formationTag: judgement-center
+  counterTags:
+  - counter:split-pressure
+  rewardItemIds:
+  - loot:enemy-salvage
+  bossPhases:
+  - healthThreshold: 0.5
+    abilityIds:
+    - enemy-ability:truth-seal
+    - enemy-ability:rally
+    tacticalProfileOverrideTag: desperate
+  individualGeneration:
+    minimumGeneralTraits: 2
+    maximumGeneralTraits: 4
+    minimumExpressedHeritableTraits: 0
+    maximumExpressedHeritableTraits: 2
+    maximumLatentHeritableTraits: 1
+    aptitudeVariance: 15
+    combatStatVariance: 0.12
+    minimumLoyalty: 55
+    maximumLoyalty: 90
+    recruitable: 1
+    militaryTrainingId: training:inquisition-high-judge
+    allowedBackgroundIds: []

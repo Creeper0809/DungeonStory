@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 454c3edcc06dfbe40b8088f448f07f38, type: 3}
+  m_Name: seasonal_spring-washed-road
+  m_EditorClassIdentifier: DungeonStory.Content::SeasonalWorldEventDefinitionSO
+  stableId: seasonal:spring-washed-road
+  displayName: "\uC53B\uACA8\uB098\uAC04 \uAE38"
+  description: "\uD3ED\uC6B0\uAC00 \uC6D0\uC815\uB85C\uC640 \uC678\uBD80 \uBB3C\uC790
+    \uB3C4\uCC29 \uC2DC\uAC04\uC744 \uD754\uB4E0\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored seasonal world event manifest.
+  season: 0
+  minimumDurationDays: 1
+  maximumDurationDays: 3
+  affectedDomainIds:
+  - expedition
+  - logistics
+  triggerRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  startEffects:
+  - kind: 13
+    targetId: road
+    amount: 2
+    durationDays: 3
+  dailyEffects: []
+  endEffects:
+  - kind: 12
+    targetId: resolved:seasonal:spring-washed-road
+    amount: 1
+    durationDays: 0

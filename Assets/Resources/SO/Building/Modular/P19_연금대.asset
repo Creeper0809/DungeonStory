@@ -40,13 +40,13 @@ MonoBehaviour:
     - rid: 7737211730834227433
     - rid: 7737211730834227434
     - rid: 7737211730834227435
-    - rid: 7737211730889015795
-    - rid: 7737211730889015796
-    - rid: 7737211730889015797
-    - rid: 7737211730889015798
-    - rid: 7737211730889016191
-    - rid: 7737211730889016192
-    - rid: 7737211730927812995
+    - rid: 7737211792661414819
+    - rid: 7737211792661414820
+    - rid: 7737211792661414821
+    - rid: 7737211792661414822
+    - rid: 7737211792998531378
+    - rid: 7737211792998531379
+    - rid: 7737211793001939337
   width: 2
   height: 1
   layer: 1
@@ -63,18 +63,18 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730834227428
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: P19
     - rid: 7737211730834227429
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - alchemy
     - rid: 7737211730834227431
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 135
@@ -106,7 +106,7 @@ MonoBehaviour:
           supportedWorkTypes: 276
           disabledWhenDamaged: 1
     - rid: 7737211730834227434
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
     - rid: 7737211730834227435
@@ -127,21 +127,21 @@ MonoBehaviour:
           - key: Mana
             value: 2
           metrics: []
-    - rid: 7737211730889015795
+    - rid: 7737211792661414819
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7737211730889015796
+    - rid: 7737211792661414820
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7737211730889015797
+    - rid: 7737211792661414821
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -152,20 +152,20 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7737211730889015798
+    - rid: 7737211792661414822
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7737211730889016191
+    - rid: 7737211792998531378
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:alchemy
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211730889016192
+    - rid: 7737211792998531379
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -185,7 +185,9 @@ MonoBehaviour:
           capacity: 16
         - itemId: component:precision-parts
           capacity: 16
-    - rid: 7737211730927812995
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}
+    - rid: 7737211793001939337
       type: {class: BuildingResearchCapacityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingResearchCapacityAbility

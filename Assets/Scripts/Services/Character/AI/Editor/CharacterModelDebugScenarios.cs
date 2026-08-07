@@ -131,9 +131,11 @@ public static class CharacterModelDebugScenarios
     {
         CharacterSO data = CreateCharacterData("Species_Slime", "Trait_Clean");
         data.characterType = CharacterType.Customer;
-        CharacterRuntimeProfile customerProfile = data.CreateRuntimeProfile();
+        CharacterRuntimeProfile customerProfile =
+            CharacterRuntimeProfileFactory.CreateEditorSnapshot(data);
         data.characterType = CharacterType.NPC;
-        CharacterRuntimeProfile staffProfile = data.CreateRuntimeProfile();
+        CharacterRuntimeProfile staffProfile =
+            CharacterRuntimeProfileFactory.CreateEditorSnapshot(data);
 
         bool sameStats = customerProfile.GetStat(CharacterStatType.Cleaning) == staffProfile.GetStat(CharacterStatType.Cleaning)
             && Mathf.Approximately(customerProfile.GetConsumptionMultiplier(), staffProfile.GetConsumptionMultiplier())
@@ -192,7 +194,12 @@ public static class CharacterModelDebugScenarios
             "Slime",
             "Vampire"
         };
-        IReadOnlyList<CharacterSpeciesSO> authored = SpeciesCatalog.All;
+        IReadOnlyList<CharacterSpeciesSO> authored = SpeciesCatalog.All
+            .Where(species => !string.Equals(
+                species.speciesTag,
+                "Adventurer",
+                StringComparison.Ordinal))
+            .ToArray();
         Dictionary<string, CharacterRuntimeProfile> profiles = authored
             .ToDictionary(
                 species => species.speciesTag,
@@ -303,16 +310,21 @@ public static class CharacterModelDebugScenarios
     private static CharacterRuntimeProfile CreateProfile(string speciesAssetName, params string[] traitAssetNames)
     {
         CharacterSO data = CreateCharacterData(speciesAssetName, traitAssetNames);
-        CharacterRuntimeProfile profile = data.CreateRuntimeProfile();
+        CharacterRuntimeProfile profile =
+            CharacterRuntimeProfileFactory.CreateEditorSnapshot(data);
         Object.DestroyImmediate(data);
         return profile;
     }
 
     private static CharacterSO CreateCharacterData(string speciesAssetName, params string[] traitAssetNames)
     {
-        CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
+        CharacterSO data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+            CharacterType.Customer,
+            "Model Scenario",
+            "Slime");
         data.characterType = CharacterType.Customer;
         data.characterName = "Model Scenario";
+        data.id = 990001;
         data.species = LoadSpecies(speciesAssetName);
         data.speciesTag = data.species != null ? data.species.speciesTag : string.Empty;
         data.baseStats = CharacterStatBlock.CreateDefault();

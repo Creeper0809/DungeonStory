@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8080a982ba741ff4e8ae644f419d70cb, type: 3}
+  m_Name: enemy_inquisition-ward-knight
+  m_EditorClassIdentifier: DungeonStory.Offense::EnemyArchetypeDefinitionSO
+  stableId: enemy:inquisition-ward-knight
+  displayName: "\uC131\uD654 \uACB0\uACC4\uAE30\uC0AC"
+  description: "\uB9C8\uBC95 \uACF5\uACA9\uC744 \uB9C9\uB294 \uB8EC \uBC29\uD328\uB85C
+    \uC2EC\uBB38\uAD00\uC744 \uBCF4\uD638\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored enemy archetype.
+  factionId: human:inquisition
+  speciesTag: Human
+  role: 1
+  maxHealth: 126
+  attack: 8
+  strength: 6.8
+  toughness: 13
+  dexterity: 5
+  moveSpeed: 3.5
+  equipment:
+    weaponDefinitionId: weapon:mace
+    armorDefinitionId: armor:plate
+    shieldDefinitionId: 
+    ammunitionItemId: 
+  abilityIds:
+  - enemy-ability:rune-ward
+  - enemy-ability:shield-wall
+  tacticalProfile:
+    attackWeight: 4
+    protectWeight: 5
+    abilityWeight: 3
+    retreatWeight: 2
+    retreatHealthFraction: 0.08
+    preferredTargetTags:
+    - nearest
+    avoidedTargetTags:
+    - none
+    formationTag: ward-circle
+  counterTags:
+  - counter:physical-burst
+  rewardItemIds:
+  - loot:enemy-salvage
+  bossPhases: []
+  individualGeneration:
+    minimumGeneralTraits: 2
+    maximumGeneralTraits: 3
+    minimumExpressedHeritableTraits: 0
+    maximumExpressedHeritableTraits: 2
+    maximumLatentHeritableTraits: 1
+    aptitudeVariance: 15
+    combatStatVariance: 0.12
+    minimumLoyalty: 20
+    maximumLoyalty: 75
+    recruitable: 1
+    militaryTrainingId: training:inquisition-ward-knight
+    allowedBackgroundIds: []

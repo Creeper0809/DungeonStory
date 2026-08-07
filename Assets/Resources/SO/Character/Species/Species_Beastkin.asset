@@ -52,6 +52,9 @@ MonoBehaviour:
     visualStrainMultiplier: 1
     preferredHumidity: 0.5
     drynessSensitivity: 1
+  lifeHistory: {fileID: 11400000, guid: ce096f2ee13f72241ab1fefd9926463b, type: 2}
+  reproduction: {fileID: 11400000, guid: 8062c884b43000e4d95689ccad5c4aab, type: 2}
+  funeralCulture: {fileID: 11400000, guid: abc3e6e7891de0746b41069f9134c174, type: 2}
   relationTags:
   - "\uC57C\uC678"
   - "\uBB34\uB9AC"
@@ -100,6 +103,14 @@ MonoBehaviour:
     \uC8FC\uBCC0 \uB300\uAE30\uC5F4\uC744 \uD750\uD2B8\uB7EC\uB728\uB9AC\uACE0 \uC2E4\uC81C
     \uBB3C\uD488 \uC6B4\uBC18\uC744 \uC911\uB2E8\uD55C\uB2E4."
   incidentMitigatingRoles: 2052
+  combatPassive:
+    passiveId: species-passive:beastkin
+    displayName: "\uBB34\uB9AC \uC6B4\uBC18"
+    description: "\uAC19\uC740 \uBAA9\uC801\uC9C0\uC758 \uC6B4\uBC18\uACFC \uC7AC\uC7A5\uC804\uC744
+      \uBE60\uB974\uAC8C \uB9C8\uCE5C\uB2E4."
+    mechanicTags:
+    - "\uBB3C\uB958"
+    - "\uBB34\uB9AC"
   statBonus:
     entries:
     - statId: stat:attack
@@ -141,14 +152,6 @@ MonoBehaviour:
     dislikedFacilityRoles: 0
     preferredWorkTypes: 3586
     dislikedWorkTypes: 134217744
-  combatPassive:
-    passiveId: species-passive:beastkin
-    displayName: "\uBB34\uB9AC \uC6B4\uBC18"
-    description: "\uAC19\uC740 \uBAA9\uC801\uC9C0\uC758 \uC6B4\uBC18\uACFC \uC7AC\uC7A5\uC804\uC744
-      \uBE60\uB974\uAC8C \uB9C8\uCE5C\uB2E4."
-    mechanicTags:
-    - "\uBB3C\uB958"
-    - "\uBB34\uB9AC"
   combatAbilities:
     abilities:
     - rid: 7302563319989403747

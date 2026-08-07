@@ -573,6 +573,7 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
         {
             runtimeId = source.RuntimeId,
             dataId = source.DataId,
+            enemyIndividual = source.EnemyIndividual?.Clone(),
             worldX = source.WorldPosition.x,
             worldY = source.WorldPosition.y,
             worldZ = source.WorldPosition.z,
@@ -719,7 +720,8 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
             source.enragedBreach,
             ToRuntimeData(source.raidAwareness),
             source.damagedFacilityBuildingInstanceIds.Select(
-                value => new BuildingInstanceId(value)));
+                value => new BuildingInstanceId(value)),
+            source.enemyIndividual?.Clone());
     }
 
     private static DefenseRaidAwarenessSaveData ToRuntimeData(

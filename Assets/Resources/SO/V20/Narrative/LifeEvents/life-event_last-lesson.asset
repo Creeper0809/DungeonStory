@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11ae014e162ff064183241287201fd7b, type: 3}
+  m_Name: life-event_last-lesson
+  m_EditorClassIdentifier: DungeonStory.Content::LifeEventDefinitionSO
+  stableId: life-event:last-lesson
+  displayName: "\uB9C8\uC9C0\uB9C9 \uC218\uC5C5"
+  description: "\uC1E0\uC57D\uD574\uC9C4 \uC2A4\uC2B9\uC774 \uC704\uD5D8\uC744 \uAC10\uC218\uD558\uACE0
+    \uB9C8\uC9C0\uB9C9 \uC2E4\uC2B5\uC744 \uC5F4\uB824 \uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  category: 4
+  automatic: 0
+  emergency: 0
+  responseDeadlineDays: 3
+  cooldownDays: 90
+  frequencyRule: 1
+  triggerRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  choices:
+  - choiceId: first
+    title: "\uC548\uC804\uD55C \uC2DC\uC5F0\uC73C\uB85C \uBC14\uAFBC\uB2E4"
+    outcomeText: "\uC548\uC804\uD55C \uC2DC\uC5F0\uC73C\uB85C \uBC14\uAFBC\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 3
+      targetId: life-event:last-lesson
+      amount: 25
+      durationDays: 0
+  - choiceId: second
+    title: "\uC6D0\uB798 \uC2E4\uC2B5\uC744 \uC9C0\uC6D0\uD55C\uB2E4"
+    outcomeText: "\uC6D0\uB798 \uC2E4\uC2B5\uC744 \uC9C0\uC6D0\uD55C\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 4
+      targetId: life-event:last-lesson
+      amount: -5
+      durationDays: 0
+  automaticEffects: []

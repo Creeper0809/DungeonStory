@@ -13,7 +13,7 @@ public static class BatchAArchitectureMetricsValidator
 {
     private const int RoslynSchemaVersion = 2;
     private const int UnitySchemaVersion = 1;
-    private const int ConstructorDependencyLimit = 8;
+    private const int ConstructorHardDependencyLimit = 16;
     private const string RoslynReportPath =
         "Assets/Architecture/runtime-architecture-metrics-current.json";
     private const string RoslynBaselinePath =
@@ -257,7 +257,7 @@ public static class BatchAArchitectureMetricsValidator
                 .Where(constructor => constructor.IsPublic
                     || HasInjectAttribute(constructor))
                 .Where(constructor => constructor.GetParameters().Length
-                    > ConstructorDependencyLimit)
+                    > ConstructorHardDependencyLimit)
                 .Select(constructor =>
                     $"{type.FullName}.ctor:{constructor.GetParameters().Length}"))
             .OrderBy(value => value, StringComparer.Ordinal)

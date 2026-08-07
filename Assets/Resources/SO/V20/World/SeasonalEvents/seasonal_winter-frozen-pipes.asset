@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 454c3edcc06dfbe40b8088f448f07f38, type: 3}
+  m_Name: seasonal_winter-frozen-pipes
+  m_EditorClassIdentifier: DungeonStory.Content::SeasonalWorldEventDefinitionSO
+  stableId: seasonal:winter-frozen-pipes
+  displayName: "\uB3D9\uACB0 \uBC30\uAD00"
+  description: "\uB3D9\uACB0\uC774 \uBB3C \uACF5\uAE09\uACFC \uC758\uB8CC\uC2E4 \uC6B4\uC601\uC744
+    \uD568\uAED8 \uC704\uD611\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored seasonal world event manifest.
+  season: 3
+  minimumDurationDays: 2
+  maximumDurationDays: 4
+  affectedDomainIds:
+  - facility
+  - health
+  triggerRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  startEffects:
+  - kind: 14
+    targetId: frozen-pipes
+    amount: 4
+    durationDays: 4
+  dailyEffects: []
+  endEffects:
+  - kind: 12
+    targetId: resolved:seasonal:winter-frozen-pipes
+    amount: 1
+    durationDays: 0

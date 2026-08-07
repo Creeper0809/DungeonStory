@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11ae014e162ff064183241287201fd7b, type: 3}
+  m_Name: life-event_masterpiece-commission
+  m_EditorClassIdentifier: DungeonStory.Content::LifeEventDefinitionSO
+  stableId: life-event:masterpiece-commission
+  displayName: "\uCCAB \uB300\uC791 \uC758\uB8B0"
+  description: "\uB300\uAC00 \uC2DC\uD5D8\uC744 \uC704\uD55C \uC7A5\uBE44 \uC81C\uC791
+    \uC758\uB8B0\uAC00 \uB4E4\uC5B4\uC654\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  category: 1
+  automatic: 0
+  emergency: 0
+  responseDeadlineDays: 3
+  cooldownDays: 90
+  frequencyRule: 1
+  triggerRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  choices:
+  - choiceId: first
+    title: "\uD76C\uADC0 \uC7AC\uB8CC\uB97C \uBC30\uC815\uD55C\uB2E4"
+    outcomeText: "\uD76C\uADC0 \uC7AC\uB8CC\uB97C \uBC30\uC815\uD55C\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 16
+      targetId: life-event:masterpiece-commission
+      amount: 50
+      durationDays: 0
+  - choiceId: second
+    title: "\uC77C\uBC18 \uC7AC\uB8CC\uB85C \uC2E4\uB825\uC744 \uC99D\uBA85\uD55C\uB2E4"
+    outcomeText: "\uC77C\uBC18 \uC7AC\uB8CC\uB85C \uC2E4\uB825\uC744 \uC99D\uBA85\uD55C\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 3
+      targetId: life-event:masterpiece-commission
+      amount: 35
+      durationDays: 0
+  automaticEffects: []

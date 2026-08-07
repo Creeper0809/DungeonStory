@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a4736fd02ec5ef4d9ce05fab2aec349, type: 3}
+  m_Name: arc_beastkin
+  m_EditorClassIdentifier: DungeonStory.Content::FactionArcDefinitionSO
+  stableId: faction-arc:beastkin
+  displayName: "\uBD89\uC740\uBC1C\uD1B1 \uAD50\uC5ED\uC18C"
+  description: "\uC0AC\uB0E5\uD130\uC640 \uD53C\uB09C\uBBFC \uC0AC\uC774\uC5D0\uC11C
+    \uBB34\uB9AC\uC758 \uC0DD\uC874 \uADDC\uCE59\uC744 \uB2E4\uC2DC \uC815\uD558\uB824
+    \uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored faction/service manifest.
+  factionId: faction:dungeon:beastkin
+  chapterIds:
+  - faction-chapter:beastkin:1
+  - faction-chapter:beastkin:2
+  - faction-chapter:beastkin:3
+  - faction-chapter:beastkin:4
+  - faction-chapter:beastkin:5
+  - faction-chapter:beastkin:6
+  contractIds:
+  - faction-contract:beastkin:supply
+  - faction-contract:beastkin:crisis
+  - faction-contract:beastkin:strategic
+  relicItemIds:
+  - relic:faction:beastkin:1
+  - relic:faction:beastkin:2
+  - relic:faction:beastkin:3

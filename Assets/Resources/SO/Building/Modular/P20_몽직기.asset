@@ -40,12 +40,12 @@ MonoBehaviour:
     - rid: 7737211730834227605
     - rid: 7737211730834227606
     - rid: 7737211730834227607
-    - rid: 7737211730889015975
-    - rid: 7737211730889015976
-    - rid: 7737211730889015977
-    - rid: 7737211730889015978
-    - rid: 7737211730889016246
-    - rid: 7737211730889016247
+    - rid: 7737211792998531125
+    - rid: 7737211792998531126
+    - rid: 7737211792998531127
+    - rid: 7737211792998531128
+    - rid: 7737211792998531434
+    - rid: 7737211792998531435
   width: 2
   height: 1
   layer: 1
@@ -62,18 +62,18 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730834227600
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: P20
     - rid: 7737211730834227601
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - arcane-loom
     - rid: 7737211730834227603
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 160
@@ -105,7 +105,7 @@ MonoBehaviour:
           supportedWorkTypes: 260
           disabledWhenDamaged: 1
     - rid: 7737211730834227606
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
     - rid: 7737211730834227607
@@ -126,21 +126,21 @@ MonoBehaviour:
           - key: Mana
             value: 2
           metrics: []
-    - rid: 7737211730889015975
+    - rid: 7737211792998531125
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7737211730889015976
+    - rid: 7737211792998531126
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7737211730889015977
+    - rid: 7737211792998531127
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -151,20 +151,20 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7737211730889015978
+    - rid: 7737211792998531128
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7737211730889016246
+    - rid: 7737211792998531434
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:arcane-loom
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211730889016247
+    - rid: 7737211792998531435
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -184,3 +184,5 @@ MonoBehaviour:
           capacity: 16
         - itemId: component:precision-parts
           capacity: 16
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}

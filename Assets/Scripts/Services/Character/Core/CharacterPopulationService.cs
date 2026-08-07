@@ -50,8 +50,10 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
 
     private readonly ICharacterSkillSystemSettingsProvider settingsProvider;
     private readonly IGameContentCatalog content;
+    private readonly ICharacterRuntimeProfileFactory runtimeProfileFactory;
+    private readonly ICharacterLifePublicationService lifePublication;
     private readonly ICharacterSkillGenerationService skillGenerationService;
-    private readonly RunVariableRuntime runVariables;
+    private readonly IRunSeedProvider runSeedProvider;
     private readonly IFactionContractQuery factionContracts;
     private readonly IRunCharacterCatalog characterCatalog;
     private readonly CharacterPopulationAggregate<
@@ -76,24 +78,27 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
         ICharacterSkillSystemSettingsProvider settingsProvider,
         IGameContentCatalog content,
         ICharacterSkillGenerationService skillGenerationService,
-        DungeonSceneRuntimeReferences sceneRuntimes,
+        IRunSeedProvider runSeedProvider,
         IFactionContractQuery factionContracts,
-        IRunCharacterCatalog characterCatalog)
+        IRunCharacterCatalog characterCatalog,
+        ICharacterRuntimeProfileFactory runtimeProfileFactory,
+        ICharacterLifePublicationService lifePublication)
     {
         this.settingsProvider = settingsProvider
             ?? throw new ArgumentNullException(nameof(settingsProvider));
         this.content = content ?? throw new ArgumentNullException(nameof(content));
         this.skillGenerationService = skillGenerationService
             ?? throw new ArgumentNullException(nameof(skillGenerationService));
-        runVariables = (sceneRuntimes
-                ?? throw new ArgumentNullException(nameof(sceneRuntimes)))
-            .RunVariables
-            ?? throw new InvalidOperationException(
-                $"{nameof(CharacterPopulationApplicationAdapter)} requires a loaded {nameof(RunVariableRuntime)}.");
+        this.runSeedProvider = runSeedProvider
+            ?? throw new ArgumentNullException(nameof(runSeedProvider));
         this.factionContracts = factionContracts
             ?? throw new ArgumentNullException(nameof(factionContracts));
         this.characterCatalog = characterCatalog
             ?? throw new ArgumentNullException(nameof(characterCatalog));
+        this.runtimeProfileFactory = runtimeProfileFactory
+            ?? throw new ArgumentNullException(nameof(runtimeProfileFactory));
+        this.lifePublication = lifePublication
+            ?? throw new ArgumentNullException(nameof(lifePublication));
     }
 
     public IReadOnlyList<WorldCharacterProfile> Profiles => population.Profiles;
@@ -135,7 +140,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
 
         sourceData = templates[population.CreationSerial % templates.Length];
         profile = CreateProfile(sourceData);
-        population.Add(profile);
+        AddNewProfile(profile, sourceData);
 
         // Offense rewards are explicit player-facing candidates, so their
         // identity and skill preparation takes priority over pool replenishment.
@@ -212,15 +217,63 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
 
     public void PromoteToStaff(CharacterActor actor)
     {
-        if (!TryGetProfile(actor, out WorldCharacterProfile profile))
+        if (actor == null)
         {
             return;
+        }
+
+        if (!TryGetProfile(actor, out WorldCharacterProfile profile))
+        {
+            profile = CreateExternalProfile(actor);
+            AddNewProfile(profile, actor.data);
+            actors[actor] = profile;
         }
 
         population.PromoteToStaff(profile);
         ApplyStaffRuntimeState(profile, actor);
         SynchronizeProfile(profile, actor);
         EnsurePreparedPool();
+    }
+
+    private static WorldCharacterProfile CreateExternalProfile(
+        CharacterActor actor)
+    {
+        CharacterId characterId = CharacterPersistentIdentity.Require(actor);
+        CharacterSO characterData = actor.data
+            ?? throw new InvalidOperationException(
+                $"External recruit '{characterId.Value}' has no character archetype.");
+        CharacterProgressionSnapshot snapshot = actor.Progression?
+            .CapturePersistentState();
+        CharacterGrowthState growth = snapshot?.GrowthState?.Clone()
+            ?? new CharacterGrowthState();
+        growth.EnsureCollections();
+        growth.initialized = true;
+        if (string.IsNullOrWhiteSpace(growth.displayName))
+        {
+            growth.displayName = actor.name?.Trim() ?? characterId.Value;
+        }
+        if (string.IsNullOrWhiteSpace(growth.origin))
+        {
+            growth.origin = characterData.SpeciesTag;
+        }
+
+        return new WorldCharacterProfile
+        {
+            persistentId = characterId.Value,
+            characterDataId = characterData.id,
+            displayName = growth.displayName,
+            origin = growth.origin,
+            isStaff = true,
+            isAlive = !actor.IsDead,
+            isVisiting = false,
+            level = snapshot?.Level ?? 1,
+            currentExperience = snapshot?.CurrentExperience ?? 0,
+            growth = growth,
+            narrative = snapshot?.NarrativeLedger?.Clone()
+                ?? new CharacterNarrativeLedger(),
+            socialMemory = actor.SocialMemory?.CaptureSnapshot()
+                ?? new CharacterSocialMemorySnapshot()
+        };
     }
 
     public bool TryGetProfile(CharacterActor actor, out WorldCharacterProfile profile)
@@ -355,7 +408,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
                 && templates.Length > 0)
             {
                 CharacterSO template = templates[population.CreationSerial % templates.Length];
-                population.Add(CreateProfile(template));
+                AddNewProfile(CreateProfile(template), template);
                 availableOrQueued = population.CountAvailableOrQueued();
             }
         }
@@ -417,7 +470,9 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
         progression.ConfigurePreview(
             skillGenerationService,
             settingsProvider,
-            new CharacterProgressionProfileProjector(content));
+            new CharacterProgressionProfileProjector(
+                content,
+                runtimeProfileFactory));
         progression.SetPublicSkillNotificationsSuppressed(true);
         PendingProfilePreparation pending = new(
             profile,
@@ -583,7 +638,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
 
     private WorldCharacterProfile CreateProfile(CharacterSO data)
     {
-        int runSeed = runVariables.RunSeed;
+        int runSeed = runSeedProvider.RunSeed;
         string persistentId = population.NextPersistentId(runSeed);
         int creationSerial = population.CreationSerial;
         int seed = CharacterGrowthRules.StableHash(persistentId);
@@ -611,6 +666,25 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             growth = growth,
             narrative = new CharacterNarrativeLedger()
         };
+    }
+
+    private void AddNewProfile(
+        WorldCharacterProfile profile,
+        CharacterSO characterData)
+    {
+        if (profile == null)
+        {
+            throw new ArgumentNullException(nameof(profile));
+        }
+        if (characterData == null)
+        {
+            throw new ArgumentNullException(nameof(characterData));
+        }
+
+        lifePublication.EnsureRegistered(
+            new CharacterId(profile.persistentId),
+            new CharacterSpeciesId(characterData.SpeciesTag));
+        population.Add(profile);
     }
 
     private List<int> RollTraits(

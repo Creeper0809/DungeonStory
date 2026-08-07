@@ -1308,6 +1308,134 @@ MonoBehaviour:
     m_Localized: A dedicated equipment progression facility is required.
     m_Metadata:
       m_Items: []
+  - m_Id: 1860042856157184
+    m_Localized: 'The required anatomy is unavailable. Character: {0}, condition:
+      {1}, anatomy: {2}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042914877440
+    m_Localized: 'The age-treatment character is unavailable. Character: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042914877441
+    m_Localized: 'Rejuvenation is still on cooldown. Character: {0}, remaining days:
+      {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071744
+    m_Localized: 'The age-treatment definition is missing. Treatment: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071745
+    m_Localized: 'The treatment does not match its medical procedure. Treatment:
+      {0}, procedure: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071746
+    m_Localized: 'Age-treatment supplies are unavailable. Facility: {0}, treatment:
+      {1}, reason: {2}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071747
+    m_Localized: 'The character is too young for rejuvenation. Character: {0}, minimum
+      age: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071748
+    m_Localized: 'Supervised apprenticeship is disabled. Character: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071749
+    m_Localized: The child-safety authorization is invalid.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071750
+    m_Localized: 'This adolescent needs explicit apprenticeship permission. Character:
+      {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071751
+    m_Localized: Children cannot enter combat or combat-supply routes.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071752
+    m_Localized: A child inside a hazard may only move toward a strictly safer cell.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071753
+    m_Localized: 'The character life state is unavailable. Character: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071754
+    m_Localized: 'Required protective equipment is missing. Character: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071755
+    m_Localized: 'The adult supervisor is farther than six cells. Supervisor: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071756
+    m_Localized: 'The adult supervisor is unavailable. Supervisor: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071757
+    m_Localized: 'This apprenticeship work requires explicit confirmation. Character:
+      {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071758
+    m_Localized: 'This life stage cannot perform the requested work. Character: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071759
+    m_Localized: 'The crop-treatment definition is missing. Treatment: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071760
+    m_Localized: 'The crop treatment has the wrong treatment kind. Treatment: {0},
+      kind: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071761
+    m_Localized: 'The crop plot is unavailable. Plot: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071762
+    m_Localized: 'Crop-treatment supplies are unavailable. Plot: {0}, treatment:
+      {1}, reason: {2}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071763
+    m_Localized: 'The population-health character is unavailable. Character: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071764
+    m_Localized: 'The temporal-stasis facility is unavailable. Facility: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071765
+    m_Localized: Temporal-stasis maintenance supplies are unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071766
+    m_Localized: 'Temporal stasis requires more rune power. Facility: {0}, required
+      power: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071767
+    m_Localized: 'The vaccine definition is missing. Vaccine: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071768
+    m_Localized: 'The vaccine does not match the requested disease. Vaccine: {0},
+      disease: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071769
+    m_Localized: 'A physical vaccine dose is unavailable. Destination: {0}, vaccine:
+      {1}, reason: {2}'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

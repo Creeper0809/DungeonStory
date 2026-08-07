@@ -829,7 +829,9 @@ public sealed class CircusRuntime :
             WildlifeActor designatedWildlife = designated.GetRuntime<WildlifeActor>();
             if (designatedCharacter != null && !designatedCharacter.IsDead)
             {
-                designatedCharacter.Die("지정 처형");
+                designatedCharacter.Die(
+                    CharacterDeathCauseCode.Execution,
+                    "captivity:designated-execution");
             }
             else if (designatedWildlife != null && designatedWildlife.IsAlive)
             {

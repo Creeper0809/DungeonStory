@@ -12,6 +12,7 @@
     "DungeonStory.Foundation",
     "DungeonStory.Invasion",
     "DungeonStory.Meta",
+    "DungeonStory.Species",
     "Unity.TextMeshPro"
   ],
   "includePlatforms": [],

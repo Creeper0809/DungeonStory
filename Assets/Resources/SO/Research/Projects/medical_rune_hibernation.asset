@@ -1,0 +1,79 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: medical_rune_hibernation
+  m_EditorClassIdentifier: DungeonStory.Research::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7269
+  projectId: research:medical:rune-hibernation
+  displayName: "\uB8EC \uB3D9\uBA74"
+  description: "\uC0DD\uBB3C\uD559\uC801 \uC5F0\uB839 \uACC4\uCE21\uACFC \uACF5\uBA85,
+    \uB8EC \uC804\uB825\xB7\uB0C9\uAC01\uC744 \uB3D9\uBA74 \uC720\uC9C0\uC5D0 \uD1B5\uD569\uD55C\uB2E4."
+  field: 3
+  requiredWork: 4800
+  prerequisites:
+  - {fileID: 11400000, guid: 56ffa2cea97e51048b951d004cec9b2b, type: 2}
+  - {fileID: 11400000, guid: 9ec899ad38b47a14e9093cd5fb8d81ae, type: 2}
+  - {fileID: 11400000, guid: 1a6b6f4e88b9d684cb6300fb35b05a7a, type: 2}
+  - {fileID: 11400000, guid: 7be1a214afe97eb4cac0f65b07fba877, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:arcane:resonance
+    prerequisite: {fileID: 11400000, guid: 56ffa2cea97e51048b951d004cec9b2b, type: 2}
+    kind: 0
+    reason: "\uBE44\uC804 \uACF5\uBA85\uC758 \uC774\uB860\uC774(\uAC00) \uB8EC \uB3D9\uBA74
+      \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:industry:industrial-cooling
+    prerequisite: {fileID: 11400000, guid: 9ec899ad38b47a14e9093cd5fb8d81ae, type: 2}
+    kind: 2
+    reason: "\uC0B0\uC5C5 \uB0C9\uAC01\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uB8EC \uB3D9\uBA74 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:industry:rune-grid
+    prerequisite: {fileID: 11400000, guid: 1a6b6f4e88b9d684cb6300fb35b05a7a, type: 2}
+    kind: 2
+    reason: "\uB8EC \uC804\uB825\uB9DD\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uB8EC \uB3D9\uBA74 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:medical:biological-age-measurement
+    prerequisite: {fileID: 11400000, guid: 7be1a214afe97eb4cac0f65b07fba877, type: 2}
+    kind: 2
+    reason: "\uC0DD\uBB3C\uD559\uC801 \uC5F0\uB839 \uACC4\uCE21\uC758 \uACF5\uD559
+      \uC6D0\uB9AC\uC774(\uAC00) \uB8EC \uB3D9\uBA74 \uAD6C\uD604\uC5D0 \uC9C1\uC811
+      \uD544\uC694\uD558\uB2E4."
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7737211793001939697
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 1
+    requiredCount: 1
+  - capability: 5
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211793001939697
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 8870

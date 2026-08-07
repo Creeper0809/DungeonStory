@@ -27,12 +27,12 @@ MonoBehaviour:
   canEnterDungeon: 0
   carcassWeight: 28
   diet: 0
-  preferredHabitats:
+  preferredHabitats: 00000000
   territoryRadius: 6
   dailyFoodNeed: 1
   dailyWaterNeed: 1
   restPreference: 0.45
-  predationDrive: 0
+  predationDrive: 0.55
   fleePreference: 0.55
   butcherYields:
   - itemId: resource:meat
@@ -48,3 +48,14 @@ MonoBehaviour:
   bodySize: 1
   manureIntervalDays: 2
   husbandryProducts: []
+  authoringRevision: 1
+  preySpeciesIds:
+  - cave_rat
+  predatorSpeciesIds:
+  - shadow_wolf
+  nestTag: nest:moss_boar
+  breedingSeason: 0
+  migrationPatternId: migration:moss_boar
+  diseaseVectorIds:
+  - disease:cave-flu
+  activeSeasons: 000000000100000002000000

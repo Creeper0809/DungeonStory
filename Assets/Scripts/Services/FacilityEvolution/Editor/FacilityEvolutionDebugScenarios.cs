@@ -833,7 +833,10 @@ public static class FacilityEvolutionDebugScenarios
         int sales,
         float mood)
     {
-        CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
+        CharacterSO data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+            type,
+            name,
+            speciesTag);
         world.TrackObject(data);
         data.id = 700000 + Math.Abs(name.GetHashCode() % 100000);
         data.characterName = name;

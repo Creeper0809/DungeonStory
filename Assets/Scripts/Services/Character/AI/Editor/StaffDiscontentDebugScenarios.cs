@@ -511,7 +511,10 @@ public static class StaffDiscontentDebugScenarios
 
     private static CharacterActor CreateStaff(int id, string name, float mood)
     {
-        CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
+        CharacterSO data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+            CharacterType.NPC,
+            name,
+            "Orc");
         data.id = id;
         data.characterType = CharacterType.NPC;
         data.role = CharacterRole.Regular;

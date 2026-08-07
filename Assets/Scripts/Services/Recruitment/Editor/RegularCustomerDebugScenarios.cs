@@ -130,7 +130,7 @@ public static class RegularCustomerDebugScenarios
     {
         RegularCustomerState state = new RegularCustomerState();
         RegularCustomerRules rules = CreateTestRules();
-        CharacterActor customer = CreateCustomer(104, "Goblin Recruit", "Goblin", 90f);
+        CharacterActor customer = CreateCustomer(104, "Kobold Recruit", "Kobold", 90f);
 
         for (int i = 0; i < 4; i++)
         {
@@ -177,39 +177,57 @@ public static class RegularCustomerDebugScenarios
     {
         GameObject runtimeObject = new GameObject("RegularCustomerRuntime_Test");
         RegularCustomerRuntime runtime = runtimeObject.AddComponent<RegularCustomerRuntime>();
-        runtime.ConstructRecruitmentRuntime(
-            new FakeRecruitActivationService(),
-            new DungeonStory.Foundation.GameEventBus());
-        CharacterActor customer = CreateCustomer(106, "Runtime Candidate", "Orc", 85f);
-        BuildableObject facility = CreateFacility();
-
+        CharacterActor customer = null;
+        BuildableObject facility = null;
         int regularCount = 0;
         int candidateCount = 0;
         void CountRegular(RegularCustomerSnapshot snapshot) => regularCount++;
         void CountCandidate(RegularCustomerSnapshot snapshot) => candidateCount++;
-        runtime.BecameRegular += CountRegular;
-        runtime.CandidateDiscovered += CountCandidate;
-
-        for (int i = 0; i < 4; i++)
+        try
         {
-            runtime.OnTriggerEvent(new FacilityVisitEvent(CharacterActor.From(customer), facility));
+            runtime.ConstructRecruitmentRuntime(
+                new FakeRecruitActivationService(),
+                new DungeonStory.Foundation.GameEventBus());
+            customer = CreateCustomer(106, "Runtime Candidate", "Orc", 85f);
+            facility = CreateFacility();
+            runtime.BecameRegular += CountRegular;
+            runtime.CandidateDiscovered += CountCandidate;
+
+            for (int i = 0; i < 4; i++)
+            {
+                runtime.OnTriggerEvent(new FacilityVisitEvent(
+                    CharacterActor.From(customer),
+                    facility));
+            }
+
+            string customerId = RegularCustomerService.GetCustomerId(customer);
+            bool recruitSuccess = runtime.TryRecruit(
+                customerId,
+                out RegularCustomerRecruitResult recruitResult);
+            return regularCount == 1
+                && candidateCount == 1
+                && recruitSuccess
+                && recruitResult.Success
+                && runtime.State.IsRecruited(customerId);
         }
-
-        string customerId = RegularCustomerService.GetCustomerId(customer);
-        bool recruitSuccess = runtime.TryRecruit(customerId, out RegularCustomerRecruitResult recruitResult);
-        bool valid = regularCount == 1
-            && candidateCount == 1
-            && recruitSuccess
-            && recruitResult.Success
-            && runtime.State.IsRecruited(customerId);
-
-        runtime.BecameRegular -= CountRegular;
-        runtime.CandidateDiscovered -= CountCandidate;
-        Object.DestroyImmediate(facility.BuildingData);
-        Object.DestroyImmediate(facility.gameObject);
-        DestroyCustomer(customer);
-        Object.DestroyImmediate(runtimeObject);
-        return valid;
+        finally
+        {
+            runtime.BecameRegular -= CountRegular;
+            runtime.CandidateDiscovered -= CountCandidate;
+            if (facility?.BuildingData != null)
+            {
+                Object.DestroyImmediate(facility.BuildingData);
+            }
+            if (facility != null)
+            {
+                Object.DestroyImmediate(facility.gameObject);
+            }
+            DestroyCustomer(customer);
+            if (runtimeObject != null)
+            {
+                Object.DestroyImmediate(runtimeObject);
+            }
+        }
     }
 
     private static bool VerifyVisitEventSnapshotDoesNotDrift()
@@ -573,15 +591,13 @@ public static class RegularCustomerDebugScenarios
         CharacterAiEditorTestDependencies.EnsureCharacterProgression(obj);
         CharacterActor character = obj.AddComponent<CharacterActor>();
 
-        CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
-        data.id = id;
-        data.characterType = CharacterType.Customer;
-        data.role = CharacterRole.Regular;
-        data.characterName = name;
-        data.speciesTag = speciesTag;
+        CharacterSO data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+            CharacterType.Customer,
+            name,
+            speciesTag);
 
         CharacterAiEditorTestDependencies.Inject(obj);
-        character.data = data;
+        character.Initialization(data);
         character.characterType = CharacterType.Customer;
         character.Identity.SetPersistentId($"character:world:test:{id:D6}");
         character.stats ??= new Dictionary<CharacterCondition, float>();

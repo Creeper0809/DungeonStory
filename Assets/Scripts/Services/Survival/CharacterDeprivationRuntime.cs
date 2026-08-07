@@ -132,6 +132,7 @@ public sealed class CharacterDeprivationRuntime :
             waterQuery,
             gameClock,
             needBalanceRuntime,
+            gameEventBus,
             stateStore,
             safeDrinkPlanner,
             emergencyMovement,
@@ -153,7 +154,8 @@ public sealed class CharacterDeprivationRuntime :
             safeDrinkPlanner,
             emergencyMovement,
             diagnostics,
-            consequences);
+            consequences,
+            gameEventBus);
         persistence = new CharacterDeprivationPersistenceCoordinator(
             stateStore,
             worldRegistry,
@@ -667,13 +669,16 @@ public sealed class CharacterDeprivationRuntime :
 
     private void OnCharacterDeath(CharacterDeathEvent eventType)
     {
-        CharacterActor actor = eventType.Actor;
+        CharacterActor actor = worldRegistry.AllCharacters.FirstOrDefault(candidate =>
+            candidate != null
+            && CharacterPersistentIdentity.TryGet(candidate, out CharacterId id)
+            && id.Equals(eventType.CharacterId));
         if (actor == null)
         {
             return;
         }
 
-        CharacterId sourceId = CharacterPersistentIdentity.Require(actor);
+        CharacterId sourceId = eventType.CharacterId;
         safeReliefRunner.ReleaseActor(sourceId);
         breakdownActionRunner.ReleaseActor(sourceId);
         bool alreadyExists = itemStackRuntime.GetAllStacks().Any(stack => stack != null
@@ -684,7 +689,11 @@ public sealed class CharacterDeprivationRuntime :
                 StringComparison.Ordinal));
         if (!alreadyExists)
         {
-            itemStackRuntime.SpawnHumanoidCorpse(actor, actor.GetNowXY(), eventType.Reason, out _);
+            itemStackRuntime.SpawnHumanoidCorpse(
+                actor,
+                actor.GetNowXY(),
+                eventType.Cause.ToString(),
+                out _);
         }
 
         filthQuery.AddFilth(
@@ -906,11 +915,13 @@ public sealed class CharacterDeprivationRuntime :
             actor,
             CharacterDeprivationStateStore.GetBurden(state, DeprivationKind.Hunger),
             now,
+            CharacterDeathCauseCode.Starvation,
             "심한 굶주림");
         ApplyDeprivationDamage(
             actor,
             CharacterDeprivationStateStore.GetBurden(state, DeprivationKind.Thirst),
             now,
+            CharacterDeathCauseCode.Dehydration,
             "심한 탈수");
 
         float infectionSource = Mathf.Max(
@@ -929,6 +940,7 @@ public sealed class CharacterDeprivationRuntime :
         CharacterActor actor,
         DeprivationBurdenSaveData burden,
         float now,
+        CharacterDeathCauseCode deathCause,
         string source)
     {
         if (burden.burden < BreakdownThreshold || now < burden.nextDamageAt)
@@ -937,9 +949,10 @@ public sealed class CharacterDeprivationRuntime :
         }
 
         burden.nextDamageAt = now + GetDamageInterval();
-        bodyHealthCommands.ApplyLegacyDamage(
+        bodyHealthCommands.ApplyLegacyDamageWithCause(
             actor,
             actor.MaxHealth * 0.01f,
+            deathCause,
             source,
             allowDeath: true);
     }

@@ -3,7 +3,8 @@
   "rootNamespace": "DungeonStory.Wildlife",
   "references": [
     "DungeonStory.Buildings",
-    "DungeonStory.Foundation"
+    "DungeonStory.Foundation",
+    "DungeonStory.CoreSession"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

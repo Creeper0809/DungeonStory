@@ -653,7 +653,7 @@ public sealed class WorkTaskExecutor
             startPos,
             warehouseBuilding.centerPos,
             GridPathSearchPriority.Normal,
-            GridTraversalContext.ForCharacter(actor));
+            GridTraversalContext.ForCharacter(CharacterPersistentIdentity.Require(actor)));
         if (pathToWarehouse == null)
         {
             failureReason = "창고 경로 없음";
@@ -721,7 +721,7 @@ public sealed class WorkTaskExecutor
             startPos,
             target.centerPos,
             GridPathSearchPriority.Normal,
-            GridTraversalContext.ForCharacter(actor));
+            GridTraversalContext.ForCharacter(CharacterPersistentIdentity.Require(actor)));
         return path != null;
     }
 

@@ -344,7 +344,10 @@ public sealed class AbilityHaul : MonoBehaviour
         }
 
         GridTraversalContext traversalContext =
-            GridTraversalContext.ForCharacter(actor, DoorAccessOverrideKind.None);
+            GridTraversalContext.ForCharacter(
+                CharacterPersistentIdentity.Require(actor),
+                DoorAccessOverrideKind.None,
+                GridMovementIntent.General);
         for (int movementAttempt = 0;
              movementAttempt < MaximumMovementAttempts;
              movementAttempt++)

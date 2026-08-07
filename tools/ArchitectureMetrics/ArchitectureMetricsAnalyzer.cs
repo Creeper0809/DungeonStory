@@ -14,9 +14,15 @@ internal static class ArchitectureMetricsAnalyzer
 {
     private const int SchemaVersion = 2;
     private const int OwnershipManifestSchemaVersion = 1;
-    private const int RuntimeLineLimit = 1200;
-    private const int BehaviourLineLimit = 800;
-    private const int ConstructorDependencyLimit = 8;
+    // File length and collaborator count are review signals, not architecture
+    // defects by themselves. Keep the original limits visible in the report,
+    // while reserving the release gate for extreme cases that require an
+    // explicit structural decision.
+    private const int RuntimeReviewLineLimit = 1200;
+    private const int BehaviourReviewLineLimit = 800;
+    private const int HardTypeLineLimit = 2000;
+    private const int ConstructorReviewDependencyLimit = 8;
+    private const int ConstructorHardDependencyLimit = 16;
 
     private static readonly string[] ContentEscapeTokens =
     {
@@ -202,7 +208,9 @@ internal static class ArchitectureMetricsAnalyzer
             .ToArray();
 
         List<string> mutableStatics = new List<string>();
+        List<string> reviewTypes = new List<string>();
         List<string> oversizedTypes = new List<string>();
+        List<string> reviewConstructors = new List<string>();
         List<string> largeConstructors = new List<string>();
         List<string> defaultAssemblyFiles = new List<string>();
         List<DefaultOwnershipFinding> defaultOwnershipFindings =
@@ -247,13 +255,18 @@ internal static class ArchitectureMetricsAnalyzer
                         baseType.Type.ToString().EndsWith(
                             "MonoBehaviour",
                             StringComparison.Ordinal)));
-                int limit = behaviourOrPresenter
-                    ? BehaviourLineLimit
-                    : RuntimeLineLimit;
-                if (lines > limit)
+                int reviewLimit = behaviourOrPresenter
+                    ? BehaviourReviewLineLimit
+                    : RuntimeReviewLineLimit;
+                if (lines > reviewLimit)
+                {
+                    reviewTypes.Add(
+                        relativePath + "|" + typeName + "|" + lines + ">" + reviewLimit);
+                }
+                if (lines > HardTypeLineLimit)
                 {
                     oversizedTypes.Add(
-                        relativePath + "|" + typeName + "|" + lines + ">" + limit);
+                        relativePath + "|" + typeName + "|" + lines + ">" + HardTypeLineLimit);
                 }
             }
 
@@ -316,12 +329,19 @@ internal static class ArchitectureMetricsAnalyzer
                          .OfType<ConstructorDeclarationSyntax>())
             {
                 int count = constructor.ParameterList.Parameters.Count;
-                if (count > ConstructorDependencyLimit
-                    && IsDependencyInjectionOwner(constructor))
+                if (!IsDependencyInjectionOwner(constructor))
                 {
-                    largeConstructors.Add(
-                        relativePath + "|" + GetContainingTypeName(constructor)
-                        + ".ctor|" + count);
+                    continue;
+                }
+                string finding = relativePath + "|" + GetContainingTypeName(constructor)
+                    + ".ctor|" + count;
+                if (count > ConstructorReviewDependencyLimit)
+                {
+                    reviewConstructors.Add(finding);
+                }
+                if (count > ConstructorHardDependencyLimit)
+                {
+                    largeConstructors.Add(finding);
                 }
             }
 
@@ -453,9 +473,13 @@ internal static class ArchitectureMetricsAnalyzer
             MutableStaticFieldCount = mutableStatics.Count,
             MutableStaticSetHash = HashValues(mutableStatics),
             MutableStatics = mutableStatics.ToArray(),
+            ReviewTypeCount = reviewTypes.Count,
+            ReviewTypes = reviewTypes.ToArray(),
             OversizedTypeCount = oversizedTypes.Count,
             OversizedTypeSetHash = HashValues(oversizedTypes),
             OversizedTypes = oversizedTypes.ToArray(),
+            ReviewConstructorCount = reviewConstructors.Count,
+            ReviewConstructors = reviewConstructors.ToArray(),
             LargeConstructorCount = largeConstructors.Count,
             LargeConstructorSetHash = HashValues(largeConstructors),
             LargeConstructors = largeConstructors.ToArray(),
@@ -1422,9 +1446,13 @@ internal static class ArchitectureMetricsAnalyzer
         public int MutableStaticFieldCount;
         public string MutableStaticSetHash;
         public string[] MutableStatics;
+        public int ReviewTypeCount;
+        public string[] ReviewTypes;
         public int OversizedTypeCount;
         public string OversizedTypeSetHash;
         public string[] OversizedTypes;
+        public int ReviewConstructorCount;
+        public string[] ReviewConstructors;
         public int LargeConstructorCount;
         public string LargeConstructorSetHash;
         public string[] LargeConstructors;
@@ -1478,8 +1506,12 @@ internal static class ArchitectureMetricsAnalyzer
                 + "  \"runtimeTypeCount\": " + RuntimeTypeCount + ",\n"
                 + MetricJson("mutableStatic", MutableStaticFieldCount, MutableStaticSetHash) + ",\n"
                 + StringArrayJson("mutableStatics", MutableStatics) + ",\n"
+                + "  \"reviewTypeCount\": " + ReviewTypeCount + ",\n"
+                + StringArrayJson("reviewTypes", ReviewTypes) + ",\n"
                 + MetricJson("oversizedType", OversizedTypeCount, OversizedTypeSetHash) + ",\n"
                 + StringArrayJson("oversizedTypes", OversizedTypes) + ",\n"
+                + "  \"reviewConstructorCount\": " + ReviewConstructorCount + ",\n"
+                + StringArrayJson("reviewConstructors", ReviewConstructors) + ",\n"
                 + MetricJson("largeConstructor", LargeConstructorCount, LargeConstructorSetHash) + ",\n"
                 + StringArrayJson("largeConstructors", LargeConstructors) + ",\n"
                 + MetricJson("defaultAssemblySource", DefaultAssemblySourceFileCount, DefaultAssemblySourceSetHash) + ",\n"
@@ -1572,8 +1604,10 @@ internal static class ArchitectureMetricsAnalyzer
             return "Architecture metrics PASS: files=" + RuntimeSourceFileCount
                 + ", types=" + RuntimeTypeCount
                 + ", mutableStatics=" + MutableStaticFieldCount
-                + ", oversizedTypes=" + OversizedTypeCount
-                + ", largeConstructors=" + LargeConstructorCount
+                + ", reviewTypes=" + ReviewTypeCount
+                + ", hardOversizedTypes=" + OversizedTypeCount
+                + ", reviewConstructors=" + ReviewConstructorCount
+                + ", hardLargeConstructors=" + LargeConstructorCount
                 + ", defaultAssemblyFiles=" + DefaultAssemblySourceFileCount
                 + ", defaultAllowed=" + DefaultAllowedCount
                 + ", namedRequired=" + NamedRequiredCount

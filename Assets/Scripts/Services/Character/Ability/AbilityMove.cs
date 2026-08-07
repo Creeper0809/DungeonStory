@@ -26,8 +26,7 @@ public class AbilityMove : CharacterAbility
 
     public bool LastGridMoveWasBlocked { get; private set; }
     public GridMoveFailureReason LastGridMoveFailureReason { get; private set; }
-    public bool IsSystemMoveInProgress =>
-        activeActionMovementRoutine != null
+    public bool IsSystemMoveInProgress => activeActionMovementRoutine != null
         && activeSystemMoveDestination.HasValue;
 
     public bool IsSystemMoveInProgressTo(Vector2Int destination)
@@ -35,7 +34,6 @@ public class AbilityMove : CharacterAbility
         return IsSystemMoveInProgress
             && activeSystemMoveDestination.Value == destination;
     }
-
     public void MarkGridMoveFailure(GridMoveFailureReason reason)
     {
         if (reason == GridMoveFailureReason.None) return;
@@ -596,7 +594,7 @@ public class AbilityMove : CharacterAbility
         }
 
         GridTraversalContext directContext = GridTraversalContext.ForCharacter(
-            actor,
+            CharacterPersistentIdentity.Require(actor),
             DoorAccessOverrideKind.DirectCommand);
         Queue<GridMoveStep> path = pathSearchBroker?.GetMovePathTo(
             grid,
@@ -645,7 +643,7 @@ public class AbilityMove : CharacterAbility
         }
 
         GridTraversalContext context = GridTraversalContext.ForCharacter(
-            actor,
+            CharacterPersistentIdentity.Require(actor),
             overrideKind);
         Queue<GridMoveStep> path = pathSearchBroker?.GetMovePathTo(
             grid,
@@ -763,7 +761,7 @@ public class AbilityMove : CharacterAbility
         return idleWanderPlanner.TryFind(
             grid,
             actor.transform.position,
-            GridTraversalContext.ForCharacter(actor),
+            GridTraversalContext.ForCharacter(CharacterPersistentIdentity.Require(actor)),
             minDistance,
             maxDistance,
             out path);
@@ -971,7 +969,9 @@ public class AbilityMove : CharacterAbility
             Vector2Int startPos = grid.GetXY(transform.position);
             startPos = grid.IsValidGridPos(startPos) ? startPos : Vector2Int.zero;
             GridTraversalContext traversalContext = actor != null
-                ? GridTraversalContext.ForCharacter(actor, overrideKind)
+                ? GridTraversalContext.ForCharacter(
+                    CharacterPersistentIdentity.Require(actor),
+                    overrideKind)
                 : default;
             Queue<GridMoveStep> path = pathSearchBroker != null
                 ? pathSearchBroker.GetMovePathTo(

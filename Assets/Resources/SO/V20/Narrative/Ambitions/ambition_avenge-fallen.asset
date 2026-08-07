@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f7513029e620ee4481ed23352a360f1, type: 3}
+  m_Name: ambition_avenge-fallen
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterAmbitionDefinitionSO
+  stableId: ambition:avenge-fallen
+  displayName: "\uC4F0\uB7EC\uC9C4 \uC774\uC758 \uC774\uB984"
+  description: "\uAC00\uAE4C\uC6B4 \uC774\uB97C \uC8FD\uC778 \uC9C0\uD718\uAD00\uC744
+    \uCC3E\uC544 \uC0DD\uD3EC\uD558\uAC70\uB098 \uC4F0\uB7EC\uB728\uB9AC\uB824 \uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  category: 5
+  targetProgress: 300
+  activationRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters:
+    - minimumLifeStage: 3
+      maximumLifeStage: 4
+      requiredTraitId: 
+      excludedTraitId: 
+      minimumHealth: 0
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  failureConditions:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  completionRewards:
+  - kind: 2
+    targetId: vengeance
+    amount: 1
+    durationDays: 0
+  relatedEventWeights:
+  - id: life-event:killer-sighted
+    weight: 2
+  cooperationAmbitionIds: []
+  conflictAmbitionIds: []

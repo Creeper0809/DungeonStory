@@ -1,0 +1,111 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af4061a25738a28e7b9dbb8593dd53e7, type: 3}
+  m_Name: Species_Adventurer
+  m_EditorClassIdentifier: DungeonStory.Species::CharacterSpeciesSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 10
+  speciesTag: Adventurer
+  displayName: "\uC6D0\uC815\uC790"
+  ownerSelectionPolicy: 1
+  homeFactionId: faction:adventurer
+  anatomyProfileId: anatomy:humanoid
+  needs:
+    hungerRateMultiplier: 1
+    thirstRateMultiplier: 1
+    sleepRateMultiplier: 1
+    hygieneRateMultiplier: 1
+    socialNeedMultiplier: 1
+    chargeRateMultiplier: 1
+    integrityWearMultiplier: 1
+    diet: 2
+    metabolism: 0
+    treatment: 0
+  environment:
+    comfortMinimum: 15
+    comfortMaximum: 27
+    safeMinimum: 0
+    safeMaximum: 40
+    lethalMinimum: -10
+    lethalMaximum: 48
+    comfortableAirMinimum: 70
+    comfortableLightMinimum: 40
+    comfortableLightMaximum: 100
+    airborneExposureMultiplier: 1
+    visualStrainMultiplier: 1
+    preferredHumidity: 0.5
+    drynessSensitivity: 1
+  lifeHistory: {fileID: 11400000, guid: 6060b5e083c556a418a691a286116e33, type: 2}
+  reproduction: {fileID: 11400000, guid: 1a3f44e299fa12d498999ed7f07414b2, type: 2}
+  funeralCulture: {fileID: 11400000, guid: 2f40d36cfafb2d946a5d7da18e7dea82, type: 2}
+  relationTags:
+  - "\uC678\uBD80\uC778"
+  - "\uCE68\uC785\uC790"
+  defenseAffinityTags:
+  - "\uBB3C\uB9AC"
+  strongWorkTypeIds: []
+  weakWorkTypeIds: []
+  shortDescription: "\uB358\uC804\uC744 \uCE68\uC785\uD558\uB294 \uC678\uBD80 \uC6D0\uC815\uC790"
+  description: "\uB358\uC804 \uC778\uAD6C\uC758 \uBC88\uC2DD \uB300\uC0C1\uC774 \uC544\uB2CC
+    \uC801\uB300\uC801 \uC678\uBD80 \uC6D0\uC815\uC790 \uC885\uC871 \uC815\uC758\uB2E4."
+  preferredFacilityLabels: []
+  dislikedEnvironmentLabels: []
+  stayDurationMultiplier: 1
+  crimeRiskMultiplier: 1
+  incidentType: 0
+  incident:
+    incidentId: species-incident:adventurer-incursion
+    displayName: "\uC6D0\uC815\uC790 \uCE68\uC785"
+    description: "\uC678\uBD80 \uC6D0\uC815\uC790\uAC00 \uB358\uC804\uC5D0 \uCE68\uC785\uD588\uB2E4."
+    mitigatingRoles: 1024
+    triggerTags:
+    - invasion
+  incidentName: 
+  incidentDescription: 
+  incidentMitigatingRoles: 0
+  combatPassive:
+    passiveId: species-passive:adventurer
+    displayName: "\uC6D0\uC815 \uC219\uB828"
+    description: "\uB358\uC804 \uCE68\uD22C\uC640 \uC804\uD22C\uC5D0 \uC775\uC219\uD558\uB2E4."
+    mechanicTags:
+    - invasion
+    - combat
+  statBonus:
+    entries: []
+  modifiers:
+    consumptionMultiplier: 1
+    spendingMultiplier: 1
+    waitPatienceMultiplier: 1
+    crowdSensitivityMultiplier: 1
+    accidentChanceMultiplier: 1
+    workSpeedMultiplier: 1
+    researchSpeedMultiplier: 1
+    combatPowerMultiplier: 1
+    moveSpeedMultiplier: 1
+    stayDurationMultiplier: 1
+    preferredFacilityRoles: 0
+    dislikedFacilityRoles: 0
+    preferredWorkTypes: 0
+    dislikedWorkTypes: 0
+  combatAbilities:
+    abilities: []
+  references:
+    version: 2
+    RefIds: []

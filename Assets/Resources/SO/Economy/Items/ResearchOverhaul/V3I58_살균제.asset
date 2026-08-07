@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: "V3I58_\uC0B4\uADE0\uC81C"
+  m_EditorClassIdentifier: DungeonStory.Economy::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8958
+  itemId: supply:fungicide
+  displayName: "\uC0B4\uADE0\uC81C"
+  description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC0B4\uADE0\uC81C."
+  stockCategory: 1
+  unitWeight: 1.9599999
+  maxStack: 50
+  sprite: {fileID: 0}
+  unitPrice: 126
+  features:
+  - rid: 7737211794726584737
+  - rid: 7737211794726584738
+  - rid: 7737211794726584739
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211794726584737
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        requiredResearchId: research:agriculture:crop-pathology
+    - rid: 7737211794726584738
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        kind: 8
+        ingredientTags: 1
+        sharedIntermediate: 0
+    - rid: 7737211794726584739
+      type: {class: CropTreatmentItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        treatmentKind: 2

@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11ae014e162ff064183241287201fd7b, type: 3}
+  m_Name: life-event_grave-visit
+  m_EditorClassIdentifier: DungeonStory.Content::LifeEventDefinitionSO
+  stableId: life-event:grave-visit
+  displayName: "\uBB18\uBE44 \uC55E\uC758 \uC57D\uC18D"
+  description: "\uAC00\uAE4C\uC6B4 \uC774\uAC00 \uBB18\uBE44\uB97C \uCC3E\uC544 \uC9C0\uB09C
+    \uC120\uD0DD\uC744 \uB418\uC0C8\uACBC\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  category: 5
+  automatic: 1
+  emergency: 0
+  responseDeadlineDays: 1
+  cooldownDays: 45
+  frequencyRule: 1
+  triggerRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  choices: []
+  automaticEffects:
+  - kind: 2
+    targetId: life-event:grave-visit
+    amount: -2
+    durationDays: 0

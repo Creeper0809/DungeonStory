@@ -31,8 +31,11 @@ public static class BranchedProductionNetworkDebugScenarios
 
     public static IReadOnlyList<string> Validate()
     {
-        ResourceItemDefinitionSO[] items = Resources.LoadAll<ResourceItemDefinitionSO>(
-            ResourceItemDefinitionSO.ResourcePath);
+        ResourceItemDefinitionSO[] items = AssetDatabase.FindAssets("t:ResourceItemDefinitionSO")
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<ResourceItemDefinitionSO>)
+            .Where(item => item != null)
+            .ToArray();
         ProductionRecipeSO[] recipes = Resources.LoadAll<ProductionRecipeSO>(
             ProductionRecipeSO.ResourcePath);
         CombatEquipmentDefinitionSO[] equipment =
@@ -215,6 +218,10 @@ public static class BranchedProductionNetworkDebugScenarios
             {
                 list.Add(null);
             }
+            if (consumers.TryGetValue(crop.SeedItemId, out HashSet<string> seedLinks))
+            {
+                seedLinks.Add($"crop-sowing:{crop.CropId}");
+            }
         }
 
         foreach (BuildingSO building in buildings)
@@ -344,6 +351,29 @@ public static class BranchedProductionNetworkDebugScenarios
                     || medicine.painReduction > 0f))
             {
                 links.Add($"item-treatment:{item.ItemId}");
+            }
+            if (item.TryGetFeature(out MedicalProcedureSupplyItemFeature procedureSupply)
+                && !string.IsNullOrWhiteSpace(procedureSupply.procedureId))
+            {
+                links.Add($"medical-procedure:{procedureSupply.procedureId.Trim()}");
+            }
+            if (item.TryGetFeature(out CropTreatmentItemFeature cropTreatment))
+            {
+                links.Add($"crop-treatment:{cropTreatment.treatmentKind}");
+            }
+            if (item.TryGetFeature(out PathogenSampleItemFeature sample)
+                && !string.IsNullOrWhiteSpace(sample.diseaseId))
+            {
+                acquisitionProducers[item.ItemId].Add(
+                    $"diagnostic-sampling:{sample.diseaseId.Trim()}");
+            }
+            if (string.Equals(
+                item.ItemId,
+                "medicine:mycelial-culture-pack",
+                StringComparison.Ordinal))
+            {
+                acquisitionProducers[item.ItemId].Add(
+                    "medical-procedure:mycelial-culture-harvest");
             }
             if (item.TryGetFeature(out SubstanceItemFeature substance)
                 && !string.IsNullOrWhiteSpace(substance.substanceId))

@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9135
+  id: 19135
   recipeId: recipe:component:rune-bus-coupler
   displayName: "\uB8EC \uBC84\uC2A4 \uACB0\uD569\uAE30"
   description: "\uAD6C\uCCB4 \uC7AC\uB8CC\uB97C \uC0AC\uC6A9\uD574 \uB8EC \uBC84\uC2A4

@@ -36,6 +36,15 @@ public interface IItemTransferService
         string destinationId,
         out int spawned);
 
+    bool TrySpawnItemWithComponents(
+        string itemId,
+        int amount,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        IReadOnlyList<ItemInstanceComponentSaveData> components,
+        out int spawned);
+
     bool TryRouteFacilityOutput(
         string sourceDestinationId,
         string itemId,
@@ -296,6 +305,25 @@ public sealed class ItemTransferService : IItemTransferService
             position,
             state,
             destinationId?.Trim() ?? string.Empty);
+        return spawned == Mathf.Max(0, amount);
+    }
+
+    public bool TrySpawnItemWithComponents(
+        string itemId,
+        int amount,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        IReadOnlyList<ItemInstanceComponentSaveData> components,
+        out int spawned)
+    {
+        spawned = itemSpawner.Spawn(
+            itemId,
+            amount,
+            position,
+            state,
+            destinationId?.Trim() ?? string.Empty,
+            components: components);
         return spawned == Mathf.Max(0, amount);
     }
 

@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Foundation;
 using UnityEngine;
 
 public enum RoomExperienceActivity
@@ -50,11 +51,13 @@ public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienc
     private readonly IRoomLayoutCache roomLayoutCache;
     private readonly IRoomEnvironmentEvaluator evaluator;
     private readonly IRoomEnvironmentSettingsProvider settingsProvider;
+    private readonly IGameEventBus events;
 
     public RoomEnvironmentExperienceService(
         IRoomLayoutCache roomLayoutCache,
         IRoomEnvironmentEvaluator evaluator,
-        IRoomEnvironmentSettingsProvider settingsProvider)
+        IRoomEnvironmentSettingsProvider settingsProvider,
+        IGameEventBus events)
     {
         this.roomLayoutCache = roomLayoutCache
             ?? throw new ArgumentNullException(nameof(roomLayoutCache));
@@ -62,6 +65,7 @@ public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienc
             ?? throw new ArgumentNullException(nameof(evaluator));
         this.settingsProvider = settingsProvider
             ?? throw new ArgumentNullException(nameof(settingsProvider));
+        this.events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
     public bool Apply(RoomEnvironmentExperienceEvent eventType)
@@ -70,8 +74,13 @@ public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienc
         BuildableObject facility = eventType.Facility;
         if (actor == null
             || facility == null
-            || facility.isDestroy
-            || facility.Grid == null
+            || facility.isDestroy)
+        {
+            return false;
+        }
+
+        PublishManaExposure(eventType);
+        if (facility.Grid == null
             || !TryGetFacilityRoom(facility, out RoomInstance room)
             || room == null
             || room.IsSelfContained
@@ -118,6 +127,29 @@ public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienc
 
         return !Mathf.Approximately(impressionMood, 0f)
             || !Mathf.Approximately(cleanlinessMood, 0f);
+    }
+
+    private void PublishManaExposure(RoomEnvironmentExperienceEvent eventType)
+    {
+        FacilityRole roles = eventType.Facility.Facility?.roles ?? FacilityRole.None;
+        if ((roles & FacilityRole.Mana) == 0
+            || !CharacterPersistentIdentity.TryGet(eventType.Actor, out CharacterId characterId))
+        {
+            return;
+        }
+
+        float exposureHours = eventType.Activity switch
+        {
+            RoomExperienceActivity.Work => 8f,
+            RoomExperienceActivity.FacilityUse => 2f,
+            _ => 1f
+        };
+        events.Publish(new PopulationDiseaseRouteExposureEvent(
+            characterId,
+            "disease:mana-pox",
+            DiseaseTransmissionRoute.ManaExposure,
+            exposureHours,
+            1f));
     }
 
     private bool TryGetFacilityRoom(BuildableObject facility, out RoomInstance room)

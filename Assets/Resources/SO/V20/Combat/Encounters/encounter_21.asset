@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11a7078c65d29414ebfafd36d0865407, type: 3}
+  m_Name: encounter_21
+  m_EditorClassIdentifier: DungeonStory.Offense::OffenseEncounterSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8021
+  encounterId: encounter:21
+  displayName: "\uC790\uC720\uAC1C\uCC99 \uB36B\uC0AC\uB0E5\uAFBC \uC804\uC220 \uC870\uC6B0"
+  minimumSiteStrength: 6
+  maximumSiteStrength: 9
+  elite: 0
+  boss: 0
+  objective: 2
+  objectiveRoundLimit: 6
+  objectiveTargetId: target:field-medic
+  battlefieldModifierIds:
+  - battlefield:mana-storm
+  counterTags:
+  - counter:slow-advance
+  rewardItemIds:
+  - loot:enemy-salvage
+  enemies:
+  - enemyArchetypeId: enemy:settler-trapper
+    minimumCount: 1
+    maximumCount: 2
+  - enemyArchetypeId: enemy:rival-siege-frame
+    minimumCount: 1
+    maximumCount: 2

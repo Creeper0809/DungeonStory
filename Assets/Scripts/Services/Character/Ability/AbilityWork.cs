@@ -109,6 +109,7 @@ public class AbilityWork : CharacterAbility
     internal IExteriorZoneQuery ExteriorZoneQuery => exteriorZoneQuery;
     internal IWorkExecutionHandlerRegistry WorkExecutionHandlerRegistry =>
         workExecutionHandlerRegistry;
+    internal IWorkPolicyRegistry WorkPolicyRegistry => workPolicyRegistry;
     internal IWorkOrderRuntime WorkOrderRuntime => workOrderRuntime;
     internal IGameClock GameClock => gameClock;
 

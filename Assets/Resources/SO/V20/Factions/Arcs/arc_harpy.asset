@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a4736fd02ec5ef4d9ce05fab2aec349, type: 3}
+  m_Name: arc_harpy
+  m_EditorClassIdentifier: DungeonStory.Content::FactionArcDefinitionSO
+  stableId: faction-arc:harpy
+  displayName: "\uD3ED\uD48D\uB465\uC9C0"
+  description: "\uD558\uB298\uAE38\uACFC \uB178\uB798 \uAE30\uB85D\uC758 \uB3C5\uC810\uC744
+    \uB458\uB7EC\uC2F8\uACE0 \uB465\uC9C0 \uB0B4\uBD80\uAC00 \uAC08\uB77C\uC84C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored faction/service manifest.
+  factionId: faction:dungeon:harpy
+  chapterIds:
+  - faction-chapter:harpy:1
+  - faction-chapter:harpy:2
+  - faction-chapter:harpy:3
+  - faction-chapter:harpy:4
+  - faction-chapter:harpy:5
+  - faction-chapter:harpy:6
+  contractIds:
+  - faction-contract:harpy:supply
+  - faction-contract:harpy:crisis
+  - faction-contract:harpy:strategic
+  relicItemIds:
+  - relic:faction:harpy:1
+  - relic:faction:harpy:2
+  - relic:faction:harpy:3

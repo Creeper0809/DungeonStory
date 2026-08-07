@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e299ffa39eb64f5aa2a777c1be71b5bc, type: 3}
+  m_Name: heritable_broad-immunity
+  m_EditorClassIdentifier: DungeonStory.Species::HeritableTraitDefinitionSO
+  traitId: heritable:broad-immunity
+  displayName: "\uAD11\uBC94\uC704 \uBA74\uC5ED"
+  description: "\uC5EC\uB7EC \uAC10\uC5FC\uBCD1\uC758 \uBC1C\uBCD1 \uD655\uB960\uC744
+    \uC870\uAE08\uC529 \uB0AE\uCD98\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored hereditary trait manifest.
+  category: 4
+  incompatibilityGroup: immunity:focused-antibodies
+  aptitudeModifier: 4
+  compatibleSpeciesTags: []
+  consequences:
+  - kind: 3
+    targetId: all
+    multiplierDelta: 0.12

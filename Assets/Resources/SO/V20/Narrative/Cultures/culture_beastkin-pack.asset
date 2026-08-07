@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86bca71163e51a84b8d8bdc8d4d069d3, type: 3}
+  m_Name: culture_beastkin-pack
+  m_EditorClassIdentifier: DungeonStory.Content::SpeciesCultureDefinitionSO
+  stableId: culture:beastkin-pack
+  displayName: "\uBB34\uB9AC\uC758 \uD654\uB85C \uBB38\uD654"
+  description: "\uC2DD\uC0AC\uC640 \uD734\uC2DD\uC744 \uBB34\uB9AC \uB2E8\uC704\uB85C
+    \uACF5\uC720\uD558\uACE0 \uD640\uB85C \uB0A8\uB294 \uC774\uB97C \uBA3C\uC800
+    \uCC59\uAE34\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  defaultSpeciesId: Beastkin
+  preferredItemIds:
+  - resource:meat
+  forbiddenItemIds:
+  - medicine:strong-perfume
+  preferredFacilityIds: []
+  environmentalPreferences:
+  - warm shared quarters
+  etiquetteRules:
+  - "\uC0C1\uB300\uC758 \uB0C4\uC0C8\uD45C\uC2DD\uC744 \uD5C8\uB77D \uC5C6\uC774
+    \uC9C0\uC6B0\uC9C0 \uC54A\uB294\uB2E4."
+  ceremonyIds:
+  - practice:beastkin-pack-meal
+  - practice:beastkin-scent-vigil
+  otherCultureAttitudes:
+  - id: culture:adventurer-frontier
+    weight: 1
+  - id: culture:demon-contract
+    weight: 1
+  - id: culture:golem-core
+    weight: 1
+  - id: culture:harpy-aerie
+    weight: 1
+  - id: culture:kobold-toolclan
+    weight: 1
+  - id: culture:myconid-grove
+    weight: 1
+  - id: culture:orc-vigil
+    weight: 1
+  - id: culture:slime-confluence
+    weight: 1
+  - id: culture:vampire-nightcourt
+    weight: 1
+  assimilationDays: 120

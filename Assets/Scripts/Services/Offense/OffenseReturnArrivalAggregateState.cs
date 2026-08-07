@@ -14,6 +14,8 @@ internal sealed class OffenseReturnArrivalAggregateState
     internal List<OffenseReturnArrivalState> Arrivals { get; } = new();
     internal Dictionary<string, OffenseReturnBarrier> Barriers { get; } =
         new(StringComparer.Ordinal);
+    internal Dictionary<string, List<EnemyIndividualSaveData>>
+        PrisonerCandidatePools { get; } = new(StringComparer.Ordinal);
     internal int NextArrivalSequence { get; set; } = 1;
     internal float NextRetryAt { get; set; }
 
@@ -36,6 +38,13 @@ internal sealed class OffenseReturnArrivalAggregateState
                 Sealed = pair.Value.Sealed
             });
         }
+        foreach (KeyValuePair<string, List<EnemyIndividualSaveData>> pair in
+            PrisonerCandidatePools)
+        {
+            clone.PrisonerCandidatePools.Add(
+                pair.Key,
+                pair.Value.Select(value => value.Clone()).ToList());
+        }
 
         return clone;
     }
@@ -45,6 +54,9 @@ internal static class OffenseReturnArrivalSaveValidation
 {
     internal const int MaximumArrivals = 256;
     internal const int MaximumArrivalSize = 10_000;
+    internal const int MaximumCandidatePools = 64;
+    internal const int MaximumCandidatesPerPool = 128;
+    internal const int MaximumCandidateIndividuals = 1_024;
 
     public static void Validate(
         DungeonOffenseReturnArrivalSaveData payload,
@@ -78,10 +90,21 @@ internal static class OffenseReturnArrivalSaveValidation
                 "Offense return-arrival payload is missing its arrival list.");
             return;
         }
+        if (payload.prisonerCandidatePools == null)
+        {
+            report.AddError(
+                "Offense return-arrival payload is missing its prisoner candidate pools.");
+            return;
+        }
         if (payload.arrivals.Count > MaximumArrivals)
         {
             report.AddError(
                 $"Offense return-arrival payload exceeds {MaximumArrivals} records.");
+        }
+        if (payload.prisonerCandidatePools.Count > MaximumCandidatePools)
+        {
+            report.AddError(
+                $"Offense return-arrival payload exceeds {MaximumCandidatePools} prisoner candidate pools.");
         }
 
         HashSet<string> arrivalIds = new(StringComparer.Ordinal);
@@ -121,6 +144,7 @@ internal static class OffenseReturnArrivalSaveValidation
                 || !IsFiniteInRange(arrival.escapeRisk, 0f, 100f)
                 || arrival.materializedIds == null
                 || arrival.escapedIds == null
+                || arrival.prisonerIndividuals == null
                 || arrival.lastStatus == null)
             {
                 report.AddError(
@@ -145,6 +169,90 @@ internal static class OffenseReturnArrivalSaveValidation
                 report.AddError(
                     $"Offense return-arrival '{arrivalId}' has inconsistent entity counts.");
             }
+
+            int expectedIndividuals = arrival.kind == OffenseReturnArrivalKind.Prisoner
+                ? arrival.requestedAmount
+                : 0;
+            if (arrival.prisonerIndividuals.Count != expectedIndividuals
+                || arrival.prisonerIndividuals.Any(value => value == null)
+                || arrival.prisonerIndividuals.Select(value => value.characterId)
+                    .Distinct(StringComparer.Ordinal).Count()
+                    != arrival.prisonerIndividuals.Count)
+            {
+                report.AddError(
+                    $"Offense return-arrival '{arrivalId}' has inconsistent prisoner-individual records.");
+            }
+            for (int index = 0; index < arrival.prisonerIndividuals.Count; index++)
+            {
+                CharacterId individualId = new(
+                    arrival.prisonerIndividuals[index].characterId);
+                if (!individualId.IsValid)
+                {
+                    report.AddError(
+                        $"Offense return-arrival '{arrivalId}' prisoner {index + 1} has an invalid CharacterId.");
+                }
+            }
+            if (arrival.kind == OffenseReturnArrivalKind.Prisoner
+                && materialized.Any(id => !arrival.prisonerIndividuals.Any(
+                    value => string.Equals(
+                        value.characterId,
+                        id,
+                        StringComparison.Ordinal))))
+            {
+                report.AddError(
+                    $"Offense return-arrival '{arrivalId}' materialized an unknown prisoner individual.");
+            }
+        }
+
+        HashSet<string> poolExpeditions = new(StringComparer.Ordinal);
+        HashSet<string> pooledCharacters = new(StringComparer.Ordinal);
+        int candidateIndividualCount = 0;
+        string previousPoolId = null;
+        foreach (OffensePrisonerCandidatePoolState pool in
+            payload.prisonerCandidatePools)
+        {
+            string expeditionId = pool?.expeditionId ?? string.Empty;
+            if (pool == null
+                || string.IsNullOrWhiteSpace(expeditionId)
+                || !string.Equals(expeditionId, expeditionId.Trim(),
+                    StringComparison.Ordinal)
+                || pool.individuals == null
+                || pool.individuals.Count == 0
+                || pool.individuals.Count > MaximumCandidatesPerPool
+                || !poolExpeditions.Add(expeditionId)
+                || (previousPoolId != null
+                    && string.CompareOrdinal(previousPoolId, expeditionId) >= 0))
+            {
+                report.AddError(
+                    $"Offense return-arrival contains invalid candidate pool '{expeditionId}'.");
+                continue;
+            }
+
+            candidateIndividualCount += pool.individuals.Count;
+
+            string previousCharacterId = null;
+            foreach (EnemyIndividualSaveData individual in pool.individuals)
+            {
+                string characterId = individual?.characterId ?? string.Empty;
+                if (individual == null
+                    || !new CharacterId(characterId).IsValid
+                    || !pooledCharacters.Add(characterId)
+                    || (previousCharacterId != null
+                        && string.CompareOrdinal(
+                            previousCharacterId,
+                            characterId) >= 0))
+                {
+                    report.AddError(
+                        $"Offense candidate pool '{expeditionId}' contains an invalid or duplicate individual '{characterId}'.");
+                }
+                previousCharacterId = characterId;
+            }
+            previousPoolId = expeditionId;
+        }
+        if (candidateIndividualCount > MaximumCandidateIndividuals)
+        {
+            report.AddError(
+                $"Offense return-arrival payload exceeds {MaximumCandidateIndividuals} prisoner candidates.");
         }
 
         if (payload.nextArrivalSequence <= highestSequence)
@@ -180,8 +288,19 @@ internal static class OffenseReturnArrivalSaveValidation
                     source.materializedIds),
                 escapedIds = CanonicalizeEntityIdsForRestore(source,
                     source.escapedIds),
+                prisonerIndividuals = source.prisonerIndividuals
+                    .Select(value => value.Clone()).ToList(),
                 lastStatus = source.lastStatus
             });
+        }
+        foreach (OffensePrisonerCandidatePoolState source in
+            payload.prisonerCandidatePools)
+        {
+            restored.PrisonerCandidatePools.Add(
+                source.expeditionId,
+                source.individuals
+                    .Select(value => value.Clone())
+                    .ToList());
         }
         return restored;
     }
@@ -236,6 +355,13 @@ internal static class OffenseReturnArrivalSaveValidation
         {
             canonical = value;
             return IsWildlifeId(value);
+        }
+
+        CharacterId current = new(value);
+        if (current.IsValid)
+        {
+            canonical = current.Value;
+            return string.Equals(value, canonical, StringComparison.Ordinal);
         }
 
         string prefix = arrival.arrivalId + ":prisoner:";

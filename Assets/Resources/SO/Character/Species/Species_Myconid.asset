@@ -52,6 +52,9 @@ MonoBehaviour:
     visualStrainMultiplier: 1
     preferredHumidity: 0.5
     drynessSensitivity: 1
+  lifeHistory: {fileID: 11400000, guid: 1a6654515c6cacd48bc80aac36fe2f75, type: 2}
+  reproduction: {fileID: 11400000, guid: 248ae056a411d794eb831b8dd46ba2ae, type: 2}
+  funeralCulture: {fileID: 11400000, guid: f3624611c1a41ca41856ee4ab6913b8c, type: 2}
   relationTags:
   - "\uC2B5\uAE30"
   - "\uC624\uC5FC"
@@ -98,6 +101,14 @@ MonoBehaviour:
   incidentDescription: "\uAC74\uC870 \uB178\uCD9C\uACFC \uBD88\uB9CC\uC774 \uACB9\uCE58\uBA74
     \uC2E4\uC81C \uD3EC\uC790 \uC624\uC5FC\uC744 \uC8FC\uBCC0 \uC140\uC5D0 \uC0DD\uC131\uD55C\uB2E4."
   incidentMitigatingRoles: 4352
+  combatPassive:
+    passiveId: species-passive:myconid
+    displayName: "\uADE0\uC0AC \uC21C\uD658"
+    description: "\uC7AC\uBC30\xB7\uC57D\uD488\xB7\uC624\uC5FC \uCC98\uB9AC\uC640
+      \uB3C5 \uC2DC\uC124 \uC6B4\uC6A9\uC5D0 \uAC15\uD558\uB2E4."
+    mechanicTags:
+    - "\uC7AC\uBC30"
+    - "\uC81C\uB3C5"
   statBonus:
     entries:
     - statId: stat:attack
@@ -139,14 +150,6 @@ MonoBehaviour:
     dislikedFacilityRoles: 0
     preferredWorkTypes: 6324232
     dislikedWorkTypes: 524320
-  combatPassive:
-    passiveId: species-passive:myconid
-    displayName: "\uADE0\uC0AC \uC21C\uD658"
-    description: "\uC7AC\uBC30\xB7\uC57D\uD488\xB7\uC624\uC5FC \uCC98\uB9AC\uC640
-      \uB3C5 \uC2DC\uC124 \uC6B4\uC6A9\uC5D0 \uAC15\uD558\uB2E4."
-    mechanicTags:
-    - "\uC7AC\uBC30"
-    - "\uC81C\uB3C5"
   combatAbilities:
     abilities:
     - rid: 7302563319989403749

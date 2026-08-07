@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f5a849b4b3859d42b4e08a8c27b8554, type: 3}
+  m_Name: guest-request_bodyguard-kit
+  m_EditorClassIdentifier: DungeonStory.Content::GuestRequestDefinitionSO
+  stableId: guest-request:bodyguard-kit
+  displayName: "\uC0AC\uC808 \uD638\uC704 \uC7A5\uBE44"
+  description: "\uC704\uD5D8 \uC9C0\uC5ED\uC744 \uC9C0\uB0A0 \uC0AC\uC808\uB2E8\uC774
+    \uBC29\uD3ED \uC678\uD22C\uC640 \uC218\uB9AC \uD0A4\uD2B8\uB97C \uC694\uAD6C\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored faction/service manifest.
+  kind: 6
+  deadlineDays: 5
+  serviceRequirements:
+    items:
+    - itemDefinitionId: item:field-repair-kit
+      amount: 6
+      consume: 1
+    facilities:
+    - buildingDefinitionId: building:smith-workshop
+      capabilityId: 
+      minimumCount: 1
+      mustBeOperational: 1
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  successEffects:
+  - kind: 9
+    targetId: guest-service
+    amount: 120
+    durationDays: 0
+  - kind: 6
+    targetId: requesting-faction
+    amount: 4
+    durationDays: 0
+  failureEffects:
+  - kind: 7
+    targetId: requesting-faction
+    amount: 5
+    durationDays: 0

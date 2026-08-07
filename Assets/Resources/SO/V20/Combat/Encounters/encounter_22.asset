@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11a7078c65d29414ebfafd36d0865407, type: 3}
+  m_Name: encounter_22
+  m_EditorClassIdentifier: DungeonStory.Offense::OffenseEncounterSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8022
+  encounterId: encounter:22
+  displayName: "\uC790\uC720\uAC1C\uCC99 \uBC14\uB9AC\uCF00\uC774\uB4DC\uBCD1 \uC804\uC220
+    \uC870\uC6B0"
+  minimumSiteStrength: 6
+  maximumSiteStrength: 9
+  elite: 0
+  boss: 0
+  objective: 3
+  objectiveRoundLimit: 7
+  objectiveTargetId: target:war-device
+  battlefieldModifierIds:
+  - battlefield:powder-smoke
+  counterTags:
+  - counter:destroy-cover
+  rewardItemIds:
+  - loot:enemy-salvage
+  enemies:
+  - enemyArchetypeId: enemy:settler-barricadier
+    minimumCount: 1
+    maximumCount: 2
+  - enemyArchetypeId: enemy:rival-stormcaller
+    minimumCount: 1
+    maximumCount: 2

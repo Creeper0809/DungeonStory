@@ -26,6 +26,10 @@ namespace DungeonStory.Tests.Architecture
                 "Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs");
             string regularCustomers = ReadSource(
                 "Scripts/Services/Recruitment/RegularCustomerSystem.cs");
+            string identity = ReadSource(
+                "Scripts/Services/Character/Core/CharacterIdentity.cs");
+            string lifePublication = ReadSource(
+                "Scripts/Services/Character/CharacterLifePublicationService.cs");
 
             Assert.That(
                 invasion,
@@ -90,6 +94,21 @@ namespace DungeonStory.Tests.Architecture
             Assert.That(
                 regularCustomers,
                 Does.Contain("!customerId.IsValid || customerId.Equals(CharacterId.Owner)"));
+
+            Assert.That(identity, Does.Contain(
+                "private bool characterTypeExplicitlyAssigned;"));
+            Assert.That(identity, Does.Contain(
+                "else if (!characterTypeExplicitlyAssigned)"),
+                "Rebinding authoring data must not overwrite an explicitly restored runtime character type.");
+            Assert.That(identity, Does.Contain(
+                "characterTypeExplicitlyAssigned = true;"));
+            Assert.That(lifePublication, Does.Contain(
+                "if (!IsPersistentLifeActor(actor))"));
+            Assert.That(lifePublication, Does.Contain(
+                "actor.Identity?.CharacterType == CharacterType.NPC"));
+            Assert.That(lifePublication, Does.Contain(
+                "actor.TryGetAbility(out AbilityWork _)"),
+                "Transient invasion and encounter actors must not enter the persistent life aggregate.");
         }
 
         private static string ReadSource(string assetRelativePath)

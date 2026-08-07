@@ -92,6 +92,17 @@ public static class DungeonProgressionOffenseRegistration
             .As<IOffenseContentCatalog>();
         builder.Register<ResourceOffenseCampaignCatalog>(Lifetime.Singleton)
             .As<IOffenseCampaignCatalog>();
+        builder.Register<EnemyCombatContentCatalog>(Lifetime.Singleton)
+            .As<IEnemyArchetypeCatalog>()
+            .As<IEncounterCatalog>()
+            .As<IEnemyAbilityCatalog>()
+            .As<IBattlefieldModifierCatalog>();
+        builder.Register<EnemyEncounterFactory>(Lifetime.Singleton)
+            .As<IEnemyEncounterFactory>();
+        builder.Register<EnemyTacticalDecisionService>(Lifetime.Singleton)
+            .As<IEnemyTacticalDecisionService>();
+        builder.Register<EnemyIndividualFactory>(Lifetime.Singleton)
+            .As<IEnemyIndividualFactory>();
         builder.Register<OffenseAggregateAuthoredReferenceValidator>(
             Lifetime.Singleton);
         builder.Register<OffenseWorldStateSaveCodec>(Lifetime.Singleton);

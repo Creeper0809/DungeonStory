@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11a7078c65d29414ebfafd36d0865407, type: 3}
+  m_Name: encounter_17
+  m_EditorClassIdentifier: DungeonStory.Offense::OffenseEncounterSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8017
+  encounterId: encounter:17
+  displayName: "\uAE08\uD654\uB3D9\uB9F9 \uACE0\uC6A9\uBC29\uBCBD \uC804\uC220 \uC870\uC6B0"
+  minimumSiteStrength: 5
+  maximumSiteStrength: 8
+  elite: 0
+  boss: 0
+  objective: 4
+  objectiveRoundLimit: 8
+  objectiveTargetId: 
+  battlefieldModifierIds:
+  - battlefield:civilian-corridor
+  counterTags:
+  - counter:separate-cargo
+  rewardItemIds:
+  - loot:enemy-salvage
+  enemies:
+  - enemyArchetypeId: enemy:merchant-hired-bulwark
+    minimumCount: 1
+    maximumCount: 2
+  - enemyArchetypeId: enemy:settler-herbalist
+    minimumCount: 1
+    maximumCount: 2

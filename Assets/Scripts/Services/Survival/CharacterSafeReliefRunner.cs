@@ -12,6 +12,7 @@ internal sealed class CharacterSafeReliefRunner
     private readonly IWorldWaterQuery waterQuery;
     private readonly IGameClock gameClock;
     private readonly ICharacterNeedBalanceRuntime needBalanceRuntime;
+    private readonly IGameEventBus events;
     private readonly CharacterDeprivationStateStore stateStore;
     private readonly CharacterSafeDrinkPlanner planner;
     private readonly CharacterEmergencyMovement movement;
@@ -26,6 +27,7 @@ internal sealed class CharacterSafeReliefRunner
         IWorldWaterQuery waterQuery,
         IGameClock gameClock,
         ICharacterNeedBalanceRuntime needBalanceRuntime,
+        IGameEventBus events,
         CharacterDeprivationStateStore stateStore,
         CharacterSafeDrinkPlanner planner,
         CharacterEmergencyMovement movement,
@@ -39,6 +41,7 @@ internal sealed class CharacterSafeReliefRunner
             ?? throw new ArgumentNullException(nameof(gameClock));
         this.needBalanceRuntime = needBalanceRuntime
             ?? throw new ArgumentNullException(nameof(needBalanceRuntime));
+        this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
         this.planner = planner
@@ -201,6 +204,9 @@ internal sealed class CharacterSafeReliefRunner
 
             case CharacterSafeDrinkTargetKind.WorldSource:
                 if (Manhattan(actor.GetNowXY(), plan.TargetPosition) <= 1
+                    && waterQuery.TryGetSource(
+                        plan.TargetId,
+                        out WorldWaterSourceSnapshot source)
                     && waterQuery.TryDrink(
                         plan.TargetId,
                         needBalanceRuntime.ApplyPersonalContinuousWaterMultiplier(1f),
@@ -210,12 +216,27 @@ internal sealed class CharacterSafeReliefRunner
                     && quality == WorldWaterQuality.Clean)
                 {
                     RecoverThirst(actor, 65f);
+                    PublishWaterConsumed(actor, source, quality, consumed);
                     return true;
                 }
                 break;
         }
 
         return false;
+    }
+
+    private void PublishWaterConsumed(
+        CharacterActor actor,
+        WorldWaterSourceSnapshot source,
+        WorldWaterQuality quality,
+        float consumed)
+    {
+        events.Publish(new CharacterWaterConsumedEvent(
+            CharacterPersistentIdentity.Require(actor),
+            source.SourceId,
+            quality,
+            consumed,
+            source.PathogenDiseaseId));
     }
 
     private void RecordPlanDiagnostics(CharacterActor actor, CharacterSafeDrinkPlan plan)

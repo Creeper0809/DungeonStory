@@ -39,12 +39,12 @@ MonoBehaviour:
     - rid: 7737211730538791867
     - rid: 7737211730538791868
     - rid: 7737211730538791869
-    - rid: 7737211730889015896
-    - rid: 7737211730889015897
-    - rid: 7737211730889015898
-    - rid: 7737211730889015899
-    - rid: 7737211730889016132
-    - rid: 7737211730889016133
+    - rid: 7737211792998531083
+    - rid: 7737211792998531084
+    - rid: 7737211792998531085
+    - rid: 7737211792998531086
+    - rid: 7737211792998531328
+    - rid: 7737211792998531329
   width: 2
   height: 1
   layer: 1
@@ -61,18 +61,18 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730538791863
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: P18
     - rid: 7737211730538791864
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - apothecary
     - rid: 7737211730538791866
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 135
@@ -118,21 +118,21 @@ MonoBehaviour:
           - key: Medicine
             value: 2
           metrics: []
-    - rid: 7737211730889015896
+    - rid: 7737211792998531083
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7737211730889015897
+    - rid: 7737211792998531084
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7737211730889015898
+    - rid: 7737211792998531085
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -143,20 +143,20 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7737211730889015899
+    - rid: 7737211792998531086
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7737211730889016132
+    - rid: 7737211792998531328
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:apothecary
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211730889016133
+    - rid: 7737211792998531329
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -176,3 +176,5 @@ MonoBehaviour:
           capacity: 16
         - itemId: component:precision-parts
           capacity: 16
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}

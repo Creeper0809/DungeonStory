@@ -109,6 +109,7 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
     private readonly ICharacterSkillSystemSettingsProvider settingsProvider;
     private readonly IRunCharacterCatalog characterCatalog;
     private readonly IGameContentCatalog content;
+    private readonly ICharacterRuntimeProfileFactory runtimeProfileFactory;
     private readonly List<StartPartyMemberPreparation> members = new List<StartPartyMemberPreparation>(7);
     private readonly IReadOnlyList<StartPartyMemberPreparation> membersView;
     private readonly IRandomStream random;
@@ -131,7 +132,8 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         ICharacterSkillSystemSettingsProvider settingsProvider,
         IRunCharacterCatalog characterCatalog,
         IGameContentCatalog content,
-        IRandomStreamProvider randomStreams)
+        IRandomStreamProvider randomStreams,
+        ICharacterRuntimeProfileFactory runtimeProfileFactory)
     {
         this.skillGenerationService = skillGenerationService
             ?? throw new ArgumentNullException(nameof(skillGenerationService));
@@ -140,6 +142,8 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         this.characterCatalog = characterCatalog
             ?? throw new ArgumentNullException(nameof(characterCatalog));
         this.content = content ?? throw new ArgumentNullException(nameof(content));
+        this.runtimeProfileFactory = runtimeProfileFactory
+            ?? throw new ArgumentNullException(nameof(runtimeProfileFactory));
         random = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams)))
             .Get("character:start-party-preparation");
         membersView = members.AsReadOnly();
@@ -913,7 +917,9 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         progression.ConfigurePreview(
             skillGenerationService,
             settingsProvider,
-            new CharacterProgressionProfileProjector(content));
+            new CharacterProgressionProfileProjector(
+                content,
+                runtimeProfileFactory));
         progression.SetPublicSkillNotificationsSuppressed(true);
         return preview;
     }

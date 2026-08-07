@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5da3d53c94cb43e8add8d49b525df757, type: 3}
+  m_Name: WeatherFront_fog
+  m_EditorClassIdentifier: DungeonStory.Content::WeatherFrontDefinitionSO
+  stableId: weather:fog
+  displayName: "\uC548\uAC1C"
+  kind: 2
+  minimumDurationDays: 1
+  maximumDurationDays: 3
+  temperatureModifierC: -2
+  springWeight: 15
+  summerWeight: 8
+  autumnWeight: 20
+  winterWeight: 18

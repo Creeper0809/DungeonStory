@@ -35,7 +35,8 @@ internal sealed class CharacterBreakdownActionExecutionDependencies
         CharacterSafeDrinkPlanner safeDrinkPlanner,
         CharacterEmergencyMovement emergencyMovement,
         CharacterDeprivationDiagnostics diagnostics,
-        CharacterDeprivationConsequences consequences)
+        CharacterDeprivationConsequences consequences,
+        IGameEventBus events)
     {
         StateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
@@ -47,6 +48,7 @@ internal sealed class CharacterBreakdownActionExecutionDependencies
             ?? throw new ArgumentNullException(nameof(diagnostics));
         Consequences = consequences
             ?? throw new ArgumentNullException(nameof(consequences));
+        Events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
     internal CharacterDeprivationStateStore StateStore { get; }
@@ -54,6 +56,7 @@ internal sealed class CharacterBreakdownActionExecutionDependencies
     internal CharacterEmergencyMovement EmergencyMovement { get; }
     internal CharacterDeprivationDiagnostics Diagnostics { get; }
     internal CharacterDeprivationConsequences Consequences { get; }
+    internal IGameEventBus Events { get; }
 }
 
 internal sealed class CharacterBreakdownActionRunner
@@ -80,6 +83,7 @@ internal sealed class CharacterBreakdownActionRunner
     private readonly CharacterDeprivationDiagnostics diagnostics;
     private readonly CharacterDeprivationConsequences consequences;
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
+    private readonly IGameEventBus events;
     private readonly HashSet<CharacterId> runningActorIds =
         new HashSet<CharacterId>();
     private readonly Dictionary<CharacterBreakdownKind, Func<CharacterActor, IEnumerator>>
@@ -103,6 +107,7 @@ internal sealed class CharacterBreakdownActionRunner
         emergencyMovement = execution.EmergencyMovement;
         diagnostics = execution.Diagnostics;
         consequences = execution.Consequences;
+        events = execution.Events;
         CreateActionRoutines();
     }
 
@@ -349,6 +354,12 @@ internal sealed class CharacterBreakdownActionRunner
                     GetWaterRecovery(quality),
                     CharacterNeedRecoverySource.Emergency);
                 consequences.EndActiveBreakdownIfRelieved(actor);
+                events.Publish(new CharacterWaterConsumedEvent(
+                    actorId,
+                    source.SourceId,
+                    quality,
+                    consumed,
+                    source.PathogenDiseaseId));
                 if (quality != WorldWaterQuality.Clean)
                 {
                     bodyHealthCommands.ApplyLegacyDamage(

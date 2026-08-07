@@ -505,18 +505,11 @@ public static class OffenseJourneyDebugScenarios
     private sealed class ActorFixture : IDisposable
     {
         private readonly GameObject gameObject;
-        private readonly CharacterSO data;
 
         public ActorFixture(string name)
         {
-            data = ScriptableObject.CreateInstance<CharacterSO>();
-            data.id = Mathf.Abs(name.GetHashCode());
-            data.characterName = name;
-            data.characterType = CharacterType.NPC;
-            data.role = CharacterRole.Regular;
-            data.speciesTag = "Orc";
-            data.baseStats = CharacterStatBlock.CreateDefault(10);
-            data.defaultWorkPriorities = WorkPriorityProfile.CreateDefault();
+            CharacterSO data =
+                OffenseEditorTestDependencies.RequireCharacterArchetype("Orc");
 
             gameObject = new GameObject(name);
             gameObject.AddComponent<SpriteRenderer>();
@@ -533,6 +526,7 @@ public static class OffenseJourneyDebugScenarios
             Actor.Identity.SetPersistentId(
                 new GuidPersistentIdGenerator().NewCharacterId());
             Actor.Initialization(data);
+            Actor.characterType = CharacterType.NPC;
             Actor.SetLifecycleState(CharacterLifecycleState.Active);
         }
 
@@ -541,7 +535,6 @@ public static class OffenseJourneyDebugScenarios
         public void Dispose()
         {
             UnityEngine.Object.DestroyImmediate(gameObject);
-            UnityEngine.Object.DestroyImmediate(data);
         }
     }
 
@@ -620,6 +613,8 @@ public static class OffenseJourneyDebugScenarios
             actor = null;
             return false;
         }
+        public IReadOnlyList<EnemyIndividualSaveData> GetEnemyIndividuals() =>
+            Array.Empty<EnemyIndividualSaveData>();
         public OffenseBattlePersistenceState CapturePersistentState() => null;
         public bool TryRestoreBattle(OffenseExpeditionRun expedition, OffenseBattlePersistenceState state, out string message)
         {

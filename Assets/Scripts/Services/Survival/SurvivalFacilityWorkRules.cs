@@ -153,11 +153,13 @@ internal sealed class SurvivalEnvironmentRiskEvaluator
     }
 
     internal SurvivalEnvironmentSnapshot GetSnapshot(
-        DungeonSurvivalSaveData state)
+        DungeonSurvivalSaveData state,
+        SurvivalWeatherType weather,
+        float outdoorTemperature)
     {
         return new SurvivalEnvironmentSnapshot(
-            state.currentWeather,
-            GetEffectiveOutdoorTemperature(state),
+            weather,
+            GetEffectiveOutdoorTemperature(outdoorTemperature),
             state.exteriorNightDanger,
             GetEffectiveSanitationRisk(state),
             GetEffectiveDiseaseRisk(state));
@@ -165,7 +167,8 @@ internal sealed class SurvivalEnvironmentRiskEvaluator
 
     internal SurvivalRiskEvaluation Evaluate(
         DungeonSurvivalSaveData state,
-        int rotStacks)
+        int rotStacks,
+        SurvivalWeatherType weather)
     {
         RefreshBuildingContributionsIfNeeded();
         float sanitationRisk = Mathf.Clamp(
@@ -182,7 +185,7 @@ internal sealed class SurvivalEnvironmentRiskEvaluator
             + GetThreatStrength(OffenseThreatModifierKind.Disease) * 40f,
             0f,
             100f);
-        float weatherDanger = state.currentWeather switch
+        float weatherDanger = weather switch
         {
             SurvivalWeatherType.Storm => 35f,
             SurvivalWeatherType.Fog => 25f,
@@ -203,10 +206,9 @@ internal sealed class SurvivalEnvironmentRiskEvaluator
             exteriorNightDanger);
     }
 
-    internal float GetEffectiveOutdoorTemperature(
-        DungeonSurvivalSaveData state)
+    internal float GetEffectiveOutdoorTemperature(float outdoorTemperature)
     {
-        return state.outdoorTemperature
+        return outdoorTemperature
             + GetThreatStrength(OffenseThreatModifierKind.Temperature) * 14f;
     }
 

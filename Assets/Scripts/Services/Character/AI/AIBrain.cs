@@ -538,7 +538,7 @@ public class AIBrain : CharacterAbility
             ? RequirePathSearchSession().Get(
                 grid,
                 actor.GetNowXY(),
-                GridTraversalContext.ForCharacter(actor))
+                GridTraversalContext.ForCharacter(CharacterPersistentIdentity.Require(actor)))
             : null;
     }
 

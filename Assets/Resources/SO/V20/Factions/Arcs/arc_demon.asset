@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a4736fd02ec5ef4d9ce05fab2aec349, type: 3}
+  m_Name: arc_demon
+  m_EditorClassIdentifier: DungeonStory.Content::FactionArcDefinitionSO
+  stableId: faction-arc:demon
+  displayName: "\uC7BF\uBE5B \uACC4\uC57D\uC815"
+  description: "\uBD88\uC644\uC804\uD55C \uACC4\uC57D\uACFC \uACC4\uC2B9 \uBD84\uC7C1\uC744
+    \uC774\uC6A9\uD574 \uC138\uB825\uC744 \uC7AC\uD3B8\uD558\uB824 \uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored faction/service manifest.
+  factionId: faction:dungeon:demon
+  chapterIds:
+  - faction-chapter:demon:1
+  - faction-chapter:demon:2
+  - faction-chapter:demon:3
+  - faction-chapter:demon:4
+  - faction-chapter:demon:5
+  - faction-chapter:demon:6
+  contractIds:
+  - faction-contract:demon:supply
+  - faction-contract:demon:crisis
+  - faction-contract:demon:strategic
+  relicItemIds:
+  - relic:faction:demon:1
+  - relic:faction:demon:2
+  - relic:faction:demon:3

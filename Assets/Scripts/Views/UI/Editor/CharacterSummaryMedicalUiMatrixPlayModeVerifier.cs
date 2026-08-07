@@ -49,6 +49,7 @@ public static class CharacterSummaryMedicalUiMatrixPlayModeVerifier
                  CharacterSummaryMedicalUiMatrixRunner.Resolutions)
         {
             File.Delete(GetCapturePath(resolution, "summary-health"));
+            File.Delete(GetCapturePath(resolution, "summary-population"));
             File.Delete(GetCapturePath(resolution, "surgery-modal"));
         }
 
@@ -249,7 +250,22 @@ public sealed class CharacterSummaryMedicalUiMatrixRunner : MonoBehaviour
         GameObject healthContent = generated != null
             ? generated.Find("Content/HealthContent")?.gameObject
             : null;
+        GameObject populationContent = generated != null
+            ? generated.Find("Content/PopulationContent")?.gameObject
+            : null;
         Button healthTab = FindButton(generated, "TabBar/HealthTab");
+        Button populationTab = FindButton(generated, "TabBar/PopulationTab");
+        Button globalApprenticeship = FindButton(
+            generated,
+            "Content/PopulationContent/PopulationCommands/GlobalApprenticeship");
+        Button characterApprenticeship = FindButton(
+            generated,
+            "Content/PopulationContent/PopulationCommands/CharacterApprenticeship");
+        TMP_Text populationSummary = generated != null
+            ? generated.Find(
+                    "Content/PopulationContent/PopulationViewport/PopulationSummaryText")
+                ?.GetComponent<TMP_Text>()
+            : null;
         Button surgeryCommand = FindButton(
             generated,
             "Content/HealthContent/HealthCommandRow/SurgeryCommand");
@@ -268,11 +284,13 @@ public sealed class CharacterSummaryMedicalUiMatrixRunner : MonoBehaviour
             "SUMMARY_BOUNDS_" + suffix,
             DescribeRect(summary.UI?.transform as RectTransform));
         Check(healthTab != null
+            && populationTab != null
             && surgeryCommand != null
             && automaticSurgery != null
             && summaryClose != null,
             "SUMMARY_MEDICAL_POINTER_TARGETS_" + suffix,
-            $"health={healthTab != null}; surgery={surgeryCommand != null}; "
+            $"health={healthTab != null}; population={populationTab != null}; "
+            + $"surgery={surgeryCommand != null}; "
             + $"automatic={automaticSurgery != null}; close={summaryClose != null}");
 
         bool healthClicked = ClickThroughEventSystem(
@@ -326,6 +344,100 @@ public sealed class CharacterSummaryMedicalUiMatrixRunner : MonoBehaviour
                 "summary-health"),
             resolution,
             "SUMMARY_HEALTH_CAPTURE_" + suffix);
+
+        bool populationClicked = ClickThroughEventSystem(
+            populationTab,
+            "POPULATION_TAB_POINTER_" + suffix);
+        yield return null;
+        Canvas.ForceUpdateCanvases();
+        yield return PlayModeVerificationFrameWait.CaptureReady();
+        string populationText = populationSummary?.text ?? string.Empty;
+        Check(populationClicked
+            && populationContent != null
+            && populationContent.activeInHierarchy
+            && healthContent != null
+            && !healthContent.activeSelf,
+            "POPULATION_TAB_SELECTED_" + suffix,
+            $"population={populationContent?.activeInHierarchy}; "
+            + $"health={healthContent?.activeSelf}");
+        Check(globalApprenticeship != null
+            && characterApprenticeship != null
+            && populationSummary != null,
+            "POPULATION_POINTER_TARGETS_" + suffix,
+            $"global={globalApprenticeship != null}; "
+            + $"character={characterApprenticeship != null}; "
+            + $"summary={populationSummary != null}");
+        Check(populationText.Contains("[생애]", StringComparison.Ordinal)
+            && populationText.Contains("[가족·계보]", StringComparison.Ordinal)
+            && populationText.Contains("[질병·면역]", StringComparison.Ordinal)
+            && populationText.Contains("[경력]", StringComparison.Ordinal)
+            && populationText.Contains("[아동 안전]", StringComparison.Ordinal),
+            "POPULATION_CONTENT_" + suffix,
+            populationText.Replace('\n', ' '));
+        Check(AreInsideScreen(
+                populationTab,
+                globalApprenticeship,
+                characterApprenticeship)
+            && IsInsideScreen(populationSummary?.rectTransform),
+            "POPULATION_BOUNDS_" + suffix,
+            $"tab={DescribeRect(populationTab?.transform as RectTransform)}; "
+            + $"global={DescribeRect(globalApprenticeship?.transform as RectTransform)}; "
+            + $"character={DescribeRect(characterApprenticeship?.transform as RectTransform)}; "
+            + $"summary={DescribeRect(populationSummary?.rectTransform)}");
+        Check(ButtonLabelsFit(
+                populationTab,
+                globalApprenticeship,
+                characterApprenticeship),
+            "POPULATION_LABELS_FIT_" + suffix,
+            "population command labels do not overflow");
+
+        string globalLabelBefore = GetButtonLabel(globalApprenticeship);
+        bool globalClicked = ClickThroughEventSystem(
+            globalApprenticeship,
+            "GLOBAL_APPRENTICESHIP_POINTER_" + suffix);
+        yield return null;
+        string globalLabelAfter = GetButtonLabel(globalApprenticeship);
+        Check(globalClicked
+            && !string.Equals(
+                globalLabelBefore,
+                globalLabelAfter,
+                StringComparison.Ordinal),
+            "GLOBAL_APPRENTICESHIP_TOGGLED_" + suffix,
+            $"{globalLabelBefore}->{globalLabelAfter}");
+        if (globalClicked)
+        {
+            yield return PlayModeVerificationFrameWait.CaptureReady();
+            bool globalRestoreClicked = ClickThroughEventSystem(
+                globalApprenticeship,
+                "GLOBAL_APPRENTICESHIP_RESTORE_POINTER_" + suffix);
+            yield return null;
+            Check(globalRestoreClicked
+                && string.Equals(
+                    globalLabelBefore,
+                    GetButtonLabel(globalApprenticeship),
+                    StringComparison.Ordinal),
+                "GLOBAL_APPRENTICESHIP_RESTORED_" + suffix,
+                GetButtonLabel(globalApprenticeship));
+        }
+
+        yield return Capture(
+            CharacterSummaryMedicalUiMatrixPlayModeVerifier.GetCapturePath(
+                resolution,
+                "summary-population"),
+            resolution,
+            "SUMMARY_POPULATION_CAPTURE_" + suffix);
+
+        bool healthRestored = ClickThroughEventSystem(
+            healthTab,
+            "HEALTH_TAB_RESTORE_POINTER_" + suffix);
+        yield return null;
+        Canvas.ForceUpdateCanvases();
+        yield return PlayModeVerificationFrameWait.CaptureReady();
+        Check(healthRestored
+            && healthContent != null
+            && healthContent.activeInHierarchy,
+            "HEALTH_TAB_RESTORED_" + suffix,
+            $"health={healthContent?.activeInHierarchy}");
 
         bool surgeryClicked = ClickThroughEventSystem(
             surgeryCommand,
@@ -499,6 +611,12 @@ public sealed class CharacterSummaryMedicalUiMatrixRunner : MonoBehaviour
                     && string.Equals(button.name, name, StringComparison.Ordinal))
             : null;
     }
+
+    private static string GetButtonLabel(Button button) =>
+        button != null
+            ? button.GetComponentInChildren<TMP_Text>(true)?.text
+                ?? string.Empty
+            : string.Empty;
 
     private static GameObject FindActiveSceneObject(string name)
     {

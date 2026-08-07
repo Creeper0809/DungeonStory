@@ -524,6 +524,16 @@ public sealed class WorkDutyController
             return false;
         }
 
+        if (work.WorkPolicyRegistry != null
+            && !work.WorkPolicyRegistry.IsAvailable(
+                definition.WorkTypeId,
+                work.WorkerActor,
+                target,
+                out stopReason))
+        {
+            return false;
+        }
+
         if (!target.CanAssignWork(definition.WorkTypeId, out stopReason))
         {
             return false;

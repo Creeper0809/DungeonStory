@@ -39,8 +39,8 @@ MonoBehaviour:
     - rid: 7737211730834227491
     - rid: 7737211730834227492
     - rid: 7737211730834227493
-    - rid: 7737211730889016205
-    - rid: 7737211730889016206
+    - rid: 7737211792998531392
+    - rid: 7737211792998531393
   width: 3
   height: 1
   layer: 1
@@ -57,18 +57,18 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730834227487
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: P22
     - rid: 7737211730834227488
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - quarry
     - rid: 7737211730834227490
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 150
@@ -118,13 +118,13 @@ MonoBehaviour:
           - key: Mining
             value: 2
           metrics: []
-    - rid: 7737211730889016205
+    - rid: 7737211792998531392
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:quarry
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211730889016206
+    - rid: 7737211792998531393
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -144,3 +144,5 @@ MonoBehaviour:
           capacity: 16
         - itemId: component:precision-parts
           capacity: 16
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}

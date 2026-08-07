@@ -68,7 +68,7 @@ public static class ResearchEquipmentOverhaulDebugScenarios
         "research:equipment:industrial-metrology"
     };
 
-    [MenuItem("Tools/DungeonStory/Research/Validate 168 Research Equipment Overhaul")]
+    [MenuItem("Tools/DungeonStory/Research/Validate 216 Research Equipment Overhaul")]
     public static void RunFromMenu()
     {
         IReadOnlyList<string> failures = ValidateAll(out string pacingReport);
@@ -76,13 +76,13 @@ public static class ResearchEquipmentOverhaulDebugScenarios
         {
             foreach (string failure in failures)
             {
-                Debug.LogError($"[168 Research Overhaul] {failure}");
+                Debug.LogError($"[216 Research Overhaul] {failure}");
             }
             throw new InvalidOperationException(
-                $"168 research/equipment overhaul validation failed ({failures.Count}).");
+                $"216 research/equipment overhaul validation failed ({failures.Count}).");
         }
 
-        Debug.Log($"168 research/equipment overhaul validation passed. {pacingReport}");
+        Debug.Log($"216 research/equipment overhaul validation passed. {pacingReport}");
     }
 
     public static IReadOnlyList<string> ValidateAll(out string pacingReport)
@@ -109,7 +109,7 @@ public static class ResearchEquipmentOverhaulDebugScenarios
         IReadOnlyList<ResearchProjectSO> projects,
         ICollection<string> failures)
     {
-        Require(projects.Count == 168, $"research count {projects.Count}, expected 168", failures);
+        Require(projects.Count == 216, $"research count {projects.Count}, expected 216", failures);
         Require(projects.Select(project => project.ProjectId.Value)
                 .Distinct(StringComparer.Ordinal).Count() == projects.Count,
             "duplicate stable research ID", failures);
@@ -192,8 +192,11 @@ public static class ResearchEquipmentOverhaulDebugScenarios
             .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
             .Where(building => building != null)
             .ToArray();
-        ResourceItemDefinitionSO[] items = Resources.LoadAll<ResourceItemDefinitionSO>(
-            ResourceItemDefinitionSO.ResourcePath);
+        ResourceItemDefinitionSO[] items = AssetDatabase.FindAssets("t:ResourceItemDefinitionSO")
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<ResourceItemDefinitionSO>)
+            .Where(item => item != null)
+            .ToArray();
         ProductionRecipeSO[] recipes = Resources.LoadAll<ProductionRecipeSO>(
             ProductionRecipeSO.ResourcePath);
         ResourceEconomyContentCatalog economy = new ResourceEconomyContentCatalog(

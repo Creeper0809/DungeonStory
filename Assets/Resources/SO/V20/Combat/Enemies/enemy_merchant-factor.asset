@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8080a982ba741ff4e8ae644f419d70cb, type: 3}
+  m_Name: enemy_merchant-factor
+  m_EditorClassIdentifier: DungeonStory.Offense::EnemyArchetypeDefinitionSO
+  stableId: enemy:merchant-factor
+  displayName: "\uAE08\uD654\uB3D9\uB9F9 \uC804\uD22C\uC9C0\uBC30\uC778"
+  description: "\uBD88\uB9AC\uD558\uBA74 \uC5C4\uD638 \uD1F4\uAC01\uD558\uACE0 \uC720\uB9AC\uD558\uBA74
+    \uC6A9\uBCD1\uC744 \uBD80\uB978\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored enemy archetype.
+  factionId: human:merchant
+  speciesTag: Human
+  role: 3
+  maxHealth: 104
+  attack: 9
+  strength: 7.65
+  toughness: 8
+  dexterity: 9
+  moveSpeed: 4
+  equipment:
+    weaponDefinitionId: weapon:handgun
+    armorDefinitionId: armor:brigandine
+    shieldDefinitionId: 
+    ammunitionItemId: ammo:paper-cartridge
+  abilityIds:
+  - enemy-ability:summon-minion
+  - enemy-ability:retreat-cover
+  tacticalProfile:
+    attackWeight: 1
+    protectWeight: 5
+    abilityWeight: 6
+    retreatWeight: 2
+    retreatHealthFraction: 0.2
+    preferredTargetTags:
+    - nearest
+    avoidedTargetTags:
+    - none
+    formationTag: command-rear
+  counterTags:
+  - counter:deny-retreat
+  rewardItemIds:
+  - loot:enemy-salvage
+  bossPhases: []
+  individualGeneration:
+    minimumGeneralTraits: 2
+    maximumGeneralTraits: 3
+    minimumExpressedHeritableTraits: 0
+    maximumExpressedHeritableTraits: 2
+    maximumLatentHeritableTraits: 1
+    aptitudeVariance: 15
+    combatStatVariance: 0.12
+    minimumLoyalty: 20
+    maximumLoyalty: 75
+    recruitable: 1
+    militaryTrainingId: training:merchant-factor
+    allowedBackgroundIds: []

@@ -39,7 +39,7 @@ MonoBehaviour:
     - rid: 7737211730834227521
     - rid: 7737211730834227522
     - rid: 7737211730834227523
-    - rid: 7737211730927812686
+    - rid: 7737211792998531585
   width: 2
   height: 1
   layer: 1
@@ -56,12 +56,12 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730834227518
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: S02
     - rid: 7737211730834227519
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 75
@@ -97,18 +97,18 @@ MonoBehaviour:
             value: 2.5
           metrics: []
     - rid: 7737211730834227522
-      type: {class: BuildingServiceAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingServiceAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingServiceAbility
         capacity: 1
         contributesStockCategory: 0
         stockCategory: 0
     - rid: 7737211730834227523
-      type: {class: BuildingRetailAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingRetailAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRetailAbility
         category: 1
-    - rid: 7737211730927812686
+    - rid: 7737211792998531585
       type: {class: BuildingServiceSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceSupportAbility

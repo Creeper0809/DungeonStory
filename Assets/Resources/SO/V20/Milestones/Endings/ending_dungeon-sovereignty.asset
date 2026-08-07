@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d7e615d9bc98fc41be027f9521f64cc, type: 3}
+  m_Name: ending_dungeon-sovereignty
+  m_EditorClassIdentifier: DungeonStory.Content::EndingDefinitionSO
+  stableId: ending:dungeon-sovereignty
+  displayName: "\uB358\uC804 \uC8FC\uAD8C\uAD6D"
+  description: "\uC778\uAD6C\xB7\uACBD\uC81C\xB7\uC0DD\uC0B0\xB7\uBC29\uC5B4 \uCCB4\uACC4\uB97C
+    \uAC16\uCD98 \uB3C5\uB9BD \uAD6D\uAC00\uB85C\uC11C \uB358\uC804\uC744 \uC120\uD3EC\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored non-terminal run milestone.
+  tier: 0
+  completionRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics:
+    - kind: 4
+      minimumValue: 80
+    requiredFlags:
+    - economy:sovereign-ready
+    excludedFlags: []
+  landmarkBuildingId: building:landmark:sovereign-citadel
+  permanentRewards:
+  - kind: 12
+    targetId: reward:ending:dungeon-sovereignty
+    amount: 1
+    durationDays: 0
+  counterPressures:
+  - kind: 17
+    targetId: pressure:ending:dungeon-sovereignty
+    amount: 1
+    durationDays: 0

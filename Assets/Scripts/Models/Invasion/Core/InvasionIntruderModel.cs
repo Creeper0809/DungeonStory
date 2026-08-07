@@ -84,7 +84,8 @@ public sealed class InvasionIntruderPersistenceState
         float trappedSeconds = 0f,
         bool enragedBreach = false,
         DefenseRaidAwarenessSaveData raidAwareness = null,
-        IEnumerable<BuildingInstanceId> damagedFacilityIds = null)
+        IEnumerable<BuildingInstanceId> damagedFacilityIds = null,
+        EnemyIndividualSaveData enemyIndividual = null)
     {
         RuntimeId = runtimeId?.Trim() ?? string.Empty;
         DataId = dataId;
@@ -118,6 +119,7 @@ public sealed class InvasionIntruderPersistenceState
             .Distinct()
             .OrderBy(id => id.Value, StringComparer.Ordinal)
             .ToArray());
+        EnemyIndividual = enemyIndividual?.Clone();
     }
 
     public int DataId { get; }
@@ -144,6 +146,7 @@ public sealed class InvasionIntruderPersistenceState
     public bool EnragedBreach { get; }
     public DefenseRaidAwarenessSaveData RaidAwareness { get; }
     public IReadOnlyList<BuildingInstanceId> DamagedFacilityIds { get; }
+    public EnemyIndividualSaveData EnemyIndividual { get; }
 
     public static InvasionIntruderSettings CloneSettings(InvasionIntruderSettings source)
     {

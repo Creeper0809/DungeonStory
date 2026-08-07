@@ -38,6 +38,8 @@ public static class DungeonSaveRegistration
 
     private static void RegisterSections(IContainerBuilder builder)
     {
+        builder.Register<FoundationSessionSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
         builder.Register<RandomStreamSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<PhysicalItemsSaveSection>(Lifetime.Singleton)
@@ -79,6 +81,8 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<CropPlotSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<CropEcologySaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
         builder.Register<SurvivalResourcesSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<CharacterConsumablesSaveSection>(Lifetime.Singleton)
@@ -86,6 +90,10 @@ public static class DungeonSaveRegistration
         builder.Register<DarkSurvivalSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<CharacterBodyHealthSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<ReproductionSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<PopulationHealthSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<CombatEquipmentSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
@@ -150,6 +158,26 @@ public static class DungeonSaveRegistration
         builder.Register<ModularFacilityWorldSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<CharacterWorldSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CharacterLifeSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<KinshipHouseholdSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CharacterCareerSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CharacterPsychosocialSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CalendarClimateSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CharacterNarrativeSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<SeasonalWorldEventsSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<SocietyEventsSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<FactionCampaignSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<RunMilestonesSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
     }
 }

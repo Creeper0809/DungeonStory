@@ -59,7 +59,7 @@ public static class PhysicalItemDebugScenarios
             VerifyEquipmentIdentityAcrossCarryAndStorage,
             lines,
             errors);
-        Run("save_v18_contract", VerifySaveV18Contract, lines, errors);
+        Run("save_v19_contract", VerifySaveV19Contract, lines, errors);
 
         File.WriteAllLines(ReportPath, lines);
         if (errors.Count == 0)
@@ -581,9 +581,9 @@ public static class PhysicalItemDebugScenarios
         }
     }
 
-    private static string VerifySaveV18Contract()
+    private static string VerifySaveV19Contract()
     {
-        Require(DungeonGameSaveData.CurrentVersion == 18, $"save version is {DungeonGameSaveData.CurrentVersion}");
+        Require(DungeonGameSaveData.CurrentVersion == 20, $"save version is {DungeonGameSaveData.CurrentVersion}");
         DungeonGameSaveData save = new DungeonGameSaveData();
         DungeonPhysicalItemSaveData physicalItems = CreatePileSnapshot();
         DungeonCharacterWorldSaveData characters = new DungeonCharacterWorldSaveData();

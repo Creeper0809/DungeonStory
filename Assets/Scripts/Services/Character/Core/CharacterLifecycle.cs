@@ -257,7 +257,9 @@ public class CharacterLifecycle : SerializedMonoBehaviour
         }
 
         visual?.SetRenderersVisible(true);
-        stats?.Die("원정 중 사망");
+        stats?.Die(
+            CharacterDeathCauseCode.Expedition,
+            "expedition:member-lost");
     }
 
     public bool CanStartExpedition(out string reason)

@@ -5,7 +5,9 @@
     "DungeonStory.Buildings",
     "DungeonStory.Characters",
     "DungeonStory.Combat",
-    "DungeonStory.Foundation"
+    "DungeonStory.CoreSession",
+    "DungeonStory.Foundation",
+    "DungeonStory.Grid"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

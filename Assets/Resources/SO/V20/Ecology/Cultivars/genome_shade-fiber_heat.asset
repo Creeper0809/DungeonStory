@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc6b8ba36b9d0d44ea0ef167ffca5446, type: 3}
+  m_Name: genome_shade-fiber_heat
+  m_EditorClassIdentifier: DungeonStory.Economy::CropGenomeDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9001
+  genomeId: genome:shade-fiber:heat
+  cropId: crop:shade-fiber
+  cultivarName: "\uC7BF\uBE5B\uADF8\uB298\uC12C\uC720"
+  description: "\uACE0\uC628 \uC791\uC5C5\uC7A5 \uC778\uADFC\uC5D0\uC11C\uB3C4 \uC904\uAE30\uAC00
+    \uBB34\uB108\uC9C0\uC9C0 \uC54A\uB294\uB2E4."
+  authoringRevision: 1
+  tradeoffTags:
+  - cost:seed-yield
+  loci:
+  - locus: 0
+    alleleA: 0
+    alleleB: 0
+  - locus: 1
+    alleleA: 2
+    alleleB: 2
+  - locus: 2
+    alleleA: 0
+    alleleB: 0
+  - locus: 3
+    alleleA: 0
+    alleleB: 0
+  - locus: 4
+    alleleA: 1
+    alleleB: 1
+  - locus: 5
+    alleleA: -1
+    alleleB: -1

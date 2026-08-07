@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc6b8ba36b9d0d44ea0ef167ffca5446, type: 3}
+  m_Name: genome_ember-root_cold
+  m_EditorClassIdentifier: DungeonStory.Economy::CropGenomeDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9004
+  genomeId: genome:ember-root:cold
+  cropId: crop:ember-root
+  cultivarName: "\uB3D9\uD1A0\uBD88\uBFCC\uB9AC"
+  description: "\uB0AE\uC740 \uD1A0\uC628\uC5D0\uC11C\uB3C4 \uBFCC\uB9AC\uB97C \uD0A4\uC6B0\uC9C0\uB9CC
+    \uBE44\uC625\uB3C4\uB97C \uB9CE\uC774 \uBA39\uB294\uB2E4."
+  authoringRevision: 1
+  tradeoffTags:
+  - cost:fertility-consumption
+  loci:
+  - locus: 0
+    alleleA: 2
+    alleleB: 2
+  - locus: 1
+    alleleA: 0
+    alleleB: 0
+  - locus: 2
+    alleleA: 0
+    alleleB: 0
+  - locus: 3
+    alleleA: 1
+    alleleB: 1
+  - locus: 4
+    alleleA: 0
+    alleleB: 0
+  - locus: 5
+    alleleA: 0
+    alleleB: 0

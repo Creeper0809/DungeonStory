@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f5a849b4b3859d42b4e08a8c27b8554, type: 3}
+  m_Name: guest-request_disease-sample
+  m_EditorClassIdentifier: DungeonStory.Content::GuestRequestDefinitionSO
+  stableId: guest-request:disease-sample
+  displayName: "\uD76C\uADC0 \uBCD1\uC6D0\uCCB4 \uACF5\uB3D9\uC5F0\uAD6C"
+  description: "\uC678\uBD80 \uC758\uC0AC\uAC00 \uBB34\uADE0 \uC2DC\uC124\uACFC \uD56D\uC6D0
+    \uD45C\uBCF8\uC744 \uC774\uC6A9\uD55C \uACF5\uB3D9\uC5F0\uAD6C\uB97C \uCCAD\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored faction/service manifest.
+  kind: 5
+  deadlineDays: 6
+  serviceRequirements:
+    items:
+    - itemDefinitionId: item:pathogen-sample
+      amount: 3
+      consume: 1
+    facilities:
+    - buildingDefinitionId: building:vaccine-laboratory
+      capabilityId: 
+      minimumCount: 1
+      mustBeOperational: 1
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  successEffects:
+  - kind: 9
+    targetId: guest-service
+    amount: 60
+    durationDays: 0
+  - kind: 6
+    targetId: requesting-faction
+    amount: 4
+    durationDays: 0
+  failureEffects:
+  - kind: 7
+    targetId: requesting-faction
+    amount: 5
+    durationDays: 0

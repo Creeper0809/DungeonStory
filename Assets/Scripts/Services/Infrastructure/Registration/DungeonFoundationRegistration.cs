@@ -25,6 +25,7 @@ public static class DungeonFoundationRegistration
         builder.Register<DynamicFrameWorkBudget>(Lifetime.Singleton)
             .As<IDynamicFrameWorkBudget>();
         builder.RegisterInstance(DefaultGridTraversalCostPolicy.Instance)
+            .AsSelf()
             .As<IGridTraversalCostPolicy>();
         builder.Register<GridPathSearchBroker>(Lifetime.Singleton)
             .As<IGridPathSearchBroker>();

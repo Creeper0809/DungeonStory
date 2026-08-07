@@ -421,9 +421,13 @@ public class OwnerRunManager : SerializedMonoBehaviour
 
     private void OnCharacterDeath(CharacterDeathEvent eventType)
     {
-        if (eventType.Actor != null && eventType.Actor.IsOwner)
+        if (currentOwnerActor != null
+            && CharacterPersistentIdentity.TryGet(
+                currentOwnerActor,
+                out CharacterId ownerId)
+            && ownerId.Equals(eventType.CharacterId))
         {
-            HandleOwnerDeath(eventType.Actor, eventType.Reason);
+            HandleOwnerDeath(currentOwnerActor, eventType.Cause.ToString());
         }
     }
 

@@ -52,6 +52,9 @@ MonoBehaviour:
     visualStrainMultiplier: 1
     preferredHumidity: 0.5
     drynessSensitivity: 1
+  lifeHistory: {fileID: 11400000, guid: 6c3e17c49a5fd134eae5096bd2eca81d, type: 2}
+  reproduction: {fileID: 11400000, guid: d9ac4fe8b62514040af4eb699ea293a6, type: 2}
+  funeralCulture: {fileID: 11400000, guid: edc578d8829d4ac49a90a6dd2b8ee4e5, type: 2}
   relationTags:
   - "\uC57C\uC678"
   - "\uCCAD\uC815"
@@ -97,6 +100,14 @@ MonoBehaviour:
     \uC0AD\uC81C\uD558\uC9C0 \uC54A\uACE0 \uC778\uC811 \uD1B5\uD589 \uC140\uB85C
     \uD769\uD2B8\uB9B0\uB2E4."
   incidentMitigatingRoles: 68
+  combatPassive:
+    passiveId: species-passive:harpy
+    displayName: "\uACE0\uC9C0 \uC2DC\uC57C"
+    description: "\uC815\uCC30\xB7\uACBD\uBCF4\xB7\uC6D0\uAC70\uB9AC \uC5C4\uD638\uC758
+      \uC2DD\uBCC4 \uBC94\uC704\uAC00 \uB113\uB2E4."
+    mechanicTags:
+    - "\uC815\uCC30"
+    - "\uC6D0\uAC70\uB9AC"
   statBonus:
     entries:
     - statId: stat:attack
@@ -138,14 +149,6 @@ MonoBehaviour:
     dislikedFacilityRoles: 0
     preferredWorkTypes: 3104
     dislikedWorkTypes: 16908288
-  combatPassive:
-    passiveId: species-passive:harpy
-    displayName: "\uACE0\uC9C0 \uC2DC\uC57C"
-    description: "\uC815\uCC30\xB7\uACBD\uBCF4\xB7\uC6D0\uAC70\uB9AC \uC5C4\uD638\uC758
-      \uC2DD\uBCC4 \uBC94\uC704\uAC00 \uB113\uB2E4."
-    mechanicTags:
-    - "\uC815\uCC30"
-    - "\uC6D0\uAC70\uB9AC"
   combatAbilities:
     abilities:
     - rid: 7302563319989403743

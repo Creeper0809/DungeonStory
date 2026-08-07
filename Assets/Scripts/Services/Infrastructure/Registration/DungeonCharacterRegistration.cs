@@ -28,10 +28,105 @@ public static class DungeonCharacterRegistration
             .As<ISurvivalPressureProvider>();
         builder.Register<ResourceRunCharacterCatalog>(Lifetime.Singleton)
             .As<IRunCharacterCatalog>();
+        builder.Register<CharacterRuntimeProfileFactory>(Lifetime.Singleton)
+            .As<ICharacterRuntimeProfileFactory>();
+        builder.Register<CharacterNarrativeCatalog>(Lifetime.Singleton)
+            .As<ICharacterNarrativeCatalog>();
+        builder.Register<CharacterNarrativeRuntime>(Lifetime.Singleton)
+            .As<ICharacterNarrativeQuery>()
+            .As<ICharacterNarrativeCommand>()
+            .As<ICharacterNarrativePersistence>();
+        builder.RegisterEntryPoint<CharacterNarrativeApplicationAdapter>(
+            Lifetime.Singleton);
+        builder.Register<V20StoryContentCatalog>(Lifetime.Singleton)
+            .AsSelf()
+            .As<ISocietyEventCatalog>()
+            .As<IFactionStoryCatalog>()
+            .As<IWorldEventCatalog>()
+            .As<IEndingCatalog>();
+        builder.Register<V20CampaignRuntime>(Lifetime.Singleton)
+            .AsSelf()
+            .As<IV20CampaignPersistence>()
+            .As<IRunMilestoneQuery>()
+            .As<IRunMilestoneCommand>()
+            .As<ISeasonalEventQuery>()
+            .As<ISocietyEventQuery>()
+            .As<ISocietyEventCommand>()
+            .As<IFactionCampaignQuery>()
+            .As<IFactionCampaignCommand>()
+            .As<IEndlessCrisisCommand>();
+        builder.Register<V20MilestoneWorldSnapshotProjector>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<V20CampaignApplicationAdapter>(
+            Lifetime.Singleton);
         builder.Register<ResourceCharacterSpeciesCatalog>(Lifetime.Singleton)
             .As<ICharacterSpeciesCatalog>()
             .As<ICharacterSpeciesDefinitionCatalog>()
-            .As<ICharacterSpeciesEnvironmentCatalog>();
+            .As<ICharacterSpeciesEnvironmentCatalog>()
+            .As<ICharacterLifeDefinitionCatalog>()
+            .As<IReproductionDefinitionCatalog>();
+        builder.Register<CharacterLifeRuntime>(Lifetime.Singleton)
+            .AsSelf()
+            .As<ICharacterLifeQuery>()
+            .As<ICharacterLifeCommand>()
+            .As<ICharacterLifePersistence>();
+        builder.Register<PhysicalAgeTreatmentRuntime>(Lifetime.Singleton)
+            .As<IPhysicalAgeTreatmentService>()
+            .As<ITemporalStasisMaintenanceService>();
+        builder.RegisterEntryPoint<TemporalStasisMaintenanceAdapter>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<CharacterLifeApplicationAdapter>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<CharacterLifeCelebrationAdapter>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<CharacterAgeConditionBodyHealthAdapter>(
+            Lifetime.Singleton);
+        builder.Register<CharacterLifePublicationService>(Lifetime.Singleton)
+            .As<ICharacterLifePublicationService>();
+        builder.Register<KinshipHouseholdRuntime>(Lifetime.Singleton)
+            .As<IKinshipQuery>()
+            .As<IKinshipCommand>()
+            .As<IHouseholdService>()
+            .As<IKinshipHouseholdPersistence>();
+        builder.Register<ReproductionRuntime>(Lifetime.Singleton)
+            .As<IReproductionService>()
+            .As<IReproductionPersistence>();
+        builder.RegisterEntryPoint<ReproductionApplicationAdapter>(
+            Lifetime.Singleton);
+        builder.Register<CareerRuntime>(Lifetime.Singleton)
+            .As<ICareerService>()
+            .As<ICareerPersistence>();
+        builder.Register<CareerMentorshipService>(Lifetime.Singleton)
+            .As<ICareerMentorshipService>();
+        builder.RegisterEntryPoint<CareerApplicationAdapter>(Lifetime.Singleton);
+        builder.Register<GriefTraumaRuntime>(Lifetime.Singleton)
+            .As<IGriefTraumaService>()
+            .As<IPsychosocialPersistence>();
+        builder.Register<FestivalDefinitionCatalog>(Lifetime.Singleton)
+            .As<IFestivalDefinitionCatalog>();
+        builder.Register<CareerPositionDefinitionCatalog>(Lifetime.Singleton)
+            .As<ICareerPositionDefinitionCatalog>();
+        builder.Register<FuneralFestivalRuntime>(Lifetime.Singleton)
+            .As<IFuneralFestivalService>();
+        builder.RegisterEntryPoint<CharacterDeathPopulationAdapter>(
+            Lifetime.Singleton);
+        builder.Register<ChildSafetyEnvironmentalProjection>(Lifetime.Singleton)
+            .As<IChildSafetyEnvironmentalQuery>();
+        builder.Register<ChildSafetyFilthProjection>(Lifetime.Singleton)
+            .As<IChildSafetyFilthQuery>();
+        builder.Register<WorldHazardZoneRuntime>(Lifetime.Singleton)
+            .As<IWorldHazardZoneQuery>()
+            .As<IWorldHazardOverlayCommand>();
+        builder.Register<ChildSafetyPolicyRuntime>(Lifetime.Singleton)
+            .As<IChildSafetyPolicy>();
+        builder.Register<ChildSafetyGridTraversalCostPolicy>(Lifetime.Singleton)
+            .As<IGridTraversalCostPolicy>();
+        builder.RegisterEntryPoint<CombatHazardOverlayAdapter>(Lifetime.Singleton);
+        builder.Register<ResourceDiseaseDefinitionCatalog>(Lifetime.Singleton)
+            .As<IDiseaseDefinitionCatalog>();
+        builder.Register<PopulationHealthRuntime>(Lifetime.Singleton)
+            .As<IPopulationHealthService>()
+            .As<IPopulationHealthQuery>()
+            .As<IPopulationHealthPersistence>();
+        builder.Register<PhysicalVaccinationRuntime>(Lifetime.Singleton)
+            .As<IPhysicalVaccinationService>();
+        builder.RegisterEntryPoint<PopulationHealthApplicationAdapter>(Lifetime.Singleton);
         builder.Register<SpeciesIncidentHandlerRegistry>(Lifetime.Singleton)
             .As<ISpeciesIncidentHandlerRegistry>();
         builder.RegisterEntryPoint<CharacterSpeciesRuntime>(Lifetime.Singleton)
@@ -82,6 +177,8 @@ public static class DungeonCharacterRegistration
         builder.Register<CharacterStatsProjectionService>(Lifetime.Singleton);
         builder.Register<CharacterNeedStateService>(Lifetime.Singleton);
         builder.Register<CharacterMoodStateService>(Lifetime.Singleton);
+        builder.Register<CharacterDeathEventFactory>(Lifetime.Singleton)
+            .As<ICharacterDeathEventFactory>();
         builder.Register<CharacterStatsVitalsService>(Lifetime.Singleton);
         builder.Register<CharacterStatsMaintenanceSchedule>(Lifetime.Transient);
         builder.Register<CharacterPopulationApplicationAdapter>(Lifetime.Singleton);

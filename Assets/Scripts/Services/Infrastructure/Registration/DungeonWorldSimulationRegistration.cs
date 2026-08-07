@@ -207,7 +207,8 @@ public static class DungeonWorldSimulationRegistration
         builder.RegisterEntryPoint<WorldFilthRuntime>(Lifetime.Singleton)
             .As<IWorldFilthQuery>();
         builder.RegisterEntryPoint<WorldWaterRuntime>(Lifetime.Singleton)
-            .As<IWorldWaterQuery>();
+            .As<IWorldWaterQuery>()
+            .As<IWorldWaterContaminationCommand>();
         builder.Register<IndustrialInfrastructureTopologyRuntime>(
                 Lifetime.Singleton)
             .As<IIndustrialInfrastructureTopologyRuntime>();
@@ -339,6 +340,16 @@ public static class DungeonWorldSimulationRegistration
             .As<IWorldResourcePersistence>();
         builder.Register<CropPlotWorldDependencies>(Lifetime.Singleton);
         builder.Register<CropPlotSimulationDependencies>(Lifetime.Singleton);
+        builder.Register<PhysicalSeedLotGateway>(Lifetime.Singleton)
+            .As<IPhysicalSeedLotGateway>();
+        builder.Register<CropEcologyRuntime>(Lifetime.Singleton)
+            .AsSelf()
+            .As<ICropEcologyService>()
+            .As<ICropEcologyPersistence>()
+            .As<IInitialCropSeedGrant>();
+        builder.Register<PhysicalCropTreatmentRuntime>(Lifetime.Singleton)
+            .As<IPhysicalCropTreatmentService>();
+        builder.RegisterEntryPoint<CropSeedBootstrapRuntime>(Lifetime.Singleton);
         builder.RegisterEntryPoint<CropPlotRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<ICropPlotRuntime>()

@@ -25,6 +25,10 @@ MonoBehaviour:
   cropId: crop:cave-mushroom
   displayName: "\uB3D9\uAD74\uBC84\uC12F"
   harvestItemId: resource:cave-mushroom
+  seedItemId: seed-lot:cave-mushroom
+  baseGenome: {fileID: 11400000, guid: b6ce63ae53ecdef4aa94192f97a44413, type: 2}
+  familyGroup: 5
+  endemicDisease: 4
   requiredResearchId: research:agriculture:gathering
   growthHours: 28
   sowWork: 3

@@ -756,7 +756,10 @@ public static class DefenseFacilityDebugScenarios
 
         public CharacterActor CreateWorker(Vector2Int position)
         {
-            CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
+            CharacterSO data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+                CharacterType.NPC,
+                "Defense Repair Worker",
+                "Orc");
             scriptableObjects.Add(data);
             data.characterType = CharacterType.NPC;
             data.characterName = "Defense Repair Worker";

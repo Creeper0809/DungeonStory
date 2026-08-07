@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7af3cd73193f9e439a3d0dbf4ce2432, type: 3}
+  m_Name: practice_demon-third-bell
+  m_EditorClassIdentifier: DungeonStory.Content::CulturalPracticeDefinitionSO
+  stableId: practice:demon-third-bell
+  displayName: "\uC138 \uBC88\uC9F8 \uC885"
+  description: "\uAD50\uB300 \uC885\uB8CC\uB97C \uC138 \uBC88 \uD655\uC778\uD55C
+    \uB4A4\uC5D0\uC57C \uC791\uC5C5\uC7A5\uC744 \uB5A0\uB09C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  cultureId: culture:demon-contract
+  kind: 7
+  requirements:
+    items:
+    - itemDefinitionId: item:bell
+      amount: 1
+      consume: 1
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  successEffects:
+  - kind: 1
+    targetId: practice:demon-third-bell
+    amount: 3
+    durationDays: 5
+  neglectedEffects:
+  - kind: 1
+    targetId: practice:demon-third-bell
+    amount: -2
+    durationDays: 3

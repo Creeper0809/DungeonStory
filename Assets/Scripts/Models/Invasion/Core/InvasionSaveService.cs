@@ -67,7 +67,7 @@ public sealed class InvasionRestoreCandidate :
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonInvasionSaveData
 {
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 6;
 
     public int version = CurrentVersion;
     public DungeonInvasionThreatSaveData threat = new DungeonInvasionThreatSaveData();
@@ -107,6 +107,7 @@ public sealed class DungeonInvasionIntruderSaveData
 {
     public string runtimeId = string.Empty;
     public int dataId = -1;
+    public EnemyIndividualSaveData enemyIndividual = new EnemyIndividualSaveData();
     public float worldX;
     public float worldY;
     public float worldZ;

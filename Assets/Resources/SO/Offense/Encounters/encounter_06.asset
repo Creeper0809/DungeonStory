@@ -21,14 +21,26 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 170405
+  id: 6
   encounterId: encounter:06
-  displayName: "\uAE30\uB85D \uC2EC\uC7A5\uBD80 \uC218\uD638\uC790"
-  minimumSiteStrength: 5
-  maximumSiteStrength: 8
+  displayName: "\uC9C4\uC2E4 \uBD09\uC778\uC2E4"
+  minimumSiteStrength: 2
+  maximumSiteStrength: 5
   elite: 0
   boss: 1
+  objective: 5
+  objectiveRoundLimit: 6
+  objectiveTargetId: enemy:legion-pikeman
+  battlefieldModifierIds:
+  - battlefield:unstable-device
+  counterTags:
+  - counter:ranged
+  rewardItemIds:
+  - loot:enemy-salvage
   enemies:
-  - enemyArchetypeId: boss_guard
-    minimumCount: 4
-    maximumCount: 6
+  - enemyArchetypeId: enemy:legion-pikeman
+    minimumCount: 1
+    maximumCount: 1
+  - enemyArchetypeId: enemy:inquisition-rune-sniper
+    minimumCount: 1
+    maximumCount: 2

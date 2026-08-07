@@ -65,7 +65,14 @@ public static class CharacterStatDebugScenarios
             data.species = species;
             data.traits = new[] { trait };
 
-            CharacterRuntimeProfile profile = data.CreateRuntimeProfile();
+            data.id = 990002;
+            data.ConfigureStableIdentity(
+                "character-archetype:editor-stat-scenario",
+                "visual:editor-stat-scenario");
+            species.speciesTag = "species:editor-stat-scenario";
+            trait.id = 990002;
+            CharacterRuntimeProfile profile =
+                CharacterRuntimeProfileFactory.CreateEditorSnapshot(data);
             Require(profile.GetStat(CustomStatId) == 9,
                 "Runtime profile did not compose a custom base/species/trait stat.");
             Require(profile.GetStat(CharacterStatType.Attack) == 5,

@@ -673,7 +673,10 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
             doorAccessVersion,
             costPolicy.Version,
             destination);
-        if (pathCache.TryGetValue(key, out CacheEntry entry)
+        bool cacheAllowed = !traversalContext.SafetyAuthorization.IsValid;
+        CacheEntry entry = null;
+        if (cacheAllowed
+            && pathCache.TryGetValue(key, out entry)
             && IsValidCachedResult(entry, grid, start))
         {
             entry.LastAccessFrame = cacheFrame;
@@ -682,7 +685,7 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
             return true;
         }
 
-        if (entry != null)
+        if (cacheAllowed && entry != null)
         {
             pathCache.Remove(key);
         }

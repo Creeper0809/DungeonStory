@@ -32,7 +32,7 @@ public static class ExteriorActivityDebugScenarios
     public static bool RunAll(bool logSuccess)
     {
         List<string> errors = new List<string>();
-        RunScenario("save V18 contains exterior snapshot", VerifySaveV18ContainsExteriorSnapshot, errors);
+        RunScenario("save V19 contains exterior snapshot", VerifySaveV19ContainsExteriorSnapshot, errors);
         RunScenario("reception work type is registered", VerifyReceptionWorkTypeIsRegistered, errors);
         RunScenario("exterior runtime state is not a ScriptableObject", VerifyRuntimeStateIsNotScriptableObject, errors);
         RunScenario("exterior ability contracts expose expected work types", VerifyExteriorAbilityContracts, errors);
@@ -100,7 +100,7 @@ public static class ExteriorActivityDebugScenarios
         return true;
     }
 
-    private static bool VerifySaveV18ContainsExteriorSnapshot()
+    private static bool VerifySaveV19ContainsExteriorSnapshot()
     {
         DungeonGameSaveData save = new DungeonGameSaveData();
         DungeonSaveSectionPayload.Write(
@@ -113,7 +113,7 @@ public static class ExteriorActivityDebugScenarios
             DungeonSaveSectionPayload.ReadOrNew<DungeonExteriorActivitySaveData>(
                 save,
                 ExteriorActivitySaveSection.Id);
-        return DungeonGameSaveData.CurrentVersion == 18
+        return DungeonGameSaveData.CurrentVersion == 20
             && save.version == DungeonGameSaveData.CurrentVersion
             && exterior.version == DungeonExteriorActivitySaveData.CurrentVersion;
     }

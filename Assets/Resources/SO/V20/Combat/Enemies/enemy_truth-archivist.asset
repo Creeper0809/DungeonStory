@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8080a982ba741ff4e8ae644f419d70cb, type: 3}
+  m_Name: enemy_truth-archivist
+  m_EditorClassIdentifier: DungeonStory.Offense::EnemyArchetypeDefinitionSO
+  stableId: enemy:truth-archivist
+  displayName: "\uC9C4\uC2E4 \uAE30\uB85D\uC9D1\uD589\uC790"
+  description: "\uC804\uD22C \uAE30\uB85D\uC5D0 \uB530\uB77C \uBC18\uBCF5 \uC804\uC220\uC744
+    \uBD09\uC1C4\uD558\uB294 \uBCF4\uC2A4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored enemy archetype.
+  factionId: truth:guardian
+  speciesTag: Truth
+  role: 5
+  maxHealth: 230
+  attack: 16
+  strength: 13.6
+  toughness: 17
+  dexterity: 14
+  moveSpeed: 4
+  equipment:
+    weaponDefinitionId: weapon:rune-staff
+    armorDefinitionId: armor:powered-plate
+    shieldDefinitionId: 
+    ammunitionItemId: 
+  abilityIds:
+  - enemy-ability:truth-seal
+  - enemy-ability:summon-minion
+  - enemy-ability:rally
+  tacticalProfile:
+    attackWeight: 4
+    protectWeight: 1
+    abilityWeight: 6
+    retreatWeight: 0
+    retreatHealthFraction: 0.2
+    preferredTargetTags:
+    - nearest
+    avoidedTargetTags:
+    - none
+    formationTag: archive-center
+  counterTags:
+  - counter:mixed-tactics
+  rewardItemIds:
+  - loot:enemy-salvage
+  bossPhases:
+  - healthThreshold: 0.5
+    abilityIds:
+    - enemy-ability:truth-seal
+    - enemy-ability:summon-minion
+    tacticalProfileOverrideTag: desperate
+  individualGeneration:
+    minimumGeneralTraits: 2
+    maximumGeneralTraits: 4
+    minimumExpressedHeritableTraits: 0
+    maximumExpressedHeritableTraits: 2
+    maximumLatentHeritableTraits: 1
+    aptitudeVariance: 15
+    combatStatVariance: 0.12
+    minimumLoyalty: 55
+    maximumLoyalty: 90
+    recruitable: 0
+    militaryTrainingId: training:truth-archivist
+    allowedBackgroundIds: []

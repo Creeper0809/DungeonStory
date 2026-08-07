@@ -927,10 +927,10 @@ public static class SurgeryContentAssetBuilder
             throw new InvalidOperationException(
                 $"Expected 7 anatomy condition lexicons, found {conditionLexicons.Length}.");
         }
-        if (research.Length != 168)
+        if (research.Length != 216)
         {
             throw new InvalidOperationException(
-                $"Expected 168 research projects, found {research.Length}.");
+                $"Expected 216 research projects, found {research.Length}.");
         }
 
         ResourceAnatomyProfileCatalog anatomyCatalog =

@@ -25,6 +25,7 @@ public sealed partial class SurvivalFoodRuntime :
     private readonly IItemDefinitionCatalog itemCatalog;
     private readonly IGameEventBus gameEventBus;
     private readonly IGameClock gameClock;
+    private readonly IClimateQuery climate;
     private readonly ISurvivalServiceSessionCapability serviceSessionRuntime;
     private readonly SurvivalFoodStockRuntime stockRuntime;
     private readonly SurvivalFoodSpoilageRuntime spoilageRuntime;
@@ -35,6 +36,8 @@ public sealed partial class SurvivalFoodRuntime :
     private IDisposable operatingDayStartedSubscription;
     private IDisposable stockConsumedSubscription;
     private IDisposable physicalMealConsumedSubscription;
+    private SurvivalWeatherType? debugWeatherOverride;
+    private string lastAnnouncedWeatherFrontId = string.Empty;
     private SurvivalFoodAggregateState aggregateState =>
         aggregateRootStore.GetOrCreate(() => new SurvivalFoodAggregateState());
     private DungeonSurvivalSaveData state => aggregateState.Data;
@@ -60,6 +63,7 @@ public sealed partial class SurvivalFoodRuntime :
             ?? throw new ArgumentNullException(nameof(worldRegistry));
         this.itemStackRuntime = dependencies.ItemStackRuntime;
         this.itemCatalog = dependencies.ItemCatalog;
+        climate = dependencies.Climate;
         this.gameClock = gameClock
             ?? throw new ArgumentNullException(nameof(gameClock));
         worldThreatModifiers = worldThreatModifiers
@@ -104,7 +108,10 @@ public sealed partial class SurvivalFoodRuntime :
 
     public SurvivalEnvironmentSnapshot GetEnvironmentSnapshot()
     {
-        return environmentRisks.GetSnapshot(state);
+        return environmentRisks.GetSnapshot(
+            state,
+            CurrentWeather,
+            CurrentOutdoorTemperature);
     }
 
     public int TryConsumeStoredStock(StockCategory category, int amount)
@@ -193,8 +200,11 @@ public sealed partial class SurvivalFoodRuntime :
     private void ProcessDailySurvival(int day)
     {
         EnsureStateLists();
-        UpdateWeather(day);
-        spoilageRuntime.Process(state, advanceTime: true);
+        AnnounceDangerousWeatherIfChanged();
+        spoilageRuntime.Process(
+            state,
+            CurrentWeather,
+            advanceTime: true);
         RefreshDailyFoodForecast(day);
         ConsumeDailyWater(day);
         ConsumeDailyFuel();
@@ -210,17 +220,12 @@ public sealed partial class SurvivalFoodRuntime :
 
     public void DebugSetWeather(SurvivalWeatherType weather)
     {
-        EnsureStateLists();
-        state.currentWeather = weather;
-        state.outdoorTemperature = weather switch
+        if (!Enum.IsDefined(typeof(SurvivalWeatherType), weather))
         {
-            SurvivalWeatherType.ColdSnap => -6f,
-            SurvivalWeatherType.HeatWave => 34f,
-            SurvivalWeatherType.Storm => 12f,
-            SurvivalWeatherType.Rain => 14f,
-            SurvivalWeatherType.Fog => 16f,
-            _ => 18f
-        };
+            throw new ArgumentOutOfRangeException(nameof(weather));
+        }
+
+        debugWeatherOverride = weather;
         RefreshSurvivalRisks();
         InvalidateOverviewCache();
     }
@@ -281,7 +286,7 @@ public sealed partial class SurvivalFoodRuntime :
     private SurvivalFoodOverview BuildOverview()
     {
         EnsureStateLists();
-        spoilageRuntime.Process(state);
+        spoilageRuntime.Process(state, CurrentWeather);
         RefreshSurvivalRisks();
 
         int required = CountSurvivalConsumers();
@@ -331,8 +336,8 @@ public sealed partial class SurvivalFoodRuntime :
             storedFuel,
             storedMedicine,
             spoilageWarnings,
-            state.currentWeather,
-            state.outdoorTemperature,
+            CurrentWeather,
+            CurrentOutdoorTemperature,
             state.sanitationRisk,
             state.diseaseRisk,
             state.exteriorNightDanger,
@@ -355,7 +360,8 @@ public sealed partial class SurvivalFoodRuntime :
         return SurvivalHealthStateRules.TryGetStatus(
             state,
             actor,
-            environmentRisks.GetEffectiveOutdoorTemperature(state),
+            environmentRisks.GetEffectiveOutdoorTemperature(
+                CurrentOutdoorTemperature),
             out status);
     }
 
@@ -439,7 +445,7 @@ public sealed partial class SurvivalFoodRuntime :
             var id when id == BuiltInWorkTypeIds.Cook => Mathf.Clamp(70f - (overview.ShortageDays * 12f), 8f, 80f)
                 + (overview.SpoilageWarningCount > 0 ? 15f : 0f),
             var id when id == BuiltInWorkTypeIds.Treat => 35f + (overview.UntreatedCount * 25f) + Mathf.Clamp(overview.DiseaseRisk * 0.35f, 0f, 35f),
-            var id when id == BuiltInWorkTypeIds.Refuel => state.currentWeather == SurvivalWeatherType.ColdSnap
+            var id when id == BuiltInWorkTypeIds.Refuel => CurrentWeather == SurvivalWeatherType.ColdSnap
                 ? 75f
                 : Mathf.Clamp(overview.ExteriorNightDanger * 0.45f, 10f, 55f),
             _ => 0f
@@ -613,43 +619,28 @@ public sealed partial class SurvivalFoodRuntime :
         InvalidateOverviewCache();
     }
 
-    private void UpdateWeather(int day)
+    private void AnnounceDangerousWeatherIfChanged()
     {
-        if (state.weatherDay == day)
+        string currentFrontId = debugWeatherOverride.HasValue
+            ? "debug:" + debugWeatherOverride.Value
+            : climate.WeatherFrontId;
+        if (string.Equals(
+                currentFrontId,
+                lastAnnouncedWeatherFrontId,
+                StringComparison.Ordinal))
         {
             return;
         }
 
-        int roll = Mathf.Abs((day * 73) + 17) % 100;
-        SurvivalWeatherType previous = state.currentWeather;
-        state.currentWeather = roll switch
-        {
-            < 10 => SurvivalWeatherType.Storm,
-            < 24 => SurvivalWeatherType.Rain,
-            < 34 => SurvivalWeatherType.Fog,
-            < 44 => SurvivalWeatherType.ColdSnap,
-            < 54 => SurvivalWeatherType.HeatWave,
-            _ => SurvivalWeatherType.Clear
-        };
-        state.weatherDay = day;
-        state.outdoorTemperature = state.currentWeather switch
-        {
-            SurvivalWeatherType.ColdSnap => -6f,
-            SurvivalWeatherType.HeatWave => 34f,
-            SurvivalWeatherType.Storm => 12f,
-            SurvivalWeatherType.Rain => 14f,
-            SurvivalWeatherType.Fog => 16f,
-            _ => 18f
-        };
-
-        if (state.currentWeather != previous
-            && (state.currentWeather == SurvivalWeatherType.ColdSnap
-                || state.currentWeather == SurvivalWeatherType.HeatWave
-                || state.currentWeather == SurvivalWeatherType.Storm))
+        lastAnnouncedWeatherFrontId = currentFrontId;
+        SurvivalWeatherType weather = CurrentWeather;
+        if (weather is SurvivalWeatherType.ColdSnap
+            or SurvivalWeatherType.HeatWave
+            or SurvivalWeatherType.Storm)
         {
             gameEventBus.RaiseAlert(
                 "날씨가 위험해집니다",
-                $"{SurvivalFacilityWorkRules.FormatWeather(state.currentWeather)} 예보입니다. 연료, 조명, 외부 작업 상태를 확인하세요.",
+                $"{SurvivalFacilityWorkRules.FormatWeather(weather)} 예보입니다. 연료, 조명, 외부 작업 상태를 확인하세요.",
                 EventAlertImportance.Medium,
                 "생존");
         }
@@ -675,7 +666,7 @@ public sealed partial class SurvivalFoodRuntime :
     private void ConsumeDailyFuel()
     {
         int need = DailyFuelDemand;
-        if (state.currentWeather == SurvivalWeatherType.ColdSnap)
+        if (CurrentWeather == SurvivalWeatherType.ColdSnap)
         {
             need += 1;
         }
@@ -703,7 +694,8 @@ public sealed partial class SurvivalFoodRuntime :
         int rotStacks = spoilageRuntime.CountLooseRotStacks();
         SurvivalRiskEvaluation evaluation = environmentRisks.Evaluate(
             state,
-            rotStacks);
+            rotStacks,
+            CurrentWeather);
         state.sanitationRisk = evaluation.SanitationRisk;
         state.diseaseRisk = evaluation.DiseaseRisk;
         state.exteriorNightDanger = evaluation.ExteriorNightDanger;
@@ -1060,8 +1052,39 @@ public sealed partial class SurvivalFoodRuntime :
 
     private bool CanDrawWater(BuildableObject building)
     {
-        return SurvivalFacilityWorkRules.CanDrawWater(building, state.currentWeather);
+        return SurvivalFacilityWorkRules.CanDrawWater(building, CurrentWeather);
     }
+
+    private SurvivalWeatherType CurrentWeather =>
+        debugWeatherOverride ?? MapWeather(climate.WeatherFrontId);
+
+    private float CurrentOutdoorTemperature => debugWeatherOverride.HasValue
+        ? GetDebugOutdoorTemperature(debugWeatherOverride.Value)
+        : climate.OutdoorTemperatureC;
+
+    private static SurvivalWeatherType MapWeather(string weatherFrontId) =>
+        weatherFrontId switch
+        {
+            "weather:rain" => SurvivalWeatherType.Rain,
+            "weather:fog" => SurvivalWeatherType.Fog,
+            "weather:heatwave" => SurvivalWeatherType.HeatWave,
+            "weather:cold-snap" => SurvivalWeatherType.ColdSnap,
+            "weather:storm" => SurvivalWeatherType.Storm,
+            "weather:clear" => SurvivalWeatherType.Clear,
+            _ => throw new InvalidOperationException(
+                $"Unsupported climate weather front '{weatherFrontId}'.")
+        };
+
+    private static float GetDebugOutdoorTemperature(
+        SurvivalWeatherType weather) => weather switch
+        {
+            SurvivalWeatherType.ColdSnap => -6f,
+            SurvivalWeatherType.HeatWave => 34f,
+            SurvivalWeatherType.Storm => 12f,
+            SurvivalWeatherType.Rain => 14f,
+            SurvivalWeatherType.Fog => 16f,
+            _ => 18f
+        };
 
     private bool HasTreatableHealth()
     {

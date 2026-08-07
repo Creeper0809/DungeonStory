@@ -113,6 +113,76 @@ public sealed class MedicineItemFeature : ItemFeatureDefinition
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class VaccineItemFeature : ItemFeatureDefinition
+{
+    public string diseaseId = string.Empty;
+    [Min(1)] public int doses = 1;
+
+    public override string FeatureId => "vaccine";
+
+    public override IEnumerable<string> Validate(ItemDefinitionSO owner)
+    {
+        if (string.IsNullOrWhiteSpace(diseaseId))
+        {
+            yield return "Vaccine feature has no disease ID.";
+        }
+        if (doses < 1)
+        {
+            yield return "Vaccine feature must contain at least one dose.";
+        }
+    }
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class PathogenSampleItemFeature : ItemFeatureDefinition
+{
+    public string diseaseId = string.Empty;
+
+    public override string FeatureId => "pathogen-sample";
+
+    public override IEnumerable<string> Validate(ItemDefinitionSO owner)
+    {
+        if (string.IsNullOrWhiteSpace(diseaseId))
+        {
+            yield return "Pathogen sample feature has no disease ID.";
+        }
+    }
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class MedicalProcedureSupplyItemFeature : ItemFeatureDefinition
+{
+    public string procedureId = string.Empty;
+    public override string FeatureId => "medical-procedure-supply";
+
+    public override IEnumerable<string> Validate(ItemDefinitionSO owner)
+    {
+        if (string.IsNullOrWhiteSpace(procedureId))
+        {
+            yield return "Medical procedure supply has no procedure ID.";
+        }
+    }
+}
+
+public enum CropTreatmentKind
+{
+    PestLure = 0,
+    BotanicalPesticide = 1,
+    Fungicide = 2
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class CropTreatmentItemFeature : ItemFeatureDefinition
+{
+    public CropTreatmentKind treatmentKind;
+    public override string FeatureId => "crop-treatment";
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class SubstanceItemFeature : ItemFeatureDefinition
 {
     public string substanceId = string.Empty;

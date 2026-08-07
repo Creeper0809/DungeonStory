@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11a7078c65d29414ebfafd36d0865407, type: 3}
+  m_Name: encounter_35
+  m_EditorClassIdentifier: DungeonStory.Offense::OffenseEncounterSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8035
+  encounterId: encounter:35
+  displayName: "\uC720\uB791 \uD0DC\uC5FD\uAD6C\uC131\uCCB4 \uC804\uC220 \uC870\uC6B0"
+  minimumSiteStrength: 9
+  maximumSiteStrength: 12
+  elite: 1
+  boss: 0
+  objective: 4
+  objectiveRoundLimit: 8
+  objectiveTargetId: 
+  battlefieldModifierIds:
+  - battlefield:spore-bloom
+  counterTags:
+  - counter:precision
+  rewardItemIds:
+  - loot:enemy-salvage
+  enemies:
+  - enemyArchetypeId: enemy:neutral-clockwork
+    minimumCount: 1
+    maximumCount: 2
+  - enemyArchetypeId: enemy:legion-pikeman
+    minimumCount: 1
+    maximumCount: 2

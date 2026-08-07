@@ -21,10 +21,10 @@ public static class DungeonStoryFinalAcceptanceRunner
         List<AcceptanceStep> steps = new List<AcceptanceStep>();
 
         Run("Localization assets", ValidateLocalizationAssets, steps);
-        Run("V18 runtime authority", () => RuntimeAuthorityV18Validator.ValidateOrThrow(), steps);
+        Run("V19 runtime authority", () => RuntimeAuthorityV18Validator.ValidateOrThrow(), steps);
         Run("Batch A architecture metrics", () => BatchAArchitectureMetricsValidator.ValidateOrThrow(), steps);
         Run("Runtime composition", () => Require(DungeonRuntimeCompositionDebugScenarios.RunAll(false)), steps);
-        Run("54 strict save sections", () => Require(DungeonSaveSectionDebugScenarios.RunAll(false)), steps);
+        Run("68 strict save sections", () => Require(DungeonSaveSectionDebugScenarios.RunAll(false)), steps);
         Run("Batch A content authority", () => Require(BatchAContentAuthorityDebugScenarios.RunAll(false)), steps);
         Run("Batch A core-session save", () => Require(BatchACoreSessionSaveDebugScenarios.RunAll(false)), steps);
         Run("Batch B character/survival authority", BatchBCharacterSurvivalAuthorityDebugScenarios.RunAll, steps);
@@ -32,10 +32,10 @@ public static class DungeonStoryFinalAcceptanceRunner
         Run("Persistent identities", PersistentIdentityDebugScenarios.RunAll, steps);
         Run("Physical item contracts", PhysicalItemDebugScenarios.RunAll, steps);
         Run("Physical stock query", PhysicalStockQueryV18DebugScenarios.RunAll, steps);
-        Run("V18 equipment item state", EquipmentItemStateV18DebugScenarios.RunAll, steps);
+        Run("V19 equipment item state", EquipmentItemStateV18DebugScenarios.RunAll, steps);
         Run("Combat equipment materials", CombatEquipmentMaterialDebugScenarios.RunAll, steps);
         Run("Research tree", () => Require(ResearchTreeDebugScenarios.RunAll(false)), steps);
-        Run("168 research/equipment overhaul", ValidateResearchEquipmentOverhaul, steps);
+        Run("216 research/equipment overhaul", ValidateResearchEquipmentOverhaul, steps);
         Run("Branched production network", ValidateBranchedProduction, steps);
         Run("Production economy", ProductionEconomyDebugScenarios.RunAll, steps);
         Run("Industrial infrastructure", IndustrialInfrastructureDebugScenarios.RunAll, steps);
@@ -51,7 +51,7 @@ public static class DungeonStoryFinalAcceptanceRunner
         Run("Offense strategic physical expedition", () => _ = OffenseStrategicDebugScenarios.RunAll(), steps);
         Run("Offense expedition journey", () => Require(OffenseExpeditionDebugScenarios.RunAll(false)), steps);
         Run("Offense expedition architecture", () => Require(OffenseExpeditionArchitectureDebugScenarios.RunAll(false)), steps);
-        Run("Offense aggregate V18", OffenseAggregateSaveV18DebugScenarios.Run, steps);
+        Run("Offense aggregate V19", OffenseAggregateSaveV18DebugScenarios.Run, steps);
         // Always emit the nested suite report. A single false here can represent
         // several independent gameplay regressions, and the final acceptance
         // report must not collapse those failures into an opaque one-line result.

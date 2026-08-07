@@ -39,12 +39,12 @@ MonoBehaviour:
     - rid: 7737211730834227652
     - rid: 7737211730834227653
     - rid: 7737211730834227654
-    - rid: 7737211730889016005
-    - rid: 7737211730889016006
-    - rid: 7737211730889016007
-    - rid: 7737211730889016008
-    - rid: 7737211730889016263
-    - rid: 7737211730889016264
+    - rid: 7737211792998531210
+    - rid: 7737211792998531211
+    - rid: 7737211792998531212
+    - rid: 7737211792998531213
+    - rid: 7737211792998531450
+    - rid: 7737211792998531451
   width: 2
   height: 1
   layer: 1
@@ -61,18 +61,18 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730834227648
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: P07
     - rid: 7737211730834227649
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - furnace
     - rid: 7737211730834227651
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 135
@@ -118,21 +118,21 @@ MonoBehaviour:
           - key: Metal
             value: 2
           metrics: []
-    - rid: 7737211730889016005
+    - rid: 7737211792998531210
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7737211730889016006
+    - rid: 7737211792998531211
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7737211730889016007
+    - rid: 7737211792998531212
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -143,20 +143,20 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7737211730889016008
+    - rid: 7737211792998531213
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7737211730889016263
+    - rid: 7737211792998531450
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:furnace
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211730889016264
+    - rid: 7737211792998531451
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -176,3 +176,5 @@ MonoBehaviour:
           capacity: 16
         - itemId: component:precision-parts
           capacity: 16
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}

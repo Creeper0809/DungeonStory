@@ -31,22 +31,22 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 52
   features:
-  - rid: 7737211730927813357
-  - rid: 7737211730927813358
-  - rid: 7737211730927813359
+  - rid: 7737211794726585008
+  - rid: 7737211794726585009
+  - rid: 7737211794726585010
   references:
     version: 2
     RefIds:
-    - rid: 7737211730927813357
-      type: {class: AmmunitionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726585008
+      type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:trap-canister
-    - rid: 7737211730927813358
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726585009
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:standard-ammunition
-    - rid: 7737211730927813359
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726585010
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 512

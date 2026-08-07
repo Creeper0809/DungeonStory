@@ -88,8 +88,9 @@ internal sealed class CaptivityEscapeRuntime : ICaptivityEscapeRuntime
         }
 
         GridTraversalContext context = GridTraversalContext.ForCharacter(
-            actor,
-            DoorAccessOverrideKind.CaptiveEscape);
+            CharacterPersistentIdentity.Require(actor),
+            DoorAccessOverrideKind.CaptiveEscape,
+            GridMovementIntent.EscapeHazard);
         if (!pathSearchBroker.TryGetSearch(
                 grid,
                 actor.GetNowXY(),

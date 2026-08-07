@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 177cfc3b70256b84ca2f4f0975a0db84, type: 3}
   m_Name: Owner_Slime
   m_EditorClassIdentifier: Assembly-CSharp::CharacterSO
+  archetypeId: character-archetype:1001
+  visualVariantId: visual-variant:1001
   characterType: 0
   role: 1
   id: 1001
@@ -41,7 +43,7 @@ MonoBehaviour:
   traits:
   - {fileID: 11400000, guid: 44555ff913b8137c98d957d02363b6cf, type: 2}
   defaultWorkPriorities:
-    schemaVersion: 1
+    schemaVersion: 2
     priorities:
     - workTypeId: work:operate
       priority: 1
@@ -59,6 +61,50 @@ MonoBehaviour:
       priority: 2
     - workTypeId: work:rest
       priority: 3
+    - workTypeId: work:construct
+      priority: 2
+    - workTypeId: work:reception
+      priority: 2
+    - workTypeId: work:craft
+      priority: 2
+    - workTypeId: work:haul
+      priority: 2
+    - workTypeId: work:hunt
+      priority: 2
+    - workTypeId: work:butcher
+      priority: 2
+    - workTypeId: work:draw-water
+      priority: 2
+    - workTypeId: work:cook
+      priority: 2
+    - workTypeId: work:treat
+      priority: 2
+    - workTypeId: work:surgery
+      priority: 1
+    - workTypeId: work:refuel
+      priority: 2
+    - workTypeId: work:warden
+      priority: 2
+    - workTypeId: work:perform
+      priority: 2
+    - workTypeId: work:gather
+      priority: 2
+    - workTypeId: work:sow
+      priority: 2
+    - workTypeId: work:harvest
+      priority: 2
+    - workTypeId: work:logging
+      priority: 2
+    - workTypeId: work:quarry
+      priority: 2
+    - workTypeId: work:animal-care
+      priority: 2
+    - workTypeId: work:grand-project
+      priority: 2
+    - workTypeId: work:threat-mitigation
+      priority: 1
+    - workTypeId: work:plumbing
+      priority: 2
     legacyOperate: 1
     legacyRestock: 2
     legacyRepair: 2
@@ -73,9 +119,16 @@ MonoBehaviour:
     selfCare: 1
     patience: 1
     shoppingInterest: 1
+    sociability: 1
+    riskTaking: 1
+    orderliness: 1
+    outdoorPreference: 1
+    noveltySeeking: 1
+    routineAdherence: 1
   ownerSummary: "\uCD08\uBC18 \uCCAD\uC18C, \uBCF4\uCDA9, \uC720\uC9C0\uBCF4\uC218\uC5D0
     \uAC15\uD55C \uC0AC\uC7A5"
   ownerPreferredWorkTypes: 14
+  ownerFixedSkills: []
   characterSprite: {fileID: -177130652, guid: 268b13836c8af3d408110e228f534b75, type: 3}
   favoriteStore: []
   frequencyVisitMax: 1
@@ -84,4 +137,3 @@ MonoBehaviour:
   minHoldingMoney: 0
   speedType: 4
   respawnSpeedType: 13
-  basicBehaviorPatterns: {fileID: 0}

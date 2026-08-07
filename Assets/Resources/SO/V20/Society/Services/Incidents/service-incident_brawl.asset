@@ -1,0 +1,82 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69074ea910611b44eb00ba10ecbc3728, type: 3}
+  m_Name: service-incident_brawl
+  m_EditorClassIdentifier: DungeonStory.Content::ServiceIncidentDefinitionSO
+  stableId: service-incident:brawl
+  displayName: "\uB09C\uD22C"
+  description: "\uC220\uC790\uB9AC\uC758 \uBAA8\uC695\uC774 \uBB34\uC7A5 \uB09C\uD22C\uB85C
+    \uBC88\uC84C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored faction/service manifest.
+  kind: 0
+  triggerRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  responses:
+  - choiceId: separate
+    title: "\uACBD\uBE44\uAC00 \uBD84\uB9AC\uD55C\uB2E4"
+    outcomeText: "\uACBD\uBE44\uAC00 \uBD84\uB9AC\uD55C\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 4
+      targetId: service-incident:brawl
+      amount: -3
+      durationDays: 0
+  - choiceId: mediate
+    title: "\uB2F9\uC0AC\uC790\uB97C \uC911\uC7AC\uD55C\uB2E4"
+    outcomeText: "\uB2F9\uC0AC\uC790\uB97C \uC911\uC7AC\uD55C\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 5
+      targetId: service-incident:brawl
+      amount: 4
+      durationDays: 0
+  - choiceId: arrest
+    title: "\uC8FC\uB3D9\uC790\uB97C \uCCB4\uD3EC\uD55C\uB2E4"
+    outcomeText: "\uC8FC\uB3D9\uC790\uB97C \uCCB4\uD3EC\uD55C\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 7
+      targetId: affected-faction
+      amount: 4
+      durationDays: 0

@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23de0c160ab9df54eb2ace98a4a93e08, type: 3}
+  m_Name: background_deserter
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterBackgroundDefinitionSO
+  stableId: background:deserter
+  displayName: "\uD0C8\uC601\uBCD1"
+  description: "\uBA85\uB839\uBCF4\uB2E4 \uC0B4\uC544\uB0A8\uB294 \uD310\uB2E8\uC744
+    \uD0DD\uD588\uC73C\uBA70 \uAD70\uB300\uC758 \uC2B5\uAD00\uACFC \uC57D\uC810\uC744
+    \uD568\uAED8 \uC548\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  startingSkills:
+  - skillId: combat
+    experience: 85
+  startingEffects:
+  - kind: 1
+    targetId: background-confidence
+    amount: 2
+    durationDays: 10
+  factionReactions:
+  - id: faction:human-legion
+    weight: 0.1
+  initialMemoryCode: memory:desertion-night

@@ -28,12 +28,12 @@ MonoBehaviour:
   canEnterDungeon: 0
   carcassWeight: 2.5
   diet: 0
-  preferredHabitats:
+  preferredHabitats: 00000000
   territoryRadius: 6
   dailyFoodNeed: 1
   dailyWaterNeed: 1
   restPreference: 0.45
-  predationDrive: 0
+  predationDrive: 0.05
   fleePreference: 0.55
   butcherYields:
   - itemId: resource:meat
@@ -47,3 +47,14 @@ MonoBehaviour:
   bodySize: 1
   manureIntervalDays: 2
   husbandryProducts: []
+  authoringRevision: 1
+  preySpeciesIds:
+  - cave_rat
+  predatorSpeciesIds:
+  - shadow_wolf
+  nestTag: nest:cave_rat
+  breedingSeason: 0
+  migrationPatternId: migration:cave_rat
+  diseaseVectorIds:
+  - disease:cave-flu
+  activeSeasons: 000000000100000002000000

@@ -33,11 +33,11 @@ MonoBehaviour:
   icon: {fileID: 0}
   abilityModules:
     items:
-    - rid: 7737211730927812711
-    - rid: 7737211730927812712
-    - rid: 7737211730927812713
-    - rid: 7737211730927812714
-    - rid: 7737211730927812715
+    - rid: 7737211792998531610
+    - rid: 7737211792998531611
+    - rid: 7737211792998531612
+    - rid: 7737211792998531613
+    - rid: 7737211792998531614
   width: 1
   height: 1
   layer: 1
@@ -53,13 +53,13 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730927812711
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531610
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: WS21
-    - rid: 7737211730927812712
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531611
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 40
@@ -67,7 +67,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7737211730927812713
+    - rid: 7737211792998531612
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -79,14 +79,14 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: material:lumber
           amount: 2
-    - rid: 7737211730927812714
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531613
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - production-support
         - support:crucible-rack
-    - rid: 7737211730927812715
+    - rid: 7737211792998531614
       type: {class: BuildingProductionSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionSupportAbility

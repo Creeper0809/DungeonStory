@@ -1279,6 +1279,122 @@ MonoBehaviour:
     m_Key: EquipmentProgressionFacilityUnavailable
     m_Metadata:
       m_Items: []
+  - m_Id: 1860042856157184
+    m_Key: AgeTreatmentAnatomyUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042914877440
+    m_Key: AgeTreatmentCharacterMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042914877441
+    m_Key: AgeTreatmentCooldownActive
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071744
+    m_Key: AgeTreatmentDefinitionMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071745
+    m_Key: AgeTreatmentProcedureMismatch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071746
+    m_Key: AgeTreatmentSupplyUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071747
+    m_Key: AgeTreatmentTooYoung
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071748
+    m_Key: ChildSafetyApprenticeshipDisabled
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071749
+    m_Key: ChildSafetyAuthorizationInvalid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071750
+    m_Key: ChildSafetyCharacterPermissionRequired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071751
+    m_Key: ChildSafetyCombatForbidden
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071752
+    m_Key: ChildSafetyHazardEscapeDirectionInvalid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071753
+    m_Key: ChildSafetyLifeStateUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071754
+    m_Key: ChildSafetyProtectiveEquipmentRequired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071755
+    m_Key: ChildSafetySupervisorTooFar
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071756
+    m_Key: ChildSafetySupervisorUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071757
+    m_Key: ChildSafetyWorkConfirmationRequired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071758
+    m_Key: ChildSafetyWorkForbidden
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071759
+    m_Key: CropTreatmentDefinitionMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071760
+    m_Key: CropTreatmentKindUnsupported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071761
+    m_Key: CropTreatmentPlotMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071762
+    m_Key: CropTreatmentSupplyUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071763
+    m_Key: PopulationHealthCharacterMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071764
+    m_Key: TemporalStasisFacilityMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071765
+    m_Key: TemporalStasisMaintenanceUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071766
+    m_Key: TemporalStasisPowerInsufficient
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071767
+    m_Key: VaccineDefinitionMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071768
+    m_Key: VaccineDiseaseMismatch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1860042919071769
+    m_Key: VaccineDoseUnavailable
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

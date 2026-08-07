@@ -402,6 +402,22 @@ public static class OffenseAggregateSaveValidation
             $"offense battle '{battle.battleId}' expedition ID");
         RequireId(battle.targetId,
             $"offense battle '{battle.battleId}' target ID");
+        RequireId(battle.encounterId,
+            $"offense battle '{battle.battleId}' encounter ID");
+        RequireUnique(
+            battle.enemyIndividuals,
+            value => value.characterId,
+            $"offense battle '{battle.battleId}' enemy individual");
+        HashSet<string> enemyCombatantIds = battle.combatants
+            .Where(value => (battle.enemyIndividuals ?? new List<EnemyIndividualSaveData>())
+                .Any(individual => string.Equals(
+                    individual.characterId,
+                    value.persistentId,
+                    StringComparison.Ordinal)))
+            .Select(value => value.persistentId)
+            .ToHashSet(StringComparer.Ordinal);
+        Require(enemyCombatantIds.Count == battle.enemyIndividuals.Count,
+            $"Offense battle '{battle.battleId}' enemy individuals do not exactly match enemy combatants.");
         Require(battle.roundNumber >= 1
                 && battle.currentOrderIndex >= 0
                 && battle.currentOrderIndex < battle.initiativeOrder.Count
@@ -773,6 +789,12 @@ public static class OffenseAggregateSaveValidation
             Require(knownTargetIds.Contains(arrival.targetId),
                 $"Return arrival '{arrival.arrivalId}' references missing target '{arrival.targetId}'.");
         }
+        foreach (OffensePrisonerCandidatePoolState pool in
+            data.returnArrivals.prisonerCandidatePools)
+        {
+            Require(knownExpeditionIds.Contains(pool.expeditionId),
+                $"Prisoner candidate pool references missing expedition '{pool.expeditionId}'.");
+        }
     }
 
     private static void ValidateObjectGraph(
@@ -832,6 +854,8 @@ public static class OffenseAggregateSaveValidation
                 || !string.IsNullOrEmpty(battle.expeditionId)
                 || !string.IsNullOrEmpty(battle.targetId)
                 || !string.IsNullOrEmpty(battle.targetTitle)
+                || !string.IsNullOrEmpty(battle.encounterId)
+                || (battle.enemyIndividuals?.Count ?? 0) != 0
                 || battle.difficulty != DungeonDifficulty.Normal
                 || battle.outcome != OffenseBattleOutcome.InProgress
                 || battle.roundNumber != 1

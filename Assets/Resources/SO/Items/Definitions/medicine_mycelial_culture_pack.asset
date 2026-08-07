@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4cb4b1f490bee1344a1002cabb362d7a, type: 3}
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
   m_Name: medicine_mycelial_culture_pack
-  m_EditorClassIdentifier: Assembly-CSharp::GenericItemDefinitionSO
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceItemDefinitionSO
   serializationData:
     SerializedFormat: 2
     SerializedBytes: 

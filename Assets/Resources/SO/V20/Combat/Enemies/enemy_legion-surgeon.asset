@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8080a982ba741ff4e8ae644f419d70cb, type: 3}
+  m_Name: enemy_legion-surgeon
+  m_EditorClassIdentifier: DungeonStory.Offense::EnemyArchetypeDefinitionSO
+  stableId: enemy:legion-surgeon
+  displayName: "\uB3C4\uC2DC\uC5F0\uB9F9 \uC678\uACFC\uC758"
+  description: "\uC5C4\uD3D0 \uB4A4\uC5D0\uC11C \uC911\uC0C1\uC790\uB97C \uC6B0\uC120
+    \uCE58\uB8CC\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored enemy archetype.
+  factionId: human:legion
+  speciesTag: Human
+  role: 3
+  maxHealth: 78
+  attack: 5
+  strength: 4.25
+  toughness: 5
+  dexterity: 9
+  moveSpeed: 4
+  equipment:
+    weaponDefinitionId: weapon:dagger
+    armorDefinitionId: armor:padded
+    shieldDefinitionId: 
+    ammunitionItemId: 
+  abilityIds:
+  - enemy-ability:field-dressing
+  - enemy-ability:smoke-screen
+  tacticalProfile:
+    attackWeight: 1
+    protectWeight: 5
+    abilityWeight: 6
+    retreatWeight: 2
+    retreatHealthFraction: 0.2
+    preferredTargetTags:
+    - nearest
+    avoidedTargetTags:
+    - none
+    formationTag: rear-clinic
+  counterTags:
+  - counter:interrupt-heal
+  rewardItemIds:
+  - loot:enemy-salvage
+  bossPhases: []
+  individualGeneration:
+    minimumGeneralTraits: 2
+    maximumGeneralTraits: 3
+    minimumExpressedHeritableTraits: 0
+    maximumExpressedHeritableTraits: 2
+    maximumLatentHeritableTraits: 1
+    aptitudeVariance: 15
+    combatStatVariance: 0.12
+    minimumLoyalty: 20
+    maximumLoyalty: 75
+    recruitable: 1
+    militaryTrainingId: training:legion-surgeon
+    allowedBackgroundIds: []

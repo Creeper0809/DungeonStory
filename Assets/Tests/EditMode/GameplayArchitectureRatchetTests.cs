@@ -471,14 +471,14 @@ namespace DungeonStory.Tests.Architecture
         }
 
         [Test]
-        public void SaveRootDefaultsToV18()
+        public void SaveRootDefaultsToV19()
         {
             SourceFile saveService = SourceBySuffix(
                 "Infrastructure/Core/InfrastructureSavePrimitives.cs");
 
             Assert.That(
                 saveService.Text,
-                Does.Match(@"CurrentVersion\s*=\s*18\s*;"));
+                Does.Match(@"CurrentVersion\s*=\s*19\s*;"));
             Assert.That(saveService.Text, Does.Contain("DungeonSaveSectionEnvelope"));
         }
 
@@ -494,7 +494,7 @@ namespace DungeonStory.Tests.Architecture
 
             Assert.That(root.Success, Is.True, "DungeonGameSaveData root was not found.");
             string body = root.Groups["body"].Value;
-            Assert.That(body, Does.Contain("CurrentVersion = 18"));
+            Assert.That(body, Does.Contain("CurrentVersion = 19"));
             Assert.That(body, Does.Contain("savedAtUtc"));
             Assert.That(body, Does.Contain("sceneName"));
             Assert.That(body, Does.Contain("sections"));
@@ -849,6 +849,8 @@ namespace DungeonStory.Tests.Architecture
                 "Content/GameContentCatalogSO.cs");
             SourceFile contentBuilder = SourceBySuffixIncludingEditor(
                 "Items/Editor/GameContentCatalogAssetBuilder.cs");
+            SourceFile researchBuilder = SourceBySuffixIncludingEditor(
+                "Research/Editor/ResearchProjectAssetBuilder.cs");
             SourceFile localizationBuilder = SourceBySuffixIncludingEditor(
                 "Items/Editor/DomainFailureLocalizationAssetBuilder.cs");
             SourceFile[] directRegistrations = ProductSources()
@@ -901,6 +903,11 @@ namespace DungeonStory.Tests.Architecture
 
             Assert.That(contentBuilder.Text, Does.Contain("EditorUtility.DisplayDialog("));
             Assert.That(contentBuilder.Text, Does.Contain("IsExplicitBatchModeInvocation()"));
+            Assert.That(contentBuilder.Text, Does.Contain("ReindexResearchProjects()"));
+            Assert.That(contentBuilder.Text, Does.Contain("IsLegacyDungeonFactionShadow("));
+            Assert.That(
+                researchBuilder.Text,
+                Does.Contain("GameContentCatalogAssetBuilder.ReindexResearchProjects()"));
             Assert.That(contentBuilder.Text, Does.Contain("WriteGenerationManifest("));
             Assert.That(contentBuilder.Text, Does.Contain("AssetDatabase.SaveAssetIfDirty(asset)"));
             Assert.That(
@@ -4244,7 +4251,7 @@ namespace DungeonStory.Tests.Architecture
 
             Assert.That(
                 architectureRunner.Text,
-                Does.Contain("public const int ExpectedTestCount = 131"));
+                Does.Contain("public const int ExpectedTestCount = 154"));
             Assert.That(
                 architectureRunner.Text,
                 Does.Match(
@@ -4341,6 +4348,25 @@ namespace DungeonStory.Tests.Architecture
             Assert.That(
                 facade.Text,
                 Does.Contain("ReadConsoleEvidence(requireActiveMarker: false)"));
+            Assert.That(
+                facade.Text,
+                Does.Contain("private const double TargetTimeoutSeconds = 1800d"),
+                "The final runner must cover observed fifteen-minute scene integration stalls.");
+            Assert.That(
+                facade.Text,
+                Does.Contain("ResumeAfterInfrastructureTimeoutFromMenu"));
+            Assert.That(
+                facade.Text,
+                Does.Contain("QueueInfrastructureTimeoutResumeForMcp"));
+            Assert.That(
+                facade.Text,
+                Does.Contain("TryValidateInfrastructureTimeoutResumeEvidence"));
+            Assert.That(
+                facade.Text,
+                Does.Contain("persistenceRestoredNow=True"));
+            Assert.That(
+                facade.Text,
+                Does.Contain("consoleWarnings=0"));
 
             Match validateTargets = Regex.Match(
                 facade.Text,
@@ -4355,7 +4381,7 @@ namespace DungeonStory.Tests.Architecture
                 Does.Match(@"Targets\.Length\s*!=\s*expected\.Count"));
             Assert.That(
                 targetContract,
-                Does.Contain("if (totalCaptures != 30)"));
+                Does.Contain("if (totalCaptures != 32)"));
             Assert.That(targetContract, Does.Contain("target.CaptureArtifacts"));
             Assert.That(targetContract, Does.Contain("capture.Width == 1600"));
             Assert.That(targetContract, Does.Contain("capture.Height == 1600"));
@@ -4382,9 +4408,9 @@ namespace DungeonStory.Tests.Architecture
             Assert.That(facade.Text, Does.Contain("wrongDimensions="));
             foreach (string fullWorldMarker in new[]
                      {
-                         "registeredSections=54",
-                         "capturedSections=54",
-                         "postRoundTripSections=54",
+                         "registeredSections=63",
+                         "capturedSections=63",
+                         "postRoundTripSections=63",
                          "baselineRestored=True",
                          "canonicalBaselineMatched=True"
                      })

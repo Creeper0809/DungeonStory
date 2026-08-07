@@ -25,6 +25,10 @@ MonoBehaviour:
   cropId: crop:shade-fiber
   displayName: "\uADF8\uB298\uC12C\uC720"
   harvestItemId: resource:shade-fiber
+  seedItemId: seed-lot:shade-fiber
+  baseGenome: {fileID: 11400000, guid: 3447c20945eabb34d833186109cee280, type: 2}
+  familyGroup: 1
+  endemicDisease: 1
   requiredResearchId: research:textile:fiber
   growthHours: 40
   sowWork: 4

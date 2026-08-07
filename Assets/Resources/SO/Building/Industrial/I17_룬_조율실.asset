@@ -33,15 +33,15 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 43d309ddbef519448af6ea3df47405ca, type: 3}
   abilityModules:
     items:
-    - rid: 7737211730889015812
-    - rid: 7737211730889015813
-    - rid: 7737211730889015814
-    - rid: 7737211730889015815
-    - rid: 7737211730889015816
-    - rid: 7737211730889015817
-    - rid: 7737211730889015818
-    - rid: 7737211730889015819
-    - rid: 7737211730889015820
+    - rid: 7737211792661414841
+    - rid: 7737211792661414842
+    - rid: 7737211792661414843
+    - rid: 7737211792661414844
+    - rid: 7737211792661414845
+    - rid: 7737211792661414846
+    - rid: 7737211792661414847
+    - rid: 7737211792661414848
+    - rid: 7737211792661414849
   width: 2
   height: 1
   layer: 1
@@ -57,13 +57,13 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730889015812
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792661414841
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I17
-    - rid: 7737211730889015813
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792661414842
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 130
@@ -71,7 +71,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211730889015814
+    - rid: 7737211792661414843
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -83,21 +83,43 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: component:rune-conductor
           amount: 4
-    - rid: 7737211730889015815
+    - rid: 7737211792661414844
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737211730889015816
+    - rid: 7737211792661414845
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 9
         priority: 4
         minimumSupplyFraction: 1
-    - rid: 7737211730889015817
+    - rid: 7737211792661414846
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - industrial-infrastructure
+        - research:equipment:rune-module-tuning
+        - workstation:v3:rune-tuning
+    - rid: 7737211792661414847
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:v3:rune-tuning
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211792661414848
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 4
+        outputCapacities: []
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}
+    - rid: 7737211792661414849
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -108,23 +130,3 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 4
           disabledWhenDamaged: 1
-    - rid: 7737211730889015818
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingSemanticTagsAbility
-        tags:
-        - industrial-infrastructure
-        - research:equipment:rune-module-tuning
-        - workstation:v3:rune-tuning
-    - rid: 7737211730889015819
-      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionWorkstationAbility
-        workstationTag: workstation:v3:rune-tuning
-        stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211730889015820
-      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionBufferAbility
-        defaultBatchCapacity: 4
-        outputCapacities: []

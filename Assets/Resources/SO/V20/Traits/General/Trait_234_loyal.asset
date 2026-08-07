@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d73e94ec113318588b25eed8f9f9ee0, type: 3}
+  m_Name: Trait_234_loyal
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterTraitSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 234
+  traitName: "\uCDA9\uC131\uC2EC"
+  description: "\uAC00\uAD6C\uC640 \uC624\uB798\uB41C \uB3D9\uB8CC\uC758 \uBD80\uD0C1\uC744
+    \uC6B0\uC120\uD558\uBA70 \uBC30\uC2E0\uC5D0 \uAE4A\uAC8C \uC0C1\uCC98\uBC1B\uB294\uB2E4."
+  statBonus:
+    entries: []
+  modifiers:
+    consumptionMultiplier: 1
+    spendingMultiplier: 1
+    waitPatienceMultiplier: 1
+    crowdSensitivityMultiplier: 1
+    accidentChanceMultiplier: 1
+    workSpeedMultiplier: 1
+    researchSpeedMultiplier: 1
+    combatPowerMultiplier: 1
+    moveSpeedMultiplier: 1
+    stayDurationMultiplier: 1
+    preferredFacilityRoles: 0
+    dislikedFacilityRoles: 0
+    preferredWorkTypes: 0
+    dislikedWorkTypes: 0
+  combatAbilities:
+    abilities: []
+  environmentalProtection:
+    comfortMinimumOffset: 0
+    comfortMaximumOffset: 0
+    safeMinimumOffset: 0
+    safeMaximumOffset: 0
+    coldExposureMultiplier: 1
+    heatExposureMultiplier: 1
+  incompatibilityGroups: []
+  behaviorPreferences:
+  - behaviorTag: social:help-household
+    utilityDelta: 0.5
+  moodReactions:
+  - triggerTag: event:betrayal
+    moodDelta: -5
+    durationDays: 3
+  eventWeights:
+  - eventCategoryId: life-event
+    multiplier: 1.35
+  references:
+    version: 2
+    RefIds: []

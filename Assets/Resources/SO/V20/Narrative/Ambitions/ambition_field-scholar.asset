@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f7513029e620ee4481ed23352a360f1, type: 3}
+  m_Name: ambition_field-scholar
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterAmbitionDefinitionSO
+  stableId: ambition:field-scholar
+  displayName: "\uD604\uC7A5 \uD559\uC790\uC758 \uC99D\uBA85"
+  description: "\uC6D0\uC815\uC5D0\uC11C \uBC1C\uACAC\uD55C \uC0AC\uC2E4\uB85C \uAE30\uC874
+    \uD559\uC124\uC744 \uB4A4\uC9D1\uC73C\uB824 \uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  category: 0
+  targetProgress: 280
+  activationRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters:
+    - minimumLifeStage: 3
+      maximumLifeStage: 4
+      requiredTraitId: 
+      excludedTraitId: 
+      minimumHealth: 0
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  failureConditions:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  completionRewards:
+  - kind: 3
+    targetId: research
+    amount: 100
+    durationDays: 0
+  relatedEventWeights:
+  - id: life-event:disputed-thesis
+    weight: 2
+  cooperationAmbitionIds: []
+  conflictAmbitionIds: []

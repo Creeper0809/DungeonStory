@@ -44,11 +44,11 @@ MonoBehaviour:
     - rid: 7737211730538791831
     - rid: 7737211730538791832
     - rid: 7737211730538791833
-    - rid: 7737211730889015869
-    - rid: 7737211730889015870
-    - rid: 7737211730889015871
-    - rid: 7737211730889015872
-    - rid: 7737211730889015873
+    - rid: 7737211792661414896
+    - rid: 7737211792661414897
+    - rid: 7737211792661414898
+    - rid: 7737211792661414899
+    - rid: 7737211792661414900
   width: 1
   height: 1
   layer: 1
@@ -65,12 +65,12 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730538791823
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: D01
     - rid: 7737211730538791824
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 95
@@ -102,7 +102,7 @@ MonoBehaviour:
           supportedWorkTypes: 536952845
           disabledWhenDamaged: 1
     - rid: 7737211730538791827
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
     - rid: 7737211730538791828
@@ -135,7 +135,7 @@ MonoBehaviour:
         outputCategory: 0
         amount: 4
     - rid: 7737211730538791831
-      type: {class: BuildingCookingAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingCookingAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingCookingAbility
         inputFood: 1
@@ -143,7 +143,7 @@ MonoBehaviour:
         workSeconds: 1.1
         requiresFuel: 1
     - rid: 7737211730538791832
-      type: {class: BuildingFuelConsumerAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFuelConsumerAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingFuelConsumerAbility
         fuelPerRefuel: 1
@@ -151,20 +151,20 @@ MonoBehaviour:
         warmth: 8
         lightSafety: 6
     - rid: 7737211730538791833
-      type: {class: BuildingTemperatureAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingTemperatureAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingTemperatureAbility
         roomTemperatureOffset: 4
         coldProtection: 6
         heatProtection: 1
-    - rid: 7737211730889015869
+    - rid: 7737211792661414896
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7737211730889015870
+    - rid: 7737211792661414897
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -175,21 +175,21 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7737211730889015871
+    - rid: 7737211792661414898
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7737211730889015872
+    - rid: 7737211792661414899
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 7
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7737211730889015873
+    - rid: 7737211792661414900
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility

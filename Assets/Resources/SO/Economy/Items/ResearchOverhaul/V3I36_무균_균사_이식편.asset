@@ -32,17 +32,17 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 82
   features:
-  - rid: 7737211730927812922
-  - rid: 7737211730927812923
+  - rid: 7737211794726584442
+  - rid: 7737211794726584443
   references:
     version: 2
     RefIds:
-    - rid: 7737211730927812922
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726584442
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:mycelial-grafting
-    - rid: 7737211730927812923
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726584443
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 130

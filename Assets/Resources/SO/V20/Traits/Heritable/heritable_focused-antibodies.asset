@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e299ffa39eb64f5aa2a777c1be71b5bc, type: 3}
+  m_Name: heritable_focused-antibodies
+  m_EditorClassIdentifier: DungeonStory.Species::HeritableTraitDefinitionSO
+  traitId: heritable:focused-antibodies
+  displayName: "\uC9D1\uC911 \uD56D\uCCB4"
+  description: "\uD55C \uBC88 \uACAA\uC740 \uC9C8\uBCD1\uC758 \uBA74\uC5ED \uC720\uC9C0\uAC00
+    \uAE38\uC5B4\uC9C4\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored hereditary trait manifest.
+  category: 4
+  incompatibilityGroup: immunity:broad
+  aptitudeModifier: 4
+  compatibleSpeciesTags: []
+  consequences:
+  - kind: 3
+    targetId: memory
+    multiplierDelta: 0.16

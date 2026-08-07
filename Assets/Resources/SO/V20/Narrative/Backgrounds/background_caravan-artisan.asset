@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23de0c160ab9df54eb2ace98a4a93e08, type: 3}
+  m_Name: background_caravan-artisan
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterBackgroundDefinitionSO
+  stableId: background:caravan-artisan
+  displayName: "\uB300\uC0C1\uB2E8 \uC218\uACF5\uC5C5\uC790"
+  description: "\uC774\uB3D9 \uACF5\uBC29\uC5D0\uC11C \uC790\uC7AC \uC190\uC2E4\uACFC
+    \uB0A9\uAE30\uB97C \uB3D9\uC2DC\uC5D0 \uB2E4\uB8E8\uBA70 \uC190\uAE30\uC220\uC744
+    \uC775\uD614\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  startingSkills:
+  - skillId: crafting
+    experience: 80
+  startingEffects:
+  - kind: 1
+    targetId: background-confidence
+    amount: 2
+    durationDays: 10
+  factionReactions:
+  - id: faction:merchant-league
+    weight: 2.2
+  initialMemoryCode: memory:caravan-workshop

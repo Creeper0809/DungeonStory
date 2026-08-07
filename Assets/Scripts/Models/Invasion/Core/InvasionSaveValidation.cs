@@ -131,6 +131,13 @@ public static class InvasionSaveValidation
                 continue;
             }
             if (intruder.dataId < 0
+                || intruder.enemyIndividual == null
+                || !IsCanonicalId(intruder.enemyIndividual.characterId)
+                || !IsCanonicalId(intruder.enemyIndividual.enemyArchetypeId)
+                || !string.Equals(
+                    intruder.enemyIndividual.characterId,
+                    CharacterId.FromStableSuffix(id).Value,
+                    StringComparison.Ordinal)
                 || !Enum.IsDefined(typeof(InvasionIntruderState), intruder.state)
                 || intruder.state is InvasionIntruderState.None
                     or InvasionIntruderState.Finished)

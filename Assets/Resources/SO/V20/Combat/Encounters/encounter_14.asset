@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11a7078c65d29414ebfafd36d0865407, type: 3}
+  m_Name: encounter_14
+  m_EditorClassIdentifier: DungeonStory.Offense::OffenseEncounterSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8014
+  encounterId: encounter:14
+  displayName: "\uC131\uD654 \uAC80\uC5F4\uAD00 \uC804\uC220 \uC870\uC6B0"
+  minimumSiteStrength: 4
+  maximumSiteStrength: 7
+  elite: 0
+  boss: 0
+  objective: 1
+  objectiveRoundLimit: 8
+  objectiveTargetId: 
+  battlefieldModifierIds:
+  - battlefield:broken-pillars
+  counterTags:
+  - counter:dispel
+  rewardItemIds:
+  - loot:enemy-salvage
+  enemies:
+  - enemyArchetypeId: enemy:inquisition-censor
+    minimumCount: 1
+    maximumCount: 2
+  - enemyArchetypeId: enemy:settler-trapper
+    minimumCount: 1
+    maximumCount: 2

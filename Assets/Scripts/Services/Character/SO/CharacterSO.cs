@@ -8,6 +8,8 @@ using UnityEngine;
 [DrawWithUnity]
 public class CharacterSO : ScriptableObject
 {
+    [SerializeField] private string archetypeId;
+    [SerializeField] private string visualVariantId;
     public CharacterType characterType;
     public CharacterRole role;
     public int id;
@@ -38,6 +40,8 @@ public class CharacterSO : ScriptableObject
     public string SpeciesTag => species != null && !string.IsNullOrWhiteSpace(species.speciesTag)
         ? species.speciesTag
         : speciesTag;
+    public CharacterArchetypeId DefinitionId => new(archetypeId);
+    public string VisualVariantId => visualVariantId?.Trim() ?? string.Empty;
     public bool IsOwnerCandidate => role == CharacterRole.Owner
         && (species == null || species.ownerSelectable);
     public IEnumerable<WorkTypeId> OwnerPreferredWorkTypeIds
@@ -68,9 +72,20 @@ public class CharacterSO : ScriptableObject
         }
     }
 
-    public CharacterRuntimeProfile CreateRuntimeProfile()
+    public void ConfigureStableIdentity(string definitionId, string variantId)
     {
-        return CharacterRuntimeProfile.From(this);
+        CharacterArchetypeId parsed = new(definitionId);
+        if (!parsed.IsValid)
+        {
+            throw new ArgumentException(
+                "A valid character archetype ID is required.",
+                nameof(definitionId));
+        }
+
+        archetypeId = parsed.Value;
+        visualVariantId = string.IsNullOrWhiteSpace(variantId)
+            ? parsed.Value
+            : variantId.Trim();
     }
 
     public TimeOfDay leavingTime

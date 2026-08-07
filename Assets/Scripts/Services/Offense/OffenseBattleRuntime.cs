@@ -26,6 +26,7 @@ public interface IOffenseBattleRuntime
         out OffenseBattleCommandResult result);
     bool FinalizePlannedTurn();
     bool TryGetActor(string persistentId, out CharacterActor actor);
+    IReadOnlyList<EnemyIndividualSaveData> GetEnemyIndividuals();
     OffenseBattlePersistenceState CapturePersistentState();
     bool TryRestoreBattle(
         OffenseExpeditionRun expedition,
@@ -41,17 +42,25 @@ public sealed class OffenseBattleRestoreCandidate
     internal OffenseBattleRestoreCandidate(
         OffenseBattleSession session,
         Dictionary<string, CharacterActor> actorsById,
-        bool isBattleViewVisible)
+        bool isBattleViewVisible,
+        string encounterId,
+        IEnumerable<EnemyIndividualSaveData> enemyIndividuals)
     {
         Session = session;
         ActorsById = actorsById
             ?? throw new ArgumentNullException(nameof(actorsById));
         IsBattleViewVisible = isBattleViewVisible;
+        EncounterId = encounterId?.Trim() ?? string.Empty;
+        EnemyIndividuals = (enemyIndividuals ?? Array.Empty<EnemyIndividualSaveData>())
+            .Select(value => value.Clone())
+            .ToList();
     }
 
     internal OffenseBattleSession Session { get; }
     internal Dictionary<string, CharacterActor> ActorsById { get; }
     internal bool IsBattleViewVisible { get; }
+    internal string EncounterId { get; }
+    internal IReadOnlyList<EnemyIndividualSaveData> EnemyIndividuals { get; }
 }
 
 public sealed class OffenseBattleRuntime :
@@ -66,12 +75,17 @@ public sealed class OffenseBattleRuntime :
     private readonly ICharacterBodyHealthQuery bodyHealthQuery;
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly IOffenseRegionRuntime offenseRegionRuntime;
+    private readonly IEnemyEncounterFactory enemyEncounterFactory;
+    private readonly IEnemyTacticalDecisionService enemyTactics;
+    private readonly IOffenseReturnArrivalRuntime returnArrivals;
     private readonly IGameEventBus gameEventBus;
     private Dictionary<string, CharacterActor> actorsById =
         new Dictionary<string, CharacterActor>(StringComparer.Ordinal);
     private bool started;
     private bool completionRaised;
     private IDisposable ownerRunEndedSubscription;
+    private string activeEncounterId = string.Empty;
+    private List<EnemyIndividualSaveData> activeEnemyIndividuals = new();
 
     public OffenseBattleRuntime(
         ICharacterWorldSaveService characterSaveService,
@@ -81,7 +95,10 @@ public sealed class OffenseBattleRuntime :
         ICombatEquipmentRuntime combatEquipmentRuntime,
         ICharacterBodyHealthQuery bodyHealthQuery,
         ICharacterBodyHealthCommand bodyHealthCommands,
-        IOffenseRegionRuntime offenseRegionRuntime)
+        IOffenseRegionRuntime offenseRegionRuntime,
+        IEnemyEncounterFactory enemyEncounterFactory,
+        IEnemyTacticalDecisionService enemyTactics,
+        IOffenseReturnArrivalRuntime returnArrivals)
     {
         this.characterSaveService = characterSaveService
             ?? throw new ArgumentNullException(nameof(characterSaveService));
@@ -96,6 +113,12 @@ public sealed class OffenseBattleRuntime :
         this.bodyHealthQuery = bodyHealthQuery;
         this.bodyHealthCommands = bodyHealthCommands;
         this.offenseRegionRuntime = offenseRegionRuntime;
+        this.enemyEncounterFactory = enemyEncounterFactory
+            ?? throw new ArgumentNullException(nameof(enemyEncounterFactory));
+        this.enemyTactics = enemyTactics
+            ?? throw new ArgumentNullException(nameof(enemyTactics));
+        this.returnArrivals = returnArrivals
+            ?? throw new ArgumentNullException(nameof(returnArrivals));
     }
 
     public OffenseBattleSession Session { get; private set; }
@@ -160,11 +183,17 @@ public sealed class OffenseBattleRuntime :
         }
 
         DungeonDifficulty difficulty = ResolveDifficulty();
-        combatants.AddRange(OffenseEncounterCatalog.CreateEnemies(
+        EnemyEncounterComposition encounter = enemyEncounterFactory.Create(
             expedition.Target,
             difficulty,
+            expedition.ExpeditionId,
             expedition.Phase == OffenseExpeditionPhase.InBattle ? expedition.CurrentNode : null,
-            offenseRegionRuntime?.GetPressureForTarget(expedition.Target) ?? default));
+            offenseRegionRuntime?.GetPressureForTarget(expedition.Target) ?? default);
+        combatants.AddRange(encounter.Combatants);
+        activeEncounterId = encounter.Encounter.encounterId;
+        activeEnemyIndividuals = encounter.Individuals
+            .Select(value => value.Clone())
+            .ToList();
         Session = new OffenseBattleSession(
             Guid.NewGuid().ToString("N"),
             expedition.ExpeditionId,
@@ -173,7 +202,8 @@ public sealed class OffenseBattleRuntime :
             difficulty,
             combatants,
             combatResolution,
-            combatEquipmentRuntime);
+            combatEquipmentRuntime,
+            encounter.Rules);
         completionRaised = false;
         IsBattleViewVisible = true;
         TriggerBattleStarted(Session);
@@ -279,9 +309,20 @@ public sealed class OffenseBattleRuntime :
             && actor != null;
     }
 
+    public IReadOnlyList<EnemyIndividualSaveData> GetEnemyIndividuals() =>
+        activeEnemyIndividuals
+            .Select(value => value.Clone())
+            .ToArray();
+
     public OffenseBattlePersistenceState CapturePersistentState()
     {
-        return HasActiveBattle ? Session.CapturePersistentState() : null;
+        if (!HasActiveBattle) return null;
+        OffenseBattlePersistenceState state = Session.CapturePersistentState();
+        state.encounterId = activeEncounterId;
+        state.enemyIndividuals = activeEnemyIndividuals
+            .Select(value => value.Clone())
+            .ToList();
+        return state;
     }
 
     public bool TryRestoreBattle(
@@ -322,11 +363,13 @@ public sealed class OffenseBattleRuntime :
             combatants.Add(combatant);
         }
 
-        combatants.AddRange(OffenseEncounterCatalog.CreateEnemies(
-            expedition.Target,
+        EnemyEncounterComposition encounter = enemyEncounterFactory.Restore(
+            state.encounterId,
+            state.enemyIndividuals,
             state.difficulty,
             expedition.Phase == OffenseExpeditionPhase.InBattle ? expedition.CurrentNode : null,
-            offenseRegionRuntime?.GetPressureForTarget(expedition.Target) ?? default));
+            offenseRegionRuntime?.GetPressureForTarget(expedition.Target) ?? default);
+        combatants.AddRange(encounter.Combatants);
         HashSet<string> configuredIds = combatants
             .Select(combatant => combatant.PersistentId)
             .ToHashSet(StringComparer.Ordinal);
@@ -344,7 +387,12 @@ public sealed class OffenseBattleRuntime :
             state,
             combatants,
             combatResolution,
-            combatEquipmentRuntime);
+            combatEquipmentRuntime,
+            encounter.Rules);
+        activeEncounterId = encounter.Encounter.encounterId;
+        activeEnemyIndividuals = encounter.Individuals
+            .Select(value => value.Clone())
+            .ToList();
         completionRaised = false;
         IsBattleViewVisible = true;
         StateChanged?.Invoke();
@@ -394,15 +442,17 @@ public sealed class OffenseBattleRuntime :
             combatants.Add(combatant);
         }
 
-        combatants.AddRange(OffenseEncounterCatalog.CreateEnemies(
-            expedition.Target,
+        EnemyEncounterComposition encounter = enemyEncounterFactory.Restore(
+            state.encounterId,
+            state.enemyIndividuals,
             state.difficulty,
             expedition.Phase == OffenseExpeditionPhase.InBattle
                 ? expedition.CurrentNode
                 : null,
             restoredPressure
                 ?? offenseRegionRuntime?.GetPressureForTarget(expedition.Target)
-                ?? default));
+                ?? default);
+        combatants.AddRange(encounter.Combatants);
         HashSet<string> configuredIds = combatants
             .Select(combatant => combatant.PersistentId)
             .ToHashSet(StringComparer.Ordinal);
@@ -424,18 +474,23 @@ public sealed class OffenseBattleRuntime :
             state,
             combatants,
             combatResolution,
-            combatEquipmentRuntime);
+            combatEquipmentRuntime,
+            encounter.Rules);
         return new OffenseBattleRestoreCandidate(
             candidateSession,
             candidateActors,
-            isBattleViewVisible: true);
+            isBattleViewVisible: true,
+            encounterId: encounter.Encounter.encounterId,
+            enemyIndividuals: encounter.Individuals);
     }
 
     internal OffenseBattleRestoreCandidate PrepareEmptyPersistentRestore() =>
         new OffenseBattleRestoreCandidate(
             session: null,
             new Dictionary<string, CharacterActor>(StringComparer.Ordinal),
-            isBattleViewVisible: false);
+            isBattleViewVisible: false,
+            encounterId: string.Empty,
+            enemyIndividuals: Array.Empty<EnemyIndividualSaveData>());
 
     internal void PublishPersistentRestore(
         OffenseBattleRestoreCandidate candidate)
@@ -443,6 +498,10 @@ public sealed class OffenseBattleRuntime :
         candidate = candidate ?? throw new ArgumentNullException(nameof(candidate));
         Session = candidate.Session;
         actorsById = candidate.ActorsById;
+        activeEncounterId = candidate.EncounterId;
+        activeEnemyIndividuals = candidate.EnemyIndividuals
+            .Select(value => value.Clone())
+            .ToList();
         completionRaised = false;
         IsBattleViewVisible = candidate.IsBattleViewVisible;
     }
@@ -451,6 +510,8 @@ public sealed class OffenseBattleRuntime :
     {
         Session = null;
         actorsById.Clear();
+        activeEncounterId = string.Empty;
+        activeEnemyIndividuals.Clear();
         completionRaised = false;
         IsBattleViewVisible = false;
         StateChanged?.Invoke();
@@ -468,6 +529,8 @@ public sealed class OffenseBattleRuntime :
         if (Session == null || !Session.IsComplete) return;
         Session = null;
         actorsById.Clear();
+        activeEncounterId = string.Empty;
+        activeEnemyIndividuals.Clear();
         completionRaised = false;
         IsBattleViewVisible = false;
         StateChanged?.Invoke();
@@ -490,17 +553,64 @@ public sealed class OffenseBattleRuntime :
             && Session.CurrentActor.Team == OffenseBattleTeam.Enemies
             && safety++ < 100)
         {
-            OffenseBattleCommand command = Session.CreateEnemyCommand(Session.LastProcessedCommandId + 1);
-            if (command == null || !TryExecuteSessionCommand(command, out _)) break;
+            EnemyIndividualSaveData individual = activeEnemyIndividuals
+                .FirstOrDefault(value => string.Equals(
+                    value.characterId,
+                    Session.CurrentActor.PersistentId,
+                    StringComparison.Ordinal));
+            if (individual == null)
+                throw new InvalidOperationException(
+                    $"Enemy combatant '{Session.CurrentActor.PersistentId}' has no persistent individual profile.");
+            EnemyTacticalDecision decision = enemyTactics.Decide(
+                Session,
+                individual);
+            OffenseBattleCommand command = ToCommand(decision);
+            if (!TryExecuteSessionCommand(command, out _))
+            {
+                decision = enemyTactics.Decide(
+                    Session,
+                    individual,
+                    allowAbility: false);
+                command = ToCommand(decision);
+                if (!TryExecuteSessionCommand(command, out _)) break;
+            }
             StateChanged?.Invoke();
         }
 
         RaiseCompletionIfNeeded();
     }
 
+    private OffenseBattleCommand ToCommand(EnemyTacticalDecision decision)
+    {
+        OffenseBattleActionType action = decision.Intent switch
+        {
+            EnemyTacticalIntentKind.UseAbility => OffenseBattleActionType.Ability,
+            EnemyTacticalIntentKind.Retreat => OffenseBattleActionType.Retreat,
+            EnemyTacticalIntentKind.Protect => OffenseBattleActionType.Guard,
+            _ => OffenseBattleActionType.BasicAttack
+        };
+        return new OffenseBattleCommand(
+            Session.LastProcessedCommandId + 1,
+            Session.CurrentActor.PersistentId,
+            action,
+            decision.TargetId,
+            decision.AbilityId);
+    }
+
     private bool RaiseCompletionIfNeeded()
     {
         if (Session == null || !Session.IsComplete || completionRaised) return false;
+        if (Session.Outcome == OffenseBattleOutcome.Victory)
+        {
+            returnArrivals.RegisterBattlePrisonerCandidates(
+                Session.ExpeditionId,
+                activeEnemyIndividuals);
+        }
+        else
+        {
+            returnArrivals.DiscardBattlePrisonerCandidates(
+                Session.ExpeditionId);
+        }
         completionRaised = true;
         SynchronizeAlliedBodyHealth();
         BattleCompleted?.Invoke(Session);

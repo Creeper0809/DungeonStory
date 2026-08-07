@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8080a982ba741ff4e8ae644f419d70cb, type: 3}
+  m_Name: enemy_legion-pavise
+  m_EditorClassIdentifier: DungeonStory.Offense::EnemyArchetypeDefinitionSO
+  stableId: enemy:legion-pavise
+  displayName: "\uB3C4\uC2DC\uC5F0\uB9F9 \uD30C\uBE44\uC2A4\uBCD1"
+  description: "\uC0AC\uACA9\uC218\uB97C \uAC00\uB9AC\uB294 \uC774\uB3D9 \uC5C4\uD3D0\uB97C
+    \uB9CC\uB4E0\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored enemy archetype.
+  factionId: human:legion
+  speciesTag: Human
+  role: 1
+  maxHealth: 118
+  attack: 7
+  strength: 5.9500003
+  toughness: 12
+  dexterity: 4
+  moveSpeed: 3
+  equipment:
+    weaponDefinitionId: weapon:falchion
+    armorDefinitionId: armor:scale
+    shieldDefinitionId: 
+    ammunitionItemId: 
+  abilityIds:
+  - enemy-ability:shield-wall
+  - enemy-ability:retreat-cover
+  tacticalProfile:
+    attackWeight: 4
+    protectWeight: 5
+    abilityWeight: 3
+    retreatWeight: 2
+    retreatHealthFraction: 0.08
+    preferredTargetTags:
+    - nearest
+    avoidedTargetTags:
+    - none
+    formationTag: pavise-line
+  counterTags:
+  - counter:flank
+  rewardItemIds:
+  - loot:enemy-salvage
+  bossPhases: []
+  individualGeneration:
+    minimumGeneralTraits: 2
+    maximumGeneralTraits: 3
+    minimumExpressedHeritableTraits: 0
+    maximumExpressedHeritableTraits: 2
+    maximumLatentHeritableTraits: 1
+    aptitudeVariance: 15
+    combatStatVariance: 0.12
+    minimumLoyalty: 20
+    maximumLoyalty: 75
+    recruitable: 1
+    militaryTrainingId: training:legion-pavise
+    allowedBackgroundIds: []

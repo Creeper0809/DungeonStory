@@ -40,8 +40,8 @@ MonoBehaviour:
     - rid: 7737211730538791898
     - rid: 7737211730538791899
     - rid: 7737211730538791900
-    - rid: 7737211730927812619
-    - rid: 7737211730927812620
+    - rid: 7737211792998531518
+    - rid: 7737211792998531519
   width: 3
   height: 1
   layer: 5
@@ -58,19 +58,19 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730538791893
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: P23
     - rid: 7737211730538791894
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - crop-plot
         - crop-outdoor
     - rid: 7737211730538791896
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 125
@@ -117,7 +117,7 @@ MonoBehaviour:
             value: 2
           metrics: []
     - rid: 7737211730538791900
-      type: {class: BuildingCropPlotAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingCropPlotAbility, ns: , asm: DungeonStory.Economy}
       data:
         abilityId: BuildingCropPlotAbility
         indoor: 0
@@ -128,13 +128,13 @@ MonoBehaviour:
         cycleSupplyInputs:
         - itemId: supply:nitrate-fertilizer
           amount: 1
-    - rid: 7737211730927812619
+    - rid: 7737211792998531518
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:crop-plot
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211730927812620
+    - rid: 7737211792998531519
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -154,3 +154,5 @@ MonoBehaviour:
           capacity: 16
         - itemId: component:precision-parts
           capacity: 16
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}

@@ -22,7 +22,8 @@ public sealed class CharacterActorLifecycleCoordinator
         CharacterIdentity identity,
         CharacterLifecycle lifecycle,
         CharacterStats stats,
-        CharacterActorRuntimeBridge runtimeBridge)
+        CharacterActorRuntimeBridge runtimeBridge,
+        bool explicitInitializationCompleted)
     {
         if (unpublishedComposition || detachedRestoreCandidate)
         {
@@ -35,7 +36,10 @@ public sealed class CharacterActorLifecycleCoordinator
         actor.state = CharacterDecisionState.DECIDE;
         bool isPersistentRestore = persistentRestorePrepared;
         bool skipInitialDataInitialization =
-            isPersistentRestore || initializedBeforeFirstStart;
+            isPersistentRestore
+            || initializedBeforeFirstStart
+            || hasBeenPublished
+            || explicitInitializationCompleted;
         if (identity != null && identity.Data != null)
         {
             if (!skipInitialDataInitialization)
@@ -305,7 +309,7 @@ public sealed class CharacterActorLifecycleCoordinator
 
     public void MarkInitializedBeforeFirstStart()
     {
-        if (unpublishedComposition)
+        if (unpublishedComposition || detachedRestoreCandidate)
         {
             initializedBeforeFirstStart = true;
         }

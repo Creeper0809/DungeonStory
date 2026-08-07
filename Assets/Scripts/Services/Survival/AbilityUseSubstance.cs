@@ -192,7 +192,9 @@ public sealed class AbilityUseSubstance : MonoBehaviour
 
         Queue<GridMoveStep> path = null;
         GridTraversalContext traversal =
-            GridTraversalContext.ForCharacter(actor);
+            GridTraversalContext.ForCharacter(
+                CharacterPersistentIdentity.Require(actor),
+                movementIntent: GridMovementIntent.SafeChore);
         for (int frame = 0; frame < MaximumPathResolveFrames; frame++)
         {
             if (!IsCurrentAction())

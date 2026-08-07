@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e5cb0b174bbada438546f6557854054, type: 3}
+  m_Name: contract_myconid_supply
+  m_EditorClassIdentifier: DungeonStory.Content::FactionContractDefinitionSO
+  stableId: faction-contract:myconid:supply
+  displayName: "\uADE0\uC0AC\uC815\uC6D0 \uC815\uAE30 \uBB3C\uC790 \uACC4\uC57D"
+  description: "\uADE0\uC0AC\uC815\uC6D0\uC774 \uC2E4\uC81C \uBB3C\uC790\uC640 \uC791\uC5C5
+    \uACB0\uACFC\uB97C \uC694\uAD6C\uD558\uB294 \uC815\uAE30 \uBB3C\uC790 \uACC4\uC57D\uC774\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored faction/service manifest.
+  factionId: faction:dungeon:myconid
+  kind: 0
+  deadlineDays: 20
+  completionRequirements:
+    items:
+    - itemDefinitionId: food:cultured-mushroom
+      amount: 12
+      consume: 1
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  successEffects:
+  - kind: 6
+    targetId: faction:dungeon:myconid
+    amount: 8
+    durationDays: 0
+  - kind: 8
+    targetId: faction:dungeon:myconid
+    amount: 1
+    durationDays: 0
+  failureEffects:
+  - kind: 7
+    targetId: faction:dungeon:myconid
+    amount: 7
+    durationDays: 0

@@ -5,8 +5,6 @@ using VContainer.Unity;
 
 public sealed class GameCalendarRuntime : IGameCalendar, ITickable
 {
-    private const float DefaultSecondsPerDay = 180f;
-
     private readonly IGameSessionStateProvider sessionStateProvider;
     private readonly IGameEventBus gameEventBus;
     private readonly IGameClock gameClock;
@@ -27,9 +25,18 @@ public sealed class GameCalendarRuntime : IGameCalendar, ITickable
 
     public int Day => RequireState().day.Value;
     public int Hour => RequireState().hour.Value;
+    public CalendarDateTime Current => GameCalendarRules.Project(Day, Hour);
+    public int Year => Current.Year;
+    public int DayOfYear => Current.DayOfYear;
+    public Season Season => Current.Season;
+    public int DayOfSeason => Current.DayOfSeason;
+    public long AbsoluteHour => Current.AbsoluteHour;
     public float ElapsedSeconds => RequireState().curTime.Value;
     public TimeOfDay TimeOfDay => RequireState().timeOfDay.Value;
     public bool IsRunning => isRunning;
+
+    public CalendarDateTime GetRegionalTime(int utcOffsetHours) =>
+        GameCalendarRules.ProjectRegional(Day, Hour, utcOffsetHours);
 
     public void Start()
     {
@@ -51,16 +58,18 @@ public sealed class GameCalendarRuntime : IGameCalendar, ITickable
 
         GameSessionState state = RequireState();
         float elapsed = state.curTime.Value + Mathf.Max(0f, gameClock.DeltaTime);
-        while (elapsed > DefaultSecondsPerDay)
+        while (elapsed >= GameCalendarRules.SecondsPerDay)
         {
             gameEventBus.Publish(new OperatingDayEndedEvent(state.day.Value));
-            elapsed -= DefaultSecondsPerDay;
+            elapsed -= GameCalendarRules.SecondsPerDay;
             state.day.Value++;
             gameEventBus.Publish(new OperatingDayStartedEvent(state.day.Value));
         }
 
         state.curTime.Value = elapsed;
-        state.hour.Value = Mathf.FloorToInt(elapsed / DefaultSecondsPerDay * 24f) % 24;
+        state.hour.Value = Mathf.FloorToInt(
+            elapsed / GameCalendarRules.SecondsPerDay * GameCalendarRules.HoursPerDay)
+            % GameCalendarRules.HoursPerDay;
         state.timeOfDay.Value = ResolveTimeOfDay(elapsed);
     }
 
@@ -68,7 +77,9 @@ public sealed class GameCalendarRuntime : IGameCalendar, ITickable
     {
         GameSessionState state = RequireState();
         int normalizedHour = Mathf.Clamp(hour, 0, 23);
-        float elapsed = normalizedHour / 24f * DefaultSecondsPerDay;
+        float elapsed = normalizedHour
+            / (float)GameCalendarRules.HoursPerDay
+            * GameCalendarRules.SecondsPerDay;
         state.day.Value = Mathf.Max(1, day);
         state.curTime.Value = elapsed;
         state.hour.Value = normalizedHour;

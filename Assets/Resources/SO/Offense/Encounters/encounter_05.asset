@@ -21,14 +21,26 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 170404
+  id: 5
   encounterId: encounter:05
-  displayName: "\uACBD\uC7C1 \uB358\uC804 \uC9C0\uD718\uBD80"
-  minimumSiteStrength: 4
-  maximumSiteStrength: 7
+  displayName: "\uACBD\uC7C1 \uB358\uC804 \uCC99\uD6C4"
+  minimumSiteStrength: 2
+  maximumSiteStrength: 5
   elite: 1
-  boss: 1
+  boss: 0
+  objective: 4
+  objectiveRoundLimit: 8
+  objectiveTargetId: 
+  battlefieldModifierIds:
+  - battlefield:civilian-corridor
+  counterTags:
+  - counter:isolate-leader
+  rewardItemIds:
+  - loot:enemy-salvage
   enemies:
-  - enemyArchetypeId: boss_guard
-    minimumCount: 4
-    maximumCount: 6
+  - enemyArchetypeId: enemy:crown-marshal
+    minimumCount: 1
+    maximumCount: 2
+  - enemyArchetypeId: enemy:inquisition-ward-knight
+    minimumCount: 1
+    maximumCount: 2

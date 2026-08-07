@@ -25,6 +25,10 @@ MonoBehaviour:
   cropId: crop:night-grape
   displayName: "\uBC24\uD3EC\uB3C4"
   harvestItemId: resource:night-grape
+  seedItemId: seed-lot:night-grape
+  baseGenome: {fileID: 11400000, guid: c8bec2d7cec0be34d96ba9c2114c06f3, type: 2}
+  familyGroup: 4
+  endemicDisease: 3
   requiredResearchId: research:agriculture:irrigation
   growthHours: 54
   sowWork: 5

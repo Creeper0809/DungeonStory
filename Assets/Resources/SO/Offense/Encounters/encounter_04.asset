@@ -21,14 +21,26 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 170403
+  id: 4
   encounterId: encounter:04
-  displayName: "\uC815\uC608 \uCD94\uC801\uB300"
-  minimumSiteStrength: 3
-  maximumSiteStrength: 6
-  elite: 1
+  displayName: "\uC131\uD654 \uBE44\uC804 \uBD09\uC1C4"
+  minimumSiteStrength: 1
+  maximumSiteStrength: 4
+  elite: 0
   boss: 0
+  objective: 3
+  objectiveRoundLimit: 7
+  objectiveTargetId: target:war-device
+  battlefieldModifierIds:
+  - battlefield:flooded-floor
+  counterTags:
+  - counter:focus-support
+  rewardItemIds:
+  - loot:enemy-salvage
   enemies:
-  - enemyArchetypeId: human_guard
-    minimumCount: 4
-    maximumCount: 5
+  - enemyArchetypeId: enemy:crown-chaplain
+    minimumCount: 1
+    maximumCount: 2
+  - enemyArchetypeId: enemy:inquisition-purifier
+    minimumCount: 1
+    maximumCount: 2

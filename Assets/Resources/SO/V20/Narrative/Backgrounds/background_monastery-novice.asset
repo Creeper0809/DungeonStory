@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23de0c160ab9df54eb2ace98a4a93e08, type: 3}
+  m_Name: background_monastery-novice
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterBackgroundDefinitionSO
+  stableId: background:monastery-novice
+  displayName: "\uC218\uB3C4\uC6D0 \uC218\uB828\uC790"
+  description: "\uAE30\uB85D\uACFC \uC808\uC81C, \uD658\uC790 \uACC1\uC744 \uC9C0\uD0A4\uB294
+    \uBC18\uBCF5 \uB178\uB3D9\uC5D0 \uC775\uC219\uD558\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  startingSkills:
+  - skillId: medicine
+    experience: 75
+  startingEffects:
+  - kind: 1
+    targetId: background-confidence
+    amount: 2
+    durationDays: 10
+  factionReactions:
+  - id: faction:truth-keepers
+    weight: 2
+  initialMemoryCode: memory:monastery-vigil

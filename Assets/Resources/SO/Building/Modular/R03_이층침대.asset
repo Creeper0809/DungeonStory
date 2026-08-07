@@ -43,7 +43,7 @@ MonoBehaviour:
     - rid: 7737211730834227546
     - rid: 7737211730834227547
     - rid: 7737211730834227548
-    - rid: 7737211730927812689
+    - rid: 7737211792998531588
   width: 2
   height: 1
   layer: 1
@@ -60,12 +60,12 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730834227539
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: R03
     - rid: 7737211730834227540
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 135
@@ -97,7 +97,7 @@ MonoBehaviour:
           supportedWorkTypes: 32900
           disabledWhenDamaged: 1
     - rid: 7737211730834227543
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
     - rid: 7737211730834227544
@@ -134,20 +134,20 @@ MonoBehaviour:
         injuryReduction: 0.05
         stressRecovery: 18
     - rid: 7737211730834227547
-      type: {class: BuildingMedicalAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingMedicalAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingMedicalAbility
         workSeconds: 1.3
         severityReduction: 0.3
         requiresMedicine: 1
     - rid: 7737211730834227548
-      type: {class: BuildingTemperatureAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingTemperatureAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingTemperatureAbility
         roomTemperatureOffset: 1
         coldProtection: 4
         heatProtection: 2
-    - rid: 7737211730927812689
+    - rid: 7737211792998531588
       type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceHubAbility

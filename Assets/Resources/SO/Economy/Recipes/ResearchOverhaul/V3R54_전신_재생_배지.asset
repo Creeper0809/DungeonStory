@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f75000297946ffe4481d69575fdbfd0a, type: 3}
+  m_Name: "V3R54_\uC804\uC2E0_\uC7AC\uC0DD_\uBC30\uC9C0"
+  m_EditorClassIdentifier: DungeonStory.Economy::ProductionRecipeSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 19154
+  recipeId: recipe:medical:whole-body-regeneration-medium
+  displayName: "\uC804\uC2E0 \uC7AC\uC0DD \uBC30\uC9C0"
+  description: "\uAD6C\uCCB4 \uC7AC\uB8CC\uB97C \uC0AC\uC6A9\uD574 \uC804\uC2E0 \uC7AC\uC0DD
+    \uBC30\uC9C0\uC744(\uB97C) \uC0DD\uC0B0\uD55C\uB2E4."
+  facilityTag: workstation:v19:whole-body-regeneration
+  workstationTag: workstation:v19:whole-body-regeneration
+  requiredSupportTags: []
+  batchSupportTag: 
+  processKind: 0
+  workTypeId: work:craft
+  requiredResearchId: research:medical:whole-body-regeneration
+  requiredWork: 47.75
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
+  inputs:
+  - itemId: medicine:advanced
+    amount: 4
+  - itemId: textile:sterile-cloth
+    amount: 4
+  - itemId: medicine:mycelial-culture-pack
+    amount: 2
+  - itemId: resource:mana-crystal
+    amount: 2
+  - itemId: resource:clean-water
+    amount: 8
+  outputs:
+  - itemId: medical:whole-body-regeneration-medium
+    amount: 1
+    probability: 1

@@ -43,8 +43,8 @@ MonoBehaviour:
     - rid: 7737211730889015633
     - rid: 7737211730889015634
     - rid: 7737211730889015635
-    - rid: 7737211730889015986
-    - rid: 7737211730889015987
+    - rid: 7737211792998531166
+    - rid: 7737211792998531167
   width: 3
   height: 1
   layer: 1
@@ -61,12 +61,12 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730889015626
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: M03
     - rid: 7737211730889015627
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
@@ -74,7 +74,7 @@ MonoBehaviour:
         - surgery
         - m03
     - rid: 7737211730889015628
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
@@ -94,11 +94,11 @@ MonoBehaviour:
           supportedWorkTypes: 671121408
           disabledWhenDamaged: 1
     - rid: 7737211730889015630
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
     - rid: 7737211730889015631
-      type: {class: BuildingInternalStockAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingInternalStockAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 12
@@ -128,14 +128,14 @@ MonoBehaviour:
           scores: []
           metrics: []
     - rid: 7737211730889015634
-      type: {class: BuildingMedicalAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingMedicalAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingMedicalAbility
         workSeconds: 1.8
         severityReduction: 0.4
         requiresMedicine: 1
     - rid: 7737211730889015635
-      type: {class: BuildingSurgeryTableAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSurgeryTableAbility, ns: , asm: DungeonStory.Medical}
       data:
         abilityId: BuildingSurgeryTableAbility
         allowedProcedureTags: 4
@@ -143,14 +143,14 @@ MonoBehaviour:
         workSpeedMultiplier: 1
         baseSterility: 0.35
         patientSlots: 1
-    - rid: 7737211730889015986
+    - rid: 7737211792998531166
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737211730889015987
+    - rid: 7737211792998531167
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility

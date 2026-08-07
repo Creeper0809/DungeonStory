@@ -32,24 +32,24 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 5
   features:
-  - rid: 7737211730927812735
-  - rid: 7737211730927812736
-  - rid: 7737211730927812737
+  - rid: 7737211792998531634
+  - rid: 7737211792998531635
+  - rid: 7737211792998531636
   references:
     version: 2
     RefIds:
-    - rid: 7737211730927812735
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531634
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:husbandry:feed
-    - rid: 7737211730927812736
-      type: {class: FacilitySupplyItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531635
+      type: {class: FacilitySupplyItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         fuelValue: 4
         nutritionValue: 14
         feedEligible: 1
-    - rid: 7737211730927812737
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531636
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 24577

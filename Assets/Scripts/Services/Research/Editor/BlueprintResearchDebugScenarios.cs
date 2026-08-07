@@ -537,12 +537,16 @@ public static class BlueprintResearchDebugScenarios
             }
             CharacterAwakeMethod?.Invoke(character, null);
 
-            CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
+            CharacterSpeciesSO requestedSpecies = AssetDatabase.LoadAssetAtPath<CharacterSpeciesSO>(
+                $"Assets/Resources/SO/Character/Species/{speciesAssetName}.asset");
+            CharacterSO data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+                CharacterType.NPC,
+                "Research Scenario",
+                requestedSpecies != null ? requestedSpecies.speciesTag : "Slime");
             scriptableObjects.Add(data);
             data.characterType = CharacterType.NPC;
             data.characterName = "Research Scenario";
-            data.species = AssetDatabase.LoadAssetAtPath<CharacterSpeciesSO>(
-                $"Assets/Resources/SO/Character/Species/{speciesAssetName}.asset");
+            data.species = requestedSpecies;
             data.speciesTag = data.species != null ? data.species.speciesTag : string.Empty;
             data.traits = new[]
             {

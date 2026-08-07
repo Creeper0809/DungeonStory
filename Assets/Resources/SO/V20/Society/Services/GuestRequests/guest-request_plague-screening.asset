@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f5a849b4b3859d42b4e08a8c27b8554, type: 3}
+  m_Name: guest-request_plague-screening
+  m_EditorClassIdentifier: DungeonStory.Content::GuestRequestDefinitionSO
+  stableId: guest-request:plague-screening
+  displayName: "\uB300\uC0C1\uB2E8 \uAC80\uC5ED"
+  description: "\uAE34 \uB300\uC0C1\uD589\uB82C\uC774 \uC785\uC7A5 \uC804 \uC804\uC6D0
+    \uAC80\uC0AC\uC640 \uACA9\uB9AC \uACF5\uAC04\uC744 \uC694\uAD6C\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored faction/service manifest.
+  kind: 1
+  deadlineDays: 3
+  serviceRequirements:
+    items:
+    - itemDefinitionId: medicine:antiseptic
+      amount: 6
+      consume: 1
+    facilities:
+    - buildingDefinitionId: building:isolation-ward
+      capabilityId: 
+      minimumCount: 1
+      mustBeOperational: 1
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  successEffects:
+  - kind: 9
+    targetId: guest-service
+    amount: 120
+    durationDays: 0
+  - kind: 6
+    targetId: requesting-faction
+    amount: 4
+    durationDays: 0
+  failureEffects:
+  - kind: 7
+    targetId: requesting-faction
+    amount: 5
+    durationDays: 0

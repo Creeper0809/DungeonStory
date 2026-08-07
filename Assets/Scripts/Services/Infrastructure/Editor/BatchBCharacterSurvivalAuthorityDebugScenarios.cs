@@ -65,11 +65,11 @@ public static class BatchBCharacterSurvivalAuthorityDebugScenarios
             .ToArray();
         int rollbackFree = productionSections.Count(type =>
             typeof(IDungeonRollbackFreeSaveSection).IsAssignableFrom(type));
-        if (productionSections.Length != 54
+        if (productionSections.Length != 68
             || rollbackFree != productionSections.Length)
         {
             failures.Add(
-                $"The final V18 boundary requires all 54 save sections to be rollback-free; found {rollbackFree}/{productionSections.Length}.");
+                $"The V20 boundary requires all 68 save sections to be rollback-free; found {rollbackFree}/{productionSections.Length}.");
         }
 
         IReadOnlyList<string> removedWrapperViolations =
@@ -96,7 +96,7 @@ public static class BatchBCharacterSurvivalAuthorityDebugScenarios
         }
         catch (Exception exception)
         {
-            failures.Add("Architecture/V18 ratchet failed: " + exception.Message);
+            failures.Add("Architecture/V19 ratchet failed: " + exception.Message);
         }
 
         if (failures.Count > 0)
@@ -108,7 +108,7 @@ public static class BatchBCharacterSurvivalAuthorityDebugScenarios
 
         Debug.Log(
             "BATCH_B_CHARACTER_SURVIVAL_AUTHORITY=PASS; "
-            + $"save={rollbackFree}/54; strict=54/54; architecture=PASS");
+            + $"save={rollbackFree}/68; strict=68/68; architecture=PASS");
     }
 
     private static void VerifySaveBoundary<TSection, TPayload>(

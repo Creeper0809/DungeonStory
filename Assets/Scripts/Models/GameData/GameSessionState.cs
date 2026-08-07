@@ -37,6 +37,42 @@ public readonly struct GameSessionSnapshot
     public bool IsPaused { get; }
 }
 
+[Serializable]
+public sealed class GameSessionSaveData
+{
+    public const int CurrentVersion = 1;
+    public int version = CurrentVersion;
+    public int money;
+    public int absoluteDay = 1;
+    public int gameSpeed = 1;
+    public float elapsedSeconds;
+    public int hour;
+    public TimeOfDay timeOfDay;
+    public bool isPaused;
+
+    public static GameSessionSaveData From(GameSessionSnapshot value) => new()
+    {
+        money = value.Money,
+        absoluteDay = value.Day,
+        gameSpeed = value.GameSpeed,
+        elapsedSeconds = value.ElapsedSeconds,
+        hour = value.Hour,
+        timeOfDay = value.TimeOfDay,
+        isPaused = value.IsPaused
+    };
+
+    public GameSessionSnapshot ToSnapshot()
+    {
+        if (version != CurrentVersion || money < 0 || absoluteDay < 1
+            || gameSpeed is < 1 or > 5 || elapsedSeconds < 0f
+            || float.IsNaN(elapsedSeconds) || float.IsInfinity(elapsedSeconds)
+            || hour is < 0 or > 23 || !Enum.IsDefined(typeof(TimeOfDay), timeOfDay))
+            throw new InvalidOperationException("Foundation session payload is invalid.");
+        return new GameSessionSnapshot(
+            money, absoluteDay, gameSpeed, elapsedSeconds, hour, timeOfDay, isPaused);
+    }
+}
+
 /// <summary>
 /// Mutable state for one dungeon run. This is never an asset and is owned by
 /// the run-scoped composition root.

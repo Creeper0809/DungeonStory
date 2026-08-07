@@ -88,6 +88,94 @@ public static class GameContentCatalogAssetBuilder
         ExecuteConfirmedMigration(invocationKind);
     }
 
+    /// <summary>
+    /// Rebuilds only the authoritative item-definition index after another
+    /// explicit content builder has created, deleted, or renamed item assets.
+    /// This intentionally does not touch localization, domain catalogs, media,
+    /// or the root catalog.
+    /// </summary>
+    public static void ReindexItemDefinitions()
+    {
+        ItemDefinitionSO[] definitions = AssetDatabase
+            .FindAssets("t:ItemDefinitionSO", new[] { "Assets/Resources/SO" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<ItemDefinitionSO>)
+            .Where(definition => definition != null)
+            .Distinct()
+            .OrderBy(definition => definition.ItemId, StringComparer.Ordinal)
+            .ToArray();
+
+        ItemDefinitionCatalogSO itemCatalog =
+            AssetDatabase.LoadAssetAtPath<ItemDefinitionCatalogSO>(ItemCatalogPath)
+            ?? throw new InvalidOperationException(
+                $"Required item-definition catalog is missing at '{ItemCatalogPath}'.");
+        itemCatalog.SetDefinitions(definitions);
+        IReadOnlyList<string> errors = itemCatalog.ValidateCatalog();
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Item-definition reindex failed:\n" + string.Join("\n", errors));
+        }
+        EditorUtility.SetDirty(itemCatalog);
+    }
+
+    /// <summary>
+    /// Replaces only the research-project slice of the authoritative domain
+    /// index. Other content builders may intentionally leave shadow or
+    /// migration assets under Resources, so a research rebuild must never
+    /// indiscriminately index every ScriptableObject it can find.
+    /// </summary>
+    public static void ReindexResearchProjects()
+    {
+        GameDomainContentCatalogSO domainCatalog =
+            AssetDatabase.LoadAssetAtPath<GameDomainContentCatalogSO>(
+                DomainCatalogPath)
+            ?? throw new InvalidOperationException(
+                $"Required domain content catalog is missing at '{DomainCatalogPath}'.");
+        ResearchProjectSO[] projects = AssetDatabase
+            .FindAssets("t:ResearchProjectSO", new[]
+            {
+                "Assets/Resources/SO/Research/Projects"
+            })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<ResearchProjectSO>)
+            .Where(project => project != null)
+            .Distinct()
+            .OrderBy(project => project.ProjectId.Value, StringComparer.Ordinal)
+            .ToArray();
+        ScriptableObject[] definitions = domainCatalog.Definitions
+            .Where(asset => asset != null
+                && asset is not ResearchProjectSO
+                && !IsLegacyDungeonFactionShadow(asset))
+            .Concat(projects.Cast<ScriptableObject>())
+            .Distinct()
+            .ToArray();
+
+        domainCatalog.SetDefinitions(definitions);
+        IReadOnlyList<string> errors = domainCatalog.ValidateCatalog();
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Domain-definition reindex failed:\n" + string.Join("\n", errors));
+        }
+        EditorUtility.SetDirty(domainCatalog);
+    }
+
+    private static bool IsLegacyDungeonFactionShadow(ScriptableObject asset)
+    {
+        if (asset is not DungeonFactionDefinitionSO)
+        {
+            return false;
+        }
+
+        string path = AssetDatabase.GetAssetPath(asset)
+            .Replace('\\', '/');
+        return path.StartsWith(
+            "Assets/Resources/SO/Factions/faction_dungeon_",
+            StringComparison.Ordinal)
+            && path.EndsWith(".asset", StringComparison.Ordinal);
+    }
+
     private static void ExecuteConfirmedMigration(string invocationKind)
     {
         RequireNoDirtyOwnedAssets();
@@ -137,7 +225,8 @@ public static class GameContentCatalogAssetBuilder
                 && asset is not ItemDefinitionCatalogSO
                 && asset is not GameContentCatalogSO
                 && asset is not GameDomainContentCatalogSO
-                && asset is not GameMediaCatalogSO)
+                && asset is not GameMediaCatalogSO
+                && !IsLegacyDungeonFactionShadow(asset))
             .Append(wasteRules)
             .Distinct()
             .ToArray();

@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cb2899928eb6054ab2f4aa052a70e76, type: 3}
+  m_Name: battlefield_unstable-device
+  m_EditorClassIdentifier: DungeonStory.Offense::BattlefieldModifierDefinitionSO
+  stableId: battlefield:unstable-device
+  displayName: "\uBD88\uC548\uC815 \uC7A5\uCE58"
+  description: "\uC2DC\uAC04 \uB0B4 \uC7A5\uCE58\uB97C \uD30C\uAD34\uD558\uC9C0 \uBABB\uD558\uBA74
+    \uC591\uCE21 \uBAA8\uB450 \uD53C\uD574\uB97C \uC785\uB294\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored battlefield modifier.
+  kind: 1
+  movementMultiplier: 1
+  accuracyMultiplier: 1
+  damageMultiplier: 1.1
+  requiredCounterTag: counter:sabotage

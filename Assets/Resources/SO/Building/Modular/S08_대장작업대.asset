@@ -39,13 +39,13 @@ MonoBehaviour:
     - rid: 7737211730834227446
     - rid: 7737211730834227447
     - rid: 7737211730834227448
-    - rid: 7737211730889015818
-    - rid: 7737211730889015819
-    - rid: 7737211730889015820
-    - rid: 7737211730889015821
-    - rid: 7737211730927812670
-    - rid: 7737211730927812671
     - rid: 7737211772876620166
+    - rid: 7737211792661414850
+    - rid: 7737211792661414851
+    - rid: 7737211792661414852
+    - rid: 7737211792661414853
+    - rid: 7737211792998531569
+    - rid: 7737211792998531570
   width: 2
   height: 1
   layer: 1
@@ -119,66 +119,6 @@ MonoBehaviour:
           - key: Service
             value: 2.5
           metrics: []
-    - rid: 7737211730889015818
-      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingUtilityConnectionAbility
-        channels: 1
-        maxThroughput: 25
-        normallyOpen: 1
-    - rid: 7737211730889015819
-      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingPowerConsumerAbility
-        demandPerSecond: 5
-        priority: 4
-        minimumSupplyFraction: 0.75
-    - rid: 7737211730889015820
-      type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingAutomationAbility
-        maximumMode: 2
-        assistedPowerDemand: 2
-        automaticPowerDemand: 5
-        assistedWorkMultiplier: 1.35
-        automaticWorkPerSecond: 1
-        automaticQualityCap: 0.75
-        maintenancePerGameHour: 1
-    - rid: 7737211730889015821
-      type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingConveyorPortAbility
-        mode: 2
-        destinationId: 
-        capacity: 4
-    - rid: 7737211730927812670
-      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionWorkstationAbility
-        workstationTag: workstation:forge-basic
-        stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211730927812671
-      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionBufferAbility
-        defaultBatchCapacity: 4
-        outputCapacities:
-        - itemId: material:lead-ingot
-          capacity: 24
-        - itemId: material:lead-shot
-          capacity: 96
-        - itemId: material:black-powder
-          capacity: 48
-        - itemId: material:paper
-          capacity: 64
-        - itemId: ammo:paper-cartridge
-          capacity: 120
-        - itemId: component:machine-parts
-          capacity: 16
-        - itemId: component:precision-parts
-          capacity: 16
-        allowOverflowDump: 1
-        overflowOffset: {x: 1, y: 0}
     - rid: 7737211772876620166
       type: {class: BuildingEquipmentCraftingAbility, ns: , asm: DungeonStory.Buildings}
       data:
@@ -230,3 +170,63 @@ MonoBehaviour:
         - weapon:warhammer
         - weapon:windlass-crossbow
         workUnitsPerCycle: 1
+    - rid: 7737211792661414850
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 1
+        maxThroughput: 25
+        normallyOpen: 1
+    - rid: 7737211792661414851
+      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingPowerConsumerAbility
+        demandPerSecond: 5
+        priority: 4
+        minimumSupplyFraction: 0.75
+    - rid: 7737211792661414852
+      type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingAutomationAbility
+        maximumMode: 2
+        assistedPowerDemand: 2
+        automaticPowerDemand: 5
+        assistedWorkMultiplier: 1.35
+        automaticWorkPerSecond: 1
+        automaticQualityCap: 0.75
+        maintenancePerGameHour: 1
+    - rid: 7737211792661414853
+      type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingConveyorPortAbility
+        mode: 2
+        destinationId: 
+        capacity: 4
+    - rid: 7737211792998531569
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:forge-basic
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211792998531570
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 4
+        outputCapacities:
+        - itemId: material:lead-ingot
+          capacity: 24
+        - itemId: material:lead-shot
+          capacity: 96
+        - itemId: material:black-powder
+          capacity: 48
+        - itemId: material:paper
+          capacity: 64
+        - itemId: ammo:paper-cartridge
+          capacity: 120
+        - itemId: component:machine-parts
+          capacity: 16
+        - itemId: component:precision-parts
+          capacity: 16
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}

@@ -25,6 +25,10 @@ MonoBehaviour:
   cropId: crop:dreamleaf
   displayName: "\uBABD\uC5FD"
   harvestItemId: resource:dreamleaf
+  seedItemId: seed-lot:dreamleaf
+  baseGenome: {fileID: 11400000, guid: 5f6b1b68673a9f44abbc200364293627, type: 2}
+  familyGroup: 3
+  endemicDisease: 3
   requiredResearchId: research:pharmacology:anesthesia
   growthHours: 52
   sowWork: 5

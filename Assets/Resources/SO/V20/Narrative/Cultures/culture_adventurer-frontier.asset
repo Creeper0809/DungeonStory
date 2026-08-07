@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86bca71163e51a84b8d8bdc8d4d069d3, type: 3}
+  m_Name: culture_adventurer-frontier
+  m_EditorClassIdentifier: DungeonStory.Content::SpeciesCultureDefinitionSO
+  stableId: culture:adventurer-frontier
+  displayName: "\uAC1C\uCC99\uC790 \uC5F0\uB9F9 \uBB38\uD654"
+  description: "\uC11C\uB85C \uB2E4\uB978 \uACE0\uD5A5\uC758 \uADDC\uCE59\uC744 \uC6D0\uC815\uB300\uC2DD
+    \uC2E4\uC6A9\uC8FC\uC758\uB85C \uC5EE\uB294\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  defaultSpeciesId: Adventurer
+  preferredItemIds:
+  - food:preserved-ration
+  forbiddenItemIds:
+  - food:raw-monster-meat
+  preferredFacilityIds: []
+  environmentalPreferences:
+  - lit communal rooms
+  etiquetteRules:
+  - "\uC804\uB9AC\uD488\uC740 \uADC0\uD658\uC790 \uC804\uC6D0\uC774 \uD655\uC778\uD55C
+    \uB4A4 \uB098\uB208\uB2E4."
+  ceremonyIds:
+  - practice:adventurer-return-table
+  - practice:adventurer-name-token
+  otherCultureAttitudes:
+  - id: culture:beastkin-pack
+    weight: 1
+  - id: culture:demon-contract
+    weight: 1
+  - id: culture:golem-core
+    weight: 1
+  - id: culture:harpy-aerie
+    weight: 1
+  - id: culture:kobold-toolclan
+    weight: 1
+  - id: culture:myconid-grove
+    weight: 1
+  - id: culture:orc-vigil
+    weight: 1
+  - id: culture:slime-confluence
+    weight: 1
+  - id: culture:vampire-nightcourt
+    weight: 1
+  assimilationDays: 120

@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: society_child_education
+  m_EditorClassIdentifier: DungeonStory.Research::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7259
+  projectId: research:society:child-education
+  displayName: "\uC544\uB3D9 \uAD50\uC721"
+  description: "\uBCF4\uC721\uACFC \uAE30\uB85D \uCCB4\uACC4\uB97C \uC548\uC804\uD55C
+    \uAE30\uCD08 \uAD50\uC721 \uACFC\uC815\uC73C\uB85C \uB9CC\uB4E0\uB2E4."
+  field: 5
+  requiredWork: 336
+  prerequisites:
+  - {fileID: 11400000, guid: 03cfd04c2b1ad654a9b9ff7542b01332, type: 2}
+  - {fileID: 11400000, guid: b1f29a3fe85b6524c8aa472bb1e1480f, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:arcane:records
+    prerequisite: {fileID: 11400000, guid: 03cfd04c2b1ad654a9b9ff7542b01332, type: 2}
+    kind: 0
+    reason: "\uAE30\uB85D \uCCB4\uACC4\uC758 \uC774\uB860\uC774(\uAC00) \uC544\uB3D9
+      \uAD50\uC721 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:life:infant-care
+    prerequisite: {fileID: 11400000, guid: b1f29a3fe85b6524c8aa472bb1e1480f, type: 2}
+    kind: 2
+    reason: "\uC601\uC544 \uB3CC\uBD04\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC544\uB3D9 \uAD50\uC721 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7737211793001939241
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 1
+    requiredCount: 1
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211793001939241
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 8860

@@ -1,0 +1,89 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ff0acf0ea7da4344bfe143d6a592626, type: 3}
+  m_Name: chapter_demon_1
+  m_EditorClassIdentifier: DungeonStory.Content::FactionChapterDefinitionSO
+  stableId: faction-chapter:demon:1
+  displayName: "\uC138 \uBC88 \uC811\uD78C \uACC4\uC57D"
+  description: "\uACC4\uC57D\uC815 \uC0AC\uC808\uC774 \uC138 \uBC88 \uBD09\uC778\uB41C
+    \uD611\uC815\uC758 \uC99D\uC778\uC744 \uC694\uAD6C\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored faction/service manifest.
+  factionId: faction:dungeon:demon
+  chapterNumber: 1
+  kind: 0
+  crossFactionId: 
+  triggerRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions:
+    - factionId: faction:dungeon:demon
+      minimumRapport: -100
+      maximumGrievance: 100
+      minimumObligationTokens: 0
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  choices:
+  - choiceId: support
+    title: "\uC694\uAD6C\uB97C \uBC1B\uC544\uB4E4\uC778\uB2E4"
+    outcomeText: "\uC694\uAD6C\uB97C \uBC1B\uC544\uB4E4\uC778\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 6
+      targetId: faction:dungeon:demon
+      amount: 8
+      durationDays: 0
+  - choiceId: bargain
+    title: "\uB300\uAC00\uC640 \uCC45\uC784\uC744 \uD611\uC0C1\uD55C\uB2E4"
+    outcomeText: "\uB300\uAC00\uC640 \uCC45\uC784\uC744 \uD611\uC0C1\uD55C\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 8
+      targetId: faction:dungeon:demon
+      amount: 1
+      durationDays: 0
+  - choiceId: refuse
+    title: "\uAC1C\uC785\uC744 \uAC70\uBD80\uD55C\uB2E4"
+    outcomeText: "\uAC1C\uC785\uC744 \uAC70\uBD80\uD55C\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 7
+      targetId: faction:dungeon:demon
+      amount: 7
+      durationDays: 0

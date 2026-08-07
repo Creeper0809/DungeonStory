@@ -150,8 +150,6 @@ public static class OperatingDaySettlementDebugScenarios
                 + $"complaints={report?.staffComplaintEvents.Count}, dailyOffers={report?.refreshedDailyShopOffers.Count}");
         }
 
-        Object.DestroyImmediate(customer.data);
-        Object.DestroyImmediate(staff.data);
         Object.DestroyImmediate(shop.BuildingData);
         Object.DestroyImmediate(warehouse.BuildingData);
         Object.DestroyImmediate(customer.gameObject);
@@ -333,7 +331,6 @@ public static class OperatingDaySettlementDebugScenarios
         }
         finally
         {
-            if (staff != null && staff.data != null) Object.DestroyImmediate(staff.data);
             if (facility != null && facility.BuildingData != null) Object.DestroyImmediate(facility.BuildingData);
             if (staff != null) Object.DestroyImmediate(staff.gameObject);
             if (facility != null) Object.DestroyImmediate(facility.gameObject);
@@ -708,9 +705,22 @@ public static class OperatingDaySettlementDebugScenarios
 
         CharacterAiEditorTestDependencies.Inject(obj);
         character.RefreshAbilityCache();
-        CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
-        data.characterType = type;
-        data.speciesTag = speciesTag;
+        CharacterSO data = AssetDatabase
+            .FindAssets("t:CharacterSO", new[] { "Assets/Resources/SO/Character" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<CharacterSO>)
+            .FirstOrDefault(candidate => candidate != null
+                && candidate.species != null
+                && string.Equals(
+                    candidate.SpeciesTag,
+                    speciesTag,
+                    System.StringComparison.OrdinalIgnoreCase));
+        if (data == null)
+        {
+            Object.DestroyImmediate(obj);
+            throw new System.InvalidOperationException(
+                $"No authored character archetype exists for species '{speciesTag}'.");
+        }
         character.data = data;
         character.characterType = type;
         ICharacterNeedDefinitionCatalog needCatalog = CharacterAiEditorTestDependencies.AuthoredGameplay;

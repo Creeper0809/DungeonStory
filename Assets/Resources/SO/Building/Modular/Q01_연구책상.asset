@@ -40,7 +40,7 @@ MonoBehaviour:
     - rid: 7737211730834227233
     - rid: 7737211730834227234
     - rid: 7737211730834227235
-    - rid: 7737211730927812876
+    - rid: 7737211792998531765
   width: 2
   height: 1
   layer: 1
@@ -57,12 +57,12 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730834227229
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: Q01
     - rid: 7737211730834227230
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 110
@@ -94,7 +94,7 @@ MonoBehaviour:
           supportedWorkTypes: 20
           disabledWhenDamaged: 1
     - rid: 7737211730834227233
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
     - rid: 7737211730834227234
@@ -120,7 +120,7 @@ MonoBehaviour:
           hunger: 0
           excretion: 0
           hygiene: 0
-    - rid: 7737211730927812876
+    - rid: 7737211792998531765
       type: {class: BuildingResearchCapacityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingResearchCapacityAbility

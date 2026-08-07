@@ -463,6 +463,14 @@ public sealed class ResourceUsageIndex :
             {
                 usage.AddProducer($"crop:{crop.CropId}", crop.RequiredResearchId);
             }
+            if (staticEntries.TryGetValue(crop.SeedItemId, out StaticUsage seedUsage))
+            {
+                seedUsage.AddConsumer(
+                    $"crop-sowing:{crop.CropId}",
+                    crop.RequiredResearchId,
+                    ProductionConsumerKind.CropSowing,
+                    $"{crop.DisplayName} 파종");
+            }
         }
 
         foreach (CombatEquipmentDefinitionSO equipment in
@@ -753,6 +761,23 @@ public sealed class ResourceUsageIndex :
                     ProductionConsumerKind.MedicalProcedure,
                     item.DisplayName);
             }
+            if (item.TryGetFeature(out MedicalProcedureSupplyItemFeature procedureSupply)
+                && !string.IsNullOrWhiteSpace(procedureSupply.procedureId))
+            {
+                usage.AddConsumer(
+                    $"medical-procedure:{procedureSupply.procedureId.Trim()}",
+                    item.RequiredResearchId,
+                    ProductionConsumerKind.MedicalProcedure,
+                    item.DisplayName);
+            }
+            if (item.TryGetFeature(out CropTreatmentItemFeature cropTreatment))
+            {
+                usage.AddConsumer(
+                    $"crop-treatment:{cropTreatment.treatmentKind}",
+                    item.RequiredResearchId,
+                    ProductionConsumerKind.CropTreatment,
+                    item.DisplayName);
+            }
             if (item.TryGetFeature(out InstallationItemFeature installation)
                 && installation.buildingDefinitionId >= 0)
             {
@@ -821,6 +846,22 @@ public sealed class ResourceUsageIndex :
                         EquipmentExpeditionRewardSourceIds.ForModule(kind),
                         string.Empty);
                 }
+            }
+            else if (item.TryGetFeature(out PathogenSampleItemFeature sample)
+                && !string.IsNullOrWhiteSpace(sample.diseaseId))
+            {
+                usage.AddProducer(
+                    $"diagnostic-sampling:{sample.diseaseId.Trim()}",
+                    "research:health:pathogen-observation");
+            }
+            else if (string.Equals(
+                item.ItemId,
+                "medicine:mycelial-culture-pack",
+                StringComparison.Ordinal))
+            {
+                usage.AddProducer(
+                    "medical-procedure:mycelial-culture-harvest",
+                    "research:medical:mycelial-grafting");
             }
 
         }

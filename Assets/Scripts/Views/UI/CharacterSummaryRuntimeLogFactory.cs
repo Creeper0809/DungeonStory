@@ -46,6 +46,7 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             && (generated.Find("TabBar/GrowthTab") == null
                 || generated.Find("TabBar/HealthTab") == null
                 || generated.Find("TabBar/CombatTab") == null
+                || generated.Find("TabBar/PopulationTab") == null
                 || generated.Find("TabBar/AiTab") == null
                 || generated.Find("Content/GrowthContent/GrowthList") == null
                 || generated.Find("Content/StatusContent/Thirst") == null
@@ -57,6 +58,9 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
                 || generated.Find("Content/HealthContent/SubstanceCommandRow/SubstanceSelection") == null
                 || generated.Find("Content/HealthContent/SubstanceCommandRow/SubstancePolicy") == null
                 || generated.Find("Content/CombatContent/CombatContentViewport/CombatSummaryText") == null
+                || generated.Find("Content/PopulationContent/PopulationViewport/PopulationSummaryText") == null
+                || generated.Find("Content/PopulationContent/PopulationCommands/GlobalApprenticeship") == null
+                || generated.Find("Content/PopulationContent/PopulationCommands/CharacterApprenticeship") == null
                 || generated.Find("Content/CombatContent/CombatCommands/LoadoutButton") == null
                 || generated.Find("Content/StatusContent/CarrySummaryText") == null
                 || generated.Find("Content/AiContent/AiContentViewport/AiSummaryText") == null
@@ -161,6 +165,11 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
 
         Button statusTabButton = CreateTabButton("StatusTab", tabBar, CharacterSummaryUiTextQuery.Get("CharacterSummary.Tab.Status"), actions.Tabs.ShowStatus);
         Button healthTabButton = CreateTabButton("HealthTab", tabBar, CharacterSummaryUiTextQuery.Get("CharacterSummary.Tab.Health"), actions.Tabs.ShowHealth);
+        Button populationTabButton = CreateTabButton(
+            "PopulationTab",
+            tabBar,
+            "생애",
+            actions.Tabs.ShowPopulation);
         Button combatTabButton = CreateTabButton("CombatTab", tabBar, CharacterSummaryUiTextQuery.Get("CharacterSummary.Tab.Combat"), actions.Tabs.ShowCombat);
         Button growthTabButton = CreateTabButton("GrowthTab", tabBar, CharacterSummaryUiTextQuery.Get("CharacterSummary.Tab.Growth"), actions.Tabs.ShowGrowth);
         Button moodTabButton = CreateTabButton("MoodTab", tabBar, CharacterSummaryUiTextQuery.Get("CharacterSummary.Tab.Mood"), actions.Tabs.ShowMood);
@@ -288,6 +297,50 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             healthViewport.offsetMax = new Vector2(0f, -99f);
         }
         healthContent.gameObject.SetActive(false);
+
+        RectTransform populationContent = CreateRect(
+            "PopulationContent",
+            content);
+        SetStretch(populationContent, Vector2.zero, Vector2.zero);
+        RectTransform populationCommands = CreateRect(
+            "PopulationCommands",
+            populationContent);
+        populationCommands.anchorMin = new Vector2(0f, 1f);
+        populationCommands.anchorMax = new Vector2(1f, 1f);
+        populationCommands.pivot = new Vector2(0.5f, 1f);
+        populationCommands.anchoredPosition = Vector2.zero;
+        populationCommands.sizeDelta = new Vector2(0f, 44f);
+        HorizontalLayoutGroup populationCommandLayout =
+            populationCommands.gameObject.AddComponent<HorizontalLayoutGroup>();
+        populationCommandLayout.spacing = 6f;
+        populationCommandLayout.childControlWidth = true;
+        populationCommandLayout.childControlHeight = true;
+        populationCommandLayout.childForceExpandWidth = true;
+        populationCommandLayout.childForceExpandHeight = true;
+        Button globalApprenticeship = CreateButton(
+            "GlobalApprenticeship",
+            populationCommands,
+            "감독 도제: 끔");
+        Button characterApprenticeship = CreateButton(
+            "CharacterApprenticeship",
+            populationCommands,
+            "청소년만 개별 허용");
+        globalApprenticeship.onClick.AddListener(
+            actions.Population.ToggleGlobalApprenticeship);
+        characterApprenticeship.onClick.AddListener(
+            actions.Population.ToggleCharacterApprenticeship);
+        TMP_Text populationSummaryText = CreateScrollableText(
+            "PopulationViewport",
+            "PopulationSummaryText",
+            populationContent,
+            "생애 정보를 불러오는 중입니다.",
+            minHeight: 360f,
+            fillParent: true);
+        RectTransform populationViewport =
+            populationSummaryText.transform.parent as RectTransform;
+        if (populationViewport != null)
+            populationViewport.offsetMax = new Vector2(0f, -50f);
+        populationContent.gameObject.SetActive(false);
 
         RectTransform combatContent = CreateRect("CombatContent", content);
         SetStretch(combatContent, Vector2.zero, Vector2.zero);
@@ -560,6 +613,12 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             fireModeButton,
             holdFireButton,
             repairButton);
+        viewBinding.BindGeneratedPopulation(
+            populationSummaryText,
+            populationContent.gameObject,
+            populationTabButton,
+            globalApprenticeship,
+            characterApprenticeship);
         viewBinding.BindGeneratedTabs(
             statusContent.gameObject,
             growthContent.gameObject,
@@ -636,6 +695,12 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             generated.Find("Content/CombatContent/CombatCommands/FireModeButton")?.GetComponent<Button>(),
             generated.Find("Content/CombatContent/CombatCommands/HoldFireButton")?.GetComponent<Button>(),
             generated.Find("Content/CombatContent/CombatCommands/RepairButton")?.GetComponent<Button>());
+        viewBinding.BindGeneratedPopulation(
+            generated.Find("Content/PopulationContent/PopulationViewport/PopulationSummaryText")?.GetComponent<TMP_Text>(),
+            generated.Find("Content/PopulationContent")?.gameObject,
+            generated.Find("TabBar/PopulationTab")?.GetComponent<Button>(),
+            generated.Find("Content/PopulationContent/PopulationCommands/GlobalApprenticeship")?.GetComponent<Button>(),
+            generated.Find("Content/PopulationContent/PopulationCommands/CharacterApprenticeship")?.GetComponent<Button>());
         viewBinding.BindGeneratedTabs(
             generated.Find("Content/StatusContent")?.gameObject,
             generated.Find("Content/GrowthContent")?.gameObject,

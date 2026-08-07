@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d7e615d9bc98fc41be027f9521f64cc, type: 3}
+  m_Name: ending_steel-apotheosis
+  m_EditorClassIdentifier: DungeonStory.Content::EndingDefinitionSO
+  stableId: ending:steel-apotheosis
+  displayName: "\uAC15\uCCA0 \uC2E0\uACA9\uD654"
+  description: "\uC790\uB3D9 \uC0DD\uC0B0\xB7\uC790\uAC00 \uC815\uBE44\xB7\uD1B5\uD569
+    \uBC29\uC5B4\uAC00 \uC0AC\uB78C\uC758 \uAC1C\uC785 \uC5C6\uC774 \uC21C\uD658\uD558\uB294
+    \uC0B0\uC5C5 \uC2E0\uCCB4\uB97C \uC644\uC131\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored non-terminal run milestone.
+  tier: 1
+  completionRequirements:
+    items: []
+    facilities: []
+    research:
+    - researchNumericId: 7244
+    characters: []
+    factions: []
+    worldMetrics:
+    - kind: 5
+      minimumValue: 100
+    requiredFlags:
+    - industry:self-maintaining
+    excludedFlags: []
+  landmarkBuildingId: building:landmark:steel-colossus
+  permanentRewards:
+  - kind: 12
+    targetId: reward:ending:steel-apotheosis
+    amount: 1
+    durationDays: 0
+  counterPressures:
+  - kind: 17
+    targetId: pressure:ending:steel-apotheosis
+    amount: 2
+    durationDays: 0

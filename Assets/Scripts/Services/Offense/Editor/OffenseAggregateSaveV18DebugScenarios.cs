@@ -183,6 +183,13 @@ public static class OffenseAggregateSaveV18DebugScenarios
                     stage = OffenseReturnArrivalStage.Escaped,
                     materializedIds = new List<string> { canonicalId },
                     escapedIds = new List<string> { canonicalId },
+                    prisonerIndividuals = new List<EnemyIndividualSaveData>
+                    {
+                        new EnemyIndividualSaveData
+                        {
+                            characterId = canonicalId
+                        }
+                    },
                     lastStatus = "escaped"
                 }
             }

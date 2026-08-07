@@ -27,7 +27,7 @@ public static class DarkSurvivalDebugScenarios
         Run("filth_cleaning_work", VerifyFilthCleaningWork, errors, logSuccess);
         Run("shared_water_patch_save", VerifySharedWaterPatchSave, errors, logSuccess);
         Run("humanoid_corpse_contract", VerifyHumanoidCorpseContract, errors, logSuccess);
-        Run("v18_v2_round_trip", VerifyV18V2RoundTrip, errors, logSuccess);
+        Run("v19_v2_round_trip", VerifyV19V2RoundTrip, errors, logSuccess);
         Run("deprivation_authority", VerifyDeprivationAuthority, errors, logSuccess);
         Run("separate_breakdown_actions", VerifySeparateBreakdownActions, errors, logSuccess);
         Run("permanent_taboo_social_memory", VerifyPermanentTabooSocialMemory, errors, logSuccess);
@@ -141,9 +141,9 @@ public static class DarkSurvivalDebugScenarios
         return $"corpseStack={corpse.MaxStack}; weight={corpse.UnitWeight:0.#}";
     }
 
-    private static string VerifyV18V2RoundTrip()
+    private static string VerifyV19V2RoundTrip()
     {
-        Require(DungeonGameSaveData.CurrentVersion == 18, "game save version is not V18");
+        Require(DungeonGameSaveData.CurrentVersion == 20, "game save version is not V20");
         DungeonGameSaveData save = new DungeonGameSaveData();
         DungeonDarkSurvivalSaveData darkSurvival = new DungeonDarkSurvivalSaveData();
         darkSurvival.characters.Add(new CharacterDeprivationState
@@ -187,7 +187,7 @@ public static class DarkSurvivalDebugScenarios
             DungeonSaveSectionPayload.ReadOrNew<DungeonDarkSurvivalSaveData>(
                 restored,
                 DarkSurvivalSaveSection.Id);
-        Require(restored != null && restored.version == 18, "V18 root did not round-trip");
+        Require(restored != null && restored.version == 20, "V20 root did not round-trip");
         Require(restoredDarkSurvival.characters.Single().burdens
                 .Single(entry => entry.kind == DeprivationKind.Thirst).burden == 74f,
             "deprivation burden did not round-trip");

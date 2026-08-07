@@ -1548,12 +1548,12 @@ public static class WildlifeDebugScenarios
 
         public DoorAccessSubjectRef ResolveSubject(GridTraversalContext context)
         {
-            if (context.Subject is WildlifeActor wildlife)
+            if (context.SubjectKind == GridTraversalSubjectKind.Wildlife
+                && !string.IsNullOrWhiteSpace(context.WildlifeId))
             {
                 return new DoorAccessSubjectRef(
-                    wildlife.WildlifeId,
-                    DoorAccessGroup.Wildlife,
-                    wildlife: wildlife);
+                    context.WildlifeId,
+                    DoorAccessGroup.Wildlife);
             }
 
             return default;

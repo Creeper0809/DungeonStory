@@ -38,7 +38,7 @@ MonoBehaviour:
     - rid: 7737211730538791820
     - rid: 7737211730538791821
     - rid: 7737211730538791822
-    - rid: 7737211730927812835
+    - rid: 7737211792998531725
   width: 1
   height: 1
   layer: 1
@@ -55,12 +55,12 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730538791818
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: Q05
     - rid: 7737211730538791819
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 85
@@ -96,13 +96,13 @@ MonoBehaviour:
             value: 2
           metrics: []
     - rid: 7737211730538791822
-      type: {class: BuildingStorageAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingStorageAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingStorageAbility
         category: 1
         capacity: 8
         allCategories: 0
-    - rid: 7737211730927812835
+    - rid: 7737211792998531725
       type: {class: BuildingResearchCapacityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingResearchCapacityAbility

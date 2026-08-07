@@ -220,7 +220,8 @@ public static class ProductionBuildingViewFactory
         Transform parent,
         string name,
         string consumerLabel,
-        TMP_FontAsset font)
+        TMP_FontAsset font,
+        float preferredHeight = 52f)
     {
         GameObject root = new GameObject(
             name,
@@ -229,7 +230,8 @@ public static class ProductionBuildingViewFactory
             typeof(LayoutElement),
             typeof(Image));
         root.transform.SetParent(parent, false);
-        root.GetComponent<LayoutElement>().preferredHeight = 52f;
+        root.GetComponent<LayoutElement>().preferredHeight =
+            Mathf.Clamp(preferredHeight, 24f, 52f);
         root.GetComponent<Image>().color =
             DungeonUiThemePalette.Panel(highContrast: false);
 

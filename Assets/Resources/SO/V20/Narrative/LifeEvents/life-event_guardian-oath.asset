@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11ae014e162ff064183241287201fd7b, type: 3}
+  m_Name: life-event_guardian-oath
+  m_EditorClassIdentifier: DungeonStory.Content::LifeEventDefinitionSO
+  stableId: life-event:guardian-oath
+  displayName: "\uBCF4\uD638\uC790\uC758 \uB9F9\uC138"
+  description: "\uACE0\uC544\uAC00 \uB41C \uBBF8\uC131\uB144\uC790\uC758 \uBCF4\uD638\uC790
+    \uD6C4\uBCF4 \uB458\uC774 \uC11C\uB85C \uB2E4\uB978 \uBBF8\uB798\uB97C \uC57D\uC18D\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  category: 2
+  automatic: 0
+  emergency: 0
+  responseDeadlineDays: 3
+  cooldownDays: 90
+  frequencyRule: 1
+  triggerRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  choices:
+  - choiceId: first
+    title: "\uAC00\uAE4C\uC6B4 \uAD00\uACC4\uB97C \uC6B0\uC120\uD55C\uB2E4"
+    outcomeText: "\uAC00\uAE4C\uC6B4 \uAD00\uACC4\uB97C \uC6B0\uC120\uD55C\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 5
+      targetId: life-event:guardian-oath
+      amount: 6
+      durationDays: 0
+  - choiceId: second
+    title: "\uC548\uC815\uB41C \uAC00\uAD6C\uB97C \uC6B0\uC120\uD55C\uB2E4"
+    outcomeText: "\uC548\uC815\uB41C \uAC00\uAD6C\uB97C \uC6B0\uC120\uD55C\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 4
+      targetId: life-event:guardian-oath
+      amount: 4
+      durationDays: 0
+  automaticEffects: []

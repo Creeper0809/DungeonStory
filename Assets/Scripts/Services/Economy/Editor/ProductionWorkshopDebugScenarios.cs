@@ -18,7 +18,7 @@ public static class ProductionWorkshopDebugScenarios
 
         Debug.Log(
             "Production workshop contracts PASS: exact workstation ownership, "
-            + "physical intermediates, 28 supports, 168 research projects, "
+            + "physical intermediates, 28 supports, 216 research projects, "
             + "passive batch definitions and V3 save round-trip.");
     }
 
@@ -26,8 +26,12 @@ public static class ProductionWorkshopDebugScenarios
     {
         ProductionRecipeSO[] recipes = LoadAll<ProductionRecipeSO>(
             "Assets/Resources/SO/Economy/Recipes");
-        ResourceItemDefinitionSO[] items = LoadAll<ResourceItemDefinitionSO>(
-            "Assets/Resources/SO/Economy/Items");
+        ResourceItemDefinitionSO[] items = AssetDatabase
+            .FindAssets("t:ResourceItemDefinitionSO")
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<ResourceItemDefinitionSO>)
+            .Where(item => item != null)
+            .ToArray();
         BuildingSO[] buildings = LoadAll<BuildingSO>(
             "Assets/Resources/SO/Building");
         ResearchProjectSO[] research = LoadAll<ResearchProjectSO>(
@@ -154,10 +158,10 @@ public static class ProductionWorkshopDebugScenarios
             }
         }
 
-        if (research.Length != 168)
+        if (research.Length != 216)
         {
             failures.Add(
-                $"Expected 168 research projects, found {research.Length}.");
+                $"Expected 216 research projects, found {research.Length}.");
         }
         string[] newResearch =
         {

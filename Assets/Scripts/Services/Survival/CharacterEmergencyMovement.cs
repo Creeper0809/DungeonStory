@@ -55,7 +55,9 @@ internal sealed class CharacterEmergencyMovement
             : target + Vector2Int.left;
         int destinationCount = distance <= 0 ? 1 : 2;
         Queue<GridMoveStep> path = preparedPath;
-        GridTraversalContext traversalContext = GridTraversalContext.ForCharacter(actor);
+        GridTraversalContext traversalContext = GridTraversalContext.ForCharacter(
+            CharacterPersistentIdentity.Require(actor),
+            movementIntent: GridMovementIntent.EscapeHazard);
 
         for (int destinationIndex = 0;
              destinationIndex < destinationCount && path == null;

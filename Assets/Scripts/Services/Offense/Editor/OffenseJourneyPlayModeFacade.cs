@@ -349,14 +349,10 @@ public static class OffenseJourneyPlayModeFacade
 
     private static CharacterActor CreateActor(int id, string name, int statValue)
     {
-        CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
-        data.id = id;
-        data.characterName = name;
-        data.characterType = CharacterType.NPC;
-        data.role = CharacterRole.Regular;
-        data.speciesTag = "Orc";
-        data.baseStats = CharacterStatBlock.CreateDefault(statValue);
-        data.defaultWorkPriorities = WorkPriorityProfile.CreateDefault();
+        _ = id;
+        _ = statValue;
+        CharacterSO data =
+            OffenseEditorTestDependencies.RequireCharacterArchetype("Orc");
 
         GameObject actorObject = new GameObject("OffenseJourneyQaActor");
         actorObject.AddComponent<SpriteRenderer>();
@@ -366,9 +362,9 @@ public static class OffenseJourneyPlayModeFacade
         actor.RefreshAbilityCache();
         CharacterAiEditorTestDependencies.Inject(actorObject);
         actor.Initialization(data);
+        actor.characterType = CharacterType.NPC;
         actor.SetLifecycleState(CharacterLifecycleState.Active);
         CreatedObjects.Add(actorObject);
-        CreatedObjects.Add(data);
         return actor;
     }
 }

@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32c13160994648f4d837f914ae04f4c5, type: 3}
+  m_Name: festival_high-sun
+  m_EditorClassIdentifier: DungeonStory.Species::FestivalDefinitionSO
+  festivalId: festival:high-sun
+  displayName: "\uACE0\uC77C\uC81C"
+  description: "\uAC00\uC7A5 \uAE34 \uC791\uC5C5\uC77C \uB4A4 \uCC28\uAC00\uC6B4
+    \uC74C\uB8CC\uC640 \uACF5\uC5F0\uC73C\uB85C \uC5EC\uB984 \uD53C\uB85C\uB97C \uD47C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored festival manifest.
+  season: 1
+  dayOfSeason: 15
+  convertsActiveGrief: 0
+  cultureId: 
+  requiredBuildingDefinitionId: building:festival-common-hall
+  requiredItems:
+  - itemDefinitionId: food:twilight-beer
+    amount: 10
+  minimumParticipants: 8
+  successOutcome:
+    moodDelta: 6
+    moodDurationDays: 10
+    factionRapportDelta: 3
+    griefConversionPercent: 0
+  partialOutcome:
+    moodDelta: 2
+    moodDurationDays: 5
+    factionRapportDelta: 0
+    griefConversionPercent: 0
+  failureOutcome:
+    moodDelta: -3
+    moodDurationDays: 4
+    factionRapportDelta: -2
+    griefConversionPercent: 0

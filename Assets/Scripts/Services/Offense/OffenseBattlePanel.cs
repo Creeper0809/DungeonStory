@@ -680,7 +680,15 @@ public sealed class OffenseBattlePanel : MonoBehaviour
         {
             return session.Outcome switch
             {
-                OffenseBattleOutcome.Victory => "적을 모두 쓰러뜨렸습니다.",
+                OffenseBattleOutcome.Victory => session.EncounterRules.Objective switch
+                {
+                    OffenseEncounterObjective.SurviveRounds => "정해진 시간 동안 방어선을 지켰습니다.",
+                    OffenseEncounterObjective.ProtectTarget => "보호 대상을 끝까지 지켰습니다.",
+                    OffenseEncounterObjective.SabotageTarget => "핵심 장치를 파괴했습니다.",
+                    OffenseEncounterObjective.Escape => "탈출로를 돌파했습니다.",
+                    OffenseEncounterObjective.CaptureLeader => "적 지휘관을 생포했습니다.",
+                    _ => "적을 모두 쓰러뜨렸습니다."
+                },
                 OffenseBattleOutcome.Retreated => "원정대가 전투에서 후퇴했습니다.",
                 OffenseBattleOutcome.AbortedOwnerDeath => "사장이 쓰러져 전투가 중단됐습니다.",
                 _ => "원정대가 패배했습니다."

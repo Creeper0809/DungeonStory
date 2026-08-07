@@ -197,7 +197,10 @@ public static class StaffRebellionResponseDebugScenarios
             CharacterAiEditorTestDependencies.Inject(obj, Runtime);
             CharacterAwakeMethod?.Invoke(character, null);
 
-            CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
+            CharacterSO data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+                CharacterType.NPC,
+                name,
+                "Orc");
             scriptableObjects.Add(data);
             data.id = id;
             data.characterType = CharacterType.NPC;

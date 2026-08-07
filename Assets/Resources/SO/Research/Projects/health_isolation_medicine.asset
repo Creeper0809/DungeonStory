@@ -1,0 +1,71 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: health_isolation_medicine
+  m_EditorClassIdentifier: DungeonStory.Research::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7273
+  projectId: research:health:isolation-medicine
+  displayName: "\uACA9\uB9AC \uC758\uD559"
+  description: "\uBCD1\uC6D0\uCCB4 \uAD00\uCC30, \uC758\uB8CC \uC811\uC218\uC640
+    \uC704\uC0DD \uC124\uBE44\uB97C \uACA9\uB9AC \uBCD1\uB3D9 \uC6B4\uC601\uC73C\uB85C
+    \uB9CC\uB4E0\uB2E4."
+  field: 14
+  requiredWork: 560
+  prerequisites:
+  - {fileID: 11400000, guid: b0216d256e85f4f4da770d05c38f5419, type: 2}
+  - {fileID: 11400000, guid: dd2109148e59a2244a05b77b4681c17b, type: 2}
+  - {fileID: 11400000, guid: d4e36e9f373046a49a2f87700bef9551, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:health:pathogen-observation
+    prerequisite: {fileID: 11400000, guid: b0216d256e85f4f4da770d05c38f5419, type: 2}
+    kind: 2
+    reason: "\uBCD1\uC6D0\uCCB4 \uAD00\uCC30\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uACA9\uB9AC \uC758\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:medical-reception
+    prerequisite: {fileID: 11400000, guid: dd2109148e59a2244a05b77b4681c17b, type: 2}
+    kind: 2
+    reason: "\uC758\uB8CC \uC811\uC218\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uACA9\uB9AC \uC758\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:plumbing:flush-sanitation
+    prerequisite: {fileID: 11400000, guid: d4e36e9f373046a49a2f87700bef9551, type: 2}
+    kind: 2
+    reason: "\uC218\uC138 \uC704\uC0DD\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uACA9\uB9AC \uC758\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7737211793001939591
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 2
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211793001939591
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 8874

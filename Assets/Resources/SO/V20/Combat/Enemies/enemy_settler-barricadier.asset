@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8080a982ba741ff4e8ae644f419d70cb, type: 3}
+  m_Name: enemy_settler-barricadier
+  m_EditorClassIdentifier: DungeonStory.Offense::EnemyArchetypeDefinitionSO
+  stableId: enemy:settler-barricadier
+  displayName: "\uC790\uC720\uAC1C\uCC99 \uBC14\uB9AC\uCF00\uC774\uB4DC\uBCD1"
+  description: "\uC784\uC2DC \uBC29\uBCBD \uB4A4\uC5D0\uC11C \uC57D\uD55C \uB3D9\uB8CC\uB97C
+    \uC9C0\uD0A8\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored enemy archetype.
+  factionId: human:settler
+  speciesTag: Human
+  role: 1
+  maxHealth: 102
+  attack: 7
+  strength: 5.9500003
+  toughness: 10
+  dexterity: 6
+  moveSpeed: 4
+  equipment:
+    weaponDefinitionId: weapon:spear
+    armorDefinitionId: armor:padded
+    shieldDefinitionId: 
+    ammunitionItemId: 
+  abilityIds:
+  - enemy-ability:shield-wall
+  tacticalProfile:
+    attackWeight: 4
+    protectWeight: 5
+    abilityWeight: 3
+    retreatWeight: 2
+    retreatHealthFraction: 0.08
+    preferredTargetTags:
+    - nearest
+    avoidedTargetTags:
+    - none
+    formationTag: scattered-cover
+  counterTags:
+  - counter:destroy-cover
+  rewardItemIds:
+  - loot:enemy-salvage
+  bossPhases: []
+  individualGeneration:
+    minimumGeneralTraits: 2
+    maximumGeneralTraits: 3
+    minimumExpressedHeritableTraits: 0
+    maximumExpressedHeritableTraits: 2
+    maximumLatentHeritableTraits: 1
+    aptitudeVariance: 15
+    combatStatVariance: 0.12
+    minimumLoyalty: 20
+    maximumLoyalty: 75
+    recruitable: 1
+    militaryTrainingId: training:settler-barricadier
+    allowedBackgroundIds: []

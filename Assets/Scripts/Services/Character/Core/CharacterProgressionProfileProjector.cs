@@ -17,6 +17,7 @@ public sealed class CharacterProgressionProfileProjector
 
     private readonly Dictionary<int, CharacterTraitSO> traitCatalog =
         new Dictionary<int, CharacterTraitSO>();
+    private readonly ICharacterRuntimeProfileFactory runtimeProfileFactory;
     private readonly List<CharacterTraitSO> resolvedSelectedTraits =
         new List<CharacterTraitSO>();
     private IReadOnlyList<CharacterTraitSO> resolvedSelectedTraitsView;
@@ -25,12 +26,16 @@ public sealed class CharacterProgressionProfileProjector
     private int initializedDataInstanceId;
     private int resolvedSelectedTraitsKey = int.MinValue;
 
-    public CharacterProgressionProfileProjector(IGameContentCatalog content)
+    public CharacterProgressionProfileProjector(
+        IGameContentCatalog content,
+        ICharacterRuntimeProfileFactory runtimeProfileFactory)
     {
         if (content == null)
         {
             throw new ArgumentNullException(nameof(content));
         }
+        this.runtimeProfileFactory = runtimeProfileFactory
+            ?? throw new ArgumentNullException(nameof(runtimeProfileFactory));
 
         foreach (CharacterTraitSO trait in content.GetAll<CharacterTraitSO>())
         {
@@ -253,9 +258,10 @@ public sealed class CharacterProgressionProfileProjector
             effectiveRuntimeProfileKey = key;
             using (EffectiveProfileBuildMarker.Auto())
             {
-                effectiveRuntimeProfile = CharacterRuntimeProfile.From(
-                    data,
-                    ResolveSelectedTraits(actor, state));
+                effectiveRuntimeProfile = runtimeProfileFactory.Create(
+                    CharacterSpawnRequest.FromAuthoring(
+                        data,
+                        ResolveSelectedTraits(actor, state)));
             }
         }
 

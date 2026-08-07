@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e299ffa39eb64f5aa2a777c1be71b5bc, type: 3}
+  m_Name: heritable_dream-reception
+  m_EditorClassIdentifier: DungeonStory.Species::HeritableTraitDefinitionSO
+  traitId: heritable:dream-reception
+  displayName: "\uAFC8 \uC218\uC2E0"
+  description: "\uBE44\uC804 \uAFC8\uACFC \uAE30\uC5B5\uC5D0 \uBBFC\uAC10\uD574 \uC608\uC9C0
+    \uB2E8\uC11C\uB97C \uC5BB\uC9C0\uB9CC \uC218\uBA74 \uC7A5\uC560 \uC704\uD5D8\uC774
+    \uC788\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored hereditary trait manifest.
+  category: 2
+  incompatibilityGroup: 
+  aptitudeModifier: 5
+  compatibleSpeciesTags: []
+  consequences:
+  - kind: 7
+    targetId: dream
+    multiplierDelta: 0.1

@@ -36,51 +36,27 @@ public class CharacterActor : SerializedMonoBehaviour,
     private readonly CharacterActorActivityBridge activityBridge = new();
 
     private AIBrain brain;
-    [SerializeField]
-    [ReadOnly]
-    private CharacterIdentity identity;
-    [SerializeField]
-    [ReadOnly]
-    private CharacterProgression progression;
-    [SerializeField]
-    [ReadOnly]
-    private CharacterAbilityCache abilityCache;
-    [SerializeField]
-    [ReadOnly]
-    private CharacterStats characterStats;
-    [SerializeField]
-    [ReadOnly]
-    private CharacterVisual visual;
-    [SerializeField]
-    [ReadOnly]
-    private CharacterLifecycle lifecycle;
-    [SerializeField]
-    [ReadOnly]
-    private CharacterLog characterLog;
-    [SerializeField]
-    [ReadOnly]
-    private CharacterBlackboard blackboard;
-    [SerializeField]
-    [ReadOnly]
-    private CustomerPersonaRuntime personaRuntime;
-    [SerializeField]
-    [ReadOnly]
-    private CharacterDialogueRuntime dialogueRuntime;
-    [SerializeField]
-    [ReadOnly]
-    private CharacterSocialMemory socialMemory;
-    [SerializeField]
-    [ReadOnly]
-    private CharacterAiMemoryRuntime aiMemory;
-    [SerializeField]
-    [ReadOnly]
-    private BehaviorTree behaviorTree;
+    [SerializeField, ReadOnly] private CharacterIdentity identity;
+    [SerializeField, ReadOnly] private CharacterProgression progression;
+    [SerializeField, ReadOnly] private CharacterAbilityCache abilityCache;
+    [SerializeField, ReadOnly] private CharacterStats characterStats;
+    [SerializeField, ReadOnly] private CharacterVisual visual;
+    [SerializeField, ReadOnly] private CharacterLifecycle lifecycle;
+    [SerializeField, ReadOnly] private CharacterLog characterLog;
+    [SerializeField, ReadOnly] private CharacterBlackboard blackboard;
+    [SerializeField, ReadOnly] private CustomerPersonaRuntime personaRuntime;
+    [SerializeField, ReadOnly] private CharacterDialogueRuntime dialogueRuntime;
+    [SerializeField, ReadOnly] private CharacterSocialMemory socialMemory;
+    [SerializeField, ReadOnly] private CharacterAiMemoryRuntime aiMemory;
+    [SerializeField, ReadOnly] private BehaviorTree behaviorTree;
     private CharacterCarryInventory carryInventory;
     private ICharacterSocialMemoryFactory socialMemoryFactory;
+    private ICharacterRuntimeProfileFactory runtimeProfileFactory;
     [SerializeField, ReadOnly] private CharacterActorRuntimeBridge runtimeBridge;
     [SerializeField, ReadOnly] private CharacterActorPresentationBridge presentationBridge;
     private bool runtimeStateInitialized;
     private bool runtimeStateInitializing;
+    private bool explicitInitializationCompleted;
 
     public CharacterDecisionState State { get; private set; }
     public CharacterDecisionState state
@@ -91,9 +67,8 @@ public class CharacterActor : SerializedMonoBehaviour,
     public AIBrain Brain => brain;
     public AIBrain ai => brain;
     public CharacterIdentity Identity => identity;
-    public CharacterId BuildingCharacterId => identity != null
-        ? identity.TypedPersistentId
-        : default;
+    public CharacterId BuildingCharacterId =>
+        identity != null ? identity.TypedPersistentId : default;
     public string BuildingDisplayName => this != null ? name : string.Empty;
     public InvasionThreatSubjectSnapshot CaptureInvasionThreatSubject() =>
         new(BuildingCharacterId, BuildingDisplayName);
@@ -118,19 +93,17 @@ public class CharacterActor : SerializedMonoBehaviour,
     public CharacterAiMemoryRuntime AiMemory => aiMemory;
     public BehaviorTree BehaviorTree => behaviorTree;
     public CharacterRuntimeProfile profile => progression != null
-        ? progression.GetEffectiveRuntimeProfile()
-        : identity != null ? identity.Profile : null;
+        ? progression.GetEffectiveRuntimeProfile() : identity?.Profile;
     public CharacterRole Role => identity != null ? identity.Role : CharacterRole.Regular;
     public bool IsOwner => identity != null && identity.IsOwner;
     public bool CanLeaveByDissatisfaction => !IsOwner;
     public bool CanRebel => !IsOwner;
     public bool IsDead => CurrentLifecycleState == CharacterLifecycleState.Despawned
-        || (characterStats != null && characterStats.IsDead);
-    public bool IsOnExpedition => lifecycle != null
-        && lifecycle.CurrentState == CharacterLifecycleState.OnExpedition;
+        || characterStats?.IsDead == true;
+    public bool IsOnExpedition => lifecycle?.CurrentState
+        == CharacterLifecycleState.OnExpedition;
     public CharacterLifecycleState CurrentLifecycleState => lifecycle != null
-        ? lifecycle.CurrentState
-        : CharacterLifecycleState.None;
+        ? lifecycle.CurrentState : CharacterLifecycleState.None;
     public bool CanRunAi => identity != null
         && identity.Data != null
         && lifecycle != null
@@ -202,12 +175,22 @@ public class CharacterActor : SerializedMonoBehaviour,
         ICharacterSubstanceRuntime substanceRuntime,
         IGameClock gameClock,
         ITmpKoreanFontService tmpKoreanFontService,
-        ICharacterPresentationScheduler presentationScheduler)
+        ICharacterPresentationScheduler presentationScheduler,
+        ICharacterRuntimeProfileFactory runtimeProfileFactory)
     {
+        this.runtimeProfileFactory = runtimeProfileFactory
+            ?? throw new ArgumentNullException(nameof(runtimeProfileFactory));
         this.socialMemoryFactory = socialMemoryFactory
             ?? throw new ArgumentNullException(nameof(socialMemoryFactory));
         NaturalnessSettings = (gameContentCatalog ?? throw new ArgumentNullException(nameof(gameContentCatalog))).RequireSingle<CharacterAiNaturalnessSettingsSO>();
         EnsureRuntimeState();
+        if (identity.Data != null && identity.Profile == null)
+        {
+            identity.SetData(
+                identity.Data,
+                this.runtimeProfileFactory.Create(
+                    CharacterSpawnRequest.FromAuthoring(identity.Data)));
+        }
         (characterIdRegistry
             ?? throw new ArgumentNullException(nameof(characterIdRegistry)))
             .GetOrAssignPersistentId(this);
@@ -317,7 +300,13 @@ public class CharacterActor : SerializedMonoBehaviour,
         set
         {
             EnsureRuntimeState();
-            identity?.SetData(value);
+            RequireRuntimeProfileFactory();
+            identity?.SetData(
+                value,
+                value != null
+                    ? runtimeProfileFactory.Create(
+                        CharacterSpawnRequest.FromAuthoring(value))
+                    : null);
         }
     }
 
@@ -355,7 +344,8 @@ public class CharacterActor : SerializedMonoBehaviour,
             identity,
             lifecycle,
             characterStats,
-            runtimeBridge);
+            runtimeBridge,
+            explicitInitializationCompleted);
     }
 
     internal void TickPresentationMaintenance()
@@ -399,13 +389,30 @@ public class CharacterActor : SerializedMonoBehaviour,
 
     public void Initialize(CharacterSO data)
     {
+        Initialize(
+            data,
+            data != null
+                ? CharacterSpawnRequest.FromAuthoring(data)
+                : null);
+    }
+
+    public void Initialize(
+        CharacterSO data,
+        CharacterSpawnRequest spawnRequest)
+    {
         EnsureRuntimeState();
         if (!HasRuntimeComponents)
         {
             return;
         }
 
-        identity.SetData(data);
+        RequireRuntimeProfileFactory();
+        identity.SetData(
+            data,
+            data != null
+                ? runtimeProfileFactory.Create(
+                    spawnRequest ?? throw new ArgumentNullException(nameof(spawnRequest)))
+                : null);
         progression.Bind(this);
         if (identity.Data != null)
         {
@@ -414,11 +421,21 @@ public class CharacterActor : SerializedMonoBehaviour,
 
         characterStats.RecalculateVitals(resetCurrentHealth: true);
         abilityBridge.Initialize(abilityCache, data);
+        explicitInitializationCompleted = true;
         lifecycleCoordinator.MarkInitializedBeforeFirstStart();
 
         if (!IsDetachedRestoreCandidate && !IsUnpublishedComposition)
         {
             personaRuntime.RequestPersonaIfNeeded(logIfMissingQueue: false);
+        }
+    }
+
+    private void RequireRuntimeProfileFactory()
+    {
+        if (runtimeProfileFactory == null)
+        {
+            throw new InvalidOperationException(
+                "CharacterActor requires ICharacterRuntimeProfileFactory before assigning character data.");
         }
     }
 
@@ -490,6 +507,17 @@ public class CharacterActor : SerializedMonoBehaviour,
             lifecycle,
             runtimeBridge,
             presentationBridge);
+    }
+
+    internal void ReconcilePublishedRuntimeRegistration()
+    {
+        if (!HasBeenPublished || IsDetachedRestoreCandidate || IsUnpublishedComposition)
+        {
+            throw new InvalidOperationException(
+                "Only a published character can reconcile runtime registration.");
+        }
+
+        runtimeBridge.ReconcilePublishedRegistration();
     }
 
     internal void RollbackDetachedRestorePublication()
@@ -712,6 +740,8 @@ public class CharacterActor : SerializedMonoBehaviour,
     public void ScaleMaxHealth(float multiplier) => RuntimeStats?.ScaleMaxHealth(multiplier);
     public void SetInjurySeverity(float value) => RuntimeStats?.SetInjurySeverity(value);
     public void Die(string reason = "") => RuntimeStats?.Die(reason);
+    public void Die(CharacterDeathCauseCode cause, string reasonCode) =>
+        RuntimeStats?.Die(cause, reasonCode);
     public void InitializeStats(bool resetCurrentHealth) =>
         RuntimeStats?.RecalculateVitals(resetCurrentHealth);
     public void SetLifecycleState(CharacterLifecycleState nextState) =>

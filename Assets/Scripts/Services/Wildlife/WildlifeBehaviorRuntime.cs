@@ -282,7 +282,7 @@ internal sealed class WildlifeBehaviorRuntime
                 actor.GridPosition,
                 candidate.Position,
                 GridPathSearchPriority.Urgent,
-                GridTraversalContext.ForWildlife(actor));
+                GridTraversalContext.ForWildlife(actor.WildlifeId));
             path ??= grid.GetMovePathTo(
                 actor.GridPosition,
                 candidate.Position);

@@ -173,12 +173,18 @@ public sealed class WorkExecutionHandlerRegistry :
     private readonly Dictionary<WorkTypeId, IWorkExecutionHandler> handlers;
     private readonly Dictionary<WorkTypeId, IWorkCandidateProvider> candidateProviders;
     private readonly Dictionary<WorkTypeId, IWorkUrgencyProvider> urgencyProviders;
+    private readonly ICareerService careers;
+    private readonly IGameCalendar calendar;
 
     public WorkExecutionHandlerRegistry(
         IReadOnlyList<IWorkExecutionHandler> registeredHandlers,
         IReadOnlyList<IWorkCandidateProvider> registeredCandidateProviders,
-        IReadOnlyList<IWorkUrgencyProvider> registeredUrgencyProviders)
+        IReadOnlyList<IWorkUrgencyProvider> registeredUrgencyProviders,
+        ICareerService careers,
+        IGameCalendar calendar)
     {
+        this.careers = careers ?? throw new ArgumentNullException(nameof(careers));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         handlers = BuildIndex(
             registeredHandlers,
             handler => handler.WorkTypeIds,
@@ -205,6 +211,16 @@ public sealed class WorkExecutionHandlerRegistry :
         out string reason)
     {
         reason = string.Empty;
+        if (actor != null
+            && CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId)
+            && !careers.CanPerformRetiredWork(
+                characterId,
+                calendar.Day,
+                CareerWorkEligibilityRules.IsSafeRetireeWork(workTypeId),
+                out reason))
+        {
+            return false;
+        }
         return !WorkTypeCatalog.TryGet(workTypeId, out WorkTypeDefinition definition)
             || !candidateProviders.TryGetValue(definition.WorkTypeId, out IWorkCandidateProvider provider)
             || provider.IsAvailable(definition.WorkTypeId, actor, target, out reason);
@@ -262,6 +278,25 @@ public sealed class WorkExecutionHandlerRegistry :
 
         return index;
     }
+}
+
+public static class CareerWorkEligibilityRules
+{
+    private static readonly HashSet<WorkTypeId> SafeRetireeWorkTypes = new()
+    {
+        BuiltInWorkTypeIds.Clean,
+        BuiltInWorkTypeIds.Research,
+        BuiltInWorkTypeIds.Reception,
+        BuiltInWorkTypeIds.Craft,
+        BuiltInWorkTypeIds.Cook,
+        BuiltInWorkTypeIds.Perform,
+        BuiltInWorkTypeIds.Sow,
+        BuiltInWorkTypeIds.Harvest,
+        BuiltInWorkTypeIds.AnimalCare
+    };
+
+    public static bool IsSafeRetireeWork(WorkTypeId workTypeId) =>
+        SafeRetireeWorkTypes.Contains(workTypeId);
 }
 
 public abstract class CharacterStatWorkPolicy : IWorkStatPolicy

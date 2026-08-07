@@ -432,8 +432,8 @@ internal sealed class StaffManagementSurfacePanel
     {
         CharacterIdentity identity = worker.Character.Identity;
         CharacterRuntimeProfile profile = identity != null ? identity.Profile : null;
-        string traits = profile != null && profile.Traits.Count > 0
-            ? string.Join(", ", profile.Traits.Select((trait) => trait.traitName))
+        string traits = profile != null && profile.TraitDisplayNames.Count > 0
+            ? string.Join(", ", profile.TraitDisplayNames)
             : "특성 없음";
         CharacterStats stats = worker.Character.Stats;
         string abilitySummary = BuildCharacterStatSummary(stats);

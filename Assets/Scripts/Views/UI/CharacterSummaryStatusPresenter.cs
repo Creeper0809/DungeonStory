@@ -12,6 +12,7 @@ public sealed class CharacterSummaryStatusPresenter
     private readonly IDungeonItemCatalogProvider itemCatalog;
     private readonly IItemHaulingSettingsProvider haulingSettings;
     private readonly ISurvivalFoodQuery survivalRuntime;
+    private readonly CharacterSummaryPopulationPresenter population;
     private TMP_Text profileText;
     private Slider healthSlider;
     private TMP_Text carrySummaryText;
@@ -19,14 +20,32 @@ public sealed class CharacterSummaryStatusPresenter
     public CharacterSummaryStatusPresenter(
         IDungeonItemCatalogProvider itemCatalog,
         IItemHaulingSettingsProvider haulingSettings,
-        ISurvivalFoodQuery survivalRuntime)
+        ISurvivalFoodQuery survivalRuntime,
+        CharacterSummaryPopulationPresenter population)
     {
         this.itemCatalog = itemCatalog ?? throw new ArgumentNullException(nameof(itemCatalog));
         this.haulingSettings = haulingSettings
             ?? throw new ArgumentNullException(nameof(haulingSettings));
         this.survivalRuntime = survivalRuntime
             ?? throw new ArgumentNullException(nameof(survivalRuntime));
+        this.population = population
+            ?? throw new ArgumentNullException(nameof(population));
     }
+
+    public void BindPopulation(
+        TMP_Text summary,
+        Button globalPolicy,
+        Button characterPermission) =>
+        population.Bind(summary, globalPolicy, characterPermission);
+
+    public void RefreshPopulation(CharacterActor actor) =>
+        population.Refresh(actor);
+
+    public void ToggleGlobalApprenticeship(CharacterActor actor) =>
+        population.ToggleGlobalPolicy(actor);
+
+    public void ToggleCharacterApprenticeship(CharacterActor actor) =>
+        population.ToggleCharacterPermission(actor);
 
     public void Bind(TMP_Text generatedProfileText, Slider generatedHealth, TMP_Text generatedCarrySummary)
     {

@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d73e94ec113318588b25eed8f9f9ee0, type: 3}
+  m_Name: Trait_230_fast-learner
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterTraitSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 230
+  traitName: "\uBE60\uB978 \uD559\uC2B5\uC790"
+  description: "\uC0C8 \uACF5\uC815\uC744 \uC9C1\uC811 \uC2DC\uD5D8\uD560 \uAE30\uD68C\uB97C
+    \uC120\uD638\uD558\uACE0 \uCCAB \uC131\uACF5\uC5D0 \uD06C\uAC8C \uACE0\uBB34\uB41C\uB2E4."
+  statBonus:
+    entries: []
+  modifiers:
+    consumptionMultiplier: 1
+    spendingMultiplier: 1
+    waitPatienceMultiplier: 1
+    crowdSensitivityMultiplier: 1
+    accidentChanceMultiplier: 1
+    workSpeedMultiplier: 1
+    researchSpeedMultiplier: 1.04
+    combatPowerMultiplier: 1
+    moveSpeedMultiplier: 1
+    stayDurationMultiplier: 1
+    preferredFacilityRoles: 0
+    dislikedFacilityRoles: 0
+    preferredWorkTypes: 0
+    dislikedWorkTypes: 0
+  combatAbilities:
+    abilities: []
+  environmentalProtection:
+    comfortMinimumOffset: 0
+    comfortMaximumOffset: 0
+    safeMinimumOffset: 0
+    safeMaximumOffset: 0
+    coldExposureMultiplier: 1
+    heatExposureMultiplier: 1
+  incompatibilityGroups: []
+  behaviorPreferences:
+  - behaviorTag: work:training
+    utilityDelta: 0.45
+  moodReactions:
+  - triggerTag: event:first-success
+    moodDelta: 3
+    durationDays: 3
+  eventWeights:
+  - eventCategoryId: apprenticeship
+    multiplier: 1.35
+  references:
+    version: 2
+    RefIds: []

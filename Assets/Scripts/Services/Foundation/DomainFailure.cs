@@ -236,7 +236,40 @@ public enum FailureCode
     DefenseMaintenancePartMissing,
     DefenseRepairAmountInvalid,
     DefenseDestroyed,
-    DefenseTriggerUnsupported
+    DefenseTriggerUnsupported,
+
+    // V19 child-safety routing and supervised apprenticeship.
+    ChildSafetyLifeStateUnavailable,
+    ChildSafetyWorkForbidden,
+    ChildSafetyCombatForbidden,
+    ChildSafetyApprenticeshipDisabled,
+    ChildSafetyCharacterPermissionRequired,
+    ChildSafetyWorkConfirmationRequired,
+    ChildSafetyProtectiveEquipmentRequired,
+    ChildSafetySupervisorUnavailable,
+    ChildSafetySupervisorTooFar,
+    ChildSafetyAuthorizationInvalid,
+    ChildSafetyHazardEscapeDirectionInvalid,
+
+    // V19 physical population-health and crop-treatment commands.
+    PopulationHealthCharacterMissing,
+    VaccineDefinitionMissing,
+    VaccineDiseaseMismatch,
+    VaccineDoseUnavailable,
+    CropTreatmentDefinitionMissing,
+    CropTreatmentKindUnsupported,
+    CropTreatmentPlotMissing,
+    CropTreatmentSupplyUnavailable,
+    AgeTreatmentCharacterMissing,
+    AgeTreatmentDefinitionMissing,
+    AgeTreatmentProcedureMismatch,
+    AgeTreatmentSupplyUnavailable,
+    AgeTreatmentAnatomyUnavailable,
+    AgeTreatmentTooYoung,
+    AgeTreatmentCooldownActive,
+    TemporalStasisFacilityMissing,
+    TemporalStasisPowerInsufficient,
+    TemporalStasisMaintenanceUnavailable
 }
 
 /// <summary>

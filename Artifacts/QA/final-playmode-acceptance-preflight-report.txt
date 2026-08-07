@@ -1,6 +1,6 @@
 FINAL_PLAYMODE_PREFLIGHT RESULT=PASS
 targetCount=7
-captureCount=30
+captureCount=32
 consoleCaptureHealthy=True
 consoleWarnings=0
 consoleErrors=0
@@ -8,5 +8,5 @@ consoleExceptions=0
 consoleAsserts=0
 gateDetail=
 targetDetail=
-completedUtc=2026-08-06T05:09:44.5523412Z
+completedUtc=2026-08-07T09:17:12.7845146Z
 offendingLogPreview:

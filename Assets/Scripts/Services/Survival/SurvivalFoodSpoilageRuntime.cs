@@ -110,7 +110,10 @@ internal sealed class SurvivalFoodSpoilageRuntime
         return true;
     }
 
-    public void Process(DungeonSurvivalSaveData state, bool advanceTime = false)
+    public void Process(
+        DungeonSurvivalSaveData state,
+        SurvivalWeatherType weather,
+        bool advanceTime = false)
     {
         _ = state ?? throw new ArgumentNullException(nameof(state));
         foreach (WorldItemStackSnapshot stack in GetTrackableStacks())
@@ -122,9 +125,9 @@ internal sealed class SurvivalFoodSpoilageRuntime
             {
                 float environmentMultiplier = environmentalField.IsInitialized
                     ? environmentalField.GetFoodSpoilageMultiplier(stack.Position)
-                    : state.currentWeather == SurvivalWeatherType.HeatWave
+                    : weather == SurvivalWeatherType.HeatWave
                         ? 1.35f
-                        : state.currentWeather == SurvivalWeatherType.ColdSnap
+                        : weather == SurvivalWeatherType.ColdSnap
                             ? 0.45f
                             : 1f;
                 float dailyDelta = 180f * environmentMultiplier;

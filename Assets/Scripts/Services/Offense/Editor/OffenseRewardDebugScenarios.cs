@@ -545,6 +545,10 @@ public static class OffenseRewardDebugScenarios
         public void RegisterReturningMember(string expeditionId) { }
         public void CompleteReturningMember(string expeditionId) { }
         public void SealExpeditionReturn(string expeditionId) { }
+        public void RegisterBattlePrisonerCandidates(
+            string expeditionId,
+            IEnumerable<EnemyIndividualSaveData> individuals) { }
+        public void DiscardBattlePrisonerCandidates(string expeditionId) { }
 
         public int QueueArrival(
             string expeditionId,
@@ -626,7 +630,10 @@ public static class OffenseRewardDebugScenarios
                 OffenseEditorTestDependencies.CreateCombatEquipmentRuntime(),
                 bodyHealthQuery: null,
                 bodyHealthCommands: null,
-                offenseRegionRuntime: null);
+                offenseRegionRuntime: null,
+                enemyEncounterFactory: UnusedEnemyEncounterFactory.Instance,
+                enemyTactics: UnusedEnemyTactics.Instance,
+                returnArrivals: Context.ReturnArrivals);
             Expedition = new ExpeditionFixture(
                 WorldMap.Runtime,
                 Reward.Runtime,
@@ -640,18 +647,13 @@ public static class OffenseRewardDebugScenarios
             CharacterRole role,
             int statValue)
         {
-            CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
-            data.id = 9800 + objects.Count;
-            data.characterName = name;
-            data.characterType = type;
-            data.role = role;
-            data.speciesTag = "Orc";
-            data.baseStats = CharacterStatBlock.CreateDefault(statValue);
-            data.defaultWorkPriorities = WorkPriorityProfile.CreateDefault();
+            _ = role;
+            _ = statValue;
+            CharacterSO data =
+                OffenseEditorTestDependencies.RequireCharacterArchetype("Orc");
 
             GameObject obj = new GameObject(name);
             objects.Add(obj);
-            objects.Add(data);
             obj.AddComponent<SpriteRenderer>();
             CharacterActor character = obj.AddComponent<CharacterActor>();
             obj.AddComponent<AbilityMove>();
@@ -665,6 +667,7 @@ public static class OffenseRewardDebugScenarios
                 new GuidPersistentIdGenerator().NewCharacterId());
             character.RefreshAbilityCache();
             character.Initialization(data);
+            character.characterType = type;
             character.SetLifecycleState(CharacterLifecycleState.Active);
             character.stats[CharacterCondition.SLEEP] = 100f;
             character.stats[CharacterCondition.MOOD] = 100f;
@@ -957,5 +960,41 @@ public static class OffenseRewardDebugScenarios
             gameData = null;
             return false;
         }
+    }
+
+    private sealed class UnusedEnemyEncounterFactory : IEnemyEncounterFactory
+    {
+        public static readonly UnusedEnemyEncounterFactory Instance = new();
+
+        public EnemyEncounterComposition Create(
+            OffenseTargetDefinition target,
+            DungeonDifficulty difficulty,
+            string encounterContext,
+            OffenseRouteNode routeNode = null,
+            OffenseStrategicPressureSnapshot pressure = default) =>
+            throw new InvalidOperationException("This reward fixture does not start battles.");
+
+        public EnemyEncounterComposition Restore(
+            string encounterId,
+            IEnumerable<EnemyIndividualSaveData> individuals,
+            DungeonDifficulty difficulty,
+            OffenseRouteNode routeNode = null,
+            OffenseStrategicPressureSnapshot pressure = default) =>
+            throw new InvalidOperationException("This reward fixture does not restore battles.");
+
+        public string GetSummary(OffenseTargetDefinition target, string context) =>
+            string.Empty;
+    }
+
+    private sealed class UnusedEnemyTactics : IEnemyTacticalDecisionService
+    {
+        public static readonly UnusedEnemyTactics Instance = new();
+
+        public EnemyTacticalDecision Decide(
+            OffenseBattleSession session,
+            EnemyIndividualSaveData individual,
+            bool allowAbility = true) =>
+            throw new InvalidOperationException(
+                "This reward fixture does not execute enemy turns.");
     }
 }

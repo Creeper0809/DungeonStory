@@ -33,14 +33,14 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 6ec8bd6197e435143930223d379356f5, type: 3}
   abilityModules:
     items:
-    - rid: 7737211730889016045
-    - rid: 7737211730889016046
-    - rid: 7737211730889016047
-    - rid: 7737211730889016048
-    - rid: 7737211730889016049
-    - rid: 7737211730889016050
-    - rid: 7737211730889016051
-    - rid: 7737211730889016052
+    - rid: 7737211792998531230
+    - rid: 7737211792998531231
+    - rid: 7737211792998531232
+    - rid: 7737211792998531233
+    - rid: 7737211792998531234
+    - rid: 7737211792998531235
+    - rid: 7737211792998531236
+    - rid: 7737211792998531237
   width: 1
   height: 1
   layer: 12
@@ -56,13 +56,13 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730889016045
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531230
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: C09
-    - rid: 7737211730889016046
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531231
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 95
@@ -70,7 +70,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211730889016047
+    - rid: 7737211792998531232
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -82,21 +82,21 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: component:machine-parts
           amount: 3
-    - rid: 7737211730889016048
+    - rid: 7737211792998531233
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 10
         normallyOpen: 1
-    - rid: 7737211730889016049
+    - rid: 7737211792998531234
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 0.5
         priority: 4
         minimumSupplyFraction: 0.5
-    - rid: 7737211730889016050
+    - rid: 7737211792998531235
       type: {class: BuildingConveyorSegmentAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorSegmentAbility
@@ -115,13 +115,13 @@ MonoBehaviour:
         maximumFreshness01: 1
         allowContaminated: 1
         allowForbidden: 0
-    - rid: 7737211730889016051
+    - rid: 7737211792998531236
       type: {class: BuildingConveyorOverflowAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorOverflowAbility
         defaultPolicy: 0
         stallSeconds: 30
-    - rid: 7737211730889016052
+    - rid: 7737211792998531237
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

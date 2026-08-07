@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23de0c160ab9df54eb2ace98a4a93e08, type: 3}
+  m_Name: background_tenant-farmer
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterBackgroundDefinitionSO
+  stableId: background:tenant-farmer
+  displayName: "\uC18C\uC791\uB18D\uC758 \uC790\uC2DD"
+  description: "\uCC99\uBC15\uD55C \uBC2D\uC5D0\uC11C \uC218\uD655\uB7C9\uBCF4\uB2E4
+    \uD1A0\uC591\uACFC \uC774\uC6C3\uC744 \uBA3C\uC800 \uC0B4\uD53C\uB294 \uBC95\uC744
+    \uBC30\uC6E0\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  startingSkills:
+  - skillId: farming
+    experience: 80
+  startingEffects:
+  - kind: 1
+    targetId: background-confidence
+    amount: 2
+    durationDays: 10
+  factionReactions:
+  - id: faction:free-settlers
+    weight: 2
+  initialMemoryCode: memory:first-harvest

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 /// <summary>
@@ -14,17 +15,22 @@ public sealed class DoorAccessUnityAdapter :
     IDoorAccessStateChangeSink
 {
     private readonly DoorAccessService domain;
+    private readonly ICharacterAiWorldRegistry world;
 
-    public DoorAccessUnityAdapter(DoorAccessService domain)
+    public DoorAccessUnityAdapter(
+        DoorAccessService domain,
+        ICharacterAiWorldRegistry world)
     {
         this.domain = domain ?? throw new ArgumentNullException(nameof(domain));
+        this.world = world ?? throw new ArgumentNullException(nameof(world));
     }
 
     public int DoorAccessVersion => domain.DoorAccessVersion;
 
     public DoorAccessSubjectRef ResolveSubject(GridTraversalContext context)
     {
-        BuildingDoorAccessSubject subject = domain.ResolveSubject(context.Subject);
+        BuildingDoorAccessSubject subject = domain.ResolveSubject(
+            ResolveRuntimeSubject(context));
         if (!subject.IsValid)
         {
             return default;
@@ -44,7 +50,7 @@ public sealed class DoorAccessUnityAdapter :
     {
         return domain.CanUse(
             DoorAccessPolicyPortAdapter.Wrap(door),
-            context.Subject,
+            ResolveRuntimeSubject(context),
             (int)context.OverrideKind,
             out denialReason);
     }
@@ -134,6 +140,28 @@ public sealed class DoorAccessUnityAdapter :
         domain.ReplaceCapturedWildlifeSubjects(wildlifeIds);
 
     public void NotifyDoorPolicyChanged() => domain.NotifyDoorPolicyChanged();
+
+    private UnityEngine.Object ResolveRuntimeSubject(GridTraversalContext context)
+    {
+        if (context.SubjectKind == GridTraversalSubjectKind.Character)
+        {
+            return world.AllCharacters.FirstOrDefault(candidate =>
+                candidate != null
+                && candidate.BuildingCharacterId.Equals(context.CharacterId));
+        }
+
+        if (context.SubjectKind == GridTraversalSubjectKind.Wildlife)
+        {
+            return world.Wildlife.FirstOrDefault(candidate =>
+                candidate != null
+                && string.Equals(
+                    candidate.WildlifeId,
+                    context.WildlifeId,
+                    StringComparison.Ordinal));
+        }
+
+        return null;
+    }
 }
 
 internal sealed class DoorAccessPolicyPortAdapter : IBuildingDoorAccessPolicyPort

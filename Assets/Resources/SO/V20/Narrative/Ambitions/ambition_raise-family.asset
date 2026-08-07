@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f7513029e620ee4481ed23352a360f1, type: 3}
+  m_Name: ambition_raise-family
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterAmbitionDefinitionSO
+  stableId: ambition:raise-family
+  displayName: "\uC548\uC804\uD55C \uAC00\uC871"
+  description: "\uAC00\uC871\uC774 \uAD76\uAC70\uB098 \uD53C\uB09C\uD558\uC9C0 \uC54A\uC544\uB3C4
+    \uB418\uB294 \uC9D1\uC744 \uB9CC\uB4E4\uB824 \uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  category: 1
+  targetProgress: 220
+  activationRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters:
+    - minimumLifeStage: 3
+      maximumLifeStage: 4
+      requiredTraitId: 
+      excludedTraitId: 
+      minimumHealth: 0
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  failureConditions:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  completionRewards:
+  - kind: 5
+    targetId: household
+    amount: 1
+    durationDays: 0
+  relatedEventWeights:
+  - id: life-event:family-room
+    weight: 2
+  cooperationAmbitionIds: []
+  conflictAmbitionIds: []

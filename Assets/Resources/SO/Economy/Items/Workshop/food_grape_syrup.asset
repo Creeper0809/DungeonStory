@@ -32,26 +32,26 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 8
   features:
-  - rid: 7737211730889016148
-  - rid: 7737211730889016149
-  - rid: 7737211730889016150
+  - rid: 7737211792998531330
+  - rid: 7737211792998531331
+  - rid: 7737211792998531332
   references:
     version: 2
     RefIds:
-    - rid: 7737211730889016148
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531330
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:fermentation
-    - rid: 7737211730889016149
-      type: {class: FoodItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531331
+      type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         quality: 3
         nutrition: 24
         mood: 2
         freshnessSeconds: 1440
         preserved: 1
-    - rid: 7737211730889016150
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531332
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2
         ingredientTags: 1

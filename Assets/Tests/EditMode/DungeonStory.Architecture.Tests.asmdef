@@ -4,8 +4,13 @@
     "references": [
     "DungeonStory.Automation",
     "DungeonStory.Captivity",
+    "DungeonStory.CoreSession",
+    "DungeonStory.Economy",
     "DungeonStory.Foundation",
+    "DungeonStory.Grid",
+    "DungeonStory.Items",
     "DungeonStory.Production",
+    "DungeonStory.Species",
     "DungeonStory.Wildlife"
   ],
   "includePlatforms": [

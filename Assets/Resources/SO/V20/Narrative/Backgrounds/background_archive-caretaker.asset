@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23de0c160ab9df54eb2ace98a4a93e08, type: 3}
+  m_Name: background_archive-caretaker
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterBackgroundDefinitionSO
+  stableId: background:archive-caretaker
+  displayName: "\uBD09\uC778 \uAE30\uB85D\uACE0\uC9C0\uAE30"
+  description: "\uC77D\uC5B4\uC11C\uB294 \uC548 \uB420 \uC7A5\uBD80\uB97C \uBD84\uB958\uD558\uBA70
+    \uC9C0\uC2DD\uC758 \uAC00\uCE58\uC640 \uC704\uD5D8\uC744 \uBC30\uC6E0\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  startingSkills:
+  - skillId: research
+    experience: 90
+  startingEffects:
+  - kind: 1
+    targetId: background-confidence
+    amount: 2
+    durationDays: 10
+  factionReactions:
+  - id: faction:archive-conclave
+    weight: 2.6
+  initialMemoryCode: memory:sealed-ledger

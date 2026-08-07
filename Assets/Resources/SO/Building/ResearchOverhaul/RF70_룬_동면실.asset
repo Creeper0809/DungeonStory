@@ -1,0 +1,133 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: "RF70_\uB8EC_\uB3D9\uBA74\uC2E4"
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 8870
+  objectName: "\uB8EC \uB3D9\uBA74\uC2E4"
+  sprite: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
+  icon: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
+  abilityModules:
+    items:
+    - rid: 7737211793001939924
+    - rid: 7737211793001939925
+    - rid: 7737211793001939926
+    - rid: 7737211793001939927
+    - rid: 7737211793001939928
+    - rid: 7737211793001939929
+    - rid: 7737211793001939930
+    - rid: 7737211793001939931
+  width: 1
+  height: 1
+  layer: 1
+  category: 6
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  runtimeArchetype: 1
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 1.2
+  facilityAnchors:
+    slots: []
+  unlocked: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211793001939924
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: RF70
+    - rid: 7737211793001939925
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - research-overhaul
+        - research:medical:rune-hibernation
+        - workstation:v19:rune-hibernation
+    - rid: 7737211793001939926
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:v19:rune-hibernation
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211793001939927
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 4
+        outputCapacities: []
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}
+    - rid: 7737211793001939928
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingEconomyAbility
+        constructionValue: 0
+        constructionCost: 356
+        maintenance: 6
+        unlockPhase: 1
+        demolitionRefundRate: 0.5
+    - rid: 7737211793001939929
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 80
+          capacity: 1
+          useDuration: 1.5
+          requiredWorkers: 1
+          supportedWorkTypes: 0
+          disabledWhenDamaged: 1
+    - rid: 7737211793001939930
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingRoomRequirementAbility
+    - rid: 7737211793001939931
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 297
+        repairWorkRequired: 24
+        cleanWorkRequired: 8
+        researchWorkRequired: 6
+        operateWorkRequired: 12
+        constructionMaterials:
+        - itemId: material:stone-block
+          amount: 16
+        - itemId: material:steel-ingot
+          amount: 10
+        - itemId: component:precision-parts
+          amount: 6
+        - itemId: component:rune-conductor
+          amount: 4
+        - itemId: component:mana-shield-plate
+          amount: 2
+        - itemId: resource:mana-crystal
+          amount: 4
+        - itemId: component:engineering-drawing
+          amount: 2

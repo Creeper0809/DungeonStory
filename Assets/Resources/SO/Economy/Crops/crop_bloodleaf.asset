@@ -25,6 +25,10 @@ MonoBehaviour:
   cropId: crop:bloodleaf
   displayName: "\uD608\uC5FD"
   harvestItemId: resource:bloodleaf
+  seedItemId: seed-lot:bloodleaf
+  baseGenome: {fileID: 11400000, guid: 492fddf692c4b5f499aac16db74a7c55, type: 2}
+  familyGroup: 3
+  endemicDisease: 3
   requiredResearchId: research:pharmacology:herbalism
   growthHours: 46
   sowWork: 4

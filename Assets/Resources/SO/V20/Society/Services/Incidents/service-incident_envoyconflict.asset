@@ -1,0 +1,82 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69074ea910611b44eb00ba10ecbc3728, type: 3}
+  m_Name: service-incident_envoyconflict
+  m_EditorClassIdentifier: DungeonStory.Content::ServiceIncidentDefinitionSO
+  stableId: service-incident:envoyconflict
+  displayName: "\uC678\uAD50 \uC0AC\uC808 \uCDA9\uB3CC"
+  description: "\uC801\uB300 \uC138\uB825 \uC0AC\uC808\uC774 \uAC19\uC740 \uAC1D\uC2E4
+    \uAD6C\uC5ED\uC5D0\uC11C \uB9C8\uC8FC\uCCE4\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored faction/service manifest.
+  kind: 6
+  triggerRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  responses:
+  - choiceId: separate-envoys
+    title: "\uB3D9\uC120\uC744 \uBD84\uB9AC\uD55C\uB2E4"
+    outcomeText: "\uB3D9\uC120\uC744 \uBD84\uB9AC\uD55C\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 13
+      targetId: service-incident:envoyconflict
+      amount: 1
+      durationDays: 0
+  - choiceId: joint-talk
+    title: "\uACF5\uB3D9 \uD68C\uB2F4\uC744 \uC5F0\uB2E4"
+    outcomeText: "\uACF5\uB3D9 \uD68C\uB2F4\uC744 \uC5F0\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 6
+      targetId: affected-faction
+      amount: 5
+      durationDays: 0
+  - choiceId: choose-side
+    title: "\uD55C\uCABD\uC744 \uD1F4\uC2E4\uC2DC\uD0A8\uB2E4"
+    outcomeText: "\uD55C\uCABD\uC744 \uD1F4\uC2E4\uC2DC\uD0A8\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 7
+      targetId: affected-faction
+      amount: 8
+      durationDays: 0

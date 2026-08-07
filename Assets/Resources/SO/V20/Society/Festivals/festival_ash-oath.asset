@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32c13160994648f4d837f914ae04f4c5, type: 3}
+  m_Name: festival_ash-oath
+  m_EditorClassIdentifier: DungeonStory.Species::FestivalDefinitionSO
+  festivalId: festival:ash-oath
+  displayName: "\uC7AC\uC758 \uB9F9\uC138\uC77C"
+  description: "\uC545\uB9C8\uB4E4\uC774 \uC9C0\uB09C \uACC4\uC57D\uC744 \uAC80\uD1A0\uD558\uACE0
+    \uC9C0\uD0AC \uC57D\uC18D\uB9CC \uB2E4\uC2DC \uBD09\uC778\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored festival manifest.
+  season: 3
+  dayOfSeason: 12
+  convertsActiveGrief: 0
+  cultureId: culture:demon-contract
+  requiredBuildingDefinitionId: building:faction-audience-hall
+  requiredItems:
+  - itemDefinitionId: material:paper
+    amount: 12
+  minimumParticipants: 6
+  successOutcome:
+    moodDelta: 6
+    moodDurationDays: 10
+    factionRapportDelta: 0
+    griefConversionPercent: 0
+  partialOutcome:
+    moodDelta: 2
+    moodDurationDays: 5
+    factionRapportDelta: 0
+    griefConversionPercent: 0
+  failureOutcome:
+    moodDelta: -3
+    moodDurationDays: 4
+    factionRapportDelta: 0
+    griefConversionPercent: 0

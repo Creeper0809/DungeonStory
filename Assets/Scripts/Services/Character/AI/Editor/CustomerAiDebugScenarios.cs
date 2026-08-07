@@ -426,7 +426,7 @@ public static class CustomerAiDebugScenarios
         BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(4, 0));
         Shop shop = general as Shop;
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 20f);
-        CharacterActor calmCustomer = world.CreateCustomer("CalmSlime", new Vector2Int(1, 0), 90f, 90f, 90f, 90f);
+        CharacterActor calmCustomer = world.CreateCustomer("Slime", new Vector2Int(1, 0), 90f, 90f, 90f, 90f);
         AbilityShopping shopping = customer.GetAbility<AbilityShopping>();
         GridPathSearchResult searchResult = world.Grid.SearchPath(Vector2Int.zero);
 
@@ -461,7 +461,7 @@ public static class CustomerAiDebugScenarios
         BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(4, 0));
         Shop shop = general as Shop;
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 20f);
-        CharacterActor calmCustomer = world.CreateCustomer("CalmSlime", new Vector2Int(1, 0), 90f, 90f, 90f, 90f);
+        CharacterActor calmCustomer = world.CreateCustomer("Slime", new Vector2Int(1, 0), 90f, 90f, 90f, 90f);
         AbilityShopping shopping = customer.GetAbility<AbilityShopping>();
         GridPathSearchResult searchResult = world.Grid.SearchPath(Vector2Int.zero);
 
@@ -1336,7 +1336,10 @@ public static class CustomerAiDebugScenarios
             CharacterAiEditorTestDependencies.Inject(obj);
             CharacterAwakeMethod?.Invoke(character, null);
 
-            CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
+            CharacterSO data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+                CharacterType.Customer,
+                speciesTag,
+                speciesTag);
             scriptableObjects.Add(data);
             SetPrivateField(data, "frequencyVisitMin", 3);
             SetPrivateField(data, "frequencyVisitMax", 3);
@@ -1377,7 +1380,10 @@ public static class CustomerAiDebugScenarios
             CharacterAiEditorTestDependencies.Inject(obj);
             CharacterAwakeMethod?.Invoke(character, null);
 
-            CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
+            CharacterSO data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+                CharacterType.NPC,
+                name,
+                "Slime");
             scriptableObjects.Add(data);
             data.characterType = CharacterType.NPC;
             data.characterName = name;

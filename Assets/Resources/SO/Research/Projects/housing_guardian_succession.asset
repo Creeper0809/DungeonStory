@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: housing_guardian_succession
+  m_EditorClassIdentifier: DungeonStory.Research::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7283
+  projectId: research:housing:guardian-succession
+  displayName: "\uBCF4\uD638\uC790 \uC2B9\uACC4"
+  description: "\uAC00\uC871 \uAD6C\uD68D\uACFC \uC9D1\uBB34\xB7\uC138\uB300 \uAE30\uB85D\uC73C\uB85C
+    \uBCF4\uD638\uC790 \uC2B9\uACC4\uB97C \uAD00\uB9AC\uD55C\uB2E4."
+  field: 5
+  requiredWork: 560
+  prerequisites:
+  - {fileID: 11400000, guid: 88950de57b4caed4f96bf046b4a6798f, type: 2}
+  - {fileID: 11400000, guid: ed3bf00ea8cafba4493f2653f02d22c1, type: 2}
+  - {fileID: 11400000, guid: b628440602c1fa74686c7cef46ade579, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:authority:office
+    prerequisite: {fileID: 11400000, guid: 88950de57b4caed4f96bf046b4a6798f, type: 2}
+    kind: 2
+    reason: "\uC601\uC8FC \uC9D1\uBB34\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uBCF4\uD638\uC790 \uC2B9\uACC4 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:housing:family-quarters
+    prerequisite: {fileID: 11400000, guid: ed3bf00ea8cafba4493f2653f02d22c1, type: 2}
+    kind: 2
+    reason: "\uAC00\uC871 \uC0DD\uD65C\uAD6C\uD68D\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uBCF4\uD638\uC790 \uC2B9\uACC4 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:society:generation-management
+    prerequisite: {fileID: 11400000, guid: b628440602c1fa74686c7cef46ade579, type: 2}
+    kind: 2
+    reason: "\uC138\uB300 \uAD00\uB9AC\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uBCF4\uD638\uC790 \uC2B9\uACC4 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7737211793001939322
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 1
+    requiredCount: 1
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211793001939322
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 8884

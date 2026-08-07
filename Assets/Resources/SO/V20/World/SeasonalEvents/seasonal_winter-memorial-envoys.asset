@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 454c3edcc06dfbe40b8088f448f07f38, type: 3}
+  m_Name: seasonal_winter-memorial-envoys
+  m_EditorClassIdentifier: DungeonStory.Content::SeasonalWorldEventDefinitionSO
+  stableId: seasonal:winter-memorial-envoys
+  displayName: "\uCD94\uBAA8 \uC0AC\uC808\uB2E8"
+  description: "\uC138\uB825 \uC0AC\uC808\uB4E4\uC774 \uACF5\uB3D9 \uCD94\uBAA8\uC5D0
+    \uCC38\uC5EC\uD558\uBA70 \uC624\uB798\uB41C \uC6D0\uD55C\uC758 \uCC98\uB9AC\uB97C
+    \uC694\uAD6C\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored seasonal world event manifest.
+  season: 3
+  minimumDurationDays: 1
+  maximumDurationDays: 2
+  affectedDomainIds:
+  - faction
+  - psychosocial
+  triggerRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  startEffects:
+  - kind: 6
+    targetId: faction:dungeon:golem
+    amount: 5
+    durationDays: 2
+  dailyEffects: []
+  endEffects:
+  - kind: 12
+    targetId: resolved:seasonal:winter-memorial-envoys
+    amount: 1
+    durationDays: 0

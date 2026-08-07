@@ -727,7 +727,9 @@ internal sealed class CharacterSafeDrinkPlanner
                 destination,
                 out path,
                 GridPathSearchPriority.Urgent,
-                GridTraversalContext.ForCharacter(actor));
+                GridTraversalContext.ForCharacter(
+                    CharacterPersistentIdentity.Require(actor),
+                    movementIntent: GridMovementIntent.SafeChore));
         }
         if (requestStatus == GridPathRequestStatus.Pending)
         {
@@ -762,7 +764,9 @@ internal sealed class CharacterSafeDrinkPlanner
         int direction = destination.x > origin.x ? 1 : -1;
         int stepCount = Mathf.Abs(destination.x - origin.x);
         GridTraversalContext traversalContext =
-            GridTraversalContext.ForCharacter(actor);
+            GridTraversalContext.ForCharacter(
+                CharacterPersistentIdentity.Require(actor),
+                movementIntent: GridMovementIntent.SafeChore);
         Vector2Int current = origin;
         for (int stepIndex = 0; stepIndex < stepCount; stepIndex++)
         {

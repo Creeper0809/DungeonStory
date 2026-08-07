@@ -154,8 +154,8 @@ public static class IndustrialInfrastructureDebugScenarios
             .Select(AssetDatabase.LoadAssetAtPath<ResearchProjectSO>)
             .Where(project => project != null)
             .ToArray();
-        Require(projects.Length == 168,
-            $"Expected 168 research projects, got {projects.Length}.");
+        Require(projects.Length == 216,
+            $"Expected 216 research projects, got {projects.Length}.");
         Require(projects.Select(project => project.ProjectId.Value)
                 .Distinct(StringComparer.Ordinal)
                 .Count()
@@ -166,8 +166,8 @@ public static class IndustrialInfrastructureDebugScenarios
             "A research project has an invalid reference or blueprint rule.");
         int industryCount = projects.Count(project =>
             project.Field == ResearchField.IndustryAndAutomation);
-        Require(industryCount == 45,
-            $"Expected 45 industry and automation projects, got {industryCount}.");
+        Require(industryCount == 46,
+            $"Expected 46 industry and automation projects, got {industryCount}.");
         int waterCount = projects.Count(project =>
             project.Field == ResearchField.WaterAndSanitation);
         Require(waterCount == 9,

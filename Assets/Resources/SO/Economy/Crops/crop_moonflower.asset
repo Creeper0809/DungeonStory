@@ -25,6 +25,10 @@ MonoBehaviour:
   cropId: crop:moonflower
   displayName: "\uC6D4\uD654"
   harvestItemId: resource:moonflower
+  seedItemId: seed-lot:moonflower
+  baseGenome: {fileID: 11400000, guid: 3f044f32083f2f444b64d91a811ec515, type: 2}
+  familyGroup: 3
+  endemicDisease: 3
   requiredResearchId: research:pharmacology:herbalism
   growthHours: 60
   sowWork: 5

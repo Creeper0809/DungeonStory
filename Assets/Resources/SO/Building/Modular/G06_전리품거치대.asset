@@ -40,10 +40,10 @@ MonoBehaviour:
     - rid: 7737211730834227536
     - rid: 7737211730834227537
     - rid: 7737211730834227538
-    - rid: 7737211730889015874
-    - rid: 7737211730889015875
-    - rid: 7737211730889015876
-    - rid: 7737211730889015877
+    - rid: 7737211792661414901
+    - rid: 7737211792661414902
+    - rid: 7737211792661414903
+    - rid: 7737211792661414904
   width: 1
   height: 1
   layer: 3
@@ -60,18 +60,18 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730834227532
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: G06
     - rid: 7737211730834227533
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - loot-appraisal
     - rid: 7737211730834227534
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 110
@@ -126,21 +126,21 @@ MonoBehaviour:
         abilityId: BuildingSecurityAbility
         maxAlarmCharges: 3
         chargesPerGuardWork: 1
-    - rid: 7737211730889015874
+    - rid: 7737211792661414901
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7737211730889015875
+    - rid: 7737211792661414902
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7737211730889015876
+    - rid: 7737211792661414903
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -151,7 +151,7 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7737211730889015877
+    - rid: 7737211792661414904
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility

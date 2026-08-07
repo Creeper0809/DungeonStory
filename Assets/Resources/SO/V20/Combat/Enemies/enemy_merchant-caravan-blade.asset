@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8080a982ba741ff4e8ae644f419d70cb, type: 3}
+  m_Name: enemy_merchant-caravan-blade
+  m_EditorClassIdentifier: DungeonStory.Offense::EnemyArchetypeDefinitionSO
+  stableId: enemy:merchant-caravan-blade
+  displayName: "\uAE08\uD654\uB3D9\uB9F9 \uB300\uC0C1\uAC80"
+  description: "\uD654\uBB3C\uC744 \uBC84\uB9AC\uC9C0 \uC54A\uACE0 \uC704\uD611\uC744
+    \uBC00\uC5B4\uB0B8\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored enemy archetype.
+  factionId: human:merchant
+  speciesTag: Human
+  role: 0
+  maxHealth: 86
+  attack: 8
+  strength: 6.8
+  toughness: 6
+  dexterity: 7
+  moveSpeed: 4.5
+  equipment:
+    weaponDefinitionId: weapon:falchion
+    armorDefinitionId: armor:leather
+    shieldDefinitionId: 
+    ammunitionItemId: 
+  abilityIds:
+  - enemy-ability:charge
+  tacticalProfile:
+    attackWeight: 4
+    protectWeight: 1
+    abilityWeight: 3
+    retreatWeight: 2
+    retreatHealthFraction: 0.2
+    preferredTargetTags:
+    - nearest
+    avoidedTargetTags:
+    - none
+    formationTag: cargo-front
+  counterTags:
+  - counter:brace
+  rewardItemIds:
+  - loot:enemy-salvage
+  bossPhases: []
+  individualGeneration:
+    minimumGeneralTraits: 2
+    maximumGeneralTraits: 3
+    minimumExpressedHeritableTraits: 0
+    maximumExpressedHeritableTraits: 2
+    maximumLatentHeritableTraits: 1
+    aptitudeVariance: 15
+    combatStatVariance: 0.12
+    minimumLoyalty: 20
+    maximumLoyalty: 75
+    recruitable: 1
+    militaryTrainingId: training:merchant-caravan-blade
+    allowedBackgroundIds: []

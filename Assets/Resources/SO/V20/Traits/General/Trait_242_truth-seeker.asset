@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d73e94ec113318588b25eed8f9f9ee0, type: 3}
+  m_Name: Trait_242_truth-seeker
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterTraitSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 242
+  traitName: "\uC9C4\uC2E4 \uC9D1\uCC29"
+  description: "\uD3C9\uD310 \uC190\uD574\uB97C \uAC10\uC218\uD558\uACE0 \uC228\uACA8\uC9C4
+    \uAE30\uB85D\uACFC \uBAA8\uC21C\uC744 \uD30C\uD5E4\uCE5C\uB2E4."
+  statBonus:
+    entries: []
+  modifiers:
+    consumptionMultiplier: 1
+    spendingMultiplier: 1
+    waitPatienceMultiplier: 1
+    crowdSensitivityMultiplier: 1
+    accidentChanceMultiplier: 1
+    workSpeedMultiplier: 1
+    researchSpeedMultiplier: 1.05
+    combatPowerMultiplier: 1
+    moveSpeedMultiplier: 1
+    stayDurationMultiplier: 1
+    preferredFacilityRoles: 0
+    dislikedFacilityRoles: 0
+    preferredWorkTypes: 0
+    dislikedWorkTypes: 0
+  combatAbilities:
+    abilities: []
+  environmentalProtection:
+    comfortMinimumOffset: 0
+    comfortMaximumOffset: 0
+    safeMinimumOffset: 0
+    safeMaximumOffset: 0
+    coldExposureMultiplier: 1
+    heatExposureMultiplier: 1
+  incompatibilityGroups: []
+  behaviorPreferences:
+  - behaviorTag: research:forbidden-record
+    utilityDelta: 0.55
+  moodReactions:
+  - triggerTag: event:truth-revealed
+    moodDelta: 4
+    durationDays: 3
+  eventWeights:
+  - eventCategoryId: discovery
+    multiplier: 1.5
+  references:
+    version: 2
+    RefIds: []

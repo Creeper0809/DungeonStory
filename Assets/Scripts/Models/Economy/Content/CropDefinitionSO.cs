@@ -10,6 +10,10 @@ public sealed class CropDefinitionSO : DataScriptableObject
     [SerializeField] private string cropId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [SerializeField] private string harvestItemId = string.Empty;
+    [SerializeField] private string seedItemId = string.Empty;
+    [SerializeField] private CropGenomeDefinitionSO baseGenome;
+    [SerializeField] private CropFamilyGroup familyGroup;
+    [SerializeField] private CropDiseaseKind endemicDisease;
     [SerializeField] private string requiredResearchId = string.Empty;
     [Min(1f), SerializeField] private float growthHours = 24f;
     [Min(0.1f), SerializeField] private float sowWork = 4f;
@@ -22,6 +26,10 @@ public sealed class CropDefinitionSO : DataScriptableObject
     public string CropId => cropId?.Trim() ?? string.Empty;
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? CropId : displayName.Trim();
     public string HarvestItemId => harvestItemId?.Trim() ?? string.Empty;
+    public string SeedItemId => seedItemId?.Trim() ?? string.Empty;
+    public CropGenomeDefinitionSO BaseGenome => baseGenome;
+    public CropFamilyGroup FamilyGroup => familyGroup;
+    public CropDiseaseKind EndemicDisease => endemicDisease;
     public string RequiredResearchId => requiredResearchId?.Trim() ?? string.Empty;
     public float GrowthHours => Mathf.Max(1f, growthHours);
     public float SowWork => Mathf.Max(0.1f, sowWork);
@@ -58,6 +66,18 @@ public sealed class CropDefinitionSO : DataScriptableObject
         yield = Mathf.Max(1, harvestYield);
         indoorAllowed = allowIndoor;
         temperatureRange = temperatures;
+    }
+
+    public void ConfigureEcology(
+        string physicalSeedItemId,
+        CropGenomeDefinitionSO authoredBaseGenome,
+        CropFamilyGroup group,
+        CropDiseaseKind disease)
+    {
+        seedItemId = physicalSeedItemId?.Trim() ?? string.Empty;
+        baseGenome = authoredBaseGenome;
+        familyGroup = group;
+        endemicDisease = disease;
     }
 #endif
 }

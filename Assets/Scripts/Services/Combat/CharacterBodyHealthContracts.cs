@@ -70,10 +70,20 @@ public interface ICharacterBodyHealthCommand
         float amount,
         string reason,
         bool allowDeath);
+    void ApplyLegacyDamageWithCause(
+        CharacterActor actor,
+        float amount,
+        CharacterDeathCauseCode deathCause,
+        string reasonCode,
+        bool allowDeath);
     void HealLegacyVitals(CharacterActor actor, float amount);
     void ScaleLegacyVitals(CharacterActor actor, float multiplier);
     void SetLegacyInjurySeverity(CharacterActor actor, float injurySeverity);
     void Kill(CharacterActor actor, string reason);
+    void Kill(
+        CharacterActor actor,
+        CharacterDeathCauseCode cause,
+        string reasonCode);
     void ApplyCombatResult(CharacterActor target, CombatAttackResult result, string reason);
     void ApplySnapshot(CharacterActor target, CharacterBodyHealthSnapshot snapshot, string reason);
     void AddSuppression(CharacterActor target, float amount);

@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11ae014e162ff064183241287201fd7b, type: 3}
+  m_Name: life-event_apprentice-mistake
+  m_EditorClassIdentifier: DungeonStory.Content::LifeEventDefinitionSO
+  stableId: life-event:apprentice-mistake
+  displayName: "\uB3C4\uC81C\uC758 \uD070 \uC2E4\uC218"
+  description: "\uB3C4\uC81C\uAC00 \uADC0\uD55C \uC911\uAC04\uC7AC \uD55C \uBB36\uC74C\uC744
+    \uB9DD\uCE58\uACE0 \uBCF4\uACE0\uB97C \uB9DD\uC124\uC778\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  category: 1
+  automatic: 0
+  emergency: 0
+  responseDeadlineDays: 3
+  cooldownDays: 90
+  frequencyRule: 1
+  triggerRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  choices:
+  - choiceId: first
+    title: "\uC190\uC2E4\uC744 \uAC10\uC218\uD558\uACE0 \uC6D0\uC778\uC744 \uAC00\uB974\uCE5C\uB2E4"
+    outcomeText: "\uC190\uC2E4\uC744 \uAC10\uC218\uD558\uACE0 \uC6D0\uC778\uC744
+      \uAC00\uB974\uCE5C\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 3
+      targetId: life-event:apprentice-mistake
+      amount: 25
+      durationDays: 0
+  - choiceId: second
+    title: "\uC7AC\uB8CC \uD68C\uC218 \uC791\uC5C5\uC744 \uB9E1\uAE34\uB2E4"
+    outcomeText: "\uC7AC\uB8CC \uD68C\uC218 \uC791\uC5C5\uC744 \uB9E1\uAE34\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 1
+      targetId: life-event:apprentice-mistake
+      amount: -4
+      durationDays: 0
+  automaticEffects: []

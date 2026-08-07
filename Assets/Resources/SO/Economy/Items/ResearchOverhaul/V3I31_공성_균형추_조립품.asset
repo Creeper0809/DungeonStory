@@ -32,17 +32,17 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 72
   features:
-  - rid: 7737211730927813341
-  - rid: 7737211730927813342
+  - rid: 7737211794726584987
+  - rid: 7737211794726584988
   references:
     version: 2
     RefIds:
-    - rid: 7737211730927813341
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726584987
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:mechanical-projectiles
-    - rid: 7737211730927813342
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726584988
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 512

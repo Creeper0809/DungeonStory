@@ -52,6 +52,9 @@ MonoBehaviour:
     visualStrainMultiplier: 1
     preferredHumidity: 0.5
     drynessSensitivity: 1
+  lifeHistory: {fileID: 11400000, guid: a15b4d1fda8bc15408d8e6f8da762004, type: 2}
+  reproduction: {fileID: 11400000, guid: cd8af9c854e5b814383231682ca93624, type: 2}
+  funeralCulture: {fileID: 11400000, guid: 87ca3d5b77f7d2448938e220d5f8cebc, type: 2}
   relationTags:
   - "\uC18C\uC74C"
   - "\uD63C\uC7A1"
@@ -87,6 +90,14 @@ MonoBehaviour:
   incidentName: "\uC624\uD06C \uB09C\uB3D9"
   incidentDescription: 
   incidentMitigatingRoles: 1032
+  combatPassive:
+    passiveId: species-passive:orc
+    displayName: "\uC804\uC120 \uBCF8\uB2A5"
+    description: "\uC804\uC120 \uC800\uC9C0\uC640 \uBB3C\uB9AC\xB7\uD654\uC5FC \uC2DC\uC124
+      \uC6B4\uC6A9\uC5D0 \uAC15\uD558\uB2E4."
+    mechanicTags:
+    - "\uC800\uC9C0"
+    - "\uBB3C\uB9AC"
   statBonus:
     entries:
     - statId: stat:attack
@@ -122,14 +133,6 @@ MonoBehaviour:
     dislikedFacilityRoles: 48
     preferredWorkTypes: 36
     dislikedWorkTypes: 24
-  combatPassive:
-    passiveId: species-passive:orc
-    displayName: "\uC804\uC120 \uBCF8\uB2A5"
-    description: "\uC804\uC120 \uC800\uC9C0\uC640 \uBB3C\uB9AC\xB7\uD654\uC5FC \uC2DC\uC124
-      \uC6B4\uC6A9\uC5D0 \uAC15\uD558\uB2E4."
-    mechanicTags:
-    - "\uC800\uC9C0"
-    - "\uBB3C\uB9AC"
   combatAbilities:
     abilities: []
   references:

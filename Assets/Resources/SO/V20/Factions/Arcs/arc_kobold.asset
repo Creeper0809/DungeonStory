@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a4736fd02ec5ef4d9ce05fab2aec349, type: 3}
+  m_Name: arc_kobold
+  m_EditorClassIdentifier: DungeonStory.Content::FactionArcDefinitionSO
+  stableId: faction-arc:kobold
+  displayName: "\uAE4A\uC740\uD1B1\uB2C8 \uAD74"
+  description: "\uB3C4\uAD6C\uC640 \uC124\uACC4\uC758 \uC18C\uC720\uB97C \uC528\uC871\uC774
+    \uAC00\uC9C8\uC9C0 \uC81C\uC791\uC790\uAC00 \uAC00\uC9C8\uC9C0 \uB2E4\uD230\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored faction/service manifest.
+  factionId: faction:dungeon:kobold
+  chapterIds:
+  - faction-chapter:kobold:1
+  - faction-chapter:kobold:2
+  - faction-chapter:kobold:3
+  - faction-chapter:kobold:4
+  - faction-chapter:kobold:5
+  - faction-chapter:kobold:6
+  contractIds:
+  - faction-contract:kobold:supply
+  - faction-contract:kobold:crisis
+  - faction-contract:kobold:strategic
+  relicItemIds:
+  - relic:faction:kobold:1
+  - relic:faction:kobold:2
+  - relic:faction:kobold:3

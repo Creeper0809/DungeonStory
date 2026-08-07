@@ -709,7 +709,10 @@ public static class CharacterProgressionDebugScenarios
                 settingsProvider,
                 new CharacterProgressionProfileProjector(
                     new ResourceGameContentCatalog(
-                        new UnityGameContentRootLoader())));
+                        new UnityGameContentRootLoader()),
+                    new CharacterRuntimeProfileFactory(
+                        new ResourceGameContentCatalog(
+                            new UnityGameContentRootLoader()))));
             progression.ApplyPreparedIdentity(
                 "검증자",
                 "테스트",
@@ -864,7 +867,10 @@ public static class CharacterProgressionDebugScenarios
                 settingsProvider,
                 new CharacterProgressionProfileProjector(
                     new ResourceGameContentCatalog(
-                        new UnityGameContentRootLoader())));
+                        new UnityGameContentRootLoader()),
+                    new CharacterRuntimeProfileFactory(
+                        new ResourceGameContentCatalog(
+                            new UnityGameContentRootLoader()))));
             source.ApplyPreparedIdentity(
                 "재시도 원본",
                 "테스트",
@@ -918,7 +924,10 @@ public static class CharacterProgressionDebugScenarios
                 gameEventBus: new GameEventBus(),
                 profileProjector: new CharacterProgressionProfileProjector(
                     new ResourceGameContentCatalog(
-                        new UnityGameContentRootLoader())));
+                        new UnityGameContentRootLoader()),
+                    new CharacterRuntimeProfileFactory(
+                        new ResourceGameContentCatalog(
+                            new UnityGameContentRootLoader()))));
             restored.RestorePersistentState(new CharacterProgressionSnapshot(
                 1,
                 0,
@@ -1096,7 +1105,10 @@ public static class CharacterProgressionDebugScenarios
                 gameEventBus: new GameEventBus(),
                 profileProjector: new CharacterProgressionProfileProjector(
                     new ResourceGameContentCatalog(
-                        new UnityGameContentRootLoader())));
+                        new UnityGameContentRootLoader()),
+                    new CharacterRuntimeProfileFactory(
+                        new ResourceGameContentCatalog(
+                            new UnityGameContentRootLoader()))));
             Actor.RefreshAbilityCache();
             Actor.Identity.SetPersistentId($"character:qa-{id}");
             Actor.Initialization(data);
@@ -1323,6 +1335,9 @@ public static class CharacterPopulationDebugScenarios
         Require(fixture.Service.Profiles.Count == fixture.Settings.guestReadyTarget
             && fixture.Service.Profiles.All(profile => profile.IsReady),
             "The initial ready pool was not prepared to the configured target.");
+        Require(fixture.LifePublication.CharacterIds.SetEquals(
+                fixture.Service.Profiles.Select(profile => profile.persistentId)),
+            "Every persisted ready-pool profile must publish exactly one V19 life record.");
 
         while (acquired.Count < fixture.Settings.maximumAliveNonStaffGuests)
         {
@@ -1545,13 +1560,16 @@ public static class CharacterPopulationDebugScenarios
             Settings.maximumAliveNonStaffGuests = 24;
             UnityGameContentRootLoader loader = new UnityGameContentRootLoader();
             ResourceGameContentCatalog content = new ResourceGameContentCatalog(loader);
+            LifePublication = new RecordingCharacterLifePublicationService();
             CharacterPopulationApplicationAdapter adapter = new(
                 new PopulationSettingsProvider(Settings),
                 content,
                 new ImmediateSkillGenerationService(),
-                EditorRuntimeReferenceFixtures.DungeonWithRunVariables,
+                new FixedPopulationRunSeedProvider(1),
                 new MissingFactionContractQuery(),
-                new ResourceRunCharacterCatalog(content));
+                new ResourceRunCharacterCatalog(content),
+                new CharacterRuntimeProfileFactory(content),
+                LifePublication);
             Service = new CharacterPopulationService(adapter);
             Customers = content.GetAll<CharacterSO>()
                 .Where(candidate => candidate != null && candidate.characterType == CharacterType.Customer)
@@ -1563,11 +1581,52 @@ public static class CharacterPopulationDebugScenarios
         public CharacterSkillSystemSettingsSO Settings { get; }
         public CharacterPopulationService Service { get; }
         public CharacterSO[] Customers { get; }
+        public RecordingCharacterLifePublicationService LifePublication { get; }
 
         public void Dispose()
         {
             Service.Dispose();
             UnityEngine.Object.DestroyImmediate(Settings);
+        }
+
+        public sealed class RecordingCharacterLifePublicationService :
+            ICharacterLifePublicationService
+        {
+            public HashSet<string> CharacterIds { get; } =
+                new(StringComparer.Ordinal);
+
+            public void EnsureRegistered(CharacterActor actor)
+            {
+                if (actor == null)
+                {
+                    throw new ArgumentNullException(nameof(actor));
+                }
+
+                CharacterIds.Add(CharacterPersistentIdentity.Require(actor).Value);
+            }
+
+            public void EnsureRegistered(
+                CharacterId characterId,
+                CharacterSpeciesId phenotypeSpeciesId)
+            {
+                if (!characterId.IsValid || !phenotypeSpeciesId.IsValid)
+                {
+                    throw new ArgumentException(
+                        "Population fixture requires valid life IDs.");
+                }
+
+                CharacterIds.Add(characterId.Value);
+            }
+        }
+
+        private sealed class FixedPopulationRunSeedProvider : IRunSeedProvider
+        {
+            public FixedPopulationRunSeedProvider(int runSeed)
+            {
+                RunSeed = runSeed;
+            }
+
+            public int RunSeed { get; }
         }
     }
 

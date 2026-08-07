@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cd719baf9d04ed9954c2d0940108e41, type: 3}
+  m_Name: wildlife_carrion_drake
+  m_EditorClassIdentifier: DungeonStory.Wildlife::WildlifeSpeciesSO
+  speciesId: carrion_drake
+  displayName: "\uC2DC\uCCB4\uCCAD\uC18C \uBE44\uB8E1"
+  description: "\uC804\uC7A5\uACFC \uB3C4\uC0B4\uC7A5\uC758 \uC0AC\uCCB4\uB97C \uCC3E\uC544\uC624\uBA70
+    \uBCD1\uC6D0\uCCB4\uB97C \uBA3C \uAC70\uB9AC\uB85C \uC62E\uAE34\uB2E4."
+  sprite: {fileID: 0}
+  maxHealth: 10
+  moveSpeed: 1
+  fearSensitivity: 1
+  aggression: 0.8
+  retaliationDamage: 0
+  spawnWeight: 1
+  herdSize: 1
+  canEnterDungeon: 0
+  carcassWeight: 4
+  diet: 3
+  preferredHabitats: 0400000003000000
+  territoryRadius: 6
+  dailyFoodNeed: 1
+  dailyWaterNeed: 1
+  restPreference: 0.45
+  predationDrive: 0.8
+  fleePreference: 0.55
+  butcherYields: []
+  domesticable: 0
+  tamingDifficulty: 0.45
+  adultAgeDays: 4
+  maximumAgeDays: 40
+  gestationDays: 4
+  laysEggs: 0
+  bodySize: 1
+  manureIntervalDays: 2
+  husbandryProducts: []
+  authoringRevision: 1
+  preySpeciesIds:
+  - cave_rat
+  - shadow_hare
+  predatorSpeciesIds: []
+  nestTag: nest:high-bone-pile
+  breedingSeason: 2
+  migrationPatternId: migration:battlefield-scent
+  diseaseVectorIds:
+  - disease:gut-rot
+  activeSeasons: 0200000003000000

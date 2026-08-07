@@ -1,7 +1,29 @@
+using System;
+using System.Linq;
 using DungeonStory.Foundation;
+using UnityEditor;
 
 internal static class OffenseEditorTestDependencies
 {
+    public static CharacterSO RequireCharacterArchetype(
+        string speciesTag,
+        CharacterRole role = CharacterRole.Regular)
+    {
+        CharacterSO definition = AssetDatabase
+            .FindAssets("t:CharacterSO", new[] { "Assets/Resources/SO/Character" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<CharacterSO>)
+            .FirstOrDefault(candidate => candidate != null
+                && candidate.species != null
+                && candidate.role == role
+                && string.Equals(
+                    candidate.SpeciesTag,
+                    speciesTag,
+                    StringComparison.OrdinalIgnoreCase));
+        return definition ?? throw new InvalidOperationException(
+            $"No authored {role} character archetype exists for species '{speciesTag}'.");
+    }
+
     public static IOffenseCampaignCatalog CreateCampaignCatalog() =>
         new ResourceOffenseCampaignCatalog(
             new ResourceGameContentCatalog(

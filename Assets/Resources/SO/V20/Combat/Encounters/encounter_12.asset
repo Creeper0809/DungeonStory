@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11a7078c65d29414ebfafd36d0865407, type: 3}
+  m_Name: encounter_12
+  m_EditorClassIdentifier: DungeonStory.Offense::OffenseEncounterSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8012
+  encounterId: encounter:12
+  displayName: "\uC131\uD654 \uACB0\uACC4\uAE30\uC0AC \uC804\uC220 \uC870\uC6B0"
+  minimumSiteStrength: 3
+  maximumSiteStrength: 6
+  elite: 0
+  boss: 1
+  objective: 5
+  objectiveRoundLimit: 6
+  objectiveTargetId: enemy:inquisition-ward-knight
+  battlefieldModifierIds:
+  - battlefield:collapsing-ceiling
+  counterTags:
+  - counter:physical-burst
+  rewardItemIds:
+  - loot:enemy-salvage
+  enemies:
+  - enemyArchetypeId: enemy:inquisition-ward-knight
+    minimumCount: 1
+    maximumCount: 1
+  - enemyArchetypeId: enemy:merchant-alchemist
+    minimumCount: 1
+    maximumCount: 2

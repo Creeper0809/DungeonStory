@@ -32,18 +32,18 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 13
   features:
-  - rid: 7737211730927812745
-  - rid: 7737211730927812746
-  - rid: 7737211730927812747
+  - rid: 7737211792998531644
+  - rid: 7737211792998531645
+  - rid: 7737211792998531646
   references:
     version: 2
     RefIds:
-    - rid: 7737211730927812745
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531644
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:fermentation
-    - rid: 7737211730927812746
-      type: {class: SubstanceItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531645
+      type: {class: SubstanceItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         substanceId: substance:twilight-beer
         useClass: 3
@@ -55,8 +55,8 @@ MonoBehaviour:
         workSpeedEffect: -0.02
         combatEffect: -0.02
         durationSeconds: 180
-    - rid: 7737211730927812747
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531646
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 4
         ingredientTags: 1

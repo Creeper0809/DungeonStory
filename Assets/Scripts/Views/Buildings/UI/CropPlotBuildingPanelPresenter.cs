@@ -68,6 +68,14 @@ public sealed class CropPlotBuildingPanelPresenter :
         AddProgress(parent, plot, font, created);
         AddText(
             parent,
+            FormatEcology(plot),
+            font,
+            14f,
+            DungeonUiTheme.TextSecondary,
+            42f,
+            created);
+        AddText(
+            parent,
             FormatMaterials(plot),
             font,
             14f,
@@ -167,6 +175,18 @@ public sealed class CropPlotBuildingPanelPresenter :
                         : FormatAuthoredItem(requirement.Key);
                 return $"{name} {delivered}/{requirement.Value}";
             }));
+    }
+
+    private static string FormatEcology(CropPlotSnapshot plot)
+    {
+        string cultivar = string.IsNullOrWhiteSpace(plot.CultivarGenomeId)
+            ? "종자 대기"
+            : plot.CultivarGenomeId;
+        string disease = plot.CropDisease == CropDiseaseKind.None
+            ? "병해 없음"
+            : plot.CropDisease.ToString();
+        return $"품종 {cultivar}  /  비옥도 {plot.Fertility:0}  /  "
+            + $"해충 {plot.PestPressure:0}  /  병압 {plot.DiseasePressure:0} ({disease})";
     }
 
     private string FormatAuthoredItem(string itemId)

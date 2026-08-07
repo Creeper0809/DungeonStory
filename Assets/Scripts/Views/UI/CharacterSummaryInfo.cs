@@ -7,6 +7,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
+using static CharacterSummaryViewFormatting;
 
 public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
 {
@@ -34,6 +35,7 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
     private GameObject recordsTabContent;
     private GameObject aiTabContent;
     private GameObject combatTabContent;
+    private GameObject populationTabContent;
     private Button statusTabButton;
     private Button healthTabButton;
     private Button growthTabButton;
@@ -41,6 +43,7 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
     private Button recordsTabButton;
     private Button aiTabButton;
     private Button combatTabButton;
+    private Button populationTabButton;
     private float nextVitalsRefreshAt;
     private CharacterSummaryShellPresenter shellPresenter;
     private CharacterSummaryCombatPresenter combatPresenter;
@@ -107,6 +110,7 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
         RefreshHealthDetails();
         RefreshCombatDetails();
         RefreshAiDetails();
+        RefreshPopulationDetails();
         RefreshDetailedStats();
     }
 
@@ -139,6 +143,7 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
         RefreshHealthDetails();
         RefreshCombatDetails();
         RefreshAiDetails();
+        RefreshPopulationDetails();
 
         if (characterStats != null)
         {
@@ -335,6 +340,22 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
         RefreshCombatDetails();
     }
 
+    public void BindGeneratedPopulation(
+        TMP_Text generatedSummaryText,
+        GameObject generatedTabContent,
+        Button generatedTabButton,
+        Button generatedGlobalPolicyButton,
+        Button generatedCharacterPermissionButton)
+    {
+        populationTabContent = generatedTabContent;
+        populationTabButton = generatedTabButton;
+        statusPresenter.BindPopulation(
+            generatedSummaryText,
+            generatedGlobalPolicyButton,
+            generatedCharacterPermissionButton);
+        RefreshPopulationDetails();
+    }
+
     public void BindGeneratedGrowth(
         Slider generatedExperience,
         TMP_Text generatedSummary,
@@ -415,6 +436,27 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
         RefreshCombatDetails();
     }
 
+    public void ShowPopulationTab()
+    {
+        SetActiveTab(CharacterSummaryTab.Population);
+        RefreshPopulationDetails();
+    }
+
+    public void ToggleGlobalApprenticeship()
+    {
+        statusPresenter.ToggleGlobalApprenticeship(actor);
+    }
+
+    public void ToggleCharacterApprenticeship()
+    {
+        statusPresenter.ToggleCharacterApprenticeship(actor);
+    }
+
+    private void RefreshPopulationDetails()
+    {
+        statusPresenter.RefreshPopulation(actor);
+    }
+
     public void ToggleCombatLoadout()
     {
         combatPresenter.ToggleLoadout(actor);
@@ -482,6 +524,11 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
             combatTabContent.SetActive(tab == CharacterSummaryTab.Combat);
         }
 
+        if (populationTabContent != null)
+        {
+            populationTabContent.SetActive(tab == CharacterSummaryTab.Population);
+        }
+
         DungeonUiTheme.StyleButton(statusTabButton, selected: tab == CharacterSummaryTab.Status);
         DungeonUiTheme.StyleButton(healthTabButton, selected: tab == CharacterSummaryTab.Health);
         DungeonUiTheme.StyleButton(growthTabButton, selected: tab == CharacterSummaryTab.Growth);
@@ -489,6 +536,9 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
         DungeonUiTheme.StyleButton(recordsTabButton, selected: tab == CharacterSummaryTab.Records);
         DungeonUiTheme.StyleButton(aiTabButton, selected: tab == CharacterSummaryTab.Ai);
         DungeonUiTheme.StyleButton(combatTabButton, selected: tab == CharacterSummaryTab.Combat);
+        DungeonUiTheme.StyleButton(
+            populationTabButton,
+            selected: tab == CharacterSummaryTab.Population);
     }
 
     public void ToggleSkillAt(int index)
@@ -674,7 +724,8 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
                 ShowGrowthTab,
                 ShowMoodTab,
                 ShowRecordsTab,
-                ShowAiTab),
+                ShowAiTab,
+                ShowPopulationTab),
             new CharacterSummaryHealthActions(
                 ExecuteCaptivityAction,
                 CycleDietPolicy,
@@ -689,75 +740,11 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
                 CycleCombatFireMode,
                 ToggleCombatHoldFire,
                 RequestCombatEquipmentRepair),
-            new CharacterSummaryGrowthActions(ToggleSkillAt));
+            new CharacterSummaryGrowthActions(ToggleSkillAt),
+            new CharacterSummaryPopulationActions(
+                ToggleGlobalApprenticeship,
+                ToggleCharacterApprenticeship));
         return viewActions;
-    }
-
-    private static void SetSlider(
-        Slider slider,
-        IReadOnlyDictionary<CharacterCondition, float> stats,
-        CharacterCondition condition)
-    {
-        if (slider == null || stats == null)
-        {
-            return;
-        }
-
-        float rawValue = stats.TryGetValue(condition, out float value) ? value : 0f;
-        SetMeter(slider, rawValue / 100f, $"{Mathf.RoundToInt(rawValue)}");
-    }
-
-    private static void SetSlider(
-        Slider slider,
-        IDictionary<CharacterCondition, float> stats,
-        CharacterCondition condition)
-    {
-        if (slider == null || stats == null)
-        {
-            return;
-        }
-
-        float rawValue = stats.TryGetValue(condition, out float value) ? value : 0f;
-        SetMeter(slider, rawValue / 100f, $"{Mathf.RoundToInt(rawValue)}");
-    }
-
-    private static void SetMeter(Slider slider, float normalizedValue, string valueText)
-    {
-        if (slider == null)
-        {
-            return;
-        }
-
-        float clamped = Mathf.Clamp01(normalizedValue);
-        slider.value = clamped;
-        Image fill = slider.fillRect != null ? slider.fillRect.GetComponent<Image>() : null;
-        if (fill != null)
-        {
-            fill.color = DungeonUiTheme.GetMeterColor(clamped);
-        }
-
-        Transform row = slider.transform.parent;
-        TMP_Text value = row != null ? row.Find("Value")?.GetComponent<TMP_Text>() : null;
-        if (value != null)
-        {
-            value.text = valueText;
-            value.color = clamped < 0.25f
-                ? DungeonUiTheme.Danger
-                : clamped < 0.5f
-                    ? DungeonUiTheme.Warning
-                    : DungeonUiTheme.TextSecondary;
-        }
-    }
-
-    private static string GetDisplayName(GameObject targetObject)
-    {
-        CharacterIdentity identity = targetObject != null ? targetObject.GetComponent<CharacterIdentity>() : null;
-        if (!string.IsNullOrWhiteSpace(identity != null ? identity.DisplayName : null))
-        {
-            return identity.DisplayName;
-        }
-
-        return targetObject != null ? targetObject.name : string.Empty;
     }
 
     private enum CharacterSummaryTab
@@ -768,6 +755,7 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
         Growth,
         Mood,
         Records,
-        Ai
+        Ai,
+        Population
     }
 }

@@ -38,7 +38,7 @@ MonoBehaviour:
     - rid: 7737211730834227676
     - rid: 7737211730834227677
     - rid: 7737211730834227678
-    - rid: 7737211730927812734
+    - rid: 7737211792998531633
   width: 2
   height: 1
   layer: 1
@@ -55,12 +55,12 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730834227674
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: D09
     - rid: 7737211730834227675
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 75
@@ -98,11 +98,11 @@ MonoBehaviour:
           - key: SeatCount
             value: 2
     - rid: 7737211730834227678
-      type: {class: BuildingSeatingAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSeatingAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSeatingAbility
         capacity: 2
-    - rid: 7737211730927812734
+    - rid: 7737211792998531633
       type: {class: BuildingServiceSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceSupportAbility

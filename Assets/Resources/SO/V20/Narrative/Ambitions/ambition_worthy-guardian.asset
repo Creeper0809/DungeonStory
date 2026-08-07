@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f7513029e620ee4481ed23352a360f1, type: 3}
+  m_Name: ambition_worthy-guardian
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterAmbitionDefinitionSO
+  stableId: ambition:worthy-guardian
+  displayName: "\uBBFF\uC744 \uB9CC\uD55C \uBCF4\uD638\uC790"
+  description: "\uBCF4\uD638\uBC1B\uC9C0 \uBABB\uD55C \uC544\uC774\uAC00 \uC131\uB144\uC774
+    \uB420 \uB54C\uAE4C\uC9C0 \uACC1\uC744 \uC9C0\uD0A4\uB824 \uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  category: 1
+  targetProgress: 240
+  activationRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters:
+    - minimumLifeStage: 3
+      maximumLifeStage: 4
+      requiredTraitId: 
+      excludedTraitId: 
+      minimumHealth: 0
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  failureConditions:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  completionRewards:
+  - kind: 5
+    targetId: guardian
+    amount: 1
+    durationDays: 0
+  relatedEventWeights:
+  - id: life-event:guardian-oath
+    weight: 2
+  cooperationAmbitionIds: []
+  conflictAmbitionIds: []

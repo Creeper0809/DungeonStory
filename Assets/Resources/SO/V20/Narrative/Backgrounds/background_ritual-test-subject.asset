@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23de0c160ab9df54eb2ace98a4a93e08, type: 3}
+  m_Name: background_ritual-test-subject
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterBackgroundDefinitionSO
+  stableId: background:ritual-test-subject
+  displayName: "\uC758\uC2DD \uC2E4\uD5D8 \uC0DD\uC874\uC790"
+  description: "\uBE44\uC804 \uC2E4\uD5D8\uC758 \uD754\uC801\uC744 \uC9C0\uB154\uACE0
+    \uB9C8\uB098 \uC774\uC0C1\uC5D0 \uC608\uBBFC\uD558\uAC8C \uBC18\uC751\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  startingSkills:
+  - skillId: arcana
+    experience: 85
+  startingEffects:
+  - kind: 1
+    targetId: background-confidence
+    amount: 2
+    durationDays: 10
+  factionReactions:
+  - id: faction:truth-keepers
+    weight: 0.1
+  initialMemoryCode: memory:ritual-chamber

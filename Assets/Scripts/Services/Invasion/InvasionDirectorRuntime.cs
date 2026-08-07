@@ -32,6 +32,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
     private ITreasuryDefenseRuntime treasuryDefenseRuntime;
     private IExternalInfluenceRuntime externalInfluence;
     private IInvasionCampaignRuntime campaignRuntime;
+    private IEnemyArchetypeCatalog enemyArchetypes;
+    private IEnemyIndividualFactory enemyIndividuals;
     private IDisposable invasionCandidateSubscription;
     private IDisposable invasionResolvedSubscription;
     private bool nextInvasionIsBoss;
@@ -129,6 +131,17 @@ public class InvasionDirectorRuntime : MonoBehaviour
         SubscribeToScopedEvents();
     }
 
+    [Inject]
+    public void ConfigureEnemyIndividuals(
+        IEnemyArchetypeCatalog enemyArchetypes,
+        IEnemyIndividualFactory enemyIndividuals)
+    {
+        this.enemyArchetypes = enemyArchetypes
+            ?? throw new ArgumentNullException(nameof(enemyArchetypes));
+        this.enemyIndividuals = enemyIndividuals
+            ?? throw new ArgumentNullException(nameof(enemyIndividuals));
+    }
+
     private void OnInvasionCandidate(InvasionCandidateEvent eventType)
     {
         TrySpawnIntruder(eventType.snapshot, out _);
@@ -174,6 +187,17 @@ public class InvasionDirectorRuntime : MonoBehaviour
             gameEventBus,
             treasuryDefenseRuntime);
         CharacterActor preparedIntruder = runtime.IntruderActor;
+        string individualRuntimeId = $"invasion:{Guid.NewGuid():N}";
+        EnemyArchetypeDefinitionSO enemyArchetype = SelectEnemyArchetype(
+            individualRuntimeId,
+            snapshot,
+            nextInvasionIsBoss);
+        EnemyIndividualSaveData individualData = ResolveEnemyIndividuals().Create(
+            enemyArchetype.stableId,
+            CharacterId.FromStableSuffix(individualRuntimeId),
+            "defense:" + snapshot.threat.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+        EnemyIndividualBlueprint individual = ResolveEnemyIndividuals()
+            .RequireBlueprint(individualData);
         bool isBoss = nextInvasionIsBoss;
         bool isRehearsal = nextInvasionIsRehearsal;
         randomRootSeed = randomStreamProvider.RootSeed;
@@ -241,7 +265,10 @@ public class InvasionDirectorRuntime : MonoBehaviour
             effectiveSettings,
             entry.OutsidePosition,
             finalDefenseTarget,
-            isBoss);
+            isBoss,
+            individual,
+            individualRuntimeId);
+        runtime.gameObject.name = individual.SaveData.displayName;
         factory.Publish(runtime);
         activeIntruders.Add(runtime);
         registered = true;
@@ -475,6 +502,12 @@ public class InvasionDirectorRuntime : MonoBehaviour
             restoredIntruders,
             report,
             ResolveIntruderData,
+            source =>
+            {
+                EnemyIndividualBlueprint blueprint = ResolveEnemyIndividuals()
+                    .RequireBlueprint(source);
+                return blueprint;
+            },
             source => ResolveIntruderFactory().CreateDetached(
                 intruderPrefab,
                 source.WorldPosition),
@@ -598,6 +631,47 @@ public class InvasionDirectorRuntime : MonoBehaviour
             ?? throw new InvalidOperationException($"{nameof(InvasionDirectorRuntime)} requires {nameof(IInvasionIntruderFactory)} injection.");
     }
 
+    private IEnemyIndividualFactory ResolveEnemyIndividuals() =>
+        enemyIndividuals
+        ?? throw new InvalidOperationException(
+            $"{nameof(InvasionDirectorRuntime)} requires {nameof(IEnemyIndividualFactory)} injection.");
+
+    private EnemyArchetypeDefinitionSO SelectEnemyArchetype(
+        string runtimeId,
+        InvasionThreatSnapshot snapshot,
+        bool boss)
+    {
+        IEnemyArchetypeCatalog catalog = enemyArchetypes
+            ?? throw new InvalidOperationException(
+                $"{nameof(InvasionDirectorRuntime)} requires {nameof(IEnemyArchetypeCatalog)} injection.");
+        EnemyArchetypeDefinitionSO[] candidates = catalog.All
+            .Where(value => value != null
+                && value.individualGeneration != null
+                && value.individualGeneration.recruitable
+                && (!boss || value.role == EnemyCombatRole.Boss))
+            .OrderBy(value => value.stableId, StringComparer.Ordinal)
+            .ToArray();
+        if (candidates.Length == 0 && boss)
+        {
+            candidates = catalog.All
+                .Where(value => value != null
+                    && value.individualGeneration != null
+                    && value.individualGeneration.recruitable)
+                .OrderBy(value => value.stableId, StringComparer.Ordinal)
+                .ToArray();
+        }
+        if (candidates.Length == 0)
+        {
+            throw new InvalidOperationException("No recruitable defense enemy archetype is authored.");
+        }
+
+        uint hash = PersistentEntityId.GetStableHash32(
+            runtimeId + ":" + snapshot.threat.ToString(
+                "R",
+                System.Globalization.CultureInfo.InvariantCulture));
+        return candidates[(int)(hash % (uint)candidates.Length)];
+    }
+
     private IDefenseStatusRuntimeService ResolveDefenseStatusRuntimeService()
     {
         return defenseStatusRuntimeService
@@ -703,6 +777,16 @@ public class InvasionDirectorRuntime : MonoBehaviour
         if (runtime == null)
         {
             return;
+        }
+
+        if (runtime.IntruderActor != null
+            && runtime.IntruderActor.CurrentLifecycleState
+                == CharacterLifecycleState.Downed
+            && runtime.EnemyIndividual != null)
+        {
+            ResolveEnemyIndividuals().EnsureCharacterDomains(
+                ResolveEnemyIndividuals().RequireBlueprint(
+                    runtime.EnemyIndividual));
         }
 
         runtime.OnFinished -= OnIntruderFinished;

@@ -161,7 +161,8 @@ public sealed class CharacterDeprivationAuthorityDependencies
         CharacterSafeDrinkPlanner safeDrinkPlanner,
         CharacterEmergencyMovement emergencyMovement,
         CharacterDeprivationDiagnostics diagnostics,
-        CharacterDeprivationConsequences consequences)
+        CharacterDeprivationConsequences consequences,
+        IGameEventBus events)
     {
         return new CharacterBreakdownActionRunner(
             world,
@@ -175,7 +176,8 @@ public sealed class CharacterDeprivationAuthorityDependencies
                 safeDrinkPlanner,
                 emergencyMovement,
                 diagnostics,
-                consequences));
+                consequences,
+                events));
     }
 }
 
@@ -930,7 +932,8 @@ internal sealed class CharacterDeprivationPersistenceCoordinator
                 || !IsFiniteInRange(
                     water.regenerationPerSecond,
                     0f,
-                    float.MaxValue))
+                    float.MaxValue)
+                || water.pathogenDiseaseId == null)
             {
                 throw new InvalidOperationException(
                     "Dark-survival payload contains invalid or duplicate water-source state.");
@@ -980,7 +983,8 @@ internal sealed class CharacterDeprivationPersistenceCoordinator
             quality = source.quality,
             capacity = source.capacity,
             remaining = source.remaining,
-            regenerationPerSecond = source.regenerationPerSecond
+            regenerationPerSecond = source.regenerationPerSecond,
+            pathogenDiseaseId = source.pathogenDiseaseId ?? string.Empty
         };
 }
 
@@ -1158,8 +1162,8 @@ public static class CharacterDeprivationAuthorityDebugScenarios
 
     private static void VerifyRollbackFreeContract()
     {
-        Require(DungeonDarkSurvivalSaveData.CurrentVersion == 2,
-            "dark-survival payload is not exact V2");
+        Require(DungeonDarkSurvivalSaveData.CurrentVersion == 3,
+            "dark-survival payload is not exact V3");
         Require(typeof(IDungeonRollbackFreeSaveSection).IsAssignableFrom(
                 typeof(DarkSurvivalSaveSection)),
             "dark-survival save section is not rollback-free");

@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: medical_regenerative_culture
+  m_EditorClassIdentifier: DungeonStory.Research::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7266
+  projectId: research:medical:regenerative-culture
+  displayName: "\uC7AC\uC0DD \uBC30\uC591"
+  description: "\uC0DD\uBB3C\uD559\uC801 \uC5F0\uB839 \uACC4\uCE21, \uC7A5\uAE30
+    \uBCF4\uC874\uACFC \uADE0\uC0AC \uC774\uC2DD\uC73C\uB85C \uC7AC\uC0DD \uC870\uC9C1\uC744
+    \uBC30\uC591\uD55C\uB2E4."
+  field: 14
+  requiredWork: 4800
+  prerequisites:
+  - {fileID: 11400000, guid: 7be1a214afe97eb4cac0f65b07fba877, type: 2}
+  - {fileID: 11400000, guid: 788cfb46f343472449658f49b34111f4, type: 2}
+  - {fileID: 11400000, guid: 836922bee804a9843bc8119d8aa15bb9, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:medical:biological-age-measurement
+    prerequisite: {fileID: 11400000, guid: 7be1a214afe97eb4cac0f65b07fba877, type: 2}
+    kind: 2
+    reason: "\uC0DD\uBB3C\uD559\uC801 \uC5F0\uB839 \uACC4\uCE21\uC758 \uACF5\uD559
+      \uC6D0\uB9AC\uC774(\uAC00) \uC7AC\uC0DD \uBC30\uC591 \uAD6C\uD604\uC5D0 \uC9C1\uC811
+      \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:medical:mycelial-grafting
+    prerequisite: {fileID: 11400000, guid: 788cfb46f343472449658f49b34111f4, type: 2}
+    kind: 2
+    reason: "\uADE0\uC0AC \uC811\uBAA9\uD559\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC7AC\uC0DD \uBC30\uC591 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:medical:organ-preservation
+    prerequisite: {fileID: 11400000, guid: 836922bee804a9843bc8119d8aa15bb9, type: 2}
+    kind: 2
+    reason: "\uC7A5\uAE30 \uBCF4\uC874\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC7AC\uC0DD \uBC30\uC591 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7737211793001939125
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 2
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211793001939125
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 8867

@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11ae014e162ff064183241287201fd7b, type: 3}
+  m_Name: life-event_elder-birthday
+  m_EditorClassIdentifier: DungeonStory.Content::LifeEventDefinitionSO
+  stableId: life-event:elder-birthday
+  displayName: "\uB178\uB144\uC758 \uC0DD\uC77C\uC0C1"
+  description: "\uC5EC\uB7EC \uC138\uB300\uAC00 \uD55C \uC790\uB9AC\uC5D0 \uBAA8\uC5EC
+    \uB178\uB144 \uAD6C\uC131\uC6D0\uC758 \uC0DD\uC77C\uC744 \uCD95\uD558\uD588\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  category: 4
+  automatic: 1
+  emergency: 0
+  responseDeadlineDays: 1
+  cooldownDays: 45
+  frequencyRule: 1
+  triggerRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  choices: []
+  automaticEffects:
+  - kind: 1
+    targetId: life-event:elder-birthday
+    amount: 3
+    durationDays: 0

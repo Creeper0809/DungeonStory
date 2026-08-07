@@ -317,6 +317,10 @@ public sealed class CharacterSpawnObjectFactory : ICharacterSpawnObjectFactory
         GameObject characterObject = RequirePendingPublication(publication);
         ValidateDetachedPublication(publication);
         characterObject.SetActive(true);
+        CharacterActor actor = RequireCanonicalActor(
+            characterObject,
+            "A completed detached character publication requires CharacterActor.");
+        actor.ReconcilePublishedRuntimeRegistration();
         publication.Finish();
     }
 

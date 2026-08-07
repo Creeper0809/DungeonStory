@@ -51,6 +51,12 @@ public sealed class CropPlotSnapshot
     public bool Indoor { get; set; }
     public string CropId { get; set; } = string.Empty;
     public string CropName { get; set; } = string.Empty;
+    public string SeedItemId { get; set; } = string.Empty;
+    public string CultivarGenomeId { get; set; } = string.Empty;
+    public float Fertility { get; set; } = 100f;
+    public float PestPressure { get; set; }
+    public float DiseasePressure { get; set; }
+    public CropDiseaseKind CropDisease { get; set; }
     public CropPlotPhase Phase { get; set; }
     public float SowProgress { get; set; }
     public float GrowthProgress { get; set; }

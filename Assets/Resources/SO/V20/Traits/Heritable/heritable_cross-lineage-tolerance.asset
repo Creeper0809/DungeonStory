@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e299ffa39eb64f5aa2a777c1be71b5bc, type: 3}
+  m_Name: heritable_cross-lineage-tolerance
+  m_EditorClassIdentifier: DungeonStory.Species::HeritableTraitDefinitionSO
+  traitId: heritable:cross-lineage-tolerance
+  displayName: "\uAD50\uCC28\uACC4\uD1B5 \uB0B4\uC131"
+  description: "\uB2E4\uB978 \uACC4\uD1B5\uACFC\uC758 \uBC30\uC591\uC5D0\uC11C \uAC70\uBD80
+    \uBC18\uC751\uC774 \uC904\uC5B4\uB4E0\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored hereditary trait manifest.
+  category: 3
+  incompatibilityGroup: 
+  aptitudeModifier: 4
+  compatibleSpeciesTags: []
+  consequences:
+  - kind: 4
+    targetId: cross-lineage
+    multiplierDelta: 0.15

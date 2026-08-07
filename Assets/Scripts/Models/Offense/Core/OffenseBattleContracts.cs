@@ -33,6 +33,66 @@ public enum OffenseBattleOutcome
     AbortedOwnerDeath
 }
 
+public sealed class OffenseBattleEncounterRules
+{
+    public OffenseBattleEncounterRules(
+        OffenseEncounterObjective objective,
+        int roundLimit,
+        string objectiveTargetId,
+        string objectiveCombatantId,
+        IEnumerable<BattlefieldModifierDefinitionSO> modifiers)
+    {
+        Objective = objective;
+        RoundLimit = objective == OffenseEncounterObjective.DefeatAll
+            ? 0
+            : Mathf.Max(1, roundLimit);
+        ObjectiveTargetId = objectiveTargetId?.Trim() ?? string.Empty;
+        ObjectiveCombatantId = objectiveCombatantId?.Trim() ?? string.Empty;
+        Modifiers = (modifiers ?? Array.Empty<BattlefieldModifierDefinitionSO>())
+            .Where(value => value != null)
+            .GroupBy(value => value.stableId, StringComparer.Ordinal)
+            .Select(group => group.First())
+            .OrderBy(value => value.stableId, StringComparer.Ordinal)
+            .ToArray();
+        MovementMultiplier = Mathf.Clamp(
+            Modifiers.Aggregate(1f, (value, modifier) => value * modifier.movementMultiplier),
+            0.25f,
+            2f);
+        AccuracyMultiplier = Mathf.Clamp(
+            Modifiers.Aggregate(1f, (value, modifier) => value * modifier.accuracyMultiplier),
+            0.25f,
+            2f);
+        DamageMultiplier = Mathf.Clamp(
+            Modifiers.Aggregate(1f, (value, modifier) => value * modifier.damageMultiplier),
+            0.25f,
+            2f);
+    }
+
+    public OffenseEncounterObjective Objective { get; }
+    public int RoundLimit { get; }
+    public string ObjectiveTargetId { get; }
+    public string ObjectiveCombatantId { get; private set; }
+    public IReadOnlyList<BattlefieldModifierDefinitionSO> Modifiers { get; }
+    public float MovementMultiplier { get; }
+    public float AccuracyMultiplier { get; }
+    public float DamageMultiplier { get; }
+
+    public void ResolveProtectedCombatant(IEnumerable<OffenseBattleCombatant> combatants)
+    {
+        if (Objective != OffenseEncounterObjective.ProtectTarget
+            || !string.IsNullOrWhiteSpace(ObjectiveCombatantId))
+        {
+            return;
+        }
+
+        ObjectiveCombatantId = (combatants ?? Array.Empty<OffenseBattleCombatant>())
+            .Where(value => value != null && value.Team == OffenseBattleTeam.Allies)
+            .OrderBy(value => value.PersistentId, StringComparer.Ordinal)
+            .Select(value => value.PersistentId)
+            .FirstOrDefault() ?? string.Empty;
+    }
+}
+
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public enum OffenseBattleStatusType
 {
@@ -134,7 +194,8 @@ public sealed class OffenseBattleCombatant
         float currentHealth,
         IEnumerable<CharacterCombatAbilityDefinition> abilities = null,
         int portraitDataId = -1,
-        OffenseFormationSlot formation = OffenseFormationSlot.Front)
+        OffenseFormationSlot formation = OffenseFormationSlot.Front,
+        bool participatesInInitiative = true)
     {
         PersistentId = string.IsNullOrWhiteSpace(persistentId)
             ? throw new ArgumentException("A combatant requires a persistent ID.", nameof(persistentId))
@@ -155,6 +216,7 @@ public sealed class OffenseBattleCombatant
         ResetBodyParts();
         PortraitDataId = portraitDataId;
         Formation = formation;
+        ParticipatesInInitiative = participatesInInitiative;
     }
 
     public string PersistentId { get; }
@@ -167,6 +229,7 @@ public sealed class OffenseBattleCombatant
     public bool IsDead => CurrentHealth <= 0f || IsVitalPartDestroyed();
     public bool IsDowned { get; private set; }
     public bool CanTakeTurn => !IsDead && !IsDowned && !PinnedThisTurn;
+    public bool ParticipatesInInitiative { get; }
     public float InitiativePenalty { get; private set; }
     public float Initiative => Mathf.Max(
         0f,
@@ -610,6 +673,9 @@ public sealed class OffenseBattlePersistenceState
     public string targetId = string.Empty;
     public string targetTitle = string.Empty;
     public DungeonDifficulty difficulty = DungeonDifficulty.Normal;
+    public string encounterId = string.Empty;
+    public List<EnemyIndividualSaveData> enemyIndividuals =
+        new List<EnemyIndividualSaveData>();
     public OffenseBattleOutcome outcome = OffenseBattleOutcome.InProgress;
     public int roundNumber = 1;
     public int currentOrderIndex;
@@ -643,6 +709,7 @@ public sealed class OffenseBattleCombatantPersistenceState
     public float moveSpeed;
     public float shooting;
     public float evasion;
+    public bool participatesInInitiative = true;
     public float currentHealth;
     public float totalDamageTaken;
     public float initiativePenalty;

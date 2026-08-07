@@ -33,11 +33,11 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 7eeaac10610176748bc7e770fc8e0601, type: 3}
   abilityModules:
     items:
-    - rid: 7737211730889016040
-    - rid: 7737211730889016041
-    - rid: 7737211730889016042
-    - rid: 7737211730889016043
-    - rid: 7737211730889016044
+    - rid: 7737211792998531225
+    - rid: 7737211792998531226
+    - rid: 7737211792998531227
+    - rid: 7737211792998531228
+    - rid: 7737211792998531229
   width: 2
   height: 1
   layer: 1
@@ -53,13 +53,13 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730889016040
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531225
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I09
-    - rid: 7737211730889016041
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531226
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 130
@@ -67,7 +67,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211730889016042
+    - rid: 7737211792998531227
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -79,14 +79,14 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: component:machine-parts
           amount: 4
-    - rid: 7737211730889016043
+    - rid: 7737211792998531228
       type: {class: BuildingWaterStorageAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWaterStorageAbility
         channels: 4
         cleanWaterCapacity: 0
         wastewaterCapacity: 140
-    - rid: 7737211730889016044
+    - rid: 7737211792998531229
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

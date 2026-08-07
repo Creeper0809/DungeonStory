@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23de0c160ab9df54eb2ace98a4a93e08, type: 3}
+  m_Name: background_inn-servant
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterBackgroundDefinitionSO
+  stableId: background:inn-servant
+  displayName: "\uC5EC\uAD00 \uC2EC\uBD80\uB984\uAFBC"
+  description: "\uCDE8\uAC1D\uACFC \uC0AC\uC808 \uC0AC\uC774\uB97C \uC624\uAC00\uBA70
+    \uC8FC\uBB38, \uC18C\uBB38, \uBAA8\uC695\uC744 \uB193\uCE58\uC9C0 \uC54A\uC558\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  startingSkills:
+  - skillId: service
+    experience: 75
+  startingEffects:
+  - kind: 1
+    targetId: background-confidence
+    amount: 2
+    durationDays: 10
+  factionReactions:
+  - id: faction:merchant-league
+    weight: 1.8
+  initialMemoryCode: memory:night-shift

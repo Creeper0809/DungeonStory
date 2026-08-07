@@ -60,3 +60,21 @@ MonoBehaviour:
     dislikedFacilityRoles: 0
     preferredWorkTypes: 12
     dislikedWorkTypes: 0
+  combatAbilities:
+    abilities: []
+  environmentalProtection:
+    comfortMinimumOffset: 0
+    comfortMaximumOffset: 0
+    safeMinimumOffset: 0
+    safeMaximumOffset: 0
+    coldExposureMultiplier: 1
+    heatExposureMultiplier: 1
+  incompatibilityGroups: []
+  behaviorPreferences:
+  - behaviorTag: legacy-trait:107
+    utilityDelta: -0.2
+  moodReactions: []
+  eventWeights: []
+  references:
+    version: 2
+    RefIds: []

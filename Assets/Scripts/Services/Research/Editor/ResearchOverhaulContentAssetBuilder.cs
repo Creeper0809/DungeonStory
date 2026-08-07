@@ -7,6 +7,19 @@ using UnityEngine;
 
 public static class ResearchOverhaulContentAssetBuilder
 {
+    private static readonly string[] FuneralFacilityTags =
+    {
+        "facility:funeral:dissolution-pool",
+        "facility:funeral:orc-vigil",
+        "facility:funeral:blood-incense",
+        "facility:funeral:pack-farewell",
+        "facility:funeral:contract-burning",
+        "facility:funeral:tool-burial",
+        "facility:funeral:spore-garden",
+        "facility:funeral:sky-burial",
+        "facility:funeral:core-rest",
+        "facility:funeral:adventurer-burial"
+    };
     private const string FacilityRoot =
         "Assets/Resources/SO/Building/ResearchOverhaul";
     private const string ItemRoot =
@@ -16,16 +29,35 @@ public static class ResearchOverhaulContentAssetBuilder
 
     private readonly struct FacilitySpec
     {
-        public FacilitySpec(string researchId, string name, string workstationTag)
+        public FacilitySpec(
+            string researchId,
+            string name,
+            string workstationTag,
+            FacilityBomProfile bomProfile = FacilityBomProfile.Legacy)
         {
             ResearchId = researchId;
             Name = name;
             WorkstationTag = workstationTag;
+            BomProfile = bomProfile;
         }
 
         public string ResearchId { get; }
         public string Name { get; }
         public string WorkstationTag { get; }
+        public FacilityBomProfile BomProfile { get; }
+    }
+
+    private enum FacilityBomProfile
+    {
+        Legacy,
+        ARecordDesk,
+        BWorkbench,
+        CLivingRoom,
+        DMedicalRoom,
+        EIndustrialLab,
+        FRuneBiolab,
+        GGreenhouse,
+        HObservationTower
     }
 
     private readonly struct InputSpec
@@ -85,6 +117,7 @@ public static class ResearchOverhaulContentAssetBuilder
         EnsureFolder(RecipeRoot);
         BuildFacilities();
         BuildItemsAndRecipes();
+        GameContentCatalogAssetBuilder.ReindexItemDefinitions();
     }
 
     public static IReadOnlyDictionary<string, int[]> GetFacilityUnlockIds() =>
@@ -165,11 +198,18 @@ public static class ResearchOverhaulContentAssetBuilder
             abilities.Add(new BuildingSemanticTagsAbility
             {
                 tags = new[]
-                {
-                    "research-overhaul",
-                    spec.ResearchId,
-                    spec.WorkstationTag
-                }
+                    {
+                        "research-overhaul",
+                        spec.ResearchId,
+                        spec.WorkstationTag
+                    }
+                    .Concat(string.Equals(
+                            spec.WorkstationTag,
+                            "workstation:v19:memorial",
+                            StringComparison.Ordinal)
+                        ? FuneralFacilityTags
+                        : Array.Empty<string>())
+                    .ToArray()
             });
             abilities.Add(new BuildingProductionWorkstationAbility
             {
@@ -249,6 +289,65 @@ public static class ResearchOverhaulContentAssetBuilder
     private static IReadOnlyList<ItemAmountDefinition>
         ResolveConstructionMaterials(FacilitySpec spec, int index)
     {
+        IReadOnlyList<ItemAmountDefinition> authored = spec.BomProfile switch
+        {
+            FacilityBomProfile.ARecordDesk => Materials(
+                ("material:lumber", 6),
+                ("material:treated-lumber", 2),
+                ("material:iron-ingot", 2),
+                ("material:paper", 4)),
+            FacilityBomProfile.BWorkbench => Materials(
+                ("material:stone-block", 8),
+                ("material:treated-lumber", 6),
+                ("material:iron-ingot", 4),
+                ("component:machine-parts", 2),
+                ("component:engineering-drawing", 1)),
+            FacilityBomProfile.CLivingRoom => Materials(
+                ("material:lumber", 10),
+                ("material:treated-lumber", 4),
+                ("material:cloth", 6),
+                ("material:stone-block", 4)),
+            FacilityBomProfile.DMedicalRoom => Materials(
+                ("material:stone-block", 10),
+                ("material:treated-lumber", 6),
+                ("material:steel-ingot", 4),
+                ("textile:sterile-cloth", 4),
+                ("component:machine-parts", 2),
+                ("resource:clean-water", 8)),
+            FacilityBomProfile.EIndustrialLab => Materials(
+                ("material:stone-block", 12),
+                ("material:steel-ingot", 8),
+                ("component:machine-parts", 4),
+                ("component:precision-parts", 4),
+                ("component:engineering-drawing", 2)),
+            FacilityBomProfile.FRuneBiolab => Materials(
+                ("material:stone-block", 16),
+                ("material:steel-ingot", 10),
+                ("component:precision-parts", 6),
+                ("component:rune-conductor", 4),
+                ("component:mana-shield-plate", 2),
+                ("resource:mana-crystal", 4),
+                ("component:engineering-drawing", 2)),
+            FacilityBomProfile.GGreenhouse => Materials(
+                ("material:treated-lumber", 12),
+                ("material:stone-block", 8),
+                ("material:iron-ingot", 6),
+                ("resource:clean-water", 12),
+                ("component:machine-parts", 2),
+                ("material:cloth", 4)),
+            FacilityBomProfile.HObservationTower => Materials(
+                ("material:treated-lumber", 8),
+                ("material:stone-block", 4),
+                ("material:iron-ingot", 6),
+                ("material:cloth", 2),
+                ("component:machine-parts", 1)),
+            _ => null
+        };
+        if (authored != null)
+        {
+            return authored;
+        }
+
         List<ItemAmountDefinition> materials = new()
         {
             new ItemAmountDefinition(
@@ -292,6 +391,10 @@ public static class ResearchOverhaulContentAssetBuilder
         return materials;
     }
 
+    private static IReadOnlyList<ItemAmountDefinition> Materials(
+        params (string ItemId, int Amount)[] values) =>
+        values.Select(value => new ItemAmountDefinition(value.ItemId, value.Amount)).ToArray();
+
     private static void BuildItemsAndRecipes()
     {
         ItemSpec[] specs = ItemSpecs();
@@ -332,6 +435,38 @@ public static class ResearchOverhaulContentAssetBuilder
             {
                 item.ConfigureMedicine(true, 0.85f, 10f, 0f, 8f);
             }
+            if (spec.ItemId.StartsWith("sample:antigen:", StringComparison.Ordinal))
+            {
+                item.ConfigurePathogenSample(
+                    "disease:" + spec.ItemId.Substring("sample:antigen:".Length));
+            }
+            if (spec.ItemId.StartsWith("medicine:vaccine:", StringComparison.Ordinal))
+            {
+                item.ConfigureMedicine(false, 0.1f, 0f, 0f, 0f);
+                item.ConfigureVaccine(
+                    "disease:" + spec.ItemId.Substring("medicine:vaccine:".Length),
+                    1);
+            }
+            if (spec.ItemId == "medical:whole-body-regeneration-medium")
+            {
+                item.ConfigureMedicalProcedureSupply("procedure:whole-body-regeneration");
+            }
+            if (spec.ItemId == "component:temporal-stasis-seal")
+            {
+                item.ConfigureMedicalProcedureSupply("procedure:temporal-stasis");
+            }
+            if (spec.ItemId == "supply:pest-lure")
+            {
+                item.ConfigureCropTreatment(CropTreatmentKind.PestLure);
+            }
+            if (spec.ItemId == "supply:botanical-pesticide")
+            {
+                item.ConfigureCropTreatment(CropTreatmentKind.BotanicalPesticide);
+            }
+            if (spec.ItemId == "supply:fungicide")
+            {
+                item.ConfigureCropTreatment(CropTreatmentKind.Fungicide);
+            }
             EditorUtility.SetDirty(item);
 
             if (!spec.Craftable)
@@ -341,7 +476,7 @@ public static class ResearchOverhaulContentAssetBuilder
 
             ProductionRecipeSO recipe =
                 GetOrCreate<ProductionRecipeSO>(RecipePath(index, spec));
-            recipe.id = 9101 + index;
+            recipe.id = 19101 + index;
             recipe.Configure(
                 $"recipe:{spec.ItemId}",
                 spec.Name,
@@ -415,7 +550,55 @@ public static class ResearchOverhaulContentAssetBuilder
         F("research:equipment:modular-frames", "성장형 골격 지그", "workstation:v3:growth-frame"),
         F("research:equipment:industrial-metrology", "계측 작업대", "workstation:v3:metrology"),
         F("research:medical:construct-core-engineering", "구성체 핵 공학대", "workstation:v3:construct-core-engineering"),
-        F("research:service:dining-operations", "배식 운영판", "workstation:v3:dining-operations")
+        F("research:service:dining-operations", "배식 운영판", "workstation:v3:dining-operations"),
+        F("research:life:seasonal-calendar", "계절력 기록대", "workstation:v19:seasonal-calendar", FacilityBomProfile.ARecordDesk),
+        F("research:agriculture:phenology", "작물 달력대", "workstation:v19:crop-calendar", FacilityBomProfile.ARecordDesk),
+        F("research:climate:weather-observation", "기상 관측탑", "workstation:v19:weather-observation", FacilityBomProfile.HObservationTower),
+        F("research:agriculture:soil-cycles", "토양 검사대", "workstation:v19:soil-test", FacilityBomProfile.BWorkbench),
+        F("research:survival:seasonal-storage", "계절 저장 선반", "workstation:v19:seasonal-storage", FacilityBomProfile.CLivingRoom),
+        F("research:agriculture:greenhouse-horticulture", "재배 온실", "workstation:v19:greenhouse", FacilityBomProfile.GGreenhouse),
+        F("research:husbandry:seasonal-breeding", "번식 일정 축사", "workstation:v19:breeding-schedule", FacilityBomProfile.CLivingRoom),
+        F("research:climate:environment-control", "기후 제어실", "workstation:v19:climate-control", FacilityBomProfile.EIndustrialLab),
+        F("research:society:household-records", "가구 등록대", "workstation:v19:household-registry", FacilityBomProfile.ARecordDesk),
+        F("research:life:infant-care", "보육실", "workstation:v19:nursery", FacilityBomProfile.CLivingRoom),
+        F("research:medical:reproductive-medicine", "산과실", "workstation:v19:obstetrics", FacilityBomProfile.DMedicalRoom),
+        F("research:society:child-education", "교실", "workstation:v19:classroom", FacilityBomProfile.CLivingRoom),
+        F("research:society:apprenticeship", "도제 작업대", "workstation:v19:apprenticeship", FacilityBomProfile.BWorkbench),
+        F("research:society:generation-management", "계보 관리실", "workstation:v19:generation-management", FacilityBomProfile.ARecordDesk),
+        F("research:medical:gerontology", "노화 평가대", "workstation:v19:aging-assessment", FacilityBomProfile.DMedicalRoom),
+        F("research:medical:biological-age-measurement", "연령 계측기", "workstation:v19:biological-age", FacilityBomProfile.EIndustrialLab),
+        F("research:medical:geriatric-medicine", "노인 병상", "workstation:v19:geriatric-care", FacilityBomProfile.DMedicalRoom),
+        F("research:medical:chronic-care", "만성 관리실", "workstation:v19:chronic-care", FacilityBomProfile.DMedicalRoom),
+        F("research:medical:regenerative-culture", "재생 배양조", "workstation:v19:regenerative-culture", FacilityBomProfile.FRuneBiolab),
+        F("research:medical:organ-regeneration", "장기 재생 수술실", "workstation:v19:organ-regeneration", FacilityBomProfile.FRuneBiolab),
+        F("research:medical:blood-rejuvenation", "회춘 수혈실", "workstation:v19:blood-rejuvenation", FacilityBomProfile.FRuneBiolab),
+        F("research:medical:rune-hibernation", "룬 동면실", "workstation:v19:rune-hibernation", FacilityBomProfile.FRuneBiolab),
+        F("research:medical:whole-body-regeneration", "전신 재생조", "workstation:v19:whole-body-regeneration", FacilityBomProfile.FRuneBiolab),
+        F("research:medical:temporal-stasis", "시간 고정실", "workstation:v19:temporal-stasis", FacilityBomProfile.FRuneBiolab),
+        F("research:health:pathogen-observation", "감염 진단대", "workstation:v19:pathogen-diagnosis", FacilityBomProfile.DMedicalRoom),
+        F("research:health:isolation-medicine", "격리 병동", "workstation:v19:isolation", FacilityBomProfile.DMedicalRoom),
+        F("research:health:immunoserology", "혈청 검사대", "workstation:v19:serology", FacilityBomProfile.EIndustrialLab),
+        F("research:health:vaccination", "백신 연구실", "workstation:v19:vaccine", FacilityBomProfile.EIndustrialLab),
+        F("research:health:epidemic-control", "역학 상황판", "workstation:v19:epidemic-board", FacilityBomProfile.ARecordDesk),
+        F("research:genetics:hereditary-records", "유전 기록고", "workstation:v19:genetic-archive", FacilityBomProfile.ARecordDesk),
+        F("research:genetics:trait-analysis", "형질 분석기", "workstation:v19:trait-analysis", FacilityBomProfile.EIndustrialLab),
+        F("research:genetics:controlled-heredity", "유전 상담실", "workstation:v19:genetic-counseling", FacilityBomProfile.DMedicalRoom),
+        F("research:genetics:cross-lineage-stabilization", "교차계통 배양기", "workstation:v19:cross-lineage", FacilityBomProfile.FRuneBiolab),
+        F("research:housing:room-assignment", "방 배정대", "workstation:v19:room-assignment", FacilityBomProfile.ARecordDesk),
+        F("research:housing:family-quarters", "가족실 칸막이", "workstation:v19:family-quarters", FacilityBomProfile.CLivingRoom),
+        F("research:housing:guardian-succession", "보호자 등록소", "workstation:v19:guardian-registry", FacilityBomProfile.ARecordDesk),
+        F("research:medical:trauma-medicine", "상담실", "workstation:v19:counseling", FacilityBomProfile.CLivingRoom),
+        F("research:society:corpse-care", "시신 처리대", "workstation:v19:corpse-care", FacilityBomProfile.DMedicalRoom),
+        F("research:society:funeral-rites", "추모실", "workstation:v19:memorial", FacilityBomProfile.CLivingRoom),
+        F("research:climate:regional-climatology", "기후 지도실", "workstation:v19:climate-map", FacilityBomProfile.EIndustrialLab),
+        F("research:climate:chronometric-navigation", "원정 천문시계실", "workstation:v19:chronometric-navigation", FacilityBomProfile.FRuneBiolab),
+        F("research:agriculture:seed-selection", "종자 선별대", "workstation:v19:seed-selection", FacilityBomProfile.BWorkbench),
+        F("research:agriculture:pest-control", "방제 조제대", "workstation:v19:pest-control", FacilityBomProfile.BWorkbench),
+        F("research:agriculture:crop-pathology", "작물 병리실", "workstation:v19:crop-pathology", FacilityBomProfile.DMedicalRoom),
+        F("research:agriculture:cultivar-breeding", "육종 온실", "workstation:v19:cultivar-breeding", FacilityBomProfile.GGreenhouse),
+        F("research:society:career-records", "경력 기록대", "workstation:v19:career-records", FacilityBomProfile.ARecordDesk),
+        F("research:society:retirement", "은퇴자 휴게실", "workstation:v19:retirement", FacilityBomProfile.CLivingRoom),
+        F("research:society:mentor-academy", "멘토 학원", "workstation:v19:mentor-academy", FacilityBomProfile.CLivingRoom)
     };
 
     private static ItemSpec[] ItemSpecs() => new[]
@@ -473,12 +656,37 @@ public static class ResearchOverhaulContentAssetBuilder
         S("research:cuisine:milling", "component:paper-paste", "종이 풀칠", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, "workstation:v3:prototype", 2, false, true, A("material:starch", 1), A("resource:clean-water", 1)),
         S("research:textile:layered", "component:textile-hardener", "직물 경화제", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, "workstation:v3:armor-tailoring", 2, false, true, A("material:starch", 1), A("resource:dark-resin", 1)),
         S("research:agriculture:subterranean", "supply:mushroom-substrate", "균사 재배 배지", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant | ResourceIngredientTag.Fungus, "workstation:v3:subterranean", 2, false, true, A("material:compost", 1), A("resource:cave-mushroom", 1)),
+        S("research:medical:whole-body-regeneration", "medical:whole-body-regeneration-medium", "전신 재생 배지", ResourceItemKind.Medicine, ResourceIngredientTag.Arcane, "workstation:v19:whole-body-regeneration", 1, false, true, A("medicine:advanced", 4), A("textile:sterile-cloth", 4), A("medicine:mycelial-culture-pack", 2), A("resource:mana-crystal", 2), A("resource:clean-water", 8)),
+        S("research:medical:temporal-stasis", "component:temporal-stasis-seal", "시간 고정 인장", ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral | ResourceIngredientTag.Arcane, "workstation:v19:temporal-stasis", 1, false, true, A("component:precision-parts", 2), A("component:rune-conductor", 2), A("component:mana-shield-plate", 1), A("resource:mana-crystal", 2)),
+        S("research:agriculture:pest-control", "supply:pest-lure", "해충 유인제", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, "workstation:v19:pest-control", 2, false, true, A("resource:dark-resin", 1), A("resource:meat", 1), A("material:paper", 1)),
+        S("research:agriculture:pest-control", "supply:botanical-pesticide", "식물성 살충제", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, "workstation:v19:pest-control", 2, false, true, A("material:rot-toxin", 1), A("material:alcohol", 1), A("resource:clean-water", 2)),
+        S("research:agriculture:crop-pathology", "supply:fungicide", "살균제", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, "workstation:v19:crop-pathology", 2, false, true, A("medicine:antiseptic", 1), A("material:charcoal", 1), A("resource:clean-water", 2)),
+
+        S("research:health:pathogen-observation", "sample:antigen:cave-flu", "동굴 독감 항원 표본", ResourceItemKind.FinishedGood, ResourceIngredientTag.None, string.Empty, 1, false, false),
+        S("research:health:pathogen-observation", "sample:antigen:red-fever", "적열병 항원 표본", ResourceItemKind.FinishedGood, ResourceIngredientTag.None, string.Empty, 1, false, false),
+        S("research:health:pathogen-observation", "sample:antigen:gut-rot", "장부패증 항원 표본", ResourceItemKind.FinishedGood, ResourceIngredientTag.None, string.Empty, 1, false, false),
+        S("research:health:pathogen-observation", "sample:antigen:spore-lung", "포자폐증 항원 표본", ResourceItemKind.FinishedGood, ResourceIngredientTag.Fungus, string.Empty, 1, false, false),
+        S("research:health:pathogen-observation", "sample:antigen:mana-pox", "마나두창 항원 표본", ResourceItemKind.FinishedGood, ResourceIngredientTag.Arcane, string.Empty, 1, false, false),
+        S("research:health:pathogen-observation", "sample:antigen:blood-wasting", "혈액소모병 항원 표본", ResourceItemKind.FinishedGood, ResourceIngredientTag.None, string.Empty, 1, false, false),
+        S("research:health:pathogen-observation", "sample:antigen:slime-blight", "점액역병 항원 표본", ResourceItemKind.FinishedGood, ResourceIngredientTag.None, string.Empty, 1, false, false),
+        S("research:health:vaccination", "medicine:vaccine:cave-flu", "동굴 독감 백신", ResourceItemKind.Medicine, ResourceIngredientTag.None, "workstation:v19:vaccine", 4, false, true, A("sample:antigen:cave-flu", 1), A("medicine:advanced", 1), A("resource:clean-water", 1)),
+        S("research:health:vaccination", "medicine:vaccine:red-fever", "적열병 백신", ResourceItemKind.Medicine, ResourceIngredientTag.None, "workstation:v19:vaccine", 4, false, true, A("sample:antigen:red-fever", 1), A("medicine:advanced", 1), A("resource:clean-water", 1)),
+        S("research:health:vaccination", "medicine:vaccine:gut-rot", "장부패증 백신", ResourceItemKind.Medicine, ResourceIngredientTag.None, "workstation:v19:vaccine", 4, false, true, A("sample:antigen:gut-rot", 1), A("medicine:advanced", 1), A("resource:clean-water", 1)),
+        S("research:health:vaccination", "medicine:vaccine:spore-lung", "포자폐증 백신", ResourceItemKind.Medicine, ResourceIngredientTag.Fungus, "workstation:v19:vaccine", 4, false, true, A("sample:antigen:spore-lung", 1), A("medicine:advanced", 1), A("resource:clean-water", 1)),
+        S("research:health:vaccination", "medicine:vaccine:mana-pox", "마나두창 백신", ResourceItemKind.Medicine, ResourceIngredientTag.Arcane, "workstation:v19:vaccine", 4, false, true, A("sample:antigen:mana-pox", 1), A("medicine:advanced", 1), A("resource:clean-water", 1)),
+        S("research:health:vaccination", "medicine:vaccine:blood-wasting", "혈액소모병 백신", ResourceItemKind.Medicine, ResourceIngredientTag.None, "workstation:v19:vaccine", 4, false, true, A("sample:antigen:blood-wasting", 1), A("medicine:advanced", 1), A("resource:clean-water", 1)),
+        S("research:health:vaccination", "medicine:vaccine:slime-blight", "점액역병 백신", ResourceItemKind.Medicine, ResourceIngredientTag.None, "workstation:v19:vaccine", 4, false, true, A("sample:antigen:slime-blight", 1), A("medicine:advanced", 1), A("resource:clean-water", 1)),
+
         S("research:equipment:lineage-binding", EquipmentProgressionItemIds.LineageSeal, "계보 인장", ResourceItemKind.FinishedGood, ResourceIngredientTag.Arcane, string.Empty, 1, false, false),
         S(string.Empty, PhysicalItemIds.EquipmentModule, "개량 부품", ResourceItemKind.FinishedGood, ResourceIngredientTag.None, string.Empty, 1, false, false)
     };
 
-    private static FacilitySpec F(string researchId, string name, string tag) =>
-        new FacilitySpec(researchId, name, tag);
+    private static FacilitySpec F(
+        string researchId,
+        string name,
+        string tag,
+        FacilityBomProfile bomProfile = FacilityBomProfile.Legacy) =>
+        new FacilitySpec(researchId, name, tag, bomProfile);
 
     private static InputSpec A(string itemId, int amount) =>
         new InputSpec(itemId, amount);

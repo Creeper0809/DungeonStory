@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: medical_trauma_medicine
+  m_EditorClassIdentifier: DungeonStory.Research::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7284
+  projectId: research:medical:trauma-medicine
+  displayName: "\uD2B8\uB77C\uC6B0\uB9C8 \uC758\uD559"
+  description: "\uC758\uB8CC \uC811\uC218\uC640 \uACE0\uAE09 \uC57D\uD559, \uAC00\uAD6C
+    \uAE30\uB85D\uC73C\uB85C \uC2EC\uB9AC \uC678\uC0C1\uC744 \uC0C1\uB2F4\uD55C\uB2E4."
+  field: 14
+  requiredWork: 560
+  prerequisites:
+  - {fileID: 11400000, guid: dd2109148e59a2244a05b77b4681c17b, type: 2}
+  - {fileID: 11400000, guid: 7697e3aaf574a95469fd01a14b0c4b78, type: 2}
+  - {fileID: 11400000, guid: 0e987e63f3ceb724aa404607804069ad, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:medical-reception
+    prerequisite: {fileID: 11400000, guid: dd2109148e59a2244a05b77b4681c17b, type: 2}
+    kind: 2
+    reason: "\uC758\uB8CC \uC811\uC218\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uD2B8\uB77C\uC6B0\uB9C8 \uC758\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:pharmacology:advanced
+    prerequisite: {fileID: 11400000, guid: 7697e3aaf574a95469fd01a14b0c4b78, type: 2}
+    kind: 2
+    reason: "\uACE0\uAE09 \uC57D\uB9AC\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uD2B8\uB77C\uC6B0\uB9C8 \uC758\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:society:household-records
+    prerequisite: {fileID: 11400000, guid: 0e987e63f3ceb724aa404607804069ad, type: 2}
+    kind: 0
+    reason: "\uAC00\uAD6C \uAE30\uB85D\uC758 \uC774\uB860\uC774(\uAC00) \uD2B8\uB77C\uC6B0\uB9C8
+      \uC758\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7737211792998531696
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 2
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211792998531696
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 8885

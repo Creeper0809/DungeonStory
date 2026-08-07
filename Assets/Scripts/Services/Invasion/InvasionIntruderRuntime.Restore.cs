@@ -63,12 +63,13 @@ internal sealed class InvasionIntruderRestoreCoordinator
     public bool TryPrepare(
         CharacterSO data,
         InvasionIntruderPersistenceState source,
+        EnemyIndividualBlueprint individualBlueprint,
         Vector2Int? finalDefenseTarget,
         out string warning)
     {
         DiscardPrepared();
         warning = string.Empty;
-        if (data == null || source == null)
+        if (data == null || source == null || individualBlueprint == null)
         {
             warning = "Active invasion state was incomplete.";
             return false;
@@ -125,7 +126,7 @@ internal sealed class InvasionIntruderRestoreCoordinator
             port.DamagedFacilityIds.Add(damagedFacilityId);
         }
 
-        RestoreActor(data, source);
+        RestoreActor(data, source, individualBlueprint);
         if (!TryResolveActivation(
                 source,
                 out bool preparedStartsInside,
@@ -182,13 +183,14 @@ internal sealed class InvasionIntruderRestoreCoordinator
 
     private void RestoreActor(
         CharacterSO data,
-        InvasionIntruderPersistenceState source)
+        InvasionIntruderPersistenceState source,
+        EnemyIndividualBlueprint individualBlueprint)
     {
         port.Transform.position = source.WorldPosition;
         port.Actor.SetLifecycleState(CharacterLifecycleState.SpawningOutside);
-        port.Actor.Initialize(data);
+        port.Actor.Initialize(data, individualBlueprint.SpawnRequest);
         port.Actor.Identity?.SetPersistentId(
-            CharacterId.FromStableSuffix(source.RuntimeId));
+            individualBlueprint.CharacterId);
         port.Actor.ScaleMaxHealth(port.Settings.healthMultiplier);
         port.Actor.Stats.RestorePersistentState(
             source.Conditions,

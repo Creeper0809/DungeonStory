@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7af3cd73193f9e439a3d0dbf4ce2432, type: 3}
+  m_Name: practice_harpy-first-flight
+  m_EditorClassIdentifier: DungeonStory.Content::CulturalPracticeDefinitionSO
+  stableId: practice:harpy-first-flight
+  displayName: "\uCCAB \uBE44\uD589\uC758 \uAE43"
+  description: "\uC131\uB144\uC2DD\uC5D0\uC11C \uC548\uC804\uC904\uC744 \uB9E4\uACE0
+    \uAC00\uC7A5 \uB192\uC740 \uB0B4\uBD80 \uBE44\uD589\uB85C\uB97C \uC644\uC8FC\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  cultureId: culture:harpy-aerie
+  kind: 4
+  requirements:
+    items:
+    - itemDefinitionId: material:rope
+      amount: 1
+      consume: 1
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  successEffects:
+  - kind: 3
+    targetId: practice:harpy-first-flight
+    amount: 3
+    durationDays: 5
+  neglectedEffects:
+  - kind: 1
+    targetId: practice:harpy-first-flight
+    amount: -2
+    durationDays: 3

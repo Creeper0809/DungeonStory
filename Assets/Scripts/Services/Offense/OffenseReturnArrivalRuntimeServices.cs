@@ -49,6 +49,8 @@ public sealed class OffenseReturnArrivalDomainServices
         ICaptivityCommandService captivityCommands,
         IWildlifeRuntime wildlife,
         IWildlifeCaptureRuntime wildlifeCapture,
+        IEnemyArchetypeCatalog enemyArchetypes,
+        IEnemyIndividualFactory enemyIndividuals,
         IGameClock clock,
         IGameEventBus eventBus)
     {
@@ -64,6 +66,10 @@ public sealed class OffenseReturnArrivalDomainServices
             ?? throw new ArgumentNullException(nameof(wildlife));
         WildlifeCapture = wildlifeCapture
             ?? throw new ArgumentNullException(nameof(wildlifeCapture));
+        EnemyArchetypes = enemyArchetypes
+            ?? throw new ArgumentNullException(nameof(enemyArchetypes));
+        EnemyIndividuals = enemyIndividuals
+            ?? throw new ArgumentNullException(nameof(enemyIndividuals));
         Clock = clock ?? throw new ArgumentNullException(nameof(clock));
         EventBus = eventBus
             ?? throw new ArgumentNullException(nameof(eventBus));
@@ -75,6 +81,8 @@ public sealed class OffenseReturnArrivalDomainServices
     public ICaptivityCommandService CaptivityCommands { get; }
     public IWildlifeRuntime Wildlife { get; }
     public IWildlifeCaptureRuntime WildlifeCapture { get; }
+    public IEnemyArchetypeCatalog EnemyArchetypes { get; }
+    public IEnemyIndividualFactory EnemyIndividuals { get; }
     public IGameClock Clock { get; }
     public IGameEventBus EventBus { get; }
 }

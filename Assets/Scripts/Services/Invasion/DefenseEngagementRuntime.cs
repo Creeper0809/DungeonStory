@@ -206,19 +206,13 @@ public sealed class DefenseEngagementRuntime :
 
     private void OnCharacterDeath(CharacterDeathEvent eventType)
     {
-        CharacterActor dead = eventType.Actor;
-        if (dead == null)
-        {
-            return;
-        }
-
         foreach (DefenseEngagement engagement in engagementStore.Engagements.ToArray())
         {
-            if (engagement.IntruderActor == dead)
+            if (HasCharacterId(engagement.IntruderActor, eventType.CharacterId))
             {
                 ResolveIntruderDefeated(engagement);
             }
-            else if (engagement.LeadGuard == dead)
+            else if (HasCharacterId(engagement.LeadGuard, eventType.CharacterId))
             {
                 if (engagement.IsOwnerFinalDefense)
                 {
@@ -229,7 +223,7 @@ public sealed class DefenseEngagementRuntime :
                     HandleLeadLost(engagement, "선두 경비 쓰러짐");
                 }
             }
-            else if (engagement.ReserveGuard == dead)
+            else if (HasCharacterId(engagement.ReserveGuard, eventType.CharacterId))
             {
                 ReleaseGuard(engagement.ReserveGuard, engagement.ReserveMovement, true);
                 engagement.ReserveGuard = null;
@@ -237,16 +231,24 @@ public sealed class DefenseEngagementRuntime :
                 engagement.ReserveArrived = false;
                 engagement.StatusText = "예비 경비 쓰러짐";
             }
-            else if (engagement.RangedGuard == dead)
+            else if (HasCharacterId(engagement.RangedGuard, eventType.CharacterId))
             {
                 ReleaseRangedGuard(engagement, "원거리 경비 쓰러짐", secondary: false);
             }
-            else if (engagement.SecondaryRangedGuard == dead)
+            else if (HasCharacterId(
+                engagement.SecondaryRangedGuard,
+                eventType.CharacterId))
             {
                 ReleaseRangedGuard(engagement, "원거리 경비 쓰러짐", secondary: true);
             }
         }
     }
+
+    private static bool HasCharacterId(
+        CharacterActor actor,
+        CharacterId expected) =>
+        CharacterPersistentIdentity.TryGet(actor, out CharacterId actual)
+        && actual.Equals(expected);
 
     public void NotifyActorDowned(CharacterActor actor)
     {

@@ -467,7 +467,9 @@ internal sealed class CharacterBodyHealthStateRules
     public void KillForDestroyedVitalNode(
         CharacterActor actor,
         CharacterBodyHealthState state,
-        string nodeId)
+        string nodeId,
+        CharacterDeathCauseCode deathCause,
+        string reasonCode)
     {
         AnatomyProfileDefinition profile = ResolveProfile(state.anatomyProfileId);
         if (!profile.TryGetNode(nodeId, out AnatomyNodeDefinition definition)
@@ -479,7 +481,24 @@ internal sealed class CharacterBodyHealthStateRules
         AnatomyNodeHealthState node = FindAnatomyNode(state, nodeId);
         if (node != null && (node.missing || node.currentHealth <= 0f) && !actor.IsDead)
         {
-            actor.Die($"{definition.DisplayName} 기능 상실");
+            if (actor.IsOwner
+                && deathCause == CharacterDeathCauseCode.AgeConditionOrganFailure)
+            {
+                state.currentHealth = Mathf.Max(1f, state.currentHealth);
+                state.injurySeverity = Mathf.Clamp01(
+                    1f - (state.currentHealth / Mathf.Max(1f, state.maxHealth)));
+                actor.Stats?.ApplyVitalsProjection(new CharacterVitalsSnapshot(
+                    state.maxHealth,
+                    state.currentHealth,
+                    state.injurySeverity));
+                return;
+            }
+
+            actor.Die(
+                deathCause,
+                string.IsNullOrWhiteSpace(reasonCode)
+                    ? $"anatomy:vital-function-loss:{definition.NodeId}"
+                    : reasonCode);
         }
     }
 
@@ -786,7 +805,8 @@ internal sealed class CharacterVitalsAuthority
         CharacterActor actor,
         CharacterBodyHealthState state,
         float amount,
-        string reason,
+        CharacterDeathCauseCode deathCause,
+        string reasonCode,
         bool allowDeath)
     {
         if (actor == null || state == null || amount <= 0f || state.currentHealth <= 0f)
@@ -801,8 +821,9 @@ internal sealed class CharacterVitalsAuthority
         Project(actor, state);
         actor.Stats?.NotifyAggregateDamage(
             amount,
-            reason,
-            allowDeath && state.currentHealth <= 0f);
+            reasonCode,
+            allowDeath && state.currentHealth <= 0f,
+            deathCause);
     }
 
     internal void Heal(
@@ -858,7 +879,8 @@ internal sealed class CharacterVitalsAuthority
     internal void Kill(
         CharacterActor actor,
         CharacterBodyHealthState state,
-        string reason)
+        CharacterDeathCauseCode cause,
+        string reasonCode)
     {
         bool alreadyDead = state.currentHealth <= 0f;
         state.currentHealth = 0f;
@@ -866,7 +888,7 @@ internal sealed class CharacterVitalsAuthority
         Project(actor, state);
         if (!alreadyDead)
         {
-            actor.Stats?.NotifyAggregateDeath(reason);
+            actor.Stats?.NotifyAggregateDeath(cause, reasonCode);
         }
     }
 
@@ -1123,7 +1145,8 @@ internal static class CharacterVitalsSideEffectAdapter
         CharacterLog log,
         float amount,
         string reason,
-        bool died)
+        bool died,
+        CharacterDeathCauseCode deathCause)
     {
         owner.ApplyMoodFactor(
             "health:injury",
@@ -1145,7 +1168,9 @@ internal static class CharacterVitalsSideEffectAdapter
 
         if (died)
         {
-            owner.NotifyAggregateDeath(reason);
+            owner.NotifyAggregateDeath(
+                deathCause,
+                reason);
         }
     }
 
@@ -1192,8 +1217,10 @@ internal static class CharacterVitalsSideEffectAdapter
         CharacterLifecycle lifecycle,
         CharacterLog log,
         IGameEventBus gameEventBus,
+        ICharacterDeathEventFactory deathEventFactory,
         IOwnerRunLifecycleService ownerRunLifecycleService,
-        string reason)
+        CharacterDeathCauseCode cause,
+        string reasonCode)
     {
         if (lifecycle != null
             && lifecycle.CurrentState == CharacterLifecycleState.Despawned)
@@ -1205,9 +1232,9 @@ internal static class CharacterVitalsSideEffectAdapter
         log?.AddActivity(CharacterActivityEvent.Create(
             CharacterActivityKinds.Health,
             CharacterActivityOutcomes.Defeated,
-            string.IsNullOrWhiteSpace(reason) ? "사망" : $"사망: {reason}",
+            string.IsNullOrWhiteSpace(reasonCode) ? "사망" : $"사망: {reasonCode}",
             actionId: "health:death",
-            reasonCode: reason,
+            reasonCode: reasonCode,
             value: 1f,
             sentiment: -1f,
             bubbleEligible: true));
@@ -1216,14 +1243,17 @@ internal static class CharacterVitalsSideEffectAdapter
         (gameEventBus
             ?? throw new InvalidOperationException(
                 $"{nameof(CharacterBodyHealthStateRules)} requires {nameof(IGameEventBus)} before publishing a death."))
-            .Publish(new CharacterDeathEvent(actor, reason));
+            .Publish((deathEventFactory
+                ?? throw new InvalidOperationException(
+                    $"{nameof(CharacterBodyHealthStateRules)} requires {nameof(ICharacterDeathEventFactory)} before publishing a death."))
+                .Create(actor, cause));
 
         if (identity != null && identity.IsOwner && actor != null)
         {
             (ownerRunLifecycleService
                 ?? throw new InvalidOperationException(
                     $"{nameof(CharacterBodyHealthStateRules)} requires {nameof(IOwnerRunLifecycleService)} for owner death handling."))
-                .HandleOwnerDeath(actor, reason);
+                .HandleOwnerDeath(actor, reasonCode);
         }
     }
 }

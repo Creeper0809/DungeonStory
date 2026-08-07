@@ -44,8 +44,8 @@ MonoBehaviour:
     - rid: 7737211730889015574
     - rid: 7737211730889015575
     - rid: 7737211730889015576
-    - rid: 7737211730889015878
-    - rid: 7737211730889015879
+    - rid: 7737211792661414905
+    - rid: 7737211792661414906
   width: 3
   height: 1
   layer: 1
@@ -62,12 +62,12 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730889015566
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: M12
     - rid: 7737211730889015567
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
@@ -75,7 +75,7 @@ MonoBehaviour:
         - surgery
         - m12
     - rid: 7737211730889015568
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
@@ -95,11 +95,11 @@ MonoBehaviour:
           supportedWorkTypes: 671121408
           disabledWhenDamaged: 1
     - rid: 7737211730889015570
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
     - rid: 7737211730889015571
-      type: {class: BuildingInternalStockAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingInternalStockAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 12
@@ -129,14 +129,14 @@ MonoBehaviour:
           scores: []
           metrics: []
     - rid: 7737211730889015574
-      type: {class: BuildingMedicalAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingMedicalAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingMedicalAbility
         workSeconds: 1.8
         severityReduction: 0.4
         requiresMedicine: 1
     - rid: 7737211730889015575
-      type: {class: BuildingFuelConsumerAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFuelConsumerAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingFuelConsumerAbility
         fuelPerRefuel: 1
@@ -144,20 +144,20 @@ MonoBehaviour:
         warmth: 0
         lightSafety: 2
     - rid: 7737211730889015576
-      type: {class: BuildingArcaneSurgeryAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingArcaneSurgeryAbility, ns: , asm: DungeonStory.Medical}
       data:
         abilityId: BuildingArcaneSurgeryAbility
         successBonus: 0.12
         minimumMutationRisk: 0.08
         manaCrystalCost: 2
-    - rid: 7737211730889015878
+    - rid: 7737211792661414905
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737211730889015879
+    - rid: 7737211792661414906
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility

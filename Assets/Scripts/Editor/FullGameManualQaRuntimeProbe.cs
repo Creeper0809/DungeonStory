@@ -838,7 +838,7 @@ public static class FullGameManualQaRuntimeProbe
                 CharacterIdentity identity = owner.Identity;
                 CharacterRuntimeProfile profile = identity != null ? identity.Profile : null;
                 speciesTag = profile != null ? profile.SpeciesTag : owner.SpeciesTag;
-                traitCount = profile != null && profile.Traits != null ? profile.Traits.Count : -1;
+                traitCount = profile != null ? profile.ExpressedTraitIds.Count : -1;
                 profileConnected = identity != null && identity.Data != null && profile != null;
                 speciesPresent = !string.IsNullOrWhiteSpace(speciesTag);
                 traitsPresent = traitCount > 0;

@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32c13160994648f4d837f914ae04f4c5, type: 3}
+  m_Name: festival_many-tables
+  m_EditorClassIdentifier: DungeonStory.Species::FestivalDefinitionSO
+  festivalId: festival:many-tables
+  displayName: "\uC5F4 \uBB38\uD654\uC758 \uC2DD\uD0C1"
+  description: "\uC11C\uB85C\uC758 \uAE08\uAE30\uB97C \uD45C\uC2DC\uD55C \uC5F4 \uAC1C\uC758
+    \uC791\uC740 \uC2DD\uD0C1\uC744 \uB3CC\uBA70 \uB300\uCCB4\uC2DD\uC744 \uB098\uB208\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored festival manifest.
+  season: 1
+  dayOfSeason: 28
+  convertsActiveGrief: 0
+  cultureId: 
+  requiredBuildingDefinitionId: building:festival-common-hall
+  requiredItems:
+  - itemDefinitionId: food:festival-sampler
+    amount: 20
+  minimumParticipants: 20
+  successOutcome:
+    moodDelta: 6
+    moodDurationDays: 10
+    factionRapportDelta: 3
+    griefConversionPercent: 0
+  partialOutcome:
+    moodDelta: 2
+    moodDurationDays: 5
+    factionRapportDelta: 0
+    griefConversionPercent: 0
+  failureOutcome:
+    moodDelta: -3
+    moodDurationDays: 4
+    factionRapportDelta: -2
+    griefConversionPercent: 0

@@ -56,6 +56,13 @@ public interface ICharacterSummaryGeneratedView
         Button holdFireButton,
         Button repairButton);
 
+    void BindGeneratedPopulation(
+        TMP_Text summaryText,
+        GameObject tabContent,
+        Button tabButton,
+        Button globalPolicyButton,
+        Button characterPermissionButton);
+
     void BindGeneratedGrowth(
         Slider experience,
         TMP_Text summary,
@@ -108,6 +115,7 @@ public sealed class CharacterSummaryTabActions
     private readonly Action showMood;
     private readonly Action showRecords;
     private readonly Action showAi;
+    private readonly Action showPopulation;
 
     public CharacterSummaryTabActions(
         Action showStatus,
@@ -116,7 +124,8 @@ public sealed class CharacterSummaryTabActions
         Action showGrowth,
         Action showMood,
         Action showRecords,
-        Action showAi)
+        Action showAi,
+        Action showPopulation)
     {
         this.showStatus = showStatus
             ?? throw new ArgumentNullException(nameof(showStatus));
@@ -131,6 +140,8 @@ public sealed class CharacterSummaryTabActions
         this.showRecords = showRecords
             ?? throw new ArgumentNullException(nameof(showRecords));
         this.showAi = showAi ?? throw new ArgumentNullException(nameof(showAi));
+        this.showPopulation = showPopulation
+            ?? throw new ArgumentNullException(nameof(showPopulation));
     }
 
     public void ShowStatus() => showStatus();
@@ -140,6 +151,28 @@ public sealed class CharacterSummaryTabActions
     public void ShowMood() => showMood();
     public void ShowRecords() => showRecords();
     public void ShowAi() => showAi();
+    public void ShowPopulation() => showPopulation();
+}
+
+public sealed class CharacterSummaryPopulationActions
+{
+    private readonly Action toggleGlobalApprenticeship;
+    private readonly Action toggleCharacterApprenticeship;
+
+    public CharacterSummaryPopulationActions(
+        Action toggleGlobalApprenticeship,
+        Action toggleCharacterApprenticeship)
+    {
+        this.toggleGlobalApprenticeship = toggleGlobalApprenticeship
+            ?? throw new ArgumentNullException(nameof(toggleGlobalApprenticeship));
+        this.toggleCharacterApprenticeship = toggleCharacterApprenticeship
+            ?? throw new ArgumentNullException(nameof(toggleCharacterApprenticeship));
+    }
+
+    public void ToggleGlobalApprenticeship() =>
+        toggleGlobalApprenticeship();
+    public void ToggleCharacterApprenticeship() =>
+        toggleCharacterApprenticeship();
 }
 
 public sealed class CharacterSummaryHealthActions
@@ -243,13 +276,16 @@ public sealed class CharacterSummaryViewActions
         CharacterSummaryTabActions tabs,
         CharacterSummaryHealthActions health,
         CharacterSummaryCombatActions combat,
-        CharacterSummaryGrowthActions growth)
+        CharacterSummaryGrowthActions growth,
+        CharacterSummaryPopulationActions population)
     {
         Popup = popup ?? throw new ArgumentNullException(nameof(popup));
         Tabs = tabs ?? throw new ArgumentNullException(nameof(tabs));
         Health = health ?? throw new ArgumentNullException(nameof(health));
         Combat = combat ?? throw new ArgumentNullException(nameof(combat));
         Growth = growth ?? throw new ArgumentNullException(nameof(growth));
+        Population = population
+            ?? throw new ArgumentNullException(nameof(population));
     }
 
     public CharacterSummaryPopupActions Popup { get; }
@@ -257,6 +293,7 @@ public sealed class CharacterSummaryViewActions
     public CharacterSummaryHealthActions Health { get; }
     public CharacterSummaryCombatActions Combat { get; }
     public CharacterSummaryGrowthActions Growth { get; }
+    public CharacterSummaryPopulationActions Population { get; }
 }
 
 public interface ICharacterSummaryRuntimeLogFactory

@@ -238,7 +238,7 @@ public sealed class WildlifeActor :
             gridPosition,
             targetPosition,
             GridPathSearchPriority.Normal,
-            GridTraversalContext.ForWildlife(this));
+            GridTraversalContext.ForWildlife(WildlifeId));
         if (path == null || path.Count == 0)
         {
             nextPathRebuildAt = now + NextRange(0.5f, 1.5f);
@@ -274,7 +274,7 @@ public sealed class WildlifeActor :
             gridPosition,
             targetPosition,
             GridPathSearchPriority.Urgent,
-            GridTraversalContext.ForWildlife(this));
+            GridTraversalContext.ForWildlife(WildlifeId));
         if (path == null || path.Count == 0)
         {
             return false;
@@ -713,7 +713,7 @@ public sealed class WildlifeActor :
             && !doorAccessQuery.CanTraverse(
                 grid,
                 target,
-                GridTraversalContext.ForWildlife(this),
+                GridTraversalContext.ForWildlife(WildlifeId),
                 out _))
         {
             return false;
@@ -730,7 +730,7 @@ public sealed class WildlifeActor :
             && !doorAccessQuery.CanTraverse(
                 grid,
                 gridPosition,
-                GridTraversalContext.ForWildlife(this),
+                GridTraversalContext.ForWildlife(WildlifeId),
                 out _))
         {
             grid.RemoveOccupant(

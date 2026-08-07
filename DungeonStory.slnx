@@ -12,6 +12,7 @@
   <Project Path="DungeonStory.Evolution.csproj" />
   <Project Path="DungeonStory.Research.csproj" />
   <Project Path="DungeonStory.AI.csproj" />
+  <Project Path="DungeonStory.Species.csproj" />
   <Project Path="DungeonStory.Wildlife.csproj" />
   <Project Path="DamageNumbersPro.csproj" />
   <Project Path="DungeonStory.Meta.csproj" />
@@ -39,7 +40,6 @@
   <Project Path="DungeonStory.Run.csproj" />
   <Project Path="DungeonStory.FacilityEvolution.csproj" />
   <Project Path="DungeonStory.CharacterNeeds.csproj" />
-  <Project Path="DungeonStory.Species.csproj" />
   <Project Path="DungeonStory.Synthesis.csproj" />
   <Project Path="DungeonStory.Recruitment.Editor.csproj" />
   <Project Path="DungeonStory.FacilityShop.Editor.csproj" />

@@ -25,6 +25,10 @@ MonoBehaviour:
   cropId: crop:ember-root
   displayName: "\uC7BF\uBD88\uBFCC\uB9AC"
   harvestItemId: resource:ember-root
+  seedItemId: seed-lot:ember-root
+  baseGenome: {fileID: 11400000, guid: bdde30b6524cfb441836fd149048c082, type: 2}
+  familyGroup: 2
+  endemicDisease: 2
   requiredResearchId: research:agriculture:field
   growthHours: 42
   sowWork: 4

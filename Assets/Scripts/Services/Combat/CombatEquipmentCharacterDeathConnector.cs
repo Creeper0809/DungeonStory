@@ -35,6 +35,6 @@ public sealed class CombatEquipmentCharacterDeathConnector :
     private void OnCharacterDeath(CharacterDeathEvent gameEvent)
     {
         equipment.HandleCharacterDeath(
-            gameEvent.Actor?.Identity?.PersistentId);
+            gameEvent.CharacterId.Value);
     }
 }

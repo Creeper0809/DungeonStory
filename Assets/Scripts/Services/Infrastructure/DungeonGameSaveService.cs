@@ -43,9 +43,9 @@ public sealed class DungeonSaveSlotCatalog : IDungeonSaveSlotCatalog
             try
             {
                 DungeonSaveSlotHeaderData data = JsonUtility.FromJson<DungeonSaveSlotHeaderData>(File.ReadAllText(path));
-                ModularFacilityWorldSaveData world = ReadSectionPayload<ModularFacilityWorldSaveData>(
+                GameSessionSaveData session = ReadSectionPayload<GameSessionSaveData>(
                     data?.sections,
-                    ModularFacilityWorldSaveSection.Id);
+                    FoundationSessionSaveSection.Id);
                 DungeonDebugRunSaveData debug = ReadSectionPayload<DungeonDebugRunSaveData>(
                     data?.sections,
                     DungeonDebugSaveSection.Id);
@@ -59,8 +59,8 @@ public sealed class DungeonSaveSlotCatalog : IDungeonSaveSlotCatalog
                     new DungeonSaveSlotSummary(
                         data?.savedAtUtc,
                         data?.sceneName,
-                        world?.gameData?.day ?? 1,
-                        world?.gameData?.holdingMoney ?? 0,
+                        session?.absoluteDay ?? 1,
+                        session?.money ?? 0,
                         debug != null && debug.debugModified,
                         (int)(runVariables?.startVariables?.survivalPressure
                             ?? DungeonSurvivalPressure.Standard)),

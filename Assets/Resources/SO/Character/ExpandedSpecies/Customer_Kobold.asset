@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 177cfc3b70256b84ca2f4f0975a0db84, type: 3}
   m_Name: Customer_Kobold
   m_EditorClassIdentifier: Assembly-CSharp::CharacterSO
+  archetypeId: character-archetype:9006
+  visualVariantId: visual-variant:9006
   characterType: 1
   role: 0
   id: 9006

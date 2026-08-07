@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cd719baf9d04ed9954c2d0940108e41, type: 3}
+  m_Name: wildlife_silk_spider
+  m_EditorClassIdentifier: DungeonStory.Wildlife::WildlifeSpeciesSO
+  speciesId: silk_spider
+  displayName: "\uB3D9\uAD74\uBA85\uC8FC\uAC70\uBBF8"
+  description: "\uBC1C\uAD11\uB098\uBC29\uC744 \uC7A1\uACE0 \uCC44\uC9D1 \uAC00\uB2A5\uD55C
+    \uC9C8\uAE34 \uAC70\uBBF8\uC904\uC744 \uB9CC\uB4E0\uB2E4."
+  sprite: {fileID: 0}
+  maxHealth: 10
+  moveSpeed: 1
+  fearSensitivity: 1
+  aggression: 0.3
+  retaliationDamage: 0
+  spawnWeight: 1
+  herdSize: 1
+  canEnterDungeon: 0
+  carcassWeight: 4
+  diet: 2
+  preferredHabitats: 0400000003000000
+  territoryRadius: 6
+  dailyFoodNeed: 1
+  dailyWaterNeed: 1
+  restPreference: 0.45
+  predationDrive: 0.3
+  fleePreference: 0.55
+  butcherYields: []
+  domesticable: 1
+  tamingDifficulty: 0.45
+  adultAgeDays: 4
+  maximumAgeDays: 40
+  gestationDays: 4
+  laysEggs: 0
+  bodySize: 1
+  manureIntervalDays: 2
+  husbandryProducts: []
+  authoringRevision: 1
+  preySpeciesIds:
+  - glow_moth
+  - cave_rat
+  predatorSpeciesIds:
+  - cave_hound
+  nestTag: nest:silk-web
+  breedingSeason: 2
+  migrationPatternId: migration:insect-swarm
+  diseaseVectorIds:
+  - disease:dream-mold
+  activeSeasons: 0000000002000000

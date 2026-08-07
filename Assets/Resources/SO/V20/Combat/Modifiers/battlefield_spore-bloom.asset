@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cb2899928eb6054ab2f4aa052a70e76, type: 3}
+  m_Name: battlefield_spore-bloom
+  m_EditorClassIdentifier: DungeonStory.Offense::BattlefieldModifierDefinitionSO
+  stableId: battlefield:spore-bloom
+  displayName: "\uD3EC\uC790 \uAC1C\uD654"
+  description: "\uC7A5\uAE30\uC804\uC77C\uC218\uB85D \uD3EC\uC790 \uB178\uCD9C\uACFC
+    \uC2DC\uC57C \uBC29\uD574\uAC00 \uB204\uC801\uB41C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored battlefield modifier.
+  kind: 2
+  movementMultiplier: 0.85
+  accuracyMultiplier: 0.8
+  damageMultiplier: 1
+  requiredCounterTag: counter:fungicide

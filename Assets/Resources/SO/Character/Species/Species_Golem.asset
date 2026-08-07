@@ -52,6 +52,9 @@ MonoBehaviour:
     visualStrainMultiplier: 1
     preferredHumidity: 0.5
     drynessSensitivity: 1
+  lifeHistory: {fileID: 11400000, guid: 5dda33ad5b235854d8e067b358b19864, type: 2}
+  reproduction: {fileID: 11400000, guid: 85daa7f4a37bfcd49b81de8cde7da45c, type: 2}
+  funeralCulture: {fileID: 11400000, guid: 1454747a964467141be25d80e01f5d16, type: 2}
   relationTags:
   - "\uC9C8\uC11C"
   - "\uB9C8\uB825"
@@ -100,6 +103,15 @@ MonoBehaviour:
     \uD575\uC774 \uACFC\uC5F4\uB418\uC5B4 \uC2DC\uC124\uC744 \uD30C\uC190\uD560 \uC218
     \uC788\uB2E4."
   incidentMitigatingRoles: 96
+  combatPassive:
+    passiveId: species-passive:golem
+    displayName: "\uBD88\uAD74 \uAD6C\uC870"
+    description: "\uC911\uB7C9 \uC6B4\uBC18\xB7\uAC74\uC124\xB7\uBC29\uBCBD \uBCF5\uAD6C\uC5D0
+      \uAC15\uD558\uC9C0\uB9CC \uC0DD\uBB3C \uC218\uC220\uC744 \uBC1B\uC744 \uC218
+      \uC5C6\uB2E4."
+    mechanicTags:
+    - "\uC911\uB7C9"
+    - "\uC815\uBE44"
   statBonus:
     entries:
     - statId: stat:attack
@@ -141,15 +153,6 @@ MonoBehaviour:
     dislikedFacilityRoles: 0
     preferredWorkTypes: 537002500
     dislikedWorkTypes: 1040
-  combatPassive:
-    passiveId: species-passive:golem
-    displayName: "\uBD88\uAD74 \uAD6C\uC870"
-    description: "\uC911\uB7C9 \uC6B4\uBC18\xB7\uAC74\uC124\xB7\uBC29\uBCBD \uBCF5\uAD6C\uC5D0
-      \uAC15\uD558\uC9C0\uB9CC \uC0DD\uBB3C \uC218\uC220\uC744 \uBC1B\uC744 \uC218
-      \uC5C6\uB2E4."
-    mechanicTags:
-    - "\uC911\uB7C9"
-    - "\uC815\uBE44"
   combatAbilities:
     abilities:
     - rid: 7302563319989403751

@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e299ffa39eb64f5aa2a777c1be71b5bc, type: 3}
+  m_Name: heritable_dense-bone
+  m_EditorClassIdentifier: DungeonStory.Species::HeritableTraitDefinitionSO
+  traitId: heritable:dense-bone
+  displayName: "\uACE0\uBC00\uB3C4 \uACE8\uACA9"
+  description: "\uACE8\uC808\uC5D0 \uAC15\uD558\uC9C0\uB9CC \uC774\uB3D9\uACFC \uC218\uC601\uC5D0
+    \uB354 \uB9CE\uC740 \uC5D0\uB108\uC9C0\uAC00 \uB4E0\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored hereditary trait manifest.
+  category: 0
+  incompatibilityGroup: anatomy:hollow-bone
+  aptitudeModifier: 3
+  compatibleSpeciesTags: []
+  consequences:
+  - kind: 6
+    targetId: bone-density
+    multiplierDelta: 0.15

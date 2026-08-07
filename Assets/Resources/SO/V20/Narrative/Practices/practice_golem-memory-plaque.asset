@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7af3cd73193f9e439a3d0dbf4ce2432, type: 3}
+  m_Name: practice_golem-memory-plaque
+  m_EditorClassIdentifier: DungeonStory.Content::CulturalPracticeDefinitionSO
+  stableId: practice:golem-memory-plaque
+  displayName: "\uAE30\uC5B5\uD310 \uC548\uCE58"
+  description: "\uC815\uC9C0\uB41C \uACE8\uB818\uC758 \uD575 \uAE30\uB85D\uC744 \uAE08\uC18D\uD310\uC5D0
+    \uC694\uC57D\uD574 \uBCF4\uAD00\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 content-density expansion; hand-authored Korean source revision
+    1.
+  cultureId: culture:golem-core
+  kind: 6
+  requirements:
+    items:
+    - itemDefinitionId: material:iron-ingot
+      amount: 1
+      consume: 1
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  successEffects:
+  - kind: 2
+    targetId: practice:golem-memory-plaque
+    amount: -4
+    durationDays: 5
+  neglectedEffects:
+  - kind: 1
+    targetId: practice:golem-memory-plaque
+    amount: -2
+    durationDays: 3

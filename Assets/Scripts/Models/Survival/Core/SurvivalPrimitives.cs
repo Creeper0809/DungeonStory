@@ -16,7 +16,7 @@ public enum MealQualityTier
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonSurvivalSaveData
 {
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 6;
 
     public int version = CurrentVersion;
     public int lastProcessedDay;
@@ -30,9 +30,6 @@ public sealed class DungeonSurvivalSaveData
     public int consecutiveWaterShortageDays;
     public int lastConsumedFuel;
     public int lastMissingFuel;
-    public SurvivalWeatherType currentWeather = SurvivalWeatherType.Clear;
-    public int weatherDay;
-    public float outdoorTemperature = 18f;
     public float sanitationRisk;
     public float diseaseRisk;
     public float exteriorNightDanger;
@@ -465,13 +462,14 @@ public sealed class WorldWaterSourceSaveData
     public float capacity = 12f;
     public float remaining = 12f;
     public float regenerationPerSecond = 0.02f;
+    public string pathogenDiseaseId = string.Empty;
 }
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonDarkSurvivalSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     public int version = CurrentVersion;
     public int nextFilthSequence = 1;
@@ -580,7 +578,8 @@ public readonly struct WorldWaterSourceSnapshot
         WorldWaterQuality quality,
         float capacity,
         float remaining,
-        float regenerationPerSecond)
+        float regenerationPerSecond,
+        string pathogenDiseaseId)
     {
         SourceId = sourceId ?? string.Empty;
         Position = position;
@@ -589,6 +588,7 @@ public readonly struct WorldWaterSourceSnapshot
         Capacity = Mathf.Max(0f, capacity);
         Remaining = Mathf.Clamp(remaining, 0f, Capacity);
         RegenerationPerSecond = Mathf.Max(0f, regenerationPerSecond);
+        PathogenDiseaseId = pathogenDiseaseId?.Trim() ?? string.Empty;
     }
 
     public string SourceId { get; }
@@ -598,7 +598,32 @@ public readonly struct WorldWaterSourceSnapshot
     public float Capacity { get; }
     public float Remaining { get; }
     public float RegenerationPerSecond { get; }
+    public string PathogenDiseaseId { get; }
     public bool CanDrink => Remaining > 0.05f;
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public readonly struct CharacterWaterConsumedEvent
+{
+    public CharacterWaterConsumedEvent(
+        CharacterId characterId,
+        string sourceId,
+        WorldWaterQuality quality,
+        float amount,
+        string pathogenDiseaseId)
+    {
+        CharacterId = characterId;
+        SourceId = sourceId?.Trim() ?? string.Empty;
+        Quality = quality;
+        Amount = Mathf.Max(0f, amount);
+        PathogenDiseaseId = pathogenDiseaseId?.Trim() ?? string.Empty;
+    }
+
+    public CharacterId CharacterId { get; }
+    public string SourceId { get; }
+    public WorldWaterQuality Quality { get; }
+    public float Amount { get; }
+    public string PathogenDiseaseId { get; }
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -655,4 +680,20 @@ public interface IWorldWaterQuery
         WorldWaterQuality quality,
         float capacity,
         float remaining);
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public interface IWorldWaterContaminationCommand
+{
+    bool TryContaminate(
+        string sourceId,
+        string pathogenDiseaseId,
+        WorldWaterQuality minimumQuality);
+    bool TryContaminateNearest(
+        Vector2Int origin,
+        int maximumDistance,
+        string pathogenDiseaseId,
+        WorldWaterQuality minimumQuality,
+        out string sourceId);
+    bool TryClearPathogen(string sourceId);
 }

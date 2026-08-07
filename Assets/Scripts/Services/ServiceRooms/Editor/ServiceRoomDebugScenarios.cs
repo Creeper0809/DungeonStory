@@ -21,7 +21,7 @@ public static class ServiceRoomDebugScenarios
         Debug.Log(
             "Service room contracts PASS: five Direct services, closed demand "
             + "policy, explicit modes, 16 support facilities, five process "
-            + "assets, 168 research projects and service.rooms V2.");
+            + "assets, 216 research projects and service.rooms V2.");
     }
 
     public static List<string> Validate()
@@ -159,10 +159,10 @@ public static class ServiceRoomDebugScenarios
     {
         ResearchProjectSO[] projects = LoadAll<ResearchProjectSO>(
             "Assets/Resources/SO/Research/Projects");
-        if (projects.Length != 168)
+        if (projects.Length != 216)
         {
             failures.Add(
-                $"Expected 168 research projects, found {projects.Length}.");
+                $"Expected 216 research projects, found {projects.Length}.");
         }
 
         foreach ((string id, int[] buildingIds) in

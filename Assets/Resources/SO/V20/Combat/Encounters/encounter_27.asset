@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11a7078c65d29414ebfafd36d0865407, type: 3}
+  m_Name: encounter_27
+  m_EditorClassIdentifier: DungeonStory.Offense::OffenseEncounterSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8027
+  encounterId: encounter:27
+  displayName: "\uACBD\uC7C1 \uB358\uC804 \uACC4\uC57D\uACB0\uC18D\uC0AC \uC804\uC220
+    \uC870\uC6B0"
+  minimumSiteStrength: 7
+  maximumSiteStrength: 10
+  elite: 0
+  boss: 0
+  objective: 2
+  objectiveRoundLimit: 6
+  objectiveTargetId: target:field-medic
+  battlefieldModifierIds:
+  - battlefield:elevated-gallery
+  counterTags:
+  - counter:dispel
+  rewardItemIds:
+  - loot:enemy-salvage
+  enemies:
+  - enemyArchetypeId: enemy:rival-pactbinder
+    minimumCount: 1
+    maximumCount: 2
+  - enemyArchetypeId: enemy:neutral-mercenary
+    minimumCount: 1
+    maximumCount: 2

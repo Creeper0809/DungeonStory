@@ -10,12 +10,14 @@ public sealed class CharacterStatsVitalsService
     private readonly ICharacterBodyHealthQuery bodyHealthQuery;
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly IGameEventBus gameEventBus;
+    private readonly ICharacterDeathEventFactory deathEventFactory;
     private readonly IOwnerRunLifecycleService ownerRunLifecycle;
 
     public CharacterStatsVitalsService(
         ICharacterBodyHealthQuery bodyHealthQuery,
         ICharacterBodyHealthCommand bodyHealthCommands,
         IGameEventBus gameEventBus,
+        ICharacterDeathEventFactory deathEventFactory,
         IOwnerRunLifecycleService ownerRunLifecycle)
     {
         this.bodyHealthQuery = bodyHealthQuery
@@ -24,6 +26,8 @@ public sealed class CharacterStatsVitalsService
             ?? throw new ArgumentNullException(nameof(bodyHealthCommands));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.deathEventFactory = deathEventFactory
+            ?? throw new ArgumentNullException(nameof(deathEventFactory));
         this.ownerRunLifecycle = ownerRunLifecycle
             ?? throw new ArgumentNullException(nameof(ownerRunLifecycle));
     }
@@ -68,13 +72,15 @@ public sealed class CharacterStatsVitalsService
         CharacterLog log,
         float amount,
         string reason,
-        bool died) =>
+        bool died,
+        CharacterDeathCauseCode deathCause) =>
         CharacterVitalsSideEffectAdapter.NotifyDamage(
             owner,
             log,
             amount,
             reason,
-            died);
+            died,
+            deathCause);
 
     public void Heal(CharacterActor actor, float amount) =>
         bodyHealthCommands.HealLegacyVitals(actor, amount);
@@ -97,6 +103,12 @@ public sealed class CharacterStatsVitalsService
     public void Kill(CharacterActor actor, string reason) =>
         bodyHealthCommands.Kill(actor, reason);
 
+    public void Kill(
+        CharacterActor actor,
+        CharacterDeathCauseCode cause,
+        string reasonCode) =>
+        bodyHealthCommands.Kill(actor, cause, reasonCode);
+
     public void NotifyDeath(
         CharacterStats owner,
         CharacterActor actor,
@@ -104,7 +116,8 @@ public sealed class CharacterStatsVitalsService
         CharacterVisual visual,
         CharacterLifecycle lifecycle,
         CharacterLog log,
-        string reason) =>
+        CharacterDeathCauseCode cause,
+        string reasonCode) =>
         CharacterVitalsSideEffectAdapter.NotifyDeath(
             owner,
             actor,
@@ -113,8 +126,10 @@ public sealed class CharacterStatsVitalsService
             lifecycle,
             log,
             gameEventBus,
+            deathEventFactory,
             ownerRunLifecycle,
-            reason);
+            cause,
+            reasonCode);
 
     public void RestoreProjection(
         CharacterActor actor,

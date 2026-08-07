@@ -2,6 +2,7 @@ using Sirenix.OdinInspector;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using VContainer;
@@ -18,15 +19,29 @@ public class UIManager : SerializedMonoBehaviour
     private Stack<UIPopUp> popups = new Stack<UIPopUp>();
     private IPlayerInputReader inputReader;
     private IGameSessionStateProvider sessionStateProvider;
+    private IGameCalendar calendar;
+    private IClimateQuery climate;
+    private IPopulationHealthQuery populationHealth;
+    private IDiseaseDefinitionCatalog diseaseDefinitions;
 
     [Inject]
     public void Construct(
         IPlayerInputReader inputReader,
-        IGameSessionStateProvider sessionStateProvider)
+        IGameSessionStateProvider sessionStateProvider,
+        IGameCalendar calendar,
+        IClimateQuery climate,
+        IPopulationHealthQuery populationHealth,
+        IDiseaseDefinitionCatalog diseaseDefinitions)
     {
         this.inputReader = inputReader ?? throw new ArgumentNullException(nameof(inputReader));
         this.sessionStateProvider = sessionStateProvider
             ?? throw new ArgumentNullException(nameof(sessionStateProvider));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.climate = climate ?? throw new ArgumentNullException(nameof(climate));
+        this.populationHealth = populationHealth
+            ?? throw new ArgumentNullException(nameof(populationHealth));
+        this.diseaseDefinitions = diseaseDefinitions
+            ?? throw new ArgumentNullException(nameof(diseaseDefinitions));
     }
 
     private void Start()
@@ -82,8 +97,38 @@ public class UIManager : SerializedMonoBehaviour
     }
     public void UpdateTime()
     {
-        timeText.text = $"Day {gameData.day.Value} - {gameData.hour.Value}:00";
+        string epidemic = string.Join(
+            ", ",
+            populationHealth.GetEpidemics(declaredOnly: true)
+                .Select(value => diseaseDefinitions
+                    .Require(value.DiseaseId).DisplayName));
+        timeText.text = $"{calendar.Year}년 {SeasonLabel(calendar.Season)} "
+            + $"{calendar.DayOfSeason}일 {calendar.Hour:00}:00 · "
+            + $"{climate.OutdoorTemperatureC:0.#}℃ "
+            + $"{WeatherLabel(climate.WeatherFrontId)}"
+            + (epidemic.Length > 0 ? $" · 유행: {epidemic}" : string.Empty);
     }
+
+    private static string SeasonLabel(Season season) => season switch
+    {
+        Season.Spring => "봄",
+        Season.Summer => "여름",
+        Season.Autumn => "가을",
+        Season.Winter => "겨울",
+        _ => season.ToString()
+    };
+
+    private static string WeatherLabel(string weatherFrontId) =>
+        weatherFrontId switch
+        {
+            "weather:clear" => "맑음",
+            "weather:rain" => "비",
+            "weather:fog" => "안개",
+            "weather:heatwave" => "폭염",
+            "weather:cold-snap" => "한파",
+            "weather:storm" => "폭풍",
+            _ => weatherFrontId ?? string.Empty
+        };
     private void UpdateHoldingMoneyText(int holdingMoney)
     {
         holdingMoneyText.text = holdingMoney.ToString();

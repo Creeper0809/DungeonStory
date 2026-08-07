@@ -355,7 +355,8 @@ public sealed class WorldItemWarehouseService
             destinationPosition,
             sourceStorageDestinationId: storageDestination,
             wasteOrigin: source.wasteOrigin,
-            contamination: source.contamination);
+            contamination: source.contamination,
+            components: source.components);
         if (requested < moved)
         {
             spawner.Spawn(
@@ -365,7 +366,8 @@ public sealed class WorldItemWarehouseService
                 source.state,
                 storageDestination,
                 wasteOrigin: source.wasteOrigin,
-                contamination: source.contamination);
+                contamination: source.contamination,
+                components: source.components);
         }
         markers.RefreshAt(sourcePosition);
         if (requested <= 0)
@@ -478,7 +480,8 @@ public sealed class WorldItemWarehouseService
                 true,
                 destinationPosition,
                 wasteOrigin: stack.wasteOrigin,
-                contamination: stack.contamination);
+                contamination: stack.contamination,
+                components: stack.components);
             remaining -= moved;
             markers.RefreshAt(sourcePosition);
         }
@@ -547,7 +550,8 @@ public sealed class WorldItemWarehouseService
                     destinationPosition,
                     sourceStorageDestinationId: storageId,
                     wasteOrigin: stack.wasteOrigin,
-                    contamination: stack.contamination);
+                    contamination: stack.contamination,
+                    components: stack.components);
                 if (created < assigned)
                 {
                     AddStoredItems(
@@ -555,7 +559,8 @@ public sealed class WorldItemWarehouseService
                         itemId,
                         assigned - created,
                         stack.wasteOrigin,
-                        stack.contamination);
+                        stack.contamination,
+                        stack.components);
                 }
                 requested += created;
                 remaining -= created;
@@ -594,7 +599,8 @@ public sealed class WorldItemWarehouseService
         string itemId,
         int amount,
         WasteOriginKind wasteOrigin = WasteOriginKind.Unknown,
-        float contamination = 0f)
+        float contamination = 0f,
+        IReadOnlyList<ItemInstanceComponentSaveData> components = null)
     {
         if (warehouse == null
             || string.IsNullOrWhiteSpace(itemId)
@@ -612,7 +618,8 @@ public sealed class WorldItemWarehouseService
             WorldItemStackState.Stored,
             WarehouseStorageIdentity.RequireDestinationId(warehouse),
             wasteOrigin: wasteOrigin,
-            contamination: contamination);
+            contamination: contamination,
+            components: components);
     }
 
     private IEnumerable<IWarehouseFacility> GetWarehouses()

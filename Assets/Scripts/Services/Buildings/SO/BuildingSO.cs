@@ -287,6 +287,11 @@ public class BuildingSO : DataScriptableObject, IGridBuildAreaCapability
     public Sprite sprite;
     public Sprite icon;
 
+    [Header("Authored Content Identity")]
+    [SerializeField] private string contentDefinitionId = string.Empty;
+    [SerializeField, Min(1)] private int authoringRevision = 1;
+    [SerializeField, TextArea] private string sourceNote = string.Empty;
+
     [Header("Facility Abilities")]
     [InspectorName("능력 목록")]
     [SerializeField] private BuildingAbilityCollection abilityModules = new BuildingAbilityCollection();
@@ -335,6 +340,9 @@ public class BuildingSO : DataScriptableObject, IGridBuildAreaCapability
     public FacilityAnchorData FacilityAnchors => facilityAnchors ??= new FacilityAnchorData();
     public BuildingAbilityCollection AbilityModules =>
         abilityModules ??= new BuildingAbilityCollection();
+    public string ContentDefinitionId => contentDefinitionId?.Trim() ?? string.Empty;
+    public int AuthoringRevision => authoringRevision;
+    public string SourceNote => sourceNote?.Trim() ?? string.Empty;
     public int Maintenance
     {
         get => GetAbility<BuildingEconomyAbility>()?.maintenance ?? 0;
@@ -383,6 +391,18 @@ public class BuildingSO : DataScriptableObject, IGridBuildAreaCapability
     {
         abilityModules = abilities ?? new BuildingAbilityCollection();
     }
+
+#if UNITY_EDITOR
+    public void ConfigureAuthoredContentIdentity(
+        string definitionId,
+        int revision,
+        string note)
+    {
+        contentDefinitionId = definitionId?.Trim() ?? string.Empty;
+        authoringRevision = Mathf.Max(1, revision);
+        sourceNote = note?.Trim() ?? string.Empty;
+    }
+#endif
 
     public IReadOnlyList<IBuildingCondition> BuildConditions => OnBuildCondition != null
         ? ReadOnlyView.List(OnBuildCondition)

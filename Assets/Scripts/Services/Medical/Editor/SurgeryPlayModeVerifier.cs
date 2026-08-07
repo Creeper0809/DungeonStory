@@ -737,7 +737,7 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                 pickup.PickupStandPosition,
                 out path,
                 GridPathSearchPriority.Urgent,
-                GridTraversalContext.ForCharacter(actor));
+                GridTraversalContext.ForCharacter(CharacterPersistentIdentity.Require(actor)));
         }
 
         return $"pickup={pickup.ItemPosition}"

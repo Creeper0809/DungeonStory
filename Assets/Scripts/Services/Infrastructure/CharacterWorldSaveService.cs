@@ -360,11 +360,31 @@ public sealed class CharacterWorldSaveService :
                 "No published character world restore candidate is ready to complete.");
         }
 
+        DetachedCharacterWorldCandidate completedCandidate =
+            activePublication.Candidate;
         CompleteCharacterPublication(activePublication);
         restoreWorldCandidates.ClearCharacterCandidate();
+
+        // Close participant ownership before post-publication reconciliation.
+        // Completion runs after the aggregate root has been published and may
+        // not leave a transaction active if a later postcondition reports a
+        // defect.
         activePublication = null;
         stagedCandidate = null;
         restoreTransactionActive = false;
+
+        // Query redirection must be gone before the transaction verifies its
+        // live-world state. Register once more against the real scene
+        // registries; the save acceptance test owns exact recapture equality.
+        foreach (CharacterRestoreCandidate character in
+                 completedCandidate.Characters)
+        {
+            CharacterActor actor = character?.Actor;
+            if (actor != null && actor.gameObject.activeInHierarchy)
+            {
+                actor.ReconcilePublishedRuntimeRegistration();
+            }
+        }
     }
 
     public void DiscardRestoreCandidate()
@@ -803,6 +823,7 @@ public sealed class CharacterWorldSaveService :
             candidate.OwnerManager.CompleteRestoreCandidatePublication(
                 publication.OwnerPublication);
         }
+
     }
 
     private static void EnsureRestoredStaffWorkAbility(GameObject staffObject)

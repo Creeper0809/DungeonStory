@@ -630,7 +630,9 @@ public sealed class CombatLoadoutPreparationRuntime :
             grid,
             state.Actor.GetNowXY(),
             state.PickupStand,
-            traversalContext: GridTraversalContext.ForCharacter(state.Actor));
+            traversalContext: GridTraversalContext.ForCharacter(
+                CharacterPersistentIdentity.Require(state.Actor),
+                movementIntent: GridMovementIntent.CombatSupply));
         if (path == null || path.Count == 0)
         {
             return false;

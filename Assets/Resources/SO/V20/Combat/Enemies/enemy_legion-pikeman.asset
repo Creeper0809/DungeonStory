@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8080a982ba741ff4e8ae644f419d70cb, type: 3}
+  m_Name: enemy_legion-pikeman
+  m_EditorClassIdentifier: DungeonStory.Offense::EnemyArchetypeDefinitionSO
+  stableId: enemy:legion-pikeman
+  displayName: "\uB3C4\uC2DC\uC5F0\uB9F9 \uC7A5\uCC3D\uBCD1"
+  description: "\uC811\uADFC\uD558\uB294 \uC801\uC744 \uAE34 \uCC3D\uC73C\uB85C \uBB36\uB294\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored enemy archetype.
+  factionId: human:legion
+  speciesTag: Human
+  role: 0
+  maxHealth: 92
+  attack: 9
+  strength: 7.65
+  toughness: 7
+  dexterity: 6
+  moveSpeed: 4
+  equipment:
+    weaponDefinitionId: weapon:halberd
+    armorDefinitionId: armor:brigandine
+    shieldDefinitionId: 
+    ammunitionItemId: 
+  abilityIds:
+  - enemy-ability:hook-pull
+  tacticalProfile:
+    attackWeight: 4
+    protectWeight: 1
+    abilityWeight: 3
+    retreatWeight: 2
+    retreatHealthFraction: 0.2
+    preferredTargetTags:
+    - nearest
+    avoidedTargetTags:
+    - none
+    formationTag: pike-line
+  counterTags:
+  - counter:ranged
+  rewardItemIds:
+  - loot:enemy-salvage
+  bossPhases: []
+  individualGeneration:
+    minimumGeneralTraits: 2
+    maximumGeneralTraits: 3
+    minimumExpressedHeritableTraits: 0
+    maximumExpressedHeritableTraits: 2
+    maximumLatentHeritableTraits: 1
+    aptitudeVariance: 15
+    combatStatVariance: 0.12
+    minimumLoyalty: 20
+    maximumLoyalty: 75
+    recruitable: 1
+    militaryTrainingId: training:legion-pikeman
+    allowedBackgroundIds: []

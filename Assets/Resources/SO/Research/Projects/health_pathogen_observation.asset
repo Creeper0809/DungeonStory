@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: health_pathogen_observation
+  m_EditorClassIdentifier: DungeonStory.Research::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7272
+  projectId: research:health:pathogen-observation
+  displayName: "\uBCD1\uC6D0\uCCB4 \uAD00\uCC30"
+  description: "\uD574\uBD80\uD559\uACFC \uC704\uC0DD \uC9C0\uC2DD\uC73C\uB85C \uBCD1\uC6D0\uCCB4\uC640
+    \uC99D\uC0C1\uC744 \uAD6C\uBD84\uD55C\uB2E4."
+  field: 14
+  requiredWork: 420
+  prerequisites:
+  - {fileID: 11400000, guid: db52b6c4042583d41a582bd0c7d9d6a3, type: 2}
+  - {fileID: 11400000, guid: d75bc5c0a1a2a2e4aa3f082b164eadfa, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:medical:anatomy
+    prerequisite: {fileID: 11400000, guid: db52b6c4042583d41a582bd0c7d9d6a3, type: 2}
+    kind: 2
+    reason: "\uD574\uBD80\uD559\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uBCD1\uC6D0\uCCB4
+      \uAD00\uCC30 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:survival:sanitation
+    prerequisite: {fileID: 11400000, guid: d75bc5c0a1a2a2e4aa3f082b164eadfa, type: 2}
+    kind: 2
+    reason: "\uAE30\uCD08 \uC704\uC0DD\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uBCD1\uC6D0\uCCB4 \uAD00\uCC30 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7737211793001939524
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 2
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211793001939524
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 8873

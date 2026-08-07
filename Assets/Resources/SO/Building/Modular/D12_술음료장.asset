@@ -43,8 +43,8 @@ MonoBehaviour:
     - rid: 7737211730834227597
     - rid: 7737211730834227598
     - rid: 7737211730834227599
-    - rid: 7737211730889016244
-    - rid: 7737211730889016245
+    - rid: 7737211792998531440
+    - rid: 7737211792998531441
   width: 1
   height: 1
   layer: 1
@@ -61,18 +61,18 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730834227589
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: D12
     - rid: 7737211730834227590
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - brewery
     - rid: 7737211730834227592
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 120
@@ -104,7 +104,7 @@ MonoBehaviour:
           supportedWorkTypes: 13
           disabledWhenDamaged: 1
     - rid: 7737211730834227595
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
     - rid: 7737211730834227596
@@ -134,25 +134,25 @@ MonoBehaviour:
           excretion: 0
           hygiene: 0
     - rid: 7737211730834227598
-      type: {class: BuildingServiceAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingServiceAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingServiceAbility
         capacity: 1
         contributesStockCategory: 1
         stockCategory: 0
     - rid: 7737211730834227599
-      type: {class: BuildingMercenaryHiringAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingMercenaryHiringAbility, ns: , asm: DungeonStory.Economy}
       data:
         abilityId: BuildingMercenaryHiringAbility
         rolePremium: 0
         minimumCandidateSatisfaction: 65
-    - rid: 7737211730889016244
+    - rid: 7737211792998531440
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:tavern-brewery
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211730889016245
+    - rid: 7737211792998531441
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -172,3 +172,5 @@ MonoBehaviour:
           capacity: 16
         - itemId: component:precision-parts
           capacity: 16
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}

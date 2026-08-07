@@ -15,6 +15,8 @@ public class CharacterIdentity : SerializedMonoBehaviour
     [SerializeField]
     [ReadOnly]
     private CharacterType characterType = CharacterType.Customer;
+    [System.NonSerialized]
+    private bool characterTypeExplicitlyAssigned;
     [SerializeField]
     [ReadOnly]
     private CharacterRole role = CharacterRole.Regular;
@@ -64,10 +66,6 @@ public class CharacterIdentity : SerializedMonoBehaviour
     private void Awake()
     {
         Bind(GetComponent<CharacterActor>());
-        if (data != null && profile == null)
-        {
-            SetData(data);
-        }
     }
 
     public void Bind(CharacterActor owner)
@@ -75,11 +73,35 @@ public class CharacterIdentity : SerializedMonoBehaviour
         actor = owner;
     }
 
-    public void SetData(CharacterSO nextData)
+    public void SetData(
+        CharacterSO nextData,
+        CharacterRuntimeProfile nextProfile)
     {
+        if ((nextData == null) != (nextProfile == null))
+        {
+            throw new System.ArgumentException(
+                "Character authoring data and runtime profile must be assigned together.");
+        }
+
+        if (nextData != null
+            && !nextData.DefinitionId.Equals(nextProfile.CharacterArchetypeId))
+        {
+            throw new System.ArgumentException(
+                $"Runtime profile archetype '{nextProfile.CharacterArchetypeId.Value}' " +
+                $"does not match authoring data '{nextData.DefinitionId.Value}'.");
+        }
+
         data = nextData;
-        profile = data != null ? data.CreateRuntimeProfile() : null;
-        characterType = data != null ? data.characterType : CharacterType.Customer;
+        profile = nextProfile;
+        if (data == null)
+        {
+            characterType = CharacterType.Customer;
+            characterTypeExplicitlyAssigned = false;
+        }
+        else if (!characterTypeExplicitlyAssigned)
+        {
+            characterType = data.characterType;
+        }
         role = data != null ? data.role : CharacterRole.Regular;
         if (role == CharacterRole.Owner)
         {
@@ -108,6 +130,7 @@ public class CharacterIdentity : SerializedMonoBehaviour
     public void SetCharacterType(CharacterType nextType)
     {
         characterType = nextType;
+        characterTypeExplicitlyAssigned = true;
     }
 
     public string GetSpeciesShortDescription()

@@ -47,7 +47,17 @@ public class OffenseRewardRuntime : MonoBehaviour
         OffenseRewardContext context = CreateContext(
             expedition.Target,
             expedition.ExpeditionId);
-        return ResolveGrantService().GrantRewards(expedition.Target.rewards, context);
+        try
+        {
+            return ResolveGrantService().GrantRewards(
+                expedition.Target.rewards,
+                context);
+        }
+        finally
+        {
+            context.returnArrivalRuntime?
+                .DiscardBattlePrisonerCandidates(expedition.ExpeditionId);
+        }
     }
 
     public void SetDebugContext(

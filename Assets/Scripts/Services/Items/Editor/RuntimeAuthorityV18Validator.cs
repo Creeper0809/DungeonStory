@@ -25,10 +25,22 @@ public static class RuntimeAuthorityV18Validator
         "evolution:residue:21"
     };
 
-    [MenuItem("Tools/DungeonStory/Validation/Validate V18 Runtime Authority")]
+    [MenuItem("Tools/DungeonStory/Validation/Validate V19 Runtime Authority")]
     public static void ValidateMenu()
     {
         Debug.Log(ValidateOrThrow());
+    }
+
+    public static string ValidateV19ValueContractsOrThrow()
+    {
+        List<string> errors = new();
+        ValidateV19ValueContracts(errors);
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException(string.Join("\n", errors));
+        }
+
+        return "V19_VALUE_EVENTS=PASS";
     }
 
     public static IReadOnlyList<string> FindOptionalRuntimeInterfaceDependencies()
@@ -924,11 +936,11 @@ public static class RuntimeAuthorityV18Validator
             .ToArray();
         int rollbackFree = saveSectionTypes.Count(type =>
             typeof(IDungeonRollbackFreeSaveSection).IsAssignableFrom(type));
-        if (saveSectionTypes.Length != 54
+        if (saveSectionTypes.Length != 68
             || rollbackFree != saveSectionTypes.Length)
         {
             errors.Add(
-                $"Batch D save ratchet expected all 54 sections to be rollback-free; found {rollbackFree} rollback-free / {saveSectionTypes.Length - rollbackFree} remaining across {saveSectionTypes.Length}.");
+                $"V20 save ratchet expected all 68 sections to be rollback-free; found {rollbackFree} rollback-free / {saveSectionTypes.Length - rollbackFree} remaining across {saveSectionTypes.Length}.");
         }
 
         HashSet<Type> expectedRemaining = new();
@@ -965,7 +977,7 @@ public static class RuntimeAuthorityV18Validator
                 + string.Join("\n", errors));
         }
 
-        return "BATCH D SAVE BOUNDARY PASS: all 54 sections are rollback-free with strict staged/detached restore boundaries.";
+        return "V20 SAVE BOUNDARY PASS: all 68 sections are rollback-free with strict staged/detached restore boundaries.";
     }
 
     public static string ValidateOrThrow()
@@ -974,9 +986,9 @@ public static class RuntimeAuthorityV18Validator
         int currentSaveVersion = (int)typeof(DungeonGameSaveData)
             .GetField(nameof(DungeonGameSaveData.CurrentVersion))
             .GetRawConstantValue();
-        if (currentSaveVersion != 18)
+        if (currentSaveVersion != 20)
         {
-            errors.Add($"Save root must be V18, found V{currentSaveVersion}.");
+            errors.Add($"Save root must be V20, found V{currentSaveVersion}.");
         }
 
         Type[] saveSectionTypes = TypeCache.GetTypesDerivedFrom<IDungeonSaveSection>()
@@ -986,10 +998,10 @@ public static class RuntimeAuthorityV18Validator
                 && type.IsPublic
                 && IsGameplayRuntimeAssembly(type.Assembly))
             .ToArray();
-        if (saveSectionTypes.Length != 54)
+        if (saveSectionTypes.Length != 68)
         {
             errors.Add(
-                $"Production save-section count must remain 54, found {saveSectionTypes.Length}.");
+                $"Production save-section count must remain 68, found {saveSectionTypes.Length}.");
         }
         int rollbackFreeSaveSectionCount = saveSectionTypes.Count(type =>
             typeof(IDungeonRollbackFreeSaveSection).IsAssignableFrom(type));
@@ -1061,11 +1073,11 @@ public static class RuntimeAuthorityV18Validator
             "Typed save restore must not replace invalid or null JSON with a default DTO.");
 
         if (!DungeonSaveCompatibility.TryGetIncompatibilityReason(
-                17,
-                out string preV18Reason)
-            || !preV18Reason.Contains("새 게임 필요", StringComparison.Ordinal))
+                18,
+                out string preV19Reason)
+            || !preV19Reason.Contains("새 게임 필요", StringComparison.Ordinal))
         {
-            errors.Add("Pre-V18 saves are not rejected with the new-game message.");
+            errors.Add("V18 and older saves are not rejected with the V19 new-game message.");
         }
 
         GameContentCatalogSO root = Resources.Load<GameContentCatalogSO>(
@@ -1076,7 +1088,7 @@ public static class RuntimeAuthorityV18Validator
         }
         else if (root.GetItemDefinitions<ItemDefinitionCatalogSO>() == null)
         {
-            errors.Add("The V18 content root has no item catalog.");
+            errors.Add("The V19 content root has no item catalog.");
         }
         else
         {
@@ -1099,14 +1111,14 @@ public static class RuntimeAuthorityV18Validator
                 errors.Add($"Expected 168 explicit catalyst/residue SOs, found {catalystCount}.");
             }
 
-            if (catalog.TryGet((ItemDefinitionId)"missing:v18-validator", out _))
+            if (catalog.TryGet((ItemDefinitionId)"missing:v19-validator", out _))
             {
                 errors.Add("The strict item catalog fabricated an unknown item.");
             }
 
             try
             {
-                catalog.GetRequired((ItemDefinitionId)"missing:v18-validator");
+                catalog.GetRequired((ItemDefinitionId)"missing:v19-validator");
                 errors.Add("GetRequired did not fail for an unknown item.");
             }
             catch (KeyNotFoundException)
@@ -1193,11 +1205,11 @@ public static class RuntimeAuthorityV18Validator
         if (errors.Count > 0)
         {
             throw new InvalidOperationException(
-                "V18 runtime authority validation failed:\n" + string.Join("\n", errors));
+                "V19 runtime authority validation failed:\n" + string.Join("\n", errors));
         }
 
         int itemCount = root.GetItemDefinitions<ItemDefinitionCatalogSO>().Definitions.Count;
-        return $"V18 AUTHORITY PASS: save V18, {itemCount} authored items, "
+        return $"V19 AUTHORITY PASS: save V19, {itemCount} authored items, "
             + "168 catalyst SOs, legacy item authority 0, abstract stock assets 0.";
     }
 
@@ -5520,8 +5532,8 @@ public static class RuntimeAuthorityV18Validator
                 [nameof(OffenseDelayEffect)] = 1,
                 [nameof(OffenseHealEffect)] = 1
             };
-        if (speciesAssets.Length != 9
-            || leafScriptReferenceCount != 9
+        if (speciesAssets.Length != 10
+            || leafScriptReferenceCount != 10
             || abilityReferenceCount != 6
             || effectReferenceCounts.Count != expectedEffects.Count
             || expectedEffects.Any(expected =>
@@ -5531,7 +5543,7 @@ public static class RuntimeAuthorityV18Validator
                 || actual != expected.Value))
         {
             errors.Add(
-                "Species combat payload migration must preserve 9 leaf assets, 6 abilities, and the exact 3/1/1/1 effect type distribution.");
+                "Species combat payload migration must preserve 10 leaf assets (9 population species plus Adventurer), 6 abilities, and the exact 3/1/1/1 effect type distribution.");
         }
 
         const string speciesLeafPath =
@@ -5729,10 +5741,10 @@ public static class RuntimeAuthorityV18Validator
         CharacterSpeciesDefinitionSO[] definitions = domain?
             .GetAll<CharacterSpeciesDefinitionSO>()
             .ToArray() ?? Array.Empty<CharacterSpeciesDefinitionSO>();
-        if (definitions.Length != 9)
+        if (definitions.Length != 10)
         {
             errors.Add(
-                $"Expected 9 root-indexed Species authored definitions, found {definitions.Length}.");
+                $"Expected 10 root-indexed Species authored definitions (9 population species plus Adventurer), found {definitions.Length}.");
         }
         else
         {
@@ -5933,6 +5945,43 @@ public static class RuntimeAuthorityV18Validator
         {
             errors.Add(
                 "CharacterSpeciesSO combat managed-reference collection must belong to DungeonStory.Combat.");
+        }
+
+        ValidateV19ValueContracts(errors);
+    }
+
+    private static void ValidateV19ValueContracts(ICollection<string> errors)
+    {
+        foreach (Type valueOnlyType in new[]
+                 {
+                     typeof(CharacterRuntimeProfile),
+                     typeof(CharacterSpawnRequest),
+                     typeof(CharacterDeathEvent)
+                 })
+        {
+            System.Reflection.FieldInfo[] unityObjectFields = valueOnlyType
+                .GetFields(
+                    System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.Public
+                    | System.Reflection.BindingFlags.NonPublic)
+                .Where(field => typeof(UnityEngine.Object).IsAssignableFrom(
+                    field.FieldType))
+                .ToArray();
+            foreach (System.Reflection.FieldInfo field in unityObjectFields)
+            {
+                errors.Add(
+                    $"V19 value-only contract {valueOnlyType.Name}.{field.Name} retains Unity object authority {field.FieldType.Name}.");
+            }
+        }
+
+        if (typeof(CharacterDeathEvent).GetField(
+                "Actor",
+                System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.Public
+                | System.Reflection.BindingFlags.NonPublic) != null)
+        {
+            errors.Add(
+                "CharacterDeathEvent must publish CharacterId and immutable context, never CharacterActor.");
         }
     }
 

@@ -68,10 +68,7 @@ internal sealed class CaptivityStateRuntime
 
     public void OnCharacterDeath(CharacterDeathEvent gameEvent)
     {
-        CharacterActor actor = gameEvent.Actor;
-        CaptiveState state = actors.FindState(
-            CaptivityActorAccess.RequireCharacterId(
-                actor?.Identity?.PersistentId));
+        CaptiveState state = actors.FindState(gameEvent.CharacterId.Value);
         if (state == null)
         {
             return;

@@ -329,7 +329,11 @@ public static class MetaProgressionDebugScenarios
 
     private static CharacterActor CreateOwner(MetaProgressionRuntime runtime)
     {
-        CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
+        CharacterSO data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+            CharacterType.NPC,
+            "테스트 사장",
+            "Orc",
+            CharacterRole.Owner);
         data.id = 9301;
         data.characterName = "테스트 사장";
         data.characterType = CharacterType.NPC;

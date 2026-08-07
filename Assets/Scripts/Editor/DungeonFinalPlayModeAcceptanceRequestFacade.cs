@@ -53,10 +53,11 @@ public static class DungeonFinalPlayModeAcceptanceRequestFacade
         "Assets/Scenes/TitleScene.unity";
     private const string GameplayScenePath =
         "Assets/Scenes/GameplayScene.unity";
-    // GameplayScene integration takes roughly seven minutes in this project
-    // under the editor, and editor callbacks cannot observe progress while
-    // Unity owns the main thread for scene activation.
-    private const double TargetTimeoutSeconds = 900d;
+    // GameplayScene integration can exceed fifteen minutes on a warm editor
+    // after several consecutive PlayMode targets. Editor callbacks cannot
+    // observe progress while Unity owns the main thread for scene activation,
+    // so the timeout must cover scene integration as well as the verifier.
+    private const double TargetTimeoutSeconds = 1800d;
     private static readonly AcceptanceTarget[] Targets =
     {
         new(
@@ -78,9 +79,9 @@ public static class DungeonFinalPlayModeAcceptanceRequestFacade
             DungeonFullWorldRoundTripPlayModeFacade.CleanupTransientArtifacts,
             new[]
             {
-                "registeredSections=54",
-                "capturedSections=54",
-                "postRoundTripSections=54",
+                "registeredSections=68",
+                "capturedSections=68",
+                "postRoundTripSections=68",
                 "baselineRestored=True",
                 "canonicalBaselineMatched=True"
             }),
@@ -551,6 +552,7 @@ public static class DungeonFinalPlayModeAcceptanceRequestFacade
         File.Exists(StatePath) || File.Exists(PendingFinishPath);
 
     private static bool requestQueuedForMcp;
+    private static bool timeoutResumeQueuedForMcp;
 
     public static bool QueueRequestForMcp()
     {
@@ -562,6 +564,21 @@ public static class DungeonFinalPlayModeAcceptanceRequestFacade
         }
 
         requestQueuedForMcp = true;
+        return true;
+    }
+
+    public static bool QueueInfrastructureTimeoutResumeForMcp()
+    {
+        if (requestQueuedForMcp
+            || timeoutResumeQueuedForMcp
+            || EditorApplication.isPlayingOrWillChangePlaymode
+            || File.Exists(StatePath)
+            || File.Exists(PendingFinishPath))
+        {
+            return false;
+        }
+
+        timeoutResumeQueuedForMcp = true;
         return true;
     }
 
@@ -583,6 +600,12 @@ public static class DungeonFinalPlayModeAcceptanceRequestFacade
     {
         requestQueuedForMcp = false;
         RequestRunFromMenu();
+    }
+
+    private static void RunQueuedInfrastructureTimeoutResumeForMcp()
+    {
+        timeoutResumeQueuedForMcp = false;
+        ResumeAfterInfrastructureTimeoutFromMenu();
     }
 
     [MenuItem("DungeonStory/QA/Request Final PlayMode Acceptance")]
@@ -698,6 +721,192 @@ public static class DungeonFinalPlayModeAcceptanceRequestFacade
             return;
         }
         Debug.Log("Final PlayMode acceptance request queued.");
+    }
+
+    [MenuItem(
+        "DungeonStory/QA/Resume Final PlayMode Acceptance After Timeout")]
+    public static void ResumeAfterInfrastructureTimeoutFromMenu()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode
+            || File.Exists(StatePath)
+            || File.Exists(PendingFinishPath))
+        {
+            Debug.LogWarning(GetStatusForMcp());
+            return;
+        }
+
+        if (!TryValidateInfrastructureTimeoutResumeEvidence(
+                out int nextTargetIndex,
+                out string validationFailure))
+        {
+            Debug.LogError(
+                "Final PlayMode timeout resume rejected: "
+                + validationFailure);
+            return;
+        }
+
+        if (!RunSynchronousPreflightForMcp(out string preflightFailure))
+        {
+            Debug.LogError(
+                "Final PlayMode timeout resume preflight failed: "
+                + preflightFailure);
+            return;
+        }
+
+        if (!TryBeginConsoleCapture(out string consoleFailure))
+        {
+            CompleteFinish(
+                false,
+                "Final PlayMode timeout resume console capture failed: "
+                    + consoleFailure,
+                false);
+            return;
+        }
+
+        bool persistenceSnapshotMayExist = false;
+        try
+        {
+            File.Delete(ReportPath);
+            File.Delete(PendingFinishPath);
+            File.Delete(PersistenceRestoreStatusPath);
+            AcceptanceState state = new(
+                Guid.NewGuid().ToString("N"),
+                DateTime.UtcNow.Ticks,
+                nextTargetIndex,
+                DateTime.UtcNow.Ticks);
+            WriteState(state);
+            persistenceSnapshotMayExist = true;
+            StartCurrentTarget(state);
+            Debug.Log(
+                "Final PlayMode acceptance resumed after infrastructure "
+                + $"timeout at target {state.CurrentTarget.Name}.");
+        }
+        catch (Exception exception)
+        {
+            CompleteFinish(
+                false,
+                "Final PlayMode timeout resume failed: " + exception,
+                persistenceSnapshotMayExist);
+        }
+    }
+
+    private static bool TryValidateInfrastructureTimeoutResumeEvidence(
+        out int nextTargetIndex,
+        out string failure)
+    {
+        nextTargetIndex = -1;
+        failure = string.Empty;
+        if (!File.Exists(ReportPath) || !File.Exists(ProgressPath))
+        {
+            failure = "The failed report or completed-target progress is missing.";
+            return false;
+        }
+
+        string report = File.ReadAllText(ReportPath);
+        string[] progress = File.ReadAllLines(ProgressPath)
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .Select(line => line.Trim())
+            .ToArray();
+        nextTargetIndex = progress.Length;
+        if (!report.StartsWith(
+                "FINAL_PLAYMODE_ACCEPTANCE RESULT=FAIL",
+                StringComparison.Ordinal)
+            || nextTargetIndex <= 0
+            || nextTargetIndex >= Targets.Length)
+        {
+            failure = "Only a partially completed failed run can resume.";
+            return false;
+        }
+
+        string[] mandatoryReportLines =
+        {
+            "completedTargetCount=" + nextTargetIndex,
+            "persistenceRestoredNow=True",
+            "consoleCaptureHealthy=True",
+            "consoleWarnings=0",
+            "consoleErrors=0",
+            "consoleExceptions=0",
+            "consoleAsserts=0"
+        };
+        if (mandatoryReportLines.Any(line => !report
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Contains(line, StringComparer.Ordinal)))
+        {
+            failure = "The failed run lacks clean console or persistence evidence.";
+            return false;
+        }
+
+        string timeoutPrefix =
+            "detail=Target " + Targets[nextTargetIndex].Name
+            + " timed out after ";
+        if (!report.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Any(line => line.StartsWith(
+                    timeoutPrefix,
+                    StringComparison.Ordinal)))
+        {
+            failure = "The failure was not an infrastructure timeout at the next target.";
+            return false;
+        }
+
+        for (int index = 0; index < progress.Length; index++)
+        {
+            AcceptanceTarget target = Targets[index];
+            string line = progress[index];
+            if (!line.StartsWith(
+                    "[PASS] " + target.Name + ";",
+                    StringComparison.Ordinal)
+                || !line.Contains("fresh=True", StringComparison.Ordinal)
+                || !line.Contains("capturesFresh=True", StringComparison.Ordinal)
+                || !line.Contains("reportMarkersPresent=True", StringComparison.Ordinal)
+                || !line.Contains("persistenceRestored=True", StringComparison.Ordinal)
+                || !report.Contains(line, StringComparison.Ordinal))
+            {
+                failure = "Completed-target evidence is incomplete for "
+                    + target.Name + ".";
+                return false;
+            }
+
+            string ticksToken = line.Split(';')
+                .Select(value => value.Trim())
+                .FirstOrDefault(value => value.StartsWith(
+                    "startedUtcTicks=",
+                    StringComparison.Ordinal));
+            if (ticksToken == null
+                || !long.TryParse(
+                    ticksToken.Substring("startedUtcTicks=".Length),
+                    out long startedUtcTicks)
+                || !File.Exists(target.ReportPath))
+            {
+                failure = "Freshness evidence is missing for " + target.Name + ".";
+                return false;
+            }
+
+            string targetReport = File.ReadAllText(target.ReportPath);
+            long reportTicks = File.GetLastWriteTimeUtc(target.ReportPath).Ticks;
+            bool reportPassed = FinalAcceptanceReportPolicy.IsFreshPass(
+                targetReport,
+                reportTicks,
+                startedUtcTicks);
+            bool capturesPassed = AreFreshPngArtifacts(
+                target.CaptureArtifacts,
+                startedUtcTicks,
+                out _);
+            HashSet<string> reportLines = targetReport
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Select(value => value.Trim())
+                .Where(value => value.Length > 0)
+                .ToHashSet(StringComparer.Ordinal);
+            bool markersPassed = target.RequiredReportMarkers.All(
+                reportLines.Contains);
+            if (!reportPassed || !capturesPassed || !markersPassed)
+            {
+                failure = "The prior PASS artifacts are stale or invalid for "
+                    + target.Name + ".";
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public static bool RunSynchronousPreflightForMcp(out string detail)
@@ -1042,6 +1251,13 @@ public static class DungeonFinalPlayModeAcceptanceRequestFacade
 
     private static void OnEditorUpdate()
     {
+        if (timeoutResumeQueuedForMcp
+            && !EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            RunQueuedInfrastructureTimeoutResumeForMcp();
+            return;
+        }
+
         if (requestQueuedForMcp
             && !EditorApplication.isPlayingOrWillChangePlaymode)
         {
@@ -1464,7 +1680,7 @@ public static class DungeonFinalPlayModeAcceptanceRequestFacade
             { "ResearchTree", new[] { 3, 1, 2 } },
             { "Production", new[] { 2, 1, 1 } },
             { "ServiceRoom", new[] { 2, 1, 1 } },
-            { "CharacterSummaryMedical", new[] { 4, 2, 2 } },
+            { "CharacterSummaryMedical", new[] { 6, 3, 3 } },
             { "EquipmentExpeditionUiMatrix", new[] { 4, 2, 2 } }
         };
 
@@ -1515,9 +1731,9 @@ public static class DungeonFinalPlayModeAcceptanceRequestFacade
             }
         }
 
-        if (totalCaptures != 30)
+        if (totalCaptures != 32)
         {
-            return $"Expected exactly 30 total captures; found {totalCaptures}.";
+            return $"Expected exactly 32 total captures; found {totalCaptures}.";
         }
 
         if (allPaths.Any(string.IsNullOrWhiteSpace))
@@ -2093,7 +2309,12 @@ public static class DungeonFinalPlayModeAcceptanceRequestFacade
             new(1600, 900),
             new(900, 1600)
         };
-        string[] surfaces = { "summary-health", "surgery-modal" };
+        string[] surfaces =
+        {
+            "summary-health",
+            "summary-population",
+            "surgery-modal"
+        };
         return resolutions
             .SelectMany(resolution => surfaces.Select(surface =>
                 Capture(

@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f5a849b4b3859d42b4e08a8c27b8554, type: 3}
+  m_Name: guest-request_precision-barter
+  m_EditorClassIdentifier: DungeonStory.Content::GuestRequestDefinitionSO
+  stableId: guest-request:precision-barter
+  displayName: "\uC815\uBC00 \uBD80\uD488 \uAD50\uC5ED\uD68C"
+  description: "\uC0C1\uC778\uC774 \uC815\uBC00 \uBD80\uD488\uACFC \uB8EC \uB3C4\uCCB4\uC758
+    \uD604\uBB3C \uAD50\uD658\uC744 \uC81C\uC548\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored faction/service manifest.
+  kind: 2
+  deadlineDays: 7
+  serviceRequirements:
+    items:
+    - itemDefinitionId: component:precision-parts
+      amount: 4
+      consume: 1
+    facilities:
+    - buildingDefinitionId: building:trade-counter
+      capabilityId: 
+      minimumCount: 1
+      mustBeOperational: 1
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  successEffects:
+  - kind: 9
+    targetId: guest-service
+    amount: 80
+    durationDays: 0
+  - kind: 6
+    targetId: requesting-faction
+    amount: 4
+    durationDays: 0
+  failureEffects:
+  - kind: 7
+    targetId: requesting-faction
+    amount: 5
+    durationDays: 0

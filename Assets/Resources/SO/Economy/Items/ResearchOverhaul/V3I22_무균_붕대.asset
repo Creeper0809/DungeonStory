@@ -31,24 +31,24 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 54
   features:
-  - rid: 7737211730927813336
-  - rid: 7737211730927813337
-  - rid: 7737211730927813338
+  - rid: 7737211794726584981
+  - rid: 7737211794726584982
+  - rid: 7737211794726584983
   references:
     version: 2
     RefIds:
-    - rid: 7737211730927813336
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726584981
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:surgery
-    - rid: 7737211730927813337
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726584982
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 128
         sharedIntermediate: 0
-    - rid: 7737211730927813338
-      type: {class: MedicineItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211794726584983
+      type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 1
         treatmentPotency: 0.85

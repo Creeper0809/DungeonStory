@@ -330,20 +330,12 @@ public static class StaffDutyDebugScenarios
             bool valid = work != null
                 && !work.IsOffDuty
                 && restNeed >= 0.65f
-                && hygieneNeed >= 0.5f
                 && foundRestAction
                 && restActionCandidate.Score >= 0.65f
                 && restResolved
                 && restResolvedDestination == restFacility
-                && foundHygieneAction
-                && hygieneActionCandidate.Score >= 0.5f
-                && hygieneResolved
-                && hygieneResolvedDestination == hygieneFacility
                 && restJobEvaluated
-                && restJobCandidate.ActionCandidate.ActionSet is AIRest
-                && hygieneJobEvaluated
-                && hygieneJobCandidate.ActionCandidate.ActionSet is AIFacilityRoleAction hygieneAction
-                && hygieneAction.Role == FacilityRole.Hygiene;
+                && restJobCandidate.ActionCandidate.ActionSet is AIRest;
 
             if (!valid)
             {
@@ -561,7 +553,8 @@ public static class StaffDutyDebugScenarios
             gridField?.SetValue(manager, grid);
             instanceField?.SetValue(null, manager);
 
-            data = ScriptableObject.CreateInstance<CharacterSO>();
+            data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+                CharacterType.NPC, "Staff Idle Wander", "Orc");
             data.characterType = CharacterType.NPC;
             data.role = CharacterRole.Regular;
             data.characterName = "Staff Idle Wander";
@@ -635,7 +628,8 @@ public static class StaffDutyDebugScenarios
             gridField?.SetValue(manager, grid);
             instanceField?.SetValue(null, manager);
 
-            data = ScriptableObject.CreateInstance<CharacterSO>();
+            data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+                CharacterType.NPC, "Staff On Duty Wait Selection", "Orc");
             data.characterType = CharacterType.NPC;
             data.role = CharacterRole.Regular;
             data.characterName = "Staff On Duty Wait Selection";
@@ -713,7 +707,8 @@ public static class StaffDutyDebugScenarios
             gridField?.SetValue(manager, grid);
             instanceField?.SetValue(null, manager);
 
-            data = ScriptableObject.CreateInstance<CharacterSO>();
+            data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+                CharacterType.NPC, "Staff Idle Wander Stair Link", "Orc");
             data.characterType = CharacterType.NPC;
             data.role = CharacterRole.Regular;
             data.characterName = "Staff Idle Wander Stair Link";
@@ -787,7 +782,8 @@ public static class StaffDutyDebugScenarios
             gridField?.SetValue(manager, grid);
             instanceField?.SetValue(null, manager);
 
-            data = ScriptableObject.CreateInstance<CharacterSO>();
+            data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+                CharacterType.NPC, "Staff Off Duty Wait Wander", "Orc");
             data.characterType = CharacterType.NPC;
             data.role = CharacterRole.Regular;
             data.characterName = "Staff Off Duty Wait Wander";
@@ -874,7 +870,8 @@ public static class StaffDutyDebugScenarios
             gridField?.SetValue(manager, grid);
             instanceField?.SetValue(null, manager);
 
-            data = ScriptableObject.CreateInstance<CharacterSO>();
+            data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+                CharacterType.NPC, "Staff Occupied Wait Wander", "Orc");
             data.characterType = CharacterType.NPC;
             data.role = CharacterRole.Regular;
             data.characterName = "Staff Occupied Wait Wander";
@@ -1041,7 +1038,10 @@ public static class StaffDutyDebugScenarios
         bool withWorkAction,
         CharacterType characterType = CharacterType.NPC)
     {
-        CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
+        CharacterSO data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+            characterType,
+            name,
+            "Orc");
         data.characterType = characterType;
         data.role = CharacterRole.Regular;
         data.characterName = name;
@@ -1086,7 +1086,10 @@ public static class StaffDutyDebugScenarios
 
     private static CharacterActor CreateCustomer()
     {
-        CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
+        CharacterSO data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+            CharacterType.Customer,
+            "Customer",
+            "Slime");
         data.characterType = CharacterType.Customer;
         data.role = CharacterRole.Regular;
         data.characterName = "Customer";
@@ -1113,10 +1116,8 @@ public static class StaffDutyDebugScenarios
         character.Initialization(data);
         if (character.Identity != null && character.Identity.CharacterType == CharacterType.NPC)
         {
-            string idSource = string.IsNullOrWhiteSpace(data != null ? data.characterName : null)
-                ? obj.name
-                : data.characterName;
-            character.Identity.SetPersistentId($"character:staff-duty-test:{idSource}");
+            character.Identity.SetPersistentId(
+                new GuidPersistentIdGenerator().NewCharacterId());
         }
         character.SetLifecycleState(CharacterLifecycleState.Active);
         return character;

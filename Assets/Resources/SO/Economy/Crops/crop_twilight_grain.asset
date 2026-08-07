@@ -25,6 +25,10 @@ MonoBehaviour:
   cropId: crop:twilight-grain
   displayName: "\uD669\uD63C\uACE1"
   harvestItemId: resource:twilight-grain
+  seedItemId: seed-lot:twilight-grain
+  baseGenome: {fileID: 11400000, guid: 86d74111b4cb2ae42b7568bee11f73c9, type: 2}
+  familyGroup: 0
+  endemicDisease: 1
   requiredResearchId: research:agriculture:field
   growthHours: 36
   sowWork: 3

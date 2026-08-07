@@ -33,12 +33,12 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 6dd836c1bfd0ecc48adc7badc1d5b481, type: 3}
   abilityModules:
     items:
-    - rid: 7737211730889015988
-    - rid: 7737211730889015989
-    - rid: 7737211730889015990
-    - rid: 7737211730889015991
-    - rid: 7737211730889015992
-    - rid: 7737211730889015993
+    - rid: 7737211792998531168
+    - rid: 7737211792998531169
+    - rid: 7737211792998531170
+    - rid: 7737211792998531171
+    - rid: 7737211792998531172
+    - rid: 7737211792998531173
   width: 2
   height: 1
   layer: 1
@@ -54,13 +54,13 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730889015988
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531168
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I07
-    - rid: 7737211730889015989
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211792998531169
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 130
@@ -68,7 +68,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211730889015990
+    - rid: 7737211792998531170
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -80,21 +80,21 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: component:machine-parts
           amount: 4
-    - rid: 7737211730889015991
+    - rid: 7737211792998531171
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 4
         priority: 1
         minimumSupplyFraction: 1
-    - rid: 7737211730889015992
+    - rid: 7737211792998531172
       type: {class: BuildingWaterProducerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWaterProducerAbility
         quality: 0
         productionPerSecond: 0.75
         requiresPower: 1
-    - rid: 7737211730889015993
+    - rid: 7737211792998531173
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

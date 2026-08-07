@@ -55,7 +55,6 @@ public static class ModularFacilitySaveLoadDebugScenarios
 
         Grid sourceGrid = new Grid(28, 3);
         Grid targetGrid = new Grid(28, 3);
-        GameSessionState sourceGameData = CreateGameData(4321, 7, 88.5f, 11, 2, TimeOfDay.Noon);
         GameSessionState targetGameData = CreateGameData(1, 1, 0f, 0, 1, TimeOfDay.Morning);
 
         List<BuildableObject> sourceBuildings = new List<BuildableObject>();
@@ -128,7 +127,7 @@ public static class ModularFacilitySaveLoadDebugScenarios
                 gridPublisher,
                 candidateIndex);
 
-            ModularFacilityWorldSaveData snapshot = service.CreateSnapshot(sourceGrid, sourceGameData);
+            ModularFacilityWorldSaveData snapshot = service.CreateSnapshot(sourceGrid);
             string json = service.ToJson(snapshot, prettyPrint: true);
             ModularFacilityWorldSaveData parsed = service.FromJson(json);
             ModularFacilityWorldSaveData invalid = service.FromJson(json);
@@ -151,12 +150,11 @@ public static class ModularFacilitySaveLoadDebugScenarios
             ModularFacilityWorldRestoreReport report =
                 service.ValidateRestore(targetGrid, parsed);
             Grid rollbackGrid = targetGrid;
-            ModularFacilityGameDataSaveData rollbackGameData =
+            ModularFacilityGameDataSaveData rollbackSession =
                 ModularFacilityGameDataSaveData.From(targetGameData);
             ModularFacilityWorldRestoreCandidate rollbackCandidate =
                 service.PrepareRestoreCandidate(
                     targetGrid,
-                    targetGameData,
                     parsed);
             Require(
                 candidateIndex.TryGetBuildings(
@@ -170,7 +168,7 @@ public static class ModularFacilitySaveLoadDebugScenarios
                 && targetStaleBuildings.All(item =>
                     item != null && !item.IsGridDestroyed)
                 && EqualGameData(
-                    snapshot.gameData,
+                    rollbackSession,
                     ModularFacilityGameDataSaveData.From(targetGameData))
                 && candidateIndex.TryGetGrid(out Grid indexedGrid)
                 && ReferenceEquals(indexedGrid, gridPublisher.CurrentGrid);
@@ -180,7 +178,7 @@ public static class ModularFacilitySaveLoadDebugScenarios
                 && targetStaleBuildings.All(item =>
                     item != null && !item.IsGridDestroyed)
                 && EqualGameData(
-                    rollbackGameData,
+                    rollbackSession,
                     ModularFacilityGameDataSaveData.From(targetGameData))
                 && !candidateIndex.TryGetGrid(out _)
                 && !candidateIndex.TryGetBuildings(out _)
@@ -197,7 +195,6 @@ public static class ModularFacilitySaveLoadDebugScenarios
             {
                 candidate = service.PrepareRestoreCandidate(
                     targetGrid,
-                    targetGameData,
                     parsed);
                 service.BeginRestoreCandidate();
                 service.StageRestoreCandidate(candidate);
@@ -214,11 +211,17 @@ public static class ModularFacilitySaveLoadDebugScenarios
             targetGrid = gridPublisher.CurrentGrid;
 
             restoredBuildings.AddRange(targetGrid.FindAllOccupants(null).OfType<BuildableObject>());
-            ModularFacilityWorldSaveData roundTrip = service.CreateSnapshot(targetGrid, targetGameData);
+            ModularFacilityWorldSaveData roundTrip = service.CreateSnapshot(targetGrid);
 
             Check(lines, "restore_success", restored && report.Success, $"cleared={report.clearedCount}; restored={candidate?.RestoredCount ?? 0}; errors={string.Join("|", report.errors)}");
             Check(lines, "stale_world_cleared", targetStaleBuildings.All(item => item == null || item.IsGridDestroyed), $"stale={targetStaleBuildings.Count}");
-            Check(lines, "game_data_round_trip", EqualGameData(snapshot.gameData, roundTrip.gameData), FormatGameData(roundTrip.gameData));
+            Check(
+                lines,
+                "facility_restore_does_not_mutate_session",
+                EqualGameData(
+                    rollbackSession,
+                    ModularFacilityGameDataSaveData.From(targetGameData)),
+                FormatGameData(ModularFacilityGameDataSaveData.From(targetGameData)));
             Check(lines, "building_count_round_trip", snapshot.buildings.Count == roundTrip.buildings.Count, $"{snapshot.buildings.Count}->{roundTrip.buildings.Count}");
             Check(lines, "layer_counts_round_trip", EqualLayerCounts(snapshot, roundTrip), FormatLayerCounts(roundTrip));
             Check(lines, "building_state_round_trip", EqualBuildingState(snapshot, roundTrip, out string stateDetails), stateDetails);

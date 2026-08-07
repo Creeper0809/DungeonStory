@@ -28,6 +28,7 @@ public sealed class CaptivityRuntime :
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly ICombatEquipmentRuntime combatEquipment;
     private readonly IWorldItemStackRuntime itemRuntime;
+    private readonly ICharacterPopulationService characterPopulation;
     private readonly IGridSystemProvider gridProvider;
     private readonly IGridPathSearchBroker pathSearchBroker;
     private readonly IRoomLayoutCache roomLayoutCache;
@@ -69,6 +70,7 @@ public sealed class CaptivityRuntime :
         bodyHealthCommands = characters.BodyHealthCommands;
         combatEquipment = characters.CombatEquipment;
         itemRuntime = characters.ItemRuntime;
+        characterPopulation = characters.Population;
         gridProvider = world.GridProvider;
         pathSearchBroker = world.PathSearchBroker;
         roomLayoutCache = world.RoomLayoutCache;
@@ -427,7 +429,8 @@ public bool IsWorkAllowed(
             }
 
             GridTraversalContext captiveContext =
-                GridTraversalContext.ForCharacter(captive);
+                GridTraversalContext.ForCharacter(
+                    CharacterPersistentIdentity.Require(captive));
             Door escapingDoor = room.Doors
                 .OfType<Door>()
                 .FirstOrDefault(door =>
@@ -694,9 +697,11 @@ public bool IsWorkAllowed(
             return false;
         }
 
+        characterPopulation.PromoteToStaff(actor);
         state.status = CaptivityStatus.Recruited;
         state.lastResult = "정식 직원으로 영입됨";
         actor.characterType = CharacterType.NPC;
+        actor.Identity?.SetCharacterType(CharacterType.NPC);
         actor.SetAiPaused(false);
         actor.SetLifecycleState(CharacterLifecycleState.Active);
         doorSubjectRegistry.SetCaptive(state.captiveId, false);

@@ -22,7 +22,7 @@ public static class SurvivalDebugScenarios
     public static List<string> RunAll()
     {
         List<string> errors = new List<string>();
-        Run("save_v18_contract", VerifySaveContract, errors);
+        Run("save_v19_contract", VerifySaveContract, errors);
         Run("stock_categories", VerifyStockCategories, errors);
         Run("work_types", VerifyWorkTypes, errors);
         Run("survival_item_definitions", VerifySurvivalItemDefinitions, errors);
@@ -55,7 +55,7 @@ public static class SurvivalDebugScenarios
 
     private static string VerifySaveContract()
     {
-        Require(DungeonGameSaveData.CurrentVersion == 18, "game save version is not V18");
+        Require(DungeonGameSaveData.CurrentVersion == 20, "game save version is not V20");
         DungeonGameSaveData save = new DungeonGameSaveData();
         DungeonSaveSectionPayload.Write(
             save,
@@ -67,7 +67,7 @@ public static class SurvivalDebugScenarios
             DungeonSaveSectionPayload.ReadOrNew<DungeonSurvivalSaveData>(
                 save,
                 SurvivalResourcesSaveSection.Id);
-        Require(save.version == DungeonGameSaveData.CurrentVersion, "new save did not default to V18");
+        Require(save.version == DungeonGameSaveData.CurrentVersion, "new save did not default to V19");
         Require(survival.version == DungeonSurvivalSaveData.CurrentVersion, "survival save version mismatch");
         return $"game={save.version}; survival={survival.version}";
     }
@@ -206,7 +206,8 @@ public static class SurvivalDebugScenarios
                 new EmptyGridSystemProvider(),
                 new EditorWarehouseStockRuntime(),
                 itemCatalog,
-                new EmptyStockQuery()),
+                new EmptyStockQuery(),
+                FixedClimateQuery.Instance),
             new EmptyWildlifeSpeciesCatalog(),
             events,
             CharacterAiEditorTestDependencies.WorldRegistry,
@@ -216,7 +217,6 @@ public static class SurvivalDebugScenarios
             aggregateRootStore: new DungeonRuntimeAggregateRootStore());
         GameObject actorObject = null;
         GameObject facilityObject = null;
-        CharacterSO characterData = null;
         BuildingSO buildingData = null;
         IDisposable mealSubscription = null;
 
@@ -233,14 +233,22 @@ public static class SurvivalDebugScenarios
 
             actorObject = new GameObject("SurvivalMealWorker_Test");
             actorObject.AddComponent<AbilityWork>();
+            CharacterSO characterData = CharacterAiEditorTestDependencies
+                .ContentDefinitions.GetAll<CharacterSO>()
+                .Where(value => value != null
+                    && value.characterType == CharacterType.NPC
+                    && value.DefinitionId.IsValid
+                    && value.species != null
+                    && value.species.DefinitionId.IsValid)
+                .OrderBy(value => value.DefinitionId.Value, StringComparer.Ordinal)
+                .FirstOrDefault()
+                ?? throw new InvalidOperationException(
+                    "No authored NPC archetype is available for the meal fixture.");
             CharacterActor actor = actorObject.AddComponent<CharacterActor>();
             CharacterAiEditorTestDependencies.Inject(actorObject);
-            actor.RefreshAbilityCache();
-            characterData = ScriptableObject.CreateInstance<CharacterSO>();
-            characterData.characterName = "식사 검증 직원";
-            characterData.characterType = CharacterType.NPC;
             actor.data = characterData;
             actor.characterType = CharacterType.NPC;
+            actor.RefreshAbilityCache();
             actor.Identity.SetPersistentId("character:survival:meal:test");
 
             facilityObject = new GameObject("SurvivalMealFacility_Test");
@@ -298,10 +306,6 @@ public static class SurvivalDebugScenarios
             {
                 UnityEngine.Object.DestroyImmediate(facilityObject);
             }
-            if (characterData != null)
-            {
-                UnityEngine.Object.DestroyImmediate(characterData);
-            }
             if (buildingData != null)
             {
                 UnityEngine.Object.DestroyImmediate(buildingData);
@@ -337,7 +341,8 @@ public static class SurvivalDebugScenarios
                 new EmptyGridSystemProvider(),
                 physicalItems,
                 itemCatalog,
-                new EmptyStockQuery()),
+                new EmptyStockQuery(),
+                FixedClimateQuery.Instance),
             new EmptyWildlifeSpeciesCatalog(),
             new GameEventBus(),
             CharacterAiEditorTestDependencies.WorldRegistry,
@@ -368,7 +373,8 @@ public static class SurvivalDebugScenarios
                 new EmptyGridSystemProvider(),
                 new EditorWarehouseStockRuntime(),
                 itemCatalog,
-                new EmptyStockQuery()),
+                new EmptyStockQuery(),
+                FixedClimateQuery.Instance),
             new EmptyWildlifeSpeciesCatalog(),
             new GameEventBus(),
             CharacterAiEditorTestDependencies.WorldRegistry,
@@ -384,7 +390,6 @@ public static class SurvivalDebugScenarios
 
         DungeonSurvivalSaveData valid = runtime.Capture();
         valid.lastProcessedDay = 1;
-        valid.weatherDay = 1;
         valid.mealLedger.Add(new CharacterMealLedgerSaveData
         {
             mealId = "meal:1:character:survival-restore:513",
@@ -452,7 +457,8 @@ public static class SurvivalDebugScenarios
                 new EmptyGridSystemProvider(),
                 new EditorWarehouseStockRuntime(),
                 itemCatalog,
-                new EmptyStockQuery());
+                new EmptyStockQuery(),
+                FixedClimateQuery.Instance);
         ICharacterAiWorldRegistry world =
             CharacterAiEditorTestDependencies.WorldRegistry;
         IGameClock clock = new FixedGameClock();
@@ -1511,6 +1517,18 @@ public static class SurvivalDebugScenarios
         public float Time => 0f;
         public int FrameCount => 0;
         public bool IsPaused => false;
+    }
+
+    private sealed class FixedClimateQuery : IClimateQuery
+    {
+        internal static readonly FixedClimateQuery Instance = new();
+
+        public int Version => 1;
+        public int AbsoluteDay => 1;
+        public string ClimateZoneId => "climate:temperate-cave";
+        public string WeatherFrontId => "weather:clear";
+        public int FrontRemainingDays => 1;
+        public float OutdoorTemperatureC => 18f;
     }
 
     private sealed class EmptyWorldThreatModifiers : IWorldThreatModifierQuery

@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: society_retirement
+  m_EditorClassIdentifier: DungeonStory.Research::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7294
+  projectId: research:society:retirement
+  displayName: "\uC740\uD1F4 \uC81C\uB3C4"
+  description: "\uACBD\uB825 \uAE30\uB85D\uACFC \uB178\uC778\uD559\uC744 \uC548\uC804
+    \uC791\uC5C5 \uC911\uC2EC\uC758 \uC740\uD1F4 \uC815\uCC45\uC73C\uB85C \uB9CC\uB4E0\uB2E4."
+  field: 5
+  requiredWork: 420
+  prerequisites:
+  - {fileID: 11400000, guid: 75c38d39f76b2bc4da7e0ca9959e3a9a, type: 2}
+  - {fileID: 11400000, guid: ede5bf7330f463c43a516178f7b01fc7, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:medical:gerontology
+    prerequisite: {fileID: 11400000, guid: 75c38d39f76b2bc4da7e0ca9959e3a9a, type: 2}
+    kind: 2
+    reason: "\uB178\uC778\uD559\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uC740\uD1F4
+      \uC81C\uB3C4 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:society:career-records
+    prerequisite: {fileID: 11400000, guid: ede5bf7330f463c43a516178f7b01fc7, type: 2}
+    kind: 0
+    reason: "\uACBD\uB825 \uAE30\uB85D\uC758 \uC774\uB860\uC774(\uAC00) \uC740\uD1F4
+      \uC81C\uB3C4 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7737211792998531863
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 1
+    requiredCount: 1
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211792998531863
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 8895

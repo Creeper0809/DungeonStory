@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11a7078c65d29414ebfafd36d0865407, type: 3}
+  m_Name: encounter_10
+  m_EditorClassIdentifier: DungeonStory.Offense::OffenseEncounterSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8010
+  encounterId: encounter:10
+  displayName: "\uB3C4\uC2DC\uC5F0\uB9F9 \uBC31\uC778\uB300\uC7A5 \uC804\uC220 \uC870\uC6B0"
+  minimumSiteStrength: 3
+  maximumSiteStrength: 6
+  elite: 1
+  boss: 0
+  objective: 3
+  objectiveRoundLimit: 7
+  objectiveTargetId: target:war-device
+  battlefieldModifierIds:
+  - battlefield:powder-smoke
+  counterTags:
+  - counter:break-formation
+  rewardItemIds:
+  - loot:enemy-salvage
+  enemies:
+  - enemyArchetypeId: enemy:legion-captain
+    minimumCount: 1
+    maximumCount: 2
+  - enemyArchetypeId: enemy:merchant-hired-bulwark
+    minimumCount: 1
+    maximumCount: 2

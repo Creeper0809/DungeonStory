@@ -909,7 +909,10 @@ public static class CombatSystemDebugScenarios
             }
 
             connector.Start();
-            events.Publish(new CharacterDeathEvent(actor, "전투 검증"));
+            events.Publish(new CharacterDeathEventFactory(
+                    CharacterAiEditorTestDependencies.WorldRegistry,
+                    CharacterAiEditorTestDependencies.GameCalendar)
+                .Create(actor, CharacterDeathCauseCode.Combat));
             if (!runtime.TryGetInstance(
                     first.instanceId,
                     out CombatEquipmentInstance lost)
@@ -931,7 +934,10 @@ public static class CombatSystemDebugScenarios
             }
 
             connector.Dispose();
-            events.Publish(new CharacterDeathEvent(actor, "구독 해제 검증"));
+            events.Publish(new CharacterDeathEventFactory(
+                    CharacterAiEditorTestDependencies.WorldRegistry,
+                    CharacterAiEditorTestDependencies.GameCalendar)
+                .Create(actor, CharacterDeathCauseCode.Combat));
             return runtime.TryGetInstance(
                     second.instanceId,
                     out CombatEquipmentInstance retained)
@@ -1042,6 +1048,9 @@ public static class CombatSystemDebugScenarios
                     bodyHealth,
                     bodyHealth,
                     new GameEventBus(),
+                    new CharacterDeathEventFactory(
+                        CharacterAiEditorTestDependencies.WorldRegistry,
+                        CharacterAiEditorTestDependencies.GameCalendar),
                     new NoopOwnerRunLifecycleService()));
             actor.ApplyBodyDamage(actor.MaxHealth * 2f, "body-system-test");
             return !actor.IsDead

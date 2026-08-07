@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8080a982ba741ff4e8ae644f419d70cb, type: 3}
+  m_Name: enemy_crown-longbow
+  m_EditorClassIdentifier: DungeonStory.Offense::EnemyArchetypeDefinitionSO
+  stableId: enemy:crown-longbow
+  displayName: "\uC655\uB839 \uC7A5\uAD81\uBCD1"
+  description: "\uAC00\uC7A5 \uC57D\uD55C \uD6C4\uC5F4\uC744 \uACE8\uB77C \uC81C\uC555
+    \uC0AC\uACA9\uD55C\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored enemy archetype.
+  factionId: human:crown
+  speciesTag: Human
+  role: 2
+  maxHealth: 72
+  attack: 10
+  strength: 8.5
+  toughness: 4
+  dexterity: 9
+  moveSpeed: 4.5
+  equipment:
+    weaponDefinitionId: weapon:longbow
+    armorDefinitionId: armor:padded
+    shieldDefinitionId: 
+    ammunitionItemId: ammo:arrow
+  abilityIds:
+  - enemy-ability:suppressive-volley
+  tacticalProfile:
+    attackWeight: 4
+    protectWeight: 1
+    abilityWeight: 3
+    retreatWeight: 2
+    retreatHealthFraction: 0.2
+    preferredTargetTags:
+    - backline
+    avoidedTargetTags:
+    - shielded
+    formationTag: ranged-line
+  counterTags:
+  - counter:smoke
+  rewardItemIds:
+  - loot:enemy-salvage
+  bossPhases: []
+  individualGeneration:
+    minimumGeneralTraits: 2
+    maximumGeneralTraits: 3
+    minimumExpressedHeritableTraits: 0
+    maximumExpressedHeritableTraits: 2
+    maximumLatentHeritableTraits: 1
+    aptitudeVariance: 15
+    combatStatVariance: 0.12
+    minimumLoyalty: 20
+    maximumLoyalty: 75
+    recruitable: 1
+    militaryTrainingId: training:crown-longbow
+    allowedBackgroundIds: []

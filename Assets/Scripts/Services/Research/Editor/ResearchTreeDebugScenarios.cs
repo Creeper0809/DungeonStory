@@ -9,6 +9,34 @@ using Object = UnityEngine.Object;
 
 public static class ResearchTreeDebugScenarios
 {
+    public static string DescribeV19GraphMetrics()
+    {
+        ResearchProjectSO[] projects = LoadProjects();
+        ResearchProjectSO target = projects.Single(project =>
+            project.ProjectId.Value == "research:medical:temporal-stasis");
+        HashSet<ResearchProjectSO> closure = new();
+        AddClosure(target, closure);
+        float work = closure.Sum(project => project.RequiredWork);
+        int projectsWithoutInlineUnlocks = projects.Count(project => project.Unlocks.Count == 0);
+        return $"V19_RESEARCH_GRAPH count={projects.Length};closure={closure.Count};"
+            + $"work={work:F0};days={work / 99f:F1};"
+            + $"projectsWithoutInlineUnlocks={projectsWithoutInlineUnlocks}";
+    }
+
+    private static void AddClosure(
+        ResearchProjectSO project,
+        ISet<ResearchProjectSO> closure)
+    {
+        if (project == null || !closure.Add(project))
+        {
+            return;
+        }
+        foreach (ResearchProjectSO prerequisite in project.Prerequisites)
+        {
+            AddClosure(prerequisite, closure);
+        }
+    }
+
     // Shared entry point for data, layout, queue, and PlayMode regression coverage.
     [MenuItem("DungeonStory/Debug/Research/Run Research Tree Scenarios")]
     public static void RunFromMenu()
@@ -22,8 +50,8 @@ public static class ResearchTreeDebugScenarios
     public static bool RunAll(bool logSuccess)
     {
         List<string> failures = new List<string>();
-        Verify("168개 프로젝트와 설계도 규칙", VerifyCatalog, failures);
-        Verify("168개 결정적 자동 배치", () => VerifyLayout(LoadProjects()), failures);
+        Verify("216개 프로젝트와 설계도 규칙", VerifyCatalog, failures);
+        Verify("216개 결정적 자동 배치", () => VerifyLayout(LoadProjects()), failures);
         Verify("100개 합성 그래프 배치", () => VerifySyntheticLayout(100), failures);
         Verify("250개 합성 그래프 배치", () => VerifySyntheticLayout(250), failures);
         Verify("선행 자동 큐와 설계도 우회", VerifyQueueRules, failures);
@@ -69,7 +97,12 @@ public static class ResearchTreeDebugScenarios
             .Distinct()
             .ToArray();
         int projectUnlockCount = projects.Sum(project => project.Unlocks.Count);
-        return projects.Length == 168
+        ResearchProjectSO temporalStasis = projects.SingleOrDefault(project =>
+            project.ProjectId.Value == "research:medical:temporal-stasis");
+        HashSet<ResearchProjectSO> temporalClosure = new();
+        AddClosure(temporalStasis, temporalClosure);
+        float temporalClosureWork = temporalClosure.Sum(project => project.RequiredWork);
+        return projects.Length == 216
             && catalog.Validate().Count == 0
             && required == 4
             && shortcut == 3
@@ -77,6 +110,10 @@ public static class ResearchTreeDebugScenarios
             && blueprints.Length == 7
             && blueprints.All(blueprint => blueprint.Unlocks.Count == 0)
             && projectUnlockCount > 0
+            && temporalStasis != null
+            && temporalClosure.Count == 108
+            && Mathf.Approximately(temporalClosureWork, 95448f)
+            && Mathf.Abs(temporalClosureWork / 99f - 964.1212f) < 0.05f
             && archiveConfigured;
     }
 

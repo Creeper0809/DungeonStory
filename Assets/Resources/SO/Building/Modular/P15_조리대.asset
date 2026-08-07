@@ -39,13 +39,13 @@ MonoBehaviour:
     - rid: 7737211730538791849
     - rid: 7737211730538791850
     - rid: 7737211730538791851
-    - rid: 7737211730889015880
-    - rid: 7737211730889015881
-    - rid: 7737211730889015882
-    - rid: 7737211730889015883
-    - rid: 7737211730889015884
-    - rid: 7737211730889016317
-    - rid: 7737211730889016318
+    - rid: 7737211792661414907
+    - rid: 7737211792661414908
+    - rid: 7737211792661414909
+    - rid: 7737211792661414910
+    - rid: 7737211792661414911
+    - rid: 7737211792998531504
+    - rid: 7737211792998531505
   width: 2
   height: 1
   layer: 1
@@ -62,18 +62,18 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211730538791845
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: P15
     - rid: 7737211730538791846
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - cookbench
     - rid: 7737211730538791848
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 110
@@ -119,14 +119,14 @@ MonoBehaviour:
           - key: Cooking
             value: 2
           metrics: []
-    - rid: 7737211730889015880
+    - rid: 7737211792661414907
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7737211730889015881
+    - rid: 7737211792661414908
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -137,21 +137,21 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7737211730889015882
+    - rid: 7737211792661414909
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7737211730889015883
+    - rid: 7737211792661414910
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 7
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7737211730889015884
+    - rid: 7737211792661414911
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility
@@ -161,13 +161,13 @@ MonoBehaviour:
         wastewaterPerCycle: 0.25
         minimumQuality: 0
         allowsManualWaterFallback: 1
-    - rid: 7737211730889016317
+    - rid: 7737211792998531504
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:cookbench
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211730889016318
+    - rid: 7737211792998531505
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -187,3 +187,5 @@ MonoBehaviour:
           capacity: 16
         - itemId: component:precision-parts
           capacity: 16
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}

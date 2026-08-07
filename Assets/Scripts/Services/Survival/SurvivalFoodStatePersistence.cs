@@ -58,9 +58,6 @@ internal static class SurvivalFoodStatePersistence
             consecutiveWaterShortageDays = state.consecutiveWaterShortageDays,
             lastConsumedFuel = state.lastConsumedFuel,
             lastMissingFuel = state.lastMissingFuel,
-            currentWeather = state.currentWeather,
-            weatherDay = state.weatherDay,
-            outdoorTemperature = state.outdoorTemperature,
             sanitationRisk = state.sanitationRisk,
             diseaseRisk = state.diseaseRisk,
             exteriorNightDanger = state.exteriorNightDanger,
@@ -188,9 +185,6 @@ internal static class SurvivalFoodStatePersistence
             consecutiveWaterShortageDays = state.consecutiveWaterShortageDays,
             lastConsumedFuel = state.lastConsumedFuel,
             lastMissingFuel = state.lastMissingFuel,
-            currentWeather = state.currentWeather,
-            weatherDay = state.weatherDay,
-            outdoorTemperature = state.outdoorTemperature,
             sanitationRisk = state.sanitationRisk,
             diseaseRisk = state.diseaseRisk,
             exteriorNightDanger = state.exteriorNightDanger,
@@ -204,9 +198,6 @@ internal static class SurvivalFoodStatePersistence
         DungeonGameRestoreReport report)
     {
         if (payload.lastProcessedDay < 0
-            || payload.weatherDay < 0
-            || payload.weatherDay > payload.lastProcessedDay
-                && payload.lastProcessedDay > 0
             || payload.lastNeededFood < 0
             || payload.lastConsumedFood < 0
             || payload.lastMissingFood < 0
@@ -228,9 +219,7 @@ internal static class SurvivalFoodStatePersistence
         {
             report.AddError("Survival resources food or water summary is arithmetically inconsistent.");
         }
-        if (!Enum.IsDefined(typeof(SurvivalWeatherType), payload.currentWeather)
-            || !IsFiniteInRange(payload.outdoorTemperature, -100f, 100f)
-            || !IsFiniteInRange(payload.sanitationRisk, 0f, 100f)
+        if (!IsFiniteInRange(payload.sanitationRisk, 0f, 100f)
             || !IsFiniteInRange(payload.diseaseRisk, 0f, 100f)
             || !IsFiniteInRange(payload.exteriorNightDanger, 0f, 100f))
         {

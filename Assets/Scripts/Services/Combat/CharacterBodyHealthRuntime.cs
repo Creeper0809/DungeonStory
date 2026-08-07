@@ -140,7 +140,7 @@ public sealed class CharacterBodyHealthRuntime :
                     allowDeath: false);
                 if (state.bloodLoss >= 100f && !actor.IsDead)
                 {
-                    Kill(actor, "과다 출혈");
+                    Kill(actor, CharacterDeathCauseCode.Combat, "combat:blood-loss");
                 }
             }
 
@@ -174,16 +174,18 @@ public sealed class CharacterBodyHealthRuntime :
 
     public CharacterBodyHealthSnapshot GetSnapshot(CharacterActor actor)
     {
-        return actor == null
+        CharacterBodyHealthState state = GetForQuery(actor);
+        return state == null
             ? stateRules.EmptySnapshot()
-            : stateRules.BuildSnapshot(GetOrCreate(actor));
+            : stateRules.BuildSnapshot(state);
     }
 
     public CharacterVitalsSnapshot GetVitals(CharacterActor actor)
     {
-        return actor == null
+        CharacterBodyHealthState state = GetForQuery(actor);
+        return state == null
             ? vitalsAuthority.GetVitals(default(CharacterId))
-            : vitalsAuthority.GetVitals(GetOrCreate(actor));
+            : vitalsAuthority.GetVitals(state);
     }
 
     public CharacterVitalsSnapshot GetVitals(string characterId) =>
@@ -236,7 +238,24 @@ public sealed class CharacterBodyHealthRuntime :
             return;
         }
 
-        ApplyAggregateDamage(actor, GetOrCreate(actor), amount, reason, allowDeath);
+        ApplyAggregateDamage(actor, GetOrCreate(actor), amount,
+            CharacterDeathCauseCode.Unknown, reason, allowDeath);
+    }
+
+    public void ApplyLegacyDamageWithCause(
+        CharacterActor actor,
+        float amount,
+        CharacterDeathCauseCode deathCause,
+        string reasonCode,
+        bool allowDeath)
+    {
+        if (actor == null || amount <= 0f)
+        {
+            return;
+        }
+
+        ApplyAggregateDamage(actor, GetOrCreate(actor), amount,
+            deathCause, reasonCode, allowDeath);
     }
 
     public void HealLegacyVitals(CharacterActor actor, float amount)
@@ -274,12 +293,20 @@ public sealed class CharacterBodyHealthRuntime :
 
     public void Kill(CharacterActor actor, string reason)
     {
+        Kill(actor, CharacterDeathCauseCode.Unknown, reason);
+    }
+
+    public void Kill(
+        CharacterActor actor,
+        CharacterDeathCauseCode cause,
+        string reasonCode)
+    {
         if (actor == null)
         {
             return;
         }
 
-        vitalsAuthority.Kill(actor, GetOrCreate(actor), reason);
+        vitalsAuthority.Kill(actor, GetOrCreate(actor), cause, reasonCode);
     }
 
     public CharacterBodyHealthSnapshot GetSnapshot(string characterId)
@@ -330,7 +357,10 @@ public sealed class CharacterBodyHealthRuntime :
         {
             Kill(
                 target,
-                result.BodyPart == CombatBodyPart.Head ? "머리 치명상" : "몸통 치명상");
+                CharacterDeathCauseCode.Combat,
+                result.BodyPart == CombatBodyPart.Head
+                    ? "combat:fatal-head-trauma"
+                    : "combat:fatal-torso-trauma");
         }
 
         bool wasDownedAfterHit = state.downed;
@@ -414,7 +444,11 @@ public sealed class CharacterBodyHealthRuntime :
             return 0f;
         }
 
-        CharacterBodyHealthState state = GetOrCreate(target);
+        CharacterBodyHealthState state = GetForQuery(target);
+        if (state == null)
+        {
+            return 0f;
+        }
         return stateRules.GetStateBleeding(state);
     }
 
@@ -425,7 +459,11 @@ public sealed class CharacterBodyHealthRuntime :
             return 0f;
         }
 
-        CharacterBodyHealthState state = GetOrCreate(target);
+        CharacterBodyHealthState state = GetForQuery(target);
+        if (state == null)
+        {
+            return 0f;
+        }
         if (state.anatomyNodes != null && state.anatomyNodes.Count > 0)
         {
             return state.anatomyNodes.Sum(node =>
@@ -549,6 +587,32 @@ public sealed class CharacterBodyHealthRuntime :
         return state;
     }
 
+    private CharacterBodyHealthState GetForQuery(CharacterActor actor)
+    {
+        if (actor == null)
+        {
+            return null;
+        }
+
+        EnsureAggregateRevision();
+        CharacterId id = GetId(actor);
+        if (ReadState.TryGet(id, out CharacterBodyHealthState existing))
+        {
+            stateRules.EnsureParts(existing);
+            stateRules.EnsureAnatomy(
+                existing,
+                stateRules.ResolveProfile(existing.anatomyProfileId));
+            return existing;
+        }
+
+        // A retired actor can remain alive until Unity processes Destroy at
+        // the end of the frame. Read-only queries during that window must not
+        // recreate state that an authoritative restore just removed.
+        return actor.gameObject.activeInHierarchy
+            ? GetOrCreate(actor)
+            : null;
+    }
+
     private CharacterBodyHealthState GetOrCreate(CharacterId characterId)
     {
         if (!characterId.IsValid)
@@ -580,9 +644,10 @@ public sealed class CharacterBodyHealthRuntime :
 
     public AnatomyHealthSnapshot GetAnatomySnapshot(CharacterActor actor)
     {
-        return actor == null
+        CharacterBodyHealthState state = GetForQuery(actor);
+        return state == null
             ? stateRules.EmptyAnatomySnapshot()
-            : stateRules.BuildAnatomySnapshot(GetOrCreate(actor));
+            : stateRules.BuildAnatomySnapshot(state);
     }
 
     public AnatomyHealthSnapshot GetAnatomySnapshot(string characterId)
@@ -602,9 +667,10 @@ public sealed class CharacterBodyHealthRuntime :
 
     public AnatomyActionAxisSnapshot GetActionAxes(CharacterActor actor)
     {
-        return actor == null
+        CharacterBodyHealthState state = GetForQuery(actor);
+        return state == null
             ? stateRules.DefaultActionAxes()
-            : stateRules.BuildActionAxes(GetOrCreate(actor));
+            : stateRules.BuildActionAxes(state);
     }
 
     public AnatomyActionAxisSnapshot GetActionAxes(string characterId)
@@ -649,7 +715,22 @@ public sealed class CharacterBodyHealthRuntime :
         string nodeId,
         float damage,
         float bleeding,
-        string reason)
+        string reason) =>
+        TryDamageNodeWithCause(
+            actor,
+            nodeId,
+            damage,
+            bleeding,
+            CharacterDeathCauseCode.Unknown,
+            reason);
+
+    public bool TryDamageNodeWithCause(
+        CharacterActor actor,
+        string nodeId,
+        float damage,
+        float bleeding,
+        CharacterDeathCauseCode deathCause,
+        string reasonCode)
     {
         if (actor == null || actor.IsDead || damage <= 0f)
         {
@@ -665,10 +746,20 @@ public sealed class CharacterBodyHealthRuntime :
 
         node.currentHealth = Mathf.Max(0f, node.currentHealth - damage);
         node.bleedingPerSecond += Mathf.Max(0f, bleeding);
-        state.lastDamageReason = reason ?? string.Empty;
-        ApplyAggregateDamage(actor, state, damage, reason, allowDeath: false);
+        state.lastDamageReason = reasonCode ?? string.Empty;
+        ApplyAggregateDamage(
+            actor,
+            state,
+            damage,
+            reasonCode,
+            allowDeath: false);
         stateRules.SyncLegacySurfaceNode(state, node.nodeId);
-        stateRules.KillForDestroyedVitalNode(actor, state, node.nodeId);
+        stateRules.KillForDestroyedVitalNode(
+            actor,
+            state,
+            node.nodeId,
+            deathCause,
+            reasonCode);
         bool wasDowned = state.downed;
         stateRules.UpdateDowned(state);
         SyncLifecycle(actor, state, wasDowned);
@@ -829,7 +920,12 @@ public sealed class CharacterBodyHealthRuntime :
         node.installedPartId = string.Empty;
         node.installedPartEfficiency = 0f;
         stateRules.SyncLegacySurfaceNode(state, node.nodeId);
-        stateRules.KillForDestroyedVitalNode(actor, state, node.nodeId);
+        stateRules.KillForDestroyedVitalNode(
+            actor,
+            state,
+            node.nodeId,
+            CharacterDeathCauseCode.Unknown,
+            $"surgery:vital-node-removed:{node.nodeId}");
         bool wasDowned = state.downed;
         stateRules.UpdateDowned(state);
         SyncLifecycle(actor, state, wasDowned);
@@ -1052,7 +1148,10 @@ public sealed class CharacterBodyHealthRuntime :
                     out AnatomyNodeDefinition definition)
                 && definition.Vital)
             {
-                Kill(actor, $"{definition.DisplayName} 기능 상실");
+                Kill(
+                    actor,
+                    CharacterDeathCauseCode.Infection,
+                    $"infection:vital-organ-failure:{definition.NodeId}");
                 return;
             }
         }
@@ -1065,7 +1164,25 @@ public sealed class CharacterBodyHealthRuntime :
         string reason,
         bool allowDeath)
     {
-        vitalsAuthority.Damage(actor, state, amount, reason, allowDeath);
+        ApplyAggregateDamage(actor, state, amount,
+            CharacterDeathCauseCode.Unknown, reason, allowDeath);
+    }
+
+    private void ApplyAggregateDamage(
+        CharacterActor actor,
+        CharacterBodyHealthState state,
+        float amount,
+        CharacterDeathCauseCode deathCause,
+        string reasonCode,
+        bool allowDeath)
+    {
+        vitalsAuthority.Damage(
+            actor,
+            state,
+            amount,
+            deathCause,
+            reasonCode,
+            allowDeath);
     }
 
     private void ApplyAggregateHealing(

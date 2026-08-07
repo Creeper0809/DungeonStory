@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 454c3edcc06dfbe40b8088f448f07f38, type: 3}
+  m_Name: seasonal_winter-cave-flu-wave
+  m_EditorClassIdentifier: DungeonStory.Content::SeasonalWorldEventDefinitionSO
+  stableId: seasonal:winter-cave-flu-wave
+  displayName: "\uB3D9\uAD74 \uB3C5\uAC10 \uC720\uD589"
+  description: "\uBC00\uD3D0 \uC0DD\uD65C\uC774 \uC9C1\uC6D0\uACFC \uD53C\uB09C \uC190\uB2D8
+    \uC0AC\uC774\uC758 \uACF5\uAE30 \uAC10\uC5FC\uC744 \uD0A4\uC6B4\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored seasonal world event manifest.
+  season: 3
+  minimumDurationDays: 3
+  maximumDurationDays: 6
+  affectedDomainIds:
+  - disease
+  - service
+  triggerRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  startEffects:
+  - kind: 15
+    targetId: disease:cave-flu
+    amount: 12
+    durationDays: 6
+  dailyEffects: []
+  endEffects:
+  - kind: 12
+    targetId: resolved:seasonal:winter-cave-flu-wave
+    amount: 1
+    durationDays: 0

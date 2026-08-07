@@ -469,7 +469,7 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
         }
 
         // Rollback remains only as a transitional safety net while a registry contains
-        // legacy sections. An all-marker V18 registry has already completed every
+        // legacy sections. An all-marker V19 registry has already completed every
         // fallible parse/build step against detached candidates, so taking another full
         // live-world snapshot here would add cost without protecting any live mutation.
         List<DungeonSaveSectionEnvelope> rollbackImage = rollbackFree
@@ -744,20 +744,20 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
         {
             if (envelope == null)
             {
-                report.AddError("V18 save contains a null section envelope.");
+                report.AddError("V19 save contains a null section envelope.");
                 continue;
             }
 
             string sectionId = NormalizeId(envelope.sectionId);
             if (sectionId.Length == 0)
             {
-                report.AddError("V18 save contains a section with an empty id.");
+                report.AddError("V19 save contains a section with an empty id.");
                 continue;
             }
 
             if (!savedById.TryAdd(sectionId, envelope))
             {
-                report.AddError($"V18 save contains duplicate section '{sectionId}'.");
+                report.AddError($"V19 save contains duplicate section '{sectionId}'.");
             }
         }
 
@@ -767,7 +767,7 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
             {
                 if (!(section is IOptionalDungeonSaveSection))
                 {
-                    report.AddError($"V18 save is missing required section '{section.SectionId}'.");
+                    report.AddError($"V19 save is missing required section '{section.SectionId}'.");
                 }
 
                 continue;
@@ -811,11 +811,11 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
         {
             if (pair.Value.optional)
             {
-                report.AddWarning($"Unknown optional V18 save section '{pair.Key}' was ignored.");
+                report.AddWarning($"Unknown optional V19 save section '{pair.Key}' was ignored.");
             }
             else
             {
-                report.AddError($"Unknown required V18 save section '{pair.Key}'.");
+                report.AddError($"Unknown required V19 save section '{pair.Key}'.");
             }
         }
 

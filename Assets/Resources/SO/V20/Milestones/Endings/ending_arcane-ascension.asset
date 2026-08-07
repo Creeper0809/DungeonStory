@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d7e615d9bc98fc41be027f9521f64cc, type: 3}
+  m_Name: ending_arcane-ascension
+  m_EditorClassIdentifier: DungeonStory.Content::EndingDefinitionSO
+  stableId: ending:arcane-ascension
+  displayName: "\uBE44\uC804 \uC2B9\uCC9C"
+  description: "\uB8EC \uC804\uB825\uB9DD\uACFC \uBE44\uC804 \uC0DD\uC0B0\uC744 \uD1B5\uD569\uD574
+    \uBB3C\uC9C8\uACFC \uB9C8\uB825\uC758 \uACBD\uACC4\uB97C \uC0B0\uC5C5 \uCCB4\uACC4\uB85C
+    \uBC14\uAFBC\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored non-terminal run milestone.
+  tier: 1
+  completionRequirements:
+    items: []
+    facilities: []
+    research:
+    - researchNumericId: 7238
+    characters: []
+    factions: []
+    worldMetrics:
+    - kind: 6
+      minimumValue: 100
+    requiredFlags:
+    - arcane:grid-integrated
+    excludedFlags: []
+  landmarkBuildingId: building:landmark:arcane-spire
+  permanentRewards:
+  - kind: 12
+    targetId: reward:ending:arcane-ascension
+    amount: 1
+    durationDays: 0
+  counterPressures:
+  - kind: 17
+    targetId: pressure:ending:arcane-ascension
+    amount: 2
+    durationDays: 0

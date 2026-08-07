@@ -1,0 +1,83 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69074ea910611b44eb00ba10ecbc3728, type: 3}
+  m_Name: service-incident_sabotage
+  m_EditorClassIdentifier: DungeonStory.Content::ServiceIncidentDefinitionSO
+  stableId: service-incident:sabotage
+  displayName: "\uB0B4\uBD80 \uD30C\uAD34 \uACF5\uC791"
+  description: "\uC190\uB2D8 \uAD6C\uC5ED\uC5D0\uC11C \uC0DD\uC0B0 \uC2DC\uC124\uB85C
+    \uC774\uC5B4\uC9C4 \uACE0\uC758 \uD30C\uC190 \uD754\uC801\uC774 \uBC1C\uACAC\uB410\uB2E4."
+  authoringRevision: 1
+  sourceNote: V20 hand-authored faction/service manifest.
+  kind: 7
+  triggerRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  responses:
+  - choiceId: lockdown
+    title: "\uC2DC\uC124\uC744 \uBD09\uC1C4\uD558\uACE0 \uC218\uC0C9\uD55C\uB2E4"
+    outcomeText: "\uC2DC\uC124\uC744 \uBD09\uC1C4\uD558\uACE0 \uC218\uC0C9\uD55C\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 13
+      targetId: service-incident:sabotage
+      amount: 2
+      durationDays: 0
+  - choiceId: bait
+    title: "\uAC00\uC9DC \uBD80\uD488\uC73C\uB85C \uACF5\uC791\uC6D0\uC744 \uC720\uC778\uD55C\uB2E4"
+    outcomeText: "\uAC00\uC9DC \uBD80\uD488\uC73C\uB85C \uACF5\uC791\uC6D0\uC744
+      \uC720\uC778\uD55C\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 12
+      targetId: service-incident:sabotage
+      amount: 1
+      durationDays: 0
+  - choiceId: quiet-repair
+    title: "\uC870\uC6A9\uD788 \uC218\uB9AC\uD558\uACE0 \uAC10\uC2DC\uD55C\uB2E4"
+    outcomeText: "\uC870\uC6A9\uD788 \uC218\uB9AC\uD558\uACE0 \uAC10\uC2DC\uD55C\uB2E4"
+    requirements:
+      items: []
+      facilities: []
+      research: []
+      characters: []
+      factions: []
+      worldMetrics: []
+      requiredFlags: []
+      excludedFlags: []
+    effects:
+    - kind: 14
+      targetId: service-incident:sabotage
+      amount: 3
+      durationDays: 0
