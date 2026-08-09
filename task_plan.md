@@ -1,13 +1,19 @@
 # DungeonStory Active Plan
 
-## Phase 139 - Repair and publish the unpushed main commit (in progress)
+## Phase 139 - Repair and publish the unpushed main commit (complete)
 
 > Preserve local training artifacts, remove derived checkpoints that violate GitHub blob limits from Git tracking, repair ephemeral broken refs, and publish the existing work to `origin/main`.
 
 - [x] Audit the unpushed commit, oversized artifacts, ignore rules, and broken refs.
 - [x] Keep local training outputs on disk while removing `Artifacts/Training/V25/models/` from Git tracking.
 - [x] Repair broken `refs/codex/turn-diffs/checkpoints/*` refs and amend the unpushed commit.
-- [ ] Validate repository integrity, confirm no oversized non-LFS blobs remain, and push `main`.
+- [x] Validate repository integrity, confirm no oversized non-LFS blobs remain, and push `main`.
+
+### Phase 139 completion evidence - 2026-08-09
+
+- Git connectivity and LFS integrity pass; ordinary Git blobs at or above 50 MiB in the published range are zero.
+- All 41 local training-model files (602,705,393 bytes) and nine Python cache files remain on disk while none are tracked.
+- The repaired push uploaded 40 LFS objects (about 1.4 GB) and advanced `origin/main` from `d4c49395` to `60b7bebe` without a remote rejection.
 
 ### Phase 139 fixed constraints
 
