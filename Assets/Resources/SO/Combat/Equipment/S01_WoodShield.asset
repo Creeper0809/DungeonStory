@@ -19,7 +19,7 @@ MonoBehaviour:
   weight: 3.5
   occupiedHands: 1
   maxDurability: 160
-  requiredCraftWork: 6
+  requiredCraftWork: 80
   defaultMaterialId: material:wood
   primaryMaterialAmount: 3
   allowedMaterialFamilies: 000000000200000003000000

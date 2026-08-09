@@ -368,6 +368,9 @@ public static class OffenseAggregateSaveValidation
             $"expedition '{run.expeditionId}' carried stock category");
         Require(run.carriedStock.All(value => value.amount > 0),
             $"Expedition '{run.expeditionId}' has a non-positive carried stock amount.");
+        RequireUniqueNonEmpty(
+            run.recoveredEquipmentInstanceIds,
+            $"expedition '{run.expeditionId}' recovered equipment instance");
         Require(run.supplyCapacity >= 0
                 && run.startingLight is >= 0f and <= 100f
                 && run.light is >= 0f and <= 100f
@@ -455,6 +458,7 @@ public static class OffenseAggregateSaveValidation
                         && combatant.currentHealth <= combatant.maxHealth
                     && combatant.totalDamageTaken >= 0f
                     && combatant.initiativePenalty >= 0f
+                    && combatant.coverBlockChance is >= 0f and <= 1f
                     && combatant.turnsStarted >= 0
                     && combatant.suppression >= 0f
                     && combatant.bloodLoss >= 0f,

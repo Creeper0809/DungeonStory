@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public readonly struct CharacterBackgroundId : IEquatable<CharacterBackgroundId>
 {
@@ -61,11 +62,13 @@ public interface ICharacterNarrativeCatalog
     IReadOnlyList<LifeEventDefinitionSO> LifeEvents { get; }
     IReadOnlyList<SpeciesCultureDefinitionSO> Cultures { get; }
     IReadOnlyList<CulturalPracticeDefinitionSO> Practices { get; }
+    IReadOnlyList<HeritableTraitDefinitionSO> HeritableTraits { get; }
     CharacterBackgroundDefinitionSO Require(CharacterBackgroundId id);
     CharacterAmbitionDefinitionSO Require(CharacterAmbitionId id);
     LifeEventDefinitionSO Require(NarrativeEventId id);
     SpeciesCultureDefinitionSO Require(SpeciesCultureId id);
     SpeciesCultureDefinitionSO RequireDefaultCulture(string speciesId);
+    HeritableTraitDefinitionSO RequireHeritable(string traitId);
 }
 
 public interface ICharacterNarrativeQuery
@@ -73,6 +76,38 @@ public interface ICharacterNarrativeQuery
     int Version { get; }
     IReadOnlyCollection<CharacterNarrativeSnapshot> All { get; }
     bool TryGet(CharacterId characterId, out CharacterNarrativeSnapshot snapshot);
+    bool CanPerformPractice(
+        CharacterId characterId,
+        string practiceId,
+        int absoluteDay,
+        out int nextAllowedAbsoluteDay);
+    bool TryPreviewAmbitionProgress(
+        CharacterId characterId,
+        int amount,
+        out AmbitionProgressPreview preview);
+}
+
+public readonly struct AmbitionProgressPreview
+{
+    public AmbitionProgressPreview(
+        CharacterAmbitionId ambitionId,
+        int currentProgress,
+        int targetProgress,
+        bool completes,
+        IReadOnlyList<V20ContentEffect> completionRewards)
+    {
+        AmbitionId = ambitionId;
+        CurrentProgress = currentProgress;
+        TargetProgress = targetProgress;
+        Completes = completes;
+        CompletionRewards = completionRewards ?? Array.Empty<V20ContentEffect>();
+    }
+
+    public CharacterAmbitionId AmbitionId { get; }
+    public int CurrentProgress { get; }
+    public int TargetProgress { get; }
+    public bool Completes { get; }
+    public IReadOnlyList<V20ContentEffect> CompletionRewards { get; }
 }
 
 public interface ICharacterNarrativeCommand
@@ -93,17 +128,52 @@ public interface ICharacterNarrativeCommand
         string originFactionId,
         string militaryTrainingId,
         float loyalty);
+    bool TryInitializeBackground(
+        CharacterId characterId,
+        int absoluteDay,
+        out BackgroundInitializationOutcome outcome);
     void StartAmbition(CharacterId characterId, CharacterAmbitionId ambitionId, int absoluteDay);
     void AddAmbitionProgress(CharacterId characterId, int amount, int absoluteDay);
     void FailAmbition(CharacterId characterId, int absoluteDay);
     void AbandonAmbition(CharacterId characterId, int absoluteDay);
     void BeginAssimilation(CharacterId characterId, SpeciesCultureId targetCultureId);
     void AdvanceAssimilationDay(CharacterId characterId);
+    void RecordPracticeParticipation(
+        CharacterId characterId,
+        string practiceId,
+        SpeciesCultureId practiceCultureId,
+        int assimilationDays,
+        int absoluteDay);
+    void RecordPracticeNeglect(
+        CharacterId characterId,
+        string practiceId,
+        int absoluteDay);
     void RecordResolvedEvent(
         CharacterId characterId,
         NarrativeEventId eventId,
         string choiceId,
         int absoluteDay);
+    void MarkHeritableTraitsAnalyzed(CharacterId characterId);
+}
+
+public interface ITraitAnalysisCommand
+{
+    bool TryAnalyze(
+        CharacterId characterId,
+        out IReadOnlyList<string> revealedLatentTraitIds,
+        out DomainFailure failure);
+}
+
+public sealed class BackgroundInitializationOutcome
+{
+    public CharacterBackgroundId BackgroundId { get; internal set; }
+    public string InitialMemoryCode { get; internal set; } = string.Empty;
+    public IReadOnlyDictionary<string, int> SkillExperienceById
+        { get; internal set; } = new Dictionary<string, int>();
+    public IReadOnlyDictionary<string, float> FactionReactionById
+        { get; internal set; } = new Dictionary<string, float>();
+    public IReadOnlyList<V20ContentEffect> StartingEffects
+        { get; internal set; } = Array.Empty<V20ContentEffect>();
 }
 
 public interface ICharacterNarrativePersistence
@@ -126,19 +196,79 @@ public sealed class CharacterNarrativeSnapshot
     public int AssimilationDays { get; internal set; }
     public IReadOnlyList<string> ExpressedHeritableTraitIds { get; internal set; }
     public IReadOnlyList<string> LatentHeritableTraitIds { get; internal set; }
+    public IReadOnlyList<string> VisibleLatentHeritableTraitIds
+        { get; internal set; }
+    public bool HeritableTraitsAnalyzed { get; internal set; }
     public IReadOnlyList<CharacterNarrativeEventSaveData> RecentEvents { get; internal set; }
     public IReadOnlyList<CharacterNarrativeEventSummarySaveData> EventSummaries { get; internal set; }
     public string OriginEnemyArchetypeId { get; internal set; }
     public string OriginFactionId { get; internal set; }
     public string MilitaryTrainingId { get; internal set; }
     public float Loyalty { get; internal set; }
+    public bool BackgroundInitialized { get; internal set; }
+    public int BackgroundInitializedAbsoluteDay { get; internal set; }
+    public string InitialMemoryCode { get; internal set; }
+    public IReadOnlyDictionary<string, int> SkillExperienceById
+        { get; internal set; }
+    public IReadOnlyDictionary<string, float> BackgroundFactionReactionById
+        { get; internal set; }
+    public IReadOnlyList<CulturalPracticeParticipationSaveData>
+        PracticeParticipations { get; internal set; }
     public bool HasEnemyOrigin => !string.IsNullOrWhiteSpace(OriginEnemyArchetypeId);
+}
+
+public static class BackgroundFactionReactionRules
+{
+    public static float GetMultiplier(
+        CharacterBackgroundDefinitionSO background,
+        string gameplayFactionId)
+    {
+        if (background == null || string.IsNullOrWhiteSpace(gameplayFactionId))
+        {
+            return 1f;
+        }
+
+        string target = CanonicalFactionId(gameplayFactionId);
+        V20WeightedId reaction = (background.factionReactions
+                ?? new List<V20WeightedId>())
+            .FirstOrDefault(value => value != null
+                && string.Equals(
+                    CanonicalFactionId(value.id),
+                    target,
+                    StringComparison.Ordinal));
+        return reaction == null ? 1f : UnityEngine.Mathf.Clamp(reaction.weight, 0.1f, 10f);
+    }
+
+    public static float ApplyToLoyalty(float baseLoyalty, float multiplier)
+    {
+        return UnityEngine.Mathf.Clamp(
+            baseLoyalty + ((UnityEngine.Mathf.Clamp(multiplier, 0.1f, 10f) - 1f) * 12f),
+            0f,
+            100f);
+    }
+
+    private static string CanonicalFactionId(string id)
+    {
+        string normalized = (id ?? string.Empty).Trim().ToLowerInvariant();
+        return normalized switch
+        {
+            "faction:human-crown" => "human:crown",
+            "faction:human-legion" => "human:legion",
+            "faction:merchant-league" => "human:merchant",
+            "faction:free-settlers" => "human:settler",
+            "faction:truth-keepers" => "human:inquisition",
+            "faction:archive-conclave" => "truth:guardian",
+            _ when normalized.StartsWith("faction:", StringComparison.Ordinal) =>
+                normalized.Substring("faction:".Length),
+            _ => normalized
+        };
+    }
 }
 
 [Serializable]
 public sealed class CharacterNarrativeWorldSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 3;
     public int version = CurrentVersion;
     public List<CharacterNarrativeSaveData> characters = new();
 }
@@ -158,12 +288,43 @@ public sealed class CharacterNarrativeSaveData
     public int assimilationDays;
     public List<string> expressedHeritableTraitIds = new();
     public List<string> latentHeritableTraitIds = new();
+    public bool heritableTraitsAnalyzed;
     public List<CharacterNarrativeEventSaveData> recentEvents = new();
     public List<CharacterNarrativeEventSummarySaveData> eventSummaries = new();
     public string originEnemyArchetypeId = string.Empty;
     public string originFactionId = string.Empty;
     public string militaryTrainingId = string.Empty;
     public float loyalty;
+    public bool backgroundInitialized;
+    public int backgroundInitializedAbsoluteDay;
+    public string initialMemoryCode = string.Empty;
+    public List<NarrativeSkillExperienceSaveData> skillExperience = new();
+    public List<NarrativeFactionReactionSaveData> backgroundFactionReactions =
+        new();
+    public List<CulturalPracticeParticipationSaveData> practiceParticipations =
+        new();
+}
+
+[Serializable]
+public sealed class NarrativeSkillExperienceSaveData
+{
+    public string skillId = string.Empty;
+    public int experience;
+}
+
+[Serializable]
+public sealed class NarrativeFactionReactionSaveData
+{
+    public string factionId = string.Empty;
+    public float reaction;
+}
+
+[Serializable]
+public sealed class CulturalPracticeParticipationSaveData
+{
+    public string practiceId = string.Empty;
+    public int lastAbsoluteDay;
+    public bool performed;
 }
 
 [Serializable]

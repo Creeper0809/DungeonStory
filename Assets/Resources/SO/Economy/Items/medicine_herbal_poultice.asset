@@ -31,29 +31,29 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 8
   features:
-  - rid: 7737211674039681233
-  - rid: 7737211674039681234
-  - rid: 7737211674039681235
-  - rid: 7737211674039681236
+  - rid: 7737211838068949696
+  - rid: 7737211838068949697
+  - rid: 7737211838068949698
+  - rid: 7737211838068949699
   references:
     version: 2
     RefIds:
-    - rid: 7737211674039681233
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949696
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:herbalism
-    - rid: 7737211674039681234
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949697
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211674039681235
-      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949698
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6
-    - rid: 7737211674039681236
-      type: {class: MedicineItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949699
+      type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 1
         treatmentPotency: 0.72

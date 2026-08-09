@@ -23,30 +23,43 @@ MonoBehaviour:
     SerializationNodes: []
   id: 7251
   projectId: research:agriculture:soil-cycles
-  displayName: "\uD1A0\uC591 \uC21C\uD658"
-  description: "\uC0DD\uBB3C\uACC4\uC808 \uAE30\uB85D\uACFC \uD1F4\uBE44 \uC21C\uD658\uC744
-    \uD1A0\uC591 \uAD00\uB9AC \uAE30\uC900\uC73C\uB85C \uB9CC\uB4E0\uB2E4."
+  displayName: "\uD1A0\uC591 \uC21C\uD658\uACFC \uC791\uBB3C \uBCF4\uD638"
+  description: "\uD1A0\uC591 \uC21C\uD658\uACFC \uC791\uBB3C \uBCF4\uD638\uC5D0 \uD544\uC694\uD55C
+    \uC774\uB860, \uC81C\uC791 \uC808\uCC28, \uC548\uC804 \uAE30\uC900\uACFC \uC6B4\uC6A9
+    \uBCF4\uC0C1\uC744 \uD558\uB098\uC758 \uC644\uACB0\uB41C \uC5F0\uAD6C \uD328\uD0A4\uC9C0\uB85C
+    \uD1B5\uD569\uD55C\uB2E4."
   field: 6
-  requiredWork: 252
+  requiredWork: 1532
   prerequisites:
-  - {fileID: 11400000, guid: d7600d92baff8d94d95c73c967471b72, type: 2}
   - {fileID: 11400000, guid: 15debf0ab3fbbed42baae417568308af, type: 2}
+  - {fileID: 11400000, guid: f48e4ad521ac5b144b5f3f26be913789, type: 2}
+  - {fileID: 11400000, guid: b0216d256e85f4f4da770d05c38f5419, type: 2}
   prerequisiteLinks:
-  - prerequisiteId: research:agriculture:compost
-    prerequisite: {fileID: 11400000, guid: d7600d92baff8d94d95c73c967471b72, type: 2}
-    kind: 2
-    reason: "\uD1F4\uBE44\xB7\uC724\uC791\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
-      \uD1A0\uC591 \uC21C\uD658 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   - prerequisiteId: research:agriculture:phenology
     prerequisite: {fileID: 11400000, guid: 15debf0ab3fbbed42baae417568308af, type: 2}
     kind: 2
-    reason: "\uC0DD\uBB3C\uACC4\uC808\uD559\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
-      \uD1A0\uC591 \uC21C\uD658 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+    reason: "\uC0DD\uBB3C\uACC4\uC808\uD559\uACFC \uC885\uC790 \uC120\uBCC4\uC758
+      \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uD1A0\uC591 \uC21C\uD658\uACFC \uC791\uBB3C
+      \uBCF4\uD638 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:forestry:fungal
+    prerequisite: {fileID: 11400000, guid: f48e4ad521ac5b144b5f3f26be913789, type: 2}
+    kind: 2
+    reason: "\uC2E4\uB0B4 \uADE0\uBAA9\uB9BC\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uD1A0\uC591 \uC21C\uD658\uACFC \uC791\uBB3C \uBCF4\uD638 \uAD6C\uD604\uC5D0
+      \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:health:pathogen-observation
+    prerequisite: {fileID: 11400000, guid: b0216d256e85f4f4da770d05c38f5419, type: 2}
+    kind: 2
+    reason: "\uBCD1\uC6D0\uCCB4 \uAD00\uCC30\uACFC \uBA74\uC5ED \uD608\uCCAD\uD559\uC758
+      \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uD1A0\uC591 \uC21C\uD658\uACFC \uC791\uBB3C
+      \uBCF4\uD638 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211792998531995
+    - rid: 7737211838079696948
+    - rid: 7737211838079696949
+    - rid: 7737211838079696950
   facilityRequirements:
   - capability: 0
     requiredCount: 1
@@ -58,7 +71,15 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211792998531995
+    - rid: 7737211838079696948
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 8892
+    - rid: 7737211838079696949
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 8891
+    - rid: 7737211838079696950
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 8852

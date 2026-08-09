@@ -11,7 +11,10 @@ public sealed class WildlifeWorldServices
         IMainCameraProvider mainCamera,
         IGridPathSearchBroker pathSearch,
         ICharacterAiWorldRegistry worldRegistry,
-        IWorldItemStackRuntime items)
+        IWorldItemStackRuntime items,
+        IGameCalendar calendar,
+        IGameEventBus events,
+        IDiseaseDefinitionCatalog diseases)
     {
         Grid = grid ?? throw new ArgumentNullException(nameof(grid));
         Species = species ?? throw new ArgumentNullException(nameof(species));
@@ -21,6 +24,9 @@ public sealed class WildlifeWorldServices
         PathSearch = pathSearch ?? throw new ArgumentNullException(nameof(pathSearch));
         WorldRegistry = worldRegistry ?? throw new ArgumentNullException(nameof(worldRegistry));
         Items = items ?? throw new ArgumentNullException(nameof(items));
+        Calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        Events = events ?? throw new ArgumentNullException(nameof(events));
+        Diseases = diseases ?? throw new ArgumentNullException(nameof(diseases));
     }
 
     public IGridSystemProvider Grid { get; }
@@ -31,6 +37,9 @@ public sealed class WildlifeWorldServices
     public IGridPathSearchBroker PathSearch { get; }
     public ICharacterAiWorldRegistry WorldRegistry { get; }
     public IWorldItemStackRuntime Items { get; }
+    public IGameCalendar Calendar { get; }
+    public IGameEventBus Events { get; }
+    public IDiseaseDefinitionCatalog Diseases { get; }
 }
 
 public sealed class WildlifeCombatServices

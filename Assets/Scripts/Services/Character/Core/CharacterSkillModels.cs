@@ -113,6 +113,7 @@ public sealed class CharacterSkillInstance
     public OffenseFormationMask targetPositions = OffenseFormationMask.Any;
     public List<CharacterSkillModuleSelection> modules = new List<CharacterSkillModuleSelection>();
     public string requestKey = string.Empty;
+    public NarrativeGenerationTrace narrativeTrace;
 
     public bool IsReady => !string.IsNullOrWhiteSpace(id)
         && !string.IsNullOrWhiteSpace(displayName)
@@ -141,7 +142,8 @@ public sealed class CharacterSkillInstance
                 : targetPositions,
             modules = modules?.Where(item => item != null).Select(item => item.Clone()).ToList()
                 ?? new List<CharacterSkillModuleSelection>(),
-            requestKey = requestKey
+            requestKey = requestKey,
+            narrativeTrace = narrativeTrace
         };
     }
 }

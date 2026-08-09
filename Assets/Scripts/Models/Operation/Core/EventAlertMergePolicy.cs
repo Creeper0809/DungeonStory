@@ -7,7 +7,21 @@ public static class EventAlertMergePolicy
 {
     public static EventAlertRecord FindMergeTarget(IEnumerable<EventAlertRecord> records, EventAlertRequest request)
     {
-        if (records == null || request == null || request.Choices.Count > 0)
+        if (records == null || request == null)
+        {
+            return null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.SourceId))
+        {
+            return records.LastOrDefault(record => record != null
+                && string.Equals(
+                    record.SourceId,
+                    request.SourceId,
+                    System.StringComparison.Ordinal));
+        }
+
+        if (request.Choices.Count > 0)
         {
             return null;
         }

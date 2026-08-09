@@ -96,6 +96,25 @@ public static class V20EnemyIndividualDebugScenarios
                 .Distinct(StringComparer.Ordinal).Count() >= 90,
             "Enemy profiles are collapsing into fixed archetype clones.");
 
+        CharacterBackgroundDefinitionSO deserterBackground =
+            narrativeCatalog.Require(new CharacterBackgroundId(
+                "background:deserter"));
+        float legionReaction = BackgroundFactionReactionRules.GetMultiplier(
+            deserterBackground,
+            "human:legion");
+        Require(Mathf.Approximately(legionReaction, 0.1f),
+            "The deserter background did not map its authored legion reaction to the gameplay faction ID.");
+        Require(BackgroundFactionReactionRules.ApplyToLoyalty(
+                50f,
+                legionReaction) < 50f,
+            "The authored background reaction did not change persisted enemy loyalty.");
+        Require(Mathf.Approximately(
+                BackgroundFactionReactionRules.GetMultiplier(
+                    deserterBackground,
+                    "human:crown"),
+                1f),
+            "An unrelated faction inherited the deserter's legion reaction.");
+
         EnemyIndividualBlueprint blueprint = factory.RequireBlueprint(first);
         factory.EnsureCharacterDomains(blueprint);
         Require(life.TryGet(stableId, out CharacterLifeRecord lifeRecord)
@@ -148,7 +167,7 @@ public static class V20EnemyIndividualDebugScenarios
             "V20_ENEMY_INDIVIDUAL_CONTINUITY=PASS; "
             + "humanArchetypes=25; samples=100; persistentIdentity=true; "
             + "offenseDefenseSharedFactory=true; encounterObjectives=6; "
-            + "battlefieldModifiers=12");
+            + "battlefieldModifiers=12; backgroundFactionReaction=true");
     }
 
     private static void VerifyEncounterObjectives(EnemyCombatContentCatalog combat)

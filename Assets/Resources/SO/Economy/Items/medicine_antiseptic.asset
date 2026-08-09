@@ -31,29 +31,29 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 12
   features:
-  - rid: 7737211674039681201
-  - rid: 7737211674039681202
-  - rid: 7737211674039681203
-  - rid: 7737211674039681204
+  - rid: 7737211838068949625
+  - rid: 7737211838068949626
+  - rid: 7737211838068949627
+  - rid: 7737211838068949628
   references:
     version: 2
     RefIds:
-    - rid: 7737211674039681201
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949625
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:antiseptic
-    - rid: 7737211674039681202
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949626
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211674039681203
-      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949627
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6
-    - rid: 7737211674039681204
-      type: {class: MedicineItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949628
+      type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 1
         treatmentPotency: 0.82

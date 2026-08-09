@@ -89,6 +89,7 @@ public readonly struct KinshipLink : IEquatable<KinshipLink>
 
 public interface IKinshipQuery
 {
+    IReadOnlyCollection<CharacterTombstoneSaveData> Tombstones { get; }
     IReadOnlyList<CharacterId> GetParents(CharacterId child, bool includeAdoptive);
     IReadOnlyList<CharacterId> GetChildren(CharacterId parent, bool includeAdoptive);
     int GetGeneration(CharacterId characterId);
@@ -132,6 +133,12 @@ public sealed class CharacterKinshipAggregate : IKinshipQuery, IKinshipCommand
     private readonly Dictionary<CharacterId, CharacterTombstoneSaveData> tombstones = new();
     private readonly Dictionary<string, LineageSummarySaveData> summaries =
         new(StringComparer.Ordinal);
+
+    public IReadOnlyCollection<CharacterTombstoneSaveData> Tombstones =>
+        tombstones.Values
+            .OrderBy(value => value.deathAbsoluteDay)
+            .ThenBy(value => value.characterId, StringComparer.Ordinal)
+            .ToArray();
 
     public bool TryGetTombstone(
         CharacterId characterId,

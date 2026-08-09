@@ -34,13 +34,15 @@ MonoBehaviour:
   battlefieldModifierIds:
   - battlefield:collapsing-ceiling
   counterTags:
+  - counter:mobile
   - counter:detector
+  - counter:nonlethal
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
   - enemyArchetypeId: enemy:neutral-smoke-sapper
     minimumCount: 1
     maximumCount: 1
-  - enemyArchetypeId: enemy:legion-pavise
+  - enemyArchetypeId: enemy:neutral-mercenary
     minimumCount: 1
     maximumCount: 2

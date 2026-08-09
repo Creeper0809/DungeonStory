@@ -926,19 +926,11 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
 
     private CharacterPreparedIdentity RollIdentity(CharacterSO data, int memberIndex)
     {
-        List<int> traitIds = new List<int>(3);
-        foreach (CharacterTraitSO trait in traitPool.OrderBy(_ => random.NextInt(0, int.MaxValue)))
-        {
-            if (traitIds.Count >= 3)
-            {
-                break;
-            }
-
-            if (!ConflictsWithSelected(trait.id, traitIds))
-            {
-                traitIds.Add(trait.id);
-            }
-        }
+        List<int> traitIds = CharacterTraitSelectionRules.Select(
+                traitPool,
+                settingsProvider.Settings.traitConflicts,
+                random)
+            .ToList();
 
         string baseName = GivenNames[random.NextInt(0, GivenNames.Length)];
         string displayName = members.Any(member => member.Progression != null
@@ -951,13 +943,6 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
             origin = $"{data.SpeciesTag} - {Origins[random.NextInt(0, Origins.Length)]}",
             traitIds = traitIds
         };
-    }
-
-    private bool ConflictsWithSelected(int traitId, IReadOnlyCollection<int> selected)
-    {
-        return settingsProvider.Settings.traitConflicts.Any(rule => rule != null
-            && ((rule.firstTraitId == traitId && selected.Contains(rule.secondTraitId))
-                || (rule.secondTraitId == traitId && selected.Contains(rule.firstTraitId))));
     }
 
     private bool TryGetMember(

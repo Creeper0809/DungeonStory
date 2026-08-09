@@ -51,6 +51,7 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
     private CharacterSummaryStatusPresenter statusPresenter;
     private CharacterSummaryAiPresenter aiPresenter;
     private CharacterSummaryGrowthPresenter growthPresenter;
+    private IDungeonDebugModeService debugMode;
     private IUiClock uiClock;
     private IGameEventBus gameEventBus;
     private CharacterSummaryViewActions viewActions;
@@ -66,7 +67,8 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
         CharacterSummaryAiPresenter aiPresenter,
         CharacterSummaryGrowthPresenter growthPresenter,
         IUiClock uiClock,
-        IGameEventBus gameEventBus)
+        IGameEventBus gameEventBus,
+        IDungeonDebugModeService debugMode)
     {
         this.shellPresenter = shellPresenter
             ?? throw new ArgumentNullException(nameof(shellPresenter));
@@ -84,6 +86,10 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
             ?? throw new ArgumentNullException(nameof(uiClock));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.debugMode = debugMode
+            ?? throw new ArgumentNullException(nameof(debugMode));
+        this.debugMode.StateChanged -= RefreshDebugVisibility;
+        this.debugMode.StateChanged += RefreshDebugVisibility;
         SubscribeToScopedEvents();
     }
 
@@ -257,6 +263,7 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
         moodTabButton = generatedMoodTabButton;
         recordsTabButton = generatedRecordsTabButton;
         aiTabButton = generatedAiTabButton;
+        RefreshDebugVisibility();
         ShowStatusTab();
     }
 
@@ -426,6 +433,12 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
 
     public void ShowAiTab()
     {
+        if (debugMode?.IsDeveloperModeEnabled != true)
+        {
+            ShowStatusTab();
+            return;
+        }
+
         SetActiveTab(CharacterSummaryTab.Ai);
         RefreshAiDetails();
     }
@@ -489,6 +502,12 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
 
     private void SetActiveTab(CharacterSummaryTab tab)
     {
+        if (tab == CharacterSummaryTab.Ai
+            && debugMode?.IsDeveloperModeEnabled != true)
+        {
+            tab = CharacterSummaryTab.Status;
+        }
+
         if (statusTabContent != null)
         {
             statusTabContent.SetActive(tab == CharacterSummaryTab.Status);
@@ -643,6 +662,28 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
         growthTabRequestedSubscription = null;
         infoFeedSubscription?.Dispose();
         infoFeedSubscription = null;
+    }
+
+    private void OnDestroy()
+    {
+        if (debugMode != null)
+        {
+            debugMode.StateChanged -= RefreshDebugVisibility;
+        }
+    }
+
+    private void RefreshDebugVisibility()
+    {
+        bool visible = debugMode?.IsDeveloperModeEnabled == true;
+        if (aiTabButton != null)
+        {
+            aiTabButton.gameObject.SetActive(visible);
+        }
+
+        if (!visible && aiTabContent != null && aiTabContent.activeSelf)
+        {
+            ShowStatusTab();
+        }
     }
 
     private void SubscribeToScopedEvents()

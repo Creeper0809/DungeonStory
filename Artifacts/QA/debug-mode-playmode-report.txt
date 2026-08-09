@@ -1,38 +1,42 @@
 RESOLUTION_1600x900=PASS; actual=1600x900
 SCOPE=PASS; gameplay lifetime scope resolved
 DEFAULT_OFF=PASS; developer mode disabled before pointer flow
+DEBUG_ROOTS_DEFAULT_HIDDEN=PASS; expected=False; roots=2; matching=2
+AI_DIAGNOSTICS_DEFAULT_HIDDEN=PASS; activeSelf=False
 POINTER_TARGET_SettingsMenuButton=PASS; SettingsMenuButton
 POINTER_DISPATCH=PASS; position=(1458.33, 856.67); button=0
 POINTER_TARGET_DeveloperSettingsTab=PASS; DeveloperSettingsTab
-POINTER_DISPATCH=PASS; position=(1064.17, 677.50); button=0
+POINTER_DISPATCH=PASS; position=(1060.34, 674.21); button=0
 POINTER_TARGET_DeveloperModeToggle=PASS; DeveloperModeToggle
-POINTER_DISPATCH=PASS; position=(1094.00, 603.33); button=0
+POINTER_DISPATCH=PASS; position=(1091.44, 602.00); button=0
 OPTIONS_TOGGLE=PASS; actual pointer enabled developer mode
+DEBUG_ROOTS_OPTION_VISIBLE=PASS; expected=True; roots=2; matching=2
+AI_DIAGNOSTICS_OPTION_VISIBLE=PASS; activeSelf=True
 POINTER_TARGET_SettingsCloseButton=PASS; SettingsCloseButton
-POINTER_DISPATCH=PASS; position=(1134.17, 731.67); button=0
+POINTER_DISPATCH=PASS; position=(1133.04, 730.72); button=0
 HUD_BUTTON=PASS; center-top debug button visible
 POINTER_TARGET_DungeonDebugOpenButton=PASS; DungeonDebugOpenButton
 POINTER_DISPATCH=PASS; position=(800.00, 866.67); button=0
 PALETTE_OPEN=PASS; non-modal palette opened
 NON_MODAL=PASS; timeScale=0
-COMMAND_REGISTRY=PASS; commands=112; ids unique
+COMMAND_REGISTRY=PASS; commands=1151; ids unique
 POINTER_TARGET_DebugTab_Spawn=PASS; DebugTab_Spawn
 POINTER_DISPATCH=PASS; position=(571.09, 715.42); button=0
-SPAWN_COMMAND_VISIBLE=PASS; DebugCommand_spawn:stock:4
+SPAWN_COMMAND_VISIBLE=PASS; DebugCommand_spawn:item:facility-kit:30
 POINTER_TARGET_Execute=PASS; Execute
-POINTER_DISPATCH=PASS; position=(1069.17, 457.50); button=0
+POINTER_DISPATCH=PASS; position=(1069.17, 393.33); button=0
 TARGETING_STARTED=PASS; grid-cell targeting active
 POINTER_DISPATCH=PASS; position=(1472.00, 234.00); button=0
 EXACT_GRID_SPAWN=PASS; cell=(16, 0); quantity=0->10
 TARGETING_FINISHED=PASS; single click ended targeting
 POINTER_TARGET_Execute=PASS; Execute
-POINTER_DISPATCH=PASS; position=(1069.17, 457.50); button=0
+POINTER_DISPATCH=PASS; position=(1069.17, 393.33); button=0
 POINTER_DISPATCH=PASS; position=(1472.00, 234.00); button=0
 SHIFT_REPEAT=PASS; Shift click kept targeting active
 POINTER_DISPATCH=PASS; position=(1472.00, 234.00); button=1
 RIGHT_CANCEL=PASS; right click cancelled targeting
 POINTER_TARGET_Execute=PASS; Execute
-POINTER_DISPATCH=PASS; position=(1069.17, 457.50); button=0
+POINTER_DISPATCH=PASS; position=(1069.17, 393.33); button=0
 ESC_CANCEL=PASS; Escape cancelled targeting
 POINTER_TARGET_DebugTab_Overlay=PASS; DebugTab_Overlay
 POINTER_DISPATCH=PASS; position=(1028.91, 715.42); button=0
@@ -45,7 +49,7 @@ RESOLUTION_900x1600=PASS; actual=900x1600
 PORTRAIT_SHEET_BOUNDS=PASS; min=(27,64); max=(873,1344); screen=900x1600
 CAPTURE_900x1600=PASS; size=900x1600; visible=1439998
 RESOLUTION_1600x900=PASS; actual=1600x900
-WILDLIFE_COMMAND=PASS; 그림자늑대 1마리를 소환했습니다.; cell=(44, 0)
+WILDLIFE_COMMAND=PASS; 굴착두더지 1마리를 소환했습니다.; cell=(44, 0)
 NORMAL_INVASION=PASS; 일반 침공을 시작했습니다.
 CHARACTER_COMMAND=PASS; 돌파형 침입자 완전 회복
 INVASION_VICTORY=PASS; 1명 침입자를 제압했습니다.
@@ -54,5 +58,7 @@ DEBUG_METADATA=PASS; modified=True; history=8
 SAVE_METADATA=PASS; savedDebug=True
 LOAD_RESETS_CHEATS=PASS; world marker persisted and transient cheat cleared
 DISABLE_CLEARS_TRANSIENT=PASS; palette, targeting, cheats, and overlays disabled
+DEBUG_ROOTS_DISABLED_AGAIN=PASS; expected=False; roots=2; matching=2
+AI_DIAGNOSTICS_DISABLED_AGAIN=PASS; activeSelf=False
 CONSOLE errors=0; warnings=0
 RESULT=PASS

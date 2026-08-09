@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using DungeonStory.Work;
 using UnityEngine;
 
@@ -12,10 +13,26 @@ public sealed class ResearchWorkExecutionHandler :
     private readonly DungeonStory.Work.ResearchWorkExecutionHandler core;
 
     public ResearchWorkExecutionHandler(IBlueprintResearchWorkService researchWorkService)
+        : this(researchWorkService, UnavailableEquipmentPhysicalItemGateway.Instance)
+    {
+    }
+
+    [VContainer.Inject]
+    public ResearchWorkExecutionHandler(
+        IBlueprintResearchWorkService researchWorkService,
+        IWorldItemStackRuntime items)
+        : this(researchWorkService, (IEquipmentPhysicalItemGateway)items)
+    {
+    }
+
+    private ResearchWorkExecutionHandler(
+        IBlueprintResearchWorkService researchWorkService,
+        IEquipmentPhysicalItemGateway items)
     {
         runtime = new DefaultResearchWorkRuntimePort(
             researchWorkService
-            ?? throw new ArgumentNullException(nameof(researchWorkService)));
+                ?? throw new ArgumentNullException(nameof(researchWorkService)),
+            items ?? throw new ArgumentNullException(nameof(items)));
         core = new DungeonStory.Work.ResearchWorkExecutionHandler(runtime);
     }
 
@@ -78,10 +95,14 @@ public sealed class ResearchWorkExecutionHandler :
 public sealed class DefaultResearchWorkRuntimePort : IResearchWorkRuntimePort
 {
     private readonly IBlueprintResearchWorkService service;
+    private readonly IEquipmentPhysicalItemGateway items;
 
-    public DefaultResearchWorkRuntimePort(IBlueprintResearchWorkService service)
+    public DefaultResearchWorkRuntimePort(
+        IBlueprintResearchWorkService service,
+        IEquipmentPhysicalItemGateway items)
     {
         this.service = service ?? throw new ArgumentNullException(nameof(service));
+        this.items = items ?? throw new ArgumentNullException(nameof(items));
     }
 
     public ResearchWorkerHandle CaptureWorker(object runtimeWorker)
@@ -120,10 +141,29 @@ public sealed class DefaultResearchWorkRuntimePort : IResearchWorkRuntimePort
         ResearchFacilityHandle facility,
         float seconds)
     {
+        BuildableObject target = RequireFacility(facility);
+        float appliedSeconds = seconds;
+        WorldItemStackSnapshot index = FindArcaneIndex(target);
+        if (index != null)
+        {
+            appliedSeconds *= 1.1f;
+            float current = DurableToolItemRules.ReadCurrentDurability(
+                index.ItemId,
+                index.Components);
+            items.TrySetInstanceComponent(
+                index.StackId,
+                DurableToolItemRules.CreateDurability(
+                    index.ItemId,
+                    current - Math.Max(0f, seconds) * 0.01f));
+        }
+        else
+        {
+            RequestArcaneIndex(target);
+        }
         BlueprintResearchWorkResult result = service.ApplyResearchWork(
             RequireWorker(worker),
-            RequireFacility(facility),
-            seconds);
+            target,
+            appliedSeconds);
         string label = result.Blueprint != null
             ? result.Blueprint.DisplayName
             : result.Message;
@@ -133,6 +173,37 @@ public sealed class DefaultResearchWorkRuntimePort : IResearchWorkRuntimePort
             result.ProgressRatio,
             label,
             result.Success ? string.Empty : result.Message);
+    }
+
+    private WorldItemStackSnapshot FindArcaneIndex(BuildableObject facility)
+    {
+        string destinationId = facility.PersistentInstanceId.Value;
+        return items.GetAllStacks()
+            .Where(stack => stack != null
+                && stack.State == WorldItemStackState.FacilityBuffer
+                && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal)
+                && string.Equals(stack.ItemId, DurableToolItemRules.ArcaneIndex, StringComparison.Ordinal)
+                && DurableToolItemRules.ReadCurrentDurability(stack.ItemId, stack.Components) > 0f)
+            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+            .FirstOrDefault();
+    }
+
+    private void RequestArcaneIndex(BuildableObject facility)
+    {
+        string destinationId = facility.PersistentInstanceId.Value;
+        if (items.GetAllStacks().Any(stack => stack != null
+                && string.Equals(stack.ItemId, DurableToolItemRules.ArcaneIndex, StringComparison.Ordinal)
+                && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal)))
+        {
+            return;
+        }
+        items.TryRequestItemDelivery(
+            DurableToolItemRules.ArcaneIndex,
+            1,
+            facility.centerPos,
+            destinationId,
+            out _,
+            out _);
     }
 
     private static CharacterActor RequireWorker(ResearchWorkerHandle handle) =>

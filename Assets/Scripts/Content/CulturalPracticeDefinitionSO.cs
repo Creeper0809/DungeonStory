@@ -20,6 +20,8 @@ public sealed class CulturalPracticeDefinitionSO : V20AuthoredContentSO
         errors.AddRange((requirements ?? new()).Validate(StableId));
         if (successEffects == null || successEffects.Count == 0 || successEffects.Any(value => value == null || !value.IsValid))
             errors.Add($"'{StableId}' requires success effects.");
+        if (neglectedEffects == null || neglectedEffects.Count == 0 || neglectedEffects.Any(value => value == null || !value.IsValid))
+            errors.Add($"'{StableId}' requires neglect effects.");
         return errors;
     }
 }

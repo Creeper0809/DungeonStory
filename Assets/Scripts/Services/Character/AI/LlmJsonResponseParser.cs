@@ -127,6 +127,8 @@ public sealed class MoodImpulseJsonDto : ILlmJsonPayload
     public string targetFacilityTag;
     public string reason;
     public float validSeconds = 30f;
+    public string[] usedMotifIds = Array.Empty<string>();
+    public string[] usedCharacterFactIds = Array.Empty<string>();
 
     public bool Validate(out string error)
     {
@@ -240,6 +242,8 @@ public sealed class CustomerPersonaJsonDto : ILlmJsonPayload
     public float funCurveMultiplier;
     public float moodCurveMultiplier;
     public string[] preferredFacilityTags;
+    public string[] usedMotifIds = Array.Empty<string>();
+    public string[] usedCharacterFactIds = Array.Empty<string>();
 
     public bool Validate(out string error)
     {
@@ -351,6 +355,8 @@ public sealed class MacroGoalJsonDto : ILlmJsonPayload
     public int targetFacilityId = -1;
     public string targetFacilityTag;
     public float validSeconds = 30f;
+    public string[] usedMotifIds = Array.Empty<string>();
+    public string[] usedCharacterFactIds = Array.Empty<string>();
 
     public bool Validate(out string error)
     {
@@ -454,6 +460,8 @@ public sealed class SocialRumorJsonDto : ILlmJsonPayload
     public float spreadChance;
     public float trustImpact;
     public float validSeconds = 600f;
+    public string[] usedMotifIds = Array.Empty<string>();
+    public string[] usedCharacterFactIds = Array.Empty<string>();
 
     public bool Validate(out string error)
     {
@@ -637,6 +645,8 @@ public sealed class SocialRumorJsonDto : ILlmJsonPayload
 public sealed class BubbleLineJsonDto : ILlmJsonPayload
 {
     public string line;
+    public string[] usedMotifIds = Array.Empty<string>();
+    public string[] usedCharacterFactIds = Array.Empty<string>();
 
     public bool Validate(out string error)
     {

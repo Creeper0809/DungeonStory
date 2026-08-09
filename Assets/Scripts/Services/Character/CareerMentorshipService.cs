@@ -15,18 +15,15 @@ public sealed class CareerMentorshipService : ICareerMentorshipService
     private readonly ICareerService careers;
     private readonly ICharacterWorldQuery characters;
     private readonly IBuildingWorldQuery buildings;
-    private readonly ICareerPositionDefinitionCatalog positions;
 
     public CareerMentorshipService(
         ICareerService careers,
         ICharacterWorldQuery characters,
-        IBuildingWorldQuery buildings,
-        ICareerPositionDefinitionCatalog positions)
+        IBuildingWorldQuery buildings)
     {
         this.careers = careers ?? throw new ArgumentNullException(nameof(careers));
         this.characters = characters ?? throw new ArgumentNullException(nameof(characters));
         this.buildings = buildings ?? throw new ArgumentNullException(nameof(buildings));
-        this.positions = positions ?? throw new ArgumentNullException(nameof(positions));
     }
 
     public void Assign(
@@ -70,8 +67,8 @@ public sealed class CareerMentorshipService : ICareerMentorshipService
         buildings.Buildings.FirstOrDefault(building => building != null
             && !building.isDestroy
             && building.PersistentInstanceId.Equals(academyBuildingId)
-            && building.HasSemanticTag(positions.Require(
-                CareerPositionKind.Mentor).requiredFacilityTag))
+            && building.BuildingData?.ResearchFacilityCommand ==
+                ResearchFacilityCommandKind.MentorAcademy)
         ?? throw new InvalidOperationException(
             $"Mentorship academy '{academyBuildingId.Value}' is not available.");
 }

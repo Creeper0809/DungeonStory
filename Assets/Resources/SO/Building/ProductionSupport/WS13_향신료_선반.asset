@@ -31,13 +31,18 @@ MonoBehaviour:
   objectName: "\uD5A5\uC2E0\uB8CC \uC120\uBC18"
   sprite: {fileID: 0}
   icon: {fileID: 0}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
-    - rid: 7737211792998531402
-    - rid: 7737211792998531403
-    - rid: 7737211792998531404
-    - rid: 7737211792998531405
-    - rid: 7737211792998531406
+    - rid: 7737211838074978895
+    - rid: 7737211838074978896
+    - rid: 7737211838074978897
+    - rid: 7737211838074978898
+    - rid: 7737211838074978899
   width: 1
   height: 1
   layer: 1
@@ -53,12 +58,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211792998531402
+    - rid: 7737211838074978895
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: WS13
-    - rid: 7737211792998531403
+    - rid: 7737211838074978896
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -67,7 +72,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7737211792998531404
+    - rid: 7737211838074978897
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -79,14 +84,14 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: material:lumber
           amount: 2
-    - rid: 7737211792998531405
+    - rid: 7737211838074978898
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - production-support
         - support:spice-rack
-    - rid: 7737211792998531406
+    - rid: 7737211838074978899
       type: {class: BuildingProductionSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionSupportAbility

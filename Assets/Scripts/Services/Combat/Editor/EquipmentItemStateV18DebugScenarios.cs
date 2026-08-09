@@ -16,7 +16,11 @@ public static class EquipmentItemStateV18DebugScenarios
             materialId = "material:test-steel",
             quality = CombatEquipmentQuality.Masterwork,
             durabilityRatio = 0.42f,
-            loadedAmmo = 7,
+            loadedAmmunition = new LoadedAmmunitionBatch
+            {
+                ammunitionItemId = "ammo:test-v21",
+                remaining = 7
+            },
             worldState = CombatEquipmentWorldState.Stored,
             ownerCharacterId = "character:test-owner",
             sourceStackId = "stack:test-equipment-state",
@@ -44,7 +48,7 @@ public static class EquipmentItemStateV18DebugScenarios
         ItemInstanceComponentSaveData encoded =
             EquipmentItemStateCodec.Encode(source, new[] { attachedModule });
         Require(encoded.schemaVersion == EquipmentItemStateCodec.CurrentSchemaVersion,
-            "Equipment component schema was not upgraded to V2.");
+            "Equipment component schema was not upgraded to V3.");
         Require(EquipmentItemStateCodec.TryDecode(
                 encoded,
                 out CombatEquipmentInstance restored,
@@ -55,7 +59,10 @@ public static class EquipmentItemStateV18DebugScenarios
                 && restored.materialId == source.materialId
                 && restored.quality == source.quality
                 && Mathf.Approximately(restored.durabilityRatio, source.durabilityRatio)
-                && restored.loadedAmmo == source.loadedAmmo
+                && restored.loadedAmmunition.ammunitionItemId
+                    == source.loadedAmmunition.ammunitionItemId
+                && restored.loadedAmmunition.remaining
+                    == source.loadedAmmunition.remaining
                 && restored.worldState == source.worldState
                 && restored.ownerCharacterId == source.ownerCharacterId
                 && restored.sourceStackId == source.sourceStackId
@@ -80,7 +87,7 @@ public static class EquipmentItemStateV18DebugScenarios
 
         Debug.Log(
             "V18 EQUIPMENT ITEM STATE PASS: full mutable equipment state round-tripped "
-            + "through physical item component schema V2.");
+            + "through physical item component schema V3.");
     }
 
     private static void Require(bool condition, string message)

@@ -31,16 +31,21 @@ MonoBehaviour:
   objectName: "\uBC88\uC2DD \uC77C\uC815 \uCD95\uC0AC"
   sprite: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
   icon: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 8
+  researchFacilityCommand: 12
   abilityModules:
     items:
-    - rid: 7737211794726584825
-    - rid: 7737211794726584826
-    - rid: 7737211794726584827
-    - rid: 7737211794726584828
-    - rid: 7737211794726584829
-    - rid: 7737211794726584830
-    - rid: 7737211794726584831
-    - rid: 7737211794726584832
+    - rid: 7737211838078124855
+    - rid: 7737211838078124856
+    - rid: 7737211838078124857
+    - rid: 7737211838078124858
+    - rid: 7737211838078124859
+    - rid: 7737211838078124860
+    - rid: 7737211838078124861
+    - rid: 7737211838078124862
   width: 1
   height: 1
   layer: 1
@@ -56,12 +61,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584825
+    - rid: 7737211838078124855
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF55
-    - rid: 7737211794726584826
+    - rid: 7737211838078124856
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -69,13 +74,13 @@ MonoBehaviour:
         - research-overhaul
         - research:husbandry:seasonal-breeding
         - workstation:v19:breeding-schedule
-    - rid: 7737211794726584827
+    - rid: 7737211838078124857
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v19:breeding-schedule
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211794726584828
+    - rid: 7737211838078124858
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -83,7 +88,7 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211794726584829
+    - rid: 7737211838078124859
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -92,22 +97,22 @@ MonoBehaviour:
         maintenance: 5
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211794726584830
+    - rid: 7737211838078124860
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
         settings:
-          roles: 80
+          roles: 516
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
-          supportedWorkTypes: 0
+          supportedWorkTypes: 129
           disabledWhenDamaged: 1
-    - rid: 7737211794726584831
+    - rid: 7737211838078124861
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211794726584832
+    - rid: 7737211838078124862
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility

@@ -138,7 +138,9 @@ public static class CaptivitySaveValidation
             captive.restraintStackId = string.Empty;
             captive.restraintItemId = string.Empty;
             captive.restraintQuantity = 0;
-            captive.restrained = false;
+            captive.restrained =
+                !string.IsNullOrWhiteSpace(captive.assignedRestraintItemId)
+                && captive.assignedRestraintDurability > 0f;
             captive.lastResult = "호송 예약 재설정 필요";
         }
         return captive;
@@ -207,7 +209,7 @@ public static class CaptivitySaveValidation
 
         bool hasRestraintStack = captive.restraintStackId.Length > 0;
         bool hasRestraintItem = captive.restraintItemId.Length > 0;
-        if (hasRestraintStack != hasRestraintItem
+        if ((hasRestraintStack && !hasRestraintItem)
             || (hasRestraintItem && captive.restraintQuantity <= 0)
             || (!hasRestraintItem && captive.restraintQuantity != 0))
         {
@@ -230,6 +232,15 @@ public static class CaptivitySaveValidation
             || !IsFiniteAtLeast(captive.nextSecurityCheckAt, 0f)
             || !IsFiniteAtLeast(captive.completedInteractionWork, 0f)
             || !IsFiniteAtLeast(captive.requiredInteractionWork, 0f)
+            || !IsFiniteAtLeast(captive.assignedRestraintDurability, 0f)
+            || !IsFiniteAtLeast(captive.assignedRestraintMaximumDurability, 0f)
+            || captive.assignedRestraintDurability
+                > captive.assignedRestraintMaximumDurability
+            || !IsFiniteAtLeast(captive.assignedLaborToolDurability, 0f)
+            || !IsFiniteAtLeast(captive.assignedLaborToolMaximumDurability, 0f)
+            || captive.assignedLaborToolDurability
+                > captive.assignedLaborToolMaximumDurability
+            || !IsFiniteAtLeast(captive.nextLaborToolWearAt, 0f)
             || captive.completedInteractionWork
                 > captive.requiredInteractionWork
             || captive.performerInjuries < 0
@@ -286,10 +297,42 @@ public static class CaptivitySaveValidation
                 $"Captive '{captiveId}' has a carrier without an active escort order.");
         }
         if (captive.status == CaptivityStatus.Labor
-            && captive.laborPermissions == CaptiveLaborPermission.None)
+            && (captive.laborPermissions == CaptiveLaborPermission.None
+                || captive.assignedLaborToolItemId.Length == 0
+                || captive.assignedLaborToolDurability <= 0f))
         {
             report.AddError(
                 $"Captive '{captiveId}' is in labor state without labor permissions.");
+        }
+        bool hasAssignedRestraint =
+            captive.assignedRestraintItemId.Length > 0;
+        if (hasAssignedRestraint
+                != (captive.assignedRestraintInstanceId.Length > 0)
+            || (hasAssignedRestraint
+                && (captive.assignedRestraintMaximumDurability <= 0f
+                    || !((ItemInstanceId)captive.assignedRestraintInstanceId).IsValid)))
+        {
+            report.AddError(
+                $"Captive '{captiveId}' has incoherent assigned restraint state.");
+        }
+        bool hasAssignedLaborTool =
+            captive.assignedLaborToolItemId.Length > 0;
+        if (hasAssignedLaborTool
+                != (captive.assignedLaborToolInstanceId.Length > 0)
+            || (hasAssignedLaborTool
+                && (captive.assignedLaborToolMaximumDurability <= 0f
+                    || !((ItemInstanceId)captive.assignedLaborToolInstanceId).IsValid)))
+        {
+            report.AddError(
+                $"Captive '{captiveId}' has incoherent assigned labor-tool state.");
+        }
+        bool laborToolPending =
+            captive.pendingLaborPermissions != CaptiveLaborPermission.None;
+        if (laborToolPending != (captive.laborToolDestinationId.Length > 0)
+            || HasUnknownLaborFlags(captive.pendingLaborPermissions))
+        {
+            report.AddError(
+                $"Captive '{captiveId}' has incoherent labor-tool delivery state.");
         }
         if (captive.finalContractPending
             && captive.resolvedMilestoneChoice
@@ -310,6 +353,11 @@ public static class CaptivitySaveValidation
             || captive.housingBuildingId == null
             || captive.restraintStackId == null
             || captive.restraintItemId == null
+            || captive.assignedRestraintItemId == null
+            || captive.assignedRestraintInstanceId == null
+            || captive.laborToolDestinationId == null
+            || captive.assignedLaborToolItemId == null
+            || captive.assignedLaborToolInstanceId == null
             || captive.currentInteractionId == null
             || captive.interactionMaterialDestinationId == null
             || captive.lastResult == null

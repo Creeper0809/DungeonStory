@@ -15,6 +15,9 @@ public sealed class CircusRuntime :
     IStartable,
     IDisposable
 {
+    private const string PerformancePropBoxItemId = "supply:performance-prop-box";
+    private const float BanquetCartWearPerShow = 4f;
+
     private static readonly ProfilerMarker TickProfilerMarker =
         new ProfilerMarker("CircusRuntime.Tick");
 
@@ -37,6 +40,7 @@ public sealed class CircusRuntime :
     private readonly IRandomStream random;
     private readonly IGameEventBus events;
     private readonly IExternalInfluenceRuntime externalInfluence;
+    private readonly IWorldItemStackRuntime items;
     private readonly CircusProgramForecastService forecastService;
     private readonly CircusProgramForecastProjectionAdapter forecastProjection;
     private readonly CircusStateSession stateSession;
@@ -68,6 +72,7 @@ public sealed class CircusRuntime :
         captivityCommands = program.CaptivityCommands;
         wildlifeCapture = program.WildlifeCapture;
         externalInfluence = program.ExternalInfluence;
+        items = program.Items;
         world = worldContext.World;
         gridProvider = worldContext.GridProvider;
         rooms = worldContext.Rooms;
@@ -352,11 +357,19 @@ public sealed class CircusRuntime :
             return false;
         }
 
-        order.preparationWorkCompleted = Mathf.Min(
+        float nextCompleted = Mathf.Min(
             order.preparationWorkRequired,
             order.preparationWorkCompleted + Mathf.Max(0f, workAmount));
-        float progress = order.preparationWorkCompleted
+        float progress = nextCompleted
             / Mathf.Max(0.01f, order.preparationWorkRequired);
+        if (progress >= 0.999f
+            && !TryCommitShowSupplies(order, out status))
+        {
+            order.statusMessage = status;
+            return false;
+        }
+
+        order.preparationWorkCompleted = nextCompleted;
         status = $"공연 준비 {progress:P0}";
         order.statusMessage = status;
         if (progress >= 0.999f)
@@ -368,6 +381,102 @@ public sealed class CircusRuntime :
         }
 
         return true;
+    }
+
+    private bool TryCommitShowSupplies(
+        CircusShowOrder order,
+        out string status)
+    {
+        status = string.Empty;
+        WorldItemStackSnapshot propBox = FindUsableStageItem(
+            order,
+            PerformancePropBoxItemId,
+            requireDurability: false);
+        WorldItemStackSnapshot cart = FindUsableStageItem(
+            order,
+            DurableToolItemRules.BanquetCart,
+            requireDurability: true);
+        if (propBox == null || cart == null)
+        {
+            List<string> requested = new List<string>();
+            if (propBox == null
+                && items.TryRequestItemDelivery(
+                    PerformancePropBoxItemId,
+                    1,
+                    order.stagePosition,
+                    order.stageId,
+                    out int propRequested,
+                    out _)
+                && propRequested > 0)
+            {
+                requested.Add("공연 소품 상자");
+            }
+            if (cart == null
+                && items.TryRequestItemDelivery(
+                    DurableToolItemRules.BanquetCart,
+                    1,
+                    order.stagePosition,
+                    order.stageId,
+                    out int cartRequested,
+                    out _)
+                && cartRequested > 0)
+            {
+                requested.Add("연회 운반 수레");
+            }
+
+            status = requested.Count > 0
+                ? $"공연 준비품 배송 대기: {string.Join(", ", requested)}"
+                : "공연 소품 상자와 사용 가능한 연회 운반 수레가 무대 버퍼에 필요합니다.";
+            return false;
+        }
+
+        if (!items.TryConsumeFacilityItemBuffer(
+                order.stageId,
+                new Dictionary<string, int>(StringComparer.Ordinal)
+                {
+                    [PerformancePropBoxItemId] = 1
+                },
+                out string failureReason))
+        {
+            status = string.IsNullOrWhiteSpace(failureReason)
+                ? "공연 소품 상자를 소비하지 못했습니다."
+                : failureReason;
+            return false;
+        }
+
+        float current = DurableToolItemRules.ReadCurrentDurability(
+            cart.ItemId,
+            cart.Components);
+        if (!items.TrySetInstanceComponent(
+                cart.StackId,
+                DurableToolItemRules.CreateDurability(
+                    cart.ItemId,
+                    current - BanquetCartWearPerShow)))
+        {
+            throw new InvalidOperationException(
+                $"Validated banquet cart '{cart.StackId}' disappeared during show preparation.");
+        }
+
+        return true;
+    }
+
+    private WorldItemStackSnapshot FindUsableStageItem(
+        CircusShowOrder order,
+        string itemId,
+        bool requireDurability)
+    {
+        return items.GetAllStacks()
+            .Where(stack => stack != null
+                && stack.State == WorldItemStackState.FacilityBuffer
+                && string.Equals(stack.DestinationId, order.stageId, StringComparison.Ordinal)
+                && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal)
+                && stack.Quantity > 0
+                && (!requireDurability
+                    || DurableToolItemRules.ReadCurrentDurability(
+                        stack.ItemId,
+                        stack.Components) > 0f))
+            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+            .FirstOrDefault();
     }
 
     public bool Cancel(string orderId, string reason)

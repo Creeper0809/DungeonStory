@@ -14,6 +14,11 @@ public sealed class CharacterBodyHealthState
     public List<AnatomyNodeHealthState> anatomyNodes = new List<AnatomyNodeHealthState>();
     [Range(0f, 100f)] public float bloodLoss;
     [Range(0f, 100f)] public float suppression;
+    [Min(0f)] public float burningDamagePerSecond;
+    [Min(0f)] public float burningRemainingSeconds;
+    [Range(0f, 1f)] public float sedationRatio;
+    [Min(0f)] public float sedationRemainingSeconds;
+    [Min(0f)] public float manaBlockedRemainingSeconds;
     public bool downed;
     public string lastDamageReason = string.Empty;
 }
@@ -57,6 +62,36 @@ public interface ICharacterBodyHealthQuery
     float GetMissingPartHealth(CharacterActor target);
 }
 
+public readonly struct CharacterCombatSpecialStatusSnapshot
+{
+    public CharacterCombatSpecialStatusSnapshot(
+        float burningDamagePerSecond,
+        float burningRemainingSeconds,
+        float sedationRatio,
+        float sedationRemainingSeconds,
+        float manaBlockedRemainingSeconds)
+    {
+        BurningDamagePerSecond = Mathf.Max(0f, burningDamagePerSecond);
+        BurningRemainingSeconds = Mathf.Max(0f, burningRemainingSeconds);
+        SedationRatio = Mathf.Clamp01(sedationRatio);
+        SedationRemainingSeconds = Mathf.Max(0f, sedationRemainingSeconds);
+        ManaBlockedRemainingSeconds = Mathf.Max(0f, manaBlockedRemainingSeconds);
+    }
+
+    public float BurningDamagePerSecond { get; }
+    public float BurningRemainingSeconds { get; }
+    public float SedationRatio { get; }
+    public float SedationRemainingSeconds { get; }
+    public float ManaBlockedRemainingSeconds { get; }
+    public bool IsManaBlocked => ManaBlockedRemainingSeconds > 0f;
+}
+
+public interface ICharacterCombatSpecialStatusQuery
+{
+    CharacterCombatSpecialStatusSnapshot GetCombatSpecialStatus(
+        CharacterId characterId);
+}
+
 public interface ICharacterBodyHealthCommand
 {
     void ConfigureVitals(CharacterActor actor, float maximumHealth, bool resetCurrentHealth);
@@ -87,6 +122,7 @@ public interface ICharacterBodyHealthCommand
     void ApplyCombatResult(CharacterActor target, CombatAttackResult result, string reason);
     void ApplySnapshot(CharacterActor target, CharacterBodyHealthSnapshot snapshot, string reason);
     void AddSuppression(CharacterActor target, float amount);
+    void ReduceSuppression(CharacterActor target, float amount);
     void Heal(CharacterActor target, float amount, bool stopBleeding);
     bool Stabilize(CharacterActor target);
     bool ApplyTreatment(CharacterActor target, float partHealthAmount, float bloodLossReduction);

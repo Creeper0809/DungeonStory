@@ -39,6 +39,9 @@ public interface IProductionBillOrderCommand :
         ProductionBillId billId,
         ProductionOrderMode mode,
         int amount);
+    ProductionBillCommandResult SetWorkerPolicy(
+        ProductionBillId billId,
+        WorkerSelectionPolicySaveData policy);
     ProductionBillCommandResult RequestStockSensorInstallation(
         BuildableObject facility);
     ProductionBillCommandResult AcknowledgeStockSensorUnlock(

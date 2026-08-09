@@ -30,16 +30,16 @@ MonoBehaviour:
   field: 14
   requiredWork: 4800
   prerequisites:
-  - {fileID: 11400000, guid: 7be1a214afe97eb4cac0f65b07fba877, type: 2}
+  - {fileID: 11400000, guid: 75c38d39f76b2bc4da7e0ca9959e3a9a, type: 2}
   - {fileID: 11400000, guid: 788cfb46f343472449658f49b34111f4, type: 2}
   - {fileID: 11400000, guid: 836922bee804a9843bc8119d8aa15bb9, type: 2}
   prerequisiteLinks:
-  - prerequisiteId: research:medical:biological-age-measurement
-    prerequisite: {fileID: 11400000, guid: 7be1a214afe97eb4cac0f65b07fba877, type: 2}
+  - prerequisiteId: research:medical:gerontology
+    prerequisite: {fileID: 11400000, guid: 75c38d39f76b2bc4da7e0ca9959e3a9a, type: 2}
     kind: 2
-    reason: "\uC0DD\uBB3C\uD559\uC801 \uC5F0\uB839 \uACC4\uCE21\uC758 \uACF5\uD559
-      \uC6D0\uB9AC\uC774(\uAC00) \uC7AC\uC0DD \uBC30\uC591 \uAD6C\uD604\uC5D0 \uC9C1\uC811
-      \uD544\uC694\uD558\uB2E4."
+    reason: "\uB178\uC778\uD559\uACFC \uC0DD\uBB3C\uD559\uC801 \uC5F0\uB839 \uACC4\uCE21\uC758
+      \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uC7AC\uC0DD \uBC30\uC591 \uAD6C\uD604\uC5D0
+      \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   - prerequisiteId: research:medical:mycelial-grafting
     prerequisite: {fileID: 11400000, guid: 788cfb46f343472449658f49b34111f4, type: 2}
     kind: 2
@@ -54,7 +54,7 @@ MonoBehaviour:
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211793001939125
+    - rid: 7737211838079697137
   facilityRequirements:
   - capability: 0
     requiredCount: 1
@@ -66,7 +66,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211793001939125
+    - rid: 7737211838079697137
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 8867

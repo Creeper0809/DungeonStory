@@ -32,6 +32,7 @@ public sealed class PaidFacilityContractRuntime : IPaidFacilityContractRuntime
     private readonly IGameSessionStateProvider gameDataProvider;
     private readonly IGameMoneyAccount money;
     private readonly TreasuryEconomyAggregateStateStore stateStore;
+    private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
 
     private List<PaidFacilityContractState> contracts =>
         stateStore.Current.FacilityContracts;
@@ -43,13 +44,16 @@ public sealed class PaidFacilityContractRuntime : IPaidFacilityContractRuntime
     public PaidFacilityContractRuntime(
         IGameSessionStateProvider gameDataProvider,
         IGameMoneyAccount money,
-        TreasuryEconomyAggregateStateStore stateStore)
+        TreasuryEconomyAggregateStateStore stateStore,
+        IMilestoneGameplayModifierQuery milestoneModifiers = null)
     {
         this.gameDataProvider = gameDataProvider
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
         this.money = money ?? throw new ArgumentNullException(nameof(money));
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
+        this.milestoneModifiers = milestoneModifiers
+            ?? NeutralMilestoneGameplayModifierQuery.Instance;
     }
 
     public IReadOnlyList<PaidFacilityContractState> Contracts => contracts;
@@ -338,7 +342,7 @@ public sealed class PaidFacilityContractRuntime : IPaidFacilityContractRuntime
     {
         return contracts
             .Where(contract => contract != null && contract.active)
-            .Sum(contract => Mathf.Max(0, contract.dailyCost))
+            .Sum(contract => ResolveDailyCost(contract.dailyCost))
             * Mathf.Max(0, days);
     }
 
@@ -354,7 +358,7 @@ public sealed class PaidFacilityContractRuntime : IPaidFacilityContractRuntime
                 continue;
             }
 
-            int cost = Mathf.Max(0, contract.dailyCost);
+            int cost = ResolveDailyCost(contract.dailyCost);
             if (money.TrySpend(
                     cost,
                     new EconomyTransactionContext(
@@ -377,6 +381,15 @@ public sealed class PaidFacilityContractRuntime : IPaidFacilityContractRuntime
 
         return paid;
     }
+
+    private int ResolveDailyCost(int authoredCost) => Mathf.Max(
+        0,
+        Mathf.RoundToInt(
+            Mathf.Max(0, authoredCost)
+            * Mathf.Clamp(
+                milestoneModifiers.FacilityMaintenanceGoldMultiplier,
+                0f,
+                1f)));
 
     public PaidFacilityContractSaveData Capture()
     {

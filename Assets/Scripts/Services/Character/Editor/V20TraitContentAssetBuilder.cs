@@ -163,16 +163,96 @@ public static class V20TraitContentAssetBuilder
         value.traitId = spec.Id; value.displayName = spec.Name; value.description = spec.Description; value.authoringRevision = 1;
         value.sourceNote = "V20 hand-authored hereditary trait manifest."; value.category = spec.Category; value.incompatibilityGroup = spec.Conflict;
         value.aptitudeModifier = spec.Aptitude; value.compatibleSpeciesTags = new List<string>();
-        value.consequences = new List<HeritableTraitConsequence> { new() { kind = spec.Kind, targetId = spec.Target, multiplierDelta = spec.Delta } };
+        value.consequences = new List<HeritableTraitConsequence>
+        {
+            new()
+            {
+                kind = spec.Kind,
+                targetId = spec.Target,
+                multiplierDelta = spec.Delta
+            }
+        };
+        AddAuthoredCostConsequences(spec.Id, value.consequences);
         EditorUtility.SetDirty(value); return value;
+    }
+
+    private static void AddAuthoredCostConsequences(
+        string traitId,
+        ICollection<HeritableTraitConsequence> consequences)
+    {
+        (HeritableTraitConsequenceKind Kind, string Target, float Delta)[] costs =
+            traitId switch
+            {
+                "heritable:regrowing-tissue" => new[]
+                {
+                    (HeritableTraitConsequenceKind.NeedRate, "hunger", .08f)
+                },
+                "heritable:dense-bone" => new[]
+                {
+                    (HeritableTraitConsequenceKind.Movement, "move-speed", -.06f)
+                },
+                "heritable:rapid-burn" => new[]
+                {
+                    (HeritableTraitConsequenceKind.NeedRate, "hunger", .12f)
+                },
+                "heritable:dream-reception" => new[]
+                {
+                    (HeritableTraitConsequenceKind.NeedRate, "sleep", .10f)
+                },
+                "heritable:mana-reservoir" => new[]
+                {
+                    (HeritableTraitConsequenceKind.ManaOverloadDamage, "mana-exposure", .15f)
+                },
+                "heritable:abundant-seed" => new[]
+                {
+                    (HeritableTraitConsequenceKind.NeedRate, "reproduction-hunger", .10f)
+                },
+                "heritable:rapid-repair" => new[]
+                {
+                    (HeritableTraitConsequenceKind.AgingRate, "biological-age", .08f)
+                },
+                _ => Array.Empty<(HeritableTraitConsequenceKind, string, float)>()
+            };
+        foreach ((HeritableTraitConsequenceKind kind, string target, float delta) in costs)
+        {
+            consequences.Add(new HeritableTraitConsequence
+            {
+                kind = kind,
+                targetId = target,
+                multiplierDelta = delta
+            });
+        }
     }
 
     private static void UpgradeLegacy(CharacterTraitSO value)
     {
-        if (value.behaviorPreferences == null || value.behaviorPreferences.Count == 0)
-            value.behaviorPreferences = new List<CharacterTraitBehaviorPreference> { new() { behaviorTag = $"legacy-trait:{value.id}", utilityDelta = value.id % 2 == 0 ? .2f : -.2f } };
-        if (value.moodReactions == null) value.moodReactions = new List<CharacterTraitMoodReaction>();
-        if (value.eventWeights == null) value.eventWeights = new List<CharacterTraitEventWeight>();
+        (string behavior, float utility, string trigger, float mood,
+            string eventCategory, float eventWeight) = value.id switch
+        {
+            101 => ("food:seek-meal", .40f, "food:sated", 2f, "survival", 1.20f),
+            102 => ("choice:conserve", .35f, "stock:surplus", 2f, "contract", .85f),
+            103 => ("service:luxury", .40f, "guest:satisfied", 2f, "guest-request", 1.25f),
+            104 => ("emergency:immediate-action", .30f, "queue:delay", -3f, "service-incident", 1.30f),
+            105 => ("safety:avoid-danger", .45f, "danger:exposed", -4f, "combat", .70f),
+            106 => ("combat:engage", .50f, "event:combat-victory", 3f, "combat", 1.30f),
+            107 => ("work:clean", .40f, "room:dirty", -3f, "disease", .80f),
+            108 => ("work:research", .55f, "event:research-completed", 3f, "discovery", 1.35f),
+            109 => ("work:cold-zone", .40f, "event:safe-cold", 2f, "seasonal", .80f),
+            _ => throw new InvalidOperationException(
+                $"Unsupported legacy trait id '{value.id}'.")
+        };
+        value.behaviorPreferences = new List<CharacterTraitBehaviorPreference>
+        {
+            new() { behaviorTag = behavior, utilityDelta = utility }
+        };
+        value.moodReactions = new List<CharacterTraitMoodReaction>
+        {
+            new() { triggerTag = trigger, moodDelta = mood, durationDays = 3 }
+        };
+        value.eventWeights = new List<CharacterTraitEventWeight>
+        {
+            new() { eventCategoryId = eventCategory, multiplier = eventWeight }
+        };
         if (value.incompatibilityGroups == null) value.incompatibilityGroups = new List<string>();
         EditorUtility.SetDirty(value);
     }

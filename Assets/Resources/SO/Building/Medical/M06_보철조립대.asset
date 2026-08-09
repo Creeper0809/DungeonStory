@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uBCF4\uCCA0 \uC870\uB9BD\uB300"
   sprite: {fileID: 21300000, guid: ff5b7fd323cb3a844bbb43a4b4070758, type: 3}
   icon: {fileID: 21300000, guid: ff5b7fd323cb3a844bbb43a4b4070758, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730889015603
@@ -42,10 +47,10 @@ MonoBehaviour:
     - rid: 7737211730889015609
     - rid: 7737211730889015610
     - rid: 7737211730889015611
-    - rid: 7737211792998531114
-    - rid: 7737211792998531115
-    - rid: 7737211792998531116
-    - rid: 7737211792998531117
+    - rid: 7737211838074978482
+    - rid: 7737211838074978483
+    - rid: 7737211838074978484
+    - rid: 7737211838074978485
   width: 2
   height: 1
   layer: 1
@@ -135,21 +140,21 @@ MonoBehaviour:
         assemblySpeedMultiplier: 1.1
         qualityBonus: 0.06
         outputCapacity: 3
-    - rid: 7737211792998531114
+    - rid: 7737211838074978482
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7737211792998531115
+    - rid: 7737211838074978483
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7737211792998531116
+    - rid: 7737211838074978484
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -160,7 +165,7 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7737211792998531117
+    - rid: 7737211838074978485
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility

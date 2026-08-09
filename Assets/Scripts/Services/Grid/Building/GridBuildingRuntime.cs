@@ -74,6 +74,11 @@ public class GridBuildingPlacementService
         this.placementValidator = placementValidator ?? new BuildingPlacementValidator();
         this.workOrderRuntime = workOrderRuntime;
         this.onConstructionSiteCreated = onConstructionSiteCreated;
+        if (onConstructionSiteCreated != null
+            && workOrderRuntime is WorkOrderRuntime concreteRuntime)
+        {
+            concreteRuntime.BindPlacementService(this);
+        }
     }
 
     public void SetGrid(Grid grid)
@@ -118,6 +123,57 @@ public class GridBuildingPlacementService
             () => TryPlaceBuildingImmediateUnchecked(buildingData, position, chargeCost: false, out _),
             () => RemoveConstructionSite(site));
         placementValidator.ApplyBuildSuccess(buildingData);
+        errorMessage = string.Empty;
+        return true;
+    }
+
+    internal bool TryPlaceQualityRetryConstructionSite(
+        BuildingSO buildingData,
+        Vector2Int position,
+        out string orderId,
+        out string errorMessage)
+    {
+        orderId = string.Empty;
+        errorMessage = string.Empty;
+        if (buildingData == null
+            || workOrderRuntime is not WorkOrderRuntime concreteRuntime
+            || !CanPlaceBuilding(buildingData, position, out errorMessage))
+        {
+            return false;
+        }
+
+        EnsureHallwayUnderBuildingFootprint(buildingData, position);
+        if (!CreateConstructionSite(
+                buildingData,
+                position,
+                out ConstructionSite site,
+                out errorMessage))
+        {
+            return false;
+        }
+
+        if (!concreteRuntime.TryCreateQualityRetryConstructionOrder(
+                site,
+                buildingData,
+                position,
+                out orderId,
+                out string orderFailure))
+        {
+            RemoveConstructionSite(site);
+            errorMessage = string.IsNullOrWhiteSpace(orderFailure)
+                ? "품질 재건 주문을 만들 수 없습니다."
+                : orderFailure;
+            return false;
+        }
+
+        site.ConfigureSite(
+            orderId,
+            () => TryPlaceBuildingImmediateUnchecked(
+                buildingData,
+                position,
+                chargeCost: false,
+                out _),
+            () => RemoveConstructionSite(site));
         errorMessage = string.Empty;
         return true;
     }
@@ -701,10 +757,14 @@ public class BuildingPlacementValidator
                 buildingData,
                 context.GameSessionState,
                 context.BuildingUnlockState,
-                context.DebugRules))
+                context.DebugRules,
+                context.MilestoneQuery))
         {
             int phase = buildingData.GetUnlockPhase();
-            errorMessage = $"{phase}단계 시설입니다. 운영일을 진행하거나 관련 설계도를 연구해야 합니다.";
+            errorMessage = context.MilestoneQuery != null
+                && context.MilestoneQuery.IsLandmarkBuilding(buildingData.ContentDefinitionId)
+                ? "해당 문명 이정표를 달성해야 건설할 수 있는 랜드마크입니다."
+                : $"{phase}단계 시설입니다. 운영일을 진행하거나 관련 설계도를 연구해야 합니다.";
             return false;
         }
 

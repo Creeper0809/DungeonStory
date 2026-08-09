@@ -15,6 +15,8 @@ public sealed class OffenseExpeditionRun
     private readonly HashSet<string> completedNodeIds = new HashSet<string>(StringComparer.Ordinal);
     private readonly Dictionary<StockCategory, int> carriedStock = new Dictionary<StockCategory, int>();
     private readonly IReadOnlyDictionary<StockCategory, int> carriedStockView;
+    private readonly HashSet<string> recoveredEquipmentInstanceIds =
+        new HashSet<string>(StringComparer.Ordinal);
 
     public OffenseExpeditionRun(
         string expeditionId,
@@ -107,6 +109,8 @@ public sealed class OffenseExpeditionRun
     public float Light { get; private set; }
     public IReadOnlyCollection<string> CompletedNodeIds => completedNodeIds;
     public IReadOnlyDictionary<StockCategory, int> CarriedStock => carriedStockView;
+    public IReadOnlyCollection<string> RecoveredEquipmentInstanceIds =>
+        recoveredEquipmentInstanceIds;
     public bool IsComplete => Phase is OffenseExpeditionPhase.Completed
         or OffenseExpeditionPhase.Retreated
         or OffenseExpeditionPhase.Defeated;
@@ -473,6 +477,27 @@ public sealed class OffenseExpeditionRun
         AddCarriedStock(category, amount);
     }
 
+    public void AddEncounterReward(string itemId, int amount = 1)
+    {
+        string normalized = itemId?.Trim() ?? string.Empty;
+        if (!string.Equals(
+                normalized,
+                OffenseLootItemIds.UnappraisedLoot,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Encounter reward '{normalized}' has no physical return mapping.");
+        }
+
+        AddCarriedStock(StockCategory.General, Mathf.Max(0, amount));
+    }
+
+    public bool AddRecoveredEquipment(string instanceId)
+    {
+        string normalized = instanceId?.Trim() ?? string.Empty;
+        return normalized.Length > 0 && recoveredEquipmentInstanceIds.Add(normalized);
+    }
+
     public bool TryRemoveCarriedLoot(StockCategory category, int amount)
     {
         int removal = Mathf.Max(0, amount);
@@ -643,6 +668,15 @@ public sealed class OffenseExpeditionRun
         foreach (KeyValuePair<StockCategory, int> pair in restoredCarriedStock)
         {
             if (pair.Value > 0) carriedStock[pair.Key] = pair.Value;
+        }
+    }
+
+    public void RestoreRecoveredEquipment(IEnumerable<string> instanceIds)
+    {
+        recoveredEquipmentInstanceIds.Clear();
+        foreach (string instanceId in instanceIds ?? Array.Empty<string>())
+        {
+            AddRecoveredEquipment(instanceId);
         }
     }
 

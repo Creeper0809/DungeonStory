@@ -30,23 +30,24 @@ MonoBehaviour:
   requiredWork: 184
   prerequisites:
   - {fileID: 11400000, guid: b2f0323893ce05646a3073bc1da33d95, type: 2}
-  - {fileID: 11400000, guid: 8f63d37343e549b4a945b0f75f4558de, type: 2}
+  - {fileID: 11400000, guid: 4ee2df589417d314295a42c252406053, type: 2}
   prerequisiteLinks:
   - prerequisiteId: research:defense:rune-identification
     prerequisite: {fileID: 11400000, guid: b2f0323893ce05646a3073bc1da33d95, type: 2}
     kind: 2
     reason: "\uB8EC \uC2DD\uBCC4\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uC6D0\uACA9
       \uD1B5\uC81C \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
-  - prerequisiteId: research:industry:distribution
-    prerequisite: {fileID: 11400000, guid: 8f63d37343e549b4a945b0f75f4558de, type: 2}
+  - prerequisiteId: research:industry:steam-power
+    prerequisite: {fileID: 11400000, guid: 4ee2df589417d314295a42c252406053, type: 2}
     kind: 2
-    reason: "\uBC30\uC804\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uC6D0\uACA9
-      \uD1B5\uC81C \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+    reason: "\uC99D\uAE30 \uB3D9\uB825\uACFC \uBC30\uC804\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC6D0\uACA9 \uD1B5\uC81C \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211792998531991
+    - rid: 7737211838079697005
+    - rid: 7737211838079697006
   facilityRequirements:
   - capability: 0
     requiredCount: 2
@@ -56,7 +57,11 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211792998531991
+    - rid: 7737211838079697005
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1801
+    - rid: 7737211838079697006
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 8899

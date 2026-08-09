@@ -251,7 +251,7 @@ public static class ProductionEconomyDebugScenarios
                         .ExpectedWorkshopRecipeCount,
             $"production recipes={catalog.Recipes.Count}");
         Require(
-            catalog.Crops.Count == ResourceEconomyAssetBuilder.ExpectedCropCount,
+            catalog.Crops.Count == ResourceEconomyAssetBuilder.ExpectedCropCount + 4,
             $"crops={catalog.Crops.Count}");
         Require(
             catalog.Materials.Count == ResourceEconomyAssetBuilder.ExpectedMaterialCount,

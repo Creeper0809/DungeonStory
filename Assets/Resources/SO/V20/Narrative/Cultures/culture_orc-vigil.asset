@@ -28,6 +28,16 @@ MonoBehaviour:
   preferredFacilityIds: []
   environmentalPreferences:
   - robust communal halls
+  roomPreference:
+    preferredRoles: 9
+    idealTemperatureC: 20
+    temperatureToleranceC: 10
+    minimumVentilation: 40
+    minimumLighting: 25
+    maximumLighting: 85
+    minimumCleanliness: 30
+    prefersSharedSpace: 1
+    prefersPrivateSpace: 0
   etiquetteRules:
   - "\uBB34\uAE30\uB97C \uB0B4\uB824\uB193\uACE0 \uD55C \uC57D\uC18D\uC740 \uACB0\uD22C\uB85C
     \uB4A4\uC9D1\uC9C0 \uC54A\uB294\uB2E4."
@@ -36,21 +46,21 @@ MonoBehaviour:
   - practice:orc-shared-cauldron
   otherCultureAttitudes:
   - id: culture:adventurer-frontier
-    weight: 1
+    weight: 1.03
   - id: culture:beastkin-pack
-    weight: 1
+    weight: 1.06
   - id: culture:demon-contract
-    weight: 1
+    weight: 1.09
   - id: culture:golem-core
-    weight: 1
+    weight: 1.12
   - id: culture:harpy-aerie
-    weight: 1
+    weight: 1.15
   - id: culture:kobold-toolclan
-    weight: 1
+    weight: 0.87
   - id: culture:myconid-grove
-    weight: 1
+    weight: 0.9
   - id: culture:slime-confluence
-    weight: 1
+    weight: 0.96
   - id: culture:vampire-nightcourt
-    weight: 1
+    weight: 0.99
   assimilationDays: 120

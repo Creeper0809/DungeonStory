@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
 
@@ -19,6 +20,9 @@ public sealed class CharacterLifePublicationService :
     private readonly ICharacterLifeDefinitionCatalog definitions;
     private readonly IReproductionDefinitionCatalog reproductionDefinitions;
     private readonly ICharacterRuntimeProfileFactory profileFactory;
+    private readonly ICharacterNarrativeQuery narrativeQuery;
+    private readonly ICharacterNarrativeCommand narrativeCommands;
+    private readonly HashSet<string> heritableTraitIds;
     private readonly IRandomStream random;
 
     public CharacterLifePublicationService(
@@ -27,6 +31,9 @@ public sealed class CharacterLifePublicationService :
         ICharacterLifeDefinitionCatalog definitions,
         IReproductionDefinitionCatalog reproductionDefinitions,
         ICharacterRuntimeProfileFactory profileFactory,
+        ICharacterNarrativeQuery narrativeQuery,
+        ICharacterNarrativeCommand narrativeCommands,
+        ICharacterNarrativeCatalog narrativeCatalog,
         IRandomStreamProvider randomStreams)
     {
         this.query = query ?? throw new ArgumentNullException(nameof(query));
@@ -37,6 +44,18 @@ public sealed class CharacterLifePublicationService :
             ?? throw new ArgumentNullException(nameof(reproductionDefinitions));
         this.profileFactory = profileFactory
             ?? throw new ArgumentNullException(nameof(profileFactory));
+        this.narrativeQuery = narrativeQuery
+            ?? throw new ArgumentNullException(nameof(narrativeQuery));
+        this.narrativeCommands = narrativeCommands
+            ?? throw new ArgumentNullException(nameof(narrativeCommands));
+        heritableTraitIds = new HashSet<string>(
+            (narrativeCatalog
+                ?? throw new ArgumentNullException(nameof(narrativeCatalog)))
+            .HeritableTraits
+            .Where(value => value != null)
+            .Select(value => value.traitId?.Trim() ?? string.Empty)
+            .Where(id => id.Length > 0),
+            StringComparer.Ordinal);
         random = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams)))
             .Get(InitialAgeRandomStreamId);
     }
@@ -50,7 +69,12 @@ public sealed class CharacterLifePublicationService :
 
         CharacterId characterId = CharacterPersistentIdentity.Require(actor);
         EnsureReproductiveRole(actor, characterId);
-        EnsureRegistered(characterId, new CharacterSpeciesId(actor.SpeciesTag));
+        CharacterRuntimeProfile profile = actor.Identity?.Profile;
+        EnsureRegisteredCore(
+            characterId,
+            new CharacterSpeciesId(actor.SpeciesTag),
+            profile?.ExpressedTraitIds ?? Array.Empty<string>(),
+            profile?.LatentTraitIds ?? Array.Empty<string>());
     }
 
     private static bool IsPersistentLifeActor(CharacterActor actor)
@@ -65,28 +89,57 @@ public sealed class CharacterLifePublicationService :
         CharacterId characterId,
         CharacterSpeciesId phenotypeSpeciesId)
     {
-        if (query.TryGet(characterId, out _))
-        {
-            return;
-        }
-
-        SpeciesLifeHistoryDefinition history = definitions.RequireLifeHistory(
-            phenotypeSpeciesId);
-        double biologicalAgeYears = SampleInitialBiologicalAgeYears(history);
-        double biologicalAgeUnits = biologicalAgeYears * GameCalendarRules.DaysPerYear;
-        int chronologicalAgeDays = CalculateChronologicalAgeDays(
-            history,
-            biologicalAgeUnits);
-        int birthday = 1 + Math.Min(
-            GameCalendarRules.DaysPerYear - 1,
-            (int)Math.Floor(random.NextFloat() * GameCalendarRules.DaysPerYear));
-        commands.Register(
+        EnsureRegisteredCore(
             characterId,
             phenotypeSpeciesId,
-            chronologicalAgeDays,
-            biologicalAgeUnits,
-            birthday);
+            Array.Empty<string>(),
+            Array.Empty<string>());
     }
+
+    private void EnsureRegisteredCore(
+        CharacterId characterId,
+        CharacterSpeciesId phenotypeSpeciesId,
+        IReadOnlyList<string> expressedTraitIds,
+        IReadOnlyList<string> latentTraitIds)
+    {
+        if (!query.TryGet(characterId, out _))
+        {
+            SpeciesLifeHistoryDefinition history = definitions.RequireLifeHistory(
+                phenotypeSpeciesId);
+            double biologicalAgeYears = SampleInitialBiologicalAgeYears(history);
+            double biologicalAgeUnits = biologicalAgeYears * GameCalendarRules.DaysPerYear;
+            int chronologicalAgeDays = CalculateChronologicalAgeDays(
+                history,
+                biologicalAgeUnits);
+            int birthday = 1 + Math.Min(
+                GameCalendarRules.DaysPerYear - 1,
+                (int)Math.Floor(random.NextFloat() * GameCalendarRules.DaysPerYear));
+            commands.Register(
+                characterId,
+                phenotypeSpeciesId,
+                chronologicalAgeDays,
+                biologicalAgeUnits,
+                birthday);
+        }
+
+        if (!narrativeQuery.TryGet(characterId, out _))
+        {
+            narrativeCommands.Register(
+                characterId,
+                phenotypeSpeciesId,
+                FilterHeritableTraits(expressedTraitIds),
+                FilterHeritableTraits(latentTraitIds));
+        }
+    }
+
+    private IReadOnlyList<string> FilterHeritableTraits(
+        IEnumerable<string> traitIds) =>
+        (traitIds ?? Array.Empty<string>())
+        .Where(id => !string.IsNullOrWhiteSpace(id)
+            && heritableTraitIds.Contains(id.Trim()))
+        .Select(id => id.Trim())
+        .Distinct(StringComparer.Ordinal)
+        .ToArray();
 
     private double SampleInitialBiologicalAgeYears(
         SpeciesLifeHistoryDefinition history)

@@ -30,7 +30,14 @@ public sealed class WildlifeSpeciesDefinition
         float restPreference = 0.5f,
         float predationDrive = 0f,
         float fleePreference = 0.5f,
-        WildlifeHusbandryProfile husbandry = null)
+        WildlifeHusbandryProfile husbandry = null,
+        IEnumerable<string> preySpeciesIds = null,
+        IEnumerable<string> predatorSpeciesIds = null,
+        string nestTag = "",
+        Season breedingSeason = Season.Spring,
+        string migrationPatternId = "",
+        IEnumerable<string> diseaseVectorIds = null,
+        IEnumerable<Season> activeSeasons = null)
     {
         SpeciesId = string.IsNullOrWhiteSpace(speciesId)
             ? throw new ArgumentException(
@@ -75,6 +82,16 @@ public sealed class WildlifeSpeciesDefinition
                 amount = Mathf.Max(0, yieldItem.amount)
             })
             .ToArray();
+        PreySpeciesIds = NormalizeIds(preySpeciesIds);
+        PredatorSpeciesIds = NormalizeIds(predatorSpeciesIds);
+        NestTag = nestTag?.Trim() ?? string.Empty;
+        BreedingSeason = breedingSeason;
+        MigrationPatternId = migrationPatternId?.Trim() ?? string.Empty;
+        DiseaseVectorIds = NormalizeIds(diseaseVectorIds);
+        ActiveSeasons = (activeSeasons ?? Array.Empty<Season>())
+            .Distinct()
+            .OrderBy(value => value)
+            .ToArray();
     }
 
     public string SpeciesId { get; }
@@ -100,9 +117,33 @@ public sealed class WildlifeSpeciesDefinition
     public float FleePreference { get; }
     public WildlifeHusbandryProfile Husbandry { get; }
     public IReadOnlyList<WildlifeButcherYield> ButcherYields { get; }
+    public IReadOnlyList<string> PreySpeciesIds { get; }
+    public IReadOnlyList<string> PredatorSpeciesIds { get; }
+    public string NestTag { get; }
+    public Season BreedingSeason { get; }
+    public string MigrationPatternId { get; }
+    public IReadOnlyList<string> DiseaseVectorIds { get; }
+    public IReadOnlyList<Season> ActiveSeasons { get; }
     public string CarcassItemId => WildlifeItemDefinitions.GetCarcassItemId(SpeciesId);
     public bool IsPredator => Aggression >= 0.75f;
     public bool IsDangerous => RetaliationDamage > 0 || Aggression >= 0.5f;
+
+    public bool IsActiveIn(Season season) =>
+        ActiveSeasons.Count == 0 || ActiveSeasons.Contains(season);
+
+    public bool Hunts(string speciesId) =>
+        PreySpeciesIds.Count == 0
+            ? Diet == WildlifeDietType.Carnivore
+            : PreySpeciesIds.Contains(speciesId?.Trim() ?? string.Empty);
+
+    private static IReadOnlyList<string> NormalizeIds(
+        IEnumerable<string> values) =>
+        (values ?? Array.Empty<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

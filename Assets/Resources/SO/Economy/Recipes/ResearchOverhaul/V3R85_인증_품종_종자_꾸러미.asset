@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f75000297946ffe4481d69575fdbfd0a, type: 3}
+  m_Name: "V3R85_\uC778\uC99D_\uD488\uC885_\uC885\uC790_\uAFB8\uB7EC\uBBF8"
+  m_EditorClassIdentifier: DungeonStory.Economy::ProductionRecipeSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 19185
+  recipeId: recipe:supply:certified-seed-kit
+  displayName: "\uC778\uC99D \uD488\uC885 \uC885\uC790 \uAFB8\uB7EC\uBBF8"
+  description: "\uAD6C\uCCB4 \uC7AC\uB8CC\uB97C \uC0AC\uC6A9\uD574 \uC778\uC99D \uD488\uC885
+    \uC885\uC790 \uAFB8\uB7EC\uBBF8\uC744(\uB97C) \uC0DD\uC0B0\uD55C\uB2E4."
+  facilityTag: workstation:v19:cultivar-breeding
+  workstationTag: workstation:v19:cultivar-breeding
+  requiredSupportTags: []
+  batchSupportTag: 
+  processKind: 0
+  workTypeId: work:craft
+  requiredResearchId: research:agriculture:cultivar-breeding
+  requiredWork: 71
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
+  inputs:
+  - itemId: material:paper
+    amount: 1
+  - itemId: material:cloth
+    amount: 1
+  outputs:
+  - itemId: supply:certified-seed-kit
+    amount: 2
+    probability: 1

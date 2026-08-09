@@ -31,16 +31,21 @@ MonoBehaviour:
   objectName: "\uACC4\uC808 \uC800\uC7A5 \uC120\uBC18"
   sprite: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
   icon: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 3
+  researchFacilityCommand: 0
   abilityModules:
     items:
-    - rid: 7737211794726584536
-    - rid: 7737211794726584537
-    - rid: 7737211794726584538
-    - rid: 7737211794726584539
-    - rid: 7737211794726584540
-    - rid: 7737211794726584541
-    - rid: 7737211794726584542
-    - rid: 7737211794726584543
+    - rid: 7737211838078124062
+    - rid: 7737211838078124063
+    - rid: 7737211838078124064
+    - rid: 7737211838078124065
+    - rid: 7737211838078124066
+    - rid: 7737211838078124067
+    - rid: 7737211838078124068
+    - rid: 7737211838078124069
   width: 1
   height: 1
   layer: 1
@@ -56,12 +61,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584536
+    - rid: 7737211838078124062
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF53
-    - rid: 7737211794726584537
+    - rid: 7737211838078124063
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -69,13 +74,13 @@ MonoBehaviour:
         - research-overhaul
         - research:survival:seasonal-storage
         - workstation:v19:seasonal-storage
-    - rid: 7737211794726584538
+    - rid: 7737211838078124064
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v19:seasonal-storage
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211794726584539
+    - rid: 7737211838078124065
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -83,7 +88,7 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211794726584540
+    - rid: 7737211838078124066
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -92,22 +97,22 @@ MonoBehaviour:
         maintenance: 5
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211794726584541
+    - rid: 7737211838078124067
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
         settings:
-          roles: 80
+          roles: 516
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
-          supportedWorkTypes: 0
+          supportedWorkTypes: 129
           disabledWhenDamaged: 1
-    - rid: 7737211794726584542
+    - rid: 7737211838078124068
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211794726584543
+    - rid: 7737211838078124069
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -125,3 +130,5 @@ MonoBehaviour:
           amount: 6
         - itemId: material:stone-block
           amount: 4
+        - itemId: component:sealed-seasonal-container
+          amount: 1

@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 128
   features:
-  - rid: 7737211794726584612
-  - rid: 7737211794726584613
-  - rid: 7737211794726584614
+  - rid: 7737211838078124139
+  - rid: 7737211838078124140
+  - rid: 7737211838078124141
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584612
+    - rid: 7737211838078124139
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:pathogen-observation
-    - rid: 7737211794726584613
+    - rid: 7737211838078124140
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211794726584614
+    - rid: 7737211838078124141
       type: {class: PathogenSampleItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         diseaseId: disease:cave-flu

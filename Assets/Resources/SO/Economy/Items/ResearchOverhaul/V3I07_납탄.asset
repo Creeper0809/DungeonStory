@@ -31,16 +31,16 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 24
   features:
-  - rid: 7737211794726584643
-  - rid: 7737211794726584644
+  - rid: 7737211838078124168
+  - rid: 7737211838078124169
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584643
+    - rid: 7737211838078124168
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:standard-ammunition
-    - rid: 7737211794726584644
+    - rid: 7737211838078124169
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1

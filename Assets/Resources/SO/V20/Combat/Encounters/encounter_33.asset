@@ -26,21 +26,25 @@ MonoBehaviour:
   displayName: "\uC9C4\uC2E4 \uAE30\uB85D\uC9D1\uD589\uC790 \uC804\uC220 \uC870\uC6B0"
   minimumSiteStrength: 9
   maximumSiteStrength: 12
-  elite: 0
+  elite: 1
   boss: 0
   objective: 2
-  objectiveRoundLimit: 6
+  objectiveRoundLimit: 8
   objectiveTargetId: target:field-medic
   battlefieldModifierIds:
   - battlefield:mana-storm
   counterTags:
+  - counter:mana-grounding
   - counter:mixed-tactics
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
   - enemyArchetypeId: enemy:truth-archivist
     minimumCount: 1
     maximumCount: 2
-  - enemyArchetypeId: enemy:crown-chaplain
+  - enemyArchetypeId: enemy:truth-sealkeeper
+    minimumCount: 1
+    maximumCount: 2
+  - enemyArchetypeId: enemy:truth-null-warden
     minimumCount: 1
     maximumCount: 2

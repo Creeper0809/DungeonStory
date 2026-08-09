@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cb4b1f490bee1344a1002cabb362d7a, type: 3}
+  m_Name: facility_kit_8860
+  m_EditorClassIdentifier: DungeonStory.Economy::GenericItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 0
+  itemId: facility-kit:8860
+  displayName: "\uAD50\uC2E4 \uC124\uCE58 \uD0A4\uD2B8"
+  description: "\uC2DC\uC124\uC744 \uAC74\uC124\uD558\uAE30 \uC704\uD55C \uC2E4\uC81C
+    \uBD80\uD488\uACFC \uC870\uB9BD \uC790\uC7AC \uBB36\uC74C."
+  stockCategory: 1
+  unitWeight: 8
+  maxStack: 1
+  sprite: {fileID: 0}
+  unitPrice: 316
+  features:
+  - rid: 7737211830154035352
+  - rid: 7737211830154035353
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211830154035352
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        kind: 8
+        ingredientTags: 0
+        sharedIntermediate: 0
+    - rid: 7737211830154035353
+      type: {class: InstallationItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        buildingDefinitionId: 8860

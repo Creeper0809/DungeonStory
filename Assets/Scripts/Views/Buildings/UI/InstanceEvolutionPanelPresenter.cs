@@ -244,7 +244,7 @@ public sealed class InstanceEvolutionPanelPresenter :
         EvolutionNode[] nodes = state.evolutionNodes
             .Where(node => node != null
                 && !node.historical
-                && node.playerVisible)
+                && node.uiVisible)
             .OrderBy(node => node.generation)
             .ThenBy(node => node.nodeId, StringComparer.Ordinal)
             .ToArray();

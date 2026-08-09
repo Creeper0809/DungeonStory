@@ -32,24 +32,24 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 150
   features:
-  - rid: 7737211794726584907
-  - rid: 7737211794726584908
-  - rid: 7737211794726584909
-  - rid: 7737211794726584910
+  - rid: 7737211838078124921
+  - rid: 7737211838078124922
+  - rid: 7737211838078124923
+  - rid: 7737211838078124924
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584907
+    - rid: 7737211838078124921
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:vaccination
-    - rid: 7737211794726584908
+    - rid: 7737211838078124922
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737211794726584909
+    - rid: 7737211838078124923
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 0
@@ -57,7 +57,7 @@ MonoBehaviour:
         infectionReduction: 0
         detoxReduction: 0
         painReduction: 0
-    - rid: 7737211794726584910
+    - rid: 7737211838078124924
       type: {class: VaccineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         diseaseId: disease:mana-pox

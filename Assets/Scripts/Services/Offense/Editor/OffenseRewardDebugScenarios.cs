@@ -784,7 +784,8 @@ public static class OffenseRewardDebugScenarios
                     strategicWorld,
                     returnSafety,
                     fieldMobility,
-                    gameEventBus);
+                    gameEventBus,
+                    OffenseEditorTestDependencies.CreateCombatEquipmentRuntime());
             Runtime.Construct(
                 new EmptyExpeditionMemberQuery(),
                 offenseRuntimes,

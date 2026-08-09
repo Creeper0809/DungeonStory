@@ -157,6 +157,8 @@ public static class DungeonCoreInfrastructureRegistration
         builder.Register<DungeonDebugOverlayHazardDependencies>(Lifetime.Singleton);
         builder.RegisterEntryPoint<DungeonDebugWorldOverlayController>(Lifetime.Singleton)
             .AsSelf();
+        builder.RegisterEntryPoint<DungeonDebugSceneVisibilityController>(Lifetime.Singleton)
+            .AsSelf();
         builder.RegisterEntryPoint<DungeonAudioController>(Lifetime.Singleton)
             .As<IDungeonAudioService>();
         builder.RegisterEntryPoint<DungeonSettingsUiController>(Lifetime.Singleton)

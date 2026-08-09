@@ -1,5 +1,292 @@
 # DungeonStory Active Plan
 
+## Phase 139 - Repair and publish the unpushed main commit (in progress)
+
+> Preserve local training artifacts, remove derived checkpoints that violate GitHub blob limits from Git tracking, repair ephemeral broken refs, and publish the existing work to `origin/main`.
+
+- [x] Audit the unpushed commit, oversized artifacts, ignore rules, and broken refs.
+- [x] Keep local training outputs on disk while removing `Artifacts/Training/V25/models/` from Git tracking.
+- [x] Repair broken `refs/codex/turn-diffs/checkpoints/*` refs and amend the unpushed commit.
+- [ ] Validate repository integrity, confirm no oversized non-LFS blobs remain, and push `main`.
+
+### Phase 139 fixed constraints
+
+- Do not delete local training outputs or the mounted release GGUF.
+- Do not rewrite any remote history; only amend the single local commit that GitHub already rejected.
+- Keep the release GGUF and supported binary artifacts under Git LFS.
+- Back up broken ephemeral refs before removing them from Git's active ref namespace.
+
+### Phase 139 errors
+
+- `session-catchup.py` read the existing planning files but failed while printing recovered context because the Windows CP949 console could not encode U+2014. This does not affect repository data; subsequent work uses direct repository inspection.
+- Two diagnostic PowerShell commands initially failed at parse time because a `foreach` statement was piped without expression grouping. The corrected command captured the large-blob and ref evidence; no repository state changed in either failed attempt.
+- The first Python-cache untrack command passed a PowerShell pipeline to `--pathspec-from-file=-`, which introduced a BOM into the first path and failed without removing caches. The retry passed the nine explicit paths as native arguments and succeeded.
+- Initial ref cleanup assumed Git's reported zero SHA was the file content; direct inspection showed both refs target valid objects. The actual defect was the 270-character Windows ref path. No ref was moved on the failed attempt; the corrected validation backed up and moved both overlong refs.
+- A subsequent read-only ref-inspection command hit the same PowerShell `foreach` pipeline parse rule; the grouped retry succeeded without repository changes.
+- Whole-range `git diff --check` reports existing trailing spaces in generated Unity YAML/meta files and the vendored VContainer package. These are unrelated to the Git publish repair and are not bulk-rewritten; repository/LFS integrity and oversized-blob checks pass independently.
+
+## Phase 138 - Mount the current base narrative model (complete)
+
+> Integrate the untrained Qwen3-1.7B base model as the current offline narrative expression model, without resuming GPU training, while preserving deterministic rule fallbacks and V25 structured-output safety.
+
+- [x] Audit the existing V25 host, backend registration, model-file format, native binary, runtime settings, and build packaging gaps.
+- [x] Prepare a verified inference-ready model artifact and manifest without using the corrupt SFT checkpoint.
+- [x] Connect automatic offline host startup, capability/fallback status, and model selection to the normal game composition path.
+- [x] Add focused lifecycle, missing/corrupt model, structured output, and fallback validation.
+- [x] Verify Unity compilation and a real base-model request without starting any training workload.
+
+### Phase 138 fixed constraints
+
+- Never load or resume `checkpoint-20`; the current model means the clean Qwen3-1.7B base model.
+- Inference may use the GPU only if explicitly enabled and must default to a conservative CPU-safe configuration after the training BSOD.
+- LLM failure, missing files, timeout, or unsupported platform must preserve mechanically complete rule-based gameplay.
+- The model is an expression layer only; rules, legal evolution candidates, effects, costs, and facts remain C# authority.
+- Release integration must not depend on Ollama or an external network service.
+
+### Phase 138 completion evidence - 2026-08-09
+
+- Mounted the official `ggml-org/Qwen3-1.7B-GGUF` Q4_K_M base model (`1,282,439,264` bytes, SHA-256 `d2387ca2...d9bc7b5`) and the official llama.cpp `b10331` Windows CPU host under `Assets/StreamingAssets/DungeonStoryLlm`.
+- The manifest records `trainingState=base-untrained` and `releaseCertified=false`; the corrupt `checkpoint-20`, adapters, CUDA, Ollama, and external runtime APIs are not used.
+- The normal `LocalLlmRequestQueue` now waits for background hash/model startup instead of failing early requests, exposes starting/running/version/certification state, uses loopback bearer authentication, and retains the existing deterministic fallback on every failure path.
+- First runtime smoke exposed a real readiness defect: an open TCP port still returned `503 Loading model`. The launcher now waits for authenticated `/health` HTTP 200 before publishing the endpoint. The failed run cleaned the child process (`0 -> 0`) and the corrected run passed.
+- Unity 6000.3.8f1 compiled with exit 0; V25 inference contracts passed `8/8`; the real CPU structured-generation smoke passed in `14,944 ms` with valid `F01/M01` JSON and zero remaining `DungeonStoryLlmHost` processes.
+- This completes the current Windows development mount. Fine-tuned prose quality, held-out release certification, and a native Linux/Steam Deck host remain later release gates rather than hidden claims of this base model.
+
+## Phase 137 - Reviewer semantic UX, hard-negative repair, and SFT handoff (in progress)
+
+> Make human review readable without exposing raw JSON as the primary surface, replace the repeated trivial DPO negative with deterministic hard negatives, and establish the correct SFT-before-DPO training handoff from evidence on the local machine.
+
+- [x] Replace raw candidate JSON with profile-aware semantic cards and field-level highlighting; keep raw JSON only as an advanced disclosure.
+- [x] Replace the page-scrolling review layout with a desktop viewport workspace whose context and candidate panes scroll independently, plus a mobile fallback.
+- [x] Replace raw rewrite editing with candidate-based prose-field forms while retaining strict server-side JSON/mechanic/reference validation.
+- [x] Replace the single repeated rejected phrase with stratified, varied hard negatives; regenerate and verify all V25 corpus/review artifacts reproducibly.
+- [ ] Audit local GPU/training dependencies, add or complete the reproducible SFT entry point, and run the feasible SFT validation/training stage before DPO handoff.
+
+### Phase 137 current evidence — 2026-08-09
+
+- The rebuilt 50,000/40,000/38,000/8,000 corpus passes validation; a second clean build matches 19/19 files byte-for-byte.
+- The rejected fixed fallback appears zero times. Hard negatives are split across `generic_safe`, `fact_distortion`, and `motif_listing`; the 8,000-row reviewer now reports 2,347 real unknown-reference warnings and zero manufactured fixed-cliche warnings.
+- Reviewer backend/static suite passes 6/6 and JavaScript syntax validation passes. Profile-specific rendering, prose-only rewrite forms, advanced raw JSON, and fixed desktop panes are present.
+- RTX 4080 Laptop 12GB and CUDA 12.6 are available. The pinned Python 3.11 environment imports PyTorch 2.7.1, Transformers 4.53.3, TRL 0.19.1, PEFT 0.16.0 and bitsandbytes 0.46.1 successfully.
+- The 64-record/two-step QLoRA smoke completed on the RTX 4080: global step 2, loss 2.699822, 108,930 trained tokens and mean token accuracy 0.610006. The full 38,000-record/two-epoch SFT remains the current long-running stage; no final SFT model is claimed until its own `training_evidence.json` exists.
+- The full SFT was restarted with a 20-step checkpoint interval, but Windows bugchecked at step 20 and the run is now deliberately stopped. Event Viewer records `0x1E / c0000005`, an NVIDIA UVM error, and `GPU recovery ... Node Reboot Required`; the coincident checkpoint has readable adapter tensors but a corrupt optimizer archive and no trainer/scheduler/RNG state, so it is not resumable evidence. Do not restart full training until the GPU-driver/thermal path and external-USB output path are remediated.
+
+### Phase 137 fixed constraints
+
+- The chosen SFT completion remains grounded and is never replaced by a review negative.
+- Rejected candidates must be useful preference contrasts, not a repeated phrase that makes DPO trivial or encourages mode collapse.
+- Reviewer edits expose prose fields only by default; rule-owned numeric/enumerated fields remain read-only and server-validated.
+- Existing human decisions must not be silently overwritten during a corpus rebuild. A rebuild is permitted only while production reviewer state/export are absent, otherwise an explicit migration is required.
+- Human review supplies preference labels after the SFT candidate exists. DPO is never run on synthetic system preference alone.
+
+## Phase 136 - Local narrative review workbench (implementation complete; visual browser check pending)
+
+> Replace direct CSV editing with a dependency-free localhost review UI that preserves the CSVs as exchange artifacts while making 8,000-row review practical and resumable.
+
+- [x] Audit the review CSV/key/schema/merge contracts and choose a non-destructive persistence/export boundary.
+- [x] Implement a localhost-only Python server with indexed records, atomic autosave/resume, progress/distribution APIs, deterministic warning analysis, similarity clusters, filtering, and bounded bulk actions.
+- [x] Implement a responsive Korean review UI with readable facts/motifs, side-by-side A/B candidates, keyboard shortcuts, rewrite/drop flows, automatic highlights, filters, progress, and batch controls.
+- [x] Add export/merge compatibility, launch documentation, and focused backend tests without pre-filling or mutating the original review CSVs.
+- [ ] Run local browser interaction checks for navigation, shortcuts, autosave/reload, filters, bulk confirmation, rewrite, export, responsive layout, and console/network cleanliness.
+
+### Phase 136 current evidence — 2026-08-09
+
+- Python/HTTP/static contract suite passes 6/6. It covers immutable source hashes, indexed warnings/clusters, autosave/restart, verdict-preserving drafts, undo, bounded confirmed bulk actions, rewrite schema/mechanic/reference protection, 8,000-row export, actual merge-tool compatibility, token rejection, CSP, unique DOM IDs, keyboard bindings and responsive CSS.
+- JavaScript syntax validation passes with `node --check`.
+- No production `reviewer_state.json` or `reviewer_export.csv` was created during tests; all mutable test state used temporary paths and was removed.
+- In-app browser discovery returned zero available browser bindings, so pointer screenshots and live responsive visual evidence remain pending without blocking use of the implemented tool.
+
+### Phase 136 fixed constraints
+
+- The eight original review CSVs remain immutable inputs. Autosave writes a separate atomic state file; export produces a merge-ready CSV explicitly.
+- The server binds to loopback only, serves no third-party resources, and does not upload narrative data.
+- Bulk operations require an explicit filtered scope, confirmation, and a bounded record count; they remain reversible through per-record history during the session.
+- Automatic warnings assist review but never count as human approval. Only explicit A/B/REWRITE/DROP actions change review state.
+- The held-out split remains identifiable and exportable without being mixed into training automatically.
+
+### Phase 136 errors
+
+- Local browser selection returned `No browser is available`; troubleshooting discovery confirmed an empty browser list. Do not substitute an unrelated browser-control surface. Backend, HTTP, static DOM/CSP and responsive-contract tests continue locally, while visual pointer verification remains pending until a browser binding is available.
+- Static UI contract test attempt 1 found `bulkLaunch` was created dynamically and therefore absent from the HTML ID inventory. The control is now authored in HTML and only populated/enabled by JavaScript, improving accessibility and testability.
+- Browser-test server cleanup stopped the verified reviewer PID, but the first directory removal raced the redirected stderr handle and left that single log file. Retry only after confirming the listener and reviewer process are gone.
+
+## Phase 135 - V25 narrative training corpus and human-review package (complete)
+
+> Build a copyright-safe, game-grounded corpus from authoritative DungeonStory content and researched linguistic/cultural references, then emit deterministic raw, filtered, and human-review artifacts.
+
+- [x] Audit the existing V25 schemas, training configuration, game-content authorities, artifact policy, and repository cleanliness before generation.
+- [x] Research primary/public reference sources for Korean language, folklore, classical/martial vocabulary, Qwen training format, and source licensing; record use boundaries and provenance without copying modern fiction prose.
+- [x] Implement a deterministic scenario generator and quality filter for exactly 50,000 raw scenarios and approximately 40,000 SFT-ready records.
+- [x] Produce a stratified 8,000-record human-review package, including a 6,000-record preference/training pool and a leakage-isolated 2,000-record evaluation pool.
+- [x] Verify schemas, counts, hashes, split isolation, grounding, duplicate rates, copyright/source rules, and reproducibility; document commands and review workflow.
+
+### Phase 135 completion evidence — 2026-08-09
+
+- Generated 50,000 raw scenarios, selected 40,000 grounded candidates, emitted 38,000 SFT candidates, and prepared 6,000 preference plus 2,000 held-out review rows.
+- All 8,000 review rows are blank and split across eight UTF-8-BOM CSV files; no human approval is claimed.
+- Full validation passes with zero held-out family leakage, fixed rule-field preservation, valid request-local references, existing source-asset provenance, and 18 manifest-tracked files.
+- Corpus audit passes with 100% Korean prose coverage, zero selected generic fallback phrases, and 0.9934% exact duplication among prose fields of at least 40 characters.
+- An independent same-seed rebuild produced 19/19 byte-identical files with zero missing files and zero SHA-256 mismatches.
+
+### Phase 135 fixed constraints
+
+- Internet sources inform taxonomies, vocabulary classes, style constraints, and licensing only. The corpus must not reproduce passages from copyrighted fantasy or martial-arts fiction.
+- Every generated claim must be grounded in a supplied DungeonStory fact packet; invented names may identify only generated scenario actors and may not impersonate source authors or franchises.
+- The 2,000-record evaluation split is selected before template/output expansion by stable scenario-family hash and may not leak into SFT or DPO training data.
+- Human review remains a real user action. Generated files expose blank verdict, rewrite, issue-tag, and reviewer-note fields and must never mark records as human-approved in advance.
+- All generated files are deterministic from a versioned configuration and seed, with SHA-256 manifests and exact record-count validation.
+
+## Phase 134 - V25 dedicated narrative model and safe local inference (runtime complete; release artifacts pending)
+
+> Replace the release Ollama dependency with a fail-closed DungeonStory host boundary, context-affinity scheduling, rule-authoritative historical evolution, and reproducible model-training/quality gates.
+
+- [x] Add the release host protocol and fail-closed Unity launcher: Windows Job Object, lifetime EOF, asynchronous heartbeat/log drain, singleton ownership, binary/model hashes, and rule-only fallback.
+- [x] Replace FIFO/priority-only narrative dispatch with deadline-aware prefix-affinity scheduling and bounded single-request multi-perspective contracts.
+- [x] Add static choice grammars, canonical prompt enforcement, validated equipment-candidate selection, and deterministic rule fallback.
+- [x] Replace string-derived equipment history with typed evidence and split mechanical unlock, narrative readiness, and UI visibility.
+- [x] Add reproducible SFT/DPO dataset contracts, training configuration, diversity evaluation, and GGUF release-manifest gates without checking in a fabricated model.
+- [x] Compile and run focused V24/V25 contracts, update the design document from evidence, and record native binary/model gates separately.
+- [ ] Build and certify the llama.cpp-backed Windows/Linux `DungeonStoryLlmHost`, including host-side PDEATHSIG/process-group/lifetime/heartbeat and tokenizer grammar self-tests.
+- [ ] Train, review, evaluate, quantize, license-check, and hardware-certify the dedicated Qwen3 1.7B model before packaging it into StreamingAssets.
+
+### Phase 134 fixed constraints
+
+- Rules own every legal action/effect, numeric value, cost, condition, and state transition. The LLM may only express history or select an index from rule-authored legal equipment candidates.
+- Release builds may not require Ollama or an external API. If the signed native host/model is absent, invalid, busy, or unsafe, gameplay continues through deterministic rule prose and rule-ranked choices.
+- Windows host launch is fail-closed behind a kill-on-close Job Object. Linux uses parent-death signal, process group, lifetime EOF, and heartbeat; no uncontained host fallback is permitted.
+- Lifetime EOF and heartbeat are independent channels. Heartbeat permits one outstanding asynchronous write and may never block Unity's main thread.
+- Request schemas and choice grammars are static. Candidate IDs, character facts, and events must never generate request-specific grammar.
+- Existing 68 save sections remain; leases, KV caches, host handles, and scheduler caches are rebuilt after restore.
+
+### Phase 134 external artifact boundary
+
+- The repository can implement and verify host/source/build/training/release tooling, but a fine-tuned Q4_K_M model can only be marked present after training, conversion, hashing, licensing review, and hardware acceptance actually pass.
+
+## Phase 133 - V24 static structured narrative generation (authoritative)
+
+> Replace prompt-only JSON with profile-static Ollama schemas, project visible character facts into request-local references, and accept grounded soft-pass prose without dynamic grammar generation.
+
+- [x] Audit all nine local-LLM profiles, DTOs, prompt builders, persistence owners, and current fallback paths.
+- [x] Add byte-stable static schemas and switch the queue to Ollama `/api/chat` structured output with capability/diagnostic reporting.
+- [x] Add deterministic culture motifs, request-local fact references, narrative context projection, and C# authoritative quality validation.
+- [x] Connect persistent naming/history generators and transient prose profiles without regenerating existing names.
+- [x] Add focused schema/hash/context/quality/backend tests, compile, run live Ollama probes, and update documentation from passing evidence.
+
+### Phase 133 fixed constraints
+
+- Exactly one static schema per profile/version; no request data may alter schema bytes or schema hash.
+- Request-local `Fxx`/`Mxx` references remain plain strings in the schema and are validated/resolved by C#.
+- Unrevealed latent traits and facts outside the speaker/player knowledge boundary may never enter prompts or persisted traces.
+- Style weakness is a soft-pass concern; only structural/domain/grounding violations cause hard rejection and retry.
+- Preserve all user-owned worktree changes and the existing 68 save-section contract.
+
+### Phase 133 errors
+
+- Unity dynamic refresh command attempt 1: `CompilationPipeline.RequestScriptCompilation` resolved as `Unity.CompilationPipeline`; use `UnityEditor.Compilation.CompilationPipeline` explicitly.
+- The first full import exposed an invalid AI-to-main-assembly dependency. Static reference/context/quality/trace contracts were moved into `DungeonStory.AI`; only aggregate projection and bootstrap remain in the main gameplay assembly.
+- The first hidden-latent isolation fixture used default ID structs whose null backing values made `IsValid` throw. The fixture now supplies explicit empty IDs and the production projection continues to expose only revealed latent traits.
+- The first live-probe Editor compile imported the new source without rebuilding, then the forced Unity compilation exposed an ambiguous `Debug` symbol from `System.Diagnostics`. The probe now aliases only `Stopwatch`, leaving logging explicitly under `UnityEngine.Debug` resolution.
+- The first actual nine-profile smoke probe found one malformed `CharacterSkill` schema delimiter and proved that stable fact IDs were visible to the model. The schema is structurally validated at catalog startup, the missing delimiter is fixed, and the Ollama boundary now rewrites internal `Fxx|stableId|label` metadata to model-visible `Fxx = label` lines.
+- The first 20/profile acceptance run produced 0 parse errors but passed 167/180. Twelve of thirteen failures came from optional `BubbleLine` outputs filling nonexistent F02-F04 tokens; its profile-static schema now intentionally exposes only `line`, while grounding remains optional by contract. The remaining CharacterRecord miss is retested with a realistic four-fact context rather than a one-fact synthetic edge fixture.
+- A broad recursive `%LOCALAPPDATA%` log discovery timed out without changing project files. Ollama liveness was verified through `/api/ps` and direct `llama-server` CPU deltas instead; subsequent log inspection uses the known `%LOCALAPPDATA%/Ollama` path.
+- The second 20/profile run reached 179/180 accepted with one SocialRumor response truncated before its closing brace at the inherited 256-token cap. SocialRumor now uses a 384-token ceiling; structured generation still stops on schema completion. The final run also includes centralized profile-specific style intensity guidance.
+- The third 20/profile run again reached 179/180; all prior SocialRumor/Bubble failures were eliminated, but one complex FacilityEvolution response hit its inherited 256-token cap. FacilityEvolution now uses 768 tokens, matching CharacterSkill's complex structured-output budget, and the live fixture supplies one bounded proposal so the test measures grammar rather than unconstrained list expansion.
+
+### Phase 133 current evidence — 2026-08-08
+
+- Unity rebuilt `DungeonStory.AI`, `DungeonStory.Evolution`, `Assembly-CSharp`, and `Assembly-CSharp-Editor` after the V24 integrations with no compiler errors.
+- The focused V24 Editor suite passes 6/6: nine fixed schema profiles, 10,000-context hash stability, no dynamic reference enums, warm schema lookup 0B, native `/api/chat` body shape, deterministic F/M references, hard/soft/strong quality outcomes, and hidden latent-fact isolation.
+- Final local-model acceptance passed with `llama3.1:latest`: 179/180 accepted (99.4%), parse failures 0, fallbacks 1/180 (0.6%). All persistent/naming profiles and BubbleLine passed 20/20; the one SocialRumor fallback was a correctly hard-rejected use of F01 as a target CharacterId.
+- Profile TTFT medians were 697.1–700.1 ms and p95 values 698.8–897.1 ms in the final 20/profile run. The generated report is `Artifacts/QA/v24-narrative-live-probe.txt`.
+- Documentation now defines V24 as the current narrative authority. The final clean Unity capture also passed: focused suite 6/6, Console Error 0 / Warning 0.
+
+## Phase 132 - Player-facing gameplay UI, debug-mode separation, and presentation (authoritative)
+
+> Replace mixed debug/gameplay surfaces with coherent player-facing flows. Debug-only controls and diagnostics must be hidden by default and become visible only when the persisted Debug Mode option is enabled.
+
+- [x] Inventory every runtime gameplay panel, debug control, debug scene root, overlay, menu command, and settings persistence path; classify player, advanced, and debug-only surfaces.
+- [x] Add one persisted presentation/settings authority for Debug Mode and expose it through the normal options UI without adding a save section.
+- [x] Gate all in-game debug-only controls, diagnostics, test launchers, identifiers, and `__Debug` scene presentation through that authority while retaining Editor-only menu tooling.
+- [x] Rework construction, production, equipment, apparel, character, medical, research, faction, expedition, and alert flows into consistent player-facing hierarchy, copy, feedback, empty/loading/blocked states, and progressive disclosure.
+- [x] Add lightweight presentation choreography for panel open/close, section reveal, confirmation, success, warning, and blocked feedback without changing gameplay authority or adding sound.
+- [x] Compile, run focused UI/debug visibility scenarios, verify both required resolutions and pointer paths, then update the design document only from passing evidence.
+
+### Phase 132 completion evidence — 2026-08-08
+
+- Unity MCP PlayMode report: `Artifacts/QA/debug-mode-playmode-report.txt` — all checks PASS, Console Error 0 / Warning 0.
+- Pointer-driven settings → Debug Mode → palette → command/target/overlay → disable flow passed at `1600×900`; portrait bounds and capture passed at `900×1600`.
+- Both authored `__Debug` and runtime `__Runtime/Debug` roots, plus the character AI diagnostics tab, were hidden by default, revealed by the persisted option, and hidden again when disabled.
+- Unity/Bee Roslyn response compilation passed for Presentation, Assembly-CSharp, Assembly-CSharp-Editor, and Architecture.Tests.
+
+### Phase 132 fixed UX rules
+
+- Debug Mode defaults off in player builds. It may reveal diagnostics and test controls, but may never change simulation rules, random outcomes, saves, or command validation.
+- Stable IDs, raw enum names, stack/order IDs, developer counters, validation launchers, and direct state mutation belong to Debug Mode; actionable failure causes and player-relevant numbers remain visible normally.
+- Primary action, current state, cost, requirements, expected consequence, and cancellation must be readable without Debug Mode.
+- Advanced worker/material/quality policies use progressive disclosure rather than cycling opaque presets or flooding the default panel.
+- Presentation uses the existing runtime-created UI system and theme; no sound, external art dependency, or animation-rig rewrite is introduced.
+
+## Phase 131 - V23 grade-free materials, worker policies, and quality-target pipelines (authoritative)
+
+> Implement the approved V23 new-game-only vertical while preserving the fixed
+> 180-research / 138,824-work, V20 450-definition, and 68-save-section contracts.
+> Existing V21/V22 worktree changes are user-owned and must be preserved.
+
+- [ ] Replace quality-bearing stackable materials with definition/state-only stacks; keep only finished facility/apparel/combat-equipment craftsmanship quality.
+- [ ] Add material economic profiles and deterministic work calculators, then rebalance all catalogued player buildings, production recipes, combat equipment, and apparel without index-based placeholder costs.
+- [ ] Add persistent worker-selection policies, eligibility queries, weighted contribution ledgers, and assignment UI across construction, production, apparel, equipment, repair, alteration, and dismantling.
+- [ ] Add save-stable quality rolls and bounded/unlimited quality-target pipelines with physical reject disposition, dismantling, salvage, and same-footprint facility rebuilds.
+- [ ] Update V23 save-generation rejection, UI/documentation/reporting, and focused domain/PlayMode/performance validation.
+- [ ] Pass the final 68/68/68 canonical round trip with atomic failure and Unity Console Error 0 / Warning 0.
+
+### Phase 131 fixed constraints
+
+- Stackable ingredients, seeds, fibres, yarn, textiles, timber, ingots, leather, medicines, and components have no quality tier or continuous quality score.
+- `Ready/Wet/Contaminated`, genome/pathogen, durability, and unique-component state remain where physically meaningful.
+- Expensive/difficult materials increase required work but never directly improve the craftsmanship roll.
+- Quality rerolls consume real work and materials; every attempt has a persisted deterministic random component and cannot be save-scummed.
+- Default repetition uses attempt/reserve/work-budget safety limits; `UnlimitedUntilSuccess` remains an explicit player option and must idle safely at blockers.
+- Every player-buildable catalog entry has an authored or classified BOM, work amount, and real execution role; runtime archetypes are excluded.
+
+### Phase 131 current evidence — 2026-08-08
+
+- Unity 6 Roslyn compiles Foundation, Buildings, Work, Production, Combat, Items, Economy, main, and Editor assemblies with zero compiler errors.
+- Current authoritative asset counts are 368 player-building assets, 354 production recipes, 61 combat equipment definitions, and 56 apparel definitions; all 368 building assets serialize a construction BOM.
+- Stackable textile and seed state no longer serializes material quality. Facility, apparel, and combat-equipment craftsmanship use the shared seven-tier deterministic quality resolver.
+- Construction, production, apparel, and combat equipment persist worker policies and weighted contributor ledgers. Facility, apparel, and equipment quality targets now release input reservations when no eligible worker exists or the target is theoretically unreachable.
+- The 24 production-network omissions are mapped to their real typed runtime command owners rather than synthetic sink recipes.
+- Remaining completion evidence is the live V23 focused menu run and generated appendix, interruption PlayMode verticals, the full economic-cycle proof, UI pointer captures, and V23 68/68/68 with Console 0/0.
+
+## Phase 130 - V22 anatomy/material-lineage apparel and textile industry (authoritative)
+
+> Implement the approved V22 apparel vertical without changing the fixed
+> 180-research / 138,824-work, V20 450-definition, or 68-save-section contracts.
+> V22 is a new-game-only save generation and must preserve physical-item,
+> transactional restore, and authored-content authority.
+
+- [x] Freeze the V22 anatomy, apparel, textile-quality, finite-batch, reservation-lease, safe-recovery, save-generation, and compatibility-adapter contracts in code.
+- [x] Add the immutable apparel/textile definitions and the mutable `CharacterApparelAggregate`, material projection cache, attachment query, indexed AI selection, and physical item components.
+- [x] Implement atomic craft/equip/alter/launder/dry/repair/recover workflows, bounded reservation leases, starter underwear/supplies, and the environmental-workwear compatibility adapter.
+- [x] Author and register 56 apparel definitions, 10 textile materials, four fiber crops with 12 genomes/cultivars, three husbandry outputs, 14 facilities, recipes, and reverse research rewards while keeping 180/138,824.
+- [x] Connect functional UI, V22 capture/restore within the existing 68 sections, V21-and-earlier rejection, and deterministic content/link validation.
+- [ ] Run focused domain/compile/PlayMode/performance/save validation, update the comprehensive document only from passing evidence, then run the final 68/68/68 and Console 0/0 gate.
+
+### Phase 130 current evidence — 2026-08-08
+
+- Focused V22 apparel/content contracts pass against the authoritative domain catalog: 56 apparel, 10 woven plus 2 non-woven materials, 12 total crops, 32 total genomes, 14 facilities, and 89 recipes.
+- Research/equipment validation passes at 180 projects and total work 138,824; the V22 facilities extend the research-facility reward count to 115 without adding research nodes.
+- The current-code full-world PlayMode round trip passes 68/68/68 with canonical baseline match, live baseline restoration, and Console Error 0 / Warning 0.
+- Remaining acceptance evidence is the 2,000-agent allocation/CPU profile, ten-year lot-growth simulation, full apparel vertical PlayMode matrix, and both-resolution pointer-flow capture. The broader pre-existing V21 production graph also still reports 24 fake-consumer debts outside the V22 focused slice.
+
+### Phase 130 fixed acceptance constraints
+
+- No species allowlist: attachment points, prostheses, size, layer occupancy, and alterations alone decide equip legality; slime is humanoid and only golem is construct.
+- Textile stacks merge by item, four-tier quality, and three-band condition only; ancestry is bounded to 64 recent records per material and compressed thereafter.
+- AI receives at most eight indexed candidates and performs no normal per-decision full-stock scan or steady-state allocation.
+- Apparel replacement never removes current clothing before the replacement reaches the changing point; all invalid reservations release within six game hours.
+- Missing body parts, unsafe terrain, combat callbacks, or full inventories may defer recovery but may never delete an apparel instance.
+- Underwear shortage may affect mood, hygiene, and service satisfaction but may not prohibit ordinary work, rescue, treatment, combat, or bathing.
+
 ## Phase 123 - V19 life, generations, climate, and disease simulation (authoritative)
 
 > Implement the approved 216-research V19 design on top of the clean V18
@@ -1266,6 +1553,119 @@ physical production and meals -> persistent characters/items/equipment
 - [x] Add five V20 save sections for a canonical total of 68, update offense/faction section versions, enforce full detached staging and late-failure atomicity, and reject every V19-or-earlier slot with the approved message.
 - [x] Author and root-register the exact 450-definition manifest by category, validate stable IDs/references/gameplay consequences, and keep research count and reachability unchanged.
 - [ ] Pass focused domain tests, 10,000-character/2,000-population/10-year deterministic simulations, combat/timing balance probes, V20 68/68/68 round trip, Unity MCP resolution evidence, and final Console Error 0 / Warning 0.
+
+#### Phase 125 design-document consolidation
+
+- [x] Audit the existing comprehensive document structure and compare its stated scope with the implemented V19/V20 authorities.
+- [x] Reframe the document around the intended player fantasy, emotional arc, nested gameplay loops, and long-run progression rather than a flat subsystem inventory.
+- [x] Integrate the current 216-research, 450-definition V20 content map and the V19 life, generation, climate, disease, crop, child-safety, and career rules without retaining contradictory legacy counts.
+- [x] Explain how production, research, characters, factions, offense/defense, captivity, ecology, milestones, and EndlessAge consume and reinforce one another through concrete player-facing examples.
+- [x] Separate design intent, implemented authority, verified evidence, and deferred final integration evidence so the document never presents an unrun test as complete.
+- [x] Run document consistency checks for headings, version/count claims, terminology, encoding, links, and whitespace; update findings/progress from the same result.
+
+#### Phase 126 exhaustive authored-content intent catalog
+
+- [x] Inventory every registered facility definition from the authored SO/catalog sources and distinguish canonical gameplay facilities from legacy duplicates, fixtures, and editor-only artifacts.
+- [x] Inventory every authored event-like definition: life events, festivals, seasonal events, faction chapters/contracts, guest requests, service incidents, encounters, milestones, and other player-facing event contracts.
+- [x] Inventory every general and hereditary trait definition, including the preserved legacy traits, and extract its actual mechanical consequence fields.
+- [x] Write one explicit intent entry per canonical facility, event, and trait: player problem, decision/tradeoff, concrete inputs/effects, and system connections. Counts may remain only as navigation summaries.
+- [x] Integrate the exhaustive catalogs into `docs/DungeonStory_Game_Design_and_Implementation.md` without replacing authored details with generated filler or grouping away individual entries.
+- [x] Cross-check documented stable IDs/names against source authority, detect omissions/duplicates, and run Markdown/encoding/whitespace consistency checks.
+- [x] Record exact catalog coverage and any definitions whose current SO lacks enough mechanics to justify a distinct gameplay intent.
+
+#### Phase 127 V21 research consolidation and physical unlock expansion
+- [x] Freeze save policy: V20 and earlier are rejected; no save-file migration or legacy DTO conversion is implemented
+
+- [x] Freeze the V21 authority contract: 180 research projects, 138,824 total work, immutable authored SO definitions, research Aggregate completion authority, physical item/equipment instance authority, and V20-or-earlier rejection.
+- [x] Replace the 216-node generated tree with the approved 180-node merge map; union rewards/work/prerequisites, remove internal/transitive links, preserve causal metadata, and prove the five pacing closures.
+- [x] Extend the research reward reverse index and presentation contracts for craft materials, crops, environmental workwear, ammunition, installation components, and authored unlock bundles without duplicating lock authority.
+- [x] Author and root-register the twelve branched materials, six facilities, physical utility/medical/installation items, eighteen equipment definitions, and ten ammunition/consumable definitions with concrete recipes and consumers.
+- [x] Route the new production outputs, construction inputs, equipment crafting, ammunition use, and medical/service consumption through the existing physical item and runtime command authorities; add no runtime SO synthesis or fallback definitions.
+- [x] Raise the root save generation and research payload boundary to V21, reject V20 and earlier with the approved message, and preserve same-generation progress ratios through requiredWorkAtCapture.
+- [x] Update research UI/package projection and the design authority document so facilities, materials, items, equipment, ammunition, and downstream uses are visible without count-padding.
+- [x] Pass content-graph, research-graph, focused runtime, equipment-role, save-boundary, Unity compilation, Console 0/0, and project-scoped Unity MCP evidence gates.
+
+Phase 127 implementation contract:
+- SO assets and explicit root catalogs own immutable definitions only; no completion, stock, item-instance, or save state is written to SOs.
+- `requiredResearchId` remains the sole gameplay lock declaration on each reward definition. Unlock bundles are authored presentation metadata and must not become a second lock authority.
+- Production Aggregates own orders/reservations/buffers, the item repository owns physical stacks and unique equipment, combat owns actions only, and the research Aggregate owns progress/completion/queue state.
+- Every new intermediate has at least two concrete consumers, strategic intermediates have at least three, post-resource depth is at most four, and explicit crafting inputs contain no `stock-item:*` entries.
+- V21 is a hard new-game boundary. No deleted research ID is remapped during restore and no missing definition is synthesized.
+
+#### Phase 128 V21 actual-gameplay connection closure
+
+> Complete the user-approved vertical-path contract for authored V21 content. A
+> catalog entry or debug snapshot is not completion: each accepted feature must
+> have a real command entry, authoritative requirements, physical reservation or
+> durability cost where applicable, domain effects, atomic failure, and V21 save
+> ownership.
+
+- [x] Replace partial society/content resolution with a preflight-and-commit command that evaluates typed requirements/effects and cannot leave an event resolved when any physical or domain effect fails. (`WorkDelayDays` now persists scoped end days in `society.events` and modifies the authoritative work-speed projection.)
+- [x] Add stable saved alert action IDs and route society events, faction choices, festivals, funerals, counseling, reproduction, and age treatment through functional UI dispatchers.
+  - Saved action/source IDs now drive society and faction resolution, planned reproduction start, due festivals, recent funerals, counseling, and all five age-treatment surgery orders through the existing alert UI.
+- [x] Connect character traits, hereditary traits, backgrounds, ambitions, cultures, practices, reproduction, grief/funeral/festival/counseling, and age treatment to their owning Aggregates and real work/item/facility requirements.
+  - [x] Replace all nine legacy placeholder trait tags with authored behavior, mood, and event-weight consequences; route meal, research, invasion, festival, room-environment, and checkout-wait events through the typed trait-reaction runtime.
+  - [x] Add authored hereditary costs for nutrition, reproduction nutrition, sleep, movement, mana overload, and rapid-cell aging, and consume them in survival, reproduction, environment exposure, and aging projections.
+  - [x] Connect culture meal refusal/preference, typed room/environment AI scoring, etiquette/attitude incident weighting, one-time inter-culture relationship memories, practice-only assimilation, and persisted perform/neglect practice execution.
+  - [x] Connect planned reproduction, funeral/festival/counseling, and five physical age-treatment order paths.
+  - [x] Make fertility treatment an optional persisted reproduction choice that consumes its physical medicine only at atomic start and changes conception/gestation calculations; make trait analysis consume its kit at an operational analyzer and persist latent-trait visibility.
+- [x] Remove `GuestSupplies` fake consumption and connect V21 tools, kits, installation parts, seed lots, greenhouse/fungal inputs, and medical supplies only to their intended work, construction, maintenance, ceremony, or procedure.
+  - [x] Remove fabricated guest sinks; connect certified seed kits, greenhouse nutrients, inoculated logs, cross-lineage medium, isolation/trauma kits, age-treatment supplies, and installation components to their owning commands or cycles.
+  - [x] Make reinforced restraints and prisoner work kits unique durable physical instances: capture and labor now wait for the selected instance/delivery, retain its ID and durability in captivity save state, apply restraint security and labor wear, and return the same instance when custody/labor ends.
+  - [x] Connect `medical:fertility-treatment` and `medical:trait-analysis-kit` to their intended reproduction and hereditary-analysis commands instead of guest-service sinks.
+- [x] Give all 101 research-reward facilities truthful roles/capabilities and require at least one real recipe or domain command executor; add the missing 8897-8901 facility intent entries to the design authority.
+  - [x] Audit exact execution coverage: 63 facilities own a concrete production recipe and 38 own a typed domain command, with zero overlap, missing executor, or unclassified facility.
+  - [x] Connect typed facilities to crop, husbandry, workforce, circus sanitation, equipment crafting/tuning, mentorship, diagnosis, fluid metering, expedition planning, secure trade, and defense control; all commands also execute through the normal saved building-work path.
+- [x] Persist loaded ammunition identity and implement special-ammunition, role-equipment, enemy physical loadout, tactical ability, boss-phase, counter-tag, loot, and handcrafted encounter execution in offense and defense.
+  - [x] Persist loaded ammunition identity; implement the ten special ammunition effects, role equipment, enemy loadout, tactical weights/formation/boss phases, counter evaluation, explicit 36-encounter authoring, and physical offense return loot.
+- [x] Apply wildlife ecology metadata, disease symptoms/field responses, and all six crop-genome loci in the daily authoritative simulations.
+- [x] Make faction campaign state the single relationship authority, diversify all chapter outcomes, and connect milestone conditions, landmark locks, permanent rewards, and pressures to actual systems.
+  - [x] Replace the 36 repeated chapter signatures with atomic full-cost/half-cost/refusal paths and counterpart changes for all six rival chapters.
+- [x] Generate and pass definition-to-entry-to-effect-to-save connection reports, atomic last-item failures, focused UI/playmode scenarios, deterministic scale probes, V21 section round trips, and Unity Console Error 0 / Warning 0.
+  - [x] Generate the 1,194-row connection report with zero unlinked definitions, pass atomic last-item rollback, the five functional alert UI routes, deterministic scale probes, and the focused V21 vertical gate with zero script warnings.
+  - [x] Pass the existing full 68/68/68 world PlayMode gate and its integrated Console Error 0 / Warning 0 condition. The final isolated run restored and recaptured all 68 sections, matched the canonical baseline, restored the live baseline, and reported Console `0/0`.
+
+Phase 128 implementation order:
+- Stabilize atomic content execution first, then remove fabricated consumers before adding intended ones.
+- Complete one persisted vertical slice per domain and keep existing SO/state/save authorities; do not introduce a second mutable content registry.
+- Preserve the exact 180 research / 138,824 work / 450 V20 net-new / 68 save-section contracts and the V21 new-game-only boundary.
+
+Phase 128 validation errors:
+- Direct execution of Unity's legacy Mono Roslyn `csc.exe` could not resolve `System.Text.Encoding.CodePages`; a second Mono-hosted attempt asserted inside Mono. Both targeted only `Temp/CodexCompile` and changed no source. Validation then switched to Unity 6's supported `Data/DotNetSdkRoslyn/csc.dll` under the installed dotnet host.
+- The first temporary `Assembly-CSharp.rsp` rewrite replaced the Economy implementation DLL path, while Unity references the `.ref.dll`; compilation correctly failed on the missing new phenotype type. Rewriting the exact reference path fixed the harness, after which Economy, runtime, and Editor assemblies compiled cleanly.
+- The first crop-domain discovery output was truncated because the combined source read exceeded the shell result budget. Narrow range reads were used before editing; no mutation was based on truncated content.
+- A post-edit optional `rg` batch returned exit code 1 because no matching scenario/meta existed yet. The successful `git diff --check` output in the same batch remained valid; no mutation occurred.
+- The project Unity MCP bridge still reports four older pending requests and did not return the new refresh response. The Editor process remains responsive, so it was not restarted or killed; live compilation and Console evidence remain pending.
+- A GUID uniqueness scan over the full `Assets` tree timed out after confirming the new scenario meta did not yet exist. A project-local unique GUID was then added explicitly; the scan made no mutation.
+- A PowerShell `rg` call passed `BuildableObject*.cs` as a literal Windows path and failed with an invalid-path error after returning useful matches. Subsequent searches use the containing directory plus `-g` filters.
+- A facility search included the nonexistent legacy path `Assets/Scripts/Content/BuildingSO.cs`; the authoritative file is `Assets/Scripts/Services/Buildings/SO/BuildingSO.cs`. No mutation occurred.
+- A later optional discovery command again passed `Assets/Scripts/Services/*/Editor` as a literal Windows path. It changed no files; all later searches use a real parent path and `-g` filters.
+- An item-query inspection guessed the nonexistent `WorldItemQueries.cs`; the authoritative query implementation is `WorldItemQueryService.cs`. Optional `rg` no-match exits in the same audit changed no files.
+
+#### Phase 129 exhaustive research-node intent catalog
+
+- [x] Inventory all 180 V21 research projects from the authored project assets and verify the exact 138,824 total work contract.
+- [x] Reconstruct each node's direct causal prerequisites and reverse-indexed physical unlocks from the current research/content authorities.
+- [x] Add one explicit document entry per research node, grouped for navigation and including stable ID, work, direct prerequisites, concrete unlocks, and player-facing intent.
+- [x] Cross-check the document against source authority for 180/180 coverage, zero duplicate/missing IDs, exact work sum, and resolvable prerequisite/reward references.
+- [x] Run Markdown, encoding, whitespace, and scoped diff checks; update findings and progress with the final evidence.
+
+Phase 129 validation errors:
+- The planning skill's `session-catchup.py` found unsynced historical context but terminated while printing it because the Windows CP949 console could not encode an em dash. Current planning files were read directly and no project file was mutated by the failed recovery command.
+- An optional sample-building `rg` pipeline exited 1 after yielding useful runtime-archetype and recipe samples because the final search branch had no match. It made no changes; the canonical building sample was then located directly by numeric ID.
+- The first inline PowerShell inventory prototype returned no output when piped into a nested PowerShell process. It changed no files. The extractor will instead be a directly invokable, reviewable script under `Tools`.
+- Direct invocation of the new PowerShell extractor was blocked by the host's default script execution policy. No data or source changed; subsequent validation invokes the same checked-in script with process-scoped `-ExecutionPolicy Bypass`.
+- Windows PowerShell 5 then parsed the UTF-8-without-BOM script as the active ANSI code page and also rejected leading-line boolean operators, producing parser errors before execution. The operators were made PS5-compatible and the script will be loaded explicitly with `Get-Content -Encoding UTF8`.
+- Explicit UTF-8 ScriptBlock loading does not populate `$PSScriptRoot`, so the extractor's first encoded invocation stopped before scanning. It now falls back to the current workspace when invoked this way while retaining normal file-invocation behavior.
+- The first Markdown sample interpolated prerequisite IDs as PowerShell subexpressions (`$(research:...)`) instead of Markdown code spans. The formatter now uses an explicit format string; no document content had been inserted yet.
+- Review of the first four inserted fields found two extractor presentation defects: unsupported mirror definitions escaped the PowerShell `switch` with an empty reward kind, and project-owned recipe unlocks without a matching `requiredResearchId` displayed raw IDs. The extractor now rejects unrecognized reward types after the switch and uses a global recipe-name map; the affected four tables will be regenerated before continuing.
+- A review-only command tried to pipe directly from a PowerShell `foreach` statement and failed parsing before execution. It made no changes; subsequent filtered previews assign the loop output before piping.
+- The first concise final-validation command had an unmatched PowerShell subexpression parenthesis and failed before reading or changing project data. The already-passing full validation remains valid; the concise check will be reissued using intermediate variables.
+
+Phase 126 validation errors:
+- The first optional multi-pattern discovery batch used `Promise.all`; one no-match `rg` exit code aborted presentation of the other successful reads. No mutation occurred. Further optional searches normalize exit code 1 or run sequentially.
+- The first grouped facility-list helper used PowerShell backtick-tab syntax inside a JavaScript template literal and failed during JavaScript parsing. No tool or file mutation occurred; the replacement uses `[string]::Join([char]9, ...)`.
+- The first seasonal-event extraction guessed `Assets/Resources/SO/V20/Society/SeasonalEvents`, which does not exist. Guest-request and incident extraction in the same sequential batch succeeded. Seasonal assets will be located by class identifier before retrying.
 
 Phase 124 implementation order is contract and validator first, then one complete narrative save vertical slice, followed by content domains in dependency order. Existing dirty changes outside direct V20 scope are preserved and never reset or bulk-rewritten.
 

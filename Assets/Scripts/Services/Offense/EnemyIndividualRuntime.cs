@@ -55,6 +55,72 @@ public sealed class EnemyCombatContentCatalog :
         abilities = allAbilities.ToDictionary(value => value.stableId, StringComparer.Ordinal);
         modifiers = allModifiers.ToDictionary(value => value.stableId, StringComparer.Ordinal);
 
+        Dictionary<string, CombatEquipmentDefinitionSO> equipmentDefinitions =
+            content.GetAll<CombatEquipmentDefinitionSO>()
+                .Where(value => value != null
+                    && !string.IsNullOrWhiteSpace(value.EquipmentId))
+                .ToDictionary(value => value.EquipmentId, StringComparer.Ordinal);
+        List<string> equipmentErrors = new();
+        foreach (EnemyArchetypeDefinitionSO enemy in All)
+        {
+            EnemyEquipmentLoadoutRecord loadout = enemy.equipment
+                ?? new EnemyEquipmentLoadoutRecord();
+            RequireEquipment<CombatWeaponSO>(
+                enemy,
+                loadout.weaponDefinitionId,
+                "weapon");
+            RequireEquipment<CombatArmorSO>(
+                enemy,
+                loadout.armorDefinitionId,
+                "armor");
+            RequireEquipment<CombatShieldSO>(
+                enemy,
+                loadout.shieldDefinitionId,
+                "shield",
+                optional: true);
+            if (!string.IsNullOrWhiteSpace(loadout.ammunitionItemId)
+                && equipmentDefinitions.TryGetValue(
+                    loadout.weaponDefinitionId,
+                    out CombatEquipmentDefinitionSO weaponDefinition)
+                && weaponDefinition is CombatWeaponSO weapon
+                && !weapon.CompatibleAmmunitionItemIds.Contains(
+                    (ItemDefinitionId)loadout.ammunitionItemId))
+            {
+                equipmentErrors.Add(
+                    $"{enemy.stableId} ammunition '{loadout.ammunitionItemId}' "
+                    + $"is incompatible with '{loadout.weaponDefinitionId}'.");
+            }
+        }
+        if (equipmentErrors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "V20 enemy physical equipment is invalid:\n"
+                + string.Join("\n", equipmentErrors));
+        }
+
+        void RequireEquipment<TDefinition>(
+            EnemyArchetypeDefinitionSO enemy,
+            string definitionId,
+            string label,
+            bool optional = false)
+            where TDefinition : CombatEquipmentDefinitionSO
+        {
+            string normalized = definitionId?.Trim() ?? string.Empty;
+            if (normalized.Length == 0 && optional)
+            {
+                return;
+            }
+            if (!equipmentDefinitions.TryGetValue(
+                    normalized,
+                    out CombatEquipmentDefinitionSO definition)
+                || definition is not TDefinition)
+            {
+                equipmentErrors.Add(
+                    $"{enemy.stableId} {label} '{normalized}' is not a registered "
+                    + $"{typeof(TDefinition).Name}.");
+            }
+        }
+
         string missingAbility = All.SelectMany(value => value.abilityIds)
             .FirstOrDefault(id => !abilities.ContainsKey(id));
         string missingEnemy = allEncounters.SelectMany(value => value.enemies)
@@ -168,6 +234,7 @@ public sealed class EnemyIndividualFactory : IEnemyIndividualFactory
     private readonly IReadOnlyList<CharacterTraitSO> generalTraits;
     private readonly IReadOnlyList<HeritableTraitDefinitionSO> heritableTraits;
     private readonly HashSet<string> generalTraitIds;
+    private readonly ICombatEquipmentRuntime combatEquipment;
 
     public EnemyIndividualFactory(
         IEnemyArchetypeCatalog archetypes,
@@ -177,7 +244,8 @@ public sealed class EnemyIndividualFactory : IEnemyIndividualFactory
         ICharacterLifeQuery lifeQuery,
         ICharacterLifeCommand lifeCommands,
         ICharacterLifeDefinitionCatalog lifeDefinitions,
-        IGameContentDefinitionSource content)
+        IGameContentDefinitionSource content,
+        ICombatEquipmentRuntime combatEquipment = null)
     {
         this.archetypes = archetypes ?? throw new ArgumentNullException(nameof(archetypes));
         this.narrativeCatalog = narrativeCatalog ?? throw new ArgumentNullException(nameof(narrativeCatalog));
@@ -186,6 +254,7 @@ public sealed class EnemyIndividualFactory : IEnemyIndividualFactory
         this.lifeQuery = lifeQuery ?? throw new ArgumentNullException(nameof(lifeQuery));
         this.lifeCommands = lifeCommands ?? throw new ArgumentNullException(nameof(lifeCommands));
         this.lifeDefinitions = lifeDefinitions ?? throw new ArgumentNullException(nameof(lifeDefinitions));
+        this.combatEquipment = combatEquipment;
         if (content == null) throw new ArgumentNullException(nameof(content));
         generalTraits = content.GetAll<CharacterTraitSO>().Where(value => value != null)
             .OrderBy(value => value.DefinitionId.Value, StringComparer.Ordinal).ToArray();
@@ -221,7 +290,8 @@ public sealed class EnemyIndividualFactory : IEnemyIndividualFactory
         string[] backgroundPool = (generation.allowedBackgroundIds ?? new List<string>()).Where(value => !string.IsNullOrWhiteSpace(value)).ToArray();
         if (backgroundPool.Length == 0) backgroundPool = narrativeCatalog.Backgrounds.Select(value => value.StableId).ToArray();
         string backgroundId = backgroundPool[random.Range(0, backgroundPool.Length)];
-        narrativeCatalog.Require(new CharacterBackgroundId(backgroundId));
+        CharacterBackgroundDefinitionSO background = narrativeCatalog.Require(
+            new CharacterBackgroundId(backgroundId));
         SpeciesCultureDefinitionSO[] cultures = narrativeCatalog.Cultures
             .OrderBy(value => value.StableId, StringComparer.Ordinal)
             .ToArray();
@@ -231,6 +301,13 @@ public sealed class EnemyIndividualFactory : IEnemyIndividualFactory
         SpeciesLifeHistoryDefinition lifeHistory = lifeDefinitions.RequireLifeHistory(phenotype);
         double biologicalAgeYears = SampleInitialBiologicalAgeYears(lifeHistory, random);
         double biologicalAgeUnits = biologicalAgeYears * GameCalendarRules.DaysPerYear;
+
+        float baseLoyalty = Mathf.Lerp(
+            generation.minimumLoyalty,
+            generation.maximumLoyalty,
+            random.NextUnit());
+        float backgroundFactionReaction =
+            BackgroundFactionReactionRules.GetMultiplier(background, archetype.factionId);
 
         return new EnemyIndividualSaveData
         {
@@ -247,7 +324,9 @@ public sealed class EnemyIndividualFactory : IEnemyIndividualFactory
             chronologicalAgeDays = CalculateChronologicalAgeDays(lifeHistory, biologicalAgeUnits),
             biologicalAgeDayUnits = biologicalAgeUnits,
             birthdayDayOfYear = 1 + random.Range(0, GameCalendarRules.DaysPerYear),
-            loyalty = Mathf.Lerp(generation.minimumLoyalty, generation.maximumLoyalty, random.NextUnit()),
+            loyalty = BackgroundFactionReactionRules.ApplyToLoyalty(
+                baseLoyalty,
+                backgroundFactionReaction),
             combatStatMultiplier = 1f + Mathf.Lerp(-generation.combatStatVariance, generation.combatStatVariance, random.NextUnit()),
             generalTraitIds = general.ToList(),
             expressedHeritableTraitIds = expressed.ToList(),
@@ -339,6 +418,99 @@ public sealed class EnemyIndividualFactory : IEnemyIndividualFactory
                 id,
                 new CharacterAmbitionId(data.ambitionId),
                 absoluteDay: 0);
+        }
+        EnsurePhysicalEquipment(blueprint);
+    }
+
+    private void EnsurePhysicalEquipment(EnemyIndividualBlueprint blueprint)
+    {
+        if (combatEquipment == null || blueprint == null)
+        {
+            return;
+        }
+
+        string ownerId = blueprint.CharacterId.Value;
+        EnemyEquipmentLoadoutRecord loadout = blueprint.Archetype.equipment
+            ?? new EnemyEquipmentLoadoutRecord();
+        combatEquipment.TryGetActiveWeapon(
+            ownerId,
+            out CombatWeaponSnapshot activeWeapon);
+        if (!string.IsNullOrWhiteSpace(loadout.weaponDefinitionId)
+            && (activeWeapon == null
+                || string.Equals(
+                    activeWeapon.DefinitionId,
+                    "combat:unarmed",
+                    StringComparison.Ordinal)))
+        {
+            CombatEquipmentInstance weapon = combatEquipment.CreateExternalInstance(
+                loadout.weaponDefinitionId,
+                CombatEquipmentQuality.Normal);
+            string assignFailure = string.Empty;
+            string activeFailure = string.Empty;
+            if (!combatEquipment.TryAssignToCharacter(
+                    ownerId,
+                    weapon.instanceId,
+                    out assignFailure)
+                || !combatEquipment.TrySetActiveWeapon(
+                    ownerId,
+                    weapon.instanceId,
+                    out activeFailure))
+            {
+                throw new InvalidOperationException(
+                    $"Enemy '{ownerId}' weapon provisioning failed: "
+                    + $"assign={assignFailure}; active={activeFailure}");
+            }
+
+            if (combatEquipment.TryGetActiveWeapon(
+                    ownerId,
+                    out CombatWeaponSnapshot projected)
+                && projected.RequiresAmmo)
+            {
+                string ammunitionId = loadout.ammunitionItemId?.Trim()
+                    ?? string.Empty;
+                if (ammunitionId.Length == 0
+                    && combatEquipment.TryGetPreferredAmmunitionItemId(
+                        loadout.weaponDefinitionId,
+                        out ItemDefinitionId preferred))
+                {
+                    ammunitionId = preferred.Value;
+                }
+                if (!combatEquipment.TryLoadExternalAmmunition(
+                        weapon.instanceId,
+                        ammunitionId,
+                        projected.MagazineCapacity))
+                {
+                    throw new InvalidOperationException(
+                        $"Enemy '{ownerId}' could not load '{ammunitionId}' "
+                        + $"into '{loadout.weaponDefinitionId}'.");
+                }
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(loadout.armorDefinitionId)
+            && combatEquipment.GetArmor(ownerId).Count == 0)
+        {
+            AssignExternal(loadout.armorDefinitionId, "armor");
+        }
+        if (!string.IsNullOrWhiteSpace(loadout.shieldDefinitionId)
+            && !combatEquipment.GetShield(ownerId).IsValid)
+        {
+            AssignExternal(loadout.shieldDefinitionId, "shield");
+        }
+
+        void AssignExternal(string definitionId, string kind)
+        {
+            CombatEquipmentInstance instance = combatEquipment.CreateExternalInstance(
+                definitionId,
+                CombatEquipmentQuality.Normal);
+            if (!combatEquipment.TryAssignToCharacter(
+                    ownerId,
+                    instance.instanceId,
+                    out string failure))
+            {
+                throw new InvalidOperationException(
+                    $"Enemy '{ownerId}' {kind} provisioning failed: {failure}");
+            }
         }
     }
 

@@ -35,6 +35,7 @@ public sealed class OffenseExpeditionReturnPort : IOffenseExpeditionReturnPort
     private readonly ICombatEquipmentRuntime equipment;
     private readonly IGameMoneyAccount money;
     private readonly IGameEventBus events;
+    private readonly IWorldDropZoneQuery dropZones;
 
     public OffenseExpeditionReturnPort(
         IOffensePreparationService preparation,
@@ -42,7 +43,8 @@ public sealed class OffenseExpeditionReturnPort : IOffenseExpeditionReturnPort
         IOffenseReturnArrivalRuntime arrivals,
         ICombatEquipmentRuntime equipment,
         IGameMoneyAccount money,
-        IGameEventBus events)
+        IGameEventBus events,
+        IWorldDropZoneQuery dropZones)
     {
         this.preparation = preparation
             ?? throw new ArgumentNullException(nameof(preparation));
@@ -54,6 +56,8 @@ public sealed class OffenseExpeditionReturnPort : IOffenseExpeditionReturnPort
             ?? throw new ArgumentNullException(nameof(equipment));
         this.money = money ?? throw new ArgumentNullException(nameof(money));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
+        this.dropZones = dropZones
+            ?? throw new ArgumentNullException(nameof(dropZones));
     }
 
     public void Begin(string expeditionId)
@@ -75,6 +79,7 @@ public sealed class OffenseExpeditionReturnPort : IOffenseExpeditionReturnPort
             expedition.Supplies,
             expedition.ExpeditionId);
         preparation.DepositLoot(expedition.CarriedStock);
+        MaterializeRecoveredEquipment(expedition);
         int returningFunds = expedition.TakeReturningFieldFunds();
         if (returningFunds > 0)
         {
@@ -91,6 +96,44 @@ public sealed class OffenseExpeditionReturnPort : IOffenseExpeditionReturnPort
             "expedition-cargo-unloaded",
             EventAlertImportance.Low,
             "offense");
+    }
+
+    private void MaterializeRecoveredEquipment(OffenseExpeditionRun expedition)
+    {
+        if (expedition.RecoveredEquipmentInstanceIds.Count == 0)
+        {
+            return;
+        }
+        if (!dropZones.TryGetExpeditionLootDropoff(out Vector2Int dropoff))
+        {
+            events.RaiseAlert(
+                "원정 장비 하역 실패",
+                "전리품 하역 지점을 찾지 못해 회수 장비가 대기 중입니다.",
+                EventAlertImportance.High,
+                "offense");
+            return;
+        }
+
+        List<string> failures = new List<string>();
+        foreach (string instanceId in expedition.RecoveredEquipmentInstanceIds
+                     .OrderBy(value => value, StringComparer.Ordinal))
+        {
+            if (!equipment.TryMaterializeRecoveredEquipment(
+                    instanceId,
+                    dropoff,
+                    out string failure))
+            {
+                failures.Add($"{instanceId}: {failure}");
+            }
+        }
+        if (failures.Count > 0)
+        {
+            events.RaiseAlert(
+                "원정 장비 하역 일부 실패",
+                string.Join(" | ", failures),
+                EventAlertImportance.High,
+                "offense");
+        }
     }
 
     public bool TryBeginMemberReturn(

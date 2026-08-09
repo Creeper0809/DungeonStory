@@ -19,7 +19,7 @@ MonoBehaviour:
   weight: 1.4
   occupiedHands: 2
   maxDurability: 100
-  requiredCraftWork: 6
+  requiredCraftWork: 112
   defaultMaterialId: material:wood
   primaryMaterialAmount: 2
   allowedMaterialFamilies: 0000000002000000
@@ -37,7 +37,7 @@ MonoBehaviour:
   growthEquipment: 0
   growthBaseStatMultiplier: 1
   verbs:
-  - rid: 7737211772876620149
+  - rid: 7737211838079696901
   rangeProfiles:
   - band: 0
     accuracyMultiplier: 0.35
@@ -55,6 +55,7 @@ MonoBehaviour:
   - ammo:arrow-iron
   - ammo:arrow-steel
   - ammo:arrow-rune
+  - ammo:incendiary-arrow
   magazineCapacity: 1
   reloadSeconds: 0.75
   supportsAimed: 1
@@ -66,7 +67,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211772876620149
+    - rid: 7737211838079696901
       type: {class: ProjectileVerb, ns: , asm: DungeonStory.Combat}
       data:
         attackTime: 0.9

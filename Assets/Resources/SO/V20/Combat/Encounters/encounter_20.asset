@@ -35,13 +35,17 @@ MonoBehaviour:
   battlefieldModifierIds:
   - battlefield:hostage-chain
   counterTags:
+  - counter:nonlethal
   - counter:deny-retreat
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
   - enemyArchetypeId: enemy:merchant-factor
     minimumCount: 1
     maximumCount: 2
-  - enemyArchetypeId: enemy:rival-pactbinder
+  - enemyArchetypeId: enemy:merchant-crossbow
+    minimumCount: 1
+    maximumCount: 2
+  - enemyArchetypeId: enemy:merchant-caravan-blade
     minimumCount: 1
     maximumCount: 2

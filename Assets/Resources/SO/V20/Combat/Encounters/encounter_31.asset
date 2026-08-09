@@ -34,13 +34,14 @@ MonoBehaviour:
   battlefieldModifierIds:
   - battlefield:sealed-exit
   counterTags:
+  - counter:engineering
   - counter:mundane
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
   - enemyArchetypeId: enemy:truth-sealkeeper
     minimumCount: 1
     maximumCount: 2
-  - enemyArchetypeId: enemy:crown-tower-guard
+  - enemyArchetypeId: enemy:truth-null-warden
     minimumCount: 1
     maximumCount: 2

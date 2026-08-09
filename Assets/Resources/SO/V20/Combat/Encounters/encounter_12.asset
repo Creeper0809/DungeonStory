@@ -29,18 +29,20 @@ MonoBehaviour:
   elite: 0
   boss: 1
   objective: 5
-  objectiveRoundLimit: 6
+  objectiveRoundLimit: 7
   objectiveTargetId: enemy:inquisition-ward-knight
   battlefieldModifierIds:
   - battlefield:collapsing-ceiling
   counterTags:
+  - counter:mobile
   - counter:physical-burst
+  - counter:nonlethal
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
   - enemyArchetypeId: enemy:inquisition-ward-knight
     minimumCount: 1
     maximumCount: 1
-  - enemyArchetypeId: enemy:merchant-alchemist
+  - enemyArchetypeId: enemy:inquisition-censor
     minimumCount: 1
     maximumCount: 2

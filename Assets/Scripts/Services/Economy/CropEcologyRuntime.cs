@@ -58,8 +58,8 @@ public sealed class PhysicalSeedLotGateway : IPhysicalSeedLotGateway
             .Select(value => (stack: value, seed: TryDecode(value.Components)))
             .Where(value => value.seed != null
                 && string.Equals(value.seed.cropId, cropId, StringComparison.Ordinal))
-            .OrderByDescending(value => value.seed.quality)
-            .ThenBy(value => value.seed.pathogenLoad)
+            .OrderBy(value => value.seed.pathogenLoad)
+            .ThenByDescending(value => value.seed.generation)
             .ThenBy(value => value.stack.StackId, StringComparer.Ordinal)
             .Select(value => value.stack)
             .FirstOrDefault();
@@ -168,20 +168,30 @@ public sealed class CropEcologyRuntime :
             .GetAll<CropGenomeDefinitionSO>()
             .OrderBy(value => value.GenomeId, StringComparer.Ordinal)
             .ToArray();
+        HashSet<string> authoredCropIds = content
+            .GetAll<CropDefinitionSO>()
+            .Where(value => value != null)
+            .Select(value => value.CropId)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .ToHashSet(StringComparer.Ordinal);
         baseGenomes = authoredGenomes
             .Where(value => value.GenomeId.EndsWith(
                 ":base",
                 StringComparison.Ordinal))
             .ToArray();
-        if (authoredGenomes.Length != 20
+        if (authoredCropIds.Count != 12
+            || authoredGenomes.Length != 32
             || authoredGenomes.Any(value => string.IsNullOrWhiteSpace(value.GenomeId)
-                || string.IsNullOrWhiteSpace(value.CropId))
+                || string.IsNullOrWhiteSpace(value.CropId)
+                || !authoredCropIds.Contains(value.CropId))
             || authoredGenomes.Select(value => value.GenomeId)
-                .Distinct(StringComparer.Ordinal).Count() != 20
-            || baseGenomes.Length != 8
-            || baseGenomes.Select(value => value.CropId).Distinct(StringComparer.Ordinal).Count() != 8)
+                .Distinct(StringComparer.Ordinal).Count() != 32
+            || baseGenomes.Length != 12
+            || !baseGenomes.Select(value => value.CropId)
+                .ToHashSet(StringComparer.Ordinal)
+                .SetEquals(authoredCropIds))
             throw new InvalidOperationException(
-                "V20 requires 20 valid authored genomes and exactly one base genome for each of 8 crops.");
+                "V22 requires 12 crops, 32 valid authored genomes, and exactly one base genome per crop.");
         random = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams)))
             .Get(MutationRandomStreamId);
         this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
@@ -200,6 +210,7 @@ public sealed class CropEcologyRuntime :
         version = unchecked(version + 1);
         return alive;
     }
+    public CropGenomePhenotype GetPhenotype(string plotId) => Current.GetPhenotype(plotId);
     public CropHarvestEcologyResult Harvest(string plotId)
     {
         CropHarvestEcologyResult result = Writable.Harvest(

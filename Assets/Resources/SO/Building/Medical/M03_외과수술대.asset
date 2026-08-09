@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uC678\uACFC \uC218\uC220\uB300"
   sprite: {fileID: 21300000, guid: a96532d7c4dcec446816c2312e6801b0, type: 3}
   icon: {fileID: 21300000, guid: a96532d7c4dcec446816c2312e6801b0, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730889015626
@@ -43,8 +48,8 @@ MonoBehaviour:
     - rid: 7737211730889015633
     - rid: 7737211730889015634
     - rid: 7737211730889015635
-    - rid: 7737211792998531166
-    - rid: 7737211792998531167
+    - rid: 7737211838074978516
+    - rid: 7737211838074978517
   width: 3
   height: 1
   layer: 1
@@ -143,14 +148,14 @@ MonoBehaviour:
         workSpeedMultiplier: 1
         baseSterility: 0.35
         patientSlots: 1
-    - rid: 7737211792998531166
+    - rid: 7737211838074978516
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737211792998531167
+    - rid: 7737211838074978517
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility

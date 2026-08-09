@@ -47,7 +47,7 @@ MonoBehaviour:
   counterTags:
   - counter:ranged
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   bossPhases: []
   individualGeneration:
     minimumGeneralTraits: 2

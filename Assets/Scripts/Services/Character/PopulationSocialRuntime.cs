@@ -63,6 +63,9 @@ public sealed class KinshipHouseholdRuntime :
     public KinshipHouseholdRuntime(DungeonRuntimeAggregateRootStore rootStore) =>
         this.rootStore = rootStore ?? throw new ArgumentNullException(nameof(rootStore));
 
+    public IReadOnlyCollection<CharacterTombstoneSaveData> Tombstones =>
+        Current.Kinship.Tombstones;
+
     public IReadOnlyList<CharacterId> GetParents(CharacterId child, bool includeAdoptive) =>
         Current.Kinship.GetParents(child, includeAdoptive);
     public IReadOnlyList<CharacterId> GetChildren(CharacterId parent, bool includeAdoptive) =>
@@ -139,8 +142,12 @@ public sealed class ReproductionRuntime : IReproductionService, IReproductionPer
         random = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams))).Get(RandomStreamId);
     }
     public FamilyPlanningPolicy FamilyPlanningPolicy => Current.FamilyPlanningPolicy;
+    public int LastAllowedPolicyEvaluationDay =>
+        Current.LastAllowedPolicyEvaluationDay;
     public IReadOnlyList<ReproductionProcess> Processes => Current.Processes;
     public void SetFamilyPlanningPolicy(FamilyPlanningPolicy policy) => Writable.SetFamilyPlanningPolicy(policy);
+    public void MarkAllowedPolicyEvaluation(int absoluteDay) =>
+        Writable.MarkAllowedPolicyEvaluation(absoluteDay);
     public void AddProcess(ReproductionProcess process)
     {
         ValidateNewProcess(process);
@@ -197,6 +204,10 @@ public sealed class ReproductionRuntime : IReproductionService, IReproductionPer
         CharacterActor firstActor = RequireLivingActor(process.FirstParentId);
         if (process.Mode == ReproductionMode.GolemAssembly)
         {
+            if (firstActor.Identity?.Profile?.ReproductiveRole
+                != ReproductiveRole.Assembler)
+                throw new InvalidOperationException(
+                    "Golem assembly requires an adult assembler.");
             return;
         }
 
@@ -250,6 +261,16 @@ public sealed class ReproductionRuntime : IReproductionService, IReproductionPer
             ?? ReproductiveRole.None;
         ReproductiveRole secondRole = second.Identity?.Profile?.ReproductiveRole
             ?? ReproductiveRole.None;
+        if (process.CrossLineageIncubatorUsed)
+        {
+            if (firstRole == ReproductiveRole.None
+                || secondRole == ReproductiveRole.None
+                || !process.CarrierId.Equals(process.FirstParentId)
+                    && !process.CarrierId.Equals(process.SecondParentId))
+                throw new InvalidOperationException(
+                    "Cross-lineage reproduction requires two authored roles and a parent carrier.");
+            return;
+        }
         bool valid = process.Mode switch
         {
             ReproductionMode.Pregnancy =>
@@ -285,7 +306,8 @@ public sealed class ReproductionRuntime : IReproductionService, IReproductionPer
         left == first && right == second || left == second && right == first;
 
     private static bool IsActive(ReproductionProcess process) =>
-        process.Status is ReproductionProcessStatus.Active
+        process.Status is ReproductionProcessStatus.Planned
+            or ReproductionProcessStatus.Active
             or ReproductionProcessStatus.WaitingForEnvironment
             or ReproductionProcessStatus.WaitingForEmergencyExtraction;
 
@@ -313,8 +335,16 @@ public interface ICareerPersistence
 public sealed class CareerRuntime : ICareerService, ICareerPersistence
 {
     private readonly DungeonRuntimeAggregateRootStore rootStore;
-    public CareerRuntime(DungeonRuntimeAggregateRootStore rootStore) =>
-        this.rootStore = rootStore ?? throw new ArgumentNullException(nameof(rootStore));
+    private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
+    public CareerRuntime(
+        DungeonRuntimeAggregateRootStore rootStore,
+        IMilestoneGameplayModifierQuery milestoneModifiers = null)
+    {
+        this.rootStore = rootStore
+            ?? throw new ArgumentNullException(nameof(rootStore));
+        this.milestoneModifiers = milestoneModifiers
+            ?? NeutralMilestoneGameplayModifierQuery.Instance;
+    }
     public IReadOnlyList<CareerMentorshipSnapshot> Mentorships => Current.Mentorships;
     public bool TryGet(CharacterId characterId, out CharacterCareerSnapshot snapshot) =>
         Current.TryGet(characterId, out snapshot);
@@ -350,7 +380,10 @@ public sealed class CareerRuntime : ICareerService, ICareerPersistence
         CharacterId studentCharacterId,
         int absoluteDay) =>
         Writable.TryMarkMentoringAwarded(studentCharacterId, absoluteDay);
-    public int ResolveMentoringXp(int requestedXp) => CareerRules.ResolveMentoringXp(requestedXp);
+    public int ResolveMentoringXp(int requestedXp) => Math.Clamp(
+        requestedXp,
+        0,
+        Math.Max(0, milestoneModifiers.MentorshipDailyXpCap));
     public CharacterCareerWorldSaveData Capture() => Current.CaptureWorld();
     public CharacterCareerAggregate PrepareRestore(CharacterCareerWorldSaveData data) =>
         CharacterCareerAggregate.Restore(data);
@@ -364,6 +397,7 @@ public sealed class CareerRuntime : ICareerService, ICareerPersistence
 
 public interface IGriefTraumaService
 {
+    bool TryGet(CharacterId characterId, out CharacterGriefAggregate state);
     CharacterGriefAggregate Require(CharacterId characterId);
     void RecordDeath(CharacterId characterId, CharacterLifeDeathRecord death, GriefRelationshipKind relationship);
     void CompleteFuneral(CharacterId characterId, CharacterId deceasedId, int absoluteDay, bool matchingRitual);
@@ -373,7 +407,13 @@ public interface IGriefTraumaService
         int absoluteDay,
         bool matchingRitual);
     void ApplyLongNightMemorial(CharacterId characterId, int absoluteDay);
+    void ApplyGriefConversion(CharacterId characterId, float percent);
     void Counsel(CharacterId characterId);
+    void ApplyTraumaDelta(
+        CharacterId characterId,
+        string eventType,
+        int absoluteDay,
+        float amount);
 }
 
 public interface IPsychosocialPersistence
@@ -395,6 +435,8 @@ public sealed class PsychosocialAggregateState
         }
         return value;
     }
+    public bool TryGet(CharacterId id, out CharacterGriefAggregate value) =>
+        characters.TryGetValue(id, out value);
     public CharacterPsychosocialWorldSaveData Capture() => new()
     {
         characters = characters.Values.OrderBy(value => value.CharacterId.Value, StringComparer.Ordinal)
@@ -422,6 +464,8 @@ public sealed class GriefTraumaRuntime : IGriefTraumaService, IPsychosocialPersi
     public GriefTraumaRuntime(DungeonRuntimeAggregateRootStore rootStore) =>
         this.rootStore = rootStore ?? throw new ArgumentNullException(nameof(rootStore));
     public CharacterGriefAggregate Require(CharacterId characterId) => Writable.Require(characterId);
+    public bool TryGet(CharacterId characterId, out CharacterGriefAggregate state) =>
+        Current.TryGet(characterId, out state);
     public void RecordDeath(CharacterId characterId, CharacterLifeDeathRecord death, GriefRelationshipKind relationship) =>
         Writable.Require(characterId).RecordDeath(death, relationship);
     public void CompleteFuneral(CharacterId characterId, CharacterId deceasedId, int absoluteDay, bool matchingRitual) =>
@@ -437,7 +481,17 @@ public sealed class GriefTraumaRuntime : IGriefTraumaService, IPsychosocialPersi
             matchingRitual);
     public void ApplyLongNightMemorial(CharacterId characterId, int absoluteDay) =>
         Writable.Require(characterId).ApplyLongNightMemorial(absoluteDay);
+    public void ApplyGriefConversion(CharacterId characterId, float percent) =>
+        Writable.Require(characterId).ApplyGriefConversion(percent);
     public void Counsel(CharacterId characterId) => Writable.Require(characterId).ApplyCounseling();
+    public void ApplyTraumaDelta(
+        CharacterId characterId,
+        string eventType,
+        int absoluteDay,
+        float amount) => Writable.Require(characterId).ApplyTraumaDelta(
+            eventType,
+            absoluteDay,
+            amount);
     public CharacterPsychosocialWorldSaveData Capture() => Current.Capture();
     public PsychosocialAggregateState PrepareRestore(CharacterPsychosocialWorldSaveData data) =>
         PsychosocialAggregateState.Restore(data);

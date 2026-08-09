@@ -31,15 +31,20 @@ MonoBehaviour:
   objectName: "\uACC4\uBCF4 \uAE30\uB85D\uC2E4"
   sprite: {fileID: 21300000, guid: 7c40435a2a61ffe4a9aff113f39d2ac0, type: 3}
   icon: {fileID: 21300000, guid: 7c40435a2a61ffe4a9aff113f39d2ac0, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
-    - rid: 7737211792661414734
-    - rid: 7737211792661414735
-    - rid: 7737211792661414736
-    - rid: 7737211792661414737
-    - rid: 7737211792661414738
-    - rid: 7737211792661414739
-    - rid: 7737211792661414740
+    - rid: 7737211838074978329
+    - rid: 7737211838074978330
+    - rid: 7737211838074978331
+    - rid: 7737211838074978332
+    - rid: 7737211838074978333
+    - rid: 7737211838074978334
+    - rid: 7737211838074978335
   width: 2
   height: 1
   layer: 1
@@ -55,12 +60,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211792661414734
+    - rid: 7737211838074978329
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I18
-    - rid: 7737211792661414735
+    - rid: 7737211838074978330
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -69,7 +74,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211792661414736
+    - rid: 7737211838074978331
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -81,7 +86,7 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: component:machine-parts
           amount: 4
-    - rid: 7737211792661414737
+    - rid: 7737211838074978332
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -89,13 +94,13 @@ MonoBehaviour:
         - industrial-infrastructure
         - research:equipment:lineage-binding
         - workstation:v3:lineage-archive
-    - rid: 7737211792661414738
+    - rid: 7737211838074978333
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v3:lineage-archive
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211792661414739
+    - rid: 7737211838074978334
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -103,7 +108,7 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211792661414740
+    - rid: 7737211838074978335
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

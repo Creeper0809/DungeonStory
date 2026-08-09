@@ -95,6 +95,7 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
         int maxStack = catalogProvider.GetDefinition(itemId).MaxStack;
         List<ItemInstanceComponentSaveData> instanceComponents =
             BuildInstanceComponents(
+                itemId,
                 components,
                 sourceCharacterId,
                 sourceSpeciesTag,
@@ -360,6 +361,7 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
     }
 
     private static List<ItemInstanceComponentSaveData> BuildInstanceComponents(
+        string itemId,
         IReadOnlyList<ItemInstanceComponentSaveData> authored,
         string sourceCharacterId,
         string sourceSpeciesTag,
@@ -370,6 +372,13 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
             .Where(component => component != null)
             .Select(component => component.Clone())
             .ToList();
+
+        if (DurableToolItemRules.TryGetMaximumDurability(itemId, out _)
+            && components.All(component => component.componentTypeId
+                != ItemInstanceComponentIds.Durability))
+        {
+            components.Add(DurableToolItemRules.CreateDurability(itemId));
+        }
 
         if (contamination > 0f
             && components.All(component => component.componentTypeId

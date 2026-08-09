@@ -71,7 +71,10 @@ public sealed class EquipmentEvolutionRuntime :
         float amount,
         string ownerPersistentId,
         int attunementPoints,
-        IEnumerable<string> sourceTags = null)
+        IEnumerable<string> sourceTags = null,
+        HistoricalEvidenceKind historicalEvidenceKind = HistoricalEvidenceKind.None,
+        string outcomeId = "",
+        int repeatCount = 1)
     {
         CombatEquipmentInstance instance = RequireInstance(equipmentInstanceId);
         EquipmentEvolutionState state = instance.evolution?.Clone()
@@ -82,7 +85,11 @@ public sealed class EquipmentEvolutionRuntime :
             amount,
             ownerPersistentId,
             instance.instanceId,
-            sourceTags);
+            sourceTags,
+            historicalEvidenceKind: historicalEvidenceKind,
+            outcomeId: outcomeId,
+            generation: state.generation,
+            repeatCount: repeatCount);
         state.mastery = Mathf.Max(0f, state.mastery + Mathf.Max(0f, mastery));
         if (!string.IsNullOrWhiteSpace(ownerPersistentId)
             && attunementPoints > 0)
@@ -115,7 +122,10 @@ public sealed class EquipmentEvolutionRuntime :
         float amount,
         string ownerPersistentId,
         int attunementPoints,
-        IEnumerable<string> sourceTags = null)
+        IEnumerable<string> sourceTags = null,
+        HistoricalEvidenceKind historicalEvidenceKind = HistoricalEvidenceKind.None,
+        string outcomeId = "",
+        int repeatCount = 1)
     {
         if (!equipment.TryGetInstance(equipmentInstanceId, out _))
         {
@@ -129,7 +139,10 @@ public sealed class EquipmentEvolutionRuntime :
             amount,
             ownerPersistentId,
             attunementPoints,
-            sourceTags);
+            sourceTags,
+            historicalEvidenceKind,
+            outcomeId,
+            repeatCount);
         return true;
     }
 
@@ -976,7 +989,8 @@ public sealed class EquipmentEvolutionRuntime :
         EvolutionNode node = state.evolutionNodes.FirstOrDefault(entry =>
             entry != null
             && entry.historical
-            && entry.playerVisible
+            && entry.mechanicallyUnlocked
+            && entry.uiVisible
             && string.Equals(
                 entry.nodeId,
                 normalizedNodeId,

@@ -23,7 +23,7 @@ MonoBehaviour:
     SerializationNodes: []
   id: 0
   itemId: facility-kit:30
-  displayName: "1\uC131 \uAC00\uC2DC \uD568\uC815 \uC124\uCE58 \uD0A4\uD2B8"
+  displayName: "1\uC131 \uC0B0\uD0C4 \uAC00\uC2DC \uD568\uC815 \uC124\uCE58 \uD0A4\uD2B8"
   description: "\uC2DC\uC124\uC744 \uAC74\uC124\uD558\uAE30 \uC704\uD55C \uC2E4\uC81C
     \uBD80\uD488\uACFC \uC870\uB9BD \uC790\uC7AC \uBB36\uC74C."
   stockCategory: 1
@@ -32,18 +32,18 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 80
   features:
-  - rid: 7737211729518789288
-  - rid: 7737211729518789289
+  - rid: 7737211825767056372
+  - rid: 7737211825767056373
   references:
     version: 2
     RefIds:
-    - rid: 7737211729518789288
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211825767056372
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211729518789289
-      type: {class: InstallationItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211825767056373
+      type: {class: InstallationItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         buildingDefinitionId: 30

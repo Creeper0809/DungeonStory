@@ -31,21 +31,21 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 50
   features:
-  - rid: 7737211794726585116
-  - rid: 7737211794726585117
-  - rid: 7737211794726585118
+  - rid: 7737211838078124500
+  - rid: 7737211838078124501
+  - rid: 7737211838078124502
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726585116
+    - rid: 7737211838078124500
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:blasting-charge
-    - rid: 7737211794726585117
+    - rid: 7737211838078124501
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:mining:deep
-    - rid: 7737211794726585118
+    - rid: 7737211838078124502
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7

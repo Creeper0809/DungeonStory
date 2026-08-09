@@ -144,7 +144,7 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
                 FindObjectsSortMode.None)
             .FirstOrDefault();
 
-        Check(catalog.Projects.Count == 216,
+        Check(catalog.Projects.Count == 180,
             "CATALOG_COUNT",
             $"projects={catalog.Projects.Count}");
         Check(runtime != null,
@@ -185,7 +185,7 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
                 && (gameManager == null || !gameManager.isPause),
             "DEFAULT_NO_PAUSE",
             $"timeScale={Time.timeScale:0.##}; paused={gameManager != null && gameManager.isPause}");
-        Check(CountNodeButtons(window) == 216,
+        Check(CountNodeButtons(window) == 180,
             "ALL_NODES_VISIBLE",
             $"nodes={CountNodeButtons(window)}");
         Check(FindChild(window.transform, "GraphViewport") != null

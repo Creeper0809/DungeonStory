@@ -31,16 +31,22 @@ MonoBehaviour:
   objectName: "\uC7AC\uBC30 \uC628\uC2E4"
   sprite: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
   icon: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 3
+  researchFacilityCommand: 0
   abilityModules:
     items:
-    - rid: 7737211794726584790
-    - rid: 7737211794726584791
-    - rid: 7737211794726584792
-    - rid: 7737211794726584793
-    - rid: 7737211794726584794
-    - rid: 7737211794726584795
-    - rid: 7737211794726584796
-    - rid: 7737211794726584797
+    - rid: 7737211838078124828
+    - rid: 7737211838078124829
+    - rid: 7737211838078124830
+    - rid: 7737211838078124831
+    - rid: 7737211838078124832
+    - rid: 7737211838078124833
+    - rid: 7737211838078124834
+    - rid: 7737211838078124835
+    - rid: 7737211838078124836
   width: 1
   height: 1
   layer: 1
@@ -56,12 +62,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584790
+    - rid: 7737211838078124828
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF54
-    - rid: 7737211794726584791
+    - rid: 7737211838078124829
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -69,13 +75,13 @@ MonoBehaviour:
         - research-overhaul
         - research:agriculture:greenhouse-horticulture
         - workstation:v19:greenhouse
-    - rid: 7737211794726584792
+    - rid: 7737211838078124830
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v19:greenhouse
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211794726584793
+    - rid: 7737211838078124831
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -83,7 +89,19 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211794726584794
+    - rid: 7737211838078124832
+      type: {class: BuildingCropPlotAbility, ns: , asm: DungeonStory.Economy}
+      data:
+        abilityId: BuildingCropPlotAbility
+        indoor: 1
+        growthMultiplier: 1.5
+        waterMultiplier: 0.75
+        compostPerCycle: 1
+        fuelPerCycle: 1
+        cycleSupplyInputs:
+        - itemId: supply:greenhouse-nutrient
+          amount: 1
+    - rid: 7737211838078124833
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -92,22 +110,22 @@ MonoBehaviour:
         maintenance: 5
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211794726584795
+    - rid: 7737211838078124834
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
         settings:
-          roles: 80
+          roles: 64
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
-          supportedWorkTypes: 0
+          supportedWorkTypes: 6291457
           disabledWhenDamaged: 1
-    - rid: 7737211794726584796
+    - rid: 7737211838078124835
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211794726584797
+    - rid: 7737211838078124836
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility

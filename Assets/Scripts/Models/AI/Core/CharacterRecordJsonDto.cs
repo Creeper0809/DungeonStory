@@ -11,6 +11,8 @@ public static class CharacterRecordNarrativeRules
 public sealed class CharacterRecordJsonDto : ILlmJsonPayload
 {
     public string line;
+    public string[] usedMotifIds = Array.Empty<string>();
+    public string[] usedCharacterFactIds = Array.Empty<string>();
 
     public bool Validate(out string error)
     {

@@ -122,8 +122,8 @@ public static class PlayerFairnessDebugScenarios
             "external.influence version is not V3");
         Require(DungeonWildlifeSaveData.CurrentVersion == 3,
             "wildlife.population version is not V3");
-        Require(DungeonCharacterEnvironmentSaveData.CurrentVersion == 3,
-            "environment.exposure version is not V3");
+        Require(DungeonCharacterEnvironmentSaveData.CurrentVersion == 5,
+            "environment.exposure version is not V22 apparel revision 5");
 
         DungeonExternalInfluenceSaveData external = new()
         {

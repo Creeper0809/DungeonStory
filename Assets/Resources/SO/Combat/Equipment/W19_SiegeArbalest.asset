@@ -19,7 +19,7 @@ MonoBehaviour:
   weight: 8.5
   occupiedHands: 2
   maxDurability: 100
-  requiredCraftWork: 6
+  requiredCraftWork: 248
   defaultMaterialId: material:iron
   primaryMaterialAmount: 7
   allowedMaterialFamilies: 03000000
@@ -43,7 +43,7 @@ MonoBehaviour:
   growthEquipment: 1
   growthBaseStatMultiplier: 0.88
   verbs:
-  - rid: 7737211772876620163
+  - rid: 7737211838079696915
   rangeProfiles:
   - band: 2
     accuracyMultiplier: 0.9
@@ -58,6 +58,10 @@ MonoBehaviour:
   - ammo:bolt-iron
   - ammo:bolt-steel
   - ammo:bolt-rune
+  - ammo:incendiary-bolt
+  - ammo:blacksteel-bolt
+  - ammo:mana-disruptor-bolt
+  - ammo:tranquilizer-dart
   magazineCapacity: 1
   reloadSeconds: 9
   supportsAimed: 1
@@ -69,7 +73,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211772876620163
+    - rid: 7737211838079696915
       type: {class: ProjectileVerb, ns: , asm: DungeonStory.Combat}
       data:
         attackTime: 2

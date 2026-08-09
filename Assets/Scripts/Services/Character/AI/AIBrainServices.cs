@@ -38,7 +38,8 @@ public sealed class AIBrainExecutionServices
         IGameClock clock,
         IRandomStreamProvider randomStreams,
         ISocialReputationBiasService reputationBias,
-        IRoomFacilityPolicy roomFacilities)
+        IRoomFacilityPolicy roomFacilities,
+        ICharacterCultureGameplayQuery culturePreferences = null)
     {
         PathSearch = pathSearch ?? throw new ArgumentNullException(nameof(pathSearch));
         Clock = clock ?? throw new ArgumentNullException(nameof(clock));
@@ -47,7 +48,8 @@ public sealed class AIBrainExecutionServices
             .Get("character-ai");
         FacilityScoring = new FacilityScoringContext(
             reputationBias,
-            roomFacilities);
+            roomFacilities,
+            culturePreferences);
     }
 
     public IGridPathSearchBroker PathSearch { get; }

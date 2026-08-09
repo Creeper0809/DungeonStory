@@ -19,7 +19,7 @@ MonoBehaviour:
   weight: 6
   occupiedHands: 1
   maxDurability: 160
-  requiredCraftWork: 6
+  requiredCraftWork: 176
   defaultMaterialId: material:iron
   primaryMaterialAmount: 5
   allowedMaterialFamilies: 000000000200000003000000

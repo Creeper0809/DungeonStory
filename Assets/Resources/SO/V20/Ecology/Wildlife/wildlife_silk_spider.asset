@@ -43,7 +43,12 @@ MonoBehaviour:
   laysEggs: 0
   bodySize: 1
   manureIntervalDays: 2
-  husbandryProducts: []
+  husbandryProducts:
+  - itemId: fiber:cave-silk
+    amount: 2
+    intervalDays: 3
+    femaleOnly: 0
+    adultOnly: 1
   authoringRevision: 1
   preySpeciesIds:
   - glow_moth

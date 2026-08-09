@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -17,6 +18,7 @@ public sealed class CustomerPersonaData
     [Range(0.25f, 2f)] public float funCurveMultiplier = 1f;
     [Range(0.25f, 2f)] public float moodCurveMultiplier = 1f;
     public string[] preferredFacilityTags = Array.Empty<string>();
+    public NarrativeGenerationTrace narrativeTrace;
 
     public void Clamp()
     {
@@ -287,7 +289,19 @@ public sealed class CustomerPersonaRuntime : SerializedMonoBehaviour
             return;
         }
 
-        ApplyGeneratedPersona(dto.ToRuntimeData());
+        CustomerPersonaData generated = dto.ToRuntimeData();
+        CustomerPersonaData rules = Persona;
+        generated.selfCareMultiplier = rules.selfCareMultiplier;
+        generated.curiosityMultiplier = rules.curiosityMultiplier;
+        generated.shoppingMultiplier = rules.shoppingMultiplier;
+        generated.patienceMultiplier = rules.patienceMultiplier;
+        generated.hungerCurveMultiplier = rules.hungerCurveMultiplier;
+        generated.funCurveMultiplier = rules.funCurveMultiplier;
+        generated.moodCurveMultiplier = rules.moodCurveMultiplier;
+        generated.preferredFacilityTags = rules.preferredFacilityTags?.ToArray()
+            ?? Array.Empty<string>();
+        generated.narrativeTrace = result.NarrativeTrace;
+        ApplyGeneratedPersona(generated);
     }
 
     private static string BuildPersonaPrompt(CharacterActor actor)
@@ -309,7 +323,12 @@ public sealed class CustomerPersonaRuntime : SerializedMonoBehaviour
         builder.AppendLine($"currentMood: {GetCondition(actor, CharacterCondition.MOOD):0.0}");
         builder.AppendLine($"currentExcretion: {GetCondition(actor, CharacterCondition.EXCRETION):0.0}");
         builder.AppendLine($"currentHygiene: {GetCondition(actor, CharacterCondition.HYGIENE):0.0}");
-        return builder.ToString();
+        return NarrativeRequestContextBuilder.ForActor(
+                LocalLlmRequestProfiles.Persona.Id,
+                actor,
+                requireCharacterFact: true,
+                requireMotif: true)
+            .AppendToPrompt(builder.ToString());
     }
 
     private static float GetCondition(CharacterActor actor, CharacterCondition condition)

@@ -55,7 +55,7 @@ public static class SurvivalDebugScenarios
 
     private static string VerifySaveContract()
     {
-        Require(DungeonGameSaveData.CurrentVersion == 20, "game save version is not V20");
+        Require(DungeonGameSaveData.CurrentVersion == 23, "game save version is not V23");
         DungeonGameSaveData save = new DungeonGameSaveData();
         DungeonSaveSectionPayload.Write(
             save,

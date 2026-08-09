@@ -9,12 +9,14 @@ using UnityEngine;
 /// </summary>
 public sealed class EquipmentModuleRuntime
 {
+    private const string MaterialTestCouponItemId = "component:material-test-coupon";
     private readonly IItemInstanceRepository itemInstances;
     private readonly ICombatEquipmentCatalog equipmentCatalog;
     private readonly IEquipmentModuleCatalog moduleCatalog;
     private readonly BlueprintResearchRuntime research;
     private readonly CombatEquipmentPhysicalStateWriter physicalState;
     private readonly IEquipmentPhysicalItemGateway physicalItems;
+    private readonly IFacilityCapabilityQuery facilities;
 
     private IDictionary<string, CombatEquipmentInstance> EquipmentInstances =>
         itemInstances.EquipmentInstances;
@@ -27,7 +29,8 @@ public sealed class EquipmentModuleRuntime
         IEquipmentModuleCatalog moduleCatalog,
         ProgressionSceneRuntimeReferences progressionRuntimes,
         CombatEquipmentPhysicalStateWriter physicalState,
-        IEquipmentPhysicalItemGateway physicalItems)
+        IEquipmentPhysicalItemGateway physicalItems,
+        IFacilityCapabilityQuery facilities)
     {
         this.itemInstances = itemInstances
             ?? throw new ArgumentNullException(nameof(itemInstances));
@@ -44,6 +47,8 @@ public sealed class EquipmentModuleRuntime
             ?? throw new ArgumentNullException(nameof(physicalState));
         this.physicalItems = physicalItems
             ?? throw new ArgumentNullException(nameof(physicalItems));
+        this.facilities = facilities
+            ?? throw new ArgumentNullException(nameof(facilities));
     }
 
     public IReadOnlyCollection<EquipmentModuleInstance> Snapshots =>
@@ -144,6 +149,30 @@ public sealed class EquipmentModuleRuntime
             return false;
         }
 
+        if (!TryPrepareAppraisalSupplies(
+                facility,
+                destinationId,
+                out WorldItemStackSnapshot gauge,
+                out WorldItemStackSnapshot lens,
+                out failure))
+        {
+            return false;
+        }
+
+        if (!physicalItems.TryConsumeFacilityItemBuffer(
+                destinationId,
+                new Dictionary<string, int>(StringComparer.Ordinal)
+                {
+                    [MaterialTestCouponItemId] = 1
+                },
+                out _))
+        {
+            failure = new DomainFailure(
+                FailureCode.EquipmentModuleMissing,
+                MaterialTestCouponItemId);
+            return false;
+        }
+
         EquipmentModuleInstance previous = module.Clone();
         module.identified = true;
         module.state = EquipmentModuleProcessState.IdentifiedDamaged;
@@ -153,8 +182,106 @@ public sealed class EquipmentModuleRuntime
             failure = new DomainFailure(FailureCode.EquipmentModuleMissing);
             return false;
         }
+        WearAppraisalTool(gauge, 1f);
+        WearAppraisalTool(lens, 2f);
         failure = DomainFailure.None;
         return true;
+    }
+
+    private bool TryPrepareAppraisalSupplies(
+        BuildableObject facility,
+        string destinationId,
+        out WorldItemStackSnapshot gauge,
+        out WorldItemStackSnapshot lens,
+        out DomainFailure failure)
+    {
+        gauge = FindUsableTool(destinationId, DurableToolItemRules.InspectionGauge);
+        lens = FindUsableTool(destinationId, DurableToolItemRules.RuneIdentificationLens);
+        bool hasCoupon = physicalItems.GetAllStacks().Any(stack =>
+            stack != null
+            && stack.State == WorldItemStackState.FacilityBuffer
+            && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal)
+            && string.Equals(stack.ItemId, MaterialTestCouponItemId, StringComparison.Ordinal)
+            && stack.Quantity > 0);
+        if (gauge != null && lens != null && hasCoupon)
+        {
+            failure = DomainFailure.None;
+            return true;
+        }
+
+        RequestMissingAppraisalSupply(
+            facility,
+            destinationId,
+            MaterialTestCouponItemId,
+            hasCoupon);
+        RequestMissingAppraisalSupply(
+            facility,
+            destinationId,
+            DurableToolItemRules.InspectionGauge,
+            gauge != null);
+        RequestMissingAppraisalSupply(
+            facility,
+            destinationId,
+            DurableToolItemRules.RuneIdentificationLens,
+            lens != null);
+        string missing = !hasCoupon
+            ? MaterialTestCouponItemId
+            : gauge == null
+                ? DurableToolItemRules.InspectionGauge
+                : DurableToolItemRules.RuneIdentificationLens;
+        failure = new DomainFailure(FailureCode.EquipmentModuleMissing, missing);
+        return false;
+    }
+
+    private void RequestMissingAppraisalSupply(
+        BuildableObject facility,
+        string destinationId,
+        string itemId,
+        bool available)
+    {
+        if (available || physicalItems.GetAllStacks().Any(stack =>
+                stack != null
+                && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal)
+                && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal)))
+        {
+            return;
+        }
+
+        physicalItems.TryRequestItemDelivery(
+            itemId,
+            1,
+            facility.centerPos,
+            destinationId,
+            out _,
+            out _);
+    }
+
+    private WorldItemStackSnapshot FindUsableTool(string destinationId, string itemId)
+    {
+        return physicalItems.GetAllStacks()
+            .Where(stack => stack != null
+                && stack.State == WorldItemStackState.FacilityBuffer
+                && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal)
+                && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal)
+                && DurableToolItemRules.ReadCurrentDurability(
+                    stack.ItemId,
+                    stack.Components) > 0f)
+            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+            .FirstOrDefault();
+    }
+
+    private void WearAppraisalTool(WorldItemStackSnapshot tool, float wear)
+    {
+        float current = DurableToolItemRules.ReadCurrentDurability(
+            tool.ItemId,
+            tool.Components);
+        if (!physicalItems.TrySetInstanceComponent(
+                tool.StackId,
+                DurableToolItemRules.CreateDurability(tool.ItemId, current - wear)))
+        {
+            throw new InvalidOperationException(
+                $"Validated appraisal tool '{tool.StackId}' disappeared during appraisal.");
+        }
     }
 
     public bool TryRestore(
@@ -170,11 +297,11 @@ public sealed class EquipmentModuleRuntime
         {
             return false;
         }
-        if (!HasCompletedResearch("research:equipment:relic-restoration"))
+        if (!HasCompletedResearch("research:equipment:relic-appraisal"))
         {
             failure = new DomainFailure(
                 FailureCode.RequiredResearchUnavailable,
-                "research:equipment:relic-restoration",
+                "research:equipment:relic-appraisal",
                 "facility:equipment:restoration-bench");
             return false;
         }
@@ -227,6 +354,14 @@ public sealed class EquipmentModuleRuntime
                 FailureCode.RequiredResearchUnavailable,
                 "research:equipment:rune-module-tuning",
                 "facility:equipment:rune-tuning-room");
+            return false;
+        }
+        if (facilities.FindOperational(
+                ResearchFacilityCommandKind.ResonanceTuning).Count == 0)
+        {
+            failure = new DomainFailure(
+                FailureCode.ServiceFeatureMissing,
+                "facility:resonance-tuning");
             return false;
         }
         if (!Modules.TryGetValue(moduleInstanceId?.Trim() ?? string.Empty,

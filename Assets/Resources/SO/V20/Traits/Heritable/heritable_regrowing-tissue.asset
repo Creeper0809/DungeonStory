@@ -26,3 +26,6 @@ MonoBehaviour:
   - kind: 6
     targetId: regeneration
     multiplierDelta: 0.1
+  - kind: 8
+    targetId: hunger
+    multiplierDelta: 0.08

@@ -19,13 +19,17 @@ MonoBehaviour:
   weight: 9
   occupiedHands: 0
   maxDurability: 120
-  requiredCraftWork: 6
+  requiredCraftWork: 344
   defaultMaterialId: material:iron
   primaryMaterialAmount: 7
   allowedMaterialFamilies: 03000000
   craftMaterials: []
   requiredComponentInputs:
   - itemId: component:growth-frame
+    amount: 1
+  - itemId: material:chain-mesh
+    amount: 1
+  - itemId: material:mana-alloy
     amount: 1
   - itemId: component:rune-conductor
     amount: 1

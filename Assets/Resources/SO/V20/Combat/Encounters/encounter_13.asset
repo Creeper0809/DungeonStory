@@ -34,13 +34,15 @@ MonoBehaviour:
   battlefieldModifierIds:
   - battlefield:narrow-bridge
   counterTags:
-  - counter:decoy
+  - counter:reach
+  - counter:mundane
+  - counter:smoke
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
   - enemyArchetypeId: enemy:inquisition-rune-sniper
     minimumCount: 1
     maximumCount: 2
-  - enemyArchetypeId: enemy:merchant-factor
+  - enemyArchetypeId: enemy:inquisition-ward-knight
     minimumCount: 1
     maximumCount: 2

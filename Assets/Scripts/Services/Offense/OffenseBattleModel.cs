@@ -80,6 +80,7 @@ public sealed class OffenseBattleSession
             string.Empty,
             Array.Empty<BattlefieldModifierDefinitionSO>());
         this.encounterRules.ResolveProtectedCombatant(this.combatants);
+        this.encounterRules.EvaluatePartyCounters(this.combatants);
 
         Outcome = startImmediately ? ResolveOutcome() : OffenseBattleOutcome.InProgress;
         if (startImmediately && Outcome == OffenseBattleOutcome.InProgress)
@@ -163,6 +164,7 @@ public sealed class OffenseBattleSession
                 currentHealth = combatant.CurrentHealth,
                 totalDamageTaken = combatant.TotalDamageTaken,
                 initiativePenalty = combatant.InitiativePenalty,
+                coverBlockChance = combatant.CoverBlockChance,
                 turnsStarted = combatant.TurnsStarted,
                 formation = combatant.Formation,
                 suppression = combatant.Suppression,
@@ -242,6 +244,7 @@ public sealed class OffenseBattleSession
             }
             combatant.RestoreHealth(saved.currentHealth, saved.totalDamageTaken);
             combatant.RestoreInitiativePenalty(saved.initiativePenalty);
+            combatant.SetCover(saved.coverBlockChance);
             combatant.RestoreTurnsStarted(saved.turnsStarted);
             combatant.RestoreFormation(saved.formation);
             combatant.RestoreCombatState(
@@ -469,7 +472,7 @@ public sealed class OffenseBattleSession
                 + (weapon.IsRanged ? source.Stats.Shooting * 0.45f : source.Stats.Attack * 0.75f)
                 + source.Stats.Strength * 0.35f)
             * rangeDamage
-            * encounterRules.DamageMultiplier
+            * encounterRules.GetDamageMultiplier(source.Team)
             * Mathf.Max(0.1f, attackMultiplier)
             - target.Stats.Toughness * 0.2f);
     }
@@ -493,27 +496,26 @@ public sealed class OffenseBattleSession
         }
 
         int distance = OffenseBattleSessionRules.GetFormationDistance(source, target);
+        CombatWeaponSnapshot weapon = source.Weapon ?? CombatWeaponSnapshot.CreateUnarmed();
         return combatResolution.Preview(new CombatAttackRequest(
             $"{BattleId}:preview",
             source.PersistentId,
             target.PersistentId,
             CreateModifiedCombatStats(source, attacking: true),
             CreateModifiedCombatStats(target, attacking: false),
-            source.Weapon ?? CombatWeaponSnapshot.CreateUnarmed(),
+            weapon,
             distance,
             source.FireMode,
-            target.CoverBlockChance > 0f
-                ? new CombatCoverSnapshot(
-                    CombatCoverHeight.Low,
-                    target.CoverBlockChance,
-                    0f,
-                    "offense-cover")
-                : default,
+            CreateEffectiveCover(target),
             defenderDowned: target.IsDowned,
             defenderMeleeLocked: distance <= 1,
             attackerSuppression: source.Suppression,
             defenderSuppression: target.Suppression,
-            defenderArmor: target.Armor));
+            lightMultiplier: GetVisibilityMultiplier(source, target, weapon),
+            attackPowerMultiplier: GetAttackMultiplier(source),
+            defenderArmor: target.Armor,
+            defenderShield: target.Shield,
+            defenderConstruct: IsConstruct(target)));
     }
 
     public int GetFormationDistanceForPreview(
@@ -548,9 +550,12 @@ public sealed class OffenseBattleSession
         float finalAmount = Mathf.Max(
             1f,
             rawAmount
-            * encounterRules.DamageMultiplier
+            * encounterRules.GetDamageMultiplier(source?.Team ?? target.Team)
             * (1f - Mathf.Clamp01(guard))
             * (1f + vulnerability));
+        finalAmount = Mathf.Max(
+            0f,
+            finalAmount - AbsorbWithSummonedGuard(target, finalAmount));
         float applied = target.ApplyRawDamage(finalAmount);
         if (target.IsDead)
         {
@@ -582,6 +587,29 @@ public sealed class OffenseBattleSession
         target?.AddStatus(new OffenseBattleStatus(statusId, type, value, turns, sourceId));
     }
 
+    internal void ApplySmoke(
+        OffenseBattleCombatant center,
+        float obscuration,
+        int turns,
+        string sourceId)
+    {
+        if (center == null)
+        {
+            return;
+        }
+
+        foreach (OffenseBattleCombatant combatant in GetLivingTeam(center.Team))
+        {
+            AddStatus(
+                combatant,
+                OffenseBattleStatusType.SmokeObscured,
+                Mathf.Clamp(obscuration, 0.1f, 0.8f),
+                Mathf.Max(1, turns),
+                sourceId,
+                $"smoke:{sourceId}:{combatant.PersistentId}");
+        }
+    }
+
     internal void Delay(OffenseBattleCombatant target, float amount)
     {
         target?.AddInitiativePenalty(amount);
@@ -592,6 +620,8 @@ public sealed class OffenseBattleSession
         return target?.RemoveStatuses(
             status => status.Type == OffenseBattleStatusType.Vulnerability
                 || status.Type == OffenseBattleStatusType.DamageOverTime
+                || status.Type == OffenseBattleStatusType.Sedated
+                || status.Type == OffenseBattleStatusType.ManaBlocked
                 || (status.Type == OffenseBattleStatusType.AttackModifier && status.Value < 0f),
             maximum) ?? 0;
     }
@@ -663,6 +693,12 @@ public sealed class OffenseBattleSession
             case OffenseBattleActionType.BasicAttack:
                 return TryBasicAttack(actor, command.TargetId, out result);
             case OffenseBattleActionType.Guard:
+                if ((actor.Shield.RoleFlags
+                        & CombatEquipmentRoleFlags.DeployableCover) != 0
+                    && actor.CoverBlockChance <= 0f)
+                {
+                    return TryDeployCover(actor, out result);
+                }
                 AddStatus(
                     actor,
                     OffenseBattleStatusType.Guard,
@@ -708,6 +744,8 @@ public sealed class OffenseBattleSession
                 return TrySwitchWeapon(actor, command.AbilityId, out result);
             case OffenseBattleActionType.SetFireMode:
                 return TrySetFireMode(actor, command.AbilityId, out result);
+            case OffenseBattleActionType.DeployCover:
+                return TryDeployCover(actor, out result);
             default:
                 result = new OffenseBattleCommandResult(false, "지원하지 않는 행동입니다.");
                 return false;
@@ -729,6 +767,7 @@ public sealed class OffenseBattleSession
 
         CombatWeaponSnapshot weapon = actor.Weapon ?? CombatWeaponSnapshot.CreateUnarmed();
         int distance = OffenseBattleSessionRules.GetFormationDistance(actor, target);
+        ConsumePoweredEquipment(weapon, 5f);
         CombatAttackResult resolved = combatResolution.Resolve(new CombatAttackRequest(
             $"{BattleId}:{LastProcessedCommandId + 1}:basic",
             actor.PersistentId,
@@ -738,36 +777,49 @@ public sealed class OffenseBattleSession
             weapon,
             distance,
             actor.FireMode,
-            target.CoverBlockChance > 0f
-                ? new CombatCoverSnapshot(CombatCoverHeight.Low, target.CoverBlockChance, 0f, "offense-cover")
-                : default,
+            CreateEffectiveCover(target),
             defenderDowned: target.HealthRatio <= 0.15f,
             defenderMeleeLocked: distance <= 1,
             attackerSuppression: actor.Suppression,
             defenderSuppression: target.Suppression,
-            defenderArmor: target.Armor));
+            lightMultiplier: GetVisibilityMultiplier(actor, target, weapon),
+            attackPowerMultiplier: GetAttackMultiplier(actor),
+            defenderArmor: target.Armor,
+            defenderShield: target.Shield,
+            defenderConstruct: IsConstruct(target)));
         if (!resolved.Executed)
         {
             result = new OffenseBattleCommandResult(false, resolved.FailureReason);
             return false;
         }
 
+        ConsumePoweredDefense(target, resolved);
+
         if (weapon.RequiresAmmo && !string.IsNullOrWhiteSpace(weapon.InstanceId))
         {
-            combatEquipmentRuntime?.TryConsumeLoadedAmmo(weapon.InstanceId);
+            combatEquipmentRuntime?.TryConsumeLoadedAmmo(
+                weapon.InstanceId,
+                Mathf.Max(1, resolved.AmmunitionConsumed));
             if (combatEquipmentRuntime != null
                 && combatEquipmentRuntime.TryGetActiveWeapon(
                     actor.PersistentId,
                     out CombatWeaponSnapshot refreshed))
             {
-                actor.SetCombatEquipment(refreshed, actor.Armor);
+                actor.SetCombatEquipment(refreshed, actor.Armor, actor.Shield);
             }
         }
         else if (weapon.Verb?.DropsWeaponOnUse == true
             && !string.IsNullOrWhiteSpace(weapon.InstanceId))
         {
             thrownOwnerByInstance[weapon.InstanceId] = actor.PersistentId;
-            actor.SetCombatEquipment(CombatWeaponSnapshot.CreateUnarmed(), actor.Armor);
+            actor.SetCombatEquipment(
+                CombatWeaponSnapshot.CreateUnarmed(),
+                actor.Armor,
+                actor.Shield);
+        }
+        else if ((weapon.RoleFlags & CombatEquipmentRoleFlags.Powered) != 0)
+        {
+            RefreshCombatantEquipment(actor);
         }
 
         float damage = ApplyResolvedCombatDamage(actor, target, resolved);
@@ -806,7 +858,7 @@ public sealed class OffenseBattleSession
             return false;
         }
 
-        actor.SetCombatEquipment(refreshed, actor.Armor);
+        actor.SetCombatEquipment(refreshed, actor.Armor, actor.Shield);
         result = new OffenseBattleCommandResult(
             true,
             $"{actor.DisplayName}이(가) {consumedAmmo}발을 재장전했습니다.");
@@ -837,7 +889,7 @@ public sealed class OffenseBattleSession
             return false;
         }
 
-        actor.SetCombatEquipment(weapon, actor.Armor);
+        actor.SetCombatEquipment(weapon, actor.Armor, actor.Shield);
         result = new OffenseBattleCommandResult(
             true,
             $"{actor.DisplayName}이(가) 무기를 교체했습니다.");
@@ -924,6 +976,14 @@ public sealed class OffenseBattleSession
             result = new OffenseBattleCommandResult(false, "사용할 수 없는 능력입니다.");
             return false;
         }
+        if (actor.Statuses.Any(value =>
+                value.Type == OffenseBattleStatusType.ManaBlocked))
+        {
+            result = new OffenseBattleCommandResult(
+                false,
+                "마나 차단 상태에서는 전투 능력을 사용할 수 없습니다.");
+            return false;
+        }
 
         int cooldown = actor.GetCooldown(ability.Id);
         if (cooldown > 0)
@@ -950,10 +1010,18 @@ public sealed class OffenseBattleSession
         }
 
         OffenseBattleEffectContext context = new OffenseBattleEffectContext(this, actor, target);
+        if (ability.Effects.Any(effect => effect is OffenseDamageEffect
+                or OffenseDamageOverTimeEffect
+                or OffenseConditionalAmplifyEffect
+                or OffenseMultiTargetEffect))
+        {
+            ConsumePoweredEquipment(actor.Weapon, 5f);
+        }
         foreach (OffenseCombatEffectModule effect in ability.Effects)
         {
             OffenseCombatEffectRuntime.Apply(effect, context);
         }
+        RefreshCombatantEquipment(actor);
 
         actor.SetCooldown(ability.Id, ability.CooldownTurns);
         AddLog($"{actor.DisplayName}이(가) {ability.DisplayName}을(를) 사용했습니다.");
@@ -1020,7 +1088,8 @@ public sealed class OffenseBattleSession
                 && !combatant.IsDead
                 && !combatant.IsDowned)
             .OrderByDescending(combatant =>
-                combatant.Initiative * encounterRules.MovementMultiplier)
+                combatant.Initiative
+                    * encounterRules.GetMovementMultiplier(combatant.Team))
             .ThenBy(combatant => combatant.PersistentId, StringComparer.Ordinal)
             .Select(combatant => combatant.PersistentId));
     }
@@ -1098,20 +1167,64 @@ public sealed class OffenseBattleSession
         }
     }
 
+    private bool TryDeployCover(
+        OffenseBattleCombatant actor,
+        out OffenseBattleCommandResult result)
+    {
+        if (actor == null
+            || !actor.Shield.IsValid
+            || (actor.Shield.RoleFlags
+                & CombatEquipmentRoleFlags.DeployableCover) == 0)
+        {
+            result = new OffenseBattleCommandResult(
+                false,
+                "설치 가능한 엄폐 방패가 없습니다.");
+            return false;
+        }
+        if (actor.CoverBlockChance > 0f)
+        {
+            result = new OffenseBattleCommandResult(
+                false,
+                "이미 엄폐가 설치되어 있습니다.");
+            return false;
+        }
+
+        float cover = Mathf.Clamp(
+            Mathf.Max(0.55f, actor.Shield.GetBlockChance()),
+            0f,
+            0.8f);
+        actor.SetCover(cover);
+        AddLog($"{actor.DisplayName}이(가) 파비스를 설치해 엄폐 {cover * 100f:0}%를 확보했습니다.");
+        result = new OffenseBattleCommandResult(
+            true,
+            $"파비스 설치 · 엄폐 {cover * 100f:0}%");
+        return true;
+    }
+
     private CombatStatSnapshot CreateModifiedCombatStats(
         OffenseBattleCombatant combatant,
         bool attacking)
     {
         CombatStatSnapshot value = OffenseBattleSessionRules.CreateCombatStats(combatant);
-        float accuracy = attacking ? encounterRules.AccuracyMultiplier : 1f;
+        float accuracy = attacking
+            ? encounterRules.GetAccuracyMultiplier(combatant.Team)
+            : 1f;
+        float sedation = combatant.Statuses
+            .Where(status => status.Type == OffenseBattleStatusType.Sedated)
+            .Select(status => status.Value)
+            .DefaultIfEmpty(0f)
+            .Max();
+        float activity = 1f - Mathf.Clamp(sedation, 0f, 0.8f);
         return new CombatStatSnapshot(
-            value.Melee * accuracy,
-            value.Shooting * accuracy,
-            value.Evasion * encounterRules.MovementMultiplier,
-            value.MoveSpeed * encounterRules.MovementMultiplier,
+            value.Melee * accuracy * activity,
+            value.Shooting * accuracy * activity,
+            value.Evasion * encounterRules.GetMovementMultiplier(combatant.Team),
+            value.MoveSpeed
+                * encounterRules.GetMovementMultiplier(combatant.Team)
+                * activity,
             value.Strength,
             value.Toughness,
-            value.Dexterity * accuracy,
+            value.Dexterity * accuracy * activity,
             value.HealthMultiplier);
     }
 
@@ -1135,7 +1248,11 @@ public sealed class OffenseBattleSession
             ? string.Empty
             : " | 전장: " + string.Join(", ",
                 encounterRules.Modifiers.Select(value => value.displayName));
-        return objective + modifiers;
+        string counters = encounterRules.MatchedCounterTags.Count == 0
+            ? string.Empty
+            : " | 대응 성공: " + string.Join(", ",
+                encounterRules.MatchedCounterTags.OrderBy(value => value, StringComparer.Ordinal));
+        return objective + modifiers + counters;
     }
 
     private bool IsValidTarget(
@@ -1246,9 +1363,12 @@ public sealed class OffenseBattleSession
         float adjustedDamage = Mathf.Max(
             0.5f,
             resolved.AppliedDamage
-            * encounterRules.DamageMultiplier
+            * encounterRules.GetDamageMultiplier(source?.Team ?? target.Team)
             * (1f - Mathf.Clamp01(guard))
             * (1f + vulnerability));
+        adjustedDamage = Mathf.Max(
+            0f,
+            adjustedDamage - AbsorbWithSummonedGuard(target, adjustedDamage));
         CombatAttackResult adjusted = new CombatAttackResult(
             resolved.Executed,
             resolved.Hit,
@@ -1265,8 +1385,23 @@ public sealed class OffenseBattleSession
             resolved.ShieldBlocked,
             resolved.CoverSourceId,
             resolved.CoverDamage,
-            resolved.ArmorDurabilityHits);
+            resolved.ArmorDurabilityHits,
+            resolved.SmokeExposure,
+            resolved.AmmunitionItemId,
+            resolved.SpecialEffects,
+            resolved.StatusPotency,
+            resolved.StatusTurns,
+            resolved.Nonlethal,
+            resolved.PelletHits,
+            resolved.TargetAirborneExposure,
+            resolved.AmmunitionConsumed,
+            resolved.ForcedMovement);
         float applied = target.ApplyCombatInjury(adjusted);
+        ApplyAmmunitionStatuses(source, target, resolved);
+        if (resolved.ForcedMovement != 0 && !target.IsDead)
+        {
+            Reposition(target, resolved.ForcedMovement);
+        }
         if (resolved.ArmorDurabilityHits.Count > 0)
         {
             for (int i = 0; i < resolved.ArmorDurabilityHits.Count; i++)
@@ -1289,6 +1424,206 @@ public sealed class OffenseBattleSession
         }
 
         return applied;
+    }
+
+    private void ConsumePoweredEquipment(
+        CombatWeaponSnapshot weapon,
+        float amount)
+    {
+        if (weapon != null
+            && (weapon.RoleFlags & CombatEquipmentRoleFlags.Powered) != 0
+            && !string.IsNullOrWhiteSpace(weapon.InstanceId))
+        {
+            combatEquipmentRuntime?.TryConsumePower(weapon.InstanceId, amount);
+        }
+    }
+
+    private void ConsumePoweredDefense(
+        OffenseBattleCombatant target,
+        CombatAttackResult result)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        if (target.Shield.IsValid
+            && (target.Shield.RoleFlags & CombatEquipmentRoleFlags.Powered) != 0)
+        {
+            combatEquipmentRuntime?.TryConsumePower(target.Shield.InstanceId, 3f);
+        }
+        if (result.Hit)
+        {
+            foreach (string instanceId in target.Armor
+                .Where(value =>
+                    (value.RoleFlags & CombatEquipmentRoleFlags.Powered) != 0)
+                .Select(value => value.InstanceId)
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Distinct(StringComparer.Ordinal))
+            {
+                combatEquipmentRuntime?.TryConsumePower(instanceId, 2f);
+            }
+        }
+
+        RefreshCombatantEquipment(target);
+    }
+
+    private void RefreshCombatantEquipment(OffenseBattleCombatant combatant)
+    {
+        if (combatant != null
+            && combatEquipmentRuntime != null
+            && combatEquipmentRuntime.TryGetActiveWeapon(
+                combatant.PersistentId,
+                out CombatWeaponSnapshot refreshedWeapon))
+        {
+            combatant.SetCombatEquipment(
+                refreshedWeapon,
+                combatEquipmentRuntime.GetArmor(combatant.PersistentId),
+                combatEquipmentRuntime.GetShield(combatant.PersistentId));
+        }
+    }
+
+    private float AbsorbWithSummonedGuard(
+        OffenseBattleCombatant target,
+        float incomingDamage)
+    {
+        OffenseBattleStatus summonedGuard = target?.Statuses
+            .Where(status => status.Type == OffenseBattleStatusType.SummonedGuard
+                && status.Value > 0f)
+            .OrderBy(status => status.Id, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (summonedGuard == null || incomingDamage <= 0f)
+        {
+            return 0f;
+        }
+
+        float absorbed = summonedGuard.Absorb(incomingDamage);
+        if (summonedGuard.Value <= 0f)
+        {
+            target.RemoveStatus(summonedGuard);
+        }
+        if (absorbed > 0f)
+        {
+            AddLog($"{target.DisplayName}의 소환 지원체가 피해 {absorbed:0.#}을 가로막았습니다.");
+        }
+        return absorbed;
+    }
+
+    private static CombatCoverSnapshot CreateEffectiveCover(
+        OffenseBattleCombatant target)
+    {
+        if (target == null)
+        {
+            return default;
+        }
+
+        float smoke = GetSmokeObscuration(target);
+        float blockChance = Mathf.Max(
+            target.CoverBlockChance,
+            smoke * 0.4f);
+        return blockChance <= 0f
+            ? default
+            : new CombatCoverSnapshot(
+                CombatCoverHeight.Low,
+                blockChance,
+                0f,
+                smoke > 0f ? "offense-smoke" : "offense-cover");
+    }
+
+    private static float GetVisibilityMultiplier(
+        OffenseBattleCombatant source,
+        OffenseBattleCombatant target,
+        CombatWeaponSnapshot weapon)
+    {
+        if (weapon?.IsRanged != true)
+        {
+            return 1f;
+        }
+
+        float obscuration = Mathf.Max(
+            GetSmokeObscuration(source),
+            GetSmokeObscuration(target));
+        return Mathf.Clamp(1f - obscuration * 0.65f, 0.35f, 1f);
+    }
+
+    private static float GetSmokeObscuration(OffenseBattleCombatant combatant) =>
+        combatant?.Statuses
+            .Where(status => status.Type == OffenseBattleStatusType.SmokeObscured)
+            .Select(status => status.Value)
+            .DefaultIfEmpty(0f)
+            .Max() ?? 0f;
+
+    private void ApplyAmmunitionStatuses(
+        OffenseBattleCombatant source,
+        OffenseBattleCombatant target,
+        CombatAttackResult result)
+    {
+        if ((result.SpecialEffects & CombatSpecialEffectFlags.Burning) != 0)
+        {
+            AddStatus(
+                target,
+                OffenseBattleStatusType.DamageOverTime,
+                result.StatusPotency,
+                result.StatusTurns,
+                source?.PersistentId ?? string.Empty,
+                $"ammo:burning:{result.AmmunitionItemId}");
+        }
+        if ((result.SpecialEffects & CombatSpecialEffectFlags.Tranquilized) != 0)
+        {
+            AddStatus(
+                target,
+                OffenseBattleStatusType.Sedated,
+                result.StatusPotency,
+                result.StatusTurns,
+                source?.PersistentId ?? string.Empty,
+                "ammo:tranquilized");
+        }
+        if ((result.SpecialEffects & CombatSpecialEffectFlags.ManaBlocked) != 0)
+        {
+            AddStatus(
+                target,
+                OffenseBattleStatusType.ManaBlocked,
+                result.StatusPotency,
+                result.StatusTurns,
+                source?.PersistentId ?? string.Empty,
+                "ammo:mana-blocked");
+        }
+        if ((result.SpecialEffects & CombatSpecialEffectFlags.SignalSupport) != 0
+            && source != null)
+        {
+            foreach (OffenseBattleCombatant ally in GetLivingTeam(source.Team))
+            {
+                AddStatus(
+                    ally,
+                    OffenseBattleStatusType.AttackModifier,
+                    result.StatusPotency,
+                    result.StatusTurns,
+                    source.PersistentId,
+                    "ammo:signal-support");
+            }
+        }
+    }
+
+    private static float GetAttackMultiplier(OffenseBattleCombatant actor)
+    {
+        if (actor == null) return 1f;
+        float support = actor.Statuses
+            .Where(value => value.Type == OffenseBattleStatusType.AttackModifier)
+            .Sum(value => value.Value);
+        float sedation = actor.Statuses
+            .Where(value => value.Type == OffenseBattleStatusType.Sedated)
+            .Select(value => value.Value)
+            .DefaultIfEmpty(0f)
+            .Max();
+        return Mathf.Max(0.1f, (1f + support) * (1f - Mathf.Clamp01(sedation)));
+    }
+
+    private static bool IsConstruct(OffenseBattleCombatant target)
+    {
+        string species = target?.SpeciesTag ?? string.Empty;
+        return species.IndexOf("golem", StringComparison.OrdinalIgnoreCase) >= 0
+            || species.IndexOf("construct", StringComparison.OrdinalIgnoreCase) >= 0
+            || species.IndexOf("clockwork", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     private void AddLog(string message)

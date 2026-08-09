@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uBA74\uC5ED \uC870\uC808\uAE30"
   sprite: {fileID: 21300000, guid: 90da33e81e5338b4abb8e18a198bfa7e, type: 3}
   icon: {fileID: 21300000, guid: 90da33e81e5338b4abb8e18a198bfa7e, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730889015692
@@ -43,8 +48,8 @@ MonoBehaviour:
     - rid: 7737211730889015699
     - rid: 7737211730889015700
     - rid: 7737211730889015701
-    - rid: 7737211792998531246
-    - rid: 7737211792998531247
+    - rid: 7737211838074978544
+    - rid: 7737211838074978545
   width: 1
   height: 1
   layer: 1
@@ -146,14 +151,14 @@ MonoBehaviour:
         rejectionReduction: 0.35
         bloodCost: 0
         immunosuppressantCost: 1
-    - rid: 7737211792998531246
+    - rid: 7737211838074978544
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737211792998531247
+    - rid: 7737211838074978545
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility

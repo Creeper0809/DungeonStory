@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoadoutRuntime
+public sealed class CombatEquipmentRuntime :
+    ICombatEquipmentRuntime,
+    ICombatLoadoutRuntime,
+    ICombatEquipmentBurdenQuery
 {
     private readonly ICombatEquipmentCatalog catalog;
     private readonly IItemInstanceRepository itemInstances;
@@ -290,6 +293,53 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
             out completedMaterialId);
     }
 
+    public int ApplyCraftWork(
+        IEnumerable<string> craftableDefinitionIds,
+        float workUnits,
+        CharacterActor worker,
+        float relevantSkill,
+        out string completedDefinitionId,
+        out string completedMaterialId,
+        out CombatEquipmentQuality completedQuality)
+    {
+        return crafting.ApplyWork(
+            craftableDefinitionIds,
+            workUnits,
+            worker,
+            relevantSkill,
+            out completedDefinitionId,
+            out completedMaterialId,
+            out completedQuality);
+    }
+
+    public WorkerSelectionPolicySaveData GetCraftWorkerPolicy(string orderId) =>
+        crafting.GetWorkerPolicy(orderId);
+
+    public bool SetCraftWorkerPolicy(
+        string orderId,
+        WorkerSelectionPolicySaveData policy,
+        out string failureReason) =>
+        crafting.SetWorkerPolicy(orderId, policy, out failureReason);
+
+    public bool SetCraftQualityTarget(
+        string orderId,
+        CraftsmanshipQualityTier minimumQuality,
+        RejectedOutputDisposition rejectedDisposition,
+        QualityRepeatLimitMode repeatLimitMode,
+        int maximumAttempts,
+        float workBudget,
+        int requiredAcceptedCount,
+        out string failureReason) =>
+        crafting.SetQualityTarget(
+            orderId,
+            minimumQuality,
+            rejectedDisposition,
+            repeatLimitMode,
+            maximumAttempts,
+            workBudget,
+            requiredAcceptedCount,
+            out failureReason);
+
     public CombatEquipmentInstance CreateInstance(
         string definitionId,
         CombatEquipmentQuality quality,
@@ -300,6 +350,17 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
             definitionId,
             quality,
             worldState,
+            materialId);
+    }
+
+    public CombatEquipmentInstance CreateExternalInstance(
+        string definitionId,
+        CombatEquipmentQuality quality,
+        string materialId = "")
+    {
+        return crafting.CreateExternalInstance(
+            definitionId,
+            quality,
             materialId);
     }
 
@@ -598,16 +659,36 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
             || !instances.TryGetValue(instanceId?.Trim() ?? string.Empty, out CombatEquipmentInstance instance)
             || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition)
             || definition is not CombatWeaponSO weapon
-            || weapon.MagazineCapacity <= 0
-            || !CombatAmmunitionPolicy.TrySelectAvailable(
-                weapon,
-                inventory,
-                out ItemDefinitionId selectedItemId))
+            || weapon.MagazineCapacity <= 0)
         {
             return false;
         }
 
-        int needed = Mathf.Max(0, weapon.MagazineCapacity - instance.loadedAmmo);
+        instance.loadedAmmunition ??= new LoadedAmmunitionBatch();
+        ItemDefinitionId selectedItemId;
+        if (instance.loadedAmmunition.remaining > 0)
+        {
+            selectedItemId = (ItemDefinitionId)
+                instance.loadedAmmunition.ammunitionItemId;
+            if (!selectedItemId.IsValid
+                || !weapon.CompatibleAmmunitionItemIds.Contains(
+                    selectedItemId)
+                || inventory.CountItem(selectedItemId.Value) <= 0)
+            {
+                return false;
+            }
+        }
+        else if (!CombatAmmunitionPolicy.TrySelectAvailable(
+                     weapon,
+                     inventory,
+                     out selectedItemId))
+        {
+            return false;
+        }
+
+        int needed = Mathf.Max(
+            0,
+            weapon.MagazineCapacity - instance.loadedAmmunition.remaining);
         int available = inventory.CountItem(selectedItemId.Value);
         consumedAmmo = Mathf.Min(needed, available);
         if (consumedAmmo <= 0
@@ -621,7 +702,8 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         }
 
         consumedAmmoItemId = selectedItemId;
-        instance.loadedAmmo += consumedAmmo;
+        instance.loadedAmmunition.ammunitionItemId = selectedItemId.Value;
+        instance.loadedAmmunition.remaining += consumedAmmo;
         PersistPhysicalState(instance);
         return true;
     }
@@ -653,13 +735,99 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
 
     public bool TryConsumeLoadedAmmo(string instanceId)
     {
+        return TryConsumeLoadedAmmo(instanceId, 1);
+    }
+
+    public bool TryConsumeLoadedAmmo(string instanceId, int amount)
+    {
+        int requested = Mathf.Max(1, amount);
         if (!instances.TryGetValue(instanceId?.Trim() ?? string.Empty, out CombatEquipmentInstance instance)
-            || instance.loadedAmmo <= 0)
+            || instance.loadedAmmunition == null
+            || instance.loadedAmmunition.remaining < requested
+            || string.IsNullOrWhiteSpace(
+                instance.loadedAmmunition.ammunitionItemId))
         {
             return false;
         }
 
-        instance.loadedAmmo--;
+        instance.loadedAmmunition.remaining -= requested;
+        if (instance.loadedAmmunition.remaining == 0)
+        {
+            instance.loadedAmmunition.Clear();
+        }
+        PersistPhysicalState(instance);
+        return true;
+    }
+
+    public bool TryConsumePower(string instanceId, float amount)
+    {
+        float requested = Mathf.Max(0f, amount);
+        if (requested <= 0f
+            || !instances.TryGetValue(
+                instanceId?.Trim() ?? string.Empty,
+                out CombatEquipmentInstance instance)
+            || (CombatEquipmentRoleRules.For(instance.definitionId)
+                & CombatEquipmentRoleFlags.Powered) == 0
+            || instance.powerCharge <= 0f)
+        {
+            return false;
+        }
+
+        instance.powerCharge = Mathf.Clamp(
+            instance.powerCharge - requested,
+            0f,
+            100f);
+        PersistPhysicalState(instance);
+        return true;
+    }
+
+    public bool TryRestorePower(string instanceId, float amount)
+    {
+        float restored = Mathf.Max(0f, amount);
+        if (restored <= 0f
+            || !instances.TryGetValue(
+                instanceId?.Trim() ?? string.Empty,
+                out CombatEquipmentInstance instance)
+            || (CombatEquipmentRoleRules.For(instance.definitionId)
+                & CombatEquipmentRoleFlags.Powered) == 0)
+        {
+            return false;
+        }
+
+        instance.powerCharge = Mathf.Clamp(
+            instance.powerCharge + restored,
+            0f,
+            100f);
+        PersistPhysicalState(instance);
+        return true;
+    }
+
+    public bool TryLoadExternalAmmunition(
+        string instanceId,
+        string ammunitionItemId,
+        int amount)
+    {
+        string normalizedAmmo = ammunitionItemId?.Trim() ?? string.Empty;
+        if (amount <= 0
+            || !instances.TryGetValue(
+                instanceId?.Trim() ?? string.Empty,
+                out CombatEquipmentInstance instance)
+            || !catalog.TryGet(
+                instance.definitionId,
+                out CombatEquipmentDefinitionSO definition)
+            || definition is not CombatWeaponSO weapon
+            || weapon.MagazineCapacity <= 0
+            || !weapon.CompatibleAmmunitionItemIds.Contains(
+                (ItemDefinitionId)normalizedAmmo))
+        {
+            return false;
+        }
+
+        instance.loadedAmmunition = new LoadedAmmunitionBatch
+        {
+            ammunitionItemId = normalizedAmmo,
+            remaining = Mathf.Min(amount, weapon.MagazineCapacity)
+        };
         PersistPhysicalState(instance);
         return true;
     }
@@ -713,6 +881,53 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         string characterId)
     {
         return loadoutRuntime.ConfiscateAll(characterId);
+    }
+
+    public bool TryMaterializeRecoveredEquipment(
+        string instanceId,
+        Vector2Int position,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!instances.TryGetValue(
+                instanceId?.Trim() ?? string.Empty,
+                out CombatEquipmentInstance instance))
+        {
+            failureReason = "recovered equipment instance is missing";
+            return false;
+        }
+        if (!string.IsNullOrWhiteSpace(instance.ownerCharacterId)
+            || instance.worldState != CombatEquipmentWorldState.Loose)
+        {
+            failureReason = "recovered equipment is still owned or unavailable";
+            return false;
+        }
+        if (!string.IsNullOrWhiteSpace(instance.sourceStackId))
+        {
+            return true;
+        }
+        if (!itemStackRuntime.SpawnExistingUniqueItemAt(
+                instance.definitionId,
+                new ItemInstanceId(instance.instanceId),
+                position,
+                WorldItemStackState.Loose,
+                string.Empty,
+                out string stackId))
+        {
+            failureReason = "recovered equipment physical stack spawn failed";
+            return false;
+        }
+        if (TryLinkToWorldStack(
+                instance.instanceId,
+                stackId,
+                CombatEquipmentWorldState.Loose))
+        {
+            return true;
+        }
+
+        itemStackRuntime.DeleteStack(stackId);
+        failureReason = "recovered equipment stack link failed";
+        return false;
     }
 
     public void HandleCharacterDeath(string characterId)
@@ -850,6 +1065,9 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
     {
         return loadoutRuntime.GetCarriedWeight(characterId);
     }
+
+    public float GetEquippedWeight(string characterId) =>
+        loadoutRuntime.GetCarriedWeight(characterId);
 
     public DungeonCombatEquipmentSaveData Capture()
     {

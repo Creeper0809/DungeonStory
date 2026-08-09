@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uC7A1\uD654\uC9C4\uC5F4\uC120\uBC18"
   sprite: {fileID: 21300000, guid: 049a0a22c520b8543bd678fb224541ce, type: 3}
   icon: {fileID: 21300000, guid: 049a0a22c520b8543bd678fb224541ce, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730834227518
@@ -39,7 +44,7 @@ MonoBehaviour:
     - rid: 7737211730834227521
     - rid: 7737211730834227522
     - rid: 7737211730834227523
-    - rid: 7737211792998531585
+    - rid: 7737211838074979076
   width: 2
   height: 1
   layer: 1
@@ -108,7 +113,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingRetailAbility
         category: 1
-    - rid: 7737211792998531585
+    - rid: 7737211838074979076
       type: {class: BuildingServiceSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceSupportAbility

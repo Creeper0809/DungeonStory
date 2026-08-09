@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-internal static class EquipmentEvolutionRules
+public static class EquipmentEvolutionRules
 {
     internal static Dictionary<string, int> BuildRequirements(
         EvolutionReforgeOrder order)
@@ -41,42 +41,11 @@ internal static class EquipmentEvolutionRules
     internal static EquipmentEvolutionDirection InferDirection(
         CompactedHistorySegment segment)
     {
-        string source = string.Join(
-            "|",
-            segment.metrics
-                .OrderByDescending(metric => Mathf.Abs(metric.value))
-                .Select(metric => metric.metricId)
-                .Concat(segment.sourceTags))
-            .ToLowerInvariant();
-        if (ContainsAny(source, "boss", "kill", "execution"))
-        {
-            return EquipmentEvolutionDirection.Execution;
-        }
-        if (ContainsAny(source, "absorb", "block", "armor", "shield"))
-        {
-            return EquipmentEvolutionDirection.Protection;
-        }
-        if (ContainsAny(source, "downed", "survive", "recovery"))
-        {
-            return EquipmentEvolutionDirection.Survival;
-        }
-        if (ContainsAny(source, "intercept", "guard", "defense"))
-        {
-            return EquipmentEvolutionDirection.Interception;
-        }
-        if (ContainsAny(source, "long", "medium", "ranged", "shoot"))
-        {
-            return EquipmentEvolutionDirection.Ranged;
-        }
-        if (ContainsAny(source, "accuracy", "hit"))
-        {
-            return EquipmentEvolutionDirection.Accuracy;
-        }
-        if (ContainsAny(source, "melee", "contact", "near"))
-        {
-            return EquipmentEvolutionDirection.Melee;
-        }
-        return EquipmentEvolutionDirection.Balanced;
+        return ScoreDirections(segment)
+            .OrderByDescending(pair => pair.Value)
+            .ThenBy(pair => pair.Key)
+            .Select(pair => pair.Key)
+            .FirstOrDefault();
     }
 
     internal static EquipmentEvolutionDirection InferDirectionFromOpenLedger(
@@ -99,9 +68,66 @@ internal static class EquipmentEvolutionRules
                 .Where(entry => entry != null)
                 .SelectMany(entry => entry.sourceTags)
                 .Distinct(StringComparer.Ordinal)
+                .ToList(),
+            historicalEvidence = (ledger?.currentGenerationEvents
+                    ?? new List<UsageLedgerEvent>())
+                .Where(entry => entry != null
+                    && entry.historicalEvidenceKind != HistoricalEvidenceKind.None)
+                .GroupBy(entry => entry.historicalEvidenceKind)
+                .Select(group => new HistoricalEvidenceMetric
+                {
+                    kind = group.Key,
+                    strength = group.Sum(entry => Mathf.Abs(entry.amount)),
+                    occurrences = group.Sum(entry => Mathf.Max(1, entry.repeatCount))
+                })
                 .ToList()
         };
         return InferDirection(synthetic);
+    }
+
+    public static List<string> BuildLegalHistoricalEffectCandidates(
+        UsageLedger ledger)
+    {
+        CompactedHistorySegment synthetic = new CompactedHistorySegment
+        {
+            metrics = (ledger?.currentGenerationEvents ?? new List<UsageLedgerEvent>())
+                .Where(entry => entry != null)
+                .GroupBy(entry => entry.eventId, StringComparer.Ordinal)
+                .Select(group => new UsageLedgerMetric
+                {
+                    metricId = group.Key,
+                    value = group.Sum(entry => entry.amount)
+                })
+                .ToList(),
+            sourceTags = (ledger?.currentGenerationEvents ?? new List<UsageLedgerEvent>())
+                .Where(entry => entry != null)
+                .SelectMany(entry => entry.sourceTags)
+                .Distinct(StringComparer.Ordinal)
+                .ToList(),
+            historicalEvidence = (ledger?.currentGenerationEvents ?? new List<UsageLedgerEvent>())
+                .Where(entry => entry != null
+                    && entry.historicalEvidenceKind != HistoricalEvidenceKind.None)
+                .GroupBy(entry => entry.historicalEvidenceKind)
+                .Select(group => new HistoricalEvidenceMetric
+                {
+                    kind = group.Key,
+                    strength = group.Sum(entry => Mathf.Abs(entry.amount)),
+                    occurrences = group.Sum(entry => Mathf.Max(1, entry.repeatCount))
+                })
+                .ToList()
+        };
+        List<string> candidates = ScoreDirections(synthetic)
+            .OrderByDescending(pair => pair.Value)
+            .ThenBy(pair => pair.Key)
+            .Select(pair => ResolveModuleId(pair.Key, string.Empty))
+            .Distinct(StringComparer.Ordinal)
+            .Take(3)
+            .ToList();
+        if (candidates.Count == 0)
+        {
+            candidates.Add(ResolveModuleId(EquipmentEvolutionDirection.Balanced, string.Empty));
+        }
+        return candidates;
     }
 
     internal static string ResolveModuleId(
@@ -227,9 +253,9 @@ internal static class EquipmentEvolutionRules
                 : string.Empty));
         string parentNodeId = record.historyNodeIds.LastOrDefault()
             ?? string.Empty;
-        EquipmentEvolutionDirection direction =
-            InferDirectionFromOpenLedger(state.usageLedger);
-        string effectId = ResolveModuleId(direction, string.Empty);
+        List<string> legalCandidates = BuildLegalHistoricalEffectCandidates(
+            state.usageLedger);
+        string effectId = legalCandidates[0];
         string historyNodeHash = StableEvolutionHash.Compute(
             equipmentInstanceId
             + "|"
@@ -248,16 +274,21 @@ internal static class EquipmentEvolutionRules
             generation = state.generation,
             active = true,
             historical = true,
-            playerVisible = false,
-            displayName = string.Empty,
-            description = string.Empty,
+            mechanicallyUnlocked = true,
+            narrativeReady = false,
+            uiVisible = true,
+            playerVisible = true,
+            displayName = BuildTemporaryHistoryName(effectId, tier),
+            description = "기록 해석 중 · 효과는 이미 적용되고 있습니다.",
             potencyMultiplier = tier switch
             {
                 1 => 0.35f,
                 2 => 0.55f,
                 _ => 0.8f
             },
-            activationRule = new EvolutionModuleActivationRule()
+            activationRule = new EvolutionModuleActivationRule(),
+            legalCandidateEffectIds = legalCandidates,
+            selectedCandidateIndex = legalCandidates.Count == 1 ? 0 : -1
         };
         EvolutionNarrativeRequestSnapshot request =
             EvolutionNarrativeRequestFactory.Create(
@@ -268,6 +299,8 @@ internal static class EquipmentEvolutionRules
                 state.usageLedger,
                 state.ResonanceBudget);
         node.evidenceIds = new List<string>(request.evidenceIds);
+        request.legalCandidateEffectIds = new List<string>(legalCandidates);
+        request.selectedCandidateIndex = node.selectedCandidateIndex;
         state.evolutionNodes.Add(node);
         state.narrativeRequests ??=
             new List<EvolutionNarrativeRequestSnapshot>();
@@ -309,9 +342,65 @@ internal static class EquipmentEvolutionRules
     }
 
 
-    private static bool ContainsAny(string source, params string[] values)
+    private static Dictionary<EquipmentEvolutionDirection, float> ScoreDirections(
+        CompactedHistorySegment segment)
     {
-        return values.Any(value =>
-            source.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0);
+        Dictionary<EquipmentEvolutionDirection, float> scores =
+            new Dictionary<EquipmentEvolutionDirection, float>
+            {
+                [EquipmentEvolutionDirection.Balanced] = 0.01f
+            };
+        foreach (HistoricalEvidenceMetric evidence in segment?.historicalEvidence
+                     ?? new List<HistoricalEvidenceMetric>())
+        {
+            EquipmentEvolutionDirection direction = evidence.kind switch
+            {
+                HistoricalEvidenceKind.BossExecution => EquipmentEvolutionDirection.Execution,
+                HistoricalEvidenceKind.ProtectedOwner => EquipmentEvolutionDirection.Protection,
+                HistoricalEvidenceKind.InterceptedFatalHit => EquipmentEvolutionDirection.Interception,
+                HistoricalEvidenceKind.SurvivedNearDeath => EquipmentEvolutionDirection.Survival,
+                HistoricalEvidenceKind.RepeatedLongRangeHit => EquipmentEvolutionDirection.Ranged,
+                HistoricalEvidenceKind.ArmorBroken => EquipmentEvolutionDirection.Protection,
+                HistoricalEvidenceKind.CapturedEnemy => EquipmentEvolutionDirection.Interception,
+                _ => EquipmentEvolutionDirection.Balanced
+            };
+            scores.TryGetValue(direction, out float current);
+            scores[direction] = current
+                + Mathf.Max(0.01f, evidence.strength)
+                + Mathf.Max(0, evidence.occurrences) * 0.25f;
+        }
+
+        foreach (UsageLedgerMetric metric in segment?.metrics
+                     ?? new List<UsageLedgerMetric>())
+        {
+            EquipmentEvolutionDirection direction = metric.metricId switch
+            {
+                "combat:block" => EquipmentEvolutionDirection.Protection,
+                "combat:absorb" => EquipmentEvolutionDirection.Protection,
+                "combat:hit" when segment.sourceTags.Contains("ranged", StringComparer.Ordinal)
+                    => EquipmentEvolutionDirection.Ranged,
+                "combat:hit" when segment.sourceTags.Contains("melee", StringComparer.Ordinal)
+                    => EquipmentEvolutionDirection.Melee,
+                "combat:hit" => EquipmentEvolutionDirection.Accuracy,
+                _ => EquipmentEvolutionDirection.Balanced
+            };
+            scores.TryGetValue(direction, out float current);
+            scores[direction] = current + Mathf.Abs(metric.value) * 0.1f;
+        }
+        return scores;
+    }
+
+    private static string BuildTemporaryHistoryName(string effectId, int tier)
+    {
+        string stem = effectId switch
+        {
+            "equipment:execution" => "결전의 흔적",
+            "equipment:durability" => "버텨 낸 흔적",
+            "equipment:control" => "가로막은 흔적",
+            "equipment:cadence" => "먼 거리의 흔적",
+            "equipment:precision" => "빗나가지 않은 흔적",
+            _ => "쌓여 온 흔적"
+        };
+        return $"{stem} {Mathf.Max(1, tier)}단계";
     }
 }

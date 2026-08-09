@@ -211,6 +211,66 @@ public static class BranchedProductionNetworkDebugScenarios
                 links.Add($"environment-workwear:{workwear.WorkwearId}");
             }
         }
+        ApparelDefinitionSO[] apparelDefinitions = AssetDatabase.FindAssets(
+                "t:ApparelDefinitionSO",
+                new[] { "Assets/Resources/SO/Apparel" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<ApparelDefinitionSO>)
+            .Where(value => value != null)
+            .ToArray();
+        TextileMaterialDefinitionSO[] textileMaterials = AssetDatabase.FindAssets(
+                "t:TextileMaterialDefinitionSO",
+                new[] { "Assets/Resources/SO/Apparel" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<TextileMaterialDefinitionSO>)
+            .Where(value => value != null)
+            .ToArray();
+        foreach (ApparelDefinitionSO apparelDefinition in apparelDefinitions)
+        {
+            if (consumers.TryGetValue(
+                    apparelDefinition.PhysicalItemId,
+                    out HashSet<string> apparelLinks))
+            {
+                apparelLinks.Add($"apparel-equip:{apparelDefinition.ApparelId}");
+            }
+            foreach (TextileMaterialDefinitionSO textileMaterial in textileMaterials)
+            {
+                if ((textileMaterial.Tags & apparelDefinition.AllowedMaterialTags) != 0
+                    && consumers.TryGetValue(
+                        textileMaterial.PhysicalItemId,
+                        out HashSet<string> materialLinks))
+                {
+                    materialLinks.Add(
+                        $"apparel-material:{apparelDefinition.ApparelId}");
+                }
+            }
+        }
+        AddConsumer(consumers, "tool:sewing-kit", "apparel-repair:tool");
+        AddConsumer(consumers, "material:sewing-thread", "apparel-repair:thread");
+        AddConsumer(consumers, "material:sewing-thread", "apparel-alteration:thread");
+        AddConsumer(consumers, "material:mending-scrap", "apparel-repair:patch");
+        AddConsumer(consumers, "material:mending-scrap", "apparel-alteration:patch");
+        foreach (PhysicalItemRuntimeConsumerCatalog.Link link in
+                 PhysicalItemRuntimeConsumerCatalog.All)
+        {
+            AddConsumer(consumers, link.ItemId, link.OwnerId);
+        }
+        foreach (GuestRequestDefinitionSO guest in
+                 Resources.LoadAll<GuestRequestDefinitionSO>(string.Empty))
+        {
+            AddConsumableRequirementLinks(
+                guest?.StableId,
+                guest?.serviceRequirements,
+                consumers);
+        }
+        foreach (FactionContractDefinitionSO contract in
+                 Resources.LoadAll<FactionContractDefinitionSO>(string.Empty))
+        {
+            AddConsumableRequirementLinks(
+                contract?.StableId,
+                contract?.completionRequirements,
+                consumers);
+        }
         foreach (CropDefinitionSO crop in crops.Where(value => value != null))
         {
             if (producers.TryGetValue(crop.HarvestItemId, out List<ProductionRecipeSO> list)
@@ -621,7 +681,7 @@ public static class BranchedProductionNetworkDebugScenarios
         DungeonProductionBillSaveData roundTrip =
             JsonUtility.FromJson<DungeonProductionBillSaveData>(
                 JsonUtility.ToJson(save));
-        if (DungeonProductionBillSaveData.CurrentVersion != 5
+        if (DungeonProductionBillSaveData.CurrentVersion != 6
             || roundTrip?.bills?.SingleOrDefault()?.mode
                 != ProductionOrderMode.RepeatForever
             || roundTrip.bills[0].outputReservations.Single().amount != 4
@@ -631,13 +691,47 @@ public static class BranchedProductionNetworkDebugScenarios
             || roundTrip.installedStockSensorFacilityIds.Single()
                 != "facility:test")
         {
-            failures.Add("production V5 save round trip lost network state");
+            failures.Add("production V6 save round trip lost network state");
         }
 
         return failures
             .Distinct(StringComparer.Ordinal)
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray();
+    }
+
+    private static void AddConsumer(
+        IReadOnlyDictionary<string, HashSet<string>> consumers,
+        string itemId,
+        string consumerId)
+    {
+        if (consumers.TryGetValue(itemId, out HashSet<string> links))
+        {
+            links.Add(consumerId);
+        }
+    }
+
+    private static void AddConsumableRequirementLinks(
+        string consumerId,
+        V20ContentRequirementSet requirements,
+        IReadOnlyDictionary<string, HashSet<string>> consumers)
+    {
+        if (string.IsNullOrWhiteSpace(consumerId))
+        {
+            return;
+        }
+        foreach (V20ItemAmountRequirement requirement in
+                 requirements?.items ?? new List<V20ItemAmountRequirement>())
+        {
+            if (requirement != null
+                && requirement.consume
+                && consumers.TryGetValue(
+                    requirement.itemDefinitionId?.Trim() ?? string.Empty,
+                    out HashSet<string> links))
+            {
+                links.Add(consumerId.Trim());
+            }
+        }
     }
 
     private static void ValidateSupplyValue(

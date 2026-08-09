@@ -10,7 +10,12 @@ public enum ResearchRewardKind
     ProductionItem = 1,
     ProductionRecipe = 2,
     CombatEquipment = 3,
-    MedicalProcedure = 4
+    MedicalProcedure = 4,
+    CraftMaterial = 5,
+    Crop = 6,
+    EnvironmentalWorkwear = 7,
+    Ammunition = 8,
+    InstallationComponent = 9
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

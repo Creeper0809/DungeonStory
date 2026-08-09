@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using DungeonStory.Foundation;
 using UnityEngine;
 
@@ -52,12 +53,16 @@ public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienc
     private readonly IRoomEnvironmentEvaluator evaluator;
     private readonly IRoomEnvironmentSettingsProvider settingsProvider;
     private readonly IGameEventBus events;
+    private readonly IHeritableTraitEffectQuery heritableTraits;
+    private readonly ICharacterTraitReactionService traitReactions;
 
     public RoomEnvironmentExperienceService(
         IRoomLayoutCache roomLayoutCache,
         IRoomEnvironmentEvaluator evaluator,
         IRoomEnvironmentSettingsProvider settingsProvider,
-        IGameEventBus events)
+        IGameEventBus events,
+        IHeritableTraitEffectQuery heritableTraits,
+        ICharacterTraitReactionService traitReactions)
     {
         this.roomLayoutCache = roomLayoutCache
             ?? throw new ArgumentNullException(nameof(roomLayoutCache));
@@ -66,6 +71,10 @@ public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienc
         this.settingsProvider = settingsProvider
             ?? throw new ArgumentNullException(nameof(settingsProvider));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
+        this.heritableTraits = heritableTraits
+            ?? throw new ArgumentNullException(nameof(heritableTraits));
+        this.traitReactions = traitReactions
+            ?? throw new ArgumentNullException(nameof(traitReactions));
     }
 
     public bool Apply(RoomEnvironmentExperienceEvent eventType)
@@ -96,6 +105,15 @@ public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienc
         }
 
         RoomEnvironmentSettingsSO settings = settingsProvider.Settings;
+        List<string> traitTriggers = new();
+        if (snapshot.Cleanliness < 40f)
+            traitTriggers.Add("room:dirty");
+        if (snapshot.Spaciousness < 35f)
+            traitTriggers.Add("room:cramped");
+        if (snapshot.TemperatureC < 10f)
+            traitTriggers.Add("event:safe-cold");
+        if (traitTriggers.Count > 0)
+            traitReactions.Apply(actor, traitTriggers.ToArray());
         DungeonStory.Rooms.RoomMoodDecision mood = settings.EvaluateMood(
             snapshot.Impressiveness,
             snapshot.Cleanliness);
@@ -149,7 +167,10 @@ public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienc
             "disease:mana-pox",
             DiseaseTransmissionRoute.ManaExposure,
             exposureHours,
-            1f));
+            heritableTraits.GetMultiplier(
+                characterId,
+                HeritableTraitConsequenceKind.ManaOverloadDamage,
+                "mana-exposure")));
     }
 
     private bool TryGetFacilityRoom(BuildableObject facility, out RoomInstance room)

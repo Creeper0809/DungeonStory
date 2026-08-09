@@ -420,6 +420,9 @@ public interface ICharacterConsumablesWorldPort
     IReadOnlyList<BuildingInstanceId> FacilityIds { get; }
     bool TryGetActor(CharacterId id, out CharacterConsumablesActorSnapshot actor);
     bool TryGetFacility(BuildingInstanceId id, out CharacterConsumablesFacilitySnapshot facility);
+    CharacterCultureMealPreference GetCultureMealPreference(
+        CharacterId characterId,
+        ConsumableItemDefinitionId itemId);
     void RecoverHunger(CharacterId id, float amount);
     void ApplyMood(CharacterId id, string sourceId, string label, float value, float durationSeconds);
     void ApplyDamage(CharacterId id, float amount, string reason);
@@ -429,6 +432,13 @@ public interface ICharacterConsumablesWorldPort
         string subjectId,
         string outcome,
         float value);
+}
+
+public enum CharacterCultureMealPreference
+{
+    Neutral,
+    Preferred,
+    Forbidden
 }
 
 public interface ICharacterConsumablesInventoryPort

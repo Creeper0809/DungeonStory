@@ -1,0 +1,3 @@
+RESULT=PASS
+target=V21_FUNCTIONAL_CONTENT_UI
+reproduction=1; festival=1/1; funeral=1; counseling=1; ageTreatment=1; alerts=5

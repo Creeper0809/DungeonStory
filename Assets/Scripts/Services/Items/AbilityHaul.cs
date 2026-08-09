@@ -19,6 +19,7 @@ public sealed class AbilityHaul : MonoBehaviour
     private string executionStage = "대기";
     private int routineHeartbeat;
     private string activePathDebug = string.Empty;
+    private bool haulingHarnessEquippedForCurrentRun;
     private IWorldItemStackRuntime ItemRuntime => actor?.WorldItemStackRuntime;
 
     public bool IsHauling => haulingRoutine != null;
@@ -120,6 +121,8 @@ public sealed class AbilityHaul : MonoBehaviour
         }
 
         activePlan = reservedPlan;
+        actor.CarryInventory?.TryPrepareHaulingHarness(
+            out haulingHarnessEquippedForCurrentRun);
         unloadReason = WorldItemHaulPlanUnloadReason.None;
         executionStage = "운반 시작";
         routineHeartbeat = 0;
@@ -136,6 +139,10 @@ public sealed class AbilityHaul : MonoBehaviour
         }
 
         ReleaseActivePlanReservations();
+        actor?.CarryInventory?.CompleteHaulingHarness(
+            haulingHarnessEquippedForCurrentRun,
+            applyWear: false);
+        haulingHarnessEquippedForCurrentRun = false;
         activePlan = null;
         unloadReason = WorldItemHaulPlanUnloadReason.Interrupted;
         executionStage = "중단";
@@ -478,6 +485,10 @@ public sealed class AbilityHaul : MonoBehaviour
 
     private void FinishHauling()
     {
+        actor?.CarryInventory?.CompleteHaulingHarness(
+            haulingHarnessEquippedForCurrentRun,
+            applyWear: unloadReason == WorldItemHaulPlanUnloadReason.Completed);
+        haulingHarnessEquippedForCurrentRun = false;
         activePlan = null;
         haulingRoutine = null;
         EndAiAction();

@@ -282,6 +282,51 @@ public sealed class OffenseAttackModifierEffect : OffenseCombatEffectModule
 }
 
 [Serializable]
+[MovedFrom(true, sourceAssembly: "DungeonStory.Offense")]
+public sealed class OffenseSmokeEffect : OffenseCombatEffectModule
+{
+    [SerializeField, Range(0.1f, 0.8f)] private float obscuration = 0.5f;
+    [SerializeField, Min(1)] private int turns = 2;
+
+    public OffenseSmokeEffect()
+    {
+    }
+
+    public OffenseSmokeEffect(float obscuration, int turns)
+    {
+        this.obscuration = Clamp(obscuration, 0.1f, 0.8f);
+        this.turns = Math.Max(1, turns);
+    }
+
+    public float Obscuration => Clamp(obscuration, 0.1f, 0.8f);
+    public int Turns => Math.Max(1, turns);
+
+    private static float Clamp(float value, float minimum, float maximum) =>
+        Math.Min(maximum, Math.Max(minimum, value));
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "DungeonStory.Offense")]
+public sealed class OffenseSummonEffect : OffenseCombatEffectModule
+{
+    [SerializeField, Min(1f)] private float interceptHealth = 20f;
+    [SerializeField, Min(1)] private int turns = 3;
+
+    public OffenseSummonEffect()
+    {
+    }
+
+    public OffenseSummonEffect(float interceptHealth, int turns = 3)
+    {
+        this.interceptHealth = Math.Max(1f, interceptHealth);
+        this.turns = Math.Max(1, turns);
+    }
+
+    public float InterceptHealth => Math.Max(1f, interceptHealth);
+    public int Turns => Math.Max(1, turns);
+}
+
+[Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class OffenseCleanseEffect : OffenseCombatEffectModule
 {

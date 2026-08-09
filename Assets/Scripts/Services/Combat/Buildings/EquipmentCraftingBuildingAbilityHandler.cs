@@ -52,11 +52,23 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
             return 0;
         }
 
+        CharacterBuildingVisitorAdapter.TryGetActor(actor, out CharacterActor worker);
+        BuildingVisitorSnapshot workerSnapshot = actor?.VisitorSnapshot ?? default;
+        // Craft quality uses the shared 0..100 craftsmanship scale while
+        // character stats are authored on 0..10. Weight the two relevant
+        // attributes equally, then project the mean to the shared scale.
+        float relevantSkill = Mathf.Clamp(
+            (workerSnapshot.Dexterity + workerSnapshot.Research) * 5f,
+            0f,
+            100f);
         int completed = equipmentRuntime.ApplyCraftWork(
             ability.CraftableEquipmentIds,
             Mathf.Max(0.1f, ability.workUnitsPerCycle),
+            worker,
+            relevantSkill,
             out string completedEquipmentId,
-            out string completedMaterialId);
+            out string completedMaterialId,
+            out CombatEquipmentQuality completedQuality);
         if (completed > 0)
         {
             SpawnCraftedOutput(
@@ -64,6 +76,7 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
                 building,
                 completedEquipmentId,
                 completedMaterialId,
+                completedQuality,
                 completed);
         }
 
@@ -100,6 +113,7 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
         BuildableObject building,
         string completedEquipmentId,
         string completedMaterialId,
+        CombatEquipmentQuality completedQuality,
         int completed)
     {
         IBuildingItemStackPort itemRuntime = building.WorldItemStackRuntime;
@@ -130,7 +144,7 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
         {
             CombatEquipmentInstance instance = combatRuntime.CreateInstance(
                 completedEquipmentId,
-                ResolveCraftedQuality(actor, building),
+                completedQuality,
                 CombatEquipmentWorldState.Loose,
                 completedMaterialId);
             if (!itemRuntime.SpawnExistingFacilityBufferUniqueItem(
@@ -151,38 +165,6 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
         }
 
         return false;
-    }
-
-    private CombatEquipmentQuality ResolveCraftedQuality(
-        IBuildingVisitorPort actor,
-        BuildableObject building)
-    {
-        BuildingVisitorSnapshot visitor = actor?.VisitorSnapshot ?? default;
-        int dexterity = actor != null ? visitor.Dexterity : 5;
-        int research = actor != null ? visitor.Research : 5;
-        int score = dexterity
-            + research
-            + Mathf.Max(1, building?.FacilityLevel ?? 1) * 2;
-        CombatEquipmentQuality quality = score switch
-        {
-            <= 8 => CombatEquipmentQuality.Awful,
-            <= 12 => CombatEquipmentQuality.Poor,
-            <= 18 => CombatEquipmentQuality.Normal,
-            <= 23 => CombatEquipmentQuality.Good,
-            <= 28 => CombatEquipmentQuality.Excellent,
-            <= 34 => CombatEquipmentQuality.Masterwork,
-            _ => CombatEquipmentQuality.Legendary
-        };
-        CharacterId characterId = new(visitor.PersistentId);
-        EnvironmentalExposureBand band =
-            (EnvironmentalExposureBand)Mathf.Max(
-                (int)environmentStatus.GetPhysiologicalBand(characterId),
-                (int)environmentStatus.GetVisualBand(characterId));
-        return band >= EnvironmentalExposureBand.Impaired
-            ? (CombatEquipmentQuality)Mathf.Max(
-                (int)CombatEquipmentQuality.Awful,
-                (int)quality - 1)
-            : quality;
     }
 
     private static string GetBuildingName(BuildableObject building)

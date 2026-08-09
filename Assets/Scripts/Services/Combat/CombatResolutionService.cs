@@ -69,6 +69,12 @@ public sealed class CombatResolutionService : ICombatResolutionService
     {
         CombatWeaponSnapshot weapon = request.Weapon ?? CombatWeaponSnapshot.CreateUnarmed();
         CombatAttackVerb verb = weapon.Verb ?? CombatWeaponSnapshot.CreateUnarmed().Verb;
+        CombatAmmunitionProfile ammunition =
+            CombatAmmunitionProfile.For(weapon.AmmunitionItemId);
+        CombatEquipmentRoleFlags weaponRoles = weapon.RoleFlags;
+        int ammunitionPerAttack = CombatEquipmentRoleRules.GetAmmunitionPerAttack(
+            weapon,
+            request.FireMode);
         if (!string.IsNullOrWhiteSpace(weapon.InstanceId)
             && overclock?.TryRollActionMalfunction(
                 OverclockTargetKind.Equipment,
@@ -167,7 +173,10 @@ public sealed class CombatResolutionService : ICombatResolutionService
         }
 
         if (request.DefenderShield.IsValid
-            && random.Next01() < Mathf.Clamp01(request.DefenderShield.GetBlockChance()))
+            && random.Next01() < ResolveShieldBlockChance(
+                request.DefenderShield,
+                weapon,
+                ammunition))
         {
             return Record(request, new CombatAttackResult(
                 true,
@@ -200,7 +209,21 @@ public sealed class CombatResolutionService : ICombatResolutionService
             weapon,
             verb,
             rangeDamage,
-            quality);
+            quality)
+            * ammunition.DamageMultiplierFor(band, request.DefenderConstruct)
+            * ResolveRoleDamageMultiplier(
+                weaponRoles,
+                request.FireMode,
+                band,
+                ammunitionPerAttack);
+        if (HasArmorRole(
+                request.DefenderArmor,
+                CombatEquipmentRoleFlags.BlastAndSmokeProtection)
+            && (weapon.GunpowderWeapon
+                || (ammunition.Effects & CombatSpecialEffectFlags.Scatter) != 0))
+        {
+            rawDamage *= 0.75f;
+        }
         float toughnessReduction = Mathf.Clamp(request.Defender.Toughness * 0.0125f, 0f, 0.2f);
         float postToughnessDamage = rawDamage * (1f - toughnessReduction);
         ResolveArmor(
@@ -208,6 +231,10 @@ public sealed class CombatResolutionService : ICombatResolutionService
             bodyPart,
             verb,
             postToughnessDamage,
+            ammunition.PenetrationMultiplier,
+            (weaponRoles & CombatEquipmentRoleFlags.ArmorBreaker) != 0
+                ? 1.75f
+                : 1f,
             out float appliedDamage,
             out float durabilityDamage,
             out string armorInstanceId,
@@ -215,7 +242,11 @@ public sealed class CombatResolutionService : ICombatResolutionService
         float bleeding = verb.damageType == CombatDamageType.Blunt
             ? appliedDamage * 0.02f
             : appliedDamage * 0.12f;
-        float suppression = GetSuppressionOnHit(request, verb);
+        float suppression = GetSuppressionOnHit(request, verb)
+            * ((weaponRoles & CombatEquipmentRoleFlags.ShotgunSuppression) != 0
+                ? 1.75f
+                : 1f)
+            * Mathf.Lerp(1f, 1.45f, Mathf.Clamp01(ammunitionPerAttack - 1));
 
         return Record(request, new CombatAttackResult(
             true,
@@ -238,6 +269,25 @@ public sealed class CombatResolutionService : ICombatResolutionService
         CombatAttackResult result)
     {
         CombatWeaponSnapshot resolvedWeapon = request.Weapon;
+        CombatAmmunitionProfile ammunition = CombatAmmunitionProfile.For(
+            resolvedWeapon?.AmmunitionItemId);
+        if (result.Executed && resolvedWeapon?.RequiresAmmo == true)
+        {
+            bool effectApplies = result.Hit
+                || (ammunition.Effects
+                    & (CombatSpecialEffectFlags.SmokeScreen
+                        | CombatSpecialEffectFlags.SignalSupport)) != 0;
+            result = WithAmmunition(
+                result,
+                resolvedWeapon.AmmunitionItemId,
+                ammunition,
+                CombatRangeRules.GetBand(request.Distance),
+                effectApplies,
+                CombatEquipmentRoleRules.GetAmmunitionPerAttack(
+                    resolvedWeapon,
+                    request.FireMode));
+        }
+        result = WithEquipmentRoleEffects(request, result, ammunition);
         if (result.Executed
             && resolvedWeapon?.GunpowderWeapon == true
             && resolvedWeapon.SmokeExposure > 0f)
@@ -258,6 +308,12 @@ public sealed class CombatResolutionService : ICombatResolutionService
             environmentExposure.AddAirborneExposure(
                 new CharacterId(request.AttackerId),
                 result.SmokeExposure);
+        }
+        if (result.TargetAirborneExposure > 0f)
+        {
+            environmentExposure.AddAirborneExposure(
+                new CharacterId(request.DefenderId),
+                result.TargetAirborneExposure);
         }
 
         if (evolution == null)
@@ -284,7 +340,11 @@ public sealed class CombatResolutionService : ICombatResolutionService
                 {
                     request.Weapon.IsRanged ? "ranged" : "melee",
                     CombatRangeRules.GetBand(request.Distance).ToString()
-                });
+                },
+                result.Hit && request.Weapon.IsRanged
+                    ? HistoricalEvidenceKind.RepeatedLongRangeHit
+                    : HistoricalEvidenceKind.None,
+                result.Hit ? "hit" : "miss");
         }
 
         if (result.ShieldBlocked
@@ -298,7 +358,9 @@ public sealed class CombatResolutionService : ICombatResolutionService
                 result.RawDamage,
                 request.DefenderId,
                 1,
-                new[] { "shield", "defense" });
+                new[] { "shield", "defense" },
+                HistoricalEvidenceKind.ProtectedOwner,
+                "blocked");
         }
 
         foreach (CombatArmorDurabilityHit hit in result.ArmorDurabilityHits
@@ -311,16 +373,122 @@ public sealed class CombatResolutionService : ICombatResolutionService
                 hit.Damage,
                 request.DefenderId,
                 1,
-                new[] { "armor", "defense" });
+                new[] { "armor", "defense" },
+                HistoricalEvidenceKind.ProtectedOwner,
+                "absorbed");
         }
 
         return result;
+    }
+
+    private static CombatAttackResult WithAmmunition(
+        CombatAttackResult result,
+        string ammunitionItemId,
+        CombatAmmunitionProfile profile,
+        CombatRangeBand band,
+        bool effectApplies,
+        int ammunitionConsumed)
+    {
+        return new CombatAttackResult(
+            result.Executed,
+            result.Hit,
+            result.CoverBlocked,
+            result.Evaded,
+            result.BodyPart,
+            result.RawDamage,
+            result.AppliedDamage,
+            result.Bleeding,
+            result.Suppression * profile.SuppressionMultiplier,
+            result.ArmorDurabilityDamage,
+            result.ArmorInstanceId,
+            result.FailureReason,
+            result.ShieldBlocked,
+            result.CoverSourceId,
+            result.CoverDamage,
+            result.ArmorDurabilityHits,
+            result.SmokeExposure,
+            ammunitionItemId,
+            effectApplies ? profile.Effects : CombatSpecialEffectFlags.None,
+            effectApplies ? profile.StatusPotency : 0f,
+            effectApplies ? profile.StatusTurns : 0,
+            effectApplies && profile.Nonlethal,
+            profile.PelletHitsFor(band),
+            effectApplies ? profile.TargetAirborneExposure : 0f,
+            ammunitionConsumed,
+            result.ForcedMovement);
+    }
+
+    private static CombatAttackResult WithEquipmentRoleEffects(
+        CombatAttackRequest request,
+        CombatAttackResult result,
+        CombatAmmunitionProfile ammunition)
+    {
+        CombatEquipmentRoleFlags roles = request.Weapon?.RoleFlags
+            ?? CombatEquipmentRoleFlags.None;
+        CombatRangeBand band = CombatRangeRules.GetBand(request.Distance);
+        int pelletHits = result.PelletHits;
+        if ((roles & CombatEquipmentRoleFlags.ShotgunSuppression) != 0)
+        {
+            pelletHits = Mathf.Max(
+                pelletHits,
+                band switch
+                {
+                    CombatRangeBand.Contact => 5,
+                    CombatRangeBand.Near => 4,
+                    CombatRangeBand.Medium => 2,
+                    _ => 1
+                });
+        }
+
+        float targetAirborneExposure = result.TargetAirborneExposure;
+        if (HasArmorRole(
+                request.DefenderArmor,
+                CombatEquipmentRoleFlags.BlastAndSmokeProtection)
+            && ((ammunition.Effects & CombatSpecialEffectFlags.SmokeScreen) != 0
+                || request.Weapon?.GunpowderWeapon == true))
+        {
+            targetAirborneExposure *= 0.4f;
+        }
+
+        int forcedMovement = result.Hit
+            && (roles & CombatEquipmentRoleFlags.PullOnHit) != 0
+                ? -1
+                : result.ForcedMovement;
+        return new CombatAttackResult(
+            result.Executed,
+            result.Hit,
+            result.CoverBlocked,
+            result.Evaded,
+            result.BodyPart,
+            result.RawDamage,
+            result.AppliedDamage,
+            result.Bleeding,
+            result.Suppression,
+            result.ArmorDurabilityDamage,
+            result.ArmorInstanceId,
+            result.FailureReason,
+            result.ShieldBlocked,
+            result.CoverSourceId,
+            result.CoverDamage,
+            result.ArmorDurabilityHits,
+            result.SmokeExposure,
+            result.AmmunitionItemId,
+            result.SpecialEffects,
+            result.StatusPotency,
+            result.StatusTurns,
+            result.Nonlethal,
+            pelletHits,
+            targetAirborneExposure,
+            result.AmmunitionConsumed,
+            forcedMovement);
     }
 
     public CombatAttackPreview Preview(CombatAttackRequest request)
     {
         CombatWeaponSnapshot weapon = request.Weapon ?? CombatWeaponSnapshot.CreateUnarmed();
         CombatAttackVerb verb = weapon.Verb ?? CombatWeaponSnapshot.CreateUnarmed().Verb;
+        CombatAmmunitionProfile ammunition =
+            CombatAmmunitionProfile.For(weapon.AmmunitionItemId);
         CombatRangeBand band = CombatRangeRules.GetBand(request.Distance);
         bool isRanged = weapon.IsRanged;
         string failureReason = string.Empty;
@@ -382,7 +550,10 @@ public sealed class CombatResolutionService : ICombatResolutionService
 
         coverChance = Mathf.Clamp01(coverChance);
         float shieldChance = request.DefenderShield.IsValid
-            ? Mathf.Clamp01(request.DefenderShield.GetBlockChance())
+            ? ResolveShieldBlockChance(
+                request.DefenderShield,
+                weapon,
+                ammunition)
             : 0f;
         float evasionChance = CalculateEvasionChance(request, verb);
         float quality = CombatQualityRules.GetMultiplier(weapon.Quality);
@@ -391,7 +562,23 @@ public sealed class CombatResolutionService : ICombatResolutionService
             weapon,
             verb,
             rangeDamage,
-            quality);
+            quality)
+            * ammunition.DamageMultiplierFor(band, request.DefenderConstruct)
+            * ResolveRoleDamageMultiplier(
+                weapon.RoleFlags,
+                request.FireMode,
+                band,
+                CombatEquipmentRoleRules.GetAmmunitionPerAttack(
+                    weapon,
+                    request.FireMode));
+        if (HasArmorRole(
+                request.DefenderArmor,
+                CombatEquipmentRoleFlags.BlastAndSmokeProtection)
+            && (weapon.GunpowderWeapon
+                || (ammunition.Effects & CombatSpecialEffectFlags.Scatter) != 0))
+        {
+            rawDamage *= 0.75f;
+        }
         float toughnessReduction = Mathf.Clamp(
             request.Defender.Toughness * 0.0125f,
             0f,
@@ -401,6 +588,10 @@ public sealed class CombatResolutionService : ICombatResolutionService
             CombatBodyPart.Torso,
             verb,
             rawDamage * (1f - toughnessReduction),
+            ammunition.PenetrationMultiplier,
+            (weapon.RoleFlags & CombatEquipmentRoleFlags.ArmorBreaker) != 0
+                ? 1.75f
+                : 1f,
             out float damageOnHit,
             out _,
             out _,
@@ -597,6 +788,8 @@ public sealed class CombatResolutionService : ICombatResolutionService
         CombatBodyPart bodyPart,
         CombatAttackVerb verb,
         float incomingDamage,
+        float ammunitionPenetrationMultiplier,
+        float armorDurabilityMultiplier,
         out float appliedDamage,
         out float durabilityDamage,
         out string armorInstanceId,
@@ -614,7 +807,8 @@ public sealed class CombatResolutionService : ICombatResolutionService
         float penetration = Mathf.Max(0f, verb.penetration)
             * CombatQualityRules.GetMultiplier(
                 request.Weapon?.Quality ?? CombatEquipmentQuality.Normal)
-            * (request.Weapon?.MaterialPenetrationMultiplier ?? 1f);
+            * (request.Weapon?.MaterialPenetrationMultiplier ?? 1f)
+            * Mathf.Max(0f, ammunitionPenetrationMultiplier);
         List<CombatArmorSnapshot> layers = new List<CombatArmorSnapshot>(5);
         for (int i = 0; i < request.DefenderArmor.Count; i++)
         {
@@ -640,7 +834,8 @@ public sealed class CombatResolutionService : ICombatResolutionService
             float defense = armor.GetDefense(verb.damageType);
             float layerDurabilityDamage = Mathf.Max(
                 0.15f,
-                remainingDamage * Mathf.Lerp(0.035f, 0.085f, armor.DurabilityRatio));
+                remainingDamage * Mathf.Lerp(0.035f, 0.085f, armor.DurabilityRatio))
+                * Mathf.Max(0.01f, armorDurabilityMultiplier);
             hits.Add(new CombatArmorDurabilityHit(armor.InstanceId, layerDurabilityDamage));
 
             if (string.IsNullOrEmpty(armorInstanceId))
@@ -679,6 +874,68 @@ public sealed class CombatResolutionService : ICombatResolutionService
 
         durabilityHits = hits;
         appliedDamage = Mathf.Max(0.5f, remainingDamage);
+    }
+
+    private static float ResolveShieldBlockChance(
+        CombatShieldSnapshot shield,
+        CombatWeaponSnapshot weapon,
+        CombatAmmunitionProfile ammunition)
+    {
+        float chance = Mathf.Clamp01(shield.GetBlockChance());
+        if ((shield.RoleFlags & CombatEquipmentRoleFlags.SpellBlock) == 0)
+        {
+            return chance;
+        }
+
+        bool arcane = (ammunition.Effects & (CombatSpecialEffectFlags.RuneDamage
+            | CombatSpecialEffectFlags.ManaBlocked)) != 0
+            || (weapon?.DefinitionId ?? string.Empty) is
+                "weapon:rune-blade" or "weapon:mana-lance" or "weapon:rune-bow";
+        return arcane ? Mathf.Max(chance, 0.85f) : chance;
+    }
+
+    private static bool HasArmorRole(
+        IReadOnlyList<CombatArmorSnapshot> armor,
+        CombatEquipmentRoleFlags role)
+    {
+        if (armor == null)
+        {
+            return false;
+        }
+        for (int i = 0; i < armor.Count; i++)
+        {
+            if ((armor[i].RoleFlags & role) != 0
+                && armor[i].DurabilityRatio > 0f)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static float ResolveRoleDamageMultiplier(
+        CombatEquipmentRoleFlags roles,
+        CombatFireMode fireMode,
+        CombatRangeBand band,
+        int ammunitionPerAttack)
+    {
+        float multiplier = 1f;
+        if ((roles & CombatEquipmentRoleFlags.RepeatingBurst) != 0
+            && fireMode == CombatFireMode.Rapid)
+        {
+            multiplier *= 1f + Mathf.Max(0, ammunitionPerAttack - 1) * 0.55f;
+        }
+        if ((roles & CombatEquipmentRoleFlags.ShotgunSuppression) != 0)
+        {
+            multiplier *= band switch
+            {
+                CombatRangeBand.Contact => 1.2f,
+                CombatRangeBand.Near => 1.1f,
+                CombatRangeBand.Medium => 0.65f,
+                _ => 0.35f
+            };
+        }
+        return multiplier;
     }
 
     private static CombatAttackResult Failure(string reason)

@@ -346,7 +346,7 @@ internal sealed class WildlifeHuntRuntime
         }
 
         PresentHuntAttack(hunter, target, weapon);
-        ConsumeHuntWeapon(equipment, weapon, target.GridPosition);
+        ConsumeHuntWeapon(equipment, weapon, result, target.GridPosition);
         if (result.CoverBlocked)
         {
             coverDurability.TryApplyDamage(result.CoverSourceId, result.CoverDamage);
@@ -659,6 +659,7 @@ internal sealed class WildlifeHuntRuntime
     private void ConsumeHuntWeapon(
         ICombatEquipmentRuntime equipment,
         CombatWeaponSnapshot weapon,
+        CombatAttackResult result,
         Vector2Int impactPosition)
     {
         if (equipment == null || weapon == null)
@@ -668,7 +669,9 @@ internal sealed class WildlifeHuntRuntime
 
         if (weapon.RequiresAmmo && !string.IsNullOrWhiteSpace(weapon.InstanceId))
         {
-            equipment.TryConsumeLoadedAmmo(weapon.InstanceId);
+            equipment.TryConsumeLoadedAmmo(
+                weapon.InstanceId,
+                Mathf.Max(1, result.AmmunitionConsumed));
             return;
         }
 

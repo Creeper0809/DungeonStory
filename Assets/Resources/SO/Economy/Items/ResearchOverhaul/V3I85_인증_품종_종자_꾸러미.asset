@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: "V3I85_\uC778\uC99D_\uD488\uC885_\uC885\uC790_\uAFB8\uB7EC\uBBF8"
+  m_EditorClassIdentifier: DungeonStory.Economy::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8985
+  itemId: supply:certified-seed-kit
+  displayName: "\uC778\uC99D \uD488\uC885 \uC885\uC790 \uAFB8\uB7EC\uBBF8"
+  description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC778\uC99D \uD488\uC885
+    \uC885\uC790 \uAFB8\uB7EC\uBBF8."
+  stockCategory: 1
+  unitWeight: 2.77
+  maxStack: 50
+  sprite: {fileID: 0}
+  unitPrice: 180
+  features:
+  - rid: 7737211838078124316
+  - rid: 7737211838078124317
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211838078124316
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        requiredResearchId: research:agriculture:cultivar-breeding
+    - rid: 7737211838078124317
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        kind: 8
+        ingredientTags: 1
+        sharedIntermediate: 0

@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: "V3I77_\uC6A9\uC218\uCCA0\uAC15"
+  m_EditorClassIdentifier: DungeonStory.Economy::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8977
+  itemId: material:spring-steel
+  displayName: "\uC6A9\uC218\uCCA0\uAC15"
+  description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC6A9\uC218\uCCA0\uAC15."
+  stockCategory: 1
+  unitWeight: 2.53
+  maxStack: 50
+  sprite: {fileID: 0}
+  unitPrice: 164
+  features:
+  - rid: 7737211838078124775
+  - rid: 7737211838078124776
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211838078124775
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        requiredResearchId: research:metallurgy:advanced
+    - rid: 7737211838078124776
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        kind: 1
+        ingredientTags: 512
+        sharedIntermediate: 1

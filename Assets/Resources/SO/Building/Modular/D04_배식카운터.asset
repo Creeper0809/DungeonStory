@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uBC30\uC2DD\uCE74\uC6B4\uD130"
   sprite: {fileID: 21300000, guid: 384fd6100cc64734395a73a48b3b8f45, type: 3}
   icon: {fileID: 21300000, guid: 384fd6100cc64734395a73a48b3b8f45, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730834227414
@@ -41,7 +46,7 @@ MonoBehaviour:
     - rid: 7737211730834227419
     - rid: 7737211730834227420
     - rid: 7737211730834227421
-    - rid: 7737211792998531566
+    - rid: 7737211838074979059
   width: 2
   height: 1
   layer: 1
@@ -130,7 +135,7 @@ MonoBehaviour:
         capacity: 1
         contributesStockCategory: 1
         stockCategory: 0
-    - rid: 7737211792998531566
+    - rid: 7737211838074979059
       type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceHubAbility

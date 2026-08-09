@@ -19,7 +19,7 @@ MonoBehaviour:
   weight: 4.2
   occupiedHands: 0
   maxDurability: 120
-  requiredCraftWork: 6
+  requiredCraftWork: 124
   defaultMaterialId: material:leather
   primaryMaterialAmount: 4
   allowedMaterialFamilies: 05000000

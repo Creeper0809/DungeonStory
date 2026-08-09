@@ -29,19 +29,13 @@ MonoBehaviour:
   field: 14
   requiredWork: 1800
   prerequisites:
-  - {fileID: 11400000, guid: 13993314d8e54e44f8c640f4e471ad82, type: 2}
-  - {fileID: 11400000, guid: b31c590b9a05bdc4a940faa140dfc5e0, type: 2}
+  - {fileID: 11400000, guid: 327202bb0a17cec46a7ed70ac5f33e5c, type: 2}
   - {fileID: 11400000, guid: bf22cab76707e9d4f9bf25449d97d258, type: 2}
   prerequisiteLinks:
-  - prerequisiteId: research:genetics:trait-analysis
-    prerequisite: {fileID: 11400000, guid: 13993314d8e54e44f8c640f4e471ad82, type: 2}
-    kind: 2
-    reason: "\uD615\uC9C8 \uBD84\uC11D\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
-      \uD1B5\uC81C \uC720\uC804 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
-  - prerequisiteId: research:husbandry:selective
-    prerequisite: {fileID: 11400000, guid: b31c590b9a05bdc4a940faa140dfc5e0, type: 2}
-    kind: 2
-    reason: "\uC120\uBCC4 \uC0AC\uC721\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+  - prerequisiteId: research:genetics:hereditary-records
+    prerequisite: {fileID: 11400000, guid: 327202bb0a17cec46a7ed70ac5f33e5c, type: 2}
+    kind: 0
+    reason: "\uC720\uC804 \uAE30\uB85D\uACFC \uD615\uC9C8 \uBD84\uC11D\uC758 \uC774\uB860\uC774(\uAC00)
       \uD1B5\uC81C \uC720\uC804 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   - prerequisiteId: research:medical:reproductive-medicine
     prerequisite: {fileID: 11400000, guid: bf22cab76707e9d4f9bf25449d97d258, type: 2}
@@ -52,7 +46,7 @@ MonoBehaviour:
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211793001939273
+    - rid: 7737211838079697050
   facilityRequirements:
   - capability: 0
     requiredCount: 1
@@ -64,7 +58,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211793001939273
+    - rid: 7737211838079697050
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 8880

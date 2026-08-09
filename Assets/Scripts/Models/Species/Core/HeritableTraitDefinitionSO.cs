@@ -50,7 +50,10 @@ public enum HeritableTraitConsequenceKind
     Fertility,
     AgingRate,
     AnatomyCapacity,
-    ManaAffinity
+    ManaAffinity,
+    NeedRate,
+    Movement,
+    ManaOverloadDamage
 }
 
 [Serializable]

@@ -31,16 +31,16 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 28
   features:
-  - rid: 7737211794726584432
-  - rid: 7737211794726584433
+  - rid: 7737211838074979297
+  - rid: 7737211838074979298
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584432
+    - rid: 7737211838074979297
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:industry:assisted-processing
-    - rid: 7737211794726584433
+    - rid: 7737211838074979298
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1

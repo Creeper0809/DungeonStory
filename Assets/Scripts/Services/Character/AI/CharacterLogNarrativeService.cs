@@ -259,7 +259,12 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         builder.AppendLine($"requiredAnchorWords: {string.Join(", ", ExtractRequiredAnchors(entry.OriginalMessage))}");
         builder.AppendLine("Recent visible records to avoid repeating their phrasing:");
         AppendRecentLines(builder, characterLog, entry.DisplayLine);
-        return builder.ToString();
+        return NarrativeRequestContextBuilder.ForActor(
+                LocalLlmRequestProfiles.CharacterRecord.Id,
+                actor,
+                requireCharacterFact: true,
+                requireMotif: true)
+            .AppendToPrompt(builder.ToString());
     }
 
     public static bool TryParseNarrativeLine(

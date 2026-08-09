@@ -27,6 +27,16 @@ MonoBehaviour:
   preferredFacilityIds: []
   environmentalPreferences:
   - warm dry rooms
+  roomPreference:
+    preferredRoles: 544
+    idealTemperatureC: 27
+    temperatureToleranceC: 8
+    minimumVentilation: 35
+    minimumLighting: 20
+    maximumLighting: 70
+    minimumCleanliness: 40
+    prefersSharedSpace: 0
+    prefersPrivateSpace: 1
   etiquetteRules:
   - "\uC138 \uBC88 \uD655\uC778\uD55C \uC57D\uC18D\uC740 \uACF5\uAC1C\uC801\uC73C\uB85C
     \uBC88\uBCF5\uD558\uC9C0 \uC54A\uB294\uB2E4."
@@ -35,21 +45,21 @@ MonoBehaviour:
   - practice:demon-third-bell
   otherCultureAttitudes:
   - id: culture:adventurer-frontier
-    weight: 1
+    weight: 0.99
   - id: culture:beastkin-pack
-    weight: 1
+    weight: 1.02
   - id: culture:golem-core
-    weight: 1
+    weight: 1.08
   - id: culture:harpy-aerie
-    weight: 1
+    weight: 1.11
   - id: culture:kobold-toolclan
-    weight: 1
+    weight: 1.14
   - id: culture:myconid-grove
-    weight: 1
+    weight: 0.86
   - id: culture:orc-vigil
-    weight: 1
+    weight: 0.89
   - id: culture:slime-confluence
-    weight: 1
+    weight: 0.92
   - id: culture:vampire-nightcourt
-    weight: 1
+    weight: 0.95
   assimilationDays: 120

@@ -34,8 +34,29 @@ MonoBehaviour:
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211793001939236
-    - rid: 7737211793001939237
+    - rid: 7737211838079697212
+    - rid: 7737211838079697213
+    - rid: 7737211838079697214
+    - rid: 7737211838079697215
+    - rid: 7737211838079697216
+    - rid: 7737211838079697217
+    - rid: 7737211838079697218
+    - rid: 7737211838079697219
+    - rid: 7737211838079697220
+    - rid: 7737211838079697221
+    - rid: 7737211838079697222
+    - rid: 7737211838079697223
+    - rid: 7737211838079697224
+    - rid: 7737211838079697225
+    - rid: 7737211838079697226
+    - rid: 7737211838079697227
+    - rid: 7737211838079697228
+    - rid: 7737211838079697229
+    - rid: 7737211838079697230
+    - rid: 7737211838079697231
+    - rid: 7737211838079697232
+    - rid: 7737211838079697233
+    - rid: 7737211838079697234
   facilityRequirements:
   - capability: 0
     requiredCount: 1
@@ -43,11 +64,95 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211793001939236
+    - rid: 7737211838079697212
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1083
-    - rid: 7737211793001939237
+    - rid: 7737211838079697213
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1623
+    - rid: 7737211838079697214
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 9303
+    - rid: 7737211838079697215
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 9304
+    - rid: 7737211838079697216
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 9309
+    - rid: 7737211838079697217
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 9310
+    - rid: 7737211838079697218
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 9311
+    - rid: 7737211838079697219
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:chest-wrap
+    - rid: 7737211838079697220
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:footwraps
+    - rid: 7737211838079697221
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:loincloth-underwear
+    - rid: 7737211838079697222
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:long-underpants
+    - rid: 7737211838079697223
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:lower-underwear
+    - rid: 7737211838079697224
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:socks
+    - rid: 7737211838079697225
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:undershirt
+    - rid: 7737211838079697226
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:spin:common-wool
+    - rid: 7737211838079697227
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:spin:ember-cotton
+    - rid: 7737211838079697228
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:spin:frost-linen
+    - rid: 7737211838079697229
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:spin:shade-cloth
+    - rid: 7737211838079697230
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:weave:common-wool
+    - rid: 7737211838079697231
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:weave:ember-cotton
+    - rid: 7737211838079697232
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:weave:frost-linen
+    - rid: 7737211838079697233
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:weave:shade-cloth
+    - rid: 7737211838079697234
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:sewing-thread

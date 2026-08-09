@@ -161,6 +161,7 @@ Packages/packages-lock.json linguist-generated
 
 # ETC
 *.a                     lfs
+*.gguf                  lfs
 *.reason                lfs
 *.rns                   lfs
 

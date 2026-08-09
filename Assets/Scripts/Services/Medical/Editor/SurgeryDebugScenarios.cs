@@ -208,6 +208,10 @@ public static class SurgeryDebugScenarios
         SurgeryFacilityTag required = Enum.GetValues(typeof(SurgeryFacilityTag))
             .Cast<SurgeryFacilityTag>()
             .Aggregate(SurgeryFacilityTag.None, (current, value) => current | value);
+        // Age treatments are intentionally executed by the five V21 domain
+        // facilities (8868-8872), not duplicated among the 13 foundational
+        // surgery buildings in this folder.
+        required &= ~SurgeryFacilityTag.AgeTreatment;
         Require((covered & required) == required, $"facility tag coverage incomplete: {covered}");
         Require(
             buildings.Any(building =>
@@ -217,7 +221,7 @@ public static class SurgeryDebugScenarios
             buildings.Any(building =>
                 building.Abilities.OfType<BuildingProstheticAssemblyAbility>().Any()),
             "prosthetic assembly facility was missing");
-        return "13 medical facilities cover every surgery and support tag";
+        return "13 medical facilities cover every foundational surgery/support tag; V21 age-treatment facilities are validated separately";
     }
 
     private static string VerifyProcedureCatalog()
@@ -226,7 +230,7 @@ public static class SurgeryDebugScenarios
             "Assets/Resources/SO/Medical/Procedures");
         ResourceSurgicalProcedureCatalog catalog =
             new ResourceSurgicalProcedureCatalog(procedures);
-        Require(procedures.Length == 42, $"expected 42 procedures, got {procedures.Length}");
+        Require(procedures.Length == 47, $"expected 47 procedures, got {procedures.Length}");
         Require(catalog.Validate().Count == 0, string.Join(" | ", catalog.Validate()));
         Require(
             procedures.All(procedure =>
@@ -250,7 +254,7 @@ public static class SurgeryDebugScenarios
                 procedure.Kind == SurgicalProcedureKind.Rehabilitation
                 && procedure.Effects.OfType<ReduceSurgicalBurdenEffect>().Any()),
             "rehabilitation did not reduce post-operative burdens");
-        return "42 procedures require work, facilities, hauled materials, and valid effects";
+        return "47 procedures require work, facilities, hauled materials, and valid effects";
     }
 
     private static string VerifyAnatomyProfiles()

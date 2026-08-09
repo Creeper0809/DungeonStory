@@ -124,6 +124,97 @@ public sealed class MaintainSurgicalPartEffectHandler :
     }
 }
 
+public sealed class ApplyAgeTreatmentEffectHandler :
+    SurgicalProcedureEffectHandler<ApplyAgeTreatmentEffect>
+{
+    private readonly ICharacterLifeQuery life;
+    private readonly ICharacterLifeCommand commands;
+    private readonly IGameCalendar calendar;
+    private readonly IPowerInfrastructureQuery power;
+
+    public ApplyAgeTreatmentEffectHandler(
+        ICharacterLifeQuery life,
+        ICharacterLifeCommand commands,
+        IGameCalendar calendar,
+        IPowerInfrastructureQuery power)
+    {
+        this.life = life ?? throw new ArgumentNullException(nameof(life));
+        this.commands = commands ?? throw new ArgumentNullException(nameof(commands));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.power = power ?? throw new ArgumentNullException(nameof(power));
+    }
+
+    protected override bool ApplyTyped(
+        SurgeryOrder order,
+        ApplyAgeTreatmentEffect effect,
+        BuildableObject facility,
+        out DomainFailure failure)
+    {
+        CharacterId characterId = (CharacterId)(order?.subject?.subjectId
+            ?? string.Empty);
+        if (!characterId.IsValid || !life.TryGet(characterId, out _))
+        {
+            failure = new DomainFailure(
+                FailureCode.AgeTreatmentCharacterMissing,
+                characterId.Value);
+            return false;
+        }
+
+        switch (effect.treatment)
+        {
+            case AgeTreatmentEffectKind.OrganRegeneration:
+                commands.ReduceAgeConditions(characterId, severityLevels: 2);
+                break;
+            case AgeTreatmentEffectKind.BloodRejuvenation:
+                if (!commands.TryApplyBloodRejuvenation(
+                        characterId,
+                        calendar.Day,
+                        out failure))
+                {
+                    return false;
+                }
+                break;
+            case AgeTreatmentEffectKind.RuneHibernation:
+                commands.ConfigureLongTermCare(
+                    characterId,
+                    geriatricMedicineActive: false,
+                    chronicCareActive: false,
+                    AgingCareMode.RuneHibernation);
+                break;
+            case AgeTreatmentEffectKind.WholeBodyRegeneration:
+                commands.ApplyWholeBodyRegeneration(characterId);
+                break;
+            case AgeTreatmentEffectKind.TemporalStasis:
+                if (facility == null
+                    || !power.TryGetNode(facility, out PowerNodeSnapshot node)
+                    || !node.Powered
+                    || node.SuppliedFraction < 0.999f)
+                {
+                    failure = new DomainFailure(
+                        FailureCode.TemporalStasisPowerInsufficient,
+                        facility?.PersistentInstanceId.Value ?? string.Empty,
+                        PhysicalAgeTreatmentRuntime.RequiredRunePower.ToString("0"));
+                    return false;
+                }
+                commands.ConfigureTemporalStasis(
+                    characterId,
+                    facility.RequirePersistentInstanceId().Value,
+                    operational: true,
+                    nextMaintenanceAbsoluteDay:
+                        calendar.Day + GameCalendarRules.DaysPerSeason);
+                break;
+            default:
+                failure = new DomainFailure(
+                    FailureCode.SurgeryEffectFailed,
+                    effect.treatment.ToString());
+                return false;
+        }
+
+        failure = DomainFailure.None;
+        return true;
+    }
+}
+
 public sealed class RemoveSurgicalNodeEffectHandler :
     SurgicalProcedureEffectHandler<RemoveSurgicalNodeEffect>
 {

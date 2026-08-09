@@ -90,7 +90,7 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
             "Species/faction/defense expansion validation passed: "
             + "9 population species plus Adventurer, 12 anatomy profiles, 6 dungeon factions, "
             + "5 human branches, "
-            + "19 defense facilities, 216 research projects.");
+            + "19 defense facilities, 180 research projects.");
     }
 
     private static void ValidateSpecies(ICollection<string> errors)
@@ -295,6 +295,12 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
             runtime,
             EditorItemCatalogFactory.Create());
         string canonicalJson = JsonUtility.ToJson(valid);
+        if (canonicalJson.Contains("\"trust\"", StringComparison.Ordinal))
+        {
+            errors.Add(
+                "Faction save still serializes legacy trust instead of using campaign rapport/grievance/obligation authority.");
+            return;
+        }
         DungeonGameRestoreReport validReport = new DungeonGameRestoreReport();
         section.Restore(
             canonicalJson,
@@ -449,7 +455,7 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
         int revisionBefore = store.PublishedRestoreRevision;
         DungeonFactionSaveData incoming =
             JsonUtility.FromJson<DungeonFactionSaveData>(canonicalJson);
-        incoming.factions[0].trust = 1;
+        incoming.factions[0].betrayalScars = 1;
         List<DungeonSaveSectionEnvelope> envelopes = sections
             .Select(candidate => new DungeonSaveSectionEnvelope
             {
@@ -585,19 +591,19 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
     {
         ResearchProjectSO[] projects = FindAssets<ResearchProjectSO>(
             "Assets/Resources/SO/Research/Projects");
-        if (projects.Length != 216)
+        if (projects.Length != 180)
         {
             errors.Add(
-                $"Expected 216 research assets, found {projects.Length}.");
+                $"Expected 180 research assets, found {projects.Length}.");
         }
 
         Dictionary<string, ResearchProjectSO> byId = projects
             .Where(value => value != null && value.ProjectId.IsValid)
             .GroupBy(value => value.ProjectId.Value, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First());
-        if (byId.Count != 216)
+        if (byId.Count != 180)
         {
-            errors.Add($"Expected 216 research projects, found {byId.Count}.");
+            errors.Add($"Expected 180 research projects, found {byId.Count}.");
         }
 
         foreach (string id in NewResearchIds)

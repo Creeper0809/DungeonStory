@@ -68,6 +68,17 @@ public interface IProductionAssemblyBridge
     IReadOnlyList<ProductionFacilityHandle> Facilities { get; }
     ProductionFacilityHandle CaptureFacility(object runtimeObject);
     ProductionWorkerHandle CaptureWorker(object runtimeObject);
+    bool IsWorkerEligible(
+        ProductionWorkerHandle worker,
+        WorkerSelectionPolicySaveData policy,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        return true;
+    }
+    float GetRelevantCraftSkill(
+        ProductionWorkerHandle worker,
+        ProductionRecipeSO recipe) => 50f;
 
     int CountDelivered(string itemId, string destinationId);
     int CountPending(string itemId, string destinationId);
@@ -235,6 +246,9 @@ public interface IProductionBillCoreOrderCommand
         ProductionBillId billId,
         ProductionDistributionMode mode,
         IReadOnlyList<ProductionConsumerRoutePolicy> routes);
+    ProductionBillCommandResult SetWorkerPolicy(
+        ProductionBillId billId,
+        WorkerSelectionPolicySaveData policy);
     ProductionBillCommandResult RequestStockSensorInstallation(
         ProductionFacilityHandle facility);
     ProductionBillCommandResult AcknowledgeStockSensorUnlock(

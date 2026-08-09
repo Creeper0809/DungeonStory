@@ -29,14 +29,15 @@ MonoBehaviour:
   field: 15
   requiredWork: 960
   prerequisites:
-  - {fileID: 11400000, guid: 2659f185e4da05a4ea2ae6da429b7a46, type: 2}
+  - {fileID: 11400000, guid: 1bbb2845e79f6b649a3c80a133ede933, type: 2}
   - {fileID: 11400000, guid: 00b8c28931f47544faecc8b510851912, type: 2}
   prerequisiteLinks:
-  - prerequisiteId: research:industry:maintenance
-    prerequisite: {fileID: 11400000, guid: 2659f185e4da05a4ea2ae6da429b7a46, type: 2}
-    kind: 4
-    reason: "\uC608\uBC29 \uC815\uBE44\uC758 \uC6B4\uC6A9 \uC808\uCC28\uC774(\uAC00)
-      \uC815\uBC00 \uC790\uB3D9\uD654 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:industry:breakers
+    prerequisite: {fileID: 11400000, guid: 1bbb2845e79f6b649a3c80a133ede933, type: 2}
+    kind: 2
+    reason: "\uCC28\uB2E8\uAE30\uC640 \uC0B0\uC5C5 \uC815\uBE44\uC758 \uACF5\uD559
+      \uC6D0\uB9AC\uC774(\uAC00) \uC815\uBC00 \uC790\uB3D9\uD654 \uAD6C\uD604\uC5D0
+      \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   - prerequisiteId: research:metallurgy:advanced
     prerequisite: {fileID: 11400000, guid: 00b8c28931f47544faecc8b510851912, type: 2}
     kind: 2
@@ -46,7 +47,7 @@ MonoBehaviour:
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211792998531932
+    - rid: 7737211838079697114
   facilityRequirements:
   - capability: 0
     requiredCount: 2
@@ -58,7 +59,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211792998531932
+    - rid: 7737211838079697114
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 8832

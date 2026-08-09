@@ -29,7 +29,7 @@ MonoBehaviour:
   moveSpeed: 4
   equipment:
     weaponDefinitionId: weapon:spear
-    armorDefinitionId: armor:padded
+    armorDefinitionId: armor:gambeson
     shieldDefinitionId: 
     ammunitionItemId: 
   abilityIds:
@@ -48,7 +48,7 @@ MonoBehaviour:
   counterTags:
   - counter:reach
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   bossPhases: []
   individualGeneration:
     minimumGeneralTraits: 2

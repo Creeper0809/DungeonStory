@@ -33,19 +33,19 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 130
   features:
-  - rid: 7737211729518788926
-  - rid: 7737211729518788927
+  - rid: 7737211830154035564
+  - rid: 7737211830154035565
   references:
     version: 2
     RefIds:
-    - rid: 7737211729518788926
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211830154035564
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211729518788927
-      type: {class: BlueprintItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211830154035565
+      type: {class: BlueprintItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         blueprintDefinitionId: 6103
         targetResearchId: research:survival:support

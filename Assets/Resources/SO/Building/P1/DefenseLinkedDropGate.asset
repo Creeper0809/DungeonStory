@@ -31,14 +31,19 @@ MonoBehaviour:
   objectName: "\uBB38 \uC5F0\uB3D9 \uAC15\uD654 \uB099\uD558\uBB38"
   sprite: {fileID: 21300000, guid: ec42980d484085f459fa7c428187238f, type: 3}
   icon: {fileID: 21300000, guid: ec42980d484085f459fa7c428187238f, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 8800000000000001804
     - rid: 7302563312817144073
     - rid: 7302563312817144076
     - rid: 7302563313672520649
-    - rid: 7737211792998531319
-    - rid: 7737211792998531320
+    - rid: 7737211838074978814
+    - rid: 7737211838074978815
   width: 2
   height: 1
   layer: 1
@@ -76,7 +81,7 @@ MonoBehaviour:
         toughness: 24
         repairHitPointsPerWork: 2
         breachable: 1
-    - rid: 7737211792998531319
+    - rid: 7737211838074978814
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -87,7 +92,7 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 4
           disabledWhenDamaged: 1
-    - rid: 7737211792998531320
+    - rid: 7737211838074978815
       type: {class: BuildingDefenseAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingDefenseAbility
@@ -139,3 +144,5 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: material:steel-ingot
           amount: 13
+        - itemId: component:corridor-detonator
+          amount: 1

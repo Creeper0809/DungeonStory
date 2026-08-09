@@ -63,7 +63,12 @@ public sealed class SocialRumorPromptComposer
         builder.AppendLine("candidateFacilities:");
         AppendCandidateFacilities(builder, speaker, explicitFacility);
         builder.AppendLine("Example: {\"rumorType\":\"Recommendation\",\"targetType\":\"Facility\",\"targetFacilityId\":12,\"targetFacilityTag\":\"Rest\",\"targetCharacterId\":\"\",\"targetCharacterName\":\"\",\"sentiment\":0.6,\"summary\":\"rest facility visit was good\",\"spreadChance\":0.55,\"trustImpact\":0.05,\"validSeconds\":600}");
-        return Truncate(builder, maxCharacters);
+        return NarrativeRequestContextBuilder.ForActor(
+                LocalLlmRequestProfiles.SocialRumor.Id,
+                speaker,
+                requireCharacterFact: false,
+                requireMotif: false)
+            .AppendToPrompt(Truncate(builder, maxCharacters));
     }
 
     public string BuildFacilityExperiencePrompt(
@@ -106,7 +111,12 @@ public sealed class SocialRumorPromptComposer
         builder.AppendLine($"eventName: {eventName}");
         builder.AppendLine($"reportedSentiment: {sentiment:0.00}");
         builder.AppendLine($"summary: {summary}");
-        return Truncate(builder, maxCharacters);
+        return NarrativeRequestContextBuilder.ForActor(
+                LocalLlmRequestProfiles.SocialRumor.Id,
+                speaker,
+                requireCharacterFact: false,
+                requireMotif: false)
+            .AppendToPrompt(Truncate(builder, maxCharacters));
     }
 
     public BuildableObject ResolveFacility(CharacterLogEntry entry)

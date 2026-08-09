@@ -35,6 +35,7 @@ public sealed class WildlifeRestoreCandidate :
         WildlifePopulationState population = new WildlifePopulationState
         {
             NextSequence = source.nextSequence,
+            LastDiseaseVectorAbsoluteDay = source.lastDiseaseVectorAbsoluteDay,
             InitialSpawnCompleted = true,
             NextCarcassTickAt = nextCarcassTickAt
         };

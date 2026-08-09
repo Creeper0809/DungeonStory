@@ -181,6 +181,8 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
     private IDungeonItemCatalogProvider catalogProvider;
     private IItemHaulingSettingsProvider haulingSettingsProvider;
     private ICharacterCarryInventoryRegistry registry;
+    private IEnvironmentalWorkwearQuery environmentalWorkwear;
+    private IEnvironmentalWorkwearCommand environmentalWorkwearCommands;
 
     public IReadOnlyList<CharacterCarriedItemSaveData> Items => carriedItems;
     public bool HasItems => carriedItems.Any(item => item != null && item.quantity > 0);
@@ -209,6 +211,17 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
         this.registry = registry
             ?? throw new ArgumentNullException(nameof(registry));
         if (isActiveAndEnabled) registry.Register(this);
+    }
+
+    [Inject]
+    public void ConstructHaulingHarness(
+        IEnvironmentalWorkwearQuery environmentalWorkwear,
+        IEnvironmentalWorkwearCommand environmentalWorkwearCommands)
+    {
+        this.environmentalWorkwear = environmentalWorkwear
+            ?? throw new ArgumentNullException(nameof(environmentalWorkwear));
+        this.environmentalWorkwearCommands = environmentalWorkwearCommands
+            ?? throw new ArgumentNullException(nameof(environmentalWorkwearCommands));
     }
 
     public static CharacterCarryInventory Ensure(CharacterActor actor)
@@ -244,8 +257,92 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
         CharacterStats stats = actor != null ? actor.Stats : null;
         int strength = stats != null ? stats.GetCharacterStat(CharacterStatType.Strength) : 5;
         int endurance = stats != null ? stats.GetCharacterStat(CharacterStatType.Endurance) : 5;
-        return 8f + (strength * 1.5f) + (endurance * 0.75f);
+        float baseLimit = 8f + (strength * 1.5f) + (endurance * 0.75f);
+        return IsHaulingHarnessEquipped() ? baseLimit * 1.25f : baseLimit;
     }
+
+    public bool TryPrepareHaulingHarness(out bool equippedForThisRun)
+    {
+        equippedForThisRun = false;
+        if (actor == null
+            || environmentalWorkwear == null
+            || environmentalWorkwearCommands == null
+            || !CharacterId.IsValid)
+        {
+            return false;
+        }
+
+        if (environmentalWorkwear.TryGetEquipped(
+                CharacterId,
+                out EnvironmentalWorkwearSO current))
+        {
+            return string.Equals(
+                current.ItemDefinitionId,
+                DurableToolItemRules.HaulingHarness,
+                StringComparison.Ordinal);
+        }
+
+        bool equipped = environmentalWorkwearCommands.TryEquip(
+            actor,
+            "workwear:hauling-harness",
+            out _);
+        equippedForThisRun = equipped;
+        return equipped;
+    }
+
+    public void CompleteHaulingHarness(bool equippedForThisRun, bool applyWear)
+    {
+        if (!equippedForThisRun
+            || environmentalWorkwear == null
+            || environmentalWorkwearCommands == null
+            || !CharacterId.IsValid)
+        {
+            return;
+        }
+
+        if (applyWear
+            && environmentalWorkwear.TryGetEquippedItemInstance(
+                CharacterId,
+                out ItemInstanceId itemInstanceId,
+                out EnvironmentalWorkwearSO workwear)
+            && string.Equals(
+                workwear.ItemDefinitionId,
+                DurableToolItemRules.HaulingHarness,
+                StringComparison.Ordinal))
+        {
+            IWorldItemStackRuntime physicalItems = actor.WorldItemStackRuntime;
+            WorldItemStackSnapshot stack = physicalItems?.GetAllStacks()
+                .FirstOrDefault(candidate => candidate != null
+                    && string.Equals(
+                        candidate.ItemInstanceId,
+                        itemInstanceId.Value,
+                        StringComparison.Ordinal));
+            if (stack != null)
+            {
+                float current = DurableToolItemRules.ReadCurrentDurability(
+                    stack.ItemId,
+                    stack.Components);
+                physicalItems.TrySetInstanceComponent(
+                    stack.StackId,
+                    DurableToolItemRules.CreateDurability(
+                        stack.ItemId,
+                        current - 1f));
+            }
+        }
+
+        environmentalWorkwearCommands.TryUnequip(CharacterId, out _);
+    }
+
+    private bool IsHaulingHarnessEquipped() =>
+        environmentalWorkwear != null
+        && CharacterId.IsValid
+        && environmentalWorkwear.TryGetEquipped(
+            CharacterId,
+            out EnvironmentalWorkwearSO workwear)
+        && string.Equals(
+            workwear.ItemDefinitionId,
+            DurableToolItemRules.HaulingHarness,
+            StringComparison.Ordinal);
 
     public float GetMaxAllowedWeight(IItemHaulingSettingsProvider settingsProvider)
     {
@@ -531,6 +628,48 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
         }
 
         return consumedAll;
+    }
+
+    public bool TryTakeItem(
+        string itemId,
+        out CharacterCarriedItemSaveData taken)
+    {
+        taken = null;
+        for (int index = 0; index < carriedItems.Count; index++)
+        {
+            CharacterCarriedItemSaveData item = carriedItems[index];
+            if (item == null
+                || item.quantity <= 0
+                || !string.Equals(item.itemId, itemId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            taken = new CharacterCarriedItemSaveData
+            {
+                sourceStackId = item.sourceStackId,
+                itemInstanceId = item.itemInstanceId,
+                itemId = item.itemId,
+                quantity = 1,
+                wasteOrigin = item.wasteOrigin,
+                contamination = item.contamination,
+                components = (item.components
+                        ?? new List<ItemInstanceComponentSaveData>())
+                    .Where(component => component != null)
+                    .Select(component => component.Clone())
+                    .ToList()
+            };
+            item.quantity--;
+            if (item.quantity <= 0)
+            {
+                carriedItems.RemoveAt(index);
+            }
+
+            Changed?.Invoke();
+            return true;
+        }
+
+        return false;
     }
 
     public bool TryConsumeSourceStack(string sourceStackId, string itemId, int quantity = 1)

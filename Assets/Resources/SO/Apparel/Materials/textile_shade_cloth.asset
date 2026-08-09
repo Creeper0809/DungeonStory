@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 395293958b2580b4b95b76d27886c83a, type: 3}
+  m_Name: textile_shade_cloth
+  m_EditorClassIdentifier: DungeonStory.Economy::TextileMaterialDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 23101
+  materialId: textile:shade-cloth
+  physicalItemId: material:cloth
+  displayName: "\uADF8\uB298\uCC9C"
+  description: "\uADF8\uB298\uCC9C\uC758 V22 \uC8FC\uC6D0\uB2E8 \uC815\uC758. \uB4F1\uAE09\uACFC
+    \uC0C1\uD0DC \uBC34\uB4DC\uB9CC \uBB3C\uB9AC \uC2A4\uD0DD \uBCD1\uD569 \uD0A4\uC5D0
+    \uC0AC\uC6A9\uD55C\uB2E4."
+  tags: 5
+  warmth: 0.45
+  heatResistance: 0.35
+  waterResistance: 0.25
+  airborneResistance: 0.2
+  sterility: 0.15
+  durability: 60
+  weightMultiplier: 1
+  dryingRate: 1
+  requiredResearchId: research:textile:fiber

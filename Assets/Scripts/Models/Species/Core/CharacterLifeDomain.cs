@@ -394,7 +394,8 @@ public sealed class CharacterLifeRecord
     public IReadOnlyList<AgeConditionChange> AdvanceOneChronologicalDayWithCare(
         SpeciesLifeHistoryDefinition lifeHistory,
         IReadOnlyList<AgeConditionDefinition> availableConditions,
-        Func<double> nextUnitRandom)
+        Func<double> nextUnitRandom,
+        double hereditaryAgingMultiplier = 1d)
     {
         double agingMultiplier = EffectiveAgingCareMode switch
         {
@@ -402,6 +403,7 @@ public sealed class CharacterLifeRecord
             AgingCareMode.TemporalStasis => 0d,
             _ => 1d
         };
+        agingMultiplier *= Math.Clamp(hereditaryAgingMultiplier, 0.5d, 1.5d);
         double conditionProgressMultiplier = ChronicCareActive
             ? 0d
             : GeriatricMedicineActive ? 0.70d : 1d;
@@ -505,6 +507,33 @@ public sealed class CharacterLifeRecord
                      .OrderBy(value => value.ConditionId, StringComparer.Ordinal))
         {
             changes.Add(condition.Reduce(CharacterId, severityLevels: 2));
+        }
+
+        return changes;
+    }
+
+    public IReadOnlyList<AgeConditionChange> ReduceAgeConditions(int severityLevels)
+    {
+        if (severityLevels <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(severityLevels));
+        }
+
+        List<AgeConditionChange> changes = new();
+        string[] ids = ageConditions.Keys
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        foreach (string conditionId in ids)
+        {
+            CharacterAgeConditionState condition = ageConditions[conditionId];
+            AgeConditionChange change = condition.Reduce(
+                CharacterId,
+                severityLevels);
+            changes.Add(change);
+            if (change.Resolved)
+            {
+                ageConditions.Remove(conditionId);
+            }
         }
 
         return changes;
@@ -675,6 +704,9 @@ public interface ICharacterLifeCommand
         out DomainFailure failure);
     IReadOnlyList<AgeConditionChange> ApplyWholeBodyRegeneration(
         CharacterId characterId);
+    IReadOnlyList<AgeConditionChange> ReduceAgeConditions(
+        CharacterId characterId,
+        int severityLevels);
     void ConfigureLongTermCare(
         CharacterId characterId,
         bool geriatricMedicineActive,
@@ -779,7 +811,12 @@ public sealed class CharacterLifeRuntime :
         return record;
     }
 
-    public IReadOnlyList<AgeConditionChange> AdvanceDay(CharacterId characterId)
+    public IReadOnlyList<AgeConditionChange> AdvanceDay(CharacterId characterId) =>
+        AdvanceDay(characterId, 1d);
+
+    public IReadOnlyList<AgeConditionChange> AdvanceDay(
+        CharacterId characterId,
+        double hereditaryAgingMultiplier)
     {
         if (!Writable.Characters.TryGetValue(characterId, out CharacterLifeRecord record))
         {
@@ -792,7 +829,8 @@ public sealed class CharacterLifeRuntime :
         IReadOnlyList<AgeConditionChange> changes = record.AdvanceOneChronologicalDayWithCare(
             history,
             definitions.GetAgeConditions(history.Construct),
-            () => agingRandom.NextFloat());
+            () => agingRandom.NextFloat(),
+            hereditaryAgingMultiplier);
         version = unchecked(version + 1);
         return changes;
     }
@@ -843,6 +881,17 @@ public sealed class CharacterLifeRuntime :
             definitions.RequireLifeHistory(record.PhenotypeSpeciesId);
         IReadOnlyList<AgeConditionChange> changes =
             record.ApplyWholeBodyRegeneration(history);
+        version = unchecked(version + 1);
+        return changes;
+    }
+
+    public IReadOnlyList<AgeConditionChange> ReduceAgeConditions(
+        CharacterId characterId,
+        int severityLevels)
+    {
+        CharacterLifeRecord record = RequireWritableRecord(characterId);
+        IReadOnlyList<AgeConditionChange> changes =
+            record.ReduceAgeConditions(severityLevels);
         version = unchecked(version + 1);
         return changes;
     }

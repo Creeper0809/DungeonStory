@@ -262,6 +262,20 @@ public sealed class OffenseBattlePanel : MonoBehaviour
             false,
             () => ExecuteImmediate(OffenseBattleActionType.Guard, current.PersistentId, string.Empty));
 
+        if ((current.Shield.RoleFlags
+                & CombatEquipmentRoleFlags.DeployableCover) != 0)
+        {
+            Button deployCover = CreateActionButton(
+                current.CoverBlockChance > 0f ? "파비스 설치됨" : "파비스 설치",
+                false,
+                false,
+                () => ExecuteImmediate(
+                    OffenseBattleActionType.DeployCover,
+                    current.PersistentId,
+                    string.Empty));
+            deployCover.interactable = current.CoverBlockChance <= 0f;
+        }
+
         CombatWeaponSnapshot weapon = current.Weapon ?? CombatWeaponSnapshot.CreateUnarmed();
         if (weapon.RequiresAmmo)
         {
@@ -722,6 +736,9 @@ public sealed class OffenseBattlePanel : MonoBehaviour
             OffenseBattleStatusType.Guard => $"방어 {Mathf.RoundToInt(status.Value * 100f)}%",
             OffenseBattleStatusType.Vulnerability => $"취약 {Mathf.RoundToInt(status.Value * 100f)}%",
             OffenseBattleStatusType.DamageOverTime => $"지속 피해 {status.Value:0.#}",
+            OffenseBattleStatusType.Sedated => $"진정 {Mathf.RoundToInt(status.Value * 100f)}%",
+            OffenseBattleStatusType.ManaBlocked => "마나 차단",
+            OffenseBattleStatusType.SignalSupport => "신호 지원",
             _ => status.Type.ToString()
         }));
     }

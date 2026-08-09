@@ -19,6 +19,10 @@ public static class OffenseBattleDebugScenarios
         Run("heal target and drain source", VerifyHealTargetAndDrainSource, errors);
         Run("guard and cooldown", VerifyGuardAndCooldown, errors);
         Run("enemy target priority", VerifyEnemyTargetPriority, errors);
+        Run("enemy tactical tags and boss phase", VerifyEnemyTacticalTagsAndBossPhase, errors);
+        Run("smoke and summon are dedicated effects", VerifySmokeAndSummonEffects, errors);
+        Run("pavise deployment and persistence", VerifyPaviseDeployment, errors);
+        Run("encounter counters use actual party equipment", VerifyEncounterCounterEvaluation, errors);
         Run("death retreat and command idempotence", VerifyOutcomesAndIdempotence, errors);
         Run("exact battle persistence", VerifyExactPersistence, errors);
         Run("fixed difficulty multipliers", VerifyDifficultyMultipliers, errors);
@@ -180,6 +184,296 @@ public static class OffenseBattleDebugScenarios
         OffenseBattleCommand command = session.CreateEnemyCommand(1);
         Require(command != null && command.TargetId == lethal.PersistentId,
             "Enemy AI did not prioritize a lethal target.");
+        return true;
+    }
+
+    private static bool VerifyEnemyTacticalTagsAndBossPhase()
+    {
+        CharacterCombatAbilityDefinition phaseAbility = new(
+            "qa:phase-ability",
+            "Phase",
+            "Boss phase ability.",
+            0,
+            OffenseBattleTargetRule.Enemy,
+            new OffenseDamageEffect(0.2f));
+        CharacterCombatAbilityDefinition ordinaryAbility = new(
+            "qa:ordinary-ability",
+            "Ordinary",
+            "Ordinary ability.",
+            0,
+            OffenseBattleTargetRule.Enemy,
+            new OffenseDamageEffect(3f));
+        EnemyArchetypeDefinitionSO bossDefinition =
+            ScriptableObject.CreateInstance<EnemyArchetypeDefinitionSO>();
+        try
+        {
+            bossDefinition.stableId = "enemy:qa-boss";
+            bossDefinition.tacticalProfile = new EnemyTacticalProfile
+            {
+                attackWeight = 0.1f,
+                protectWeight = 0.1f,
+                abilityWeight = 9f,
+                formationTag = "front",
+                preferredTargetTags = new List<string> { "nearest" },
+                avoidedTargetTags = new List<string> { "shielded" }
+            };
+            bossDefinition.bossPhases = new List<EnemyBossPhaseRecord>
+            {
+                new EnemyBossPhaseRecord
+                {
+                    healthThreshold = 0.5f,
+                    abilityIds = new List<string> { phaseAbility.Id },
+                    tacticalProfileOverrideTag = "desperate"
+                }
+            };
+            OffenseBattleCombatant boss = Combatant(
+                "enemy:qa-boss:1",
+                "Boss",
+                OffenseBattleTeam.Enemies,
+                100f,
+                8f,
+                7f,
+                7f,
+                30f,
+                5f,
+                currentHealth: 40f);
+            boss = new OffenseBattleCombatant(
+                boss.PersistentId,
+                boss.DisplayName,
+                boss.SpeciesTag,
+                boss.Team,
+                boss.Stats,
+                boss.CurrentHealth,
+                new[] { ordinaryAbility, phaseAbility });
+            OffenseBattleCombatant shielded = Combatant(
+                "ally:shielded",
+                "Shielded",
+                OffenseBattleTeam.Allies,
+                100f,
+                6f,
+                5f,
+                5f,
+                5f,
+                4f);
+            shielded.SetCombatEquipment(
+                CombatWeaponSnapshot.CreateUnarmed(),
+                Array.Empty<CombatArmorSnapshot>(),
+                new CombatShieldSnapshot(
+                    "qa:shield",
+                    CombatEquipmentQuality.Normal,
+                    1f,
+                    0.5f,
+                    0f,
+                    2f,
+                    2f,
+                    2f));
+            OffenseBattleCombatant exposed = Combatant(
+                "ally:exposed",
+                "Exposed",
+                OffenseBattleTeam.Allies,
+                100f,
+                6f,
+                5f,
+                5f,
+                5f,
+                4f);
+            OffenseBattleSession session = Session(boss, shielded, exposed);
+            EnemyTacticalDecision decision = new EnemyTacticalDecisionService(
+                    new SingleEnemyCatalog(bossDefinition))
+                .Decide(
+                    session,
+                    new EnemyIndividualSaveData
+                    {
+                        characterId = boss.PersistentId,
+                        enemyArchetypeId = bossDefinition.stableId
+                    });
+            Require(decision.Intent == EnemyTacticalIntentKind.UseAbility
+                    && decision.AbilityId == phaseAbility.Id,
+                "Active boss phase did not prioritize its authored ability.");
+            Require(decision.TargetId == exposed.PersistentId,
+                "Avoided shielded target tag did not affect target selection.");
+            return true;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(bossDefinition);
+        }
+    }
+
+    private static bool VerifySmokeAndSummonEffects()
+    {
+        CharacterCombatAbilityDefinition smoke = new(
+            "qa:smoke",
+            "Smoke",
+            "Smoke test.",
+            0,
+            OffenseBattleTargetRule.Self,
+            new OffenseSmokeEffect(0.6f, 2));
+        OffenseBattleCombatant smokeUser = Combatant(
+            "enemy:smoke",
+            "Smoke User",
+            OffenseBattleTeam.Enemies,
+            100f,
+            5f,
+            5f,
+            5f,
+            30f,
+            5f,
+            smoke);
+        OffenseBattleCombatant shooter = Combatant(
+            "ally:shooter",
+            "Shooter",
+            OffenseBattleTeam.Allies,
+            100f,
+            10f,
+            6f,
+            5f,
+            10f,
+            5f);
+        shooter.SetCombatEquipment(
+            CreateTestRangedWeapon(),
+            Array.Empty<CombatArmorSnapshot>());
+        OffenseBattleSession smokeSession = Session(smokeUser, shooter);
+        CombatAttackPreview clear = smokeSession.PreviewBasicAttack(shooter, smokeUser);
+        Require(smokeSession.TryExecuteCommand(
+                new OffenseBattleCommand(
+                    1,
+                    smokeUser.PersistentId,
+                    OffenseBattleActionType.Ability,
+                    smokeUser.PersistentId,
+                    smoke.Id),
+                out _),
+            "Smoke ability was rejected.");
+        CombatAttackPreview obscured = smokeSession.PreviewBasicAttack(shooter, smokeUser);
+        Require(smokeUser.Statuses.Any(value =>
+                value.Type == OffenseBattleStatusType.SmokeObscured),
+            "Smoke did not create its dedicated persistent status.");
+        Require(obscured.HitChance < clear.HitChance
+                && obscured.CoverBlockChance > clear.CoverBlockChance,
+            "Smoke did not reduce ranged accuracy and add battlefield cover.");
+
+        CharacterCombatAbilityDefinition summon = new(
+            "qa:summon",
+            "Summon",
+            "Summon test.",
+            0,
+            OffenseBattleTargetRule.Self,
+            new OffenseSummonEffect(20f, 3));
+        OffenseBattleCombatant summoner = Combatant(
+            "enemy:summoner",
+            "Summoner",
+            OffenseBattleTeam.Enemies,
+            100f,
+            5f,
+            5f,
+            5f,
+            30f,
+            5f,
+            summon);
+        OffenseBattleCombatant attacker = Combatant(
+            "ally:summon-attacker",
+            "Attacker",
+            OffenseBattleTeam.Allies,
+            100f,
+            10f,
+            6f,
+            5f,
+            10f,
+            5f);
+        OffenseBattleSession summonSession = new(
+            Guid.NewGuid().ToString("N"),
+            "expedition:summon-test",
+            "target:summon-test",
+            "Summon Test",
+            DungeonDifficulty.Normal,
+            new[] { summoner, attacker },
+            new FixedCombatResolutionService(
+                Hit(CombatBodyPart.Torso, 12f, 0f, 0f)),
+            OffenseEditorTestDependencies.CreateCombatEquipmentRuntime());
+        Require(summonSession.TryExecuteCommand(
+                new OffenseBattleCommand(
+                    1,
+                    summoner.PersistentId,
+                    OffenseBattleActionType.Ability,
+                    summoner.PersistentId,
+                    summon.Id),
+                out _),
+            "Summon ability was rejected.");
+        Require(summonSession.CapturePersistentState().combatants
+                .Single(value => value.persistentId == summoner.PersistentId)
+                .statuses.Any(value =>
+                    value.type == OffenseBattleStatusType.SummonedGuard
+                    && Mathf.Approximately(value.value, 20f)),
+            "Summoned guard pool was not captured by battle persistence.");
+        float before = summoner.CurrentHealth;
+        Require(summonSession.TryExecuteCommand(
+                new OffenseBattleCommand(
+                    2,
+                    attacker.PersistentId,
+                    OffenseBattleActionType.BasicAttack,
+                    summoner.PersistentId),
+                out _),
+            "Attack against summoned guard was rejected.");
+        Require(Mathf.Approximately(summoner.CurrentHealth, before),
+            "Summoned guard pool did not intercept incoming damage.");
+        return true;
+    }
+
+    private static bool VerifyPaviseDeployment()
+    {
+        OffenseBattleCombatant paviseBearer = Combatant(
+            "ally:pavise",
+            "Pavise Bearer",
+            OffenseBattleTeam.Allies,
+            100f,
+            8f,
+            6f,
+            7f,
+            20f,
+            4f);
+        paviseBearer.SetCombatEquipment(
+            CombatWeaponSnapshot.CreateUnarmed(),
+            Array.Empty<CombatArmorSnapshot>(),
+            new CombatShieldSnapshot(
+                "equipment:pavise",
+                CombatEquipmentQuality.Normal,
+                1f,
+                0.68f,
+                0f,
+                34f,
+                31f,
+                26f,
+                definitionId: "shield:pavise",
+                roleFlags: CombatEquipmentRoleFlags.DeployableCover));
+        OffenseBattleCombatant enemy = Combatant(
+            "enemy:pavise",
+            "Enemy",
+            OffenseBattleTeam.Enemies,
+            100f,
+            6f,
+            5f,
+            5f,
+            5f,
+            4f);
+        OffenseBattleSession session = Session(paviseBearer, enemy);
+        Require(session.TryExecuteCommand(
+                new OffenseBattleCommand(
+                    1,
+                    paviseBearer.PersistentId,
+                    OffenseBattleActionType.DeployCover,
+                    paviseBearer.PersistentId),
+                out _),
+            "Pavise deployment command was rejected.");
+        Require(paviseBearer.CoverBlockChance >= 0.55f,
+            "Pavise did not create meaningful cover.");
+        OffenseBattleCombatantPersistenceState saved = session
+            .CapturePersistentState()
+            .combatants
+            .Single(value => value.persistentId == paviseBearer.PersistentId);
+        Require(Mathf.Approximately(
+                saved.coverBlockChance,
+                paviseBearer.CoverBlockChance),
+            "Deployed pavise cover was not persisted.");
         return true;
     }
 
@@ -462,6 +756,87 @@ public static class OffenseBattleDebugScenarios
         return true;
     }
 
+    private static bool VerifyEncounterCounterEvaluation()
+    {
+        BattlefieldModifierDefinitionSO modifier =
+            ScriptableObject.CreateInstance<BattlefieldModifierDefinitionSO>();
+        try
+        {
+            modifier.stableId = "battlefield:test-counter";
+            modifier.displayName = "Counter Test";
+            modifier.accuracyMultiplier = 0.5f;
+            modifier.movementMultiplier = 1f;
+            modifier.damageMultiplier = 1f;
+            modifier.requiredCounterTag = "counter:precision";
+
+            OffenseBattleCombatant prepared = Combatant(
+                "ally:counter-prepared",
+                "Prepared",
+                OffenseBattleTeam.Allies,
+                100f, 8f, 6f, 5f, 10f, 5f,
+                formation: OffenseFormationSlot.Rear);
+            prepared.SetCombatEquipment(
+                CreateTestRangedWeapon(),
+                Array.Empty<CombatArmorSnapshot>());
+            OffenseBattleCombatant enemy = Combatant(
+                "enemy:counter-test",
+                "Enemy",
+                OffenseBattleTeam.Enemies,
+                100f, 8f, 6f, 5f, 5f, 4f);
+            OffenseBattleEncounterRules preparedRules = new(
+                OffenseEncounterObjective.DefeatAll,
+                0,
+                string.Empty,
+                string.Empty,
+                new[] { modifier },
+                new[] { "counter:precision" });
+            _ = new OffenseBattleSession(
+                "battle:counter-prepared",
+                "expedition:counter-prepared",
+                "target:counter-prepared",
+                "Counter Prepared",
+                DungeonDifficulty.Normal,
+                new[] { prepared, enemy },
+                OffenseEditorTestDependencies.CreateCombatResolution(),
+                OffenseEditorTestDependencies.CreateCombatEquipmentRuntime(),
+                preparedRules);
+
+            Require(preparedRules.MatchedCounterTags.Contains("counter:precision"),
+                "A precision ranged weapon did not satisfy the authored counter.");
+            Require(preparedRules.GetAccuracyMultiplier(OffenseBattleTeam.Allies) > 1f,
+                "Matched counter did not neutralize the allied accuracy penalty.");
+            Require(Mathf.Approximately(
+                    preparedRules.GetAccuracyMultiplier(OffenseBattleTeam.Enemies),
+                    0.5f),
+                "An allied counter incorrectly removed the enemy battlefield modifier.");
+
+            OffenseBattleEncounterRules unpreparedRules = new(
+                OffenseEncounterObjective.DefeatAll,
+                0,
+                string.Empty,
+                string.Empty,
+                new[] { modifier },
+                new[] { "counter:precision" });
+            unpreparedRules.EvaluatePartyCounters(new[]
+            {
+                Combatant(
+                    "ally:counter-unprepared",
+                    "Unprepared",
+                    OffenseBattleTeam.Allies,
+                    100f, 8f, 6f, 5f, 10f, 5f)
+            });
+            Require(Mathf.Approximately(
+                    unpreparedRules.GetAccuracyMultiplier(OffenseBattleTeam.Allies),
+                    0.5f),
+                "An unprepared party bypassed the authored battlefield penalty.");
+            return true;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(modifier);
+        }
+    }
+
     private static OffenseBattleSession Session(params OffenseBattleCombatant[] combatants)
     {
         return new OffenseBattleSession(
@@ -693,6 +1068,67 @@ public static class OffenseBattleDebugScenarios
             currentHealth ?? health,
             ability != null ? new[] { ability } : Array.Empty<CharacterCombatAbilityDefinition>(),
             formation: formation);
+    }
+
+    private static CombatWeaponSnapshot CreateTestRangedWeapon()
+    {
+        return new CombatWeaponSnapshot(
+            "weapon:qa-throw",
+            "equipment:qa-throw",
+            CombatEquipmentKind.RecoverableThrowingWeapon,
+            new RecoverableThrowVerb
+            {
+                attackTime = 1f,
+                baseDamage = 8f,
+                penetration = 2f,
+                damageType = CombatDamageType.Pierce,
+                tracking = 0.05f
+            },
+            Enum.GetValues(typeof(CombatRangeBand))
+                .Cast<CombatRangeBand>()
+                .Where(value => value != CombatRangeBand.OutOfRange)
+                .Select(value => new CombatRangeProfile
+                {
+                    band = value,
+                    accuracyMultiplier = 1f,
+                    damageMultiplier = 1f
+                })
+                .ToArray(),
+            20,
+            CombatEquipmentQuality.Normal,
+            string.Empty,
+            0,
+            0,
+            0f,
+            true,
+            false,
+            false);
+    }
+
+    private sealed class SingleEnemyCatalog : IEnemyArchetypeCatalog
+    {
+        private readonly EnemyArchetypeDefinitionSO definition;
+
+        public SingleEnemyCatalog(EnemyArchetypeDefinitionSO definition)
+        {
+            this.definition = definition;
+        }
+
+        public IReadOnlyList<EnemyArchetypeDefinitionSO> All =>
+            new[] { definition };
+
+        public bool TryGet(string id, out EnemyArchetypeDefinitionSO value)
+        {
+            value = string.Equals(id, definition.stableId, StringComparison.Ordinal)
+                ? definition
+                : null;
+            return value != null;
+        }
+
+        public EnemyArchetypeDefinitionSO Require(string id) =>
+            TryGet(id, out EnemyArchetypeDefinitionSO value)
+                ? value
+                : throw new KeyNotFoundException(id);
     }
 
     private static void Run(string name, Func<bool> scenario, ICollection<string> errors)

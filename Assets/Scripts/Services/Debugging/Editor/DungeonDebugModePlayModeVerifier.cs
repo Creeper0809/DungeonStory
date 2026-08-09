@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using VContainer;
 
@@ -16,6 +17,7 @@ using VContainer;
 public static class DungeonDebugModePlayModeVerifier
 {
     public const string RequestPath = "Temp/debug-mode-playmode.request";
+    public const string ExitRequestPath = "Temp/debug-mode-playmode-exit.request";
     public const string ReportPath = "Artifacts/QA/debug-mode-playmode-report.txt";
     public const string DesktopCapturePath = "Artifacts/QA/debug-palette-1600x900.png";
     public const string PortraitCapturePath = "Artifacts/QA/debug-palette-900x1600.png";
@@ -30,7 +32,7 @@ public static class DungeonDebugModePlayModeVerifier
         EditorApplication.playModeStateChanged += OnPlayModeChanged;
     }
 
-    [MenuItem("DungeonStory/Debug/Developer Mode/Request PlayMode Verification")]
+    [MenuItem("DungeonStory/Debug/Debug Mode/Request PlayMode Verification")]
     public static void RequestRunFromMenu()
     {
         Directory.CreateDirectory("Temp");
@@ -41,7 +43,36 @@ public static class DungeonDebugModePlayModeVerifier
 
     private static void OnEditorUpdate()
     {
-        if (File.Exists(RequestPath) && !EditorApplication.isPlayingOrWillChangePlaymode)
+        if (File.Exists(ExitRequestPath))
+        {
+            File.Delete(ExitRequestPath);
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                EditorApplication.ExitPlaymode();
+            }
+            return;
+        }
+
+        if (!File.Exists(RequestPath))
+        {
+            return;
+        }
+
+        if (EditorApplication.isPlaying)
+        {
+            DungeonDebugModeVerificationRunner existing = UnityEngine.Object
+                .FindFirstObjectByType<DungeonDebugModeVerificationRunner>(
+                    FindObjectsInactive.Include);
+            if (!runnerCreated || existing == null)
+            {
+                runnerCreated = true;
+                new GameObject("Dungeon Debug Mode Verification Runner")
+                    .AddComponent<DungeonDebugModeVerificationRunner>();
+            }
+            return;
+        }
+
+        if (!EditorApplication.isPlayingOrWillChangePlaymode)
         {
             EditorApplication.EnterPlaymode();
         }
@@ -124,11 +155,19 @@ public sealed class DungeonDebugModeVerificationRunner : MonoBehaviour
         InvasionDirectorRuntime director = container
             .Resolve<InvasionSceneRuntimeReferences>()
             .Director;
-        IDungeonGameSaveService saveService = container.Resolve<IDungeonGameSaveService>();
 
         settings.Update(data => data.developerMode = false);
         yield return null;
         Check(!mode.IsDeveloperModeEnabled, "DEFAULT_OFF", "developer mode disabled before pointer flow");
+        Check(
+            DebugRootsMatch(expectedVisible: false, out string hiddenRootDetail),
+            "DEBUG_ROOTS_DEFAULT_HIDDEN",
+            hiddenRootDetail);
+        GameObject aiTab = FindObject("AiTab");
+        Check(
+            aiTab != null && !aiTab.activeSelf,
+            "AI_DIAGNOSTICS_DEFAULT_HIDDEN",
+            aiTab != null ? $"activeSelf={aiTab.activeSelf}" : "AiTab missing");
 
         Button settingsButton = FindButton("SettingsMenuButton");
         yield return Click(settingsButton);
@@ -137,6 +176,14 @@ public sealed class DungeonDebugModeVerificationRunner : MonoBehaviour
         Toggle developerToggle = FindToggle("DeveloperModeToggle");
         yield return Click(developerToggle);
         Check(mode.IsDeveloperModeEnabled, "OPTIONS_TOGGLE", "actual pointer enabled developer mode");
+        Check(
+            DebugRootsMatch(expectedVisible: true, out string visibleRootDetail),
+            "DEBUG_ROOTS_OPTION_VISIBLE",
+            visibleRootDetail);
+        Check(
+            aiTab != null && aiTab.activeSelf,
+            "AI_DIAGNOSTICS_OPTION_VISIBLE",
+            aiTab != null ? $"activeSelf={aiTab.activeSelf}" : "AiTab missing");
 
         yield return Click(FindButton("SettingsCloseButton"));
         Button debugButton = FindButton("DungeonDebugOpenButton");
@@ -279,11 +326,7 @@ public sealed class DungeonDebugModeVerificationRunner : MonoBehaviour
         Check(mode.IsDebugModified && mode.RecentCommands.Count > 0,
             "DEBUG_METADATA",
             $"modified={mode.IsDebugModified}; history={mode.RecentCommands.Count}");
-        DungeonGameSaveData save = saveService.Capture();
-        DungeonDebugRunSaveData savedDebug =
-            DungeonSaveSectionPayload.ReadOrNew<DungeonDebugRunSaveData>(
-                save,
-                DungeonDebugSaveSection.Id);
+        DungeonDebugRunSaveData savedDebug = mode.Capture();
         Check(savedDebug.debugModified,
             "SAVE_METADATA",
             $"savedDebug={savedDebug.debugModified}");
@@ -303,6 +346,14 @@ public sealed class DungeonDebugModeVerificationRunner : MonoBehaviour
                 && !mode.IsOverlayEnabled(DungeonDebugOverlayKind.Grid),
             "DISABLE_CLEARS_TRANSIENT",
             "palette, targeting, cheats, and overlays disabled");
+        Check(
+            DebugRootsMatch(expectedVisible: false, out string disabledRootDetail),
+            "DEBUG_ROOTS_DISABLED_AGAIN",
+            disabledRootDetail);
+        Check(
+            aiTab != null && !aiTab.activeSelf,
+            "AI_DIAGNOSTICS_DISABLED_AGAIN",
+            aiTab != null ? $"activeSelf={aiTab.activeSelf}" : "AiTab missing");
 
         Finish();
     }
@@ -715,6 +766,52 @@ public sealed class DungeonDebugModeVerificationRunner : MonoBehaviour
             .FirstOrDefault(candidate => candidate != null
                 && candidate.scene.IsValid()
                 && candidate.name == name);
+    }
+
+    private static bool DebugRootsMatch(bool expectedVisible, out string detail)
+    {
+        Scene scene = SceneManager.GetActiveScene();
+        int found = 0;
+        int matching = 0;
+        foreach (GameObject root in scene.GetRootGameObjects())
+        {
+            if (root == null)
+            {
+                continue;
+            }
+
+            if (string.Equals(root.name, "__Debug", StringComparison.Ordinal))
+            {
+                found++;
+                if (root.activeSelf == expectedVisible)
+                {
+                    matching++;
+                }
+            }
+
+            if (!string.Equals(
+                    root.name,
+                    DungeonRuntimeHierarchy.RootName,
+                    StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            Transform runtimeDebug = root.transform.Find(DungeonRuntimeHierarchy.Debug);
+            if (runtimeDebug == null)
+            {
+                continue;
+            }
+
+            found++;
+            if (runtimeDebug.gameObject.activeSelf == expectedVisible)
+            {
+                matching++;
+            }
+        }
+
+        detail = $"expected={expectedVisible}; roots={found}; matching={matching}";
+        return found > 0 && matching == found;
     }
 
     private static bool IsInsideScreen(RectTransform rect)

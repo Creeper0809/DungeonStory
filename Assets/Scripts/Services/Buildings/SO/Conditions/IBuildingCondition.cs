@@ -5,10 +5,11 @@ public readonly struct BuildingConditionContext : IBuildingConditionContextPort
             null,
             null,
             null,
-            DisabledDungeonDebugRuleQuery.Instance);
+            DisabledDungeonDebugRuleQuery.Instance,
+            null);
 
     public BuildingConditionContext(GameSessionState gameData)
-        : this(gameData, null, null, DisabledDungeonDebugRuleQuery.Instance)
+        : this(gameData, null, null, DisabledDungeonDebugRuleQuery.Instance, null)
     {
     }
 
@@ -17,7 +18,8 @@ public readonly struct BuildingConditionContext : IBuildingConditionContextPort
             gameData,
             buildingUnlockState,
             null,
-            DisabledDungeonDebugRuleQuery.Instance)
+            DisabledDungeonDebugRuleQuery.Instance,
+            null)
     {
     }
 
@@ -29,7 +31,8 @@ public readonly struct BuildingConditionContext : IBuildingConditionContextPort
             gameData,
             buildingUnlockState,
             moneyAccount,
-            DisabledDungeonDebugRuleQuery.Instance)
+            DisabledDungeonDebugRuleQuery.Instance,
+            null)
     {
     }
 
@@ -37,18 +40,21 @@ public readonly struct BuildingConditionContext : IBuildingConditionContextPort
         GameSessionState gameData,
         IBuildingUnlockStateView buildingUnlockState,
         IGameMoneyAccount moneyAccount,
-        IDungeonDebugRuleQuery debugRules)
+        IDungeonDebugRuleQuery debugRules,
+        IRunMilestoneQuery milestoneQuery = null)
     {
         GameSessionState = gameData;
         BuildingUnlockState = buildingUnlockState;
         MoneyAccount = moneyAccount;
         DebugRules = debugRules ?? throw new System.ArgumentNullException(nameof(debugRules));
+        MilestoneQuery = milestoneQuery;
     }
 
     public GameSessionState GameSessionState { get; }
     public IBuildingUnlockStateView BuildingUnlockState { get; }
     public IGameMoneyAccount MoneyAccount { get; }
     public IDungeonDebugRuleQuery DebugRules { get; }
+    public IRunMilestoneQuery MilestoneQuery { get; }
     public bool ShouldSkipConstructionCosts =>
         DebugRules.ShouldSkipCosts()
         || DebugRules.IsEnabled(DungeonDebugCheat.FreeConstruction);

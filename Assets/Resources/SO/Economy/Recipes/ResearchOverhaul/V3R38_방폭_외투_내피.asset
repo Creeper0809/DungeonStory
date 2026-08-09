@@ -32,7 +32,7 @@ MonoBehaviour:
   batchSupportTag: 
   processKind: 0
   workTypeId: work:craft
-  requiredResearchId: research:equipment:blast-protection
+  requiredResearchId: research:equipment:pressure-barrels
   requiredWork: 35.75
   preparationWork: 0
   finishingWork: 0

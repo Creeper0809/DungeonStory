@@ -25,7 +25,7 @@ public static class ExperiencePacingDebugScenarios
         }
 
         Debug.Log(
-            "long-horizon learning rhythm contracts passed: 216 visible research definitions, "
+            "long-horizon learning rhythm contracts passed: 180 visible research definitions, "
             + "facility capacity data, day 10/20/30 rehearsal profiles, day-40 boss curve, "
             + "incident gating, and pacing save round-trip.");
     }
@@ -45,7 +45,7 @@ public static class ExperiencePacingDebugScenarios
             .Select(AssetDatabase.LoadAssetAtPath<ResearchProjectSO>)
             .Where(project => project != null)
             .ToArray();
-        Require(projects.Length == 216, $"expected 216 research projects, got {projects.Length}", failures);
+        Require(projects.Length == 180, $"expected 180 research projects, got {projects.Length}", failures);
         Require(
             projects.All(project => project.FacilityRequirements.Count > 0),
             "every research project must declare facility capacity requirements",

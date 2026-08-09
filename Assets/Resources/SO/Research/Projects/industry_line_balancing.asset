@@ -23,30 +23,42 @@ MonoBehaviour:
     SerializationNodes: []
   id: 7185
   projectId: research:industry:line-balancing
-  displayName: "\uC0DD\uC0B0\uC120 \uADE0\uD615"
-  description: "\uBCD1\uBAA9\uACFC \uB300\uAE30 \uC6D0\uC778\uC744 \uBD84\uC11D\uD574
-    \uBD84\uBC30 \uBE44\uC728\uC744 \uC870\uC815\uD55C\uB2E4."
+  displayName: "\uB77C\uC778 \uADE0\uD615\uACFC \uBC29\uC5B4 \uBCF4\uAE09"
+  description: "\uB77C\uC778 \uADE0\uD615\uACFC \uBC29\uC5B4 \uBCF4\uAE09\uC5D0 \uD544\uC694\uD55C
+    \uC774\uB860, \uC81C\uC791 \uC808\uCC28, \uC548\uC804 \uAE30\uC900\uACFC \uC6B4\uC6A9
+    \uBCF4\uC0C1\uC744 \uD558\uB098\uC758 \uC644\uACB0\uB41C \uC5F0\uAD6C \uD328\uD0A4\uC9C0\uB85C
+    \uD1B5\uD569\uD55C\uB2E4."
   field: 15
-  requiredWork: 960
+  requiredWork: 1920
   prerequisites:
+  - {fileID: 11400000, guid: beb95bdfa12cfd2409502cd2eaafa2d7, type: 2}
+  - {fileID: 11400000, guid: 745852d5424766d4da7f0a89af942c14, type: 2}
   - {fileID: 11400000, guid: 957f0a8d21cf1c543b3497f4e0be1385, type: 2}
-  - {fileID: 11400000, guid: 8a33cbe9c68d5094ba54d4d93738bd9f, type: 2}
   prerequisiteLinks:
+  - prerequisiteId: research:defense:tactical-command
+    prerequisite: {fileID: 11400000, guid: beb95bdfa12cfd2409502cd2eaafa2d7, type: 2}
+    kind: 2
+    reason: "\uC804\uC220 \uC9C0\uD718\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uB77C\uC778 \uADE0\uD615\uACFC \uBC29\uC5B4 \uBCF4\uAE09 \uAD6C\uD604\uC5D0
+      \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:industry:automatic-bills
+    prerequisite: {fileID: 11400000, guid: 745852d5424766d4da7f0a89af942c14, type: 2}
+    kind: 2
+    reason: "\uC790\uB3D9 \uC8FC\uBB38\uACFC \uC7AC\uACE0 \uAC10\uC9C0\uC758 \uACF5\uD559
+      \uC6D0\uB9AC\uC774(\uAC00) \uB77C\uC778 \uADE0\uD615\uACFC \uBC29\uC5B4 \uBCF4\uAE09
+      \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   - prerequisiteId: research:industry:junctions
     prerequisite: {fileID: 11400000, guid: 957f0a8d21cf1c543b3497f4e0be1385, type: 2}
     kind: 2
-    reason: "\uBD84\uBC30\uC640 \uD569\uB958\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
-      \uC0DD\uC0B0\uC120 \uADE0\uD615 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
-  - prerequisiteId: research:industry:stock-sensors
-    prerequisite: {fileID: 11400000, guid: 8a33cbe9c68d5094ba54d4d93738bd9f, type: 2}
-    kind: 2
-    reason: "\uC7AC\uACE0 \uAC10\uC9C0\uAE30\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
-      \uC0DD\uC0B0\uC120 \uADE0\uD615 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+    reason: "\uBD84\uAE30\xB7\uD544\uD130\xB7\uC6B0\uC120\uC21C\uC704 \uC81C\uC5B4\uC758
+      \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uB77C\uC778 \uADE0\uD615\uACFC \uBC29\uC5B4
+      \uBCF4\uAE09 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211793001939132
+    - rid: 7737211838079697107
+    - rid: 7737211838079697108
   facilityRequirements:
   - capability: 0
     requiredCount: 2
@@ -58,7 +70,11 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211793001939132
+    - rid: 7737211838079697107
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 8824
+    - rid: 7737211838079697108
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 8829

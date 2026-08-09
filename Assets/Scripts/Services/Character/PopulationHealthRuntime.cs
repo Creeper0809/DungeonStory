@@ -39,6 +39,7 @@ public sealed class ResourceDiseaseDefinitionCatalog : IDiseaseDefinitionCatalog
 public sealed class PopulationHealthRuntime :
     IPopulationHealthService,
     IPopulationHealthQuery,
+    IDiseaseSymptomEffectQuery,
     IPopulationHealthPersistence
 {
     private const string InfectionRandomStreamId = "population:infection";
@@ -124,6 +125,26 @@ public sealed class PopulationHealthRuntime :
         Current.TryGetCharacterSnapshot(characterId, out snapshot);
     public IReadOnlyList<EpidemicSnapshot> GetEpidemics(bool declaredOnly) =>
         Current.GetEpidemics(declaredOnly);
+    public IReadOnlyList<DiseaseSymptomEffectSnapshot> GetActiveSymptoms(
+        CharacterId characterId)
+    {
+        if (!Current.TryGetCharacterSnapshot(characterId, out PopulationCharacterHealthSnapshot state))
+            return Array.Empty<DiseaseSymptomEffectSnapshot>();
+        return state.ActiveDiseases
+            .Where(value => Current.CurrentAbsoluteDay >= value.SymptomDay
+                && Current.CurrentAbsoluteDay < value.RecoveryDay)
+            .Select(CreateSymptomEffect)
+            .OrderBy(value => value.DiseaseId, StringComparer.Ordinal)
+            .ToArray();
+    }
+    public float GetWorkSpeedMultiplier(CharacterId characterId) =>
+        GetActiveSymptoms(characterId).Aggregate(
+            1f,
+            (current, value) => Math.Max(0.2f, current * value.WorkSpeedMultiplier));
+    public float GetMoveSpeedMultiplier(CharacterId characterId) =>
+        GetActiveSymptoms(characterId).Aggregate(
+            1f,
+            (current, value) => Math.Max(0.2f, current * value.MoveSpeedMultiplier));
     public PopulationHealthWorldSaveData Capture() => Current.Capture();
     public PopulationHealthAggregateState PrepareRestore(PopulationHealthWorldSaveData data) =>
         PopulationHealthAggregateState.Restore(data, definitions);
@@ -141,6 +162,36 @@ public sealed class PopulationHealthRuntime :
         PopulationHealthAggregateState.Restore(
             new PopulationHealthWorldSaveData { currentAbsoluteDay = calendar.Day },
             definitions);
+
+    private DiseaseSymptomEffectSnapshot CreateSymptomEffect(
+        ActiveDiseaseSnapshot active)
+    {
+        DiseaseDefinition disease = definitions.Require(active.DiseaseId);
+        float normalized = Math.Clamp(active.Severity / 100f, 0f, 1f);
+        float workBurden = disease.TargetSystem switch
+        {
+            DiseaseTargetSystem.Consciousness => 0.55f,
+            DiseaseTargetSystem.Breathing => 0.5f,
+            DiseaseTargetSystem.Digestion => 0.38f,
+            DiseaseTargetSystem.Filtration => 0.42f,
+            _ => 0.45f
+        };
+        float moveBurden = disease.TargetSystem switch
+        {
+            DiseaseTargetSystem.Breathing => 0.48f,
+            DiseaseTargetSystem.Consciousness => 0.35f,
+            DiseaseTargetSystem.Core => 0.4f,
+            _ => 0.25f
+        };
+        return new DiseaseSymptomEffectSnapshot(
+            disease.Id,
+            disease.SymptomProfileId,
+            disease.TargetSystem,
+            active.Severity,
+            1f - normalized * workBurden,
+            1f - normalized * moveBurden,
+            -Math.Max(1f, normalized * 10f));
+    }
 }
 
 public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
@@ -154,6 +205,8 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
     private readonly IAnatomyProfileCatalog anatomyProfiles;
     private readonly IAnatomyHealthRuntime anatomyHealth;
     private readonly IGameEventBus events;
+    private readonly IHeritableTraitEffectQuery heritableTraits;
+    private readonly IDiseaseSymptomEffectQuery symptoms;
     private IDisposable dayEndedSubscription;
     private IDisposable mealConsumedSubscription;
     private IDisposable waterConsumedSubscription;
@@ -169,7 +222,9 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
         IEnvironmentalFieldQuery environment,
         IAnatomyProfileCatalog anatomyProfiles,
         IAnatomyHealthRuntime anatomyHealth,
-        IGameEventBus events)
+        IGameEventBus events,
+        IHeritableTraitEffectQuery heritableTraits,
+        IDiseaseSymptomEffectQuery symptoms)
     {
         this.health = health ?? throw new ArgumentNullException(nameof(health));
         this.definitions = definitions ?? throw new ArgumentNullException(nameof(definitions));
@@ -180,6 +235,9 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
         this.anatomyProfiles = anatomyProfiles ?? throw new ArgumentNullException(nameof(anatomyProfiles));
         this.anatomyHealth = anatomyHealth ?? throw new ArgumentNullException(nameof(anatomyHealth));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
+        this.heritableTraits = heritableTraits
+            ?? throw new ArgumentNullException(nameof(heritableTraits));
+        this.symptoms = symptoms ?? throw new ArgumentNullException(nameof(symptoms));
     }
 
     public void Start()
@@ -338,6 +396,27 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
             if (change.Kind == PopulationHealthChangeKind.DailyBodyBurden)
                 ProjectBodyBurden(change);
         }
+        ProjectSymptomMood();
+    }
+
+    private void ProjectSymptomMood()
+    {
+        foreach (CharacterActor actor in world.Characters)
+        {
+            if (actor == null || actor.IsDead
+                || !CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId))
+                continue;
+            foreach (DiseaseSymptomEffectSnapshot symptom in
+                     symptoms.GetActiveSymptoms(characterId))
+            {
+                actor.ApplyMoodFactor(
+                    "mood:disease:" + symptom.DiseaseId,
+                    symptom.SymptomProfileId,
+                    symptom.MoodDelta,
+                    360f,
+                    1);
+            }
+        }
     }
 
     private void AggregateAmbientExposure()
@@ -432,13 +511,26 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
             out _);
     }
 
-    private static float ResolveSusceptibility(
+    private float ResolveSusceptibility(
         CharacterActor actor,
         DiseaseDefinition disease)
     {
         if (actor?.profile == null) return 1f;
-        return (disease.Routes & DiseaseTransmissionRoute.Air) != 0
+        CharacterId characterId = CharacterPersistentIdentity.Require(actor);
+        float route = (disease.Routes & DiseaseTransmissionRoute.Air) != 0
             ? Mathf.Max(0.05f, actor.profile.GetEnvironmentProfile().airborneExposureMultiplier)
             : 1f;
+        float broad = heritableTraits.GetMultiplier(
+            characterId,
+            HeritableTraitConsequenceKind.DiseaseResistance,
+            "all");
+        float toxin = (disease.Routes & (DiseaseTransmissionRoute.Food
+                                          | DiseaseTransmissionRoute.Water)) != 0
+            ? heritableTraits.GetMultiplier(
+                characterId,
+                HeritableTraitConsequenceKind.DiseaseResistance,
+                "toxin")
+            : 1f;
+        return Mathf.Clamp(route / Mathf.Max(0.1f, broad * toxin), 0.05f, 3f);
     }
 }

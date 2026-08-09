@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b30b116b9ba70e45acef7131b5f35e6, type: 3}
+  m_Name: A19_PowderCuirass
+  m_EditorClassIdentifier: DungeonStory.Economy::CombatArmorSO
+  equipmentId: armor:powder-cuirass
+  displayName: "\uD654\uC57D\uC218 \uD749\uAC11"
+  description: "\uD654\uC57D\uC218 \uD749\uAC11 \uC804\uD22C \uC7A5\uBE44"
+  itemId: equipment-item:armor:powder-cuirass
+  weight: 8.2
+  occupiedHands: 0
+  maxDurability: 120
+  requiredCraftWork: 176
+  defaultMaterialId: material:iron
+  primaryMaterialAmount: 7
+  allowedMaterialFamilies: 03000000
+  craftMaterials: []
+  requiredComponentInputs:
+  - itemId: material:plate-blank
+    amount: 1
+  - itemId: textile:insulating-cloth
+    amount: 1
+  requiredResearchId: research:equipment:pressure-barrels
+  era: 3
+  tier: 3
+  slotProfile: 1
+  lineageKind: 1
+  growthEquipment: 0
+  growthBaseStatMultiplier: 1
+  layer: 4
+  collisionTag: torso-powder-cuirass
+  bodyPartDefense:
+  - bodyPart: 1
+    slashDefense: 14
+    pierceDefense: 18
+    bluntDefense: 31

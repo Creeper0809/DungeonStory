@@ -28,6 +28,7 @@ public sealed class AnimalHusbandryRuntime :
     private readonly IWorldItemStackRuntime itemRuntime;
     private readonly IWildlifeCarcassService carcassService;
     private readonly IGameClock clock;
+    private readonly IFacilityCapabilityQuery facilities;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly HashSet<WildlifeInstanceId> synchronizedAnimalIds = new();
     private readonly List<WildlifeInstanceId> staleAnimalIds = new();
@@ -63,6 +64,7 @@ public sealed class AnimalHusbandryRuntime :
         IWorldItemStackRuntime itemRuntime,
         IWildlifeCarcassService carcassService,
         IGameClock clock,
+        IFacilityCapabilityQuery facilities,
         DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         this.captureRuntime = captureRuntime
@@ -84,6 +86,8 @@ public sealed class AnimalHusbandryRuntime :
         this.carcassService = carcassService
             ?? throw new ArgumentNullException(nameof(carcassService));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.facilities = facilities
+            ?? throw new ArgumentNullException(nameof(facilities));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
     }
@@ -661,6 +665,15 @@ public sealed class AnimalHusbandryRuntime :
             return;
         }
 
+        bool selectiveBreeding = IsOperational(
+            ResearchFacilityCommandKind.SelectiveBreeding);
+        bool breedingSchedule = IsOperational(
+            ResearchFacilityCommandKind.BreedingSchedule);
+        bool stableHarnessing = IsOperational(
+            ResearchFacilityCommandKind.StableHarnessing);
+        float breedingRate = (selectiveBreeding ? 1.08f : 1f)
+            * (breedingSchedule ? 1.08f : 1f);
+
         capturedById.Clear();
         int capturedCount = capturedAnimals?.Count ?? 0;
         for (int index = 0; index < capturedCount; index++)
@@ -711,7 +724,7 @@ public sealed class AnimalHusbandryRuntime :
             state.AgeDays += elapsedDays;
             state.BreedingCooldownDays = Mathf.Max(
                 0f,
-                state.BreedingCooldownDays - elapsedDays);
+                state.BreedingCooldownDays - elapsedDays * breedingRate);
             BuildingInstanceId penId = state.PenId;
             if (!compatibilityRiskByPen.TryGetValue(
                     penId,
@@ -729,6 +742,10 @@ public sealed class AnimalHusbandryRuntime :
                 1f,
                 0.45f,
                 compatibilityRisk);
+            if (stableHarnessing)
+            {
+                comfortMultiplier *= 1.05f;
+            }
             if (capturedById.TryGetValue(
                     state.AnimalId,
                     out CapturedWildlifeState care))
@@ -757,7 +774,9 @@ public sealed class AnimalHusbandryRuntime :
 
             if (state.Pregnant)
             {
-                state.PregnancyProgressDays += elapsedDays * comfortMultiplier;
+                state.PregnancyProgressDays += elapsedDays
+                    * comfortMultiplier
+                    * breedingRate;
                 if (state.PregnancyProgressDays >= profile.GestationDays)
                 {
                     TryCompleteBirth(state, profile);
@@ -768,6 +787,9 @@ public sealed class AnimalHusbandryRuntime :
             TryBeginPregnancy(state, profile, compatibilityRisk);
         }
     }
+
+    private bool IsOperational(ResearchFacilityCommandKind command) =>
+        facilities.FindOperational(command).Count > 0;
 
     private void AdvanceProducts(
         HusbandryAnimalState state,

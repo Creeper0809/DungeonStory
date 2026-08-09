@@ -583,7 +583,7 @@ public static class PhysicalItemDebugScenarios
 
     private static string VerifySaveV19Contract()
     {
-        Require(DungeonGameSaveData.CurrentVersion == 20, $"save version is {DungeonGameSaveData.CurrentVersion}");
+        Require(DungeonGameSaveData.CurrentVersion == 23, $"save version is {DungeonGameSaveData.CurrentVersion}");
         DungeonGameSaveData save = new DungeonGameSaveData();
         DungeonPhysicalItemSaveData physicalItems = CreatePileSnapshot();
         DungeonCharacterWorldSaveData characters = new DungeonCharacterWorldSaveData();

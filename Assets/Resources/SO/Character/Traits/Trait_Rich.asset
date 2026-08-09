@@ -71,10 +71,15 @@ MonoBehaviour:
     heatExposureMultiplier: 1
   incompatibilityGroups: []
   behaviorPreferences:
-  - behaviorTag: legacy-trait:103
-    utilityDelta: -0.2
-  moodReactions: []
-  eventWeights: []
+  - behaviorTag: service:luxury
+    utilityDelta: 0.4
+  moodReactions:
+  - triggerTag: guest:satisfied
+    moodDelta: 2
+    durationDays: 3
+  eventWeights:
+  - eventCategoryId: guest-request
+    multiplier: 1.25
   references:
     version: 2
     RefIds: []

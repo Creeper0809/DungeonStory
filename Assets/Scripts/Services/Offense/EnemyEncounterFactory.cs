@@ -50,13 +50,17 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
     private readonly IEnemyAbilityCatalog abilities;
     private readonly IBattlefieldModifierCatalog battlefieldModifiers;
     private readonly IEnemyIndividualFactory individuals;
+    private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
+    private readonly ICombatEquipmentRuntime combatEquipment;
 
     public EnemyEncounterFactory(
         IEnemyArchetypeCatalog archetypes,
         IEncounterCatalog encounters,
         IEnemyAbilityCatalog abilities,
         IBattlefieldModifierCatalog battlefieldModifiers,
-        IEnemyIndividualFactory individuals)
+        IEnemyIndividualFactory individuals,
+        IMilestoneGameplayModifierQuery milestoneModifiers = null,
+        ICombatEquipmentRuntime combatEquipment = null)
     {
         this.archetypes = archetypes ?? throw new ArgumentNullException(nameof(archetypes));
         this.encounters = encounters ?? throw new ArgumentNullException(nameof(encounters));
@@ -64,6 +68,9 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
         this.battlefieldModifiers = battlefieldModifiers
             ?? throw new ArgumentNullException(nameof(battlefieldModifiers));
         this.individuals = individuals ?? throw new ArgumentNullException(nameof(individuals));
+        this.milestoneModifiers = milestoneModifiers
+            ?? NeutralMilestoneGameplayModifierQuery.Instance;
+        this.combatEquipment = combatEquipment;
     }
 
     public EnemyEncounterComposition Create(
@@ -143,11 +150,31 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
         return Build(encounter, restored, difficulty, routeNode, pressure);
     }
 
-    public string GetSummary(OffenseTargetDefinition target, string context) =>
-        SelectEncounter(
+    public string GetSummary(OffenseTargetDefinition target, string context)
+    {
+        OffenseEncounterSO encounter = SelectEncounter(
             target ?? throw new ArgumentNullException(nameof(target)),
             Normalize(context),
-            null).displayName;
+            null);
+        if (!milestoneModifiers.EnemyCounterIntelVisible)
+        {
+            return encounter.displayName;
+        }
+
+        EnemyArchetypeDefinitionSO[] enemyDefinitions = encounter.enemies
+            .Select(value => archetypes.Require(value.enemyArchetypeId))
+            .Distinct()
+            .ToArray();
+        string abilitySummary = string.Join(", ", enemyDefinitions
+            .SelectMany(value => value.abilityIds)
+            .Distinct(StringComparer.Ordinal)
+            .Select(value => abilities.Require(value).displayName));
+        string counterSummary = string.Join(", ", encounter.counterTags
+            .Concat(enemyDefinitions.SelectMany(value => value.counterTags))
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.Ordinal));
+        return $"{encounter.displayName}\n적 능력: {abilitySummary}\n대응 정보: {counterSummary}";
+    }
 
     private EnemyEncounterComposition Build(
         OffenseEncounterSO encounter,
@@ -183,6 +210,8 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
             EnemyIndividualSaveData individual = saved[index];
             EnemyArchetypeDefinitionSO archetype =
                 archetypes.Require(individual.enemyArchetypeId);
+            individuals.EnsureCharacterDomains(
+                individuals.RequireBlueprint(individual));
             float personal = individual.combatStatMultiplier;
             float maxHealth = archetype.maxHealth
                 * personal
@@ -194,7 +223,7 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
                     .Select(id => ProjectAbility(abilities.Require(id)))
                     .ToArray();
 
-            combatants.Add(new OffenseBattleCombatant(
+            OffenseBattleCombatant combatant = new OffenseBattleCombatant(
                 individual.characterId,
                 individual.displayName,
                 individual.phenotypeSpeciesId,
@@ -212,7 +241,18 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
                     archetype.moveSpeed * personal * encounterScale),
                 maxHealth,
                 authoredAbilities,
-                formation: FormationFor(archetype.role, index)));
+                formation: FormationFor(archetype.role, index));
+            if (combatEquipment != null)
+            {
+                combatEquipment.TryGetActiveWeapon(
+                    individual.characterId,
+                    out CombatWeaponSnapshot weapon);
+                combatant.SetCombatEquipment(
+                    weapon,
+                    combatEquipment.GetArmor(individual.characterId),
+                    combatEquipment.GetShield(individual.characterId));
+            }
+            combatants.Add(combatant);
             float ScaleAttack(float value) => value
                 * personal
                 * difficultyScale.EnemyAttack
@@ -266,7 +306,9 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
             encounter.objectiveRoundLimit,
             encounter.objectiveTargetId,
             objectiveCombatantId,
-            resolvedModifiers);
+            resolvedModifiers,
+            encounter.counterTags,
+            encounter.rewardItemIds);
 
         return new EnemyEncounterComposition(encounter, combatants, saved, rules);
     }
@@ -344,13 +386,13 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
             EnemyAbilityEffectKind.Suppression =>
                 new OffenseDelayEffect(Mathf.Max(1f, effect.magnitude * 2f)),
             EnemyAbilityEffectKind.Smoke =>
-                new OffenseGuardEffect(
-                    0.25f,
+                new OffenseSmokeEffect(
+                    Mathf.Clamp(effect.magnitude * 0.5f, 0.1f, 0.8f),
                     Math.Max(1, effect.durationRounds)),
             EnemyAbilityEffectKind.Summon =>
-                new OffenseAttackModifierEffect(
-                    0.2f,
-                    Math.Max(1, effect.durationRounds)),
+                new OffenseSummonEffect(
+                    Mathf.Max(1f, effect.magnitude * 20f),
+                    Math.Max(3, effect.durationRounds)),
             _ => new OffenseDamageEffect(Mathf.Max(0.1f, effect.magnitude))
         };
 

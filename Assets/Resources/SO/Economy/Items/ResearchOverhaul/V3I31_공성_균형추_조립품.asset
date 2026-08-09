@@ -32,16 +32,16 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 72
   features:
-  - rid: 7737211794726584987
-  - rid: 7737211794726584988
+  - rid: 7737211838078124976
+  - rid: 7737211838078124977
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584987
+    - rid: 7737211838078124976
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:mechanical-projectiles
-    - rid: 7737211794726584988
+    - rid: 7737211838078124977
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8

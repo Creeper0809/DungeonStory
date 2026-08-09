@@ -31,6 +31,9 @@ public static class ResearchProjectAssetBuilder
         ServiceRoomContentAssetBuilder.EnsureAssets();
         P1DefenseFacilityAssetBuilder.EnsureP1DefenseAssets();
         ResearchOverhaulContentAssetBuilder.EnsureAssets();
+        V22ApparelContentAssetBuilder.EnsureAssets();
+        CombatEquipmentAssetBuilder.BuildAll();
+        V21OperationalContentLinkBuilder.EnsureAssets();
         Dictionary<int, FacilityBlueprintSO> blueprints = AssetDatabase
             .FindAssets("t:FacilityBlueprintSO", new[] { "Assets/Resources/SO/Blueprint" })
             .Select(AssetDatabase.GUIDToAssetPath)
@@ -39,9 +42,14 @@ public static class ResearchProjectAssetBuilder
             .GroupBy(asset => asset.id)
             .ToDictionary(group => group.Key, group => group.First());
 
+        IReadOnlyList<Spec> specs = CreateSpecs();
+        Dictionary<string, BlueprintUnlockCollection> carriedUnlocks =
+            CaptureConsolidatedUnlocks();
+        DeleteAbsorbedProjectAssets(specs);
+
         Dictionary<string, ResearchProjectSO> projects = new Dictionary<string, ResearchProjectSO>(
             StringComparer.Ordinal);
-        foreach (Spec spec in CreateSpecs())
+        foreach (Spec spec in specs)
         {
             string assetPath = $"{Root}/{Sanitize(spec.Id)}.asset";
             ResearchProjectSO project = AssetDatabase.LoadAssetAtPath<ResearchProjectSO>(assetPath);
@@ -70,7 +78,7 @@ public static class ResearchProjectAssetBuilder
 
         IReadOnlyDictionary<int, string> canonicalBuildingOwners =
             BuildCanonicalBuildingOwners();
-        foreach (Spec spec in CreateSpecs())
+        foreach (Spec spec in specs)
         {
             ResearchProjectSO project = projects[spec.Id];
             blueprints.TryGetValue(spec.BlueprintId, out FacilityBlueprintSO blueprint);
@@ -80,7 +88,11 @@ public static class ResearchProjectAssetBuilder
                 EditorUtility.SetDirty(blueprint);
             }
 
-            IEnumerable<BlueprintUnlock> sourceUnlocks = project.Unlocks;
+            IEnumerable<BlueprintUnlock> sourceUnlocks = carriedUnlocks.TryGetValue(
+                spec.Id,
+                out BlueprintUnlockCollection carried)
+                    ? carried.Items
+                    : project.Unlocks;
             if (blueprint != null && blueprint.unlocks != null && blueprint.unlocks.Count > 0)
             {
                 if (!sourceUnlocks.Any())
@@ -98,6 +110,7 @@ public static class ResearchProjectAssetBuilder
             AppendProductionStationUnlocks(spec.Id, unlocks);
             AppendServiceRoomUnlocks(spec.Id, unlocks);
             AppendResearchOverhaulUnlocks(spec.Id, unlocks);
+            AppendV22ApparelUnlocks(spec.Id, unlocks);
             project.Configure(
                 spec.Id,
                 spec.Name,
@@ -114,6 +127,9 @@ public static class ResearchProjectAssetBuilder
         }
 
         AttachArchiveAbility();
+        RewriteAbsorbedResearchRequirements();
+        V21OperationalContentLinkBuilder.WireInstallationComponents(projects);
+        ResearchUnlockBundleAssetBuilder.EnsureAssets(projects.Values);
         GameContentCatalogAssetBuilder.ReindexResearchProjects();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
@@ -136,6 +152,98 @@ public static class ResearchProjectAssetBuilder
         Debug.Log($"Research tree assets rebuilt: {projects.Count} projects.");
     }
 
+    private static Dictionary<string, BlueprintUnlockCollection>
+        CaptureConsolidatedUnlocks()
+    {
+        Dictionary<string, List<BlueprintUnlock>> grouped =
+            new Dictionary<string, List<BlueprintUnlock>>(StringComparer.Ordinal);
+        foreach (ResearchProjectSO project in AssetDatabase
+                     .FindAssets("t:ResearchProjectSO", new[] { Root })
+                     .Select(AssetDatabase.GUIDToAssetPath)
+                     .Select(AssetDatabase.LoadAssetAtPath<ResearchProjectSO>)
+                     .Where(project => project != null))
+        {
+            string ownerId = V21ResearchConsolidation.Normalize(project.ProjectId.Value);
+            if (!grouped.TryGetValue(ownerId, out List<BlueprintUnlock> unlocks))
+            {
+                unlocks = new List<BlueprintUnlock>();
+                grouped.Add(ownerId, unlocks);
+            }
+            unlocks.AddRange(project.Unlocks);
+        }
+
+        return grouped.ToDictionary(
+            pair => pair.Key,
+            pair => CloneUnlocks(pair.Value),
+            StringComparer.Ordinal);
+    }
+
+    private static void DeleteAbsorbedProjectAssets(IReadOnlyList<Spec> specs)
+    {
+        HashSet<string> retainedIds = specs
+            .Select(spec => spec.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (string path in AssetDatabase.FindAssets(
+                     "t:ResearchProjectSO",
+                     new[] { Root }).Select(AssetDatabase.GUIDToAssetPath))
+        {
+            ResearchProjectSO project = AssetDatabase.LoadAssetAtPath<ResearchProjectSO>(path);
+            if (project != null && !retainedIds.Contains(project.ProjectId.Value))
+            {
+                AssetDatabase.DeleteAsset(path);
+            }
+        }
+    }
+
+    private static void RewriteAbsorbedResearchRequirements()
+    {
+        foreach (string guid in AssetDatabase.FindAssets("t:ScriptableObject", new[] { "Assets" }))
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            ScriptableObject asset = AssetDatabase.LoadAssetAtPath<ScriptableObject>(path);
+            if (asset == null)
+            {
+                continue;
+            }
+
+            SerializedObject serialized = new SerializedObject(asset);
+            SerializedProperty property = serialized.GetIterator();
+            bool changed = false;
+            if (property.Next(true))
+            {
+                do
+                {
+                    if (property.propertyType != SerializedPropertyType.String
+                        || !string.Equals(
+                            property.name,
+                            "requiredResearchId",
+                            StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    string normalized = V21ResearchConsolidation.Normalize(
+                        property.stringValue);
+                    if (!string.Equals(
+                        normalized,
+                        property.stringValue,
+                        StringComparison.Ordinal))
+                    {
+                        property.stringValue = normalized;
+                        changed = true;
+                    }
+                }
+                while (property.Next(true));
+            }
+
+            if (changed)
+            {
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(asset);
+            }
+        }
+    }
+
     private static IReadOnlyDictionary<int, string> BuildCanonicalBuildingOwners()
     {
         Dictionary<int, string> owners = new Dictionary<int, string>();
@@ -144,7 +252,15 @@ public static class ResearchProjectAssetBuilder
         {
             foreach (int id in ids)
             {
-                owners[id] = researchId;
+                owners[id] = V21ResearchConsolidation.Normalize(researchId);
+            }
+        }
+        foreach ((string researchId, int[] ids) in
+                 V22ApparelContentAssetBuilder.GetFacilityUnlockIds())
+        {
+            foreach (int id in ids)
+            {
+                owners[id] = V21ResearchConsolidation.Normalize(researchId);
             }
         }
 
@@ -166,7 +282,7 @@ public static class ResearchProjectAssetBuilder
                 throw new InvalidOperationException(
                     $"Canonical reward facility '{code}' for '{researchId}' does not exist.");
             }
-            owners[building.id] = researchId;
+            owners[building.id] = V21ResearchConsolidation.Normalize(researchId);
         }
         return owners;
     }
@@ -239,15 +355,29 @@ public static class ResearchProjectAssetBuilder
         BlueprintUnlockCollection unlocks)
     {
         List<int> buildingIds = new List<int>();
-        if (ResearchOverhaulContentAssetBuilder.GetFacilityUnlockIds()
-            .TryGetValue(researchId, out int[] createdIds))
+        foreach (KeyValuePair<string, int[]> pair in
+                 ResearchOverhaulContentAssetBuilder.GetFacilityUnlockIds())
         {
-            buildingIds.AddRange(createdIds);
+            if (string.Equals(
+                V21ResearchConsolidation.Normalize(pair.Key),
+                researchId,
+                StringComparison.Ordinal))
+            {
+                buildingIds.AddRange(pair.Value);
+            }
         }
 
-        if (ResearchOverhaulContentAssetBuilder.GetExistingFacilityCodes()
-            .TryGetValue(researchId, out string existingCode))
+        foreach (KeyValuePair<string, string> pair in
+                 ResearchOverhaulContentAssetBuilder.GetExistingFacilityCodes())
         {
+            if (!string.Equals(
+                V21ResearchConsolidation.Normalize(pair.Key),
+                researchId,
+                StringComparison.Ordinal))
+            {
+                continue;
+            }
+            string existingCode = pair.Value;
             BuildingSO existing = AssetDatabase.FindAssets(
                     "t:BuildingSO",
                     new[] { "Assets/Resources/SO/Building" })
@@ -275,6 +405,31 @@ public static class ResearchProjectAssetBuilder
         }
     }
 
+    private static void AppendV22ApparelUnlocks(
+        string researchId,
+        BlueprintUnlockCollection unlocks)
+    {
+        foreach (KeyValuePair<string, int[]> pair in
+                 V22ApparelContentAssetBuilder.GetFacilityUnlockIds())
+        {
+            if (!string.Equals(
+                    V21ResearchConsolidation.Normalize(pair.Key),
+                    researchId,
+                    StringComparison.Ordinal))
+            {
+                continue;
+            }
+            foreach (int buildingId in pair.Value)
+            {
+                if (!unlocks.Items.OfType<BlueprintBuildingUnlock>()
+                        .Any(value => value.buildingId == buildingId))
+                {
+                    unlocks.Add(new BlueprintBuildingUnlock { buildingId = buildingId });
+                }
+            }
+        }
+    }
+
     private static void AppendProductionStationUnlocks(
         string researchId,
         BlueprintUnlockCollection unlocks)
@@ -286,11 +441,13 @@ public static class ResearchProjectAssetBuilder
 
         IReadOnlyDictionary<string, string[]> industrialUnlocks =
             IndustrialInfrastructureAssetBuilder.GetResearchUnlockCodes();
-        string[] facilityCodes = industrialUnlocks.TryGetValue(
-            researchId,
-            out string[] industrialCodes)
-                ? industrialCodes
-                : researchId switch
+        string[] facilityCodes = industrialUnlocks
+            .Where(pair => string.Equals(
+                V21ResearchConsolidation.Normalize(pair.Key),
+                researchId,
+                StringComparison.Ordinal))
+            .SelectMany(pair => pair.Value)
+            .Concat(researchId switch
         {
             "research:cuisine:milling" => new[] { "P01", "WS01" },
             "research:cuisine:fermentation" =>
@@ -345,7 +502,9 @@ public static class ResearchProjectAssetBuilder
             "research:defense:remote-control" => new[] { "DF02" },
             "research:defense:siege-fortification" => new[] { "DF06" },
             _ => Array.Empty<string>()
-        };
+        })
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
         if (facilityCodes.Length == 0)
         {
             return;
@@ -395,13 +554,20 @@ public static class ResearchProjectAssetBuilder
         string researchId,
         BlueprintUnlockCollection unlocks)
     {
-        if (unlocks == null
-            || !ServiceRoomContentAssetBuilder
-                .GetResearchUnlockIds()
-                .TryGetValue(researchId, out int[] buildingIds))
+        if (unlocks == null)
         {
             return;
         }
+
+        int[] buildingIds = ServiceRoomContentAssetBuilder
+            .GetResearchUnlockIds()
+            .Where(pair => string.Equals(
+                V21ResearchConsolidation.Normalize(pair.Key),
+                researchId,
+                StringComparison.Ordinal))
+            .SelectMany(pair => pair.Value)
+            .Distinct()
+            .ToArray();
 
         foreach (int buildingId in buildingIds)
         {
@@ -834,10 +1000,153 @@ public static class ResearchProjectAssetBuilder
 
     private static IReadOnlyList<Spec> CreateSpecs()
     {
-        return CreateBaseSpecs()
+        Spec[] authored = CreateBaseSpecs()
             .Concat(CreateExpansionSpecs())
             .Select(ApplyApprovedWorkBand)
             .ToArray();
+        return ConsolidateForV21(authored);
+    }
+
+    private static IReadOnlyList<Spec> ConsolidateForV21(
+        IReadOnlyList<Spec> authored)
+    {
+        Dictionary<string, Spec[]> groups = authored
+            .GroupBy(spec => V21ResearchConsolidation.Normalize(spec.Id), StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.ToArray(),
+                StringComparer.Ordinal);
+        Dictionary<string, Spec> merged = new Dictionary<string, Spec>(StringComparer.Ordinal);
+        foreach (KeyValuePair<string, Spec[]> pair in groups)
+        {
+            Spec survivor = pair.Value.First(spec => string.Equals(
+                spec.Id,
+                pair.Key,
+                StringComparison.Ordinal));
+            Spec blueprintOwner = pair.Value.FirstOrDefault(spec => spec.BlueprintId >= 0)
+                ?? survivor;
+            merged.Add(pair.Key, new Spec
+            {
+                Id = survivor.Id,
+                NumericId = survivor.NumericId,
+                Name = ResolveV21DisplayName(survivor.Id, survivor.Name),
+                Description = ResolveV21Description(
+                    survivor.Id,
+                    survivor.Description,
+                    pair.Value.Length),
+                Field = survivor.Field,
+                Work = pair.Value.Sum(spec => spec.Work),
+                Rule = blueprintOwner.Rule,
+                BlueprintId = blueprintOwner.BlueprintId,
+                Prerequisites = pair.Value
+                    .SelectMany(spec => spec.Prerequisites ?? Array.Empty<string>())
+                    .Select(V21ResearchConsolidation.Normalize)
+                    .Where(id => !string.Equals(id, survivor.Id, StringComparison.Ordinal))
+                    .Distinct(StringComparer.Ordinal)
+                    .ToArray()
+            });
+        }
+
+        foreach (Spec spec in merged.Values)
+        {
+            spec.Prerequisites = spec.Prerequisites
+                .Where(prerequisite => !spec.Prerequisites.Any(other =>
+                    !string.Equals(other, prerequisite, StringComparison.Ordinal)
+                    && IsReachable(other, prerequisite, merged)))
+                .OrderBy(id => id, StringComparer.Ordinal)
+                .ToArray();
+            if (spec.Prerequisites.Length > 4)
+            {
+                throw new InvalidOperationException(
+                    $"V21 research '{spec.Id}' retains {spec.Prerequisites.Length} direct prerequisites after transitive reduction.");
+            }
+        }
+
+        Spec[] result = merged.Values
+            .OrderBy(spec => spec.NumericId)
+            .ToArray();
+        float totalWork = result.Sum(spec => spec.Work);
+        if (result.Length != 180 || !Mathf.Approximately(totalWork, 138824f))
+        {
+            throw new InvalidOperationException(
+                $"V21 research contract mismatch: {result.Length} projects / {totalWork:0.##} work; expected 180 / 138824.");
+        }
+        return result;
+    }
+
+    private static bool IsReachable(
+        string start,
+        string target,
+        IReadOnlyDictionary<string, Spec> projects)
+    {
+        Stack<string> pending = new Stack<string>();
+        HashSet<string> visited = new HashSet<string>(StringComparer.Ordinal);
+        pending.Push(start);
+        while (pending.Count > 0)
+        {
+            string current = pending.Pop();
+            if (!visited.Add(current))
+            {
+                continue;
+            }
+            if (string.Equals(current, target, StringComparison.Ordinal))
+            {
+                return true;
+            }
+            if (projects.TryGetValue(current, out Spec project))
+            {
+                foreach (string prerequisite in project.Prerequisites)
+                {
+                    pending.Push(prerequisite);
+                }
+            }
+        }
+        return false;
+    }
+
+    private static string ResolveV21DisplayName(string id, string fallback) => id switch
+    {
+        "research:agriculture:phenology" => "생물계절학과 종자 선별",
+        "research:agriculture:soil-cycles" => "토양 순환과 작물 보호",
+        "research:society:household-records" => "가구 기록과 영아 돌봄",
+        "research:housing:room-assignment" => "방 배정과 가족 생활구획",
+        "research:society:child-education" => "아동 교육과 도제 제도",
+        "research:society:generation-management" => "세대 관리와 보호자 승계",
+        "research:society:corpse-care" => "시신 관리와 장례 의식",
+        "research:society:retirement" => "은퇴와 멘토 제도",
+        "research:medical:gerontology" => "노인학과 생물학적 연령 계측",
+        "research:medical:geriatric-medicine" => "노인의학과 만성 관리",
+        "research:health:pathogen-observation" => "병원체 관찰과 면역 혈청학",
+        "research:health:vaccination" => "예방접종과 유행병 통제",
+        "research:genetics:hereditary-records" => "유전 기록과 형질 분석",
+        "research:climate:regional-climatology" => "지역 기후학과 시각 항법",
+        "research:industry:steam-power" => "증기 동력과 배전",
+        "research:industry:powered-tools" => "공장 공학",
+        "research:industry:breakers" => "차단기와 산업 정비",
+        "research:industry:conveyor" => "컨베이어와 물류 포트",
+        "research:industry:automatic-bills" => "자동 주문과 재고 감지",
+        "research:industry:electric-smelting" => "전기 제련과 산업 냉각",
+        "research:equipment:relic-appraisal" => "유물 부품 감정과 복원",
+        "research:equipment:pressure-barrels" => "내압 화기와 방폭",
+        "research:plumbing:basics" => "기초 배관과 펌프 급수",
+        "research:plumbing:sewer" => "하수 처리와 수세 위생",
+        "research:industry:junctions" => "분기·필터·우선순위 제어",
+        "research:industry:lifts" => "승강·오버플로·고속 운송",
+        "research:industry:storage" => "산업 저장과 변압",
+        "research:industry:mana-power" => "마나 동력과 룬 전력망",
+        "research:industry:automatic-sanitation" => "자동 위생과 산업 안전",
+        "research:industry:line-balancing" => "라인 균형과 방어 보급",
+        _ => fallback
+    };
+
+    private static string ResolveV21Description(
+        string id,
+        string fallback,
+        int mergedCount)
+    {
+        return mergedCount <= 1
+            ? fallback
+            : $"{ResolveV21DisplayName(id, fallback)}에 필요한 이론, 제작 절차, 안전 기준과 운용 보상을 하나의 완결된 연구 패키지로 통합한다.";
     }
 
     private static IReadOnlyList<Spec> CreateExpansionSpecs()

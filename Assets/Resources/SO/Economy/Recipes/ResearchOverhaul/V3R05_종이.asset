@@ -32,7 +32,7 @@ MonoBehaviour:
   batchSupportTag: 
   processKind: 0
   workTypeId: work:craft
-  requiredResearchId: research:equipment:engineering-drawing
+  requiredResearchId: research:industry:powered-tools
   requiredWork: 11
   preparationWork: 0
   finishingWork: 0

@@ -27,6 +27,16 @@ MonoBehaviour:
   preferredFacilityIds: []
   environmentalPreferences:
   - humid dim gardens
+  roomPreference:
+    preferredRoles: 5
+    idealTemperatureC: 20
+    temperatureToleranceC: 5
+    minimumVentilation: 45
+    minimumLighting: 5
+    maximumLighting: 35
+    minimumCleanliness: 40
+    prefersSharedSpace: 1
+    prefersPrivateSpace: 0
   etiquetteRules:
   - "\uD0C0\uC778\uC758 \uD3EC\uC790\uAD8C\uC5D0 \uBD88\uAF43\uC744 \uB4E4\uC774\uC9C0
     \uC54A\uB294\uB2E4."
@@ -35,21 +45,21 @@ MonoBehaviour:
   - practice:myconid-spore-return
   otherCultureAttitudes:
   - id: culture:adventurer-frontier
-    weight: 1
+    weight: 0.96
   - id: culture:beastkin-pack
-    weight: 1
+    weight: 0.99
   - id: culture:demon-contract
-    weight: 1
+    weight: 1.02
   - id: culture:golem-core
-    weight: 1
+    weight: 1.05
   - id: culture:harpy-aerie
-    weight: 1
+    weight: 1.08
   - id: culture:kobold-toolclan
-    weight: 1
+    weight: 1.11
   - id: culture:orc-vigil
-    weight: 1
+    weight: 0.86
   - id: culture:slime-confluence
-    weight: 1
+    weight: 0.89
   - id: culture:vampire-nightcourt
-    weight: 1
+    weight: 0.92
   assimilationDays: 120

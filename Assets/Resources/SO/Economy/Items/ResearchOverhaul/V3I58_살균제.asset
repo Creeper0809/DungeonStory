@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 126
   features:
-  - rid: 7737211794726584737
-  - rid: 7737211794726584738
-  - rid: 7737211794726584739
+  - rid: 7737211838078124787
+  - rid: 7737211838078124788
+  - rid: 7737211838078124789
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584737
+    - rid: 7737211838078124787
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        requiredResearchId: research:agriculture:crop-pathology
-    - rid: 7737211794726584738
+        requiredResearchId: research:agriculture:soil-cycles
+    - rid: 7737211838078124788
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211794726584739
+    - rid: 7737211838078124789
       type: {class: CropTreatmentItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         treatmentKind: 2

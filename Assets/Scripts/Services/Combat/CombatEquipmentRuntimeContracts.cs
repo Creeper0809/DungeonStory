@@ -58,10 +58,36 @@ public interface ICombatEquipmentRuntime : IBuildingEquipmentCraftingRuntimePort
         float workUnits,
         out string completedDefinitionId,
         out string completedMaterialId);
+    int ApplyCraftWork(
+        IEnumerable<string> craftableDefinitionIds,
+        float workUnits,
+        CharacterActor worker,
+        float relevantSkill,
+        out string completedDefinitionId,
+        out string completedMaterialId,
+        out CombatEquipmentQuality completedQuality);
+    WorkerSelectionPolicySaveData GetCraftWorkerPolicy(string orderId);
+    bool SetCraftWorkerPolicy(
+        string orderId,
+        WorkerSelectionPolicySaveData policy,
+        out string failureReason);
+    bool SetCraftQualityTarget(
+        string orderId,
+        CraftsmanshipQualityTier minimumQuality,
+        RejectedOutputDisposition rejectedDisposition,
+        QualityRepeatLimitMode repeatLimitMode,
+        int maximumAttempts,
+        float workBudget,
+        int requiredAcceptedCount,
+        out string failureReason);
     CombatEquipmentInstance CreateInstance(
         string definitionId,
         CombatEquipmentQuality quality,
         CombatEquipmentWorldState worldState = CombatEquipmentWorldState.Stored,
+        string materialId = "");
+    CombatEquipmentInstance CreateExternalInstance(
+        string definitionId,
+        CombatEquipmentQuality quality,
         string materialId = "");
     IReadOnlyList<CraftMaterialDefinitionSO> GetAllowedMaterials(
         string definitionId);
@@ -143,12 +169,23 @@ public interface ICombatEquipmentRuntime : IBuildingEquipmentCraftingRuntimePort
         out ItemDefinitionId consumedAmmoItemId,
         out int consumedAmmo);
     bool TryConsumeLoadedAmmo(string instanceId);
+    bool TryConsumeLoadedAmmo(string instanceId, int amount);
+    bool TryConsumePower(string instanceId, float amount);
+    bool TryRestorePower(string instanceId, float amount);
+    bool TryLoadExternalAmmunition(
+        string instanceId,
+        string ammunitionItemId,
+        int amount);
     bool TryApplyDurabilityDamage(string instanceId, float damage);
     bool TryDetachForMaintenance(
         string instanceId,
         out CombatEquipmentInstance detached);
     IReadOnlyList<CombatEquipmentInstance> ConfiscateAllFromCharacter(
         string characterId);
+    bool TryMaterializeRecoveredEquipment(
+        string instanceId,
+        Vector2Int position,
+        out string failureReason);
     void HandleCharacterDeath(string characterId);
     bool TryRestoreDurability(string instanceId, float durabilityRatio);
     IReadOnlyCollection<EquipmentModuleInstance> ModuleInstances { get; }
@@ -215,4 +252,9 @@ public interface ICombatLoadoutRuntime
     bool TrySetActiveWeapon(string characterId, string instanceId, out string failureReason);
     bool TrySetFireMode(string characterId, CombatFireMode fireMode, out string failureReason);
     bool TrySetHoldFire(string characterId, bool holdFire);
+}
+
+public interface ICombatEquipmentBurdenQuery
+{
+    float GetEquippedWeight(string characterId);
 }

@@ -31,16 +31,16 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 18
   features:
-  - rid: 7737211794726584676
-  - rid: 7737211794726584677
+  - rid: 7737211838078124193
+  - rid: 7737211838078124194
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584676
+    - rid: 7737211838078124193
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:black-powder
-    - rid: 7737211794726584677
+    - rid: 7737211838078124194
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1

@@ -32,16 +32,16 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 100
   features:
-  - rid: 7737211794726584633
-  - rid: 7737211794726584634
+  - rid: 7737211838078124157
+  - rid: 7737211838078124158
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584633
+    - rid: 7737211838078124157
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:powered-armor
-    - rid: 7737211794726584634
+    - rid: 7737211838078124158
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8

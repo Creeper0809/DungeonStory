@@ -132,10 +132,27 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
             RestPreference,
             PredationDrive,
             FleePreference,
-            Husbandry);
+            Husbandry,
+            PreySpeciesIds,
+            PredatorSpeciesIds,
+            NestTag,
+            BreedingSeason,
+            MigrationPatternId,
+            DiseaseVectorIds,
+            ActiveSeasons);
     }
 
 #if UNITY_EDITOR
+    public void ConfigureHusbandryProducts(
+        IEnumerable<WildlifeHusbandryProductDefinition> products)
+    {
+        husbandryProducts = (products
+                ?? Enumerable.Empty<WildlifeHusbandryProductDefinition>())
+            .Where(value => value != null
+                && !string.IsNullOrWhiteSpace(value.ItemId))
+            .ToList();
+    }
+
     public void ConfigureV20(
         string id,
         string name,

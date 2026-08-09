@@ -31,16 +31,16 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 76
   features:
-  - rid: 7737211794726585042
-  - rid: 7737211794726585043
+  - rid: 7737211838078124430
+  - rid: 7737211838078124431
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726585042
+    - rid: 7737211838078124430
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:mana-core-engineering
-    - rid: 7737211794726585043
+    - rid: 7737211838078124431
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8

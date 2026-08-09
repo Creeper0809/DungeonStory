@@ -14,7 +14,6 @@ namespace DungeonStory.Tests.Architecture
             {
                 cropId = "crop:twilight-grain",
                 cultivarGenomeId = "genome:twilight-grain:base",
-                quality = 82.5f,
                 generation = 3,
                 pathogenLoad = 4.25f
             };
@@ -24,9 +23,10 @@ namespace DungeonStory.Tests.Architecture
             Assert.That(component.componentTypeId, Is.EqualTo(ItemInstanceComponentIds.SeedLot));
             Assert.That(restored.cropId, Is.EqualTo(source.cropId));
             Assert.That(restored.cultivarGenomeId, Is.EqualTo(source.cultivarGenomeId));
-            Assert.That(restored.quality, Is.EqualTo(source.quality).Within(0.001f));
             Assert.That(restored.generation, Is.EqualTo(source.generation));
             Assert.That(restored.pathogenLoad, Is.EqualTo(source.pathogenLoad).Within(0.001f));
+            Assert.That(component.values.Any(value =>
+                value.key.Contains("quality", StringComparison.OrdinalIgnoreCase)), Is.False);
         }
 
         [Test]
@@ -90,7 +90,7 @@ namespace DungeonStory.Tests.Architecture
         public void InitialPhysicalSeedGrantIsExactlyOnceAndPersistent()
         {
             CropEcologyAggregateState state = new();
-            foreach (int index in Enumerable.Range(0, 8))
+            foreach (int index in Enumerable.Range(0, 12))
             {
                 state.RegisterBaseGenome(new CultivarGenomeSaveData
                 {
@@ -101,8 +101,8 @@ namespace DungeonStory.Tests.Architecture
                 });
             }
             Assert.That(state.TryClaimInitialSeedGrant(out IReadOnlyList<SeedLotState> first), Is.True);
-            Assert.That(first.Count, Is.EqualTo(8));
-            Assert.That(first.All(value => value.quality == 70f && value.generation == 0), Is.True);
+            Assert.That(first.Count, Is.EqualTo(12));
+            Assert.That(first.All(value => value.generation == 0 && value.pathogenLoad == 0f), Is.True);
             Assert.That(state.TryClaimInitialSeedGrant(out IReadOnlyList<SeedLotState> second), Is.False);
             Assert.That(second, Is.Empty);
             CropEcologyAggregateState restored = CropEcologyAggregateState.Restore(state.Capture());
@@ -125,8 +125,7 @@ namespace DungeonStory.Tests.Architecture
         private static SeedLotState BaseSeed() => new()
         {
             cropId = "crop:twilight-grain",
-            cultivarGenomeId = "genome:twilight-grain:base",
-            quality = 70f
+            cultivarGenomeId = "genome:twilight-grain:base"
         };
 
         private static Func<double> ConstantRandom(double value) => () => value;

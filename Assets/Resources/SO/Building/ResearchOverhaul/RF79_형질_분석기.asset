@@ -31,16 +31,21 @@ MonoBehaviour:
   objectName: "\uD615\uC9C8 \uBD84\uC11D\uAE30"
   sprite: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
   icon: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 3
+  researchFacilityCommand: 0
   abilityModules:
     items:
-    - rid: 7737211794726584764
-    - rid: 7737211794726584765
-    - rid: 7737211794726584766
-    - rid: 7737211794726584767
-    - rid: 7737211794726584768
-    - rid: 7737211794726584769
-    - rid: 7737211794726584770
-    - rid: 7737211794726584771
+    - rid: 7737211838078124262
+    - rid: 7737211838078124263
+    - rid: 7737211838078124264
+    - rid: 7737211838078124265
+    - rid: 7737211838078124266
+    - rid: 7737211838078124267
+    - rid: 7737211838078124268
+    - rid: 7737211838078124269
   width: 1
   height: 1
   layer: 1
@@ -56,12 +61,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584764
+    - rid: 7737211838078124262
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF79
-    - rid: 7737211794726584765
+    - rid: 7737211838078124263
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -69,13 +74,13 @@ MonoBehaviour:
         - research-overhaul
         - research:genetics:trait-analysis
         - workstation:v19:trait-analysis
-    - rid: 7737211794726584766
+    - rid: 7737211838078124264
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v19:trait-analysis
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211794726584767
+    - rid: 7737211838078124265
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -83,7 +88,7 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211794726584768
+    - rid: 7737211838078124266
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -92,22 +97,22 @@ MonoBehaviour:
         maintenance: 7
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211794726584769
+    - rid: 7737211838078124267
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
         settings:
-          roles: 80
+          roles: 4112
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
-          supportedWorkTypes: 0
+          supportedWorkTypes: 32785
           disabledWhenDamaged: 1
-    - rid: 7737211794726584770
+    - rid: 7737211838078124268
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211794726584771
+    - rid: 7737211838078124269
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -118,12 +123,16 @@ MonoBehaviour:
         operateWorkRequired: 12
         constructionMaterials:
         - itemId: material:stone-block
-          amount: 12
+          amount: 16
         - itemId: material:steel-ingot
-          amount: 8
-        - itemId: component:machine-parts
-          amount: 4
+          amount: 10
         - itemId: component:precision-parts
+          amount: 6
+        - itemId: component:rune-conductor
+          amount: 4
+        - itemId: component:mana-shield-plate
+          amount: 2
+        - itemId: resource:mana-crystal
           amount: 4
         - itemId: component:engineering-drawing
           amount: 2

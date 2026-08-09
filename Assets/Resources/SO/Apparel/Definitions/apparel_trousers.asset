@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a2f898d573108c43a994b69936eef05, type: 3}
+  m_Name: apparel_trousers
+  m_EditorClassIdentifier: DungeonStory.Economy::ApparelDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 23014
+  apparelId: apparel:trousers
+  physicalItemId: apparel:trousers
+  displayName: "\uBC14\uC9C0"
+  description: "\uBC14\uC9C0. \uC2E4\uC81C \uBD80\uCC29\uC810\xB7\uD06C\uAE30\xB7\uB808\uC774\uC5B4\xB7\uAC1C\uC870\uC640
+    \uD55C \uC885\uB958\uC758 \uC8FC\uC6D0\uB2E8\uC73C\uB85C \uC131\uB2A5\uC744 \uACB0\uC815\uD55C\uB2E4."
+  bodyForm: 0
+  layer: 1
+  fitMode: 0
+  requiredPoints: 1552
+  occupiedPoints: 1552
+  sealedOptionalPoints: 16384
+  supportedModifications: 1
+  useTags: 4
+  allowedMaterialTags: 1
+  tailoringCoefficient: 0.92
+  baseWeight: 0.5
+  requiredResearchId: research:textile:tailoring
+  sprite: {fileID: 0}

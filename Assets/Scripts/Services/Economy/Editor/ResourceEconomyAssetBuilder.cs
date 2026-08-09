@@ -289,7 +289,7 @@ public static class ResourceEconomyAssetBuilder
             R("recipe:tallow", "지방 정제", "cookbench", "work:cook", "research:cuisine:livestock", 8, A("resource:fat", 2), O("material:tallow", 1)),
             R("recipe:bowstring-fiber", "섬유 활시위", "loom", "work:craft", "research:textile:fiber", 8, A("resource:shade-fiber", 2), O("material:bowstring", 1)),
             R("recipe:bowstring-sinew", "뿔 보강 활시위", "loom", "work:craft", "research:husbandry:selective", 10, A("resource:horn", 1), A("resource:hide", 1), O("material:bowstring", 1)),
-            R("recipe:treated-lumber", "목재 처리", "sawmill", "work:craft", "research:forestry:treated", 15, A("material:lumber", 2), A("resource:dark-resin", 1), O("material:treated-lumber", 2)),
+            R("recipe:treated-lumber", "목재 처리", "workstation:v3:treated-lumber", "work:craft", "research:forestry:treated", 15, A("material:lumber", 2), A("resource:dark-resin", 1), O("material:treated-lumber", 2)),
             R("recipe:cheese", "치즈 숙성", "cookbench", "work:cook", "research:cuisine:livestock", 12, A("resource:milk", 3), A("resource:saltstone", 1), O("material:cheese", 2)),
             R("recipe:low-fuel-rot", "부패 연료", "composter", "work:craft", "research:agriculture:compost", 10, A("waste:mixed-rot", 4), A("resource:grass-straw", 1), O("material:low-fuel", 1)),
             R("recipe:low-fuel-plant", "식물성 부패 연료", "composter", "work:craft", "research:agriculture:compost", 9, A("waste:plant-rot", 4), A("resource:grass-straw", 1), O("material:low-fuel", 1)),

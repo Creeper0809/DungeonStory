@@ -19,13 +19,27 @@ public sealed class EventAlertSelectionState
 
     public bool ExecuteChoice(int index)
     {
-        if (SelectedRecord == null || index < 0 || index >= SelectedRecord.Choices.Count)
+        if (!TryGetChoice(index, out EventAlertChoice choice))
         {
             return false;
         }
 
-        SelectedRecord.Choices[index].Callback?.Invoke();
+        choice.Callback?.Invoke();
         return true;
+    }
+
+    public bool TryGetChoice(int index, out EventAlertChoice choice)
+    {
+        choice = null;
+        if (SelectedRecord == null
+            || index < 0
+            || index >= SelectedRecord.Choices.Count)
+        {
+            return false;
+        }
+
+        choice = SelectedRecord.Choices[index];
+        return choice != null;
     }
 }
 

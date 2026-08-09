@@ -877,7 +877,9 @@ public static class EnvironmentalFieldDebugScenarios
             new DungeonCharacterEnvironmentSaveData
             {
                 exposures = Array.Empty<CharacterEnvironmentExposure>(),
-                equippedWorkwear = Array.Empty<EnvironmentalWorkwearSaveData>()
+                equippedWorkwear = Array.Empty<EnvironmentalWorkwearSaveData>(),
+                equippedApparel = Array.Empty<EquippedApparelSaveData>(),
+                apparelWorkOrders = Array.Empty<ApparelWorkOrderSaveData>()
             };
         public CharacterEnvironmentRestoreCandidate BuildRestoreCandidate(
             DungeonCharacterEnvironmentSaveData saveData)

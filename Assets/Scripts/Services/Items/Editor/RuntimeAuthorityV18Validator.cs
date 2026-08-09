@@ -940,7 +940,7 @@ public static class RuntimeAuthorityV18Validator
             || rollbackFree != saveSectionTypes.Length)
         {
             errors.Add(
-                $"V20 save ratchet expected all 68 sections to be rollback-free; found {rollbackFree} rollback-free / {saveSectionTypes.Length - rollbackFree} remaining across {saveSectionTypes.Length}.");
+                $"V21 save ratchet expected all 68 sections to be rollback-free; found {rollbackFree} rollback-free / {saveSectionTypes.Length - rollbackFree} remaining across {saveSectionTypes.Length}.");
         }
 
         HashSet<Type> expectedRemaining = new();
@@ -977,7 +977,7 @@ public static class RuntimeAuthorityV18Validator
                 + string.Join("\n", errors));
         }
 
-        return "V20 SAVE BOUNDARY PASS: all 68 sections are rollback-free with strict staged/detached restore boundaries.";
+        return "V21 SAVE BOUNDARY PASS: all 68 sections are rollback-free with strict staged/detached restore boundaries.";
     }
 
     public static string ValidateOrThrow()
@@ -986,9 +986,9 @@ public static class RuntimeAuthorityV18Validator
         int currentSaveVersion = (int)typeof(DungeonGameSaveData)
             .GetField(nameof(DungeonGameSaveData.CurrentVersion))
             .GetRawConstantValue();
-        if (currentSaveVersion != 20)
+        if (currentSaveVersion != 21)
         {
-            errors.Add($"Save root must be V20, found V{currentSaveVersion}.");
+            errors.Add($"Save root must be V21, found V{currentSaveVersion}.");
         }
 
         Type[] saveSectionTypes = TypeCache.GetTypesDerivedFrom<IDungeonSaveSection>()
@@ -1073,11 +1073,14 @@ public static class RuntimeAuthorityV18Validator
             "Typed save restore must not replace invalid or null JSON with a default DTO.");
 
         if (!DungeonSaveCompatibility.TryGetIncompatibilityReason(
-                18,
-                out string preV19Reason)
-            || !preV19Reason.Contains("새 게임 필요", StringComparison.Ordinal))
+                20,
+                out string preV21Reason)
+            || !string.Equals(
+                preV21Reason,
+                DungeonSaveCompatibility.PreV21IncompatibilityReason,
+                StringComparison.Ordinal))
         {
-            errors.Add("V18 and older saves are not rejected with the V19 new-game message.");
+            errors.Add("V20 and older saves are not rejected with the V21 new-game message.");
         }
 
         GameContentCatalogSO root = Resources.Load<GameContentCatalogSO>(
@@ -2021,7 +2024,7 @@ public static class RuntimeAuthorityV18Validator
             errors,
             "Assets/Scripts/Models/Medical/Core/SurgerySaveValidation.cs",
             "DungeonSurgerySaveData.CurrentVersion",
-            "Surgery V6 payloads must be strictly validated before candidate construction.");
+            "Surgery V7 payloads must be strictly validated before candidate construction.");
         RequireSourceContract(
             errors,
             "Assets/Scripts/Models/Medical/Core/SurgeryModels.cs",
@@ -2041,7 +2044,7 @@ public static class RuntimeAuthorityV18Validator
             errors,
             "Assets/Scripts/Models/Medical/Core/SurgerySaveValidation.cs",
             "ValidateStatus(order.statusData",
-            "Surgery V6 restore must reject unknown typed status codes and parameters.");
+            "Surgery V7 restore must reject unknown typed status codes and parameters.");
         ForbidSourceContract(
             errors,
             "Assets/Scripts/Models/Medical/Core/SurgeryModels.cs",
@@ -2071,7 +2074,7 @@ public static class RuntimeAuthorityV18Validator
             errors,
             "Assets/Scripts/Models/Medical/Core/SurgerySaveValidation.cs",
             "Enum.IsDefined(typeof(SurgeryRiskSummaryCode), risk.summaryCode)",
-            "Surgery V6 restore must reject unknown risk summary codes.");
+            "Surgery V7 restore must reject unknown risk summary codes.");
         ForbidSourceContract(
             errors,
             "Assets/Scripts/Services/Medical/AnatomyRuntimeContracts.cs",
@@ -6674,7 +6677,7 @@ public static class RuntimeAuthorityV18Validator
 
         (string Path, string Token)[] retiredSubsystemBypasses =
         {
-            ("Assets/Scripts/Services/Offense/OffenseWorldMapSystem.cs",
+            ("Assets/Scripts/Services/Offense/OffenseWorldMapRuntime.cs",
                 "public void RestorePersistentState("),
             ("Assets/Scripts/Services/Offense/OffenseRewardRuntime.cs",
                 "public void RestorePersistentState("),

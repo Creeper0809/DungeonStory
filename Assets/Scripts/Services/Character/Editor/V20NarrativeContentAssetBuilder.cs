@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
 
@@ -256,13 +257,52 @@ public static class V20NarrativeContentAssetBuilder
         value.forbiddenItemIds = new List<string> { spec.ForbiddenItem };
         value.preferredFacilityIds = new List<string>();
         value.environmentalPreferences = new List<string> { spec.Environment };
+        value.roomPreference = CultureRoomPreference(spec.Id);
         value.etiquetteRules = new List<string> { spec.Etiquette };
         value.ceremonyIds = Practices.Where(item => item.CultureId == spec.Id).Select(item => item.Id).ToList();
+        int sourceCultureIndex = Array.IndexOf(Cultures, spec);
         value.otherCultureAttitudes = Cultures.Where(item => item.Id != spec.Id)
-            .Select(item => new V20WeightedId { id = item.Id, weight = 1f }).ToList();
+            .Select(item => new V20WeightedId
+            {
+                id = item.Id,
+                weight = 0.85f + ((sourceCultureIndex * 7
+                    + Array.IndexOf(Cultures, item) * 3) % 31) / 100f
+            }).ToList();
         value.assimilationDays = 120;
         Dirty(value); return value;
     }
+
+    private static CultureRoomPreferenceDefinition CultureRoomPreference(string id) =>
+        id switch
+        {
+            "culture:adventurer-frontier" => Room(FacilityRole.Rest|FacilityRole.Meal,20,10,45,55,100,40,true,false),
+            "culture:beastkin-pack" => Room(FacilityRole.Rest|FacilityRole.Meal,24,8,35,20,80,30,true,false),
+            "culture:demon-contract" => Room(FacilityRole.Administration|FacilityRole.Mana,27,8,35,20,70,40,false,true),
+            "culture:golem-core" => Room(FacilityRole.Mana|FacilityRole.Logistics,18,15,50,30,90,60,false,true),
+            "culture:harpy-aerie" => Room(FacilityRole.Rest,18,10,70,50,100,35,true,false),
+            "culture:kobold-toolclan" => Room(FacilityRole.Training|FacilityRole.Logistics,24,7,50,45,100,40,true,false),
+            "culture:myconid-grove" => Room(FacilityRole.Rest|FacilityRole.Meal,20,5,45,5,35,40,true,false),
+            "culture:orc-vigil" => Room(FacilityRole.Training|FacilityRole.Meal,20,10,40,25,85,30,true,false),
+            "culture:slime-confluence" => Room(FacilityRole.Rest|FacilityRole.Hygiene,22,5,40,20,70,70,true,false),
+            "culture:vampire-nightcourt" => Room(FacilityRole.Rest|FacilityRole.Administration,18,7,40,0,30,55,false,true),
+            _ => throw new InvalidOperationException($"Missing typed culture room preference for '{id}'.")
+        };
+
+    private static CultureRoomPreferenceDefinition Room(
+        FacilityRole roles,float temperature,float tolerance,float ventilation,
+        float minimumLight,float maximumLight,float cleanliness,
+        bool shared,bool privateSpace) => new()
+        {
+            preferredRoles=roles,
+            idealTemperatureC=temperature,
+            temperatureToleranceC=tolerance,
+            minimumVentilation=ventilation,
+            minimumLighting=minimumLight,
+            maximumLighting=maximumLight,
+            minimumCleanliness=cleanliness,
+            prefersSharedSpace=shared,
+            prefersPrivateSpace=privateSpace
+        };
 
     private static CulturalPracticeDefinitionSO CreatePractice(PracticeSpec spec)
     {

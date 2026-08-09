@@ -27,6 +27,16 @@ MonoBehaviour:
   preferredFacilityIds: []
   environmentalPreferences:
   - dry rune-powered alcoves
+  roomPreference:
+    preferredRoles: 96
+    idealTemperatureC: 18
+    temperatureToleranceC: 15
+    minimumVentilation: 50
+    minimumLighting: 30
+    maximumLighting: 90
+    minimumCleanliness: 60
+    prefersSharedSpace: 0
+    prefersPrivateSpace: 1
   etiquetteRules:
   - "\uB2E4\uB978 \uACE8\uB818\uC758 \uD575\uAC01\uC778\uC744 \uD5C8\uB77D \uC5C6\uC774
     \uC77D\uC9C0 \uC54A\uB294\uB2E4."
@@ -35,21 +45,21 @@ MonoBehaviour:
   - practice:golem-memory-plaque
   otherCultureAttitudes:
   - id: culture:adventurer-frontier
-    weight: 1
+    weight: 1.06
   - id: culture:beastkin-pack
-    weight: 1
+    weight: 1.09
   - id: culture:demon-contract
-    weight: 1
+    weight: 1.12
   - id: culture:harpy-aerie
-    weight: 1
+    weight: 0.87
   - id: culture:kobold-toolclan
-    weight: 1
+    weight: 0.9
   - id: culture:myconid-grove
-    weight: 1
+    weight: 0.93
   - id: culture:orc-vigil
-    weight: 1
+    weight: 0.96
   - id: culture:slime-confluence
-    weight: 1
+    weight: 0.99
   - id: culture:vampire-nightcourt
-    weight: 1
+    weight: 1.02
   assimilationDays: 120

@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uC5F0\uAE08\uC220\uC791\uC5C5\uB300"
   sprite: {fileID: 21300000, guid: 024d468a0793822419da7e6cc75a58f5, type: 3}
   icon: {fileID: 21300000, guid: 024d468a0793822419da7e6cc75a58f5, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730834227283
@@ -42,9 +47,9 @@ MonoBehaviour:
     - rid: 7737211730834227290
     - rid: 7737211730834227291
     - rid: 7737211730834227292
-    - rid: 7737211792998531347
-    - rid: 7737211792998531348
-    - rid: 7737211793001939254
+    - rid: 7737211838074978840
+    - rid: 7737211838074978841
+    - rid: 7737211838079696931
   width: 2
   height: 1
   layer: 1
@@ -142,13 +147,13 @@ MonoBehaviour:
         abilityId: BuildingProductionAbility
         outputCategory: 3
         amount: 3
-    - rid: 7737211792998531347
+    - rid: 7737211838074978840
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:alchemy-basic
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211792998531348
+    - rid: 7737211838074978841
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -170,7 +175,7 @@ MonoBehaviour:
           capacity: 16
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211793001939254
+    - rid: 7737211838079696931
       type: {class: BuildingResearchCapacityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingResearchCapacityAbility

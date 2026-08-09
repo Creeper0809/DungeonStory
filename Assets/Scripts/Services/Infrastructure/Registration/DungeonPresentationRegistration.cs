@@ -283,6 +283,8 @@ public static class DungeonPresentationRegistration
         builder.Register<AnimalHusbandryBuildingPanelPresenter>(
                 Lifetime.Singleton)
             .As<IAnimalHusbandryBuildingPanelPresenter>();
+        builder.Register<ApparelBuildingPanelPresenter>(Lifetime.Singleton)
+            .As<IApparelBuildingPanelPresenter>();
         builder.Register<SurgeryBuildingPanelPresenter>(Lifetime.Singleton)
             .As<ISurgeryBuildingPanelPresenter>();
         builder.Register<PaidFacilityBuildingPanelPresenter>(

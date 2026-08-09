@@ -20,11 +20,13 @@ public sealed class ReproductionApplicationAdapter : IStartable, IDisposable
     private readonly ICharacterLifeDefinitionCatalog lifeDefinitions;
     private readonly ICharacterLifeQuery life;
     private readonly ICharacterLifeCommand lifeCommands;
+    private readonly ICharacterNarrativeCommand narrativeCommands;
     private readonly IKinshipCommand kinship;
     private readonly IGameContentCatalog content;
     private readonly ICharacterSpawnObjectFactory characterObjects;
     private readonly ICharacterSpawnerProvider spawners;
     private readonly IGameEventBus events;
+    private readonly IHeritableTraitEffectQuery heritableTraits;
     private IDisposable dayEndedSubscription;
 
     public ReproductionApplicationAdapter(
@@ -35,11 +37,13 @@ public sealed class ReproductionApplicationAdapter : IStartable, IDisposable
         ICharacterLifeDefinitionCatalog lifeDefinitions,
         ICharacterLifeQuery life,
         ICharacterLifeCommand lifeCommands,
+        ICharacterNarrativeCommand narrativeCommands,
         IKinshipCommand kinship,
         IGameContentCatalog content,
         ICharacterSpawnObjectFactory characterObjects,
         ICharacterSpawnerProvider spawners,
-        IGameEventBus events)
+        IGameEventBus events,
+        IHeritableTraitEffectQuery heritableTraits)
     {
         this.reproduction = reproduction
             ?? throw new ArgumentNullException(nameof(reproduction));
@@ -51,12 +55,16 @@ public sealed class ReproductionApplicationAdapter : IStartable, IDisposable
         this.life = life ?? throw new ArgumentNullException(nameof(life));
         this.lifeCommands = lifeCommands
             ?? throw new ArgumentNullException(nameof(lifeCommands));
+        this.narrativeCommands = narrativeCommands
+            ?? throw new ArgumentNullException(nameof(narrativeCommands));
         this.kinship = kinship ?? throw new ArgumentNullException(nameof(kinship));
         this.content = content ?? throw new ArgumentNullException(nameof(content));
         this.characterObjects = characterObjects
             ?? throw new ArgumentNullException(nameof(characterObjects));
         this.spawners = spawners ?? throw new ArgumentNullException(nameof(spawners));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
+        this.heritableTraits = heritableTraits
+            ?? throw new ArgumentNullException(nameof(heritableTraits));
     }
 
     public void Start() => dayEndedSubscription ??=
@@ -72,7 +80,8 @@ public sealed class ReproductionApplicationAdapter : IStartable, IDisposable
     {
         int absoluteDay = ended.day + 1;
         ReproductionProcess[] processes = reproduction.Processes
-            .Where(process => process.Status != ReproductionProcessStatus.Failed
+            .Where(process => process.Status != ReproductionProcessStatus.Planned
+                && process.Status != ReproductionProcessStatus.Failed
                 && !process.ResultPublished)
             .OrderBy(process => process.ProcessId, StringComparer.Ordinal)
             .ToArray();
@@ -91,7 +100,8 @@ public sealed class ReproductionApplicationAdapter : IStartable, IDisposable
                         health,
                         nutrition,
                         climate.OutdoorTemperatureC,
-                        ResolveFertilityCoefficient(process)));
+                        ResolveFertilityCoefficient(process),
+                        ResolveGestationStability(process)));
             }
 
             ReproductionProcess current = reproduction.Processes.First(value =>
@@ -122,8 +132,10 @@ public sealed class ReproductionApplicationAdapter : IStartable, IDisposable
             process.PhenotypeSpeciesId,
             archetype.VisualVariantId,
             ResolveOffspringRole(process),
-            process.ExpressedTraitIds.Select(value => new CharacterTraitId(value)),
-            process.LatentTraitIds.Select(value => new CharacterTraitId(value)),
+            (archetype.traits ?? Array.Empty<CharacterTraitSO>())
+                .Where(value => value != null)
+                .Select(value => value.DefinitionId),
+            Array.Empty<CharacterTraitId>(),
             process.InnateAptitudes.ToDictionary(
                 value => value.skillId,
                 value => Math.Clamp(value.value, 0, 100),
@@ -155,6 +167,11 @@ public sealed class ReproductionApplicationAdapter : IStartable, IDisposable
             chronologicalAgeDays: 0,
             biologicalAgeDayUnits: activatedGolem ? history.AdultAgeDayUnits : 0d,
             birthdayDayOfYear: GameCalendarRules.Project(absoluteDay, 0).DayOfYear);
+        narrativeCommands.Register(
+            childId,
+            process.PhenotypeSpeciesId,
+            process.ExpressedTraitIds,
+            process.LatentTraitIds);
 
         if (activatedGolem)
         {
@@ -254,7 +271,34 @@ public sealed class ReproductionApplicationAdapter : IStartable, IDisposable
             return 1f;
         float first = ResolveFertilityCoefficient(process.FirstParentId);
         float second = ResolveFertilityCoefficient(process.SecondParentId);
-        return Mathf.Min(first, second);
+        float inherited = Mathf.Min(
+            heritableTraits.GetMultiplier(
+                process.FirstParentId,
+                HeritableTraitConsequenceKind.Fertility,
+                "success-rate"),
+            heritableTraits.GetMultiplier(
+                process.SecondParentId,
+                HeritableTraitConsequenceKind.Fertility,
+                "success-rate"));
+        return ReproductionRules.ApplyFertilityTreatmentToCoefficient(
+            Mathf.Min(first, second) * inherited,
+            process.FertilityTreatmentUsed);
+    }
+
+    private float ResolveGestationStability(ReproductionProcess process)
+    {
+        if (!process.CarrierId.IsValid) return 1f;
+        float stability = heritableTraits.GetMultiplier(
+            process.CarrierId,
+            HeritableTraitConsequenceKind.Fertility,
+            "gestation-stability");
+        float offspring = heritableTraits.GetMultiplier(
+            process.CarrierId,
+            HeritableTraitConsequenceKind.Fertility,
+            "offspring-stability");
+        return ReproductionRules.ApplyFertilityTreatmentToGestationStability(
+            stability * offspring,
+            process.FertilityTreatmentUsed);
     }
 
     private float ResolveFertilityCoefficient(CharacterId characterId)

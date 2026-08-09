@@ -330,7 +330,7 @@ public abstract class CharacterStatWorkPolicy : IWorkStatPolicy
 
     public IReadOnlyCollection<WorkTypeId> WorkTypeIds => workTypeIds;
 
-    public float GetWorkSpeedMultiplier(CharacterActor actor, BuildableObject target)
+    public virtual float GetWorkSpeedMultiplier(CharacterActor actor, BuildableObject target)
     {
         if (actor == null)
         {
@@ -478,7 +478,9 @@ public sealed class GuardHuntStatPolicy : CharacterStatWorkPolicy
 
 public sealed class GatheringStatPolicy : CharacterStatWorkPolicy
 {
-    public GatheringStatPolicy()
+    private readonly IFacilityCapabilityQuery facilities;
+
+    public GatheringStatPolicy(IFacilityCapabilityQuery facilities)
         : base(
             new[]
             {
@@ -492,17 +494,77 @@ public sealed class GatheringStatPolicy : CharacterStatWorkPolicy
             CharacterStatType.Strength,
             CharacterStatType.Endurance)
     {
+        this.facilities = facilities
+            ?? throw new ArgumentNullException(nameof(facilities));
+    }
+
+    public override float GetWorkSpeedMultiplier(
+        CharacterActor actor,
+        BuildableObject target)
+    {
+        float result = base.GetWorkSpeedMultiplier(actor, target);
+        WorkTypeId workType = CharacterWorkRoleUtility.TryGetWork(
+                actor,
+                out AbilityWork work)
+            ? work.AssignedWorkTypeId
+            : default;
+        if (workType == BuiltInWorkTypeIds.Gather
+            && facilities.FindOperational(
+                ResearchFacilityCommandKind.GatheringPreparation).Count > 0)
+        {
+            result *= 1.10f;
+        }
+        if (workType == BuiltInWorkTypeIds.Logging)
+        {
+            if (facilities.FindOperational(
+                    ResearchFacilityCommandKind.LoggingPreparation).Count > 0)
+            {
+                result *= 1.08f;
+            }
+            if (facilities.FindOperational(
+                    ResearchFacilityCommandKind.DirectionalFelling).Count > 0)
+            {
+                result *= 1.08f;
+            }
+        }
+        return Mathf.Clamp(result, 0.45f, 3f);
     }
 }
 
 public sealed class AnimalCareStatPolicy : CharacterStatWorkPolicy
 {
-    public AnimalCareStatPolicy()
+    private readonly IFacilityCapabilityQuery facilities;
+
+    public AnimalCareStatPolicy(IFacilityCapabilityQuery facilities)
         : base(
             new[] { BuiltInWorkTypeIds.AnimalCare },
             CharacterStatType.Research,
             CharacterStatType.Dexterity)
     {
+        this.facilities = facilities
+            ?? throw new ArgumentNullException(nameof(facilities));
+    }
+
+    public override float GetWorkSpeedMultiplier(
+        CharacterActor actor,
+        BuildableObject target)
+    {
+        float result = base.GetWorkSpeedMultiplier(actor, target);
+        ResearchFacilityCommandKind[] supports =
+        {
+            ResearchFacilityCommandKind.SelectiveBreeding,
+            ResearchFacilityCommandKind.StableHarnessing,
+            ResearchFacilityCommandKind.WildlifeTaming,
+            ResearchFacilityCommandKind.BreedingSchedule
+        };
+        foreach (ResearchFacilityCommandKind support in supports)
+        {
+            if (facilities.FindOperational(support).Count > 0)
+            {
+                result *= 1.04f;
+            }
+        }
+        return Mathf.Clamp(result, 0.45f, 3f);
     }
 }
 
@@ -619,12 +681,17 @@ public sealed class WorkAmountCalculator : IWorkAmountCalculator
             target,
             definition.WorkTypeId);
         float poweredAssist = automation.GetWorkSpeedMultiplier(target);
+        float craftsmanship = target == null
+            ? 1f
+            : CraftsmanshipQualityRules.ProjectionMultiplier(
+                target.Craftsmanship.Quality);
         return Mathf.Clamp(
             statMultiplier
             * workSpeed
             * environment
             * evolution
-            * poweredAssist,
+            * poweredAssist
+            * craftsmanship,
             0.05f,
             8f);
     }

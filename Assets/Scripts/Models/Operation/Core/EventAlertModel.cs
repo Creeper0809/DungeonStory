@@ -4,17 +4,49 @@ using System.Linq;
 
 namespace DungeonStory.Operation
 {
+public interface IEventAlertChoiceActionDispatcher
+{
+    bool TryDispatch(string actionId, out DomainFailure failure);
+}
+
+public sealed class NullEventAlertChoiceActionDispatcher :
+    IEventAlertChoiceActionDispatcher
+{
+    public static readonly NullEventAlertChoiceActionDispatcher Instance = new();
+
+    private NullEventAlertChoiceActionDispatcher()
+    {
+    }
+
+    public bool TryDispatch(string actionId, out DomainFailure failure)
+    {
+        failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
+        return false;
+    }
+}
+
 public class EventAlertChoice
 {
     public string Label { get; }
     public string Description { get; }
+    public string ActionId { get; }
     public Action Callback { get; }
 
-    public EventAlertChoice(string label, string description = "", Action callback = null)
+    public EventAlertChoice(
+        string label,
+        string description = "",
+        Action callback = null,
+        string actionId = "")
     {
         Label = string.IsNullOrWhiteSpace(label) ? "Choice" : label;
         Description = description ?? string.Empty;
+        ActionId = actionId?.Trim() ?? string.Empty;
         Callback = callback;
+    }
+
+    public EventAlertChoice(string label, string description, string actionId)
+        : this(label, description, null, actionId)
+    {
     }
 }
 
@@ -24,6 +56,7 @@ public class EventAlertRequest
     public string Detail { get; }
     public EventAlertImportance Importance { get; }
     public string Category { get; }
+    public string SourceId { get; }
     public IReadOnlyList<EventAlertChoice> Choices { get; }
 
     public EventAlertRequest(
@@ -31,12 +64,14 @@ public class EventAlertRequest
         string detail,
         EventAlertImportance importance,
         string category = "",
-        IEnumerable<EventAlertChoice> choices = null)
+        IEnumerable<EventAlertChoice> choices = null,
+        string sourceId = "")
     {
         Title = string.IsNullOrWhiteSpace(title) ? "Event" : title;
         Detail = detail ?? string.Empty;
         Importance = importance;
         Category = category ?? string.Empty;
+        SourceId = sourceId?.Trim() ?? string.Empty;
         Choices = NormalizeChoices(choices);
     }
 
@@ -44,7 +79,7 @@ public class EventAlertRequest
     {
         EventAlertChoice[] normalized = choices?
             .Where((choice) => choice != null)
-            .Take(3)
+            .Take(4)
             .ToArray()
             ?? Array.Empty<EventAlertChoice>();
         return Array.AsReadOnly(normalized);
@@ -58,6 +93,7 @@ public class EventAlertRecord
     public string Detail { get; }
     public EventAlertImportance Importance { get; }
     public string Category { get; }
+    public string SourceId { get; }
     public int Count { get; private set; }
     public IReadOnlyList<EventAlertChoice> Choices { get; }
 
@@ -73,6 +109,7 @@ public class EventAlertRecord
         Detail = request.Detail;
         Importance = request.Importance;
         Category = request.Category;
+        SourceId = request.SourceId;
         Choices = request.Choices;
         Count = 1;
     }
@@ -84,8 +121,15 @@ public class EventAlertRecord
         EventAlertImportance importance,
         string category,
         int count,
-        IEnumerable<EventAlertChoice> choices = null)
-        : this(id, new EventAlertRequest(title, detail, importance, category, choices))
+        IEnumerable<EventAlertChoice> choices = null,
+        string sourceId = "")
+        : this(id, new EventAlertRequest(
+            title,
+            detail,
+            importance,
+            category,
+            choices,
+            sourceId))
     {
         Count = Math.Max(1, count);
     }
@@ -107,7 +151,9 @@ public class EventAlertRecord
             Choices.Select(choice => new EventAlertChoice(
                 choice.Label,
                 choice.Description,
-                choice.Callback)));
+                choice.Callback,
+                choice.ActionId)),
+            SourceId);
     }
 
     public EventAlertRecordSnapshot CreateSnapshot()
@@ -119,7 +165,9 @@ public class EventAlertRecord
             Importance,
             Category,
             Count,
-            Choices);
+            Choices,
+            false,
+            SourceId);
     }
 
     public string ButtonText => Count > 1 ? $"{Title} x{Count}" : Title;
@@ -136,13 +184,15 @@ public sealed class EventAlertRecordSnapshot
         string category,
         int count,
         IReadOnlyList<EventAlertChoice> choices,
-        bool isDismissed = false)
+        bool isDismissed = false,
+        string sourceId = "")
     {
         Id = id;
         Title = title ?? string.Empty;
         Detail = detail ?? string.Empty;
         Importance = importance;
         Category = category ?? string.Empty;
+        SourceId = sourceId?.Trim() ?? string.Empty;
         Count = Math.Max(1, count);
         Choices = EventPayloadSnapshot.Copy(choices);
         IsDismissed = isDismissed;
@@ -153,6 +203,7 @@ public sealed class EventAlertRecordSnapshot
     public string Detail { get; }
     public EventAlertImportance Importance { get; }
     public string Category { get; }
+    public string SourceId { get; }
     public int Count { get; }
     public IReadOnlyList<EventAlertChoice> Choices { get; }
     public bool IsDismissed { get; }

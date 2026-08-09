@@ -27,6 +27,16 @@ MonoBehaviour:
   preferredFacilityIds: []
   environmentalPreferences:
   - lit communal rooms
+  roomPreference:
+    preferredRoles: 5
+    idealTemperatureC: 20
+    temperatureToleranceC: 10
+    minimumVentilation: 45
+    minimumLighting: 55
+    maximumLighting: 100
+    minimumCleanliness: 40
+    prefersSharedSpace: 1
+    prefersPrivateSpace: 0
   etiquetteRules:
   - "\uC804\uB9AC\uD488\uC740 \uADC0\uD658\uC790 \uC804\uC6D0\uC774 \uD655\uC778\uD55C
     \uB4A4 \uB098\uB208\uB2E4."
@@ -35,21 +45,21 @@ MonoBehaviour:
   - practice:adventurer-name-token
   otherCultureAttitudes:
   - id: culture:beastkin-pack
-    weight: 1
+    weight: 0.88
   - id: culture:demon-contract
-    weight: 1
+    weight: 0.91
   - id: culture:golem-core
-    weight: 1
+    weight: 0.94
   - id: culture:harpy-aerie
-    weight: 1
+    weight: 0.97
   - id: culture:kobold-toolclan
     weight: 1
   - id: culture:myconid-grove
-    weight: 1
+    weight: 1.03
   - id: culture:orc-vigil
-    weight: 1
+    weight: 1.06
   - id: culture:slime-confluence
-    weight: 1
+    weight: 1.09
   - id: culture:vampire-nightcourt
-    weight: 1
+    weight: 1.12
   assimilationDays: 120

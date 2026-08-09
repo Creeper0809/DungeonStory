@@ -29,18 +29,20 @@ MonoBehaviour:
   elite: 0
   boss: 0
   objective: 3
-  objectiveRoundLimit: 7
+  objectiveRoundLimit: 8
   objectiveTargetId: target:war-device
   battlefieldModifierIds:
   - battlefield:flooded-floor
   counterTags:
+  - counter:insulated
   - counter:mana-disrupt
+  - counter:sabotage
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
   - enemyArchetypeId: enemy:rival-siege-frame
     minimumCount: 1
     maximumCount: 2
-  - enemyArchetypeId: enemy:neutral-clockwork
+  - enemyArchetypeId: enemy:rival-pactbinder
     minimumCount: 1
     maximumCount: 2

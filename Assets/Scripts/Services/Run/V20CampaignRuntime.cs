@@ -44,15 +44,23 @@ public sealed class SeasonalEventWorldSaveData
 }
 
 [Serializable]
+public sealed class V20WorkDelaySaveData
+{
+    public string scopeId = string.Empty;
+    public int untilAbsoluteDayExclusive;
+}
+
+[Serializable]
 public sealed class SocietyEventWorldSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
     public int version = CurrentVersion;
     public List<V20ActiveEventSaveData> activeEvents = new();
     public List<V20ActiveEventSaveData> recentResolvedEvents = new();
     public List<string> completedOnceEventIds = new();
     public List<string> recurrenceKeys = new();
     public List<V20EventCooldownSaveData> cooldowns = new();
+    public List<V20WorkDelaySaveData> workDelays = new();
     public int lastEvaluationAbsoluteDay = -1;
 }
 
@@ -82,7 +90,7 @@ public sealed class FactionCampaignWorldSaveData
 [Serializable]
 public sealed class RunMilestoneWorldSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
     public int version = CurrentVersion;
     public RunProgressionPhase phase;
     public int endlessCycle;
@@ -94,6 +102,7 @@ public sealed class RunMilestoneWorldSaveData
     public List<string> worldFlags = new();
     public int selfSufficiencyStreakDays;
     public int lastMilestoneEvaluationAbsoluteDay = -1;
+    public int lastAccordSignalSupportAbsoluteDay = -1;
 }
 
 public interface ISocietyEventCatalog
@@ -175,6 +184,7 @@ public sealed class V20StoryContentCatalog :
                     $"Faction arc '{arc.StableId}' has a broken chapter or contract reference.");
         }
         ValidateFactionEffectTargets(definitions, Arcs);
+        ValidateFactionChapterSignatures(Chapters);
     }
 
     public IReadOnlyList<LifeEventDefinitionSO> LifeEvents { get; }
@@ -242,6 +252,42 @@ public sealed class V20StoryContentCatalog :
         }
     }
 
+    private static void ValidateFactionChapterSignatures(
+        IEnumerable<FactionChapterDefinitionSO> chapters)
+    {
+        IGrouping<string, FactionChapterDefinitionSO> duplicate = chapters
+            .GroupBy(FactionChapterMechanicalSignature, StringComparer.Ordinal)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicate != null)
+            throw new InvalidOperationException(
+                "Faction chapters share a mechanical choice signature: "
+                + string.Join(", ", duplicate.Select(value => value.StableId)));
+    }
+
+    public static string FactionChapterMechanicalSignature(
+        FactionChapterDefinitionSO chapter) => string.Join(
+        "||",
+        (chapter?.choices ?? new List<V20ChoiceDefinition>())
+        .OrderBy(value => value.choiceId, StringComparer.Ordinal)
+        .Select(value =>
+        {
+            string items = string.Join(",", (value.requirements?.items ?? new())
+                .Where(item => item != null)
+                .OrderBy(item => item.itemDefinitionId, StringComparer.Ordinal)
+                .Select(item => $"{item.itemDefinitionId}:{item.amount}:{item.consume}"));
+            string facilities = string.Join(",", (value.requirements?.facilities ?? new())
+                .Where(facility => facility != null)
+                .OrderBy(facility => facility.buildingDefinitionId, StringComparer.Ordinal)
+                .ThenBy(facility => facility.capabilityId, StringComparer.Ordinal)
+                .Select(facility => $"{facility.buildingDefinitionId}:{facility.capabilityId}:{facility.minimumCount}:{facility.mustBeOperational}"));
+            string effects = string.Join(",", (value.effects ?? new())
+                .Where(effect => effect != null)
+                .OrderBy(effect => effect.kind)
+                .ThenBy(effect => effect.targetId, StringComparer.Ordinal)
+                .Select(effect => $"{effect.kind}:{effect.targetId}:{effect.amount}:{effect.durationDays}"));
+            return $"{value.choiceId}[{items}][{facilities}][{effects}]";
+        }));
+
     private static IEnumerable<(string OwnerId, V20ContentEffect Effect)> EnumerateEffects(
         IEnumerable<V20AuthoredContentSO> definitions)
     {
@@ -294,8 +340,51 @@ public interface IRunMilestoneQuery
     RunProgressionPhase Phase { get; }
     int EndlessCycle { get; }
     IReadOnlyCollection<string> CompletedMilestoneIds { get; }
+    IReadOnlyCollection<string> GrantedRewardIds { get; }
+    IReadOnlyCollection<string> ActivePressureIds { get; }
     IReadOnlyCollection<string> WorldFlags { get; }
+    bool IsLandmarkBuilding(string buildingDefinitionId);
     bool IsLandmarkUnlocked(string buildingDefinitionId);
+}
+
+/// <summary>
+/// Typed, read-only projection of the gameplay rules granted by completed
+/// milestones. Runtime systems consume this contract instead of inspecting
+/// authored reward strings themselves.
+/// </summary>
+public interface IMilestoneGameplayModifierQuery
+{
+    bool EnemyCounterIntelVisible { get; }
+    float ExpeditionTravelTimeMultiplier { get; }
+    float FacilityMaintenanceGoldMultiplier { get; }
+    float WaterAndFertilizerConsumptionMultiplier { get; }
+    int MentorshipDailyXpCap { get; }
+    int TemporalStasisWarningDays { get; }
+    float ManaTransferLossMultiplier { get; }
+    float AutomaticMaintenanceWorkMultiplier { get; }
+    bool IsAccordSignalSupportDay(int absoluteDay);
+    bool IsAccordSignalSupportActive(int absoluteDay);
+    bool HasReward(string milestoneId);
+    bool HasPressure(string milestoneId);
+}
+
+public sealed class NeutralMilestoneGameplayModifierQuery :
+    IMilestoneGameplayModifierQuery
+{
+    public static readonly NeutralMilestoneGameplayModifierQuery Instance = new();
+    private NeutralMilestoneGameplayModifierQuery() { }
+    public bool EnemyCounterIntelVisible => false;
+    public float ExpeditionTravelTimeMultiplier => 1f;
+    public float FacilityMaintenanceGoldMultiplier => 1f;
+    public float WaterAndFertilizerConsumptionMultiplier => 1f;
+    public int MentorshipDailyXpCap => CareerRules.MaximumDailyMentoringXp;
+    public int TemporalStasisWarningDays => 0;
+    public float ManaTransferLossMultiplier => 1f;
+    public float AutomaticMaintenanceWorkMultiplier => 1f;
+    public bool IsAccordSignalSupportDay(int absoluteDay) => false;
+    public bool IsAccordSignalSupportActive(int absoluteDay) => false;
+    public bool HasReward(string milestoneId) => false;
+    public bool HasPressure(string milestoneId) => false;
 }
 
 public sealed class RunMilestoneEvaluationSnapshot
@@ -317,6 +406,7 @@ public interface IRunMilestoneCommand
 {
     IReadOnlyList<string> Evaluate(RunMilestoneEvaluationSnapshot snapshot);
     int AdvanceEndlessCycle();
+    bool TryActivateAccordSignalSupport(int absoluteDay);
 }
 
 public sealed class V20DailyEventContext
@@ -326,6 +416,10 @@ public sealed class V20DailyEventContext
     public Season Season { get; set; }
     public int Generation { get; set; }
     public List<string> ParticipantCharacterIds { get; } = new();
+    public Dictionary<string, Dictionary<string, float>> ParticipantContentWeights
+    {
+        get;
+    } = new(StringComparer.Ordinal);
     public RunMilestoneEvaluationSnapshot Requirements { get; } = new();
 }
 
@@ -334,16 +428,23 @@ public readonly struct V20ResolvedEventResult
     public V20ResolvedEventResult(
         string definitionId,
         string resolutionId,
-        IReadOnlyList<V20ContentEffect> effects)
+        IReadOnlyList<V20ContentEffect> effects,
+        IReadOnlyList<string> participantCharacterIds = null,
+        string contextFactionId = "")
     {
         DefinitionId = definitionId ?? string.Empty;
         ResolutionId = resolutionId ?? string.Empty;
         Effects = effects ?? Array.Empty<V20ContentEffect>();
+        ParticipantCharacterIds = participantCharacterIds
+            ?? Array.Empty<string>();
+        ContextFactionId = contextFactionId?.Trim() ?? string.Empty;
     }
 
     public string DefinitionId { get; }
     public string ResolutionId { get; }
     public IReadOnlyList<V20ContentEffect> Effects { get; }
+    public IReadOnlyList<string> ParticipantCharacterIds { get; }
+    public string ContextFactionId { get; }
 }
 
 public interface ISeasonalEventQuery
@@ -355,6 +456,25 @@ public interface ISocietyEventQuery
 {
     IReadOnlyList<V20ActiveEventSaveData> ActiveSocietyEvents { get; }
     IReadOnlyList<V20ActiveEventSaveData> RecentResolvedSocietyEvents { get; }
+}
+
+public interface IContentWorkDelayQuery
+{
+    int GetRemainingDays(string scopeId = "");
+    float GetWorkSpeedMultiplier(WorkTypeId workTypeId);
+}
+
+public interface IContentWorkDelayCommand
+{
+    void ApplyWorkDelay(string scopeId, int days, int absoluteDay);
+}
+
+public sealed class NeutralContentWorkDelayQuery : IContentWorkDelayQuery
+{
+    public static readonly NeutralContentWorkDelayQuery Instance = new();
+    private NeutralContentWorkDelayQuery() { }
+    public int GetRemainingDays(string scopeId = "") => 0;
+    public float GetWorkSpeedMultiplier(WorkTypeId workTypeId) => 1f;
 }
 
 public interface ISocietyEventCommand
@@ -427,9 +547,12 @@ public sealed class RunMilestoneAggregateState
 public sealed class V20CampaignRuntime :
     IV20CampaignPersistence,
     IRunMilestoneQuery,
+    IMilestoneGameplayModifierQuery,
     IRunMilestoneCommand,
     ISeasonalEventQuery,
     ISocietyEventQuery,
+    IContentWorkDelayQuery,
+    IContentWorkDelayCommand,
     ISocietyEventCommand,
     IFactionCampaignQuery,
     IFactionCampaignCommand,
@@ -437,6 +560,7 @@ public sealed class V20CampaignRuntime :
 {
     private readonly DungeonRuntimeAggregateRootStore rootStore;
     private readonly V20StoryContentCatalog catalog;
+    private int evaluationAbsoluteDay = -1;
     public V20CampaignRuntime(DungeonRuntimeAggregateRootStore rootStore, V20StoryContentCatalog catalog)
     {
         this.rootStore = rootStore ?? throw new ArgumentNullException(nameof(rootStore));
@@ -447,15 +571,108 @@ public sealed class V20CampaignRuntime :
     public RunProgressionPhase Phase => Milestones.Data.phase;
     public int EndlessCycle => Milestones.Data.endlessCycle;
     public IReadOnlyCollection<string> CompletedMilestoneIds => Milestones.Data.completedMilestoneIds.AsReadOnly();
+    public IReadOnlyCollection<string> GrantedRewardIds =>
+        Milestones.Data.grantedRewardIds.AsReadOnly();
+    public IReadOnlyCollection<string> ActivePressureIds =>
+        Milestones.Data.activePressureIds.AsReadOnly();
     public IReadOnlyCollection<string> WorldFlags =>
         Milestones.Data.worldFlags.AsReadOnly();
+    public bool IsLandmarkBuilding(string id)
+    {
+        string normalized = Normalize(id);
+        return catalog.All.Any(value => string.Equals(
+            Normalize(value.landmarkBuildingId),
+            normalized,
+            StringComparison.Ordinal));
+    }
+
     public bool IsLandmarkUnlocked(string id) => Milestones.Data.unlockedLandmarkIds.Contains(Normalize(id), StringComparer.Ordinal);
+    public bool EnemyCounterIntelVisible => HasReward("ending:truth-revealed");
+    public float ExpeditionTravelTimeMultiplier =>
+        HasReward("ending:surface-hegemony") ? 0.9f : 1f;
+    public float FacilityMaintenanceGoldMultiplier =>
+        HasReward("ending:dungeon-sovereignty") ? 0.9f : 1f;
+    public float WaterAndFertilizerConsumptionMultiplier =>
+        HasReward("ending:sealed-paradise") ? 0.9f : 1f;
+    public int MentorshipDailyXpCap =>
+        HasReward("ending:eternal-lineage")
+            ? 15
+            : CareerRules.MaximumDailyMentoringXp;
+    public int TemporalStasisWarningDays =>
+        HasReward("ending:timeless-sanctuary") ? 3 : 0;
+    public float ManaTransferLossMultiplier =>
+        HasReward("ending:arcane-ascension") ? 0.9f : 1f;
+    public float AutomaticMaintenanceWorkMultiplier =>
+        HasReward("ending:steel-apotheosis") ? 0.85f : 1f;
+    public bool IsAccordSignalSupportDay(int absoluteDay) =>
+        absoluteDay > 0
+        && absoluteDay % GameCalendarRules.DaysPerSeason == 0
+        && HasReward("ending:monster-accord");
+    public bool IsAccordSignalSupportActive(int absoluteDay) =>
+        IsAccordSignalSupportDay(absoluteDay)
+        && Milestones.Data.lastAccordSignalSupportAbsoluteDay == absoluteDay;
+    public bool TryActivateAccordSignalSupport(int absoluteDay)
+    {
+        if (!IsAccordSignalSupportDay(absoluteDay))
+        {
+            return false;
+        }
+
+        RunMilestoneWorldSaveData state = WritableMilestones.Data;
+        if (state.lastAccordSignalSupportAbsoluteDay == absoluteDay)
+        {
+            return true;
+        }
+        state.lastAccordSignalSupportAbsoluteDay = absoluteDay;
+        return true;
+    }
+    public bool HasReward(string milestoneId) =>
+        Milestones.Data.grantedRewardIds.Contains(
+            RewardId(milestoneId),
+            StringComparer.Ordinal);
+    public bool HasPressure(string milestoneId) =>
+        Milestones.Data.activePressureIds.Contains(
+            PressureId(milestoneId),
+            StringComparer.Ordinal);
     public IReadOnlyList<V20ActiveEventSaveData> ActiveSeasonalEvents =>
         Seasonal.Data.activeEvents.AsReadOnly();
     public IReadOnlyList<V20ActiveEventSaveData> ActiveSocietyEvents =>
         Society.Data.activeEvents.AsReadOnly();
     public IReadOnlyList<V20ActiveEventSaveData> RecentResolvedSocietyEvents =>
         Society.Data.recentResolvedEvents.AsReadOnly();
+    public int GetRemainingDays(string scopeId = "")
+    {
+        int currentDay = Math.Max(0, Society.Data.lastEvaluationAbsoluteDay);
+        bool queryAll = string.IsNullOrWhiteSpace(scopeId);
+        string scope = queryAll ? string.Empty : NormalizeWorkDelayScope(scopeId);
+        return Society.Data.workDelays
+            .Where(value => value != null
+                && (queryAll || string.Equals(
+                    value.scopeId,
+                    scope,
+                    StringComparison.Ordinal)))
+            .Select(value => Math.Max(0, value.untilAbsoluteDayExclusive - currentDay))
+            .DefaultIfEmpty(0)
+            .Max();
+    }
+
+    public float GetWorkSpeedMultiplier(WorkTypeId workTypeId)
+    {
+        int currentDay = Math.Max(0, Society.Data.lastEvaluationAbsoluteDay);
+        string workId = workTypeId.Value?.Trim() ?? string.Empty;
+        int active = Society.Data.workDelays.Count(value => value != null
+            && value.untilAbsoluteDayExclusive > currentDay
+            && WorkDelayAffects(value.scopeId, workId));
+        return active == 0
+            ? 1f
+            : Math.Max(0.5f, (float)Math.Pow(0.8f, active));
+    }
+
+    public void ApplyWorkDelay(
+        string scopeId,
+        int days,
+        int absoluteDay) =>
+        ApplyWorkDelayAt(scopeId, days, Math.Max(0, absoluteDay));
     IReadOnlyList<FactionCampaignStateSaveData> IFactionCampaignQuery.Factions =>
         Factions.Data.factions.AsReadOnly();
 
@@ -499,9 +716,17 @@ public sealed class V20CampaignRuntime :
             throw new ArgumentOutOfRangeException(nameof(context.AbsoluteDay));
 
         List<V20ResolvedEventResult> resolved = new();
-        EvaluateSeasonal(context, resolved);
-        EvaluateSociety(context, resolved);
-        return resolved;
+        evaluationAbsoluteDay = context.AbsoluteDay;
+        try
+        {
+            EvaluateSeasonal(context, resolved);
+            EvaluateSociety(context, resolved);
+            return resolved;
+        }
+        finally
+        {
+            evaluationAbsoluteDay = -1;
+        }
     }
 
     public bool TryResolveSocietyEvent(
@@ -549,6 +774,12 @@ public sealed class V20CampaignRuntime :
             IReadOnlyList<V20ContentEffect> guestEffects = fulfilled
                 ? guest.successEffects
                 : guest.failureEffects;
+            if (fulfilled)
+            {
+                guestEffects = WithConsumedRequirements(
+                    guestEffects,
+                    guest.serviceRequirements);
+            }
             active.selectedChoiceId = guestChoice;
             active.resolutionId = guestChoice;
             active.resolved = true;
@@ -563,7 +794,9 @@ public sealed class V20CampaignRuntime :
             result = new V20ResolvedEventResult(
                 definition.StableId,
                 guestChoice,
-                guestEffects);
+                guestEffects,
+                active.participantCharacterIds.AsReadOnly(),
+                active.contextFactionId);
             return true;
         }
         V20ChoiceDefinition choice = GetChoices(definition).FirstOrDefault(value =>
@@ -593,7 +826,9 @@ public sealed class V20CampaignRuntime :
         result = new V20ResolvedEventResult(
             definition.StableId,
             choice.choiceId,
-            choice.effects.AsReadOnly());
+            choice.effects.AsReadOnly(),
+            active.participantCharacterIds.AsReadOnly(),
+            active.contextFactionId);
         return true;
     }
 
@@ -639,13 +874,18 @@ public sealed class V20CampaignRuntime :
             return false;
         }
 
+        IReadOnlyList<V20ContentEffect> resolvedEffects = WithConsumedRequirements(
+            WithConsumedRequirements(choice.effects, chapter.triggerRequirements),
+            choice.requirements);
         state.majorChoiceFlags.Add($"{chapter.StableId}:{choice.choiceId}");
         state.currentChapter++;
-        ApplyInternalEffects(choice.effects);
+        ApplyInternalEffects(resolvedEffects);
         result = new V20ResolvedEventResult(
             chapter.StableId,
             choice.choiceId,
-            choice.effects.AsReadOnly());
+            resolvedEffects,
+            Array.Empty<string>(),
+            state.factionId);
         return true;
     }
 
@@ -704,6 +944,12 @@ public sealed class V20CampaignRuntime :
         IReadOnlyList<V20ContentEffect> effects = success
             ? contract.successEffects
             : contract.failureEffects;
+        if (success)
+        {
+            effects = WithConsumedRequirements(
+                effects,
+                contract.completionRequirements);
+        }
         (success ? state.completedContractIds : state.failedContractIds)
             .Add(contract.StableId);
         state.activeContractId = string.Empty;
@@ -712,7 +958,9 @@ public sealed class V20CampaignRuntime :
         result = new V20ResolvedEventResult(
             contract.StableId,
             success ? "success" : "failure",
-            effects);
+            effects,
+            Array.Empty<string>(),
+            state.factionId);
         return true;
     }
 
@@ -730,6 +978,11 @@ public sealed class V20CampaignRuntime :
             0,
             5);
     }
+
+    public void ApplyResolvedEffects(
+        IEnumerable<V20ContentEffect> effects,
+        string contextFactionId = "") =>
+        ApplyInternalEffects(effects, contextFactionId);
 
     public IReadOnlyList<string> ComposeNextEndlessCrisis(
         int absoluteDay,
@@ -798,6 +1051,30 @@ public sealed class V20CampaignRuntime :
                 || snapshot.EligibleCharacterCount >= requirements.characters.Count);
     }
 
+    private static IReadOnlyList<V20ContentEffect> WithConsumedRequirements(
+        IEnumerable<V20ContentEffect> effects,
+        V20ContentRequirementSet requirements)
+    {
+        List<V20ContentEffect> result = (effects ?? Array.Empty<V20ContentEffect>())
+            .Where(value => value != null)
+            .ToList();
+        foreach (IGrouping<string, V20ItemAmountRequirement> group in
+                 (requirements?.items ?? new List<V20ItemAmountRequirement>())
+                 .Where(value => value != null
+                     && value.consume
+                     && !string.IsNullOrWhiteSpace(value.itemDefinitionId))
+                 .GroupBy(value => value.itemDefinitionId.Trim(), StringComparer.Ordinal))
+        {
+            result.Add(new V20ContentEffect
+            {
+                kind = V20ContentEffectKind.ItemConsume,
+                targetId = group.Key,
+                amount = group.Sum(value => Math.Max(0, value.amount))
+            });
+        }
+        return result.AsReadOnly();
+    }
+
     private void EvaluateSeasonal(
         V20DailyEventContext context,
         ICollection<V20ResolvedEventResult> resolved)
@@ -826,7 +1103,9 @@ public sealed class V20CampaignRuntime :
             resolved.Add(new V20ResolvedEventResult(
                 definition.StableId,
                 "completed",
-                definition.endEffects.AsReadOnly()));
+                definition.endEffects.AsReadOnly(),
+                context.ParticipantCharacterIds.AsReadOnly(),
+                active.contextFactionId));
         }
 
         foreach (V20ActiveEventSaveData active in state.activeEvents.ToArray())
@@ -841,7 +1120,9 @@ public sealed class V20CampaignRuntime :
                 resolved.Add(new V20ResolvedEventResult(
                     definition.StableId,
                     "daily",
-                    definition.dailyEffects.AsReadOnly()));
+                    definition.dailyEffects.AsReadOnly(),
+                    context.ParticipantCharacterIds.AsReadOnly(),
+                    active.contextFactionId));
             }
         }
 
@@ -871,7 +1152,9 @@ public sealed class V20CampaignRuntime :
         resolved.Add(new V20ResolvedEventResult(
             selected.StableId,
             "started",
-            selected.startEffects.AsReadOnly()));
+            selected.startEffects.AsReadOnly(),
+            context.ParticipantCharacterIds.AsReadOnly(),
+            created.contextFactionId));
     }
 
     private void EvaluateSociety(
@@ -904,7 +1187,9 @@ public sealed class V20CampaignRuntime :
             resolved.Add(new V20ResolvedEventResult(
                 definition.StableId,
                 "expired",
-                effects));
+                effects,
+                active.participantCharacterIds.AsReadOnly(),
+                active.contextFactionId));
         }
 
         foreach (FactionCampaignStateSaveData faction in WritableFactions.Data.factions)
@@ -921,7 +1206,9 @@ public sealed class V20CampaignRuntime :
             resolved.Add(new V20ResolvedEventResult(
                 contract.StableId,
                 "expired",
-                contract.failureEffects.AsReadOnly()));
+                contract.failureEffects.AsReadOnly(),
+                Array.Empty<string>(),
+                faction.factionId));
         }
 
         string[] participants = context.ParticipantCharacterIds
@@ -936,18 +1223,23 @@ public sealed class V20CampaignRuntime :
         LifeEventDefinitionSO[] automatic = catalog.LifeEvents
             .Where(value => value.automatic
                 && CanStartSocietyDefinition(value, context, state))
-            .OrderBy(value => EventRoll(context, value.StableId))
+            .OrderBy(value => WeightedDefinitionRoll(context, value))
             .ToArray();
         int automaticCount = 0;
         foreach (LifeEventDefinitionSO definition in automatic)
         {
-            string participant = participants.FirstOrDefault(value =>
-                !occupied.Contains(value)
-                && CanAssignLifeEvent(
+            string participant = participants
+                .Where(value => !occupied.Contains(value)
+                    && CanAssignLifeEvent(
+                        definition,
+                        value,
+                        context.Generation,
+                        state))
+                .OrderBy(value => WeightedParticipantRoll(
+                    context,
                     definition,
-                    value,
-                    context.Generation,
-                    state));
+                    value))
+                .FirstOrDefault();
             if (participant == null) continue;
             occupied.Add(participant);
             V20ActiveEventSaveData completed = CreateEvent(
@@ -969,7 +1261,9 @@ public sealed class V20CampaignRuntime :
             resolved.Add(new V20ResolvedEventResult(
                 definition.StableId,
                 "automatic",
-                definition.automaticEffects.AsReadOnly()));
+                definition.automaticEffects.AsReadOnly(),
+                completed.participantCharacterIds.AsReadOnly(),
+                completed.contextFactionId));
             automaticCount++;
             if (automaticCount >= 6) break;
         }
@@ -985,21 +1279,26 @@ public sealed class V20CampaignRuntime :
             .Concat(catalog.GuestRequests)
             .Concat(catalog.ServiceIncidents)
             .Where(value => CanStartSocietyDefinition(value, context, state))
-            .OrderBy(value => EventRoll(context, value.StableId));
+            .OrderBy(value => WeightedDefinitionRoll(context, value));
         foreach (V20AuthoredContentSO definition in majorCandidates)
         {
             bool emergency = IsEmergency(definition);
             if ((emergency && currentEmergency > 0)
                 || (!emergency && capacity <= 0))
                 continue;
-            string participant = participants.FirstOrDefault(value =>
-                !occupied.Contains(value)
-                && (definition is not LifeEventDefinitionSO life
-                    || CanAssignLifeEvent(
-                        life,
-                        value,
-                        context.Generation,
-                        state)));
+            string participant = participants
+                .Where(value => !occupied.Contains(value)
+                    && (definition is not LifeEventDefinitionSO life
+                        || CanAssignLifeEvent(
+                            life,
+                            value,
+                            context.Generation,
+                            state)))
+                .OrderBy(value => WeightedParticipantRoll(
+                    context,
+                    definition,
+                    value))
+                .FirstOrDefault();
             if (participant == null && definition is LifeEventDefinitionSO)
                 continue;
             string[] selectedParticipants = participant == null
@@ -1016,6 +1315,65 @@ public sealed class V20CampaignRuntime :
             if (capacity <= 0 && currentEmergency > 0) break;
         }
     }
+
+    private static double WeightedDefinitionRoll(
+        V20DailyEventContext context,
+        V20AuthoredContentSO definition)
+    {
+        float weight = context.ParticipantCharacterIds
+            .Select(characterId => ContentWeight(context, characterId, definition))
+            .DefaultIfEmpty(1f)
+            .Max();
+        return EventRoll(context, definition.StableId) / Math.Max(0.1f, weight);
+    }
+
+    private static double WeightedParticipantRoll(
+        V20DailyEventContext context,
+        V20AuthoredContentSO definition,
+        string characterId) =>
+        PersistentEntityId.GetStableHash32(
+            $"{context.RunSeed}:{context.AbsoluteDay}:{definition.StableId}:{characterId}")
+        / Math.Max(0.1f, ContentWeight(context, characterId, definition));
+
+    private static float ContentWeight(
+        V20DailyEventContext context,
+        string characterId,
+        V20AuthoredContentSO definition)
+    {
+        if (!context.ParticipantContentWeights.TryGetValue(
+                characterId,
+                out Dictionary<string, float> weights))
+            return 1f;
+        float result = 1f;
+        foreach (string key in ContentWeightKeys(definition))
+            if (weights.TryGetValue(key, out float value)) result *= value;
+        return Math.Clamp(result, 0.1f, 10f);
+    }
+
+    private static IEnumerable<string> ContentWeightKeys(
+        V20AuthoredContentSO definition)
+    {
+        yield return definition.StableId;
+        switch (definition)
+        {
+            case LifeEventDefinitionSO life:
+                yield return "life-event";
+                yield return KebabCase(life.category.ToString());
+                break;
+            case GuestRequestDefinitionSO:
+                yield return "guest-request";
+                break;
+            case ServiceIncidentDefinitionSO:
+                yield return "service-incident";
+                break;
+        }
+    }
+
+    private static string KebabCase(string value) => string.Concat(
+        (value ?? string.Empty).Select((character, index) =>
+            char.IsUpper(character) && index > 0
+                ? "-" + char.ToLowerInvariant(character)
+                : char.ToLowerInvariant(character).ToString()));
 
     private bool CanStartSocietyDefinition(
         V20AuthoredContentSO definition,
@@ -1116,9 +1474,82 @@ public sealed class V20CampaignRuntime :
                             StringComparer.Ordinal))
                         WritableMilestones.Data.activePressureIds.Add(effect.targetId);
                     break;
+                case V20ContentEffectKind.WorkDelayDays:
+                    ApplyWorkDelayAt(
+                        effect.targetId,
+                        amount,
+                        evaluationAbsoluteDay >= 0
+                            ? evaluationAbsoluteDay
+                            : Math.Max(
+                                0,
+                                Society.Data.lastEvaluationAbsoluteDay));
+                    break;
             }
         }
     }
+
+    private void ApplyWorkDelayAt(
+        string authoredScopeId,
+        int days,
+        int currentDay)
+    {
+        if (days == 0) return;
+        SocietyEventWorldSaveData state = WritableSociety.Data;
+        state.workDelays.RemoveAll(value => value == null
+            || value.untilAbsoluteDayExclusive <= currentDay);
+        string scope = NormalizeWorkDelayScope(authoredScopeId);
+        V20WorkDelaySaveData existing = state.workDelays.FirstOrDefault(value =>
+            string.Equals(value.scopeId, scope, StringComparison.Ordinal));
+        if (days > 0)
+        {
+            existing ??= new V20WorkDelaySaveData { scopeId = scope };
+            if (!state.workDelays.Contains(existing)) state.workDelays.Add(existing);
+            existing.untilAbsoluteDayExclusive = Math.Max(
+                currentDay,
+                existing.untilAbsoluteDayExclusive) + days;
+            return;
+        }
+
+        if (existing != null)
+            existing.untilAbsoluteDayExclusive = Math.Max(
+                currentDay,
+                existing.untilAbsoluteDayExclusive + days);
+        else if (scope == "global")
+        {
+            foreach (V20WorkDelaySaveData delay in state.workDelays)
+                delay.untilAbsoluteDayExclusive = Math.Max(
+                    currentDay,
+                    delay.untilAbsoluteDayExclusive + days);
+        }
+        state.workDelays.RemoveAll(value =>
+            value.untilAbsoluteDayExclusive <= currentDay);
+    }
+
+    private static string NormalizeWorkDelayScope(string value) =>
+        string.IsNullOrWhiteSpace(value) ? "global" : value.Trim();
+
+    private static bool WorkDelayAffects(string scopeId, string workTypeId)
+    {
+        string scope = NormalizeWorkDelayScope(scopeId);
+        if (scope == "global") return true;
+        if (scope == "flood")
+            return ContainsAny(workTypeId, "farm", "crop", "agric", "haul", "logistic", "carry");
+        if (scope is "road" or "whiteout")
+            return ContainsAny(workTypeId, "expedition", "haul", "logistic", "carry", "trade");
+        if (workTypeId.IndexOf(scope, StringComparison.OrdinalIgnoreCase) >= 0)
+            return true;
+
+        // Authored service, life-event and faction-work delays describe the
+        // operational cost of resolving the choice, not a WorkTypeId. They
+        // must therefore slow the whole settlement unless the author used one
+        // of the explicit environmental scopes handled above.
+        return scope.StartsWith("service-incident:", StringComparison.Ordinal)
+            || scope.StartsWith("life-event:", StringComparison.Ordinal)
+            || scope.StartsWith("faction-work:", StringComparison.Ordinal);
+    }
+
+    private static bool ContainsAny(string value, params string[] fragments) =>
+        fragments.Any(fragment => value.IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0);
 
     private string ResolveFactionTarget(
         string authoredTargetId,
@@ -1286,8 +1717,8 @@ public sealed class V20CampaignRuntime :
         V20ActiveEventSaveData resolvedEvent,
         int absoluteDay)
     {
-        int cooldown = definition is LifeEventDefinitionSO life
-            ? life.cooldownDays
+        int cooldown = definition is LifeEventDefinitionSO lifeDefinition
+            ? lifeDefinition.cooldownDays
             : 30;
         state.cooldowns.RemoveAll(value => string.Equals(
             value.definitionId,
@@ -1308,20 +1739,20 @@ public sealed class V20CampaignRuntime :
             definitionId = categoryKey,
             availableAbsoluteDay = absoluteDay + 3
         });
-        if (definition is not LifeEventDefinitionSO life) return;
-        switch (life.frequencyRule)
+        if (definition is not LifeEventDefinitionSO lifeEvent) return;
+        switch (lifeEvent.frequencyRule)
         {
             case LifeEventFrequencyRule.OncePerRun:
                 if (!state.completedOnceEventIds.Contains(
-                        life.StableId,
+                        lifeEvent.StableId,
                         StringComparer.Ordinal))
-                    state.completedOnceEventIds.Add(life.StableId);
+                    state.completedOnceEventIds.Add(lifeEvent.StableId);
                 break;
             case LifeEventFrequencyRule.OncePerGeneration:
                 AddUnique(
                     state.recurrenceKeys,
                     GenerationRecurrenceKey(
-                        life.StableId,
+                        lifeEvent.StableId,
                         resolvedEvent?.generation ?? 0));
                 break;
             case LifeEventFrequencyRule.OncePerCharacter:
@@ -1330,7 +1761,7 @@ public sealed class V20CampaignRuntime :
                          ?? new List<string>())
                     AddUnique(
                         state.recurrenceKeys,
-                        CharacterRecurrenceKey(life.StableId, participant));
+                        CharacterRecurrenceKey(lifeEvent.StableId, participant));
                 break;
         }
     }
@@ -1362,7 +1793,7 @@ public sealed class V20CampaignRuntime :
         string characterId) =>
         $"{definitionId}:character:{Normalize(characterId)}";
 
-    private static string FacilityRequirementKey(V20FacilityRequirement value) =>
+    public static string FacilityRequirementKey(V20FacilityRequirement value) =>
         !string.IsNullOrWhiteSpace(value.buildingDefinitionId)
             ? value.buildingDefinitionId
             : $"capability:{value.capabilityId}";
@@ -1378,8 +1809,14 @@ public sealed class V20CampaignRuntime :
     }
     private SocietyEventWorldSaveData ValidateSociety(SocietyEventWorldSaveData data)
     {
-        if (data == null || data.version != SocietyEventWorldSaveData.CurrentVersion || data.activeEvents == null || data.recentResolvedEvents == null || data.completedOnceEventIds == null || data.recurrenceKeys == null || data.cooldowns == null || data.lastEvaluationAbsoluteDay < -1)
+        if (data == null || data.version != SocietyEventWorldSaveData.CurrentVersion || data.activeEvents == null || data.recentResolvedEvents == null || data.completedOnceEventIds == null || data.recurrenceKeys == null || data.cooldowns == null || data.workDelays == null || data.lastEvaluationAbsoluteDay < -1)
             throw new InvalidOperationException("Society-event save payload is invalid.");
+        if (data.workDelays.Any(value => value == null
+                || string.IsNullOrWhiteSpace(value.scopeId)
+                || value.untilAbsoluteDayExclusive < 0)
+            || data.workDelays.GroupBy(value => value.scopeId, StringComparer.Ordinal)
+                .Any(group => group.Count() > 1))
+            throw new InvalidOperationException("Society-event work-delay state is invalid.");
         RequireValidEvents(data.activeEvents.Concat(data.recentResolvedEvents), seasonal: false);
         int activeEmergency = data.activeEvents.Count(value =>
             IsEmergency(((ISocietyEventCatalog)catalog).Require(
@@ -1479,7 +1916,7 @@ public sealed class V20CampaignRuntime :
     }
     private RunMilestoneWorldSaveData ValidateMilestones(RunMilestoneWorldSaveData data)
     {
-        if (data == null || data.version != RunMilestoneWorldSaveData.CurrentVersion || data.completedMilestoneIds == null || data.grantedRewardIds == null || data.unlockedLandmarkIds == null || data.activePressureIds == null || data.activeEndlessCrisisIds == null || data.worldFlags == null || data.endlessCycle < 0 || data.selfSufficiencyStreakDays < 0 || data.lastMilestoneEvaluationAbsoluteDay < -1)
+        if (data == null || data.version != RunMilestoneWorldSaveData.CurrentVersion || data.completedMilestoneIds == null || data.grantedRewardIds == null || data.unlockedLandmarkIds == null || data.activePressureIds == null || data.activeEndlessCrisisIds == null || data.worldFlags == null || data.endlessCycle < 0 || data.selfSufficiencyStreakDays < 0 || data.lastMilestoneEvaluationAbsoluteDay < -1 || data.lastAccordSignalSupportAbsoluteDay < -1)
             throw new InvalidOperationException("Milestone save payload is invalid.");
         foreach (string id in data.completedMilestoneIds) catalog.Require(id);
         if (data.completedMilestoneIds.Distinct(StringComparer.Ordinal).Count() != data.completedMilestoneIds.Count)
@@ -1573,4 +2010,19 @@ public sealed class V20CampaignRuntime :
     private static T JsonClone<T>(T value) where T : class =>
         UnityEngine.JsonUtility.FromJson<T>(UnityEngine.JsonUtility.ToJson(value ?? throw new ArgumentNullException(nameof(value))));
     private static string Normalize(string value) => value?.Trim() ?? string.Empty;
+    private static string RewardId(string milestoneId)
+    {
+        string normalized = Normalize(milestoneId);
+        return normalized.StartsWith("reward:", StringComparison.Ordinal)
+            ? normalized
+            : $"reward:{normalized}";
+    }
+
+    private static string PressureId(string milestoneId)
+    {
+        string normalized = Normalize(milestoneId);
+        return normalized.StartsWith("pressure:", StringComparison.Ordinal)
+            ? normalized
+            : $"pressure:{normalized}";
+    }
 }

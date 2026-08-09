@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4dd42a37aa5e0b54386a00a864c4a4ca, type: 3}
+  m_Name: S06_PoweredShield
+  m_EditorClassIdentifier: DungeonStory.Economy::CombatShieldSO
+  equipmentId: shield:powered
+  displayName: "\uB3D9\uB825 \uBC29\uD328"
+  description: "\uB3D9\uB825 \uBC29\uD328 \uC804\uD22C \uC7A5\uBE44"
+  itemId: equipment-item:shield:powered
+  weight: 13
+  occupiedHands: 1
+  maxDurability: 160
+  requiredCraftWork: 352
+  defaultMaterialId: material:iron
+  primaryMaterialAmount: 10
+  allowedMaterialFamilies: 03000000
+  craftMaterials: []
+  requiredComponentInputs:
+  - itemId: component:growth-frame
+    amount: 1
+  - itemId: material:plate-blank
+    amount: 2
+  - itemId: component:machine-parts
+    amount: 2
+  requiredResearchId: research:equipment:powered-armor
+  era: 4
+  tier: 4
+  slotProfile: 4
+  lineageKind: 2
+  growthEquipment: 1
+  growthBaseStatMultiplier: 0.88
+  frontalBlockChance: 0.62
+  slashDefense: 39
+  pierceDefense: 38
+  bluntDefense: 33

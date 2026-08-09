@@ -14,7 +14,8 @@ public static class CombatEquipmentAssetBuilder
             "ammo:arrow-bone",
             "ammo:arrow-iron",
             "ammo:arrow-steel",
-            "ammo:arrow-rune"
+            "ammo:arrow-rune",
+            "ammo:incendiary-arrow"
         };
     private static readonly IReadOnlyList<string> CrossbowAmmunitionItemIds =
         new[]
@@ -23,10 +24,22 @@ public static class CombatEquipmentAssetBuilder
             "ammo:bolt-bone",
             "ammo:bolt-iron",
             "ammo:bolt-steel",
-            "ammo:bolt-rune"
+            "ammo:bolt-rune",
+            "ammo:incendiary-bolt",
+            "ammo:blacksteel-bolt",
+            "ammo:mana-disruptor-bolt",
+            "ammo:tranquilizer-dart"
         };
     private static readonly IReadOnlyList<string> GunpowderAmmunitionItemIds =
-        new[] { "ammo:paper-cartridge" };
+        new[]
+        {
+            "ammo:paper-cartridge",
+            "ammo:smoke-cartridge",
+            "ammo:armor-piercing-cartridge",
+            "ammo:scatter-cartridge",
+            "ammo:rune-cartridge",
+            "ammo:signal-flare"
+        };
 
     private const string Root = "Assets/Resources/SO/Combat/Equipment";
 
@@ -154,6 +167,43 @@ public static class CombatEquipmentAssetBuilder
         BuildWeapon("W21_ManaLance", "weapon:mana-lance", "마나 랜스", 4.9f, 2, 2,
             Melee(1.2f, 27f, 26f, CombatDamageType.Pierce, 0.05f), Profiles((CombatRangeBand.Contact, 1f, 1.25f)));
 
+        BuildWeapon("W22_RepeatingCrossbow", "weapon:repeating-crossbow", "반복 석궁", 4.4f, 2, 14,
+            Projectile(0.72f, 11f, 8f, 18f, 0.04f),
+            Profiles((CombatRangeBand.Near, 1.08f, 0.92f), (CombatRangeBand.Medium, 0.82f, 0.82f)),
+            CrossbowAmmunitionItemIds, 5, 0.85f, rapid: true, suppressive: true);
+        BuildWeapon("W23_MatchlockLongGun", "weapon:matchlock-long-gun", "화승 장총", 6.4f, 2, 30,
+            Projectile(1.75f, 36f, 31f, 22f, 0.016f),
+            Profiles((CombatRangeBand.Medium, 0.92f, 1.08f), (CombatRangeBand.Long, 1.08f, 1.12f)),
+            GunpowderAmmunitionItemIds, 1, 10f, suppressive: true);
+        BuildWeapon("W24_SniperArquebus", "weapon:sniper-arquebus", "저격 아쿼버스", 6.8f, 2, 34,
+            Projectile(1.85f, 40f, 37f, 24f, 0.012f),
+            Profiles((CombatRangeBand.Medium, 0.72f, 1f), (CombatRangeBand.Long, 1.18f, 1.2f)),
+            GunpowderAmmunitionItemIds, 1, 11.5f);
+        BuildWeapon("W25_HeavyMatchlock", "weapon:heavy-matchlock", "중화승총", 8.4f, 2, 28,
+            Projectile(2.15f, 48f, 46f, 18f, 0.01f),
+            Profiles((CombatRangeBand.Medium, 1f, 1.28f), (CombatRangeBand.Long, 0.82f, 1.12f)),
+            GunpowderAmmunitionItemIds, 1, 14f, suppressive: true);
+        BuildWeapon("W26_Shotgun", "weapon:shotgun", "산탄총", 6.1f, 2, 12,
+            Projectile(1.55f, 30f, 19f, 12f, 0.035f),
+            Profiles((CombatRangeBand.Contact, 0.9f, 1.35f), (CombatRangeBand.Near, 1.2f, 1.28f), (CombatRangeBand.Medium, 0.34f, 0.72f)),
+            new[] { "ammo:scatter-cartridge", "ammo:smoke-cartridge" }, 1, 8f, suppressive: true);
+        BuildWeapon("W27_PoweredStrikingGauntlet", "weapon:powered-striking-gauntlet", "동력 타격장갑", 7.2f, 1, 1,
+            Melee(1.6f, 32f, 28f, CombatDamageType.Blunt, 0.025f),
+            Profiles((CombatRangeBand.Contact, 1.05f, 1.42f)));
+        BuildWeapon("W28_BlacksteelPoleaxe", "weapon:blacksteel-poleaxe", "흑강 폴액스", 6.8f, 2, 2,
+            Melee(1.45f, 34f, 35f, CombatDamageType.Pierce, 0.025f),
+            Profiles((CombatRangeBand.Contact, 0.94f, 1.38f)));
+        BuildWeapon("W29_Estoc", "weapon:estoc", "에스터크", 2.2f, 1, 1,
+            Melee(0.86f, 13f, 19f, CombatDamageType.Pierce, 0.075f),
+            Profiles((CombatRangeBand.Contact, 1.12f, 1.05f)));
+        BuildWeapon("W30_Pollaxe", "weapon:pollaxe", "폴액스", 4.8f, 2, 2,
+            Melee(1.3f, 22f, 21f, CombatDamageType.Blunt, 0.04f),
+            Profiles((CombatRangeBand.Contact, 0.92f, 1.32f)));
+        BuildWeapon("W31_RuneBow", "weapon:rune-bow", "룬 활", 2.4f, 2, 24,
+            Projectile(0.92f, 20f, 18f, 22f, 0.035f),
+            Profiles((CombatRangeBand.Near, 0.92f, 1f), (CombatRangeBand.Medium, 1.1f, 1.08f), (CombatRangeBand.Long, 0.9f, 1f)),
+            BowAmmunitionItemIds.Concat(new[] { "ammo:rune-cartridge" }).ToArray(), 1, 1.05f, rapid: true);
+
         BuildArmor("A09_Brigandine", "armor:brigandine", "브리간딘", 6.2f, CombatArmorLayer.Outer, "torso-brigandine", Part(CombatBodyPart.Torso, 18f, 15f, 11f));
         BuildArmor("A10_ScaleCoat", "armor:scale-coat", "비늘 외투", 8.2f, CombatArmorLayer.Mail, "torso-scale", Part(CombatBodyPart.Torso, 23f, 19f, 13f));
         BuildArmor("A11_ClosedPlateHelm", "armor:closed-plate-helm", "폐쇄형 판금 투구", 3.8f, CombatArmorLayer.Plate, "headwear-closed-plate", Part(CombatBodyPart.Head, 28f, 25f, 19f));
@@ -163,9 +213,17 @@ public static class CombatEquipmentAssetBuilder
         BuildArmor("A15_PoweredHarness", "armor:powered-harness", "동력 보조 갑주", 18f, CombatArmorLayer.Plate, "torso-powered", Part(CombatBodyPart.Torso, 42f, 40f, 34f));
         BuildArmor("A16_RuneWardMail", "armor:rune-ward-mail", "룬 수호 사슬갑옷", 9f, CombatArmorLayer.Mail, "torso-rune-mail", Part(CombatBodyPart.Torso, 30f, 31f, 20f));
         BuildArmor("A17_BlacksteelCarapace", "armor:blacksteel-carapace", "흑강 갑각", 15f, CombatArmorLayer.Plate, "torso-blacksteel", Part(CombatBodyPart.Torso, 48f, 46f, 38f));
+        BuildArmor("A18_JackOfPlates", "armor:jack-of-plates", "잭 오브 플레이트", 5.4f, CombatArmorLayer.Outer, "torso-jack-of-plates", Part(CombatBodyPart.Torso, 17f, 14f, 10f));
+        BuildArmor("A19_PowderCuirass", "armor:powder-cuirass", "화약수 흉갑", 8.2f, CombatArmorLayer.Outer, "torso-powder-cuirass", Part(CombatBodyPart.Torso, 14f, 18f, 31f));
+        BuildArmor("A20_PaddedHood", "armor:padded-hood", "누비 두건", 0.8f, CombatArmorLayer.Clothing, "headwear-padded", Part(CombatBodyPart.Head, 6f, 4f, 9f));
+        BuildArmor("A21_HardenedLeatherCoat", "armor:hardened-leather-coat", "경화 가죽 외투", 4.8f, CombatArmorLayer.Outer, "torso-hardened-leather", Part(CombatBodyPart.Torso, 14f, 11f, 8f));
         BuildShield("S03_Buckler", "shield:buckler", "버클러", 1.8f, 0.32f, 12f, 10f, 9f);
         BuildShield("S04_TowerShield", "shield:tower", "대형 방패", 10f, 0.52f, 28f, 25f, 22f);
         BuildShield("S05_RuneShield", "shield:rune", "룬 방패", 6.5f, 0.48f, 30f, 31f, 25f);
+        BuildShield("S06_PoweredShield", "shield:powered", "동력 방패", 13f, 0.62f, 39f, 38f, 33f);
+        BuildShield("S07_BlacksteelShield", "shield:blacksteel", "흑강 방패", 11f, 0.56f, 42f, 40f, 25f);
+        BuildShield("S08_ManaBuckler", "shield:mana-buckler", "마나 버클러", 2.2f, 0.34f, 14f, 24f, 18f);
+        BuildShield("S09_Pavise", "shield:pavise", "파비스", 12f, 0.68f, 34f, 31f, 26f);
     }
 
     private static void BuildEquipmentModules()
@@ -301,11 +359,16 @@ public static class CombatEquipmentAssetBuilder
         serialized.FindProperty("supportsSuppressive").boolValue = suppressive;
         bool gunpowder = id is "weapon:handgonne"
             or "weapon:matchlock-pistol"
-            or "weapon:arquebus";
+            or "weapon:arquebus"
+            or "weapon:matchlock-long-gun"
+            or "weapon:sniper-arquebus"
+            or "weapon:heavy-matchlock"
+            or "weapon:shotgun";
         serialized.FindProperty("gunpowderWeapon").boolValue = gunpowder;
         serialized.FindProperty("maximumMisfireChance").floatValue = gunpowder ? 0.2f : 0f;
         serialized.FindProperty("smokeExposure").floatValue = gunpowder ? 10f : 0f;
         serialized.ApplyModifiedPropertiesWithoutUndo();
+        SetV23BaselineCraftWork(asset);
         EditorUtility.SetDirty(asset);
     }
 
@@ -335,6 +398,7 @@ public static class CombatEquipmentAssetBuilder
         }
 
         serialized.ApplyModifiedPropertiesWithoutUndo();
+        SetV23BaselineCraftWork(asset);
         EditorUtility.SetDirty(asset);
     }
 
@@ -356,7 +420,51 @@ public static class CombatEquipmentAssetBuilder
         serialized.FindProperty("pierceDefense").floatValue = pierce;
         serialized.FindProperty("bluntDefense").floatValue = blunt;
         serialized.ApplyModifiedPropertiesWithoutUndo();
+        SetV23BaselineCraftWork(asset);
         EditorUtility.SetDirty(asset);
+    }
+
+    private static void SetV23BaselineCraftWork(
+        CombatEquipmentDefinitionSO definition)
+    {
+        float form = definition.Era == EquipmentEra.RuneAbyssal
+            ? 150f
+            : definition switch
+            {
+                CombatWeaponSO weapon when weapon.GunpowderWeapon => 70f,
+                CombatWeaponSO weapon
+                    when weapon.Kind == CombatEquipmentKind.RangedWeapon =>
+                    definition.OccupiedHands >= 2 || definition.Weight >= 4f
+                        ? 55f
+                        : 40f,
+                CombatWeaponSO when definition.Weight <= 1.2f => 20f,
+                CombatWeaponSO
+                    when definition.OccupiedHands >= 2
+                        || definition.Weight >= 4f => 55f,
+                CombatWeaponSO => 30f,
+                CombatShieldSO => definition.Weight >= 6f ? 110f : 55f,
+                CombatArmorSO => definition.Weight < 4f
+                    ? 45f
+                    : definition.Weight < 8f ? 75f : 110f,
+                _ => 30f
+            };
+        int componentUnits = definition.RequiredComponentInputs.Sum(value =>
+            value.Amount);
+        int precisionStages = Mathf.Clamp(
+            definition.Tier
+            + (definition.Era >= EquipmentEra.MatureIndustrial ? 1 : 0)
+            + (definition.Era == EquipmentEra.RuneAbyssal ? 1 : 0),
+            0,
+            4);
+        float baseline = Mathf.Max(
+            4f,
+            Mathf.Round((form
+                + definition.PrimaryMaterialAmount * 8f
+                + componentUnits * 12f
+                + precisionStages * 16f) / 4f) * 4f);
+        SerializedObject serialized = new(definition);
+        serialized.FindProperty("requiredCraftWork").floatValue = baseline;
+        serialized.ApplyModifiedPropertiesWithoutUndo();
     }
 
     private static void SetBase(
@@ -388,9 +496,11 @@ public static class CombatEquipmentAssetBuilder
             "weapon:longsword" or "armor:gambeson" or "shield:iron" or
             "weapon:halberd" or "weapon:greatsword" or "weapon:windlass-crossbow" or
             "weapon:matchlock-pistol" or "weapon:siege-arbalest" or "weapon:rune-blade" or
+            "weapon:repeating-crossbow" or "weapon:sniper-arquebus" or
+            "weapon:heavy-matchlock" or "weapon:blacksteel-poleaxe" or "weapon:rune-bow" or
             "armor:scale-coat" or "armor:articulated-plate" or "armor:powered-harness" or
             "armor:rune-ward-mail" or "armor:blacksteel-carapace" or
-            "shield:buckler" or "shield:rune";
+            "shield:buckler" or "shield:rune" or "shield:powered";
         if (growth)
         {
             components.Add(("component:growth-frame", 1));
@@ -403,14 +513,24 @@ public static class CombatEquipmentAssetBuilder
             case "weapon:composite-bow":
                 components.Add(("material:bowstring", 1));
                 components.Add(("material:rope", 1));
+                if (equipmentId == "weapon:composite-bow")
+                {
+                    components.Add(("material:laminated-lumber", 1));
+                }
                 break;
             case "weapon:crossbow":
             case "weapon:windlass-crossbow":
+            case "weapon:repeating-crossbow":
                 components.Add(("material:bowstring", 1));
                 components.Add(("component:machine-parts", 1));
+                components.Add(("material:laminated-lumber", 1));
                 if (equipmentId == "weapon:windlass-crossbow")
                 {
                     components.Add(("component:lead-counterweight", 1));
+                }
+                if (equipmentId == "weapon:repeating-crossbow")
+                {
+                    components.Add(("material:spring-steel", 1));
                 }
                 break;
             case "weapon:siege-arbalest":
@@ -422,9 +542,22 @@ public static class CombatEquipmentAssetBuilder
             case "weapon:handgonne":
             case "weapon:matchlock-pistol":
             case "weapon:arquebus":
+            case "weapon:matchlock-long-gun":
+            case "weapon:sniper-arquebus":
+            case "weapon:heavy-matchlock":
+            case "weapon:shotgun":
                 components.Add(("component:machine-parts", 1));
                 components.Add(("component:precision-parts", 1));
                 components.Add(("component:engineering-drawing", 1));
+                if (equipmentId is "weapon:matchlock-long-gun" or "weapon:sniper-arquebus"
+                    or "weapon:heavy-matchlock" or "weapon:shotgun")
+                {
+                    components.Add(("material:barrel-steel", 1));
+                }
+                if (equipmentId == "weapon:sniper-arquebus")
+                {
+                    components.Add(("component:precision-optics", 1));
+                }
                 break;
             case "weapon:rune-blade":
                 components.Add(("component:rune-conductor", 1));
@@ -432,6 +565,24 @@ public static class CombatEquipmentAssetBuilder
                 break;
             case "weapon:mana-lance":
                 components.Add(("component:rune-conductor", 1));
+                break;
+            case "weapon:rune-bow":
+                components.Add(("material:laminated-lumber", 1));
+                components.Add(("material:mana-alloy", 1));
+                components.Add(("material:bowstring", 1));
+                break;
+            case "weapon:powered-striking-gauntlet":
+                components.Add(("material:plate-blank", 1));
+                components.Add(("component:machine-parts", 2));
+                break;
+            case "weapon:blacksteel-poleaxe":
+                components.Add(("material:blacksteel-ingot", 2));
+                components.Add(("material:spring-steel", 1));
+                break;
+            case "armor:mail-coif":
+            case "armor:mail-shirt":
+            case "armor:scale-coat":
+                components.Add(("material:chain-mesh", 1));
                 break;
             case "armor:gambeson":
                 components.Add(("textile:quilted-liner", 1));
@@ -441,15 +592,33 @@ public static class CombatEquipmentAssetBuilder
                 components.Add(("component:brigandine-padding", 1));
                 components.Add(("component:textile-hardener", 1));
                 break;
+            case "armor:jack-of-plates":
+                components.Add(("material:hardened-leather", 1));
+                components.Add(("material:plate-blank", 1));
+                components.Add(("textile:quilted-liner", 1));
+                break;
             case "armor:blast-coat":
                 components.Add(("textile:quilted-liner", 1));
                 components.Add(("component:blast-coat-shell", 1));
+                components.Add(("textile:insulating-cloth", 1));
                 break;
             case "armor:smoke-hood":
                 components.Add(("textile:sterile-cloth", 1));
+                components.Add(("textile:insulating-cloth", 1));
+                break;
+            case "armor:powder-cuirass":
+                components.Add(("material:plate-blank", 1));
+                components.Add(("textile:insulating-cloth", 1));
+                break;
+            case "armor:padded-hood":
+                components.Add(("textile:quilted-liner", 1));
+                break;
+            case "armor:hardened-leather-coat":
+                components.Add(("material:hardened-leather", 2));
                 break;
             case "armor:articulated-plate":
                 components.Add(("component:textile-hardener", 1));
+                components.Add(("material:plate-blank", 2));
                 break;
             case "armor:powered-harness":
                 components.Add(("component:machine-parts", 2));
@@ -458,6 +627,8 @@ public static class CombatEquipmentAssetBuilder
                 components.Add(("component:prototype-package", 1));
                 break;
             case "armor:rune-ward-mail":
+                components.Add(("material:chain-mesh", 1));
+                components.Add(("material:mana-alloy", 1));
                 components.Add(("component:rune-conductor", 1));
                 components.Add(("component:dreamweave-rune-lining", 1));
                 components.Add(("component:rune-leather-lining", 1));
@@ -470,6 +641,21 @@ public static class CombatEquipmentAssetBuilder
                 components.Add(("component:rune-tuning-shield", 1));
                 components.Add(("component:rune-leather-strap", 1));
                 components.Add(("component:rune-control-panel", 1));
+                break;
+            case "shield:powered":
+                components.Add(("material:plate-blank", 2));
+                components.Add(("component:machine-parts", 2));
+                break;
+            case "shield:blacksteel":
+                components.Add(("material:blacksteel-ingot", 2));
+                break;
+            case "shield:mana-buckler":
+                components.Add(("material:mana-alloy", 1));
+                components.Add(("component:rune-conductor", 1));
+                break;
+            case "shield:pavise":
+                components.Add(("material:laminated-lumber", 2));
+                components.Add(("material:plate-blank", 1));
                 break;
         }
 
@@ -494,34 +680,45 @@ public static class CombatEquipmentAssetBuilder
             "weapon:mace" or "weapon:warhammer" => "research:metallurgy:iron",
             "weapon:shortbow" or "weapon:longbow" or "weapon:composite-bow" => "research:equipment:bowyery",
             "weapon:crossbow" or "weapon:windlass-crossbow" => "research:equipment:mechanical-projectiles",
+            "weapon:repeating-crossbow" => "research:equipment:mechanical-projectiles",
             "weapon:greatsword" => "research:metallurgy:steel",
+            "weapon:estoc" or "weapon:pollaxe" => "research:metallurgy:steel",
             "weapon:handgonne" or "weapon:matchlock-pistol" => "research:equipment:ignition-mechanisms",
             "weapon:arquebus" => "research:equipment:ballistics",
+            "weapon:matchlock-long-gun" or "weapon:sniper-arquebus" => "research:equipment:ballistics",
             "weapon:siege-arbalest" => "research:equipment:pressure-barrels",
+            "weapon:heavy-matchlock" or "weapon:shotgun" => "research:equipment:pressure-barrels",
             "weapon:rune-blade" or "weapon:mana-lance" or
-            "armor:rune-ward-mail" or "shield:rune" => "research:equipment:rune-module-tuning",
-            "armor:gambeson" => "research:textile:tailoring",
-            "armor:leather" => "research:textile:tanning",
+            "weapon:rune-bow" or "armor:rune-ward-mail" or "shield:rune" or
+            "shield:mana-buckler" => "research:equipment:rune-module-tuning",
+            "armor:gambeson" or "armor:padded-hood" => "research:textile:tailoring",
+            "armor:leather" or "armor:hardened-leather-coat" => "research:textile:tanning",
             "armor:mail-coif" or "armor:mail-shirt" or "armor:scale-coat" => "research:equipment:mail-weaving",
             "armor:iron-helmet" or "armor:breastplate" or
             "armor:closed-plate-helm" or "armor:articulated-plate" => "research:equipment:articulated-plate",
-            "armor:brigandine" => "research:equipment:armor-tailoring",
-            "armor:blast-coat" or "armor:smoke-hood" => "research:equipment:blast-protection",
-            "armor:powered-harness" => "research:equipment:powered-armor",
-            "armor:blacksteel-carapace" => "research:industry:dark-foundry",
+            "armor:brigandine" or "armor:jack-of-plates" => "research:equipment:armor-tailoring",
+            "armor:blast-coat" or "armor:smoke-hood" or "armor:powder-cuirass" => "research:equipment:pressure-barrels",
+            "armor:powered-harness" or "weapon:powered-striking-gauntlet" or
+            "shield:powered" => "research:equipment:powered-armor",
+            "armor:blacksteel-carapace" or "weapon:blacksteel-poleaxe" or
+            "shield:blacksteel" => "research:industry:dark-foundry",
             "shield:iron" => "research:metallurgy:iron",
             "shield:tower" => "research:defense:fortification",
+            "shield:pavise" => "research:defense:siege-fortification",
             _ => "research:equipment:weapon-patterns"
         };
         bool growth = equipmentId is
             "weapon:longsword" or "armor:gambeson" or "shield:iron" or
             "weapon:halberd" or "weapon:greatsword" or "weapon:windlass-crossbow" or
             "weapon:matchlock-pistol" or "weapon:siege-arbalest" or "weapon:rune-blade" or
+            "weapon:repeating-crossbow" or "weapon:sniper-arquebus" or
+            "weapon:heavy-matchlock" or "weapon:blacksteel-poleaxe" or "weapon:rune-bow" or
             "armor:scale-coat" or "armor:articulated-plate" or "armor:powered-harness" or
             "armor:rune-ward-mail" or "armor:blacksteel-carapace" or
-            "shield:buckler" or "shield:rune";
+            "shield:buckler" or "shield:rune" or "shield:powered";
         bool fourSlots = equipmentId is "weapon:siege-arbalest" or "weapon:rune-blade"
-            or "armor:powered-harness" or "armor:blacksteel-carapace" or "shield:rune";
+            or "armor:powered-harness" or "armor:blacksteel-carapace" or "shield:rune"
+            or "shield:powered" or "weapon:blacksteel-poleaxe";
         EquipmentEra era = string.IsNullOrWhiteSpace(requiredResearchId)
             ? EquipmentEra.Starting
             : requiredResearchId.Contains("ignition", StringComparison.Ordinal)

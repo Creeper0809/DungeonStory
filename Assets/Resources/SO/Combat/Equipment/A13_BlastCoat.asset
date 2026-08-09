@@ -19,7 +19,7 @@ MonoBehaviour:
   weight: 7
   occupiedHands: 0
   maxDurability: 120
-  requiredCraftWork: 6
+  requiredCraftWork: 224
   defaultMaterialId: material:iron
   primaryMaterialAmount: 6
   allowedMaterialFamilies: 03000000
@@ -29,7 +29,9 @@ MonoBehaviour:
     amount: 1
   - itemId: component:blast-coat-shell
     amount: 1
-  requiredResearchId: research:equipment:blast-protection
+  - itemId: textile:insulating-cloth
+    amount: 1
+  requiredResearchId: research:equipment:pressure-barrels
   era: 3
   tier: 3
   slotProfile: 1

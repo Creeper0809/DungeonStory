@@ -20,7 +20,8 @@ public enum SurgeryFacilityTag
     ImmuneControl = 1 << 9,
     IsolationRecovery = 1 << 10,
     ArcaneSurgery = 1 << 11,
-    RuneSuture = 1 << 12
+    RuneSuture = 1 << 12,
+    AgeTreatment = 1 << 13
 }
 
 public enum SurgicalSubjectKind
@@ -300,6 +301,22 @@ public sealed class ReduceSurgicalBurdenEffect : SurgicalProcedureEffect
     [Min(0f)] public float infection;
 }
 
+public enum AgeTreatmentEffectKind
+{
+    OrganRegeneration = 0,
+    BloodRejuvenation = 1,
+    RuneHibernation = 2,
+    WholeBodyRegeneration = 3,
+    TemporalStasis = 4
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class ApplyAgeTreatmentEffect : SurgicalProcedureEffect
+{
+    public AgeTreatmentEffectKind treatment;
+}
+
 [Serializable]
 public sealed class SurgicalSubjectRef
 {
@@ -437,6 +454,7 @@ public sealed class SurgicalPartInstance
     public string worldStackId = string.Empty;
     public string storedFacilityId = string.Empty;
     public string reservedOrderId = string.Empty;
+    public bool preservationCanisterApplied;
     public bool installed;
     public string installedSubjectId = string.Empty;
 }
@@ -444,7 +462,7 @@ public sealed class SurgicalPartInstance
 [Serializable]
 public sealed class DungeonSurgerySaveData
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 7;
 
     public int version = CurrentVersion;
     public List<SurgeryOrder> orders = new();

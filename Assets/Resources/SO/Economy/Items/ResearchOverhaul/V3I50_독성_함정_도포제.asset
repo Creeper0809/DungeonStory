@@ -32,16 +32,16 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 110
   features:
-  - rid: 7737211794726585030
-  - rid: 7737211794726585031
+  - rid: 7737211838078124425
+  - rid: 7737211838078124426
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726585030
+    - rid: 7737211838078124425
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:arcane:alchemy
-    - rid: 7737211794726585031
+    - rid: 7737211838078124426
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8

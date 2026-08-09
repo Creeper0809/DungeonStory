@@ -32,29 +32,29 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 22
   features:
-  - rid: 7737211674039681041
-  - rid: 7737211674039681042
-  - rid: 7737211674039681043
-  - rid: 7737211674039681044
+  - rid: 7737211838068949899
+  - rid: 7737211838068949900
+  - rid: 7737211838068949901
+  - rid: 7737211838068949902
   references:
     version: 2
     RefIds:
-    - rid: 7737211674039681041
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949899
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:distillation
-    - rid: 7737211674039681042
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949900
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 4
         ingredientTags: 2
         sharedIntermediate: 0
-    - rid: 7737211674039681043
-      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949901
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6
-    - rid: 7737211674039681044
-      type: {class: SubstanceItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949902
+      type: {class: SubstanceItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         substanceId: substance:hallucinogenic
         useClass: 3

@@ -1,0 +1,9 @@
+﻿{
+    "passed": true,
+    "cpuOnly": true,
+    "modelVersion": "Qwen3-1.7B-base-Q4_K_M@ggml-org/b10331",
+    "elapsedMilliseconds": 14944,
+    "generatedContent": "{\n  \"line\": \"F01의 흉터는 오래된 대장장이의 기록에서 남아 있다.\",\n  \"usedMotifIds\": [\"M01\"],\n  \"usedCharacterFactIds\": [\"F01\"]\n}",
+    "hostProcessesBefore": 0,
+    "hostProcessesAfter": 0
+}

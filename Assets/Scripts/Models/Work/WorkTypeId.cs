@@ -71,4 +71,6 @@ public static class BuiltInWorkTypeIds
         new WorkTypeId("work:threat-mitigation");
     public static readonly WorkTypeId Plumbing =
         new WorkTypeId("work:plumbing");
+    public static readonly WorkTypeId Dismantle =
+        new WorkTypeId("work:dismantle");
 }

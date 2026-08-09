@@ -6,10 +6,12 @@
   <Project Path="DungeonStory.Captivity.csproj" />
   <Project Path="DungeonStory.Survival.csproj" />
   <Project Path="DungeonStory.Presentation.csproj" />
+  <Project Path="VContainer.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="DungeonStory.Buildings.csproj" />
   <Project Path="DungeonStory.Content.csproj" />
   <Project Path="DungeonStory.Evolution.csproj" />
+  <Project Path="VContainer.Editor.csproj" />
   <Project Path="DungeonStory.Research.csproj" />
   <Project Path="DungeonStory.AI.csproj" />
   <Project Path="DungeonStory.Species.csproj" />

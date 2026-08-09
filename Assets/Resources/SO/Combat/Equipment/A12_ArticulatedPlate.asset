@@ -19,7 +19,7 @@ MonoBehaviour:
   weight: 13
   occupiedHands: 0
   maxDurability: 120
-  requiredCraftWork: 6
+  requiredCraftWork: 256
   defaultMaterialId: material:iron
   primaryMaterialAmount: 10
   allowedMaterialFamilies: 03000000
@@ -29,6 +29,8 @@ MonoBehaviour:
     amount: 1
   - itemId: component:textile-hardener
     amount: 1
+  - itemId: material:plate-blank
+    amount: 2
   requiredResearchId: research:equipment:articulated-plate
   era: 1
   tier: 1

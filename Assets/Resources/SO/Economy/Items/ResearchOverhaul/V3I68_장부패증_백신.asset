@@ -32,24 +32,24 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 146
   features:
-  - rid: 7737211794726584608
-  - rid: 7737211794726584609
-  - rid: 7737211794726584610
-  - rid: 7737211794726584611
+  - rid: 7737211838078124133
+  - rid: 7737211838078124134
+  - rid: 7737211838078124135
+  - rid: 7737211838078124136
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584608
+    - rid: 7737211838078124133
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:vaccination
-    - rid: 7737211794726584609
+    - rid: 7737211838078124134
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211794726584610
+    - rid: 7737211838078124135
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 0
@@ -57,7 +57,7 @@ MonoBehaviour:
         infectionReduction: 0
         detoxReduction: 0
         painReduction: 0
-    - rid: 7737211794726584611
+    - rid: 7737211838078124136
       type: {class: VaccineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         diseaseId: disease:gut-rot

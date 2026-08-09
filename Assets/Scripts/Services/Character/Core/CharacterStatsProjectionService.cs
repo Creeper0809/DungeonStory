@@ -39,6 +39,10 @@ public sealed class CharacterStatsProjectionService
     private readonly ISurgicalAugmentationQuery surgicalAugmentation;
     private readonly ICharacterEnvironmentStatusQuery environmentStatus;
     private readonly IExternalCombatInfluenceQuery externalCombatInfluence;
+    private readonly IContentWorkDelayQuery contentWorkDelays;
+    private readonly IDiseaseSymptomEffectQuery diseaseSymptoms;
+    private readonly ICharacterCombatSpecialStatusQuery combatStatuses;
+    private readonly ICombatEquipmentBurdenQuery equipmentBurden;
 
     public CharacterStatsProjectionService(
         IStaffDiscontentRuntimeService staffDiscontent,
@@ -48,7 +52,11 @@ public sealed class CharacterStatsProjectionService
         ICharacterSubstanceRuntime substances,
         ISurgicalAugmentationQuery surgicalAugmentation,
         ICharacterEnvironmentStatusQuery environmentStatus,
-        IExternalCombatInfluenceQuery externalCombatInfluence)
+        IExternalCombatInfluenceQuery externalCombatInfluence,
+        IContentWorkDelayQuery contentWorkDelays,
+        IDiseaseSymptomEffectQuery diseaseSymptoms,
+        ICharacterCombatSpecialStatusQuery combatStatuses,
+        ICombatEquipmentBurdenQuery equipmentBurden)
     {
         this.staffDiscontent = staffDiscontent
             ?? throw new ArgumentNullException(nameof(staffDiscontent));
@@ -66,6 +74,14 @@ public sealed class CharacterStatsProjectionService
             ?? throw new ArgumentNullException(nameof(environmentStatus));
         this.externalCombatInfluence = externalCombatInfluence
             ?? throw new ArgumentNullException(nameof(externalCombatInfluence));
+        this.contentWorkDelays = contentWorkDelays
+            ?? throw new ArgumentNullException(nameof(contentWorkDelays));
+        this.diseaseSymptoms = diseaseSymptoms
+            ?? throw new ArgumentNullException(nameof(diseaseSymptoms));
+        this.combatStatuses = combatStatuses
+            ?? throw new ArgumentNullException(nameof(combatStatuses));
+        this.equipmentBurden = equipmentBurden
+            ?? throw new ArgumentNullException(nameof(equipmentBurden));
     }
 
     public int GetCharacterStat(
@@ -120,6 +136,9 @@ public sealed class CharacterStatsProjectionService
             * physicalCapacity.GetMoveMultiplier(context.Actor)
             * deprivation.GetMoveSpeedMultiplier(context.Actor)
             * environmentStatus.GetMoveSpeedMultiplier(characterId)
+            * diseaseSymptoms.GetMoveSpeedMultiplier(characterId)
+            * GetSedationActivityMultiplier(characterId)
+            * GetEquipmentBurdenMultiplier(context, characterId)
             * externalCombatInfluence.GetMoveSpeedMultiplier(
                 context.Identity?.PersistentId);
     }
@@ -153,7 +172,15 @@ public sealed class CharacterStatsProjectionService
             * CharacterSkillRuntimeEffects.GetWorkSpeedMultiplier(context.Actor)
             * deprivation.GetWorkSpeedMultiplier(context.Actor)
             * substances.GetWorkSpeedMultiplier(context.Actor)
-            * ResolveEnvironmentWorkSpeed(context, definition.WorkTypeId);
+            * ResolveEnvironmentWorkSpeed(context, definition.WorkTypeId)
+            * diseaseSymptoms.GetWorkSpeedMultiplier(
+                new CharacterId(context.Identity?.PersistentId))
+            * GetSedationActivityMultiplier(
+                new CharacterId(context.Identity?.PersistentId))
+            * GetEquipmentBurdenMultiplier(
+                context,
+                new CharacterId(context.Identity?.PersistentId))
+            * contentWorkDelays.GetWorkSpeedMultiplier(definition.WorkTypeId);
     }
 
     public float ResolveEnvironmentWorkSpeed(
@@ -195,7 +222,30 @@ public sealed class CharacterStatsProjectionService
     {
         return (context.EffectiveProfile?.GetCombatPowerMultiplier() ?? 1f)
             * GetInjuryEfficiencyMultiplier(context.InjurySeverity)
-            * substances.GetCombatMultiplier(context.Actor);
+            * substances.GetCombatMultiplier(context.Actor)
+            * GetSedationActivityMultiplier(
+                new CharacterId(context.Identity?.PersistentId));
+    }
+
+    private float GetSedationActivityMultiplier(CharacterId characterId)
+    {
+        CharacterCombatSpecialStatusSnapshot status =
+            combatStatuses.GetCombatSpecialStatus(characterId);
+        return status.SedationRemainingSeconds > 0f
+            ? 1f - Mathf.Clamp(status.SedationRatio, 0f, 0.8f)
+            : 1f;
+    }
+
+    private float GetEquipmentBurdenMultiplier(
+        CharacterStatsProjectionContext context,
+        CharacterId characterId)
+    {
+        float weight = equipmentBurden.GetEquippedWeight(characterId.Value);
+        float capacity = Mathf.Max(
+            8f,
+            GetCharacterStat(context, CharacterStatType.Strength) * 4f);
+        float overload = Mathf.Max(0f, weight / capacity - 0.5f);
+        return Mathf.Clamp(1f - overload * 0.35f, 0.45f, 1f);
     }
 
     public float GetSpendingMultiplier(
@@ -325,4 +375,38 @@ public sealed class NeutralExternalCombatInfluenceQuery :
     public float GetMoveSpeedMultiplier(string characterId) => 1f;
     public float GetAttackSpeedMultiplier(string characterId) => 1f;
     public bool IsDreadDefenseActive => false;
+}
+
+public sealed class NeutralDiseaseSymptomEffectQuery :
+    IDiseaseSymptomEffectQuery
+{
+    public static readonly NeutralDiseaseSymptomEffectQuery Instance = new();
+    private NeutralDiseaseSymptomEffectQuery() { }
+    public System.Collections.Generic.IReadOnlyList<DiseaseSymptomEffectSnapshot>
+        GetActiveSymptoms(CharacterId characterId) =>
+            System.Array.Empty<DiseaseSymptomEffectSnapshot>();
+    public float GetWorkSpeedMultiplier(CharacterId characterId) => 1f;
+    public float GetMoveSpeedMultiplier(CharacterId characterId) => 1f;
+}
+
+public sealed class NeutralCharacterCombatSpecialStatusQuery :
+    ICharacterCombatSpecialStatusQuery
+{
+    public static readonly NeutralCharacterCombatSpecialStatusQuery Instance =
+        new();
+
+    private NeutralCharacterCombatSpecialStatusQuery()
+    {
+    }
+
+    public CharacterCombatSpecialStatusSnapshot GetCombatSpecialStatus(
+        CharacterId characterId) => default;
+}
+
+public sealed class NeutralCombatEquipmentBurdenQuery :
+    ICombatEquipmentBurdenQuery
+{
+    public static readonly NeutralCombatEquipmentBurdenQuery Instance = new();
+    private NeutralCombatEquipmentBurdenQuery() { }
+    public float GetEquippedWeight(string characterId) => 0f;
 }

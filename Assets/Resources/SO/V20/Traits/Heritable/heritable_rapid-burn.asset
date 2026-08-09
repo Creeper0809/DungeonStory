@@ -26,3 +26,6 @@ MonoBehaviour:
   - kind: 1
     targetId: work-burst
     multiplierDelta: 0.1
+  - kind: 8
+    targetId: hunger
+    multiplierDelta: 0.12

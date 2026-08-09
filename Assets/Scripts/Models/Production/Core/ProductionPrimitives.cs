@@ -28,7 +28,8 @@ public enum ProductionConsumerKind
     LineageTransfer = 10,
     EquipmentProcessing = 11,
     CropSowing = 12,
-    CropTreatment = 13
+    CropTreatment = 13,
+    SocietyEvent = 14
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

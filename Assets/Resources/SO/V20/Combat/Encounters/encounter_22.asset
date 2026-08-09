@@ -35,13 +35,15 @@ MonoBehaviour:
   battlefieldModifierIds:
   - battlefield:powder-smoke
   counterTags:
+  - counter:smoke-hood
   - counter:destroy-cover
+  - counter:sabotage
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
   - enemyArchetypeId: enemy:settler-barricadier
     minimumCount: 1
     maximumCount: 2
-  - enemyArchetypeId: enemy:rival-stormcaller
+  - enemyArchetypeId: enemy:settler-hunter
     minimumCount: 1
     maximumCount: 2

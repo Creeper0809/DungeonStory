@@ -19,6 +19,7 @@ public class UIBuildingSelectButton : MonoBehaviour
     private BlueprintResearchRuntime research;
     private IGameEventBus gameEventBus;
     private IDungeonDebugRuleQuery debugRules;
+    private IRunMilestoneQuery milestoneQuery;
     private IDisposable researchCompletedSubscription;
     private BuildingSO buildingData;
     private GameSessionState observedGameData;
@@ -31,7 +32,8 @@ public class UIBuildingSelectButton : MonoBehaviour
         IGameSessionStateProvider gameDataProvider,
         ProgressionSceneRuntimeReferences progressionRuntimes,
         IGameEventBus gameEventBus,
-        IDungeonDebugRuleQuery debugRules)
+        IDungeonDebugRuleQuery debugRules,
+        IRunMilestoneQuery milestoneQuery)
     {
         this.buildingControllerProvider = buildingControllerProvider
             ?? throw new ArgumentNullException(nameof(buildingControllerProvider));
@@ -45,6 +47,7 @@ public class UIBuildingSelectButton : MonoBehaviour
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.debugRules = debugRules ?? throw new ArgumentNullException(nameof(debugRules));
+        this.milestoneQuery = milestoneQuery ?? throw new ArgumentNullException(nameof(milestoneQuery));
         SubscribeToScopedEvents();
     }
 
@@ -158,7 +161,8 @@ public class UIBuildingSelectButton : MonoBehaviour
                 buildingData,
                 observedGameData,
                 unlockState,
-                debugRules);
+                debugRules,
+                milestoneQuery);
     }
 
     public void OnTriggerEvent(BlueprintResearchCompletedEvent eventType)

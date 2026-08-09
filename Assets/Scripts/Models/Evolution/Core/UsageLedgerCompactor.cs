@@ -13,7 +13,11 @@ public interface IUsageLedgerCompactor
         string actorId = "",
         string targetId = "",
         IEnumerable<string> sourceTags = null,
-        string evidenceId = "");
+        string evidenceId = "",
+        HistoricalEvidenceKind historicalEvidenceKind = HistoricalEvidenceKind.None,
+        string outcomeId = "",
+        int generation = 0,
+        int repeatCount = 1);
     CompactedHistorySegment CloseGeneration(UsageLedger ledger, int generation);
     string ComputeHistoryHash(UsageLedger ledger);
 }
@@ -30,7 +34,11 @@ public sealed class UsageLedgerCompactor : IUsageLedgerCompactor
         string actorId = "",
         string targetId = "",
         IEnumerable<string> sourceTags = null,
-        string evidenceId = "")
+        string evidenceId = "",
+        HistoricalEvidenceKind historicalEvidenceKind = HistoricalEvidenceKind.None,
+        string outcomeId = "",
+        int generation = 0,
+        int repeatCount = 1)
     {
         if (ledger == null)
         {
@@ -54,6 +62,10 @@ public sealed class UsageLedgerCompactor : IUsageLedgerCompactor
             actorId = actorId?.Trim() ?? string.Empty,
             targetId = targetId?.Trim() ?? string.Empty,
             amount = amount,
+            historicalEvidenceKind = historicalEvidenceKind,
+            outcomeId = outcomeId?.Trim() ?? string.Empty,
+            generation = Math.Max(0, generation),
+            repeatCount = Math.Max(1, repeatCount),
             sequence = sequence,
             sourceTags = Normalize(sourceTags)
         };
@@ -163,6 +175,27 @@ public sealed class UsageLedgerCompactor : IUsageLedgerCompactor
             .Take(KeyEventLimit)
             .Select(entry => entry.Clone())
             .ToList();
+        List<HistoricalEvidenceMetric> historicalEvidence = rawEvents
+            .Where(entry => entry.historicalEvidenceKind != HistoricalEvidenceKind.None)
+            .GroupBy(entry => entry.historicalEvidenceKind)
+            .Select(group => new HistoricalEvidenceMetric
+            {
+                kind = group.Key,
+                strength = group.Sum(entry => Math.Abs(entry.amount)),
+                occurrences = group.Sum(entry => Math.Max(1, entry.repeatCount))
+            })
+            .Concat(childSegments
+                .SelectMany(segment => segment.historicalEvidence
+                    ?? new List<HistoricalEvidenceMetric>()))
+            .GroupBy(entry => entry.kind)
+            .Select(group => new HistoricalEvidenceMetric
+            {
+                kind = group.Key,
+                strength = group.Sum(entry => entry.strength),
+                occurrences = group.Sum(entry => entry.occurrences)
+            })
+            .OrderBy(entry => entry.kind)
+            .ToList();
         CompactedHistorySegment result = new CompactedHistorySegment
         {
             level = Math.Max(0, level),
@@ -181,6 +214,7 @@ public sealed class UsageLedgerCompactor : IUsageLedgerCompactor
                 })
                 .ToList(),
             keyEvents = keyEvents,
+            historicalEvidence = historicalEvidence,
             participantIds = rawEvents
                 .Select(entry => entry.actorId)
                 .Concat(rawEvents.Select(entry => entry.targetId))
@@ -292,6 +326,17 @@ public sealed class UsageLedgerCompactor : IUsageLedgerCompactor
             AppendEvent(builder, entry);
         }
 
+        foreach (HistoricalEvidenceMetric evidence in
+                 (segment.historicalEvidence ?? new List<HistoricalEvidenceMetric>())
+                 .Where(entry => entry != null)
+                 .OrderBy(entry => entry.kind))
+        {
+            builder.Append("H|")
+                .Append((int)evidence.kind).Append('|')
+                .Append(evidence.strength.ToString("R", CultureInfo.InvariantCulture)).Append('|')
+                .Append(evidence.occurrences).Append('|');
+        }
+
         foreach (string participant in segment.participantIds.OrderBy(
                      id => id,
                      StringComparer.Ordinal))
@@ -316,7 +361,11 @@ public sealed class UsageLedgerCompactor : IUsageLedgerCompactor
             .Append(entry.actorId ?? string.Empty).Append('|')
             .Append(entry.targetId ?? string.Empty).Append('|')
             .Append(entry.amount.ToString("R", CultureInfo.InvariantCulture))
-            .Append('|');
+            .Append('|')
+            .Append((int)entry.historicalEvidenceKind).Append('|')
+            .Append(entry.outcomeId ?? string.Empty).Append('|')
+            .Append(entry.generation).Append('|')
+            .Append(entry.repeatCount).Append('|');
         foreach (string tag in entry.sourceTags.OrderBy(
                      value => value,
                      StringComparer.Ordinal))

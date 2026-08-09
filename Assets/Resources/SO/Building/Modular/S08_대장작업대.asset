@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uB300\uC7A5\uC791\uC5C5\uB300"
   sprite: {fileID: 21300000, guid: 0d2111d66eaab3a48915941951be79bd, type: 3}
   icon: {fileID: 21300000, guid: 0d2111d66eaab3a48915941951be79bd, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730834227442
@@ -39,13 +44,13 @@ MonoBehaviour:
     - rid: 7737211730834227446
     - rid: 7737211730834227447
     - rid: 7737211730834227448
-    - rid: 7737211772876620166
-    - rid: 7737211792661414850
-    - rid: 7737211792661414851
-    - rid: 7737211792661414852
-    - rid: 7737211792661414853
-    - rid: 7737211792998531569
-    - rid: 7737211792998531570
+    - rid: 7737211838074978609
+    - rid: 7737211838074978610
+    - rid: 7737211838074978611
+    - rid: 7737211838074978612
+    - rid: 7737211838074979062
+    - rid: 7737211838074979063
+    - rid: 7737211838079696928
   width: 2
   height: 1
   layer: 1
@@ -119,72 +124,21 @@ MonoBehaviour:
           - key: Service
             value: 2.5
           metrics: []
-    - rid: 7737211772876620166
-      type: {class: BuildingEquipmentCraftingAbility, ns: , asm: DungeonStory.Buildings}
-      data:
-        abilityId: BuildingEquipmentCraftingAbility
-        craftableEquipmentIds:
-        - armor:articulated-plate
-        - armor:blacksteel-carapace
-        - armor:blast-coat
-        - armor:breastplate
-        - armor:brigandine
-        - armor:closed-plate-helm
-        - armor:cloth-hood
-        - armor:gambeson
-        - armor:iron-helmet
-        - armor:leather
-        - armor:leather-cap
-        - armor:mail-coif
-        - armor:mail-shirt
-        - armor:powered-harness
-        - armor:rune-ward-mail
-        - armor:scale-coat
-        - armor:smoke-hood
-        - craft:ammo:arrow
-        - craft:ammo:bolt
-        - shield:buckler
-        - shield:iron
-        - shield:rune
-        - shield:tower
-        - shield:wood
-        - weapon:arquebus
-        - weapon:composite-bow
-        - weapon:crossbow
-        - weapon:dagger
-        - weapon:falchion
-        - weapon:greatsword
-        - weapon:halberd
-        - weapon:handgonne
-        - weapon:javelin
-        - weapon:longbow
-        - weapon:longsword
-        - weapon:mace
-        - weapon:mana-lance
-        - weapon:matchlock-pistol
-        - weapon:rune-blade
-        - weapon:shortbow
-        - weapon:siege-arbalest
-        - weapon:spear
-        - weapon:throwing-axe
-        - weapon:warhammer
-        - weapon:windlass-crossbow
-        workUnitsPerCycle: 1
-    - rid: 7737211792661414850
+    - rid: 7737211838074978609
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7737211792661414851
+    - rid: 7737211838074978610
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7737211792661414852
+    - rid: 7737211838074978611
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -195,20 +149,20 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7737211792661414853
+    - rid: 7737211838074978612
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7737211792998531569
+    - rid: 7737211838074979062
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:forge-basic
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211792998531570
+    - rid: 7737211838074979063
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -230,3 +184,72 @@ MonoBehaviour:
           capacity: 16
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
+    - rid: 7737211838079696928
+      type: {class: BuildingEquipmentCraftingAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingEquipmentCraftingAbility
+        craftableEquipmentIds:
+        - armor:articulated-plate
+        - armor:blacksteel-carapace
+        - armor:blast-coat
+        - armor:breastplate
+        - armor:brigandine
+        - armor:closed-plate-helm
+        - armor:cloth-hood
+        - armor:gambeson
+        - armor:hardened-leather-coat
+        - armor:iron-helmet
+        - armor:jack-of-plates
+        - armor:leather
+        - armor:leather-cap
+        - armor:mail-coif
+        - armor:mail-shirt
+        - armor:padded-hood
+        - armor:powder-cuirass
+        - armor:powered-harness
+        - armor:rune-ward-mail
+        - armor:scale-coat
+        - armor:smoke-hood
+        - craft:ammo:arrow
+        - craft:ammo:bolt
+        - shield:blacksteel
+        - shield:buckler
+        - shield:iron
+        - shield:mana-buckler
+        - shield:pavise
+        - shield:powered
+        - shield:rune
+        - shield:tower
+        - shield:wood
+        - weapon:arquebus
+        - weapon:blacksteel-poleaxe
+        - weapon:composite-bow
+        - weapon:crossbow
+        - weapon:dagger
+        - weapon:estoc
+        - weapon:falchion
+        - weapon:greatsword
+        - weapon:halberd
+        - weapon:handgonne
+        - weapon:heavy-matchlock
+        - weapon:javelin
+        - weapon:longbow
+        - weapon:longsword
+        - weapon:mace
+        - weapon:mana-lance
+        - weapon:matchlock-long-gun
+        - weapon:matchlock-pistol
+        - weapon:pollaxe
+        - weapon:powered-striking-gauntlet
+        - weapon:repeating-crossbow
+        - weapon:rune-blade
+        - weapon:rune-bow
+        - weapon:shortbow
+        - weapon:shotgun
+        - weapon:siege-arbalest
+        - weapon:sniper-arquebus
+        - weapon:spear
+        - weapon:throwing-axe
+        - weapon:warhammer
+        - weapon:windlass-crossbow
+        workUnitsPerCycle: 1

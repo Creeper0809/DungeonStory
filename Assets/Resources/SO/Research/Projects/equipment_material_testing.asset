@@ -29,13 +29,13 @@ MonoBehaviour:
   field: 15
   requiredWork: 560
   prerequisites:
-  - {fileID: 11400000, guid: e84090593aeade44ab9a7ae8f0d9a2e3, type: 2}
+  - {fileID: 11400000, guid: 267e6f558200e604ba61f34e665242b2, type: 2}
   - {fileID: 11400000, guid: 00b8c28931f47544faecc8b510851912, type: 2}
   prerequisiteLinks:
-  - prerequisiteId: research:equipment:engineering-drawing
-    prerequisite: {fileID: 11400000, guid: e84090593aeade44ab9a7ae8f0d9a2e3, type: 2}
+  - prerequisiteId: research:industry:powered-tools
+    prerequisite: {fileID: 11400000, guid: 267e6f558200e604ba61f34e665242b2, type: 2}
     kind: 2
-    reason: "\uACF5\uD559 \uC81C\uB3C4\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+    reason: "\uACF5\uC7A5 \uACF5\uD559\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
       \uC7AC\uB8CC \uC2DC\uD5D8\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   - prerequisiteId: research:metallurgy:advanced
     prerequisite: {fileID: 11400000, guid: 00b8c28931f47544faecc8b510851912, type: 2}
@@ -46,7 +46,7 @@ MonoBehaviour:
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211792998531930
+    - rid: 7737211838079697033
   facilityRequirements:
   - capability: 0
     requiredCount: 2
@@ -58,7 +58,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211792998531930
+    - rid: 7737211838079697033
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 8826

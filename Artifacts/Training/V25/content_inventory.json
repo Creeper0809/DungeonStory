@@ -1,0 +1,2973 @@
+{
+  "backgrounds": [
+    {
+      "stableId": "background:archive-caretaker",
+      "name": "봉인 기록고지기",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Backgrounds/background_archive-caretaker.asset"
+    },
+    {
+      "stableId": "background:camp-refugee",
+      "name": "피난 행렬 출신",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Backgrounds/background_camp-refugee.asset"
+    },
+    {
+      "stableId": "background:caravan-artisan",
+      "name": "대상단 수공업자",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Backgrounds/background_caravan-artisan.asset"
+    },
+    {
+      "stableId": "background:deserter",
+      "name": "탈영병",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Backgrounds/background_deserter.asset"
+    },
+    {
+      "stableId": "background:exiled-heir",
+      "name": "추방된 후계자",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Backgrounds/background_exiled-heir.asset"
+    },
+    {
+      "stableId": "background:guild-apprentice",
+      "name": "길드 도제",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Backgrounds/background_guild-apprentice.asset"
+    },
+    {
+      "stableId": "background:inn-servant",
+      "name": "여관 심부름꾼",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Backgrounds/background_inn-servant.asset"
+    },
+    {
+      "stableId": "background:mine-bondworker",
+      "name": "광산 계약노동자",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Backgrounds/background_mine-bondworker.asset"
+    },
+    {
+      "stableId": "background:monastery-novice",
+      "name": "수도원 수련자",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Backgrounds/background_monastery-novice.asset"
+    },
+    {
+      "stableId": "background:ritual-test-subject",
+      "name": "의식 실험 생존자",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Backgrounds/background_ritual-test-subject.asset"
+    },
+    {
+      "stableId": "background:siege-survivor",
+      "name": "공성전 생존자",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Backgrounds/background_siege-survivor.asset"
+    },
+    {
+      "stableId": "background:tenant-farmer",
+      "name": "소작농의 자식",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Backgrounds/background_tenant-farmer.asset"
+    }
+  ],
+  "ambitions": [
+    {
+      "stableId": "ambition:avenge-fallen",
+      "name": "쓰러진 이의 이름",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Ambitions/ambition_avenge-fallen.asset"
+    },
+    {
+      "stableId": "ambition:become-steward",
+      "name": "관리인의 자리",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Ambitions/ambition_become-steward.asset"
+    },
+    {
+      "stableId": "ambition:break-debt",
+      "name": "물려받은 빚 청산",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Ambitions/ambition_break-debt.asset"
+    },
+    {
+      "stableId": "ambition:build-clinic",
+      "name": "모두를 위한 진료소",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Ambitions/ambition_build-clinic.asset"
+    },
+    {
+      "stableId": "ambition:cultural-voice",
+      "name": "문화의 대변자",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Ambitions/ambition_cultural-voice.asset"
+    },
+    {
+      "stableId": "ambition:end-hunger",
+      "name": "빈 식탁 없는 겨울",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Ambitions/ambition_end-hunger.asset"
+    },
+    {
+      "stableId": "ambition:faction-champion",
+      "name": "동맹의 방패",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Ambitions/ambition_faction-champion.asset"
+    },
+    {
+      "stableId": "ambition:faction-peacemaker",
+      "name": "두 깃발의 중재자",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Ambitions/ambition_faction-peacemaker.asset"
+    },
+    {
+      "stableId": "ambition:field-scholar",
+      "name": "현장 학자의 증명",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Ambitions/ambition_field-scholar.asset"
+    },
+    {
+      "stableId": "ambition:find-origin",
+      "name": "기원의 흔적",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Ambitions/ambition_find-origin.asset"
+    },
+    {
+      "stableId": "ambition:guard-captain",
+      "name": "경비대의 신뢰",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Ambitions/ambition_guard-captain.asset"
+    },
+    {
+      "stableId": "ambition:map-depths",
+      "name": "심층의 끝",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Ambitions/ambition_map-depths.asset"
+    },
+    {
+      "stableId": "ambition:master-healer",
+      "name": "죽음을 늦추는 손",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Ambitions/ambition_master-healer.asset"
+    },
+    {
+      "stableId": "ambition:master-smith",
+      "name": "대장장이의 대가",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Ambitions/ambition_master-smith.asset"
+    },
+    {
+      "stableId": "ambition:mentor-generation",
+      "name": "다음 세대의 스승",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Ambitions/ambition_mentor-generation.asset"
+    },
+    {
+      "stableId": "ambition:raise-family",
+      "name": "안전한 가족",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Ambitions/ambition_raise-family.asset"
+    },
+    {
+      "stableId": "ambition:restore-lineage",
+      "name": "끊긴 계보 복원",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Ambitions/ambition_restore-lineage.asset"
+    },
+    {
+      "stableId": "ambition:worthy-guardian",
+      "name": "믿을 만한 보호자",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Ambitions/ambition_worthy-guardian.asset"
+    }
+  ],
+  "events": [
+    {
+      "stableId": "life-event:apprentice-mistake",
+      "name": "도제의 큰 실수",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_apprentice-mistake.asset"
+    },
+    {
+      "stableId": "life-event:captains-test",
+      "name": "대장의 시험",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_captains-test.asset"
+    },
+    {
+      "stableId": "life-event:childhood-bully",
+      "name": "놀림의 대가",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_childhood-bully.asset"
+    },
+    {
+      "stableId": "life-event:clinic-shortage",
+      "name": "누구를 먼저 치료할 것인가",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_clinic-shortage.asset"
+    },
+    {
+      "stableId": "life-event:cultural-petition",
+      "name": "식탁의 금기",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_cultural-petition.asset"
+    },
+    {
+      "stableId": "life-event:dangerous-friendship",
+      "name": "위험 구역의 친구",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_dangerous-friendship.asset"
+    },
+    {
+      "stableId": "life-event:disputed-thesis",
+      "name": "논쟁적인 논문",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_disputed-thesis.asset"
+    },
+    {
+      "stableId": "life-event:elder-birthday",
+      "name": "노년의 생일상",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_elder-birthday.asset"
+    },
+    {
+      "stableId": "life-event:family-room",
+      "name": "가족이 함께 살 방",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_family-room.asset"
+    },
+    {
+      "stableId": "life-event:first-forbidden-door",
+      "name": "잠긴 문 너머",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_first-forbidden-door.asset"
+    },
+    {
+      "stableId": "life-event:first-lost-tooth",
+      "name": "첫 이갈이",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_first-lost-tooth.asset"
+    },
+    {
+      "stableId": "life-event:first-safe-task",
+      "name": "첫 안전 작업",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_first-safe-task.asset"
+    },
+    {
+      "stableId": "life-event:foundling-question",
+      "name": "나는 어디서 왔어?",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_foundling-question.asset"
+    },
+    {
+      "stableId": "life-event:grave-visit",
+      "name": "묘비 앞의 약속",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_grave-visit.asset"
+    },
+    {
+      "stableId": "life-event:guardian-oath",
+      "name": "보호자의 맹세",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_guardian-oath.asset"
+    },
+    {
+      "stableId": "life-event:household-meal",
+      "name": "늦은 가족 식사",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_household-meal.asset"
+    },
+    {
+      "stableId": "life-event:inherited-debt",
+      "name": "가구에 남은 빚",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_inherited-debt.asset"
+    },
+    {
+      "stableId": "life-event:killer-sighted",
+      "name": "원수의 깃발",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_killer-sighted.asset"
+    },
+    {
+      "stableId": "life-event:last-lesson",
+      "name": "마지막 수업",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_last-lesson.asset"
+    },
+    {
+      "stableId": "life-event:lineage-relic",
+      "name": "유산의 행방",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_lineage-relic.asset"
+    },
+    {
+      "stableId": "life-event:masterpiece-commission",
+      "name": "첫 대작 의뢰",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_masterpiece-commission.asset"
+    },
+    {
+      "stableId": "life-event:mentor-favor",
+      "name": "스승의 편애",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_mentor-favor.asset"
+    },
+    {
+      "stableId": "life-event:newborn-welcome",
+      "name": "새 생명의 환영",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_newborn-welcome.asset"
+    },
+    {
+      "stableId": "life-event:position-rivalry",
+      "name": "한 자리, 두 후보",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_position-rivalry.asset"
+    },
+    {
+      "stableId": "life-event:quiet-promotion",
+      "name": "조용한 승급",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_quiet-promotion.asset"
+    },
+    {
+      "stableId": "life-event:retiree-story",
+      "name": "휴게실의 옛 이야기",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_retiree-story.asset"
+    },
+    {
+      "stableId": "life-event:retirement-request",
+      "name": "도구를 내려놓는 날",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_retirement-request.asset"
+    },
+    {
+      "stableId": "life-event:shared-lullaby",
+      "name": "서로 다른 자장가",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_shared-lullaby.asset"
+    },
+    {
+      "stableId": "life-event:shift-saved",
+      "name": "교대를 구한 손",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_shift-saved.asset"
+    },
+    {
+      "stableId": "life-event:stolen-design",
+      "name": "닮은 설계도",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_stolen-design.asset"
+    },
+    {
+      "stableId": "life-event:story-compressed",
+      "name": "이름으로 남은 생애",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_story-compressed.asset"
+    },
+    {
+      "stableId": "life-event:tool-inheritance",
+      "name": "물려받은 도구",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/LifeEvents/life-event_tool-inheritance.asset"
+    }
+  ],
+  "practices": [
+    {
+      "stableId": "practice:adventurer-name-token",
+      "name": "이름패 걸기",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_adventurer-name-token.asset"
+    },
+    {
+      "stableId": "practice:adventurer-return-table",
+      "name": "귀환자의 식탁",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_adventurer-return-table.asset"
+    },
+    {
+      "stableId": "practice:beastkin-pack-meal",
+      "name": "무리 한솥",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_beastkin-pack-meal.asset"
+    },
+    {
+      "stableId": "practice:beastkin-scent-vigil",
+      "name": "향취 철야",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_beastkin-scent-vigil.asset"
+    },
+    {
+      "stableId": "practice:demon-oath-embers",
+      "name": "맹세의 잿불",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_demon-oath-embers.asset"
+    },
+    {
+      "stableId": "practice:demon-third-bell",
+      "name": "세 번째 종",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_demon-third-bell.asset"
+    },
+    {
+      "stableId": "practice:golem-core-polish",
+      "name": "핵 광택일",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_golem-core-polish.asset"
+    },
+    {
+      "stableId": "practice:golem-memory-plaque",
+      "name": "기억판 안치",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_golem-memory-plaque.asset"
+    },
+    {
+      "stableId": "practice:harpy-dawn-chorus",
+      "name": "새벽 합창",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_harpy-dawn-chorus.asset"
+    },
+    {
+      "stableId": "practice:harpy-first-flight",
+      "name": "첫 비행의 깃",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_harpy-first-flight.asset"
+    },
+    {
+      "stableId": "practice:kobold-bench-feast",
+      "name": "작업대 잔치",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_kobold-bench-feast.asset"
+    },
+    {
+      "stableId": "practice:kobold-tool-naming",
+      "name": "첫 도구 이름짓기",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_kobold-tool-naming.asset"
+    },
+    {
+      "stableId": "practice:myconid-shared-mist",
+      "name": "공유 안개",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_myconid-shared-mist.asset"
+    },
+    {
+      "stableId": "practice:myconid-spore-return",
+      "name": "포자 귀환",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_myconid-spore-return.asset"
+    },
+    {
+      "stableId": "practice:orc-shared-cauldron",
+      "name": "큰솥의 몫",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_orc-shared-cauldron.asset"
+    },
+    {
+      "stableId": "practice:orc-weapon-vigil",
+      "name": "무기 철야",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_orc-weapon-vigil.asset"
+    },
+    {
+      "stableId": "practice:slime-clear-water",
+      "name": "맑은물 합류",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_slime-clear-water.asset"
+    },
+    {
+      "stableId": "practice:slime-core-ring",
+      "name": "핵고리 성년식",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_slime-core-ring.asset"
+    },
+    {
+      "stableId": "practice:vampire-consent-cup",
+      "name": "동의의 잔",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_vampire-consent-cup.asset"
+    },
+    {
+      "stableId": "practice:vampire-incense-memory",
+      "name": "혈향 촛불",
+      "assetPath": "Assets/Resources/SO/V20/Narrative/Practices/practice_vampire-incense-memory.asset"
+    }
+  ],
+  "traits": [
+    {
+      "stableId": "trait:101",
+      "name": "대식가",
+      "assetPath": "Assets/Resources/SO/Character/Traits/Trait_BigEater.asset"
+    },
+    {
+      "stableId": "trait:102",
+      "name": "절약가",
+      "assetPath": "Assets/Resources/SO/Character/Traits/Trait_Frugal.asset"
+    },
+    {
+      "stableId": "trait:103",
+      "name": "부자",
+      "assetPath": "Assets/Resources/SO/Character/Traits/Trait_Rich.asset"
+    },
+    {
+      "stableId": "trait:104",
+      "name": "성급함",
+      "assetPath": "Assets/Resources/SO/Character/Traits/Trait_Impatient.asset"
+    },
+    {
+      "stableId": "trait:105",
+      "name": "소심함",
+      "assetPath": "Assets/Resources/SO/Character/Traits/Trait_Timid.asset"
+    },
+    {
+      "stableId": "trait:106",
+      "name": "싸움꾼",
+      "assetPath": "Assets/Resources/SO/Character/Traits/Trait_Fighter.asset"
+    },
+    {
+      "stableId": "trait:107",
+      "name": "깔끔함",
+      "assetPath": "Assets/Resources/SO/Character/Traits/Trait_Clean.asset"
+    },
+    {
+      "stableId": "trait:108",
+      "name": "연구가",
+      "assetPath": "Assets/Resources/SO/Character/Traits/Trait_Researcher.asset"
+    },
+    {
+      "stableId": "trait:109",
+      "name": "내한성 점액",
+      "assetPath": "Assets/Resources/SO/Character/Traits/Trait_ColdResistantSlime.asset"
+    },
+    {
+      "stableId": "trait:200",
+      "name": "지구력",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_200_tireless.asset"
+    },
+    {
+      "stableId": "trait:201",
+      "name": "얕은 잠",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_201_light-sleeper.asset"
+    },
+    {
+      "stableId": "trait:202",
+      "name": "안정된 발놀림",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_202_sure-footed.asset"
+    },
+    {
+      "stableId": "trait:203",
+      "name": "섬세한 체격",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_203_delicate-frame.asset"
+    },
+    {
+      "stableId": "trait:204",
+      "name": "오래된 흉터",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_204_scarred.asset"
+    },
+    {
+      "stableId": "trait:205",
+      "name": "예민한 감각",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_205_keen-senses.asset"
+    },
+    {
+      "stableId": "trait:206",
+      "name": "육중한 체격",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_206_heavy-build.asset"
+    },
+    {
+      "stableId": "trait:207",
+      "name": "빠른 회복",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_207_quick-healer.asset"
+    },
+    {
+      "stableId": "trait:208",
+      "name": "느린 대사",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_208_slow-metabolism.asset"
+    },
+    {
+      "stableId": "trait:209",
+      "name": "뜨거운 피",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_209_hot-blooded.asset"
+    },
+    {
+      "stableId": "trait:210",
+      "name": "단맛 탐닉",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_210_sugar-seeker.asset"
+    },
+    {
+      "stableId": "trait:211",
+      "name": "튼튼한 위장",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_211_iron-stomach.asset"
+    },
+    {
+      "stableId": "trait:212",
+      "name": "온도 민감",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_212_temperature-sensitive.asset"
+    },
+    {
+      "stableId": "trait:213",
+      "name": "의식 단식가",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_213_ritual-faster.asset"
+    },
+    {
+      "stableId": "trait:214",
+      "name": "소금 갈망",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_214_salt-craver.asset"
+    },
+    {
+      "stableId": "trait:215",
+      "name": "침착함",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_215_calm.asset"
+    },
+    {
+      "stableId": "trait:216",
+      "name": "곱씹는 성격",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_216_brooding.asset"
+    },
+    {
+      "stableId": "trait:217",
+      "name": "낙천가",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_217_cheerful.asset"
+    },
+    {
+      "stableId": "trait:218",
+      "name": "원한을 품음",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_218_grudge-holder.asset"
+    },
+    {
+      "stableId": "trait:219",
+      "name": "관대한 마음",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_219_forgiving.asset"
+    },
+    {
+      "stableId": "trait:220",
+      "name": "불안한 계획가",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_220_anxious-planner.asset"
+    },
+    {
+      "stableId": "trait:221",
+      "name": "자극 추구자",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_221_thrill-seeker.asset"
+    },
+    {
+      "stableId": "trait:222",
+      "name": "과묵함",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_222_private.asset"
+    },
+    {
+      "stableId": "trait:223",
+      "name": "꼼꼼함",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_223_meticulous.asset"
+    },
+    {
+      "stableId": "trait:224",
+      "name": "즉흥 제작자",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_224_improviser.asset"
+    },
+    {
+      "stableId": "trait:225",
+      "name": "규칙 준수자",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_225_routine-keeper.asset"
+    },
+    {
+      "stableId": "trait:226",
+      "name": "가르치는 버릇",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_226_teacher.asset"
+    },
+    {
+      "stableId": "trait:227",
+      "name": "회수 전문가",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_227_salvager.asset"
+    },
+    {
+      "stableId": "trait:228",
+      "name": "야간 체질",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_228_night-worker.asset"
+    },
+    {
+      "stableId": "trait:229",
+      "name": "품질 자부심",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_229_quality-proud.asset"
+    },
+    {
+      "stableId": "trait:230",
+      "name": "빠른 학습자",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_230_fast-learner.asset"
+    },
+    {
+      "stableId": "trait:231",
+      "name": "손님맞이꾼",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_231_host.asset"
+    },
+    {
+      "stableId": "trait:232",
+      "name": "직설적",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_232_blunt.asset"
+    },
+    {
+      "stableId": "trait:233",
+      "name": "중재자",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_233_mediator.asset"
+    },
+    {
+      "stableId": "trait:234",
+      "name": "충성심",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_234_loyal.asset"
+    },
+    {
+      "stableId": "trait:235",
+      "name": "체면 중시",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_235_status-conscious.asset"
+    },
+    {
+      "stableId": "trait:236",
+      "name": "낯선 문화에 호의적",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_236_outsider-friendly.asset"
+    },
+    {
+      "stableId": "trait:237",
+      "name": "우리 편 우선",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_237_clannish.asset"
+    },
+    {
+      "stableId": "trait:238",
+      "name": "자비로움",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_238_merciful.asset"
+    },
+    {
+      "stableId": "trait:239",
+      "name": "냉혹함",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_239_ruthless.asset"
+    },
+    {
+      "stableId": "trait:240",
+      "name": "위험 회피",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_240_cautious.asset"
+    },
+    {
+      "stableId": "trait:241",
+      "name": "무모한 용기",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_241_daredevil.asset"
+    },
+    {
+      "stableId": "trait:242",
+      "name": "진실 집착",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_242_truth-seeker.asset"
+    },
+    {
+      "stableId": "trait:243",
+      "name": "실용주의",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_243_pragmatist.asset"
+    },
+    {
+      "stableId": "trait:244",
+      "name": "수집벽",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_244_collector.asset"
+    },
+    {
+      "stableId": "trait:245",
+      "name": "청소 강박",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_245_compulsive-cleaner.asset"
+    },
+    {
+      "stableId": "trait:246",
+      "name": "이야기꾼",
+      "assetPath": "Assets/Resources/SO/V20/Traits/General/Trait_246_storyteller.asset"
+    }
+  ],
+  "heritable": [
+    {
+      "stableId": "heritable:abundant-seed",
+      "name": "풍부한 종자",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_abundant-seed.asset"
+    },
+    {
+      "stableId": "heritable:broad-immunity",
+      "name": "광범위 면역",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_broad-immunity.asset"
+    },
+    {
+      "stableId": "heritable:cold-blood-adaptation",
+      "name": "저온 대사 적응",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_cold-blood-adaptation.asset"
+    },
+    {
+      "stableId": "heritable:cross-lineage-tolerance",
+      "name": "교차계통 내성",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_cross-lineage-tolerance.asset"
+    },
+    {
+      "stableId": "heritable:dense-bone",
+      "name": "고밀도 골격",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_dense-bone.asset"
+    },
+    {
+      "stableId": "heritable:dream-reception",
+      "name": "꿈 수신",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_dream-reception.asset"
+    },
+    {
+      "stableId": "heritable:efficient-digestion",
+      "name": "고효율 소화",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_efficient-digestion.asset"
+    },
+    {
+      "stableId": "heritable:expanded-lung",
+      "name": "확장 폐낭",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_expanded-lung.asset"
+    },
+    {
+      "stableId": "heritable:flexible-joints",
+      "name": "유연 관절",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_flexible-joints.asset"
+    },
+    {
+      "stableId": "heritable:focused-antibodies",
+      "name": "집중 항체",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_focused-antibodies.asset"
+    },
+    {
+      "stableId": "heritable:heat-shedding",
+      "name": "열 배출 피부",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_heat-shedding.asset"
+    },
+    {
+      "stableId": "heritable:hollow-bone",
+      "name": "공동 골격",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_hollow-bone.asset"
+    },
+    {
+      "stableId": "heritable:mana-grounding",
+      "name": "마나 접지맥",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_mana-grounding.asset"
+    },
+    {
+      "stableId": "heritable:mana-reservoir",
+      "name": "마나 저장낭",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_mana-reservoir.asset"
+    },
+    {
+      "stableId": "heritable:rapid-burn",
+      "name": "고속 대사",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_rapid-burn.asset"
+    },
+    {
+      "stableId": "heritable:rapid-repair",
+      "name": "고속 면역 복구",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_rapid-repair.asset"
+    },
+    {
+      "stableId": "heritable:regrowing-tissue",
+      "name": "재생 조직",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_regrowing-tissue.asset"
+    },
+    {
+      "stableId": "heritable:reinforced-joints",
+      "name": "강화 관절",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_reinforced-joints.asset"
+    },
+    {
+      "stableId": "heritable:rune-sight",
+      "name": "룬시",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_rune-sight.asset"
+    },
+    {
+      "stableId": "heritable:slow-aging",
+      "name": "완만한 노화",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_slow-aging.asset"
+    },
+    {
+      "stableId": "heritable:slow-fertility",
+      "name": "느린 가임 주기",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_slow-fertility.asset"
+    },
+    {
+      "stableId": "heritable:stable-gestation",
+      "name": "안정 임신",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_stable-gestation.asset"
+    },
+    {
+      "stableId": "heritable:toxin-filter",
+      "name": "독소 여과 기관",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_toxin-filter.asset"
+    },
+    {
+      "stableId": "heritable:water-retention",
+      "name": "수분 보존 조직",
+      "assetPath": "Assets/Resources/SO/V20/Traits/Heritable/heritable_water-retention.asset"
+    }
+  ],
+  "equipment": [
+    {
+      "stableId": "armor:articulated-plate",
+      "name": "관절식 판금갑",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A12_ArticulatedPlate.asset"
+    },
+    {
+      "stableId": "armor:blacksteel-carapace",
+      "name": "흑강 갑각",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A17_BlacksteelCarapace.asset"
+    },
+    {
+      "stableId": "armor:blast-coat",
+      "name": "방폭 외투",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A13_BlastCoat.asset"
+    },
+    {
+      "stableId": "armor:breastplate",
+      "name": "철 흉갑",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A08_Breastplate.asset"
+    },
+    {
+      "stableId": "armor:brigandine",
+      "name": "브리간딘",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A09_Brigandine.asset"
+    },
+    {
+      "stableId": "armor:closed-plate-helm",
+      "name": "폐쇄형 판금 투구",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A11_ClosedPlateHelm.asset"
+    },
+    {
+      "stableId": "armor:cloth-hood",
+      "name": "천 후드",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A01_ClothHood.asset"
+    },
+    {
+      "stableId": "armor:gambeson",
+      "name": "누비옷",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A02_Gambeson.asset"
+    },
+    {
+      "stableId": "armor:hardened-leather-coat",
+      "name": "경화 가죽 외투",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A21_HardenedLeatherCoat.asset"
+    },
+    {
+      "stableId": "armor:iron-helmet",
+      "name": "철 투구",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A07_IronHelmet.asset"
+    },
+    {
+      "stableId": "armor:jack-of-plates",
+      "name": "잭 오브 플레이트",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A18_JackOfPlates.asset"
+    },
+    {
+      "stableId": "armor:leather",
+      "name": "가죽 갑옷",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A04_LeatherArmor.asset"
+    },
+    {
+      "stableId": "armor:leather-cap",
+      "name": "가죽 모자",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A03_LeatherCap.asset"
+    },
+    {
+      "stableId": "armor:mail-coif",
+      "name": "사슬 두건",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A05_MailCoif.asset"
+    },
+    {
+      "stableId": "armor:mail-shirt",
+      "name": "사슬 갑옷",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A06_MailShirt.asset"
+    },
+    {
+      "stableId": "armor:padded-hood",
+      "name": "누비 두건",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A20_PaddedHood.asset"
+    },
+    {
+      "stableId": "armor:powder-cuirass",
+      "name": "화약수 흉갑",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A19_PowderCuirass.asset"
+    },
+    {
+      "stableId": "armor:powered-harness",
+      "name": "동력 보조 갑주",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A15_PoweredHarness.asset"
+    },
+    {
+      "stableId": "armor:rune-ward-mail",
+      "name": "룬 수호 사슬갑옷",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A16_RuneWardMail.asset"
+    },
+    {
+      "stableId": "armor:scale-coat",
+      "name": "비늘 외투",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A10_ScaleCoat.asset"
+    },
+    {
+      "stableId": "armor:smoke-hood",
+      "name": "연기 두건",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/A14_SmokeHood.asset"
+    },
+    {
+      "stableId": "shield:blacksteel",
+      "name": "흑강 방패",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/S07_BlacksteelShield.asset"
+    },
+    {
+      "stableId": "shield:buckler",
+      "name": "버클러",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/S03_Buckler.asset"
+    },
+    {
+      "stableId": "shield:iron",
+      "name": "철 방패",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/S02_IronShield.asset"
+    },
+    {
+      "stableId": "shield:mana-buckler",
+      "name": "마나 버클러",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/S08_ManaBuckler.asset"
+    },
+    {
+      "stableId": "shield:pavise",
+      "name": "파비스",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/S09_Pavise.asset"
+    },
+    {
+      "stableId": "shield:powered",
+      "name": "동력 방패",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/S06_PoweredShield.asset"
+    },
+    {
+      "stableId": "shield:rune",
+      "name": "룬 방패",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/S05_RuneShield.asset"
+    },
+    {
+      "stableId": "shield:tower",
+      "name": "대형 방패",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/S04_TowerShield.asset"
+    },
+    {
+      "stableId": "shield:wood",
+      "name": "나무 방패",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/S01_WoodShield.asset"
+    },
+    {
+      "stableId": "weapon:arquebus",
+      "name": "아쿼버스",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W18_Arquebus.asset"
+    },
+    {
+      "stableId": "weapon:blacksteel-poleaxe",
+      "name": "흑강 폴액스",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W28_BlacksteelPoleaxe.asset"
+    },
+    {
+      "stableId": "weapon:composite-bow",
+      "name": "복합궁",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W14_CompositeBow.asset"
+    },
+    {
+      "stableId": "weapon:crossbow",
+      "name": "석궁",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W07_Crossbow.asset"
+    },
+    {
+      "stableId": "weapon:dagger",
+      "name": "단검",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W01_Dagger.asset"
+    },
+    {
+      "stableId": "weapon:estoc",
+      "name": "에스터크",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W29_Estoc.asset"
+    },
+    {
+      "stableId": "weapon:falchion",
+      "name": "팔시온",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W10_Falchion.asset"
+    },
+    {
+      "stableId": "weapon:greatsword",
+      "name": "대검",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W13_Greatsword.asset"
+    },
+    {
+      "stableId": "weapon:halberd",
+      "name": "할버드",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W12_Halberd.asset"
+    },
+    {
+      "stableId": "weapon:handgonne",
+      "name": "수총",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W16_Handgonne.asset"
+    },
+    {
+      "stableId": "weapon:heavy-matchlock",
+      "name": "중화승총",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W25_HeavyMatchlock.asset"
+    },
+    {
+      "stableId": "weapon:javelin",
+      "name": "투창",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W08_Javelin.asset"
+    },
+    {
+      "stableId": "weapon:longbow",
+      "name": "장궁",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W06_Longbow.asset"
+    },
+    {
+      "stableId": "weapon:longsword",
+      "name": "장검",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W02_Longsword.asset"
+    },
+    {
+      "stableId": "weapon:mace",
+      "name": "철퇴",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W04_Mace.asset"
+    },
+    {
+      "stableId": "weapon:mana-lance",
+      "name": "마나 랜스",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W21_ManaLance.asset"
+    },
+    {
+      "stableId": "weapon:matchlock-long-gun",
+      "name": "화승 장총",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W23_MatchlockLongGun.asset"
+    },
+    {
+      "stableId": "weapon:matchlock-pistol",
+      "name": "화승 권총",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W17_MatchlockPistol.asset"
+    },
+    {
+      "stableId": "weapon:pollaxe",
+      "name": "폴액스",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W30_Pollaxe.asset"
+    },
+    {
+      "stableId": "weapon:powered-striking-gauntlet",
+      "name": "동력 타격장갑",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W27_PoweredStrikingGauntlet.asset"
+    },
+    {
+      "stableId": "weapon:repeating-crossbow",
+      "name": "반복 석궁",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W22_RepeatingCrossbow.asset"
+    },
+    {
+      "stableId": "weapon:rune-blade",
+      "name": "룬검",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W20_RuneBlade.asset"
+    },
+    {
+      "stableId": "weapon:rune-bow",
+      "name": "룬 활",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W31_RuneBow.asset"
+    },
+    {
+      "stableId": "weapon:shortbow",
+      "name": "단궁",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W05_Shortbow.asset"
+    },
+    {
+      "stableId": "weapon:shotgun",
+      "name": "산탄총",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W26_Shotgun.asset"
+    },
+    {
+      "stableId": "weapon:siege-arbalest",
+      "name": "공성 쇠뇌",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W19_SiegeArbalest.asset"
+    },
+    {
+      "stableId": "weapon:sniper-arquebus",
+      "name": "저격 아쿼버스",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W24_SniperArquebus.asset"
+    },
+    {
+      "stableId": "weapon:spear",
+      "name": "창",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W03_Spear.asset"
+    },
+    {
+      "stableId": "weapon:throwing-axe",
+      "name": "투척도끼",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W09_ThrowingAxe.asset"
+    },
+    {
+      "stableId": "weapon:warhammer",
+      "name": "전투망치",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W11_Warhammer.asset"
+    },
+    {
+      "stableId": "weapon:windlass-crossbow",
+      "name": "권양 석궁",
+      "assetPath": "Assets/Resources/SO/Combat/Equipment/W15_WindlassCrossbow.asset"
+    }
+  ],
+  "buildings": [
+    {
+      "stableId": "building:0",
+      "name": "복도",
+      "assetPath": "Assets/Resources/SO/Building/Hallway.asset"
+    },
+    {
+      "stableId": "building:1",
+      "name": "문",
+      "assetPath": "Assets/Resources/SO/Building/Door.asset"
+    },
+    {
+      "stableId": "building:10",
+      "name": "저가 음식점",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_LowFoodShop.asset"
+    },
+    {
+      "stableId": "building:1000",
+      "name": "간이화덕",
+      "assetPath": "Assets/Resources/SO/Building/Modular/D01_간이화덕.asset"
+    },
+    {
+      "stableId": "building:1001",
+      "name": "고기그릴",
+      "assetPath": "Assets/Resources/SO/Building/Modular/D02_고기그릴.asset"
+    },
+    {
+      "stableId": "building:1002",
+      "name": "조리손질대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/D03_조리손질대.asset"
+    },
+    {
+      "stableId": "building:1003",
+      "name": "배식카운터",
+      "assetPath": "Assets/Resources/SO/Building/Modular/D04_배식카운터.asset"
+    },
+    {
+      "stableId": "building:1004",
+      "name": "소형식탁",
+      "assetPath": "Assets/Resources/SO/Building/Modular/D05_소형식탁.asset"
+    },
+    {
+      "stableId": "building:1005",
+      "name": "대형연회식탁",
+      "assetPath": "Assets/Resources/SO/Building/Modular/D06_대형연회식탁.asset"
+    },
+    {
+      "stableId": "building:1006",
+      "name": "목제의자",
+      "assetPath": "Assets/Resources/SO/Building/Modular/D07_목제의자.asset"
+    },
+    {
+      "stableId": "building:1007",
+      "name": "푹신한의자",
+      "assetPath": "Assets/Resources/SO/Building/Modular/D08_푹신한의자.asset"
+    },
+    {
+      "stableId": "building:1008",
+      "name": "긴벤치",
+      "assetPath": "Assets/Resources/SO/Building/Modular/D09_긴벤치.asset"
+    },
+    {
+      "stableId": "building:1009",
+      "name": "식재료선반",
+      "assetPath": "Assets/Resources/SO/Building/Modular/D10_식재료선반.asset"
+    },
+    {
+      "stableId": "building:1010",
+      "name": "고기걸이",
+      "assetPath": "Assets/Resources/SO/Building/Modular/D11_고기걸이.asset"
+    },
+    {
+      "stableId": "building:1011",
+      "name": "술음료장",
+      "assetPath": "Assets/Resources/SO/Building/Modular/D12_술음료장.asset"
+    },
+    {
+      "stableId": "building:1012",
+      "name": "판매카운터",
+      "assetPath": "Assets/Resources/SO/Building/Modular/S01_판매카운터.asset"
+    },
+    {
+      "stableId": "building:1013",
+      "name": "잡화진열선반",
+      "assetPath": "Assets/Resources/SO/Building/Modular/S02_잡화진열선반.asset"
+    },
+    {
+      "stableId": "building:1014",
+      "name": "잠금진열장",
+      "assetPath": "Assets/Resources/SO/Building/Modular/S03_잠금진열장.asset"
+    },
+    {
+      "stableId": "building:1015",
+      "name": "잡화상자",
+      "assetPath": "Assets/Resources/SO/Building/Modular/S04_잡화상자.asset"
+    },
+    {
+      "stableId": "building:1016",
+      "name": "무기거치대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/S05_무기거치대.asset"
+    },
+    {
+      "stableId": "building:1017",
+      "name": "갑옷거치대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/S06_갑옷거치대.asset"
+    },
+    {
+      "stableId": "building:1018",
+      "name": "무기보관함",
+      "assetPath": "Assets/Resources/SO/Building/Modular/S07_무기보관함.asset"
+    },
+    {
+      "stableId": "building:1019",
+      "name": "대장작업대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/S08_대장작업대.asset"
+    },
+    {
+      "stableId": "building:1020",
+      "name": "간이침대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/R01_간이침대.asset"
+    },
+    {
+      "stableId": "building:1021",
+      "name": "정식침대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/R02_정식침대.asset"
+    },
+    {
+      "stableId": "building:1022",
+      "name": "이층침대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/R03_이층침대.asset"
+    },
+    {
+      "stableId": "building:1023",
+      "name": "휴식용소파",
+      "assetPath": "Assets/Resources/SO/Building/Modular/R04_휴식용소파.asset"
+    },
+    {
+      "stableId": "building:1024",
+      "name": "협탁",
+      "assetPath": "Assets/Resources/SO/Building/Modular/R05_협탁.asset"
+    },
+    {
+      "stableId": "building:1025",
+      "name": "옷장",
+      "assetPath": "Assets/Resources/SO/Building/Modular/R06_옷장.asset"
+    },
+    {
+      "stableId": "building:1026",
+      "name": "영주집무책상",
+      "assetPath": "Assets/Resources/SO/Building/Modular/R07_영주집무책상.asset"
+    },
+    {
+      "stableId": "building:1027",
+      "name": "지휘의자",
+      "assetPath": "Assets/Resources/SO/Building/Modular/R08_지휘의자.asset"
+    },
+    {
+      "stableId": "building:1028",
+      "name": "개인보관함",
+      "assetPath": "Assets/Resources/SO/Building/Modular/R09_개인보관함.asset"
+    },
+    {
+      "stableId": "building:1029",
+      "name": "침실용책장",
+      "assetPath": "Assets/Resources/SO/Building/Modular/R10_침실용책장.asset"
+    },
+    {
+      "stableId": "building:1030",
+      "name": "연구책상",
+      "assetPath": "Assets/Resources/SO/Building/Modular/Q01_연구책상.asset"
+    },
+    {
+      "stableId": "building:1031",
+      "name": "연금술작업대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/Q02_연금술작업대.asset"
+    },
+    {
+      "stableId": "building:1032",
+      "name": "연구용책장",
+      "assetPath": "Assets/Resources/SO/Building/Modular/Q03_연구용책장.asset"
+    },
+    {
+      "stableId": "building:1033",
+      "name": "시약선반",
+      "assetPath": "Assets/Resources/SO/Building/Modular/Q04_시약선반.asset"
+    },
+    {
+      "stableId": "building:1034",
+      "name": "표본보관장",
+      "assetPath": "Assets/Resources/SO/Building/Modular/Q05_표본보관장.asset"
+    },
+    {
+      "stableId": "building:1035",
+      "name": "설계판",
+      "assetPath": "Assets/Resources/SO/Building/Modular/Q06_설계판.asset"
+    },
+    {
+      "stableId": "building:1036",
+      "name": "마력수정선반",
+      "assetPath": "Assets/Resources/SO/Building/Modular/M01_마력수정선반.asset"
+    },
+    {
+      "stableId": "building:1037",
+      "name": "마력저장조",
+      "assetPath": "Assets/Resources/SO/Building/Modular/M02_마력저장조.asset"
+    },
+    {
+      "stableId": "building:1038",
+      "name": "룬안정기",
+      "assetPath": "Assets/Resources/SO/Building/Modular/M03_룬안정기.asset"
+    },
+    {
+      "stableId": "building:1039",
+      "name": "의식초점석",
+      "assetPath": "Assets/Resources/SO/Building/Modular/M04_의식초점석.asset"
+    },
+    {
+      "stableId": "building:1040",
+      "name": "훈련허수아비",
+      "assetPath": "Assets/Resources/SO/Building/Modular/T01_훈련허수아비.asset"
+    },
+    {
+      "stableId": "building:1041",
+      "name": "사격과녁",
+      "assetPath": "Assets/Resources/SO/Building/Modular/T02_사격과녁.asset"
+    },
+    {
+      "stableId": "building:1042",
+      "name": "중량훈련석",
+      "assetPath": "Assets/Resources/SO/Building/Modular/T03_중량훈련석.asset"
+    },
+    {
+      "stableId": "building:1043",
+      "name": "대련매트",
+      "assetPath": "Assets/Resources/SO/Building/Modular/T04_대련매트.asset"
+    },
+    {
+      "stableId": "building:1044",
+      "name": "경비초소책상",
+      "assetPath": "Assets/Resources/SO/Building/Modular/G01_경비초소책상.asset"
+    },
+    {
+      "stableId": "building:1045",
+      "name": "경보종",
+      "assetPath": "Assets/Resources/SO/Building/Modular/G02_경보종.asset"
+    },
+    {
+      "stableId": "building:1046",
+      "name": "순찰상황판",
+      "assetPath": "Assets/Resources/SO/Building/Modular/G03_순찰상황판.asset"
+    },
+    {
+      "stableId": "building:1047",
+      "name": "전술지도탁자",
+      "assetPath": "Assets/Resources/SO/Building/Modular/G04_전술지도탁자.asset"
+    },
+    {
+      "stableId": "building:1048",
+      "name": "전투깃발",
+      "assetPath": "Assets/Resources/SO/Building/Modular/G05_전투깃발.asset"
+    },
+    {
+      "stableId": "building:1049",
+      "name": "전리품거치대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/G06_전리품거치대.asset"
+    },
+    {
+      "stableId": "building:1050",
+      "name": "대형보관선반",
+      "assetPath": "Assets/Resources/SO/Building/Modular/L01_대형보관선반.asset"
+    },
+    {
+      "stableId": "building:1051",
+      "name": "상자더미",
+      "assetPath": "Assets/Resources/SO/Building/Modular/L02_상자더미.asset"
+    },
+    {
+      "stableId": "building:1052",
+      "name": "통더미",
+      "assetPath": "Assets/Resources/SO/Building/Modular/L03_통더미.asset"
+    },
+    {
+      "stableId": "building:1053",
+      "name": "자루더미",
+      "assetPath": "Assets/Resources/SO/Building/Modular/L04_자루더미.asset"
+    },
+    {
+      "stableId": "building:1054",
+      "name": "식재료저장함",
+      "assetPath": "Assets/Resources/SO/Building/Modular/L05_식재료저장함.asset"
+    },
+    {
+      "stableId": "building:1055",
+      "name": "무기로커",
+      "assetPath": "Assets/Resources/SO/Building/Modular/L06_무기로커.asset"
+    },
+    {
+      "stableId": "building:1056",
+      "name": "마력보관함",
+      "assetPath": "Assets/Resources/SO/Building/Modular/L07_마력보관함.asset"
+    },
+    {
+      "stableId": "building:1057",
+      "name": "변기",
+      "assetPath": "Assets/Resources/SO/Building/Modular/H01_변기.asset"
+    },
+    {
+      "stableId": "building:1058",
+      "name": "화장실칸막이",
+      "assetPath": "Assets/Resources/SO/Building/Modular/H02_화장실칸막이.asset"
+    },
+    {
+      "stableId": "building:1059",
+      "name": "세면대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/H03_세면대.asset"
+    },
+    {
+      "stableId": "building:1060",
+      "name": "목욕통",
+      "assetPath": "Assets/Resources/SO/Building/Modular/H04_목욕통.asset"
+    },
+    {
+      "stableId": "building:1061",
+      "name": "수건걸이",
+      "assetPath": "Assets/Resources/SO/Building/Modular/H05_수건걸이.asset"
+    },
+    {
+      "stableId": "building:1062",
+      "name": "청소도구함",
+      "assetPath": "Assets/Resources/SO/Building/Modular/H06_청소도구함.asset"
+    },
+    {
+      "stableId": "building:1063",
+      "name": "바닥배수구",
+      "assetPath": "Assets/Resources/SO/Building/Modular/H07_바닥배수구.asset"
+    },
+    {
+      "stableId": "building:1064",
+      "name": "벽횃불",
+      "assetPath": "Assets/Resources/SO/Building/Modular/E01_벽횃불.asset"
+    },
+    {
+      "stableId": "building:1065",
+      "name": "바닥화로",
+      "assetPath": "Assets/Resources/SO/Building/Modular/E02_바닥화로.asset"
+    },
+    {
+      "stableId": "building:1066",
+      "name": "샹들리에",
+      "assetPath": "Assets/Resources/SO/Building/Modular/E03_샹들리에.asset"
+    },
+    {
+      "stableId": "building:1067",
+      "name": "소형러그",
+      "assetPath": "Assets/Resources/SO/Building/Modular/E04_소형러그.asset"
+    },
+    {
+      "stableId": "building:1068",
+      "name": "세력깃발",
+      "assetPath": "Assets/Resources/SO/Building/Modular/E05_세력깃발.asset"
+    },
+    {
+      "stableId": "building:1069",
+      "name": "액자초상화",
+      "assetPath": "Assets/Resources/SO/Building/Modular/E06_액자초상화.asset"
+    },
+    {
+      "stableId": "building:1070",
+      "name": "촛대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/E07_촛대.asset"
+    },
+    {
+      "stableId": "building:1071",
+      "name": "해골피장식",
+      "assetPath": "Assets/Resources/SO/Building/Modular/E08_해골피장식.asset"
+    },
+    {
+      "stableId": "building:1072",
+      "name": "방표지판",
+      "assetPath": "Assets/Resources/SO/Building/Modular/E09_방표지판.asset"
+    },
+    {
+      "stableId": "building:1073",
+      "name": "제분소",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P01_제분소.asset"
+    },
+    {
+      "stableId": "building:1074",
+      "name": "양조장",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P02_양조장.asset"
+    },
+    {
+      "stableId": "building:1075",
+      "name": "제재소",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P03_제재소.asset"
+    },
+    {
+      "stableId": "building:1076",
+      "name": "숯가마",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P04_숯가마.asset"
+    },
+    {
+      "stableId": "building:1077",
+      "name": "석재 절단대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P05_석재절단대.asset"
+    },
+    {
+      "stableId": "building:1078",
+      "name": "광석 선별대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P06_광석선별대.asset"
+    },
+    {
+      "stableId": "building:1079",
+      "name": "용광로",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P07_용광로.asset"
+    },
+    {
+      "stableId": "building:1080",
+      "name": "제강로",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P08_제강로.asset"
+    },
+    {
+      "stableId": "building:1081",
+      "name": "귀금 세공대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P09_귀금세공대.asset"
+    },
+    {
+      "stableId": "building:1082",
+      "name": "비전 단조대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P10_비전단조대.asset"
+    },
+    {
+      "stableId": "building:1083",
+      "name": "직조기",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P11_직조기.asset"
+    },
+    {
+      "stableId": "building:1084",
+      "name": "무두질대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P12_무두질대.asset"
+    },
+    {
+      "stableId": "building:1085",
+      "name": "퇴비장",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P13_퇴비장.asset"
+    },
+    {
+      "stableId": "building:1086",
+      "name": "증류기",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P14_증류기.asset"
+    },
+    {
+      "stableId": "building:1087",
+      "name": "조리대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P15_조리대.asset"
+    },
+    {
+      "stableId": "building:1088",
+      "name": "훈연대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P16_훈연대.asset"
+    },
+    {
+      "stableId": "building:1089",
+      "name": "사료 배합대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P17_사료배합대.asset"
+    },
+    {
+      "stableId": "building:1090",
+      "name": "약제대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P18_약제대.asset"
+    },
+    {
+      "stableId": "building:1091",
+      "name": "연금대",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P19_연금대.asset"
+    },
+    {
+      "stableId": "building:1092",
+      "name": "몽직기",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P20_몽직기.asset"
+    },
+    {
+      "stableId": "building:1093",
+      "name": "대장간",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P21_대장간.asset"
+    },
+    {
+      "stableId": "building:1094",
+      "name": "심부 채석장",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P22_심부채석장.asset"
+    },
+    {
+      "stableId": "building:1095",
+      "name": "야외 경작지",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P23_야외경작지.asset"
+    },
+    {
+      "stableId": "building:1096",
+      "name": "실내 재배조",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P24_실내재배조.asset"
+    },
+    {
+      "stableId": "building:1097",
+      "name": "폐기 소각로",
+      "assetPath": "Assets/Resources/SO/Building/Modular/P25_폐기소각로.asset"
+    },
+    {
+      "stableId": "building:11",
+      "name": "고기 식당",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_MeatRestaurant.asset"
+    },
+    {
+      "stableId": "building:12",
+      "name": "잡화점",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_GeneralStore.asset"
+    },
+    {
+      "stableId": "building:1200",
+      "name": "감방 구속대",
+      "assetPath": "Assets/Resources/SO/Building/Captivity/CP01_감방구속대.asset"
+    },
+    {
+      "stableId": "building:1201",
+      "name": "중앙 무대",
+      "assetPath": "Assets/Resources/SO/Building/Captivity/CS01_중앙무대.asset"
+    },
+    {
+      "stableId": "building:1202",
+      "name": "서커스 관람석",
+      "assetPath": "Assets/Resources/SO/Building/Captivity/CS02_관람석.asset"
+    },
+    {
+      "stableId": "building:1203",
+      "name": "야수 우리",
+      "assetPath": "Assets/Resources/SO/Building/Captivity/CB01_야수우리.asset"
+    },
+    {
+      "stableId": "building:1204",
+      "name": "서커스 매표소",
+      "assetPath": "Assets/Resources/SO/Building/Captivity/CT01_매표소.asset"
+    },
+    {
+      "stableId": "building:1205",
+      "name": "서커스 도박 창구",
+      "assetPath": "Assets/Resources/SO/Building/Captivity/CG01_도박창구.asset"
+    },
+    {
+      "stableId": "building:1206",
+      "name": "진행자 단상",
+      "assetPath": "Assets/Resources/SO/Building/Captivity/CA01_진행자단상.asset"
+    },
+    {
+      "stableId": "building:1207",
+      "name": "공연 위험 장치",
+      "assetPath": "Assets/Resources/SO/Building/Captivity/CH01_위험장치.asset"
+    },
+    {
+      "stableId": "building:1208",
+      "name": "공연 치료 구역",
+      "assetPath": "Assets/Resources/SO/Building/Captivity/CM01_치료구역.asset"
+    },
+    {
+      "stableId": "building:1209",
+      "name": "공개 형벌 장치",
+      "assetPath": "Assets/Resources/SO/Building/Captivity/CP02_공개형벌장치.asset"
+    },
+    {
+      "stableId": "building:13",
+      "name": "무기점",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_WeaponShop.asset"
+    },
+    {
+      "stableId": "building:14",
+      "name": "휴식방",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_RestRoom.asset"
+    },
+    {
+      "stableId": "building:15",
+      "name": "훈련장",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_TrainingRoom.asset"
+    },
+    {
+      "stableId": "building:1500",
+      "name": "보호장비보관함",
+      "assetPath": "Assets/Resources/SO/Building/Modular/L08_보호장비보관함.asset"
+    },
+    {
+      "stableId": "building:1501",
+      "name": "냉각기",
+      "assetPath": "Assets/Resources/SO/Building/Modular/E10_냉각기.asset"
+    },
+    {
+      "stableId": "building:1502",
+      "name": "공조기",
+      "assetPath": "Assets/Resources/SO/Building/Modular/E11_공조기.asset"
+    },
+    {
+      "stableId": "building:1503",
+      "name": "환기덕트",
+      "assetPath": "Assets/Resources/SO/Building/Modular/E12_환기덕트.asset"
+    },
+    {
+      "stableId": "building:1504",
+      "name": "송풍구",
+      "assetPath": "Assets/Resources/SO/Building/Modular/E13_송풍구.asset"
+    },
+    {
+      "stableId": "building:1505",
+      "name": "배기팬",
+      "assetPath": "Assets/Resources/SO/Building/Modular/E14_배기팬.asset"
+    },
+    {
+      "stableId": "building:16",
+      "name": "연구실",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_ResearchLab.asset"
+    },
+    {
+      "stableId": "building:1600",
+      "name": "미세 체 선반",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS01_미세_체_선반.asset"
+    },
+    {
+      "stableId": "building:1601",
+      "name": "\\uB2F4\\uAE08\\xB7\\uB2F9\\uD654\\uC870",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS02_담금_당화조.asset"
+    },
+    {
+      "stableId": "building:1602",
+      "name": "수동 발효조",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS03_수동_발효조.asset"
+    },
+    {
+      "stableId": "building:1603",
+      "name": "온도 제어 발효조",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS04_온도_제어_발효조.asset"
+    },
+    {
+      "stableId": "building:1604",
+      "name": "숙성 오크통",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS05_숙성_오크통.asset"
+    },
+    {
+      "stableId": "building:1605",
+      "name": "\\uC138\\uCC99\\xB7\\uBCD1\\uC785\\uB300",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS06_세척_병입대.asset"
+    },
+    {
+      "stableId": "building:1606",
+      "name": "분별 증류탑",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS07_분별_증류탑.asset"
+    },
+    {
+      "stableId": "building:1607",
+      "name": "\\uD654\\uB355\\xB7\\uAC00\\uB9C8\\uC1A5",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS08_화덕_가마솥.asset"
+    },
+    {
+      "stableId": "building:1608",
+      "name": "벽돌 오븐",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS09_벽돌_오븐.asset"
+    },
+    {
+      "stableId": "building:1609",
+      "name": "전기 오븐",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS10_전기_오븐.asset"
+    },
+    {
+      "stableId": "building:1610",
+      "name": "\\uC138\\uCC99\\xB7\\uC804\\uCC98\\uB9AC \\uC2F1\\uD06C",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS11_세척_전처리_싱크.asset"
+    },
+    {
+      "stableId": "building:1611",
+      "name": "냉장 준비대",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS12_냉장_준비대.asset"
+    },
+    {
+      "stableId": "building:1612",
+      "name": "향신료 선반",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS13_향신료_선반.asset"
+    },
+    {
+      "stableId": "building:1613",
+      "name": "\\uC5FC\\uC7A5\\xB7\\uC808\\uC784\\uC870",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS14_염장_절임조.asset"
+    },
+    {
+      "stableId": "building:1614",
+      "name": "치즈 응고조",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS15_치즈_응고조.asset"
+    },
+    {
+      "stableId": "building:1615",
+      "name": "치즈 숙성 선반",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS16_치즈_숙성_선반.asset"
+    },
+    {
+      "stableId": "building:1616",
+      "name": "영양 배합 저울",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS17_영양_배합_저울.asset"
+    },
+    {
+      "stableId": "building:1617",
+      "name": "연기 포집 후드",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS18_연기_포집_후드.asset"
+    },
+    {
+      "stableId": "building:1618",
+      "name": "목재 처리조",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS19_목재_처리조.asset"
+    },
+    {
+      "stableId": "building:1619",
+      "name": "정밀 연마기",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS20_정밀_연마기.asset"
+    },
+    {
+      "stableId": "building:1620",
+      "name": "도가니 선반",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS21_도가니_선반.asset"
+    },
+    {
+      "stableId": "building:1621",
+      "name": "세공 도구함",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS22_세공_도구함.asset"
+    },
+    {
+      "stableId": "building:1622",
+      "name": "마나 안정기",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS23_마나_안정기.asset"
+    },
+    {
+      "stableId": "building:1623",
+      "name": "직조 보조 선반",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS24_직조_보조_선반.asset"
+    },
+    {
+      "stableId": "building:1624",
+      "name": "무균 약품 보관함",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS25_무균_약품_보관함.asset"
+    },
+    {
+      "stableId": "building:1625",
+      "name": "마나 응축기",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS26_마나_응축기.asset"
+    },
+    {
+      "stableId": "building:1626",
+      "name": "대장 도구함",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS27_대장_도구함.asset"
+    },
+    {
+      "stableId": "building:1627",
+      "name": "실내 생장 제어기",
+      "assetPath": "Assets/Resources/SO/Building/ProductionSupport/WS28_실내_생장_제어기.asset"
+    },
+    {
+      "stableId": "building:17",
+      "name": "마력 저장소",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_ManaStorage.asset"
+    },
+    {
+      "stableId": "building:1700",
+      "name": "숙박 접수대",
+      "assetPath": "Assets/Resources/SO/Building/ServiceRooms/SR01_숙박 접수대.asset"
+    },
+    {
+      "stableId": "building:1701",
+      "name": "목욕 접수대",
+      "assetPath": "Assets/Resources/SO/Building/ServiceRooms/SR02_목욕 접수대.asset"
+    },
+    {
+      "stableId": "building:1702",
+      "name": "의료 분류대",
+      "assetPath": "Assets/Resources/SO/Building/ServiceRooms/SR03_의료 분류대.asset"
+    },
+    {
+      "stableId": "building:1703",
+      "name": "순번판",
+      "assetPath": "Assets/Resources/SO/Building/ServiceRooms/SR04_순번판.asset"
+    },
+    {
+      "stableId": "building:1704",
+      "name": "보온 배식대",
+      "assetPath": "Assets/Resources/SO/Building/ServiceRooms/SR05_보온 배식대.asset"
+    },
+    {
+      "stableId": "building:1705",
+      "name": "자동 계산대",
+      "assetPath": "Assets/Resources/SO/Building/ServiceRooms/SR06_자동 계산대.asset"
+    },
+    {
+      "stableId": "building:1706",
+      "name": "슬라임 전용 좌석",
+      "assetPath": "Assets/Resources/SO/Building/ServiceRooms/SR07_슬라임 전용 좌석.asset"
+    },
+    {
+      "stableId": "building:1707",
+      "name": "오크 전용 좌석",
+      "assetPath": "Assets/Resources/SO/Building/ServiceRooms/SR08_오크 전용 좌석.asset"
+    },
+    {
+      "stableId": "building:1708",
+      "name": "뱀파이어 전용 좌석",
+      "assetPath": "Assets/Resources/SO/Building/ServiceRooms/SR09_뱀파이어 전용 좌석.asset"
+    },
+    {
+      "stableId": "building:1709",
+      "name": "객실 정리함",
+      "assetPath": "Assets/Resources/SO/Building/ServiceRooms/SR10_객실 정리함.asset"
+    },
+    {
+      "stableId": "building:1710",
+      "name": "목욕 위생대",
+      "assetPath": "Assets/Resources/SO/Building/ServiceRooms/SR11_목욕 위생대.asset"
+    },
+    {
+      "stableId": "building:1711",
+      "name": "의료 호출판",
+      "assetPath": "Assets/Resources/SO/Building/ServiceRooms/SR12_의료 호출판.asset"
+    },
+    {
+      "stableId": "building:1712",
+      "name": "주문 접수대",
+      "assetPath": "Assets/Resources/SO/Building/ServiceRooms/SR13_주문 접수대.asset"
+    },
+    {
+      "stableId": "building:1713",
+      "name": "분리 계산대",
+      "assetPath": "Assets/Resources/SO/Building/ServiceRooms/SR14_분리 계산대.asset"
+    },
+    {
+      "stableId": "building:1714",
+      "name": "자동 객실 배정판",
+      "assetPath": "Assets/Resources/SO/Building/ServiceRooms/SR15_자동 객실 배정판.asset"
+    },
+    {
+      "stableId": "building:1715",
+      "name": "자동 급배수 제어기",
+      "assetPath": "Assets/Resources/SO/Building/ServiceRooms/SR16_자동 급배수 제어기.asset"
+    },
+    {
+      "stableId": "building:18",
+      "name": "창고",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_Warehouse.asset"
+    },
+    {
+      "stableId": "building:1800",
+      "name": "복도 침입 감지기",
+      "assetPath": "Assets/Resources/SO/Building/P1/DefenseCorridorDetector.asset"
+    },
+    {
+      "stableId": "building:1801",
+      "name": "방어 통제대",
+      "assetPath": "Assets/Resources/SO/Building/P1/DefenseControlDesk.asset"
+    },
+    {
+      "stableId": "building:1802",
+      "name": "\\uD0C4\\uC57D\\xB7\\uCD09\\uB9E4 \\uBCF4\\uAE09\\uACE0",
+      "assetPath": "Assets/Resources/SO/Building/P1/DefenseSupplyDepot.asset"
+    },
+    {
+      "stableId": "building:1803",
+      "name": "함정 정비대",
+      "assetPath": "Assets/Resources/SO/Building/P1/DefenseMaintenanceBench.asset"
+    },
+    {
+      "stableId": "building:1804",
+      "name": "문 연동 강화 낙하문",
+      "assetPath": "Assets/Resources/SO/Building/P1/DefenseLinkedDropGate.asset"
+    },
+    {
+      "stableId": "building:1805",
+      "name": "벽면 발사구",
+      "assetPath": "Assets/Resources/SO/Building/P1/DefenseWallLauncher.asset"
+    },
+    {
+      "stableId": "building:2",
+      "name": "엘레베이터",
+      "assetPath": "Assets/Resources/SO/Building/Elevator.asset"
+    },
+    {
+      "stableId": "building:3",
+      "name": "사장실",
+      "assetPath": "Assets/Resources/SO/Building/LordBedroom.asset"
+    },
+    {
+      "stableId": "building:30",
+      "name": "1성 산탄 가시 함정",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_SpikeTrap.asset"
+    },
+    {
+      "stableId": "building:31",
+      "name": "1성 독 웅덩이",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_PoisonPool.asset"
+    },
+    {
+      "stableId": "building:32",
+      "name": "1성 화염 분사구",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_FireVent.asset"
+    },
+    {
+      "stableId": "building:33",
+      "name": "1성 번개 기둥",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_LightningPillar.asset"
+    },
+    {
+      "stableId": "building:34",
+      "name": "1성 냉기 분사구",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_IceVent.asset"
+    },
+    {
+      "stableId": "building:35",
+      "name": "1성 경비실",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_GuardRoom.asset"
+    },
+    {
+      "stableId": "building:4",
+      "name": "계단",
+      "assetPath": "Assets/Resources/SO/Building/Stair.asset"
+    },
+    {
+      "stableId": "building:5",
+      "name": "무기상점",
+      "assetPath": "Assets/Resources/SO/Building/WeaponStore.asset"
+    },
+    {
+      "stableId": "building:50",
+      "name": "2성 전투 식당",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_BattleDining.asset"
+    },
+    {
+      "stableId": "building:51",
+      "name": "2성 고급 고기 식당",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_PremiumMeatRestaurant.asset"
+    },
+    {
+      "stableId": "building:52",
+      "name": "2성 맹독 가시 함정",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_VenomSpikeTrap.asset"
+    },
+    {
+      "stableId": "building:53",
+      "name": "2성 경보 코일",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_AlarmCoil.asset"
+    },
+    {
+      "stableId": "building:54",
+      "name": "2성 병영",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_Barracks.asset"
+    },
+    {
+      "stableId": "building:55",
+      "name": "3성 전장의 식당",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_BattlefieldDining.asset"
+    },
+    {
+      "stableId": "building:56",
+      "name": "3성 귀족의 식당",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_NobleDining.asset"
+    },
+    {
+      "stableId": "building:57",
+      "name": "3성 부식 냉각 함정",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_CorrosionFreezer.asset"
+    },
+    {
+      "stableId": "building:58",
+      "name": "3성 폭뢰 분사구",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_StormFireTrap.asset"
+    },
+    {
+      "stableId": "building:59",
+      "name": "3성 전투 병영",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_WarBarracks.asset"
+    },
+    {
+      "stableId": "building:6",
+      "name": "패스트푸드점",
+      "assetPath": "Assets/Resources/SO/Building/HamburgerStore.asset"
+    },
+    {
+      "stableId": "building:60",
+      "name": "화장실",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_Toilet.asset"
+    },
+    {
+      "stableId": "building:61",
+      "name": "세면장",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_Washroom.asset"
+    },
+    {
+      "stableId": "building:7",
+      "name": "내벽",
+      "assetPath": "Assets/Resources/SO/Building/Wall.asset"
+    },
+    {
+      "stableId": "building:8",
+      "name": "내벽 문",
+      "assetPath": "Assets/Resources/SO/Building/InteriorDoor.asset"
+    },
+    {
+      "stableId": "building:8801",
+      "name": "채집 바구니 작업대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF01_채집_바구니_작업대.asset"
+    },
+    {
+      "stableId": "building:8802",
+      "name": "중력식 수문",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF02_중력식_수문.asset"
+    },
+    {
+      "stableId": "building:8803",
+      "name": "동굴 재배 선반",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF03_동굴_재배_선반.asset"
+    },
+    {
+      "stableId": "building:8804",
+      "name": "문장 깃발 제작대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF04_문장_깃발_제작대.asset"
+    },
+    {
+      "stableId": "building:8805",
+      "name": "의식 화로",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF05_의식_화로.asset"
+    },
+    {
+      "stableId": "building:8806",
+      "name": "운반 멜빵 걸이",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF06_운반_멜빵_걸이.asset"
+    },
+    {
+      "stableId": "building:8807",
+      "name": "가격표 게시판",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF07_가격표_게시판.asset"
+    },
+    {
+      "stableId": "building:8808",
+      "name": "피의 무대 배수구",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF08_피의_무대_배수구.asset"
+    },
+    {
+      "stableId": "building:8809",
+      "name": "포로 작업 도구함",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF09_포로_작업_도구함.asset"
+    },
+    {
+      "stableId": "building:8810",
+      "name": "강화 구속구 선반",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF10_강화_구속구_선반.asset"
+    },
+    {
+      "stableId": "building:8811",
+      "name": "공연 소품 보관대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF11_공연_소품_보관대.asset"
+    },
+    {
+      "stableId": "building:8812",
+      "name": "동맹 신호기",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF12_동맹_신호기.asset"
+    },
+    {
+      "stableId": "building:8813",
+      "name": "균사 재배 선반",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF13_균사_재배_선반.asset"
+    },
+    {
+      "stableId": "building:8814",
+      "name": "벌목 키트 걸이",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF14_벌목_키트_걸이.asset"
+    },
+    {
+      "stableId": "building:8815",
+      "name": "쐐기 도끼 작업대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF15_쐐기_도끼_작업대.asset"
+    },
+    {
+      "stableId": "building:8816",
+      "name": "방부 처리 목재대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF16_방부_처리_목재대.asset"
+    },
+    {
+      "stableId": "building:8817",
+      "name": "번식 장부대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF17_번식_장부대.asset"
+    },
+    {
+      "stableId": "building:8818",
+      "name": "혈통 촉진제 선반",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF18_혈통_촉진제_선반.asset"
+    },
+    {
+      "stableId": "building:8819",
+      "name": "마구 선반",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF19_마구_선반.asset"
+    },
+    {
+      "stableId": "building:8820",
+      "name": "조련용 고삐 걸이",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF20_조련용_고삐_걸이.asset"
+    },
+    {
+      "stableId": "building:8821",
+      "name": "동력 공구날 연마대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF21_동력_공구날_연마대.asset"
+    },
+    {
+      "stableId": "building:8822",
+      "name": "자동 세척기",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF22_자동_세척기.asset"
+    },
+    {
+      "stableId": "building:8823",
+      "name": "룬 버스 결합기",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF23_룬_버스_결합기.asset"
+    },
+    {
+      "stableId": "building:8824",
+      "name": "방어시설 장전기",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF24_방어시설_장전기.asset"
+    },
+    {
+      "stableId": "building:8825",
+      "name": "시제품 연구실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF25_시제품_연구실.asset"
+    },
+    {
+      "stableId": "building:8826",
+      "name": "재료 시험기",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF26_재료_시험기.asset"
+    },
+    {
+      "stableId": "building:8827",
+      "name": "기계 기초대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF27_기계_기초대.asset"
+    },
+    {
+      "stableId": "building:8828",
+      "name": "냉각 매니폴드",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF28_냉각_매니폴드.asset"
+    },
+    {
+      "stableId": "building:8829",
+      "name": "유량계",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF29_유량계.asset"
+    },
+    {
+      "stableId": "building:8830",
+      "name": "정비 부품함",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF30_정비_부품함.asset"
+    },
+    {
+      "stableId": "building:8831",
+      "name": "전동 선반",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF31_전동_선반.asset"
+    },
+    {
+      "stableId": "building:8832",
+      "name": "정밀 게이지",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF32_정밀_게이지.asset"
+    },
+    {
+      "stableId": "building:8833",
+      "name": "룬 제어반",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF33_룬_제어반.asset"
+    },
+    {
+      "stableId": "building:8834",
+      "name": "무기 도면걸이",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF34_무기_도면걸이.asset"
+    },
+    {
+      "stableId": "building:8835",
+      "name": "방어구 맞춤대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF35_방어구_맞춤대.asset"
+    },
+    {
+      "stableId": "building:8836",
+      "name": "궁시 지그",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF36_궁시_지그.asset"
+    },
+    {
+      "stableId": "building:8837",
+      "name": "권양 작업대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF37_권양_작업대.asset"
+    },
+    {
+      "stableId": "building:8838",
+      "name": "사슬 조립틀",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF38_사슬_조립틀.asset"
+    },
+    {
+      "stableId": "building:8839",
+      "name": "관절 지그",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF39_관절_지그.asset"
+    },
+    {
+      "stableId": "building:8840",
+      "name": "화약 분쇄소",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF40_화약_분쇄소.asset"
+    },
+    {
+      "stableId": "building:8841",
+      "name": "탄약 압착기",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF41_탄약_압착기.asset"
+    },
+    {
+      "stableId": "building:8842",
+      "name": "부품 감정대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF42_부품_감정대.asset"
+    },
+    {
+      "stableId": "building:8843",
+      "name": "부품 복원 작업대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF43_부품_복원_작업대.asset"
+    },
+    {
+      "stableId": "building:8844",
+      "name": "정밀 장착대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF44_정밀_장착대.asset"
+    },
+    {
+      "stableId": "building:8845",
+      "name": "성장형 골격 지그",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF45_성장형_골격_지그.asset"
+    },
+    {
+      "stableId": "building:8846",
+      "name": "계측 작업대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF46_계측_작업대.asset"
+    },
+    {
+      "stableId": "building:8847",
+      "name": "구성체 핵 공학대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF47_구성체_핵_공학대.asset"
+    },
+    {
+      "stableId": "building:8848",
+      "name": "배식 운영판",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF48_배식_운영판.asset"
+    },
+    {
+      "stableId": "building:8849",
+      "name": "계절력 기록대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF49_계절력_기록대.asset"
+    },
+    {
+      "stableId": "building:8850",
+      "name": "작물 달력대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF50_작물_달력대.asset"
+    },
+    {
+      "stableId": "building:8851",
+      "name": "기상 관측탑",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF51_기상_관측탑.asset"
+    },
+    {
+      "stableId": "building:8852",
+      "name": "토양 검사대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF52_토양_검사대.asset"
+    },
+    {
+      "stableId": "building:8853",
+      "name": "계절 저장 선반",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF53_계절_저장_선반.asset"
+    },
+    {
+      "stableId": "building:8854",
+      "name": "재배 온실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF54_재배_온실.asset"
+    },
+    {
+      "stableId": "building:8855",
+      "name": "번식 일정 축사",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF55_번식_일정_축사.asset"
+    },
+    {
+      "stableId": "building:8856",
+      "name": "기후 제어실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF56_기후_제어실.asset"
+    },
+    {
+      "stableId": "building:8857",
+      "name": "가구 등록대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF57_가구_등록대.asset"
+    },
+    {
+      "stableId": "building:8858",
+      "name": "보육실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF58_보육실.asset"
+    },
+    {
+      "stableId": "building:8859",
+      "name": "산과실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF59_산과실.asset"
+    },
+    {
+      "stableId": "building:8860",
+      "name": "교실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF60_교실.asset"
+    },
+    {
+      "stableId": "building:8861",
+      "name": "도제 작업대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF61_도제_작업대.asset"
+    },
+    {
+      "stableId": "building:8862",
+      "name": "계보 관리실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF62_계보_관리실.asset"
+    },
+    {
+      "stableId": "building:8863",
+      "name": "노화 평가대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF63_노화_평가대.asset"
+    },
+    {
+      "stableId": "building:8864",
+      "name": "연령 계측기",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF64_연령_계측기.asset"
+    },
+    {
+      "stableId": "building:8865",
+      "name": "노인 병상",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF65_노인_병상.asset"
+    },
+    {
+      "stableId": "building:8866",
+      "name": "만성 관리실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF66_만성_관리실.asset"
+    },
+    {
+      "stableId": "building:8867",
+      "name": "재생 배양조",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF67_재생_배양조.asset"
+    },
+    {
+      "stableId": "building:8868",
+      "name": "장기 재생 수술실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF68_장기_재생_수술실.asset"
+    },
+    {
+      "stableId": "building:8869",
+      "name": "회춘 수혈실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF69_회춘_수혈실.asset"
+    },
+    {
+      "stableId": "building:8870",
+      "name": "룬 동면실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF70_룬_동면실.asset"
+    },
+    {
+      "stableId": "building:8871",
+      "name": "전신 재생조",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF71_전신_재생조.asset"
+    },
+    {
+      "stableId": "building:8872",
+      "name": "시간 고정실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF72_시간_고정실.asset"
+    },
+    {
+      "stableId": "building:8873",
+      "name": "감염 진단대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF73_감염_진단대.asset"
+    },
+    {
+      "stableId": "building:8874",
+      "name": "격리 병동",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF74_격리_병동.asset"
+    },
+    {
+      "stableId": "building:8875",
+      "name": "혈청 검사대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF75_혈청_검사대.asset"
+    },
+    {
+      "stableId": "building:8876",
+      "name": "백신 연구실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF76_백신_연구실.asset"
+    },
+    {
+      "stableId": "building:8877",
+      "name": "역학 상황판",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF77_역학_상황판.asset"
+    },
+    {
+      "stableId": "building:8878",
+      "name": "유전 기록고",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF78_유전_기록고.asset"
+    },
+    {
+      "stableId": "building:8879",
+      "name": "형질 분석기",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF79_형질_분석기.asset"
+    },
+    {
+      "stableId": "building:8880",
+      "name": "유전 상담실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF80_유전_상담실.asset"
+    },
+    {
+      "stableId": "building:8881",
+      "name": "교차계통 배양기",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF81_교차계통_배양기.asset"
+    },
+    {
+      "stableId": "building:8882",
+      "name": "방 배정대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF82_방_배정대.asset"
+    },
+    {
+      "stableId": "building:8883",
+      "name": "가족실 칸막이",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF83_가족실_칸막이.asset"
+    },
+    {
+      "stableId": "building:8884",
+      "name": "보호자 등록소",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF84_보호자_등록소.asset"
+    },
+    {
+      "stableId": "building:8885",
+      "name": "상담실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF85_상담실.asset"
+    },
+    {
+      "stableId": "building:8886",
+      "name": "시신 처리대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF86_시신_처리대.asset"
+    },
+    {
+      "stableId": "building:8887",
+      "name": "추모실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF87_추모실.asset"
+    },
+    {
+      "stableId": "building:8888",
+      "name": "기후 지도실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF88_기후_지도실.asset"
+    },
+    {
+      "stableId": "building:8889",
+      "name": "원정 천문시계실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF89_원정_천문시계실.asset"
+    },
+    {
+      "stableId": "building:8890",
+      "name": "종자 선별대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF90_종자_선별대.asset"
+    },
+    {
+      "stableId": "building:8891",
+      "name": "방제 조제대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF91_방제_조제대.asset"
+    },
+    {
+      "stableId": "building:8892",
+      "name": "작물 병리실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF92_작물_병리실.asset"
+    },
+    {
+      "stableId": "building:8893",
+      "name": "육종 온실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF93_육종_온실.asset"
+    },
+    {
+      "stableId": "building:8894",
+      "name": "경력 기록대",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF94_경력_기록대.asset"
+    },
+    {
+      "stableId": "building:8895",
+      "name": "은퇴자 휴게실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF95_은퇴자_휴게실.asset"
+    },
+    {
+      "stableId": "building:8896",
+      "name": "멘토 학원",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF96_멘토_학원.asset"
+    },
+    {
+      "stableId": "building:8897",
+      "name": "공명 조율실",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF97_공명_조율실.asset"
+    },
+    {
+      "stableId": "building:8898",
+      "name": "보안 거래 금고",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF98_보안_거래_금고.asset"
+    },
+    {
+      "stableId": "building:8899",
+      "name": "방어 제어반",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF99_방어_제어반.asset"
+    },
+    {
+      "stableId": "building:8900",
+      "name": "탄도 시험장",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF100_탄도_시험장.asset"
+    },
+    {
+      "stableId": "building:8901",
+      "name": "흑강 주조 보조로",
+      "assetPath": "Assets/Resources/SO/Building/ResearchOverhaul/RF101_흑강_주조_보조로.asset"
+    },
+    {
+      "stableId": "building:9301",
+      "name": "\\uC7AC\\uB2E8\\xB7\\uC7AC\\uBD09 \\uC791\\uC5C5\\uB300",
+      "assetPath": "Assets/Resources/SO/Building/V22Apparel/V22_9301_재단_재봉_작업대.asset"
+    },
+    {
+      "stableId": "building:9302",
+      "name": "\\uBB38\\uC591\\xB7\\uC7A5\\uC2DD \\uC791\\uC5C5\\uB300",
+      "assetPath": "Assets/Resources/SO/Building/V22Apparel/V22_9302_문양_장식_작업대.asset"
+    },
+    {
+      "stableId": "building:9303",
+      "name": "손세탁 수조",
+      "assetPath": "Assets/Resources/SO/Building/V22Apparel/V22_9303_손세탁_수조.asset"
+    },
+    {
+      "stableId": "building:9304",
+      "name": "실내 건조대",
+      "assetPath": "Assets/Resources/SO/Building/V22Apparel/V22_9304_실내_건조대.asset"
+    },
+    {
+      "stableId": "building:9305",
+      "name": "\\uB3D9\\uB825 \\uC138\\uD0C1\\xB7\\uAC74\\uC870\\uAE30",
+      "assetPath": "Assets/Resources/SO/Building/V22Apparel/V22_9305_동력_세탁_건조기.asset"
+    },
+    {
+      "stableId": "building:9306",
+      "name": "의복 진열대",
+      "assetPath": "Assets/Resources/SO/Building/V22Apparel/V22_9306_의복_진열대.asset"
+    },
+    {
+      "stableId": "building:9307",
+      "name": "탈의 칸막이",
+      "assetPath": "Assets/Resources/SO/Building/V22Apparel/V22_9307_탈의_칸막이.asset"
+    },
+    {
+      "stableId": "building:9308",
+      "name": "수선 접수대",
+      "assetPath": "Assets/Resources/SO/Building/V22Apparel/V22_9308_수선_접수대.asset"
+    },
+    {
+      "stableId": "building:9309",
+      "name": "섬유 선별대",
+      "assetPath": "Assets/Resources/SO/Building/V22Apparel/V22_9309_섬유_선별대.asset"
+    },
+    {
+      "stableId": "building:9310",
+      "name": "\\uCE68\\uC9C0\\xB7\\uC815\\uB828\\uC870",
+      "assetPath": "Assets/Resources/SO/Building/V22Apparel/V22_9310_침지_정련조.asset"
+    },
+    {
+      "stableId": "building:9311",
+      "name": "수동 방적기",
+      "assetPath": "Assets/Resources/SO/Building/V22Apparel/V22_9311_수동_방적기.asset"
+    },
+    {
+      "stableId": "building:9312",
+      "name": "\\uCD95\\uC735\\xB7\\uB9C8\\uAC10\\uB300",
+      "assetPath": "Assets/Resources/SO/Building/V22Apparel/V22_9312_축융_마감대.asset"
+    },
+    {
+      "stableId": "building:9313",
+      "name": "동력 방적기",
+      "assetPath": "Assets/Resources/SO/Building/V22Apparel/V22_9313_동력_방적기.asset"
+    },
+    {
+      "stableId": "building:9314",
+      "name": "동력 직조기",
+      "assetPath": "Assets/Resources/SO/Building/V22Apparel/V22_9314_동력_직조기.asset"
+    },
+    {
+      "stableId": "building:9501",
+      "name": "응급 처치대",
+      "assetPath": "Assets/Resources/SO/Building/Medical/M01_응급처치대.asset"
+    },
+    {
+      "stableId": "building:9502",
+      "name": "해부대",
+      "assetPath": "Assets/Resources/SO/Building/Medical/M02_해부대.asset"
+    },
+    {
+      "stableId": "building:9503",
+      "name": "외과 수술대",
+      "assetPath": "Assets/Resources/SO/Building/Medical/M03_외과수술대.asset"
+    },
+    {
+      "stableId": "building:9504",
+      "name": "세정대",
+      "assetPath": "Assets/Resources/SO/Building/Medical/M04_세정대.asset"
+    },
+    {
+      "stableId": "building:9505",
+      "name": "마취 장치",
+      "assetPath": "Assets/Resources/SO/Building/Medical/M05_마취장치.asset"
+    },
+    {
+      "stableId": "building:9506",
+      "name": "보철 조립대",
+      "assetPath": "Assets/Resources/SO/Building/Medical/M06_보철조립대.asset"
+    },
+    {
+      "stableId": "building:9507",
+      "name": "재활 보조대",
+      "assetPath": "Assets/Resources/SO/Building/Medical/M07_재활보조대.asset"
+    },
+    {
+      "stableId": "building:9508",
+      "name": "장기 보관함",
+      "assetPath": "Assets/Resources/SO/Building/Medical/M08_장기보관함.asset"
+    },
+    {
+      "stableId": "building:9509",
+      "name": "순환 이식대",
+      "assetPath": "Assets/Resources/SO/Building/Medical/M09_순환이식대.asset"
+    },
+    {
+      "stableId": "building:9510",
+      "name": "면역 조절기",
+      "assetPath": "Assets/Resources/SO/Building/Medical/M10_면역조절기.asset"
+    },
+    {
+      "stableId": "building:9511",
+      "name": "격리 회복 침상",
+      "assetPath": "Assets/Resources/SO/Building/Medical/M11_격리회복침상.asset"
+    },
+    {
+      "stableId": "building:9512",
+      "name": "비전 개조대",
+      "assetPath": "Assets/Resources/SO/Building/Medical/M12_비전개조대.asset"
+    },
+    {
+      "stableId": "building:9513",
+      "name": "룬 봉합기",
+      "assetPath": "Assets/Resources/SO/Building/Medical/M13_룬봉합기.asset"
+    },
+    {
+      "stableId": "building:9601",
+      "name": "목재 바리케이드",
+      "assetPath": "Assets/Resources/SO/Building/Combat/C01_WoodBarricade.asset"
+    },
+    {
+      "stableId": "building:9602",
+      "name": "자루 방책",
+      "assetPath": "Assets/Resources/SO/Building/Combat/C02_SackBulwark.asset"
+    },
+    {
+      "stableId": "building:9603",
+      "name": "화살막이",
+      "assetPath": "Assets/Resources/SO/Building/Combat/C03_ArrowScreen.asset"
+    },
+    {
+      "stableId": "building:9801",
+      "name": "전력선",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/U01_전력선.asset"
+    },
+    {
+      "stableId": "building:9802",
+      "name": "상수관",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/U02_상수관.asset"
+    },
+    {
+      "stableId": "building:9803",
+      "name": "하수관",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/U03_하수관.asset"
+    },
+    {
+      "stableId": "building:9804",
+      "name": "통합 기반 덕트",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/U04_통합_기반_덕트.asset"
+    },
+    {
+      "stableId": "building:9810",
+      "name": "증기 발전기",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/I01_증기_발전기.asset"
+    },
+    {
+      "stableId": "building:9811",
+      "name": "수차 발전기",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/I02_수차_발전기.asset"
+    },
+    {
+      "stableId": "building:9812",
+      "name": "마나 발전기",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/I03_마나_발전기.asset"
+    },
+    {
+      "stableId": "building:9813",
+      "name": "축전지",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/I04_축전지.asset"
+    },
+    {
+      "stableId": "building:9814",
+      "name": "회로 차단기",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/I05_회로_차단기.asset"
+    },
+    {
+      "stableId": "building:9815",
+      "name": "변압 제어반",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/I06_변압_제어반.asset"
+    },
+    {
+      "stableId": "building:9816",
+      "name": "전동 양수 펌프",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/I07_전동_양수_펌프.asset"
+    },
+    {
+      "stableId": "building:9817",
+      "name": "상수 탱크",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/I08_상수_탱크.asset"
+    },
+    {
+      "stableId": "building:9818",
+      "name": "오수 탱크",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/I09_오수_탱크.asset"
+    },
+    {
+      "stableId": "building:9819",
+      "name": "물통 충전소",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/I10_물통_충전소.asset"
+    },
+    {
+      "stableId": "building:9820",
+      "name": "오수 침전조",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/I11_오수_침전조.asset"
+    },
+    {
+      "stableId": "building:9821",
+      "name": "소독 정수기",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/I12_소독_정수기.asset"
+    },
+    {
+      "stableId": "building:9822",
+      "name": "룬 정화 시설",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/I13_룬_정화_시설.asset"
+    },
+    {
+      "stableId": "building:9823",
+      "name": "샤워 시설",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/I14_샤워_시설.asset"
+    },
+    {
+      "stableId": "building:9824",
+      "name": "전기 아크등",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/I15_전기_아크등.asset"
+    },
+    {
+      "stableId": "building:9825",
+      "name": "전기 제련 도가니",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/I16_전기_제련_도가니.asset"
+    },
+    {
+      "stableId": "building:9826",
+      "name": "룬 조율실",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/I17_룬_조율실.asset"
+    },
+    {
+      "stableId": "building:9827",
+      "name": "계보 기록실",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/I18_계보_기록실.asset"
+    },
+    {
+      "stableId": "building:9840",
+      "name": "컨베이어 우향",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/C01R_컨베이어_우향.asset"
+    },
+    {
+      "stableId": "building:9841",
+      "name": "컨베이어 좌향",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/C01L_컨베이어_좌향.asset"
+    },
+    {
+      "stableId": "building:9842",
+      "name": "컨베이어 상향",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/C01U_컨베이어_상향.asset"
+    },
+    {
+      "stableId": "building:9843",
+      "name": "컨베이어 하향",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/C01D_컨베이어_하향.asset"
+    },
+    {
+      "stableId": "building:9844",
+      "name": "컨베이어 입력기",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/C02_컨베이어_입력기.asset"
+    },
+    {
+      "stableId": "building:9845",
+      "name": "컨베이어 출력기",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/C03_컨베이어_출력기.asset"
+    },
+    {
+      "stableId": "building:9846",
+      "name": "컨베이어 분배기",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/C04_컨베이어_분배기.asset"
+    },
+    {
+      "stableId": "building:9847",
+      "name": "컨베이어 합류기",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/C05_컨베이어_합류기.asset"
+    },
+    {
+      "stableId": "building:9848",
+      "name": "컨베이어 필터",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/C06_컨베이어_필터.asset"
+    },
+    {
+      "stableId": "building:9849",
+      "name": "우선순위 게이트",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/C07_우선순위_게이트.asset"
+    },
+    {
+      "stableId": "building:9850",
+      "name": "층간 물류 리프트",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/C08_층간_물류_리프트.asset"
+    },
+    {
+      "stableId": "building:9851",
+      "name": "오버플로 배출 게이트",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/C09_오버플로_배출_게이트.asset"
+    },
+    {
+      "stableId": "building:9852",
+      "name": "고속 컨베이어",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/C10_고속_컨베이어.asset"
+    },
+    {
+      "stableId": "building:9860",
+      "name": "자동화 제어반",
+      "assetPath": "Assets/Resources/SO/Building/Industrial/A01_자동화_제어반.asset"
+    },
+    {
+      "stableId": "building:9961",
+      "name": "금고각인 쇠뇌대",
+      "assetPath": "Assets/Resources/SO/Building/P1/P1_TreasuryBoltThrower.asset"
+    }
+  ]
+}

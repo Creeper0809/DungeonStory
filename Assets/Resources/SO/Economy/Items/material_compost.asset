@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 3
   features:
-  - rid: 7737211673962611643
-  - rid: 7737211673962611644
-  - rid: 7737211673962611645
+  - rid: 7737211838068949703
+  - rid: 7737211838068949704
+  - rid: 7737211838068949705
   references:
     version: 2
     RefIds:
-    - rid: 7737211673962611643
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949703
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:agriculture:compost
-    - rid: 7737211673962611644
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949704
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 2049
         sharedIntermediate: 1
-    - rid: 7737211673962611645
-      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949705
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

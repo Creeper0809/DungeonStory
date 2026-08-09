@@ -30,7 +30,7 @@ MonoBehaviour:
   equipment:
     weaponDefinitionId: weapon:mace
     armorDefinitionId: armor:brigandine
-    shieldDefinitionId: 
+    shieldDefinitionId: shield:tower
     ammunitionItemId: 
   abilityIds:
   - enemy-ability:shield-wall
@@ -48,7 +48,7 @@ MonoBehaviour:
   counterTags:
   - counter:armor-break
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   bossPhases: []
   individualGeneration:
     minimumGeneralTraits: 2

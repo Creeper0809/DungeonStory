@@ -29,7 +29,7 @@ MonoBehaviour:
   moveSpeed: 5
   equipment:
     weaponDefinitionId: weapon:halberd
-    armorDefinitionId: armor:scale
+    armorDefinitionId: armor:scale-coat
     shieldDefinitionId: 
     ammunitionItemId: 
   abilityIds:
@@ -49,7 +49,7 @@ MonoBehaviour:
   counterTags:
   - counter:guard-backline
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   bossPhases: []
   individualGeneration:
     minimumGeneralTraits: 2

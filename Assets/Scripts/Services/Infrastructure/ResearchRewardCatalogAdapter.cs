@@ -14,7 +14,8 @@ public sealed class ResearchRewardCatalog : IResearchRewardCatalog
         IFacilityShopCatalog facilities,
         IResourceEconomyContentCatalog economy,
         ICombatEquipmentCatalog equipment,
-        ISurgicalProcedureCatalog surgicalProcedures)
+        ISurgicalProcedureCatalog surgicalProcedures,
+        IEnvironmentalWorkwearCatalog environmentalWorkwear)
     {
         this.researchProjects = researchProjects
             ?? throw new ArgumentNullException(nameof(researchProjects));
@@ -49,8 +50,11 @@ public sealed class ResearchRewardCatalog : IResearchRewardCatalog
         foreach (ResourceItemDefinitionSO item in economy?.Items
                      ?? Array.Empty<ResourceItemDefinitionSO>())
         {
+            ResearchRewardKind kind = ResolveItemRewardKind(
+                item,
+                environmentalWorkwear);
             AddRequired(entries, item.RequiredResearchId,
-                ResearchRewardKind.ProductionItem, item.ItemId, item.DisplayName);
+                kind, item.ItemId, item.DisplayName);
         }
         foreach (ProductionRecipeSO recipe in economy?.Recipes
                      ?? Array.Empty<ProductionRecipeSO>())
@@ -73,6 +77,20 @@ public sealed class ResearchRewardCatalog : IResearchRewardCatalog
                 ResearchRewardKind.MedicalProcedure,
                 procedure.ProcedureId,
                 procedure.DisplayName);
+        }
+        foreach (CropDefinitionSO crop in economy?.Crops
+                     ?? Array.Empty<CropDefinitionSO>())
+        {
+            AddRequired(entries, crop.RequiredResearchId,
+                ResearchRewardKind.Crop, crop.CropId, crop.DisplayName);
+        }
+        foreach (CraftMaterialDefinitionSO material in economy?.Materials
+                     ?? Array.Empty<CraftMaterialDefinitionSO>())
+        {
+            AddRequired(entries, material.RequiredResearchId,
+                ResearchRewardKind.CraftMaterial,
+                material.MaterialId,
+                material.DisplayName);
         }
 
         all = entries
@@ -148,6 +166,29 @@ public sealed class ResearchRewardCatalog : IResearchRewardCatalog
             entries.Add(new ResearchRewardEntry(
                 researchId, kind, rewardId, displayName));
         }
+    }
+
+    private static ResearchRewardKind ResolveItemRewardKind(
+        ResourceItemDefinitionSO item,
+        IEnvironmentalWorkwearCatalog environmentalWorkwear)
+    {
+        if (item.Kind == ResourceItemKind.Ammunition)
+        {
+            return ResearchRewardKind.Ammunition;
+        }
+        if (environmentalWorkwear != null
+            && environmentalWorkwear.TryGetByItemDefinitionId(
+                item.ItemId,
+                out EnvironmentalWorkwearSO _))
+        {
+            return ResearchRewardKind.EnvironmentalWorkwear;
+        }
+        if (item.ItemId.StartsWith("component:", StringComparison.Ordinal)
+            || item.ItemId.StartsWith("installation:", StringComparison.Ordinal))
+        {
+            return ResearchRewardKind.InstallationComponent;
+        }
+        return ResearchRewardKind.ProductionItem;
     }
 
     private static string RewardKey(ResearchRewardKind kind, string rewardId) =>

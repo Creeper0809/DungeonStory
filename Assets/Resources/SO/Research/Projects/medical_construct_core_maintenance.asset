@@ -29,14 +29,14 @@ MonoBehaviour:
   field: 14
   requiredWork: 184
   prerequisites:
-  - {fileID: 11400000, guid: 8f63d37343e549b4a945b0f75f4558de, type: 2}
+  - {fileID: 11400000, guid: 4ee2df589417d314295a42c252406053, type: 2}
   - {fileID: 11400000, guid: c52785d031f4ec84e99b815e21ffaf41, type: 2}
   prerequisiteLinks:
-  - prerequisiteId: research:industry:distribution
-    prerequisite: {fileID: 11400000, guid: 8f63d37343e549b4a945b0f75f4558de, type: 2}
+  - prerequisiteId: research:industry:steam-power
+    prerequisite: {fileID: 11400000, guid: 4ee2df589417d314295a42c252406053, type: 2}
     kind: 2
-    reason: "\uBC30\uC804\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uAD6C\uC131\uCCB4
-      \uD575 \uC815\uBE44 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+    reason: "\uC99D\uAE30 \uB3D9\uB825\uACFC \uBC30\uC804\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uAD6C\uC131\uCCB4 \uD575 \uC815\uBE44 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   - prerequisiteId: research:medical:prosthetics
     prerequisite: {fileID: 11400000, guid: c52785d031f4ec84e99b815e21ffaf41, type: 2}
     kind: 2

@@ -34,6 +34,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
     private IInvasionCampaignRuntime campaignRuntime;
     private IEnemyArchetypeCatalog enemyArchetypes;
     private IEnemyIndividualFactory enemyIndividuals;
+    private IFacilityCapabilityQuery facilityCapabilities;
+    private IWorldItemStackRuntime worldItems;
     private IDisposable invasionCandidateSubscription;
     private IDisposable invasionResolvedSubscription;
     private bool nextInvasionIsBoss;
@@ -106,7 +108,9 @@ public class InvasionDirectorRuntime : MonoBehaviour
         IOffenseRegionRuntime offenseRegionRuntime,
         ITreasuryDefenseRuntime treasuryDefenseRuntime,
         IExternalInfluenceRuntime externalInfluence,
-        IInvasionCampaignRuntime campaignRuntime)
+        IInvasionCampaignRuntime campaignRuntime,
+        IFacilityCapabilityQuery facilityCapabilities,
+        IWorldItemStackRuntime worldItems)
     {
         this.invasionContext = invasionContext
             ?? throw new ArgumentNullException(nameof(invasionContext));
@@ -128,6 +132,10 @@ public class InvasionDirectorRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(treasuryDefenseRuntime));
         this.externalInfluence = externalInfluence;
         this.campaignRuntime = campaignRuntime;
+        this.facilityCapabilities = facilityCapabilities
+            ?? throw new ArgumentNullException(nameof(facilityCapabilities));
+        this.worldItems = worldItems
+            ?? throw new ArgumentNullException(nameof(worldItems));
         SubscribeToScopedEvents();
     }
 
@@ -176,6 +184,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
         InvasionCampaignSaveData campaignSnapshot = null;
         int randomRootSeed = 0;
         IReadOnlyList<RandomStreamStateSnapshot> randomSnapshots = null;
+        WorldItemStackSnapshot usedSignalHorn = null;
+        ItemInstanceComponentSaveData previousSignalHornDurability = null;
         try
         {
         runtime = factory.Create(intruderPrefab, entry.OutsidePosition);
@@ -234,6 +244,12 @@ public class InvasionDirectorRuntime : MonoBehaviour
         {
             effectiveSettings.rallyDurationSeconds += isBoss ? 5f : 10f;
         }
+        if (TryUseWatchSignalHorn(
+                out usedSignalHorn,
+                out previousSignalHornDurability))
+        {
+            effectiveSettings.rallyDurationSeconds += 6f;
+        }
 
         float runAdjustedOwnerDamage = effectiveSettings.finalCombatDamage;
         if (isBoss)
@@ -274,6 +290,7 @@ public class InvasionDirectorRuntime : MonoBehaviour
         registered = true;
         runtime.OnFinished += OnIntruderFinished;
         runtime.StartPrepared(entry.DoorPosition, entry.GridPosition);
+        ResolveEnemyIndividuals().EnsureCharacterDomains(individual);
         InvasionIntruderPatternDefinition pattern = runtime.Pattern;
         intruder = preparedIntruder;
         nextInvasionIsBoss = false;
@@ -302,6 +319,13 @@ public class InvasionDirectorRuntime : MonoBehaviour
         catch (Exception exception)
         {
             intruder = null;
+            if (usedSignalHorn != null
+                && previousSignalHornDurability != null)
+            {
+                worldItems.TrySetInstanceComponent(
+                    usedSignalHorn.StackId,
+                    previousSignalHornDurability);
+            }
             List<Exception> cleanupFailures = CleanupFailedSpawn(
                 factory,
                 runtime,
@@ -323,6 +347,80 @@ public class InvasionDirectorRuntime : MonoBehaviour
                 EventAlertImportance.High);
             return false;
         }
+    }
+
+    private bool TryUseWatchSignalHorn(
+        out WorldItemStackSnapshot horn,
+        out ItemInstanceComponentSaveData previousDurability)
+    {
+        horn = null;
+        previousDurability = null;
+        BuildableObject signalPost = facilityCapabilities
+            .FindOperational(FacilityCapabilityKind.Security)
+            .FirstOrDefault();
+        if (signalPost == null)
+        {
+            return false;
+        }
+
+        string destinationId = signalPost.PersistentInstanceId.Value;
+        horn = worldItems.GetAllStacks()
+            .Where(stack => stack != null
+                && stack.State == WorldItemStackState.FacilityBuffer
+                && string.Equals(
+                    stack.DestinationId,
+                    destinationId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    stack.ItemId,
+                    DurableToolItemRules.WatchSignalHorn,
+                    StringComparison.Ordinal)
+                && DurableToolItemRules.ReadCurrentDurability(
+                    stack.ItemId,
+                    stack.Components) > 0f)
+            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (horn == null)
+        {
+            if (!worldItems.GetAllStacks().Any(stack => stack != null
+                    && string.Equals(
+                        stack.ItemId,
+                        DurableToolItemRules.WatchSignalHorn,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        stack.DestinationId,
+                        destinationId,
+                        StringComparison.Ordinal)))
+            {
+                worldItems.TryRequestItemDelivery(
+                    DurableToolItemRules.WatchSignalHorn,
+                    1,
+                    signalPost.centerPos,
+                    destinationId,
+                    out _,
+                    out _);
+            }
+            return false;
+        }
+
+        float current = DurableToolItemRules.ReadCurrentDurability(
+            horn.ItemId,
+            horn.Components);
+        previousDurability = DurableToolItemRules.CreateDurability(
+            horn.ItemId,
+            current);
+        if (worldItems.TrySetInstanceComponent(
+                horn.StackId,
+                DurableToolItemRules.CreateDurability(
+                    horn.ItemId,
+                    current - 1f)))
+        {
+            return true;
+        }
+
+        horn = null;
+        previousDurability = null;
+        return false;
     }
 
     private List<Exception> CleanupFailedSpawn(

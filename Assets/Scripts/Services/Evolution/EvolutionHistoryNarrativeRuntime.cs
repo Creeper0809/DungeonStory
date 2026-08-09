@@ -19,6 +19,9 @@ public sealed class EvolutionHistoryNarrativeResponseDto : ILlmJsonPayload
     public string displayName = string.Empty;
     public string description = string.Empty;
     public string historyReason = string.Empty;
+    public string[] usedMotifIds = Array.Empty<string>();
+    public string[] usedCharacterFactIds = Array.Empty<string>();
+    [NonSerialized] public NarrativeGenerationTrace narrativeTrace;
 
     public bool Validate(out string error)
     {
@@ -155,6 +158,12 @@ public static class EvolutionNarrativeRequestFactory
             historyHash = historyHash ?? string.Empty,
             generation = Mathf.Max(0, node.generation),
             effectBudget = Mathf.Max(0, effectBudget),
+            legalCandidateEffectIds = node.legalCandidateEffectIds?
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct(StringComparer.Ordinal)
+                .Take(3)
+                .ToList() ?? new List<string>(),
+            selectedCandidateIndex = node.selectedCandidateIndex,
             evidenceIds = evidence
                 .Select(entry => entry.evidenceId)
                 .Where(id => !string.IsNullOrWhiteSpace(id))
@@ -250,9 +259,117 @@ public sealed class EvolutionHistoryNarrativeRuntime :
                 continue;
             }
 
+            if (request.targetKind == EvolutionNarrativeTargetKind.Equipment
+                && request.selectedCandidateIndex < 0
+                && request.legalCandidateEffectIds?.Count > 1)
+            {
+                submissions++;
+                TrySubmitEquipmentChoice(request);
+                continue;
+            }
+
             submissions++;
             TrySubmit(request, now);
         }
+    }
+
+    private void TrySubmitEquipmentChoice(EvolutionNarrativeRequestSnapshot request)
+    {
+        if (!llmRuntimeProvider.TryGetRuntime(out ILocalLlmRuntime runtime)
+            || runtime is not IConstrainedEquipmentChoiceLlmRuntime choiceRuntime)
+        {
+            ApplyEquipmentChoice(request.requestKey, 0);
+            return;
+        }
+
+        string prompt = BuildEquipmentChoicePrompt(request);
+        inFlight.Add(request.requestKey);
+        bool accepted = choiceRuntime.GenerateEquipmentChoiceAsync(
+            request.requestKey,
+            prompt,
+            request.legalCandidateEffectIds.Count,
+            result =>
+            {
+                inFlight.Remove(request.requestKey);
+                ApplyEquipmentChoice(
+                    request.requestKey,
+                    result.Succeeded ? result.SelectedIndex : 0);
+            });
+        if (!accepted)
+        {
+            inFlight.Remove(request.requestKey);
+            ApplyEquipmentChoice(request.requestKey, 0);
+        }
+    }
+
+    private bool ApplyEquipmentChoice(string requestKey, int selectedIndex)
+    {
+        if (!TryResolveSnapshot(requestKey, out EvolutionNarrativeRequestSnapshot request)
+            || request.targetKind != EvolutionNarrativeTargetKind.Equipment
+            || !equipment.TryGetInstance(
+                request.targetPersistentId,
+                out CombatEquipmentInstance instance))
+        {
+            return false;
+        }
+
+        EquipmentEvolutionState state = instance.evolution?.Clone()
+            ?? new EquipmentEvolutionState();
+        EvolutionNode node = state.evolutionNodes?.FirstOrDefault(entry =>
+            entry != null
+            && string.Equals(entry.nodeId, request.nodeId, StringComparison.Ordinal));
+        EvolutionNarrativeRequestSnapshot stored = state.narrativeRequests?
+            .FirstOrDefault(entry => entry != null
+                && string.Equals(entry.requestKey, requestKey, StringComparison.Ordinal));
+        List<string> candidates = stored?.legalCandidateEffectIds?
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Take(3)
+            .ToList() ?? new List<string>();
+        if (node == null || stored == null || candidates.Count == 0)
+        {
+            return false;
+        }
+
+        int safeIndex = Mathf.Clamp(selectedIndex, 0, candidates.Count - 1);
+        node.effectId = candidates[safeIndex];
+        node.selectedCandidateIndex = safeIndex;
+        node.legalCandidateEffectIds = new List<string>(candidates);
+        node.mechanicallyUnlocked = true;
+        stored.effectId = node.effectId;
+        stored.selectedCandidateIndex = safeIndex;
+        return equipment.TryUpdateEvolutionState(instance.instanceId, state);
+    }
+
+    private static string BuildEquipmentChoicePrompt(
+        EvolutionNarrativeRequestSnapshot request)
+    {
+        StringBuilder builder = new StringBuilder(768);
+        builder.AppendLine("아래 후보는 규칙 시스템이 확정한 합법적인 장비 역사 효과다.");
+        builder.AppendLine("새 효과나 수치를 만들지 말고, 기록과 가장 어울리는 후보 번호 하나만 고른다.");
+        builder.Append("기록 해시: ").AppendLine(request.historyHash ?? string.Empty);
+        builder.Append("증거: ").AppendLine(string.Join(", ", request.evidenceIds ?? new List<string>()));
+        builder.Append("참여자: ").AppendLine(string.Join(", ", request.participantIds ?? new List<string>()));
+        for (int index = 0; index < request.legalCandidateEffectIds.Count; index++)
+        {
+            builder.Append(index)
+                .Append(" = ")
+                .AppendLine(DescribeHistoricalEffect(request.legalCandidateEffectIds[index]));
+        }
+        return builder.ToString();
+    }
+
+    private static string DescribeHistoricalEffect(string effectId)
+    {
+        return effectId switch
+        {
+            "equipment:execution" => "결정적인 순간의 마무리를 강화하는 역사",
+            "equipment:durability" => "주인과 함께 버티고 살아남은 역사",
+            "equipment:control" => "위협을 가로막고 전열을 지킨 역사",
+            "equipment:cadence" => "먼 거리에서 거듭 명중시킨 역사",
+            "equipment:precision" => "정확한 타격을 되풀이한 역사",
+            "equipment:force" => "정면에서 힘으로 돌파한 역사",
+            _ => "여러 사용 기록이 균형 있게 쌓인 역사"
+        };
     }
 
     public bool TryApplyResponseForDebug(
@@ -378,7 +495,7 @@ public sealed class EvolutionHistoryNarrativeRuntime :
 
         current.attemptCount++;
         PersistRequest(current);
-        string prompt = BuildPrompt(current);
+        string prompt = BuildPromptV25(current);
         inFlight.Add(current.requestKey);
         bool accepted = runtime is ICorrelatedEvolutionHistoryLlmRuntime correlated
             ? correlated.GenerateEvolutionHistoryAsync(
@@ -411,7 +528,8 @@ public sealed class EvolutionHistoryNarrativeRuntime :
             && TryApplyResponse(
                 requestKey,
                 result.Content,
-                out _))
+                out _,
+                result.NarrativeTrace))
         {
             retryAt.Remove(requestKey);
             return;
@@ -423,7 +541,8 @@ public sealed class EvolutionHistoryNarrativeRuntime :
     private bool TryApplyResponse(
         string requestKey,
         string response,
-        out string failureReason)
+        out string failureReason,
+        NarrativeGenerationTrace narrativeTrace = null)
     {
         failureReason = string.Empty;
         if (!TryResolveSnapshot(
@@ -447,6 +566,7 @@ public sealed class EvolutionHistoryNarrativeRuntime :
         {
             return false;
         }
+        payload.narrativeTrace = narrativeTrace;
 
         bool updated = request.targetKind == EvolutionNarrativeTargetKind.Facility
             ? ApplyFacilityNarrative(request, payload)
@@ -553,6 +673,21 @@ public sealed class EvolutionHistoryNarrativeRuntime :
             "\n",
             payload.description.Trim(),
             payload.historyReason.Trim());
+        NarrativeGenerationTrace trace = payload.narrativeTrace;
+        if (trace != null)
+        {
+            node.narrativeSchemaId = trace.schemaId ?? string.Empty;
+            node.narrativeSchemaVersion = trace.schemaVersion;
+            node.narrativeSchemaHash = trace.schemaHash ?? string.Empty;
+            node.narrativeCultureStyleId = trace.cultureStyleId ?? string.Empty;
+            node.narrativeMotifIds = trace.usedMotifIds?.ToList() ?? new List<string>();
+            node.narrativeCharacterFactIds = trace.usedCharacterFactIds?.ToList() ?? new List<string>();
+            node.narrativePassVerdict = trace.verdict.ToString();
+            node.narrativeRetryCount = trace.retryCount;
+            node.narrativeUsedFallback = trace.usedFallback;
+        }
+        node.narrativeReady = true;
+        node.uiVisible = true;
         node.playerVisible = true;
         stored.completed = true;
         return true;
@@ -714,6 +849,49 @@ public sealed class EvolutionHistoryNarrativeRuntime :
         });
     }
 
+    private static string BuildPromptV25(
+        EvolutionNarrativeRequestSnapshot request)
+    {
+        StringBuilder builder = new StringBuilder(1400);
+        builder.AppendLine("규칙 시스템이 effectId와 모든 기계 효과를 이미 확정했다.");
+        builder.AppendLine("효과나 수치를 추가·삭제·변경하지 않고 이름과 역사 문구만 작성한다.");
+        builder.AppendLine("계승 장비는 형태가 바뀔 수 있으므로 특정 무기 형상을 이름에 고정하지 않는다.");
+        builder.AppendLine("제공된 인물·관계·증거만 사용하며 새로운 인물, 사건, 수치를 만들지 않는다.");
+        builder.AppendLine("내부 시스템 용어를 플레이어 문구에 쓰지 않는다.");
+        builder.AppendLine("판타지·무협풍의 짧고 기억하기 쉬운 한국어 이름과 설명을 작성한다.");
+        builder.AppendLine("다음 JSON 객체 하나만 반환한다:");
+        builder.AppendLine("{\"requestKey\":\"...\",\"targetPersistentId\":\"...\",\"nodeId\":\"...\",\"parentNodeId\":\"...\",\"effectId\":\"...\",\"effectBudget\":0,\"evidenceIds\":[\"...\"],\"displayName\":\"...\",\"description\":\"...\",\"historyReason\":\"...\"}");
+        builder.Append("requestKey=").AppendLine(request.requestKey);
+        builder.Append("targetPersistentId=").AppendLine(request.targetPersistentId);
+        builder.Append("nodeId=").AppendLine(request.nodeId);
+        builder.Append("parentNodeId=").AppendLine(request.parentNodeId);
+        builder.Append("effectId=").AppendLine(request.effectId);
+        builder.Append("effectBudget=").AppendLine(request.effectBudget.ToString());
+        builder.Append("historyHash=").AppendLine(request.historyHash);
+        builder.Append("generation=").AppendLine(request.generation.ToString());
+        builder.Append("evidenceIds=").AppendLine(string.Join(",", request.evidenceIds));
+        builder.Append("participantIds=").AppendLine(string.Join(",", request.participantIds));
+        builder.Append("sourceTags=").AppendLine(string.Join(",", request.sourceTags));
+        string[] participants = request.participantIds?.ToArray() ?? Array.Empty<string>();
+        NarrativeRequestContext context = NarrativeCultureStyleCatalog.Create(
+            LocalLlmRequestProfiles.EvolutionHistory.Id,
+            string.Empty,
+            requireCharacterFact: participants.Length > 0,
+            requireMotif: true);
+        foreach (string participantId in participants
+                     .Where(value => !string.IsNullOrWhiteSpace(value))
+                     .Distinct(StringComparer.Ordinal)
+                     .Take(8))
+        {
+            context.AddFact(
+                "fact:evolution-participant:" + participantId,
+                "이 계보에 기록된 소유자·제작자·사용자",
+                80);
+        }
+        return context.AppendToPrompt(builder.ToString());
+    }
+
+    [Obsolete("V25 uses BuildPromptV25; retained only to preserve old debug reflection hooks.")]
     private static string BuildPrompt(
         EvolutionNarrativeRequestSnapshot request)
     {
@@ -738,6 +916,23 @@ public sealed class EvolutionHistoryNarrativeRuntime :
         builder.Append("evidenceIds=").AppendLine(string.Join(",", request.evidenceIds));
         builder.Append("participantIds=").AppendLine(string.Join(",", request.participantIds));
         builder.Append("sourceTags=").AppendLine(string.Join(",", request.sourceTags));
-        return builder.ToString();
+        string[] participants = request.participantIds?.ToArray()
+            ?? Array.Empty<string>();
+        NarrativeRequestContext context = NarrativeCultureStyleCatalog.Create(
+            LocalLlmRequestProfiles.EvolutionHistory.Id,
+            string.Empty,
+            requireCharacterFact: participants.Length > 0,
+            requireMotif: true);
+        foreach (string participantId in participants
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.Ordinal)
+            .Take(8))
+        {
+            context.AddFact(
+                "fact:evolution-participant:" + participantId,
+                "A recorded owner, maker, or user contributed to this lineage",
+                80);
+        }
+        return context.AppendToPrompt(builder.ToString());
     }
 }

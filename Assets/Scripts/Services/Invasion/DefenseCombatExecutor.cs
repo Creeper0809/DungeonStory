@@ -67,7 +67,12 @@ public sealed class DefenseCombatSupportServices
     public DefenseCombatSupportServices(
         IWorldThreatModifierQuery worldThreatModifiers,
         IExternalCombatInfluenceQuery externalCombatInfluence,
-        IWorldUiHierarchy worldUiHierarchy)
+        IWorldUiHierarchy worldUiHierarchy,
+        IGameCalendar calendar,
+        IMilestoneGameplayModifierQuery milestoneModifiers,
+        IRunMilestoneCommand milestoneCommands,
+        IFacilityCapabilityQuery facilityCapabilities,
+        IWorldItemStackRuntime worldItems)
     {
         WorldThreatModifiers = worldThreatModifiers
             ?? throw new ArgumentNullException(nameof(worldThreatModifiers));
@@ -75,11 +80,25 @@ public sealed class DefenseCombatSupportServices
             ?? throw new ArgumentNullException(nameof(externalCombatInfluence));
         WorldUiHierarchy = worldUiHierarchy
             ?? throw new ArgumentNullException(nameof(worldUiHierarchy));
+        Calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        MilestoneModifiers = milestoneModifiers
+            ?? throw new ArgumentNullException(nameof(milestoneModifiers));
+        MilestoneCommands = milestoneCommands
+            ?? throw new ArgumentNullException(nameof(milestoneCommands));
+        FacilityCapabilities = facilityCapabilities
+            ?? throw new ArgumentNullException(nameof(facilityCapabilities));
+        WorldItems = worldItems
+            ?? throw new ArgumentNullException(nameof(worldItems));
     }
 
     public IWorldThreatModifierQuery WorldThreatModifiers { get; }
     public IExternalCombatInfluenceQuery ExternalCombatInfluence { get; }
     public IWorldUiHierarchy WorldUiHierarchy { get; }
+    public IGameCalendar Calendar { get; }
+    public IMilestoneGameplayModifierQuery MilestoneModifiers { get; }
+    public IRunMilestoneCommand MilestoneCommands { get; }
+    public IFacilityCapabilityQuery FacilityCapabilities { get; }
+    public IWorldItemStackRuntime WorldItems { get; }
 }
 
 public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
@@ -93,6 +112,10 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
     private readonly IWorldThreatModifierQuery worldThreatModifiers;
     private readonly IExternalCombatInfluenceQuery externalCombatInfluence;
     private readonly IWorldUiHierarchy worldUiHierarchy;
+    private readonly IGameCalendar calendar;
+    private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
+    private readonly IRunMilestoneCommand milestoneCommands;
+    private readonly IFacilityCapabilityQuery facilityCapabilities;
 
     public DefenseCombatExecutor(
         ICombatResolutionService combatResolution,
@@ -120,6 +143,10 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         worldThreatModifiers = requiredSupport.WorldThreatModifiers;
         externalCombatInfluence = requiredSupport.ExternalCombatInfluence;
         worldUiHierarchy = requiredSupport.WorldUiHierarchy;
+        calendar = requiredSupport.Calendar;
+        milestoneModifiers = requiredSupport.MilestoneModifiers;
+        milestoneCommands = requiredSupport.MilestoneCommands;
+        facilityCapabilities = requiredSupport.FacilityCapabilities;
     }
 
     public CharacterCombatLoadoutProfile GetActiveProfile(CharacterActor actor)
@@ -320,9 +347,12 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
             attackerSuppression: attackerBody.Suppression,
             defenderSuppression: defenderBody.Suppression,
             attackPowerMultiplier:
-                attacker.GetCombatPowerMultiplier() * attackMultiplier,
+                attacker.GetCombatPowerMultiplier()
+                * attackMultiplier
+                * ResolveAccordSupportMultiplier(attackerIsGuard),
             defenderArmor: combatEquipment.GetArmor(defenderId),
-            defenderShield: combatEquipment.GetShield(defenderId)));
+            defenderShield: combatEquipment.GetShield(defenderId),
+            defenderConstruct: IsConstruct(defender)));
         if (!result.Executed)
         {
             return new DefenseCombatExecutionResult(
@@ -332,7 +362,7 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         }
 
         PresentAttack(attacker, defender, weapon);
-        ConsumeAttackResource(weapon, defender.GetNowXY());
+        ConsumeAttackResource(weapon, result, defender.GetNowXY());
         ApplyResult(
             attacker,
             defender,
@@ -396,9 +426,11 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
                     OffenseThreatModifierKind.Lighting) ?? 1f)
                 * (worldThreatModifiers?.GetMultiplier(
                     OffenseThreatModifierKind.Accuracy) ?? 1f),
-            attackPowerMultiplier: attacker.GetCombatPowerMultiplier(),
+            attackPowerMultiplier: attacker.GetCombatPowerMultiplier()
+                * ResolveAccordSupportMultiplier(attackerIsGuard: true),
             defenderArmor: combatEquipment.GetArmor(defenderId),
-            defenderShield: combatEquipment.GetShield(defenderId)));
+            defenderShield: combatEquipment.GetShield(defenderId),
+            defenderConstruct: IsConstruct(defender)));
         if (!result.Executed)
         {
             return new DefenseCombatExecutionResult(
@@ -409,7 +441,7 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
 
         PresentProjectile(attacker, defender, weapon);
         PresentAttack(attacker, defender, weapon);
-        ConsumeAttackResource(weapon, defender.GetNowXY());
+        ConsumeAttackResource(weapon, result, defender.GetNowXY());
 
         string status;
         if (result.CoverBlocked)
@@ -468,6 +500,12 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         CombatAttackResult result,
         string source)
     {
+        if ((result.SpecialEffects & CombatSpecialEffectFlags.SignalSupport) != 0)
+        {
+            bodyHealthCommands.ReduceSuppression(
+                attacker,
+                result.StatusPotency * 100f);
+        }
         if (result.Hit)
         {
             bodyHealthCommands.ApplyCombatResult(
@@ -483,6 +521,66 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         }
 
         bodyHealthCommands.AddSuppression(defender, result.Suppression);
+    }
+
+    private static bool IsConstruct(CharacterActor actor)
+    {
+        string species = actor?.SpeciesTag ?? string.Empty;
+        return species.IndexOf("golem", StringComparison.OrdinalIgnoreCase) >= 0
+            || species.IndexOf("construct", StringComparison.OrdinalIgnoreCase) >= 0
+            || species.IndexOf("clockwork", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private float ResolveAccordSupportMultiplier(bool attackerIsGuard)
+    {
+        if (!attackerIsGuard
+            || !milestoneModifiers.IsAccordSignalSupportDay(calendar.Day))
+        {
+            return 1f;
+        }
+
+        if (milestoneModifiers.IsAccordSignalSupportActive(calendar.Day))
+        {
+            return 1.15f;
+        }
+
+        BuildableObject signalPost = facilityCapabilities
+            .FindOperational(FacilityCapabilityKind.Security)
+            .FirstOrDefault();
+        if (signalPost == null)
+        {
+            return 1f;
+        }
+
+        const string kitId = "supply:alliance-signal-kit";
+        string destinationId = signalPost.PersistentInstanceId.Value;
+        bool consumed = itemStackRuntime.TryConsumeFacilityItemBuffer(
+            destinationId,
+            new Dictionary<string, int> { [kitId] = 1 },
+            out _);
+        if (!consumed)
+        {
+            if (!itemStackRuntime.GetAllStacks().Any(stack => stack != null
+                    && string.Equals(stack.ItemId, kitId, StringComparison.Ordinal)
+                    && string.Equals(
+                        stack.DestinationId,
+                        destinationId,
+                        StringComparison.Ordinal)))
+            {
+                itemStackRuntime.TryRequestItemDelivery(
+                    kitId,
+                    1,
+                    signalPost.centerPos,
+                    destinationId,
+                    out _,
+                    out _);
+            }
+            return 1f;
+        }
+
+        return milestoneCommands.TryActivateAccordSignalSupport(calendar.Day)
+            ? 1.15f
+            : 1f;
     }
 
     private static void PresentAttack(
@@ -519,6 +617,7 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
 
     private void ConsumeAttackResource(
         CombatWeaponSnapshot weapon,
+        CombatAttackResult result,
         Vector2Int impactPosition)
     {
         if (weapon == null)
@@ -528,7 +627,9 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
 
         if (weapon.RequiresAmmo && !string.IsNullOrWhiteSpace(weapon.InstanceId))
         {
-            combatEquipment.TryConsumeLoadedAmmo(weapon.InstanceId);
+            combatEquipment.TryConsumeLoadedAmmo(
+                weapon.InstanceId,
+                Mathf.Max(1, result.AmmunitionConsumed));
         }
         else if (weapon.Verb?.DropsWeaponOnUse == true)
         {

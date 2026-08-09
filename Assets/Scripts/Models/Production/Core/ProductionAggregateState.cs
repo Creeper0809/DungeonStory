@@ -58,6 +58,11 @@ public sealed class ProductionBillRecord
     internal readonly HashSet<string> mutableAllowedWorkerIds =
         new(StringComparer.Ordinal);
     public IReadOnlyCollection<string> allowedWorkerIds => mutableAllowedWorkerIds;
+    public WorkerSelectionPolicySaveData workerPolicy { get; internal set; } =
+        WorkerSelectionPolicySaveData.Anyone(WorkerCandidateSortMode.Fastest);
+    internal readonly List<CraftContributionSaveData> mutableWorkerContributions = new();
+    public IReadOnlyList<CraftContributionSaveData> workerContributions =>
+        mutableWorkerContributions;
 
     public static ProductionBillRecord Create(
         ProductionBillId billId,
@@ -116,6 +121,18 @@ public sealed class ProductionBillRecord
     public void SetBlockedFailure(DomainFailure failure) => blockedFailure = failure;
     public void SetReservedWorker(string id) =>
         reservedWorkerId = id?.Trim() ?? string.Empty;
+    public void SetWorkerPolicy(WorkerSelectionPolicySaveData value) =>
+        workerPolicy = value?.CloneNormalized()
+            ?? WorkerSelectionPolicySaveData.Anyone();
+    public void ReplaceWorkerContributions(
+        IEnumerable<CraftContributionSaveData> values)
+    {
+        mutableWorkerContributions.Clear();
+        mutableWorkerContributions.AddRange((values
+                ?? Array.Empty<CraftContributionSaveData>())
+            .Where(value => value != null)
+            .Select(value => value.Clone()));
+    }
     public void SetOutputDestination(string id) =>
         outputDestinationId = id?.Trim() ?? string.Empty;
 
@@ -301,7 +318,9 @@ public sealed class ProductionAggregateStateSession
                 blockedFailure = new DomainFailure(
                     saved.blocked.code,
                     saved.blocked.parameters.ToArray()),
-                reservedWorkerId = saved.reservedWorkerId,
+                reservedWorkerId = string.Empty,
+                workerPolicy = saved.workerPolicy?.CloneNormalized()
+                    ?? WorkerSelectionPolicySaveData.Anyone(),
                 materialDestinationId = saved.materialDestinationId,
                 prefetchBatchCount = saved.prefetchBatchCount,
                 estimatedDeliverySeconds = saved.estimatedDeliverySeconds,
@@ -329,6 +348,11 @@ public sealed class ProductionAggregateStateSession
             }
             record.mutableAllowedMaterialIds.UnionWith(saved.allowedMaterialIds);
             record.mutableAllowedWorkerIds.UnionWith(saved.allowedWorkerIds);
+            record.mutableWorkerContributions.AddRange(
+                (saved.workerContributions
+                    ?? new List<CraftContributionSaveData>())
+                .Where(value => value != null)
+                .Select(value => value.Clone()));
             restored.Bills.Add(record);
         }
         return restored;

@@ -28,8 +28,8 @@ MonoBehaviour:
   dexterity: 11
   moveSpeed: 4.5
   equipment:
-    weaponDefinitionId: weapon:rune-staff
-    armorDefinitionId: armor:rune-chain
+    weaponDefinitionId: weapon:mana-lance
+    armorDefinitionId: armor:rune-ward-mail
     shieldDefinitionId: 
     ammunitionItemId: 
   abilityIds:
@@ -49,7 +49,7 @@ MonoBehaviour:
   counterTags:
   - counter:dispel
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   bossPhases: []
   individualGeneration:
     minimumGeneralTraits: 2

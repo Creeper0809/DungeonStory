@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 140
   features:
-  - rid: 7737211794726584919
-  - rid: 7737211794726584920
-  - rid: 7737211794726584921
+  - rid: 7737211838078124933
+  - rid: 7737211838078124934
+  - rid: 7737211838078124935
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584919
+    - rid: 7737211838078124933
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:pathogen-observation
-    - rid: 7737211794726584920
+    - rid: 7737211838078124934
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211794726584921
+    - rid: 7737211838078124935
       type: {class: PathogenSampleItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         diseaseId: disease:slime-blight

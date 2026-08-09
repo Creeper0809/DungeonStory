@@ -1,8 +1,6 @@
-# Unity MCP is intentionally not auto-registered here. Every Codex worker reads
-# this project config, so auto-registration would create one Unity client per
-# sub-agent even when those agents only perform offline source work. The root
-# worker uses tools/unity-mcp/Invoke-ProjectUnityMcp.ps1 for explicit, serialized
-# Unity calls instead.
+[mcp_servers.unity-mcp]
+command = 'C:\Users\vulpo\.unity\relay\relay_win.exe'
+args = ['--mcp']
 
 [mcp_servers.dungeon-player]
 command = "python"

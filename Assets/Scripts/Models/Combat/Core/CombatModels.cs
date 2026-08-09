@@ -14,6 +14,95 @@ public enum CombatEquipmentKind
     Shield
 }
 
+[Flags]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum CombatEquipmentRoleFlags
+{
+    None = 0,
+    RepeatingBurst = 1 << 0,
+    ShotgunSuppression = 1 << 1,
+    ArmorBreaker = 1 << 2,
+    PullOnHit = 1 << 3,
+    Powered = 1 << 4,
+    DeployableCover = 1 << 5,
+    SpellBlock = 1 << 6,
+    BlastAndSmokeProtection = 1 << 7
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public static class CombatEquipmentRoleRules
+{
+    public static CombatEquipmentRoleFlags For(string definitionId) =>
+        (definitionId?.Trim() ?? string.Empty) switch
+        {
+            "weapon:repeating-crossbow" =>
+                CombatEquipmentRoleFlags.RepeatingBurst,
+            "weapon:shotgun" =>
+                CombatEquipmentRoleFlags.ShotgunSuppression,
+            "weapon:pollaxe" =>
+                CombatEquipmentRoleFlags.ArmorBreaker
+                | CombatEquipmentRoleFlags.PullOnHit,
+            "weapon:blacksteel-poleaxe" =>
+                CombatEquipmentRoleFlags.ArmorBreaker,
+            "weapon:powered-striking-gauntlet" =>
+                CombatEquipmentRoleFlags.Powered
+                | CombatEquipmentRoleFlags.ArmorBreaker,
+            "armor:powered-harness" or "shield:powered" =>
+                CombatEquipmentRoleFlags.Powered,
+            "armor:powder-cuirass" =>
+                CombatEquipmentRoleFlags.BlastAndSmokeProtection,
+            "shield:mana-buckler" =>
+                CombatEquipmentRoleFlags.SpellBlock,
+            "shield:pavise" =>
+                CombatEquipmentRoleFlags.DeployableCover,
+            _ => CombatEquipmentRoleFlags.None
+        };
+
+    public static int GetAmmunitionPerAttack(
+        CombatWeaponSnapshot weapon,
+        CombatFireMode fireMode)
+    {
+        if (weapon == null || !weapon.RequiresAmmo)
+        {
+            return 0;
+        }
+
+        int requested = (weapon.RoleFlags & CombatEquipmentRoleFlags.RepeatingBurst) != 0
+            && fireMode == CombatFireMode.Rapid
+                ? 3
+                : 1;
+        return Mathf.Clamp(requested, 1, Mathf.Max(1, weapon.LoadedAmmo));
+    }
+
+    public static CombatEquipmentRoleFlags ForPowerState(
+        string definitionId,
+        bool powered)
+    {
+        CombatEquipmentRoleFlags flags = For(definitionId);
+        if (powered || (flags & CombatEquipmentRoleFlags.Powered) == 0)
+        {
+            return flags;
+        }
+
+        return flags
+            & ~CombatEquipmentRoleFlags.Powered
+            & ~CombatEquipmentRoleFlags.ArmorBreaker;
+    }
+
+    public static float GetPowerPerformanceMultiplier(
+        string definitionId,
+        float powerCharge)
+    {
+        CombatEquipmentRoleFlags flags = For(definitionId);
+        if ((flags & CombatEquipmentRoleFlags.Powered) == 0)
+        {
+            return 1f;
+        }
+
+        return powerCharge > 0f ? 1.15f : 0.75f;
+    }
+}
+
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public enum CombatDamageType
 {
@@ -180,6 +269,31 @@ public sealed class CombatArmorPartValue
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class LoadedAmmunitionBatch
+{
+    public string ammunitionItemId = string.Empty;
+    [Min(0)] public int remaining;
+
+    public bool IsEmpty => remaining <= 0;
+
+    public void Clear()
+    {
+        ammunitionItemId = string.Empty;
+        remaining = 0;
+    }
+
+    public LoadedAmmunitionBatch Clone()
+    {
+        return new LoadedAmmunitionBatch
+        {
+            ammunitionItemId = ammunitionItemId?.Trim() ?? string.Empty,
+            remaining = Mathf.Max(0, remaining)
+        };
+    }
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CombatEquipmentInstance
 {
     public string instanceId = string.Empty;
@@ -187,7 +301,23 @@ public sealed class CombatEquipmentInstance
     public string materialId = string.Empty;
     public CombatEquipmentQuality quality = CombatEquipmentQuality.Normal;
     [Range(0f, 1f)] public float durabilityRatio = 1f;
-    [Min(0)] public int loadedAmmo;
+    [Range(0f, 100f)] public float powerCharge = 100f;
+    public LoadedAmmunitionBatch loadedAmmunition = new LoadedAmmunitionBatch();
+    // Runtime compatibility for older call sites. The serialized authority is
+    // loadedAmmunition so an ammunition count can never outlive its item ID.
+    public int loadedAmmo
+    {
+        get => Mathf.Max(0, loadedAmmunition?.remaining ?? 0);
+        set
+        {
+            loadedAmmunition ??= new LoadedAmmunitionBatch();
+            loadedAmmunition.remaining = Mathf.Max(0, value);
+            if (loadedAmmunition.remaining == 0)
+            {
+                loadedAmmunition.ammunitionItemId = string.Empty;
+            }
+        }
+    }
     public CombatEquipmentWorldState worldState = CombatEquipmentWorldState.Stored;
     public string ownerCharacterId = string.Empty;
     public string sourceStackId = string.Empty;
@@ -204,7 +334,9 @@ public sealed class CombatEquipmentInstance
             materialId = materialId ?? string.Empty,
             quality = quality,
             durabilityRatio = durabilityRatio,
-            loadedAmmo = loadedAmmo,
+            powerCharge = Mathf.Clamp(powerCharge, 0f, 100f),
+            loadedAmmunition = loadedAmmunition?.Clone()
+                ?? new LoadedAmmunitionBatch(),
             worldState = worldState,
             ownerCharacterId = ownerCharacterId ?? string.Empty,
             sourceStackId = sourceStackId ?? string.Empty,
@@ -391,7 +523,9 @@ public readonly struct CombatArmorSnapshot
         float slashDefense,
         float pierceDefense,
         float bluntDefense,
-        float materialDefenseMultiplier = 1f)
+        float materialDefenseMultiplier = 1f,
+        string definitionId = "",
+        CombatEquipmentRoleFlags roleFlags = CombatEquipmentRoleFlags.None)
     {
         InstanceId = instanceId ?? string.Empty;
         BodyPart = bodyPart;
@@ -402,6 +536,8 @@ public readonly struct CombatArmorSnapshot
         PierceDefense = Mathf.Max(0f, pierceDefense);
         BluntDefense = Mathf.Max(0f, bluntDefense);
         MaterialDefenseMultiplier = Mathf.Max(0.01f, materialDefenseMultiplier);
+        DefinitionId = definitionId?.Trim() ?? string.Empty;
+        RoleFlags = roleFlags;
     }
 
     public string InstanceId { get; }
@@ -413,6 +549,8 @@ public readonly struct CombatArmorSnapshot
     public float PierceDefense { get; }
     public float BluntDefense { get; }
     public float MaterialDefenseMultiplier { get; }
+    public string DefinitionId { get; }
+    public CombatEquipmentRoleFlags RoleFlags { get; }
 
     public float GetDefense(CombatDamageType damageType)
     {
@@ -453,7 +591,9 @@ public readonly struct CombatShieldSnapshot
         float slashDefense,
         float pierceDefense,
         float bluntDefense,
-        float materialDefenseMultiplier = 1f)
+        float materialDefenseMultiplier = 1f,
+        string definitionId = "",
+        CombatEquipmentRoleFlags roleFlags = CombatEquipmentRoleFlags.None)
     {
         InstanceId = instanceId ?? string.Empty;
         Quality = quality;
@@ -464,6 +604,8 @@ public readonly struct CombatShieldSnapshot
         PierceDefense = Mathf.Max(0f, pierceDefense);
         BluntDefense = Mathf.Max(0f, bluntDefense);
         MaterialDefenseMultiplier = Mathf.Max(0.01f, materialDefenseMultiplier);
+        DefinitionId = definitionId?.Trim() ?? string.Empty;
+        RoleFlags = roleFlags;
     }
 
     public string InstanceId { get; }
@@ -475,6 +617,8 @@ public readonly struct CombatShieldSnapshot
     public float PierceDefense { get; }
     public float BluntDefense { get; }
     public float MaterialDefenseMultiplier { get; }
+    public string DefinitionId { get; }
+    public CombatEquipmentRoleFlags RoleFlags { get; }
     public bool IsValid => !string.IsNullOrWhiteSpace(InstanceId) && DurabilityRatio > 0f;
 
     public float GetBlockChance()
@@ -529,7 +673,8 @@ public readonly struct CombatAttackRequest
         float weatherMultiplier = 1f,
         float attackPowerMultiplier = 1f,
         IReadOnlyList<CombatArmorSnapshot> defenderArmor = null,
-        CombatShieldSnapshot defenderShield = default)
+        CombatShieldSnapshot defenderShield = default,
+        bool defenderConstruct = false)
     {
         EventId = eventId ?? string.Empty;
         AttackerId = attackerId ?? string.Empty;
@@ -552,6 +697,7 @@ public readonly struct CombatAttackRequest
         AttackPowerMultiplier = Mathf.Max(0f, attackPowerMultiplier);
         DefenderArmor = defenderArmor ?? Array.Empty<CombatArmorSnapshot>();
         DefenderShield = defenderShield;
+        DefenderConstruct = defenderConstruct;
     }
 
     public string EventId { get; }
@@ -575,6 +721,7 @@ public readonly struct CombatAttackRequest
     public float AttackPowerMultiplier { get; }
     public IReadOnlyList<CombatArmorSnapshot> DefenderArmor { get; }
     public CombatShieldSnapshot DefenderShield { get; }
+    public bool DefenderConstruct { get; }
 }
 
 public readonly struct CombatAttackPreview
@@ -612,6 +759,20 @@ public readonly struct CombatAttackPreview
     public float ExpectedDamage { get; }
 }
 
+[Flags]
+public enum CombatSpecialEffectFlags
+{
+    None = 0,
+    Burning = 1 << 0,
+    SmokeScreen = 1 << 1,
+    Scatter = 1 << 2,
+    SignalSupport = 1 << 3,
+    ConstructPiercing = 1 << 4,
+    RuneDamage = 1 << 5,
+    Tranquilized = 1 << 6,
+    ManaBlocked = 1 << 7
+}
+
 public readonly struct CombatAttackResult
 {
     public CombatAttackResult(
@@ -631,7 +792,16 @@ public readonly struct CombatAttackResult
         string coverSourceId = "",
         float coverDamage = 0f,
         IReadOnlyList<CombatArmorDurabilityHit> armorDurabilityHits = null,
-        float smokeExposure = 0f)
+        float smokeExposure = 0f,
+        string ammunitionItemId = "",
+        CombatSpecialEffectFlags specialEffects = CombatSpecialEffectFlags.None,
+        float statusPotency = 0f,
+        int statusTurns = 0,
+        bool nonlethal = false,
+        int pelletHits = 1,
+        float targetAirborneExposure = 0f,
+        int ammunitionConsumed = 0,
+        int forcedMovement = 0)
     {
         Executed = executed;
         Hit = hit;
@@ -650,6 +820,15 @@ public readonly struct CombatAttackResult
         CoverDamage = Mathf.Max(0f, coverDamage);
         ArmorDurabilityHits = armorDurabilityHits ?? Array.Empty<CombatArmorDurabilityHit>();
         SmokeExposure = Mathf.Max(0f, smokeExposure);
+        AmmunitionItemId = ammunitionItemId?.Trim() ?? string.Empty;
+        SpecialEffects = specialEffects;
+        StatusPotency = Mathf.Max(0f, statusPotency);
+        StatusTurns = Mathf.Max(0, statusTurns);
+        Nonlethal = nonlethal;
+        PelletHits = Mathf.Max(1, pelletHits);
+        TargetAirborneExposure = Mathf.Max(0f, targetAirborneExposure);
+        AmmunitionConsumed = Mathf.Max(0, ammunitionConsumed);
+        ForcedMovement = Mathf.Clamp(forcedMovement, -1, 1);
     }
 
     public bool Executed { get; }
@@ -669,6 +848,15 @@ public readonly struct CombatAttackResult
     public float CoverDamage { get; }
     public IReadOnlyList<CombatArmorDurabilityHit> ArmorDurabilityHits { get; }
     public float SmokeExposure { get; }
+    public string AmmunitionItemId { get; }
+    public CombatSpecialEffectFlags SpecialEffects { get; }
+    public float StatusPotency { get; }
+    public int StatusTurns { get; }
+    public bool Nonlethal { get; }
+    public int PelletHits { get; }
+    public float TargetAirborneExposure { get; }
+    public int AmmunitionConsumed { get; }
+    public int ForcedMovement { get; }
 
     public CombatAttackResult WithSmokeExposure(
         float smokeExposure,
@@ -691,6 +879,15 @@ public readonly struct CombatAttackResult
             CoverSourceId,
             CoverDamage,
             ArmorDurabilityHits,
-            smokeExposure);
+            smokeExposure,
+            AmmunitionItemId,
+            SpecialEffects,
+            StatusPotency,
+            StatusTurns,
+            Nonlethal,
+            PelletHits,
+            TargetAirborneExposure,
+            AmmunitionConsumed,
+            ForcedMovement);
     }
 }

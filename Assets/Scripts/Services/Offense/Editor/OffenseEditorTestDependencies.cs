@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEditor;
+using UnityEngine;
 
 internal static class OffenseEditorTestDependencies
 {
@@ -79,16 +80,21 @@ internal static class OffenseEditorTestDependencies
                 : 1f;
             float damage = (baseDamage + request.Attacker.Melee * 0.5f)
                 * request.AttackPowerMultiplier;
+            float hitChance = Mathf.Clamp01(
+                request.LightMultiplier * request.WeatherMultiplier);
+            float coverBlockChance = Mathf.Clamp01(
+                request.Cover.BaseBlockChance
+                * request.Cover.GetDirectionalMultiplier());
             return new CombatAttackPreview(
                 true,
                 string.Empty,
                 CombatRangeRules.GetBand(request.Distance),
-                1f,
-                0f,
+                hitChance,
+                coverBlockChance,
                 0f,
                 0f,
                 damage,
-                damage);
+                damage * hitChance * (1f - coverBlockChance));
         }
 
         public float CalculateAttackInterval(

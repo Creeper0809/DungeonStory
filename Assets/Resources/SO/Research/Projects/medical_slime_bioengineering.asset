@@ -29,14 +29,8 @@ MonoBehaviour:
   field: 14
   requiredWork: 184
   prerequisites:
-  - {fileID: 11400000, guid: 1f0f04477ee507543893f06592b0442c, type: 2}
   - {fileID: 11400000, guid: db52b6c4042583d41a582bd0c7d9d6a3, type: 2}
   prerequisiteLinks:
-  - prerequisiteId: research:arcane:alchemy
-    prerequisite: {fileID: 11400000, guid: 1f0f04477ee507543893f06592b0442c, type: 2}
-    kind: 0
-    reason: "\uC5F0\uAE08 \uAC00\uACF5\uC758 \uC774\uB860\uC774(\uAC00) \uC810\uC561
-      \uC0DD\uCCB4\uACF5\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   - prerequisiteId: research:medical:anatomy
     prerequisite: {fileID: 11400000, guid: db52b6c4042583d41a582bd0c7d9d6a3, type: 2}
     kind: 2

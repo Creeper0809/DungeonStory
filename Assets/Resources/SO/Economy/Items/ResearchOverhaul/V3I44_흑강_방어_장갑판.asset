@@ -32,16 +32,16 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 98
   features:
-  - rid: 7737211793001939966
-  - rid: 7737211793001939967
+  - rid: 7737211838078124594
+  - rid: 7737211838078124595
   references:
     version: 2
     RefIds:
-    - rid: 7737211793001939966
+    - rid: 7737211838078124594
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:metallurgy:blacksteel
-    - rid: 7737211793001939967
+    - rid: 7737211838078124595
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8

@@ -84,6 +84,14 @@ internal static class CircusVenueEvaluator
                      ?? Array.Empty<BuildableObject>())
         {
             BuildingSO data = part?.BuildingData;
+            if (data?.ResearchFacilityCommand ==
+                ResearchFacilityCommandKind.BloodStageDrainage)
+            {
+                // The drain is a built venue part, so its benefit is earned by
+                // placing it in this exact circus room rather than by merely
+                // owning the research definition somewhere in the dungeon.
+                result.FilthMultiplier *= 0.35f;
+            }
             BuildingCircusTicketBoothAbility ticket =
                 data.GetCircusTicketBoothAbility();
             if (ticket != null)

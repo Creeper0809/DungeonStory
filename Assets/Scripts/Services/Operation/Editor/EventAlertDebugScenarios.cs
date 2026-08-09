@@ -29,6 +29,10 @@ public static class EventAlertDebugScenarios
         RunScenario("알림 생성과 상세 패널", VerifyAlertCreatesButtonAndDetail, errors);
         RunScenario("반복 이벤트 병합", VerifyRepeatedAlertMerge, errors);
         RunScenario("선택 이벤트", VerifyChoiceEvent, errors);
+        RunScenario(
+            "saved action choice dispatch",
+            VerifySavedActionChoiceDispatch,
+            errors);
         RunScenario("운영일 정산 이벤트 로그", VerifySettlementKeepsEventLog, errors);
 
         RunScenario("logged event keeps an immutable count snapshot", VerifyLoggedEventSnapshotDoesNotDrift, errors);
@@ -120,7 +124,7 @@ public static class EventAlertDebugScenarios
         runtime.OnTriggerEvent(new EventAlertRequestedEvent(request));
         runtime.Open(runtime.EventLog[0]);
         bool executed = runtime.ExecuteChoice(1);
-        bool valid = runtime.EventLog[0].Choices.Count == 3
+        bool valid = runtime.EventLog[0].Choices.Count == 4
             && executed
             && selected == 2
             && !runtime.IsDetailVisible;
@@ -171,6 +175,68 @@ public static class EventAlertDebugScenarios
         Object.DestroyImmediate(root);
         CleanupRuntimeUi();
         return valid;
+    }
+
+    private static bool VerifySavedActionChoiceDispatch()
+    {
+        GameObject sourceRoot = new GameObject("EventAlert_Action_Source");
+        GameObject targetRoot = new GameObject("EventAlert_Action_Target");
+        try
+        {
+            RecordingChoiceActionDispatcher sourceDispatcher = new();
+            EventAlertRuntime source = CreateRuntime(
+                sourceRoot,
+                new DungeonRuntimeAggregateRootStore(),
+                new TestEventAlertViewPresenterFactory(),
+                sourceDispatcher);
+            EventAlertRequest request = new EventAlertRequest(
+                "Persistent action",
+                "Choice must survive save restore.",
+                EventAlertImportance.High,
+                "V21",
+                new[]
+                {
+                    new EventAlertChoice(
+                        "Resolve",
+                        "Execute the persisted command.",
+                        "v21-content|society|event%3A1|fulfill")
+                },
+                "event:1");
+            source.OnTriggerEvent(new EventAlertRequestedEvent(request));
+            source.OnTriggerEvent(new EventAlertRequestedEvent(request));
+            DungeonEventAlertSaveData save = CreateSaveService(source).Capture();
+
+            RecordingChoiceActionDispatcher targetDispatcher = new();
+            EventAlertRuntime target = CreateRuntime(
+                targetRoot,
+                new DungeonRuntimeAggregateRootStore(),
+                new TestEventAlertViewPresenterFactory(),
+                targetDispatcher);
+            EventAlertSaveService targetSave = CreateSaveService(target);
+            targetSave.PublishRestore(targetSave.PrepareRestore(save));
+            EventAlertRecord restored = target.EventLog.Single();
+            target.Open(restored);
+            bool executed = target.ExecuteChoice(0);
+
+            return source.EventLog.Count == 1
+                && source.EventLog[0].Count == 1
+                && restored.SourceId == "event:1"
+                && restored.Choices[0].ActionId
+                    == "v21-content|society|event%3A1|fulfill"
+                && executed
+                && targetDispatcher.ActionIds.SequenceEqual(new[]
+                {
+                    "v21-content|society|event%3A1|fulfill"
+                })
+                && target.IsDismissed(restored)
+                && !target.IsDetailVisible;
+        }
+        finally
+        {
+            Object.DestroyImmediate(sourceRoot);
+            Object.DestroyImmediate(targetRoot);
+            CleanupRuntimeUi();
+        }
     }
 
     private static bool VerifyRightClickDismissesAlert()
@@ -391,15 +457,35 @@ public static class EventAlertDebugScenarios
         DungeonRuntimeAggregateRootStore aggregateRootStore,
         IEventAlertViewPresenterFactory presenterFactory)
     {
+        return CreateRuntime(
+            root,
+            aggregateRootStore,
+            presenterFactory,
+            NullEventAlertChoiceActionDispatcher.Instance);
+    }
+
+    private static EventAlertRuntime CreateRuntime(
+        GameObject root,
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IEventAlertViewPresenterFactory presenterFactory,
+        IEventAlertChoiceActionDispatcher dispatcher)
+    {
         EventAlertRuntime runtime = root.AddComponent<EventAlertRuntime>();
         runtime.Construct(
             presenterFactory,
             new DungeonStory.Foundation.GameEventBus(),
-            aggregateRootStore);
+            aggregateRootStore,
+            dispatcher);
         return runtime;
     }
 
     private static EventAlertSaveSection CreateSaveSection(
+        EventAlertRuntime runtime)
+    {
+        return new EventAlertSaveSection(CreateSaveService(runtime));
+    }
+
+    private static EventAlertSaveService CreateSaveService(
         EventAlertRuntime runtime)
     {
         DungeonSceneRuntimeReferences references =
@@ -407,8 +493,20 @@ public static class EventAlertDebugScenarios
                 new DungeonSceneServiceReferences(null, null, runtime, null),
                 new DungeonSceneViewReferences(
                     null, null, null, null, null, null, null, null));
-        return new EventAlertSaveSection(
-            new EventAlertSaveService(references));
+        return new EventAlertSaveService(references);
+    }
+
+    private sealed class RecordingChoiceActionDispatcher :
+        IEventAlertChoiceActionDispatcher
+    {
+        public List<string> ActionIds { get; } = new();
+
+        public bool TryDispatch(string actionId, out DomainFailure failure)
+        {
+            ActionIds.Add(actionId);
+            failure = DomainFailure.None;
+            return true;
+        }
     }
 
     private sealed class TestEventAlertSaveService : IEventAlertSaveService

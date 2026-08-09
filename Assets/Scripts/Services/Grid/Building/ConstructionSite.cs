@@ -70,6 +70,9 @@ public sealed class ConstructionSite : BuildableObject, IWorkableFacility
                 WorkOrderStatus.Ready => 80f,
                 WorkOrderStatus.InProgress => 90f,
                 WorkOrderStatus.Blocked => 15f,
+                WorkOrderStatus.WaitingForEligibleWorker => 20f,
+                WorkOrderStatus.TargetCurrentlyUnreachable => 5f,
+                WorkOrderStatus.WaitingForOutputSpace => 10f,
                 _ => 0f
             };
         }
@@ -122,6 +125,27 @@ public sealed class ConstructionSite : BuildableObject, IWorkableFacility
                 "공사 막힘");
         }
 
+        if (order.Status == WorkOrderStatus.WaitingForEligibleWorker)
+        {
+            return FacilityAssignmentStatus.Rejected(
+                FacilityAssignmentFailureKind.MissingWorker,
+                "조건을 만족하는 건설 작업자를 기다리는 중");
+        }
+
+        if (order.Status == WorkOrderStatus.TargetCurrentlyUnreachable)
+        {
+            return FacilityAssignmentStatus.Rejected(
+                FacilityAssignmentFailureKind.WorkNotNeeded,
+                "현재 조건으로 목표 품질에 도달할 수 없음");
+        }
+
+        if (order.Status == WorkOrderStatus.WaitingForOutputSpace)
+        {
+            return FacilityAssignmentStatus.Rejected(
+                FacilityAssignmentFailureKind.Occupied,
+                "회수품 또는 출력 공간을 기다리는 중");
+        }
+
         if (worker != null)
         {
             return FacilityAssignmentStatus.Rejected(
@@ -152,6 +176,18 @@ public sealed class ConstructionSite : BuildableObject, IWorkableFacility
             return FacilityAssignmentStatus.Rejected(
                 FacilityAssignmentFailureKind.Reserved,
                 "이미 작업 예약됨");
+        }
+
+        if (workOrderRuntime is IWorkOrderWorkerPolicyQuery workerPolicyQuery
+            && CharacterBuildingVisitorAdapter.TryGetActor(actor, out CharacterActor character)
+            && !workerPolicyQuery.IsWorkerEligible(
+                workOrderId,
+                character,
+                out string policyFailure))
+        {
+            return FacilityAssignmentStatus.Rejected(
+                FacilityAssignmentFailureKind.MissingWorker,
+                policyFailure);
         }
 
         return FacilityAssignmentStatus.Allowed();

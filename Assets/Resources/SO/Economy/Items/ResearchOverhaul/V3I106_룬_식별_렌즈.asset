@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: "V3I106_\uB8EC_\uC2DD\uBCC4_\uB80C\uC988"
+  m_EditorClassIdentifier: DungeonStory.Economy::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9006
+  itemId: tool:rune-identification-lens
+  displayName: "\uB8EC \uC2DD\uBCC4 \uB80C\uC988"
+  description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uB8EC \uC2DD\uBCC4 \uB80C\uC988."
+  stockCategory: 1
+  unitWeight: 3.3999999
+  maxStack: 1
+  sprite: {fileID: 0}
+  unitPrice: 222
+  features:
+  - rid: 7737211838078124670
+  - rid: 7737211838078124671
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211838078124670
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        requiredResearchId: research:defense:rune-identification
+    - rid: 7737211838078124671
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        kind: 8
+        ingredientTags: 1024
+        sharedIntermediate: 0

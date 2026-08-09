@@ -15,13 +15,17 @@ public sealed class CharacterConsumablesApplicationPorts :
     private readonly ICharacterAiWorldRegistry world;
     private readonly IGameEventBus events;
     private readonly ICharacterCombatCommandRuntime combatCommands;
+    private readonly ICharacterNarrativeQuery narratives;
+    private readonly ICharacterNarrativeCatalog narrativeCatalog;
 
     public CharacterConsumablesApplicationPorts(
         IItemDefinitionCatalog catalog,
         IWorldItemStackRuntime items,
         ICharacterAiWorldRegistry world,
         IGameEventBus events,
-        ICharacterCombatCommandRuntime combatCommands)
+        ICharacterCombatCommandRuntime combatCommands,
+        ICharacterNarrativeQuery narratives = null,
+        ICharacterNarrativeCatalog narrativeCatalog = null)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
@@ -29,6 +33,8 @@ public sealed class CharacterConsumablesApplicationPorts :
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.combatCommands = combatCommands
             ?? throw new ArgumentNullException(nameof(combatCommands));
+        this.narratives = narratives;
+        this.narrativeCatalog = narrativeCatalog;
     }
 
     public IReadOnlyList<CharacterId> CharacterIds => world.AllCharacters
@@ -79,6 +85,35 @@ public sealed class CharacterConsumablesApplicationPorts :
             !facility.isDestroy && facility.SupportsFacilityRole(FacilityRole.Meal),
             facility.centerPos);
         return true;
+    }
+
+    public CharacterCultureMealPreference GetCultureMealPreference(
+        CharacterId characterId,
+        ConsumableItemDefinitionId itemId)
+    {
+        if (narratives == null
+            || narrativeCatalog == null
+            || !characterId.IsValid
+            || !itemId.IsValid
+            || !narratives.TryGet(
+                characterId,
+                out CharacterNarrativeSnapshot narrative))
+        {
+            return CharacterCultureMealPreference.Neutral;
+        }
+        SpeciesCultureDefinitionSO culture = narrativeCatalog.Require(
+            narrative.CultureId);
+        if ((culture.forbiddenItemIds ?? new List<string>()).Contains(
+                itemId.Value,
+                StringComparer.Ordinal))
+        {
+            return CharacterCultureMealPreference.Forbidden;
+        }
+        return (culture.preferredItemIds ?? new List<string>()).Contains(
+                itemId.Value,
+                StringComparer.Ordinal)
+            ? CharacterCultureMealPreference.Preferred
+            : CharacterCultureMealPreference.Neutral;
     }
 
     public void RecoverHunger(CharacterId id, float amount)

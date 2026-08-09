@@ -34,13 +34,18 @@ MonoBehaviour:
   battlefieldModifierIds:
   - battlefield:elevated-gallery
   counterTags:
+  - counter:anti-air
   - counter:smoke
+  - counter:guard-backline
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
-  - enemyArchetypeId: enemy:crown-longbow
+  - enemyArchetypeId: enemy:legion-arquebus
     minimumCount: 1
     maximumCount: 2
-  - enemyArchetypeId: enemy:legion-captain
+  - enemyArchetypeId: enemy:legion-pavise
+    minimumCount: 1
+    maximumCount: 2
+  - enemyArchetypeId: enemy:legion-surgeon
     minimumCount: 1
     maximumCount: 2

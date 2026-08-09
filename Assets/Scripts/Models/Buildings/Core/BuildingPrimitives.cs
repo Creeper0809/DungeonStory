@@ -64,7 +64,8 @@ public enum FacilityWorkType
     GrandProject = 1 << 26,
     Surgery = 1 << 27,
     ThreatMitigation = 1 << 28,
-    Plumbing = 1 << 29
+    Plumbing = 1 << 29,
+    Dismantle = 1 << 30
 }
 
 public enum StockCategory

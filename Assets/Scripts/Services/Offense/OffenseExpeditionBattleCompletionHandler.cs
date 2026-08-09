@@ -20,6 +20,7 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
     private readonly IOffenseReturnSafetyRuntime strategicReturnSafety;
     private readonly IOffenseFieldMobilityService fieldMobility;
     private readonly IGameEventBus gameEventBus;
+    private readonly ICombatEquipmentRuntime combatEquipment;
 
     public OffenseExpeditionBattleCompletionHandler(
         IOffenseBattleRuntime battleRuntime,
@@ -28,7 +29,8 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
         IOffenseWorldSimulation strategicWorld,
         IOffenseReturnSafetyRuntime strategicReturnSafety,
         IOffenseFieldMobilityService fieldMobility,
-        IGameEventBus gameEventBus)
+        IGameEventBus gameEventBus,
+        ICombatEquipmentRuntime combatEquipment)
     {
         this.battleRuntime = battleRuntime
             ?? throw new ArgumentNullException(nameof(battleRuntime));
@@ -44,6 +46,8 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
             ?? throw new ArgumentNullException(nameof(fieldMobility));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.combatEquipment = combatEquipment
+            ?? throw new ArgumentNullException(nameof(combatEquipment));
     }
 
     public void Handle(
@@ -63,6 +67,24 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
         }
         OffenseRouteNode completedNode = expedition.CurrentNode;
         bool victory = session.Outcome == OffenseBattleOutcome.Victory;
+        if (victory)
+        {
+            foreach (string rewardItemId in session.EncounterRules.RewardItemIds)
+            {
+                expedition.AddEncounterReward(rewardItemId);
+            }
+            foreach (OffenseBattleCombatant defeated in session.Combatants
+                         .Where(value => value.Team == OffenseBattleTeam.Enemies
+                             && value.IsDead))
+            {
+                foreach (CombatEquipmentInstance recovered in
+                         combatEquipment.ConfiscateAllFromCharacter(
+                             defeated.PersistentId))
+                {
+                    expedition.AddRecoveredEquipment(recovered.instanceId);
+                }
+            }
+        }
         foreach (OffenseBattleCombatant combatant in session.Combatants
             .Where(value => value.Team == OffenseBattleTeam.Allies))
         {

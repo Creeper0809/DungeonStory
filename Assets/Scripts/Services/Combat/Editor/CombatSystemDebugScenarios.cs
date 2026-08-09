@@ -107,6 +107,12 @@ public static class CombatSystemDebugScenarios
         Verify("gunpowder smoke misfire and ranged roles",
             VerifyGunpowderSmokeMisfireAndRangedRoles,
             failures);
+        Verify("V21 special ammunition typed combat effects",
+            VerifyV21SpecialAmmunitionEffects,
+            failures);
+        Verify("V21 role equipment typed combat effects",
+            VerifyV21RoleEquipmentEffects,
+            failures);
 
         return failures;
     }
@@ -565,6 +571,383 @@ public static class CombatSystemDebugScenarios
             defenderArmor: new[] { plate }));
     }
 
+    private static bool VerifyV21SpecialAmmunitionEffects()
+    {
+        CombatStatSnapshot attacker = new(8f, 12f, 5f, 5f, 7f, 6f, 8f);
+        CombatStatSnapshot defender = new(7f, 7f, 4f, 5f, 6f, 8f, 5f);
+        CombatArmorSnapshot plate = new(
+            "armor:test-plate",
+            CombatBodyPart.Torso,
+            CombatArmorLayer.Plate,
+            CombatEquipmentQuality.Normal,
+            1f,
+            30f,
+            26f,
+            18f);
+
+        CombatAttackPreview normal = PreviewAmmo(
+            "ammo:paper-cartridge",
+            4,
+            attacker,
+            defender,
+            plate);
+        CombatAttackPreview armorPiercing = PreviewAmmo(
+            "ammo:armor-piercing-cartridge",
+            4,
+            attacker,
+            defender,
+            plate);
+        CombatAttackPreview scatterNear = PreviewAmmo(
+            "ammo:scatter-cartridge",
+            3,
+            attacker,
+            defender,
+            default);
+        CombatAttackPreview scatterLong = PreviewAmmo(
+            "ammo:scatter-cartridge",
+            12,
+            attacker,
+            defender,
+            default);
+
+        RecordingEnvironmentExposureCommand exposure = new();
+        CombatAttackResult incendiary = ResolveAmmo(
+            "ammo:incendiary-arrow",
+            4,
+            attacker,
+            defender,
+            exposure);
+        CombatAttackResult tranquilizer = ResolveAmmo(
+            "ammo:tranquilizer-dart",
+            4,
+            attacker,
+            defender,
+            exposure);
+        CombatAttackResult smoke = ResolveAmmo(
+            "ammo:smoke-cartridge",
+            4,
+            attacker,
+            defender,
+            exposure);
+        CombatAttackResult mana = ResolveAmmo(
+            "ammo:mana-disruptor-bolt",
+            4,
+            attacker,
+            defender,
+            exposure);
+        CombatAttackResult construct = new CombatResolutionService(
+            new SequenceRandom(0f, 0.99f, 0.2f),
+            evolution: null,
+            overclock: null,
+            environmentStatus: null,
+            environmentalField: NoEnvironmentalFieldQuery.Instance,
+            characters: null,
+            environmentExposure: exposure).Resolve(new CombatAttackRequest(
+                "ammo:blacksteel",
+                "ammo:attacker",
+                "ammo:construct",
+                attacker,
+                defender,
+                CreateAmmoWeapon("ammo:blacksteel-bolt"),
+                4,
+                CombatFireMode.Aimed,
+                default,
+                defenderMeleeLocked: true,
+                defenderConstruct: true));
+
+        return normal.Valid
+            && armorPiercing.Valid
+            && armorPiercing.DamageOnHit > normal.DamageOnHit
+            && scatterNear.DamageOnHit > scatterLong.DamageOnHit
+            && (incendiary.SpecialEffects & CombatSpecialEffectFlags.Burning) != 0
+            && incendiary.StatusPotency > 0f
+            && (tranquilizer.SpecialEffects
+                & CombatSpecialEffectFlags.Tranquilized) != 0
+            && tranquilizer.Nonlethal
+            && (smoke.SpecialEffects & CombatSpecialEffectFlags.SmokeScreen) != 0
+            && smoke.TargetAirborneExposure > 0f
+            && exposure.CallCount > 0
+            && (mana.SpecialEffects & CombatSpecialEffectFlags.ManaBlocked) != 0
+            && (construct.SpecialEffects
+                & CombatSpecialEffectFlags.ConstructPiercing) != 0
+            && construct.Hit;
+    }
+
+    private static bool VerifyV21RoleEquipmentEffects()
+    {
+        CombatStatSnapshot attacker = new(9f, 12f, 5f, 6f, 9f, 7f, 9f);
+        CombatStatSnapshot defender = new(7f, 7f, 4f, 5f, 6f, 8f, 5f);
+        CombatWeaponSnapshot repeating = CreateRoleWeapon(
+            "weapon:repeating-crossbow",
+            CombatEquipmentRoleFlags.RepeatingBurst,
+            "ammo:bolt-steel",
+            loadedAmmo: 5);
+        CombatResolutionService previewService = new(
+            new SequenceRandom(0.5f),
+            evolution: null,
+            overclock: null,
+            environmentStatus: null,
+            environmentalField: NoEnvironmentalFieldQuery.Instance,
+            characters: null,
+            environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance);
+        CombatAttackPreview aimed = previewService.Preview(new CombatAttackRequest(
+            "role:repeating:aimed",
+            "role:attacker",
+            "role:defender",
+            attacker,
+            defender,
+            repeating,
+            4,
+            CombatFireMode.Aimed,
+            default));
+        CombatAttackPreview rapid = previewService.Preview(new CombatAttackRequest(
+            "role:repeating:rapid",
+            "role:attacker",
+            "role:defender",
+            attacker,
+            defender,
+            repeating,
+            4,
+            CombatFireMode.Rapid,
+            default));
+
+        CombatWeaponSnapshot pollaxe = CreateRoleWeapon(
+            "weapon:pollaxe",
+            CombatEquipmentRoleFlags.ArmorBreaker
+                | CombatEquipmentRoleFlags.PullOnHit,
+            string.Empty,
+            loadedAmmo: 0,
+            ranged: false);
+        CombatArmorSnapshot plate = new(
+            "armor-instance:plate",
+            CombatBodyPart.Torso,
+            CombatArmorLayer.Plate,
+            CombatEquipmentQuality.Normal,
+            1f,
+            28f,
+            26f,
+            20f);
+        CombatAttackResult poleHit = new CombatResolutionService(
+            new SequenceRandom(0f, 0.99f, 0.2f),
+            evolution: null,
+            overclock: null,
+            environmentStatus: null,
+            environmentalField: NoEnvironmentalFieldQuery.Instance,
+            characters: null,
+            environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance)
+            .Resolve(new CombatAttackRequest(
+                "role:pollaxe",
+                "role:attacker",
+                "role:defender",
+                attacker,
+                defender,
+                pollaxe,
+                1,
+                CombatFireMode.Aimed,
+                default,
+                defenderMeleeLocked: true,
+                defenderArmor: new[] { plate }));
+
+        CombatShieldSnapshot manaBuckler = new(
+            "shield-instance:mana",
+            CombatEquipmentQuality.Normal,
+            1f,
+            0.34f,
+            0f,
+            14f,
+            24f,
+            18f,
+            definitionId: "shield:mana-buckler",
+            roleFlags: CombatEquipmentRoleFlags.SpellBlock);
+        CombatAttackPreview manaBlock = previewService.Preview(new CombatAttackRequest(
+            "role:mana-block",
+            "role:attacker",
+            "role:defender",
+            attacker,
+            defender,
+            CreateRoleWeapon(
+                "weapon:rune-bow",
+                CombatEquipmentRoleFlags.None,
+                "ammo:rune-cartridge",
+                loadedAmmo: 1),
+            4,
+            CombatFireMode.Aimed,
+            default,
+            defenderShield: manaBuckler));
+
+        return aimed.Valid
+            && rapid.Valid
+            && rapid.DamageOnHit > aimed.DamageOnHit
+            && CombatEquipmentRoleRules.GetAmmunitionPerAttack(
+                repeating,
+                CombatFireMode.Rapid) == 3
+            && poleHit.Hit
+            && poleHit.ForcedMovement == -1
+            && poleHit.ArmorDurabilityDamage > 0f
+            && manaBlock.Valid
+            && manaBlock.ShieldBlockChance >= 0.849f
+            && CombatEquipmentRoleRules.For("armor:powder-cuirass")
+                == CombatEquipmentRoleFlags.BlastAndSmokeProtection
+            && CombatEquipmentRoleRules.For("shield:pavise")
+                == CombatEquipmentRoleFlags.DeployableCover;
+    }
+
+    private static CombatWeaponSnapshot CreateRoleWeapon(
+        string definitionId,
+        CombatEquipmentRoleFlags roles,
+        string ammunitionItemId,
+        int loadedAmmo,
+        bool ranged = true)
+    {
+        CombatAttackVerb verb = ranged
+            ? new ProjectileVerb
+            {
+                attackTime = 1f,
+                baseDamage = 16f,
+                penetration = 14f,
+                damageType = CombatDamageType.Pierce,
+                projectileSpeed = 18f,
+                tracking = 0.05f
+            }
+            : new MeleeStrikeVerb
+            {
+                attackTime = 1.25f,
+                baseDamage = 22f,
+                penetration = 20f,
+                damageType = CombatDamageType.Blunt,
+                tracking = 0.05f
+            };
+        return new CombatWeaponSnapshot(
+            definitionId,
+            $"instance:{definitionId}",
+            verb.Kind,
+            verb,
+            new[]
+            {
+                new CombatRangeProfile
+                {
+                    band = ranged ? CombatRangeBand.Near : CombatRangeBand.Contact,
+                    accuracyMultiplier = 1f,
+                    damageMultiplier = 1f
+                }
+            },
+            ranged ? 8 : 1,
+            CombatEquipmentQuality.Normal,
+            ammunitionItemId,
+            ranged ? Mathf.Max(1, loadedAmmo) : 0,
+            loadedAmmo,
+            1f,
+            true,
+            true,
+            true,
+            roleFlags: roles);
+    }
+
+    private static CombatAttackPreview PreviewAmmo(
+        string ammunitionItemId,
+        int distance,
+        CombatStatSnapshot attacker,
+        CombatStatSnapshot defender,
+        CombatArmorSnapshot armor)
+    {
+        CombatResolutionService service = new(
+            new SequenceRandom(0.5f),
+            evolution: null,
+            overclock: null,
+            environmentStatus: null,
+            environmentalField: NoEnvironmentalFieldQuery.Instance,
+            characters: null,
+            environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance);
+        return service.Preview(new CombatAttackRequest(
+            $"preview:{ammunitionItemId}:{distance}",
+            "ammo:attacker",
+            "ammo:defender",
+            attacker,
+            defender,
+            CreateAmmoWeapon(ammunitionItemId),
+            distance,
+            CombatFireMode.Aimed,
+            default,
+            defenderMeleeLocked: true,
+            defenderArmor: !string.IsNullOrWhiteSpace(armor.InstanceId)
+                ? new[] { armor }
+                : null));
+    }
+
+    private static CombatAttackResult ResolveAmmo(
+        string ammunitionItemId,
+        int distance,
+        CombatStatSnapshot attacker,
+        CombatStatSnapshot defender,
+        ICharacterEnvironmentExposureCommand exposure)
+    {
+        return new CombatResolutionService(
+            new SequenceRandom(0f, 0.99f, 0.2f),
+            evolution: null,
+            overclock: null,
+            environmentStatus: null,
+            environmentalField: NoEnvironmentalFieldQuery.Instance,
+            characters: null,
+            environmentExposure: exposure).Resolve(new CombatAttackRequest(
+                $"resolve:{ammunitionItemId}",
+                "ammo:attacker",
+                "ammo:defender",
+                attacker,
+                defender,
+                CreateAmmoWeapon(ammunitionItemId),
+                distance,
+                CombatFireMode.Aimed,
+                default,
+                defenderMeleeLocked: true));
+    }
+
+    private static CombatWeaponSnapshot CreateAmmoWeapon(string ammunitionItemId)
+    {
+        return new CombatWeaponSnapshot(
+            "weapon:test-ammunition",
+            "weapon-instance:test-ammunition",
+            CombatEquipmentKind.RangedWeapon,
+            new ProjectileVerb
+            {
+                attackTime = 1f,
+                baseDamage = 22f,
+                penetration = 12f,
+                damageType = CombatDamageType.Pierce,
+                projectileSpeed = 18f,
+                tracking = 0.05f
+            },
+            new[]
+            {
+                new CombatRangeProfile
+                {
+                    band = CombatRangeBand.Near,
+                    accuracyMultiplier = 1f,
+                    damageMultiplier = 1f
+                },
+                new CombatRangeProfile
+                {
+                    band = CombatRangeBand.Medium,
+                    accuracyMultiplier = 1f,
+                    damageMultiplier = 1f
+                },
+                new CombatRangeProfile
+                {
+                    band = CombatRangeBand.Long,
+                    accuracyMultiplier = 0.8f,
+                    damageMultiplier = 0.8f
+                }
+            },
+            20,
+            CombatEquipmentQuality.Normal,
+            ammunitionItemId,
+            1,
+            1,
+            2f,
+            true,
+            true,
+            true);
+    }
+
     private static CombatWeaponSnapshot CreateAuthoredWeaponSnapshot(
         string definitionId,
         string characterId,
@@ -587,7 +970,12 @@ public static class CombatSystemDebugScenarios
         CombatEquipmentInstance instance = equipment.CreateInstance(
             definitionId,
             CombatEquipmentQuality.Normal);
-        repository.EquipmentInstances[instance.instanceId].loadedAmmo = 1;
+        repository.EquipmentInstances[instance.instanceId].loadedAmmunition =
+            new LoadedAmmunitionBatch
+            {
+                ammunitionItemId = "ammo:arrow-steel",
+                remaining = 1
+            };
         repository.EquipmentInstances[instance.instanceId].durabilityRatio =
             Mathf.Clamp01(durabilityRatio);
         string assignFailure = string.Empty;
@@ -645,6 +1033,7 @@ public static class CombatSystemDebugScenarios
             || !runtime.TryAssignToCharacter("worker:1", shield.instanceId, out _)
             || runtime.TrySetActiveWeapon("worker:1", bow.instanceId, out _)
             || !VerifyPhysicalAmmunitionReload(runtime, bow)
+            || !VerifyLoadedAmmunitionIdentityAndMixing(runtime)
             || !runtime.GetShield("worker:1").IsValid)
         {
             return false;
@@ -868,6 +1257,89 @@ public static class CombatSystemDebugScenarios
                 && consumed == 1
                 && inventory.CountItem("ammo:arrow-steel") == 0
                 && runtime.TryConsumeLoadedAmmo(weapon.instanceId);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(inventoryObject);
+        }
+    }
+
+    private static bool VerifyLoadedAmmunitionIdentityAndMixing(
+        CombatEquipmentRuntime runtime)
+    {
+        CombatEquipmentInstance weapon = runtime.CreateInstance(
+            "weapon:repeating-crossbow",
+            CombatEquipmentQuality.Normal);
+        GameObject inventoryObject = new GameObject(
+            "CombatEquipment_MixedAmmoInventory");
+        try
+        {
+            CharacterCarryInventory inventory =
+                inventoryObject.AddComponent<CharacterCarryInventory>();
+            inventory.Restore(new CharacterCarryInventorySaveData
+            {
+                items = new List<CharacterCarriedItemSaveData>
+                {
+                    new CharacterCarriedItemSaveData
+                    {
+                        sourceStackId = "test:ammo:bolt-steel",
+                        itemId = "ammo:bolt-steel",
+                        quantity = 2
+                    },
+                    new CharacterCarriedItemSaveData
+                    {
+                        sourceStackId = "test:ammo:incendiary-bolt",
+                        itemId = "ammo:incendiary-bolt",
+                        quantity = 3
+                    }
+                }
+            });
+
+            if (!runtime.TryReloadFromInventory(
+                    weapon.instanceId,
+                    inventory,
+                    out ItemDefinitionId firstType,
+                    out int firstCount)
+                || !firstType.Equals(
+                    (ItemDefinitionId)"ammo:bolt-steel")
+                || firstCount != 2
+                || !runtime.TryGetInstance(
+                    weapon.instanceId,
+                    out CombatEquipmentInstance loaded)
+                || loaded.loadedAmmunition.ammunitionItemId
+                    != "ammo:bolt-steel"
+                || loaded.loadedAmmunition.remaining != 2)
+            {
+                return false;
+            }
+
+            // A partially loaded magazine cannot silently change type.
+            if (runtime.TryReloadFromInventory(
+                    weapon.instanceId,
+                    inventory,
+                    out _,
+                    out _)
+                || inventory.CountItem("ammo:incendiary-bolt") != 3)
+            {
+                return false;
+            }
+
+            return runtime.TryConsumeLoadedAmmo(weapon.instanceId)
+                && runtime.TryConsumeLoadedAmmo(weapon.instanceId)
+                && runtime.TryReloadFromInventory(
+                    weapon.instanceId,
+                    inventory,
+                    out ItemDefinitionId secondType,
+                    out int secondCount)
+                && secondType.Equals(
+                    (ItemDefinitionId)"ammo:incendiary-bolt")
+                && secondCount == 3
+                && runtime.TryGetInstance(
+                    weapon.instanceId,
+                    out CombatEquipmentInstance reloaded)
+                && reloaded.loadedAmmunition.ammunitionItemId
+                    == "ammo:incendiary-bolt"
+                && reloaded.loadedAmmunition.remaining == 3;
         }
         finally
         {

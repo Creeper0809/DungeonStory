@@ -26,6 +26,7 @@ namespace DungeonStory.Infrastructure
         public string detail = string.Empty;
         public EventAlertImportance importance;
         public string category = string.Empty;
+        public string sourceId = string.Empty;
         public int count = 1;
         public bool dismissed;
         public List<DungeonEventAlertChoiceSaveData> choices = new();
@@ -36,6 +37,7 @@ namespace DungeonStory.Infrastructure
     {
         public string label = string.Empty;
         public string description = string.Empty;
+        public string actionId = string.Empty;
     }
 }
 
@@ -98,7 +100,9 @@ namespace DungeonStory.Operation
                         $"Event-alert record {record.id} has invalid count {record.count}.");
                 }
 
-                if (record.detail == null || record.category == null)
+                if (record.detail == null
+                    || record.category == null
+                    || record.sourceId == null)
                 {
                     errors.Add($"Event-alert record {record.id} has null text fields.");
                 }
@@ -119,10 +123,10 @@ namespace DungeonStory.Operation
                 return;
             }
 
-            if (record.choices.Count > 3)
+            if (record.choices.Count > 4)
             {
                 errors.Add(
-                    $"Event-alert record {record.id} exceeds the three-choice limit.");
+                    $"Event-alert record {record.id} exceeds the four-choice limit.");
             }
 
             for (int choiceIndex = 0; choiceIndex < record.choices.Count; choiceIndex++)
@@ -133,7 +137,7 @@ namespace DungeonStory.Operation
                     errors.Add(
                         $"Event-alert record {record.id} choice {choiceIndex} is invalid.");
                 }
-                else if (choice.description == null)
+                else if (choice.description == null || choice.actionId == null)
                 {
                     errors.Add(
                         $"Event-alert record {record.id} choice {choiceIndex} has a null description.");

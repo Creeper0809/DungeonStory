@@ -109,3 +109,11 @@ InitTestScene*.unity*
 
 docs/
 .planning/
+
+# Local V25 narrative-model training environment
+/.venv-v25-sft/
+/Artifacts/Training/V25/models/
+
+# Python bytecode caches
+__pycache__/
+*.py[cod]

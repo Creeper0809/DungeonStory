@@ -9,7 +9,8 @@ public sealed class CaptivityCharacterContext
         ICharacterBodyHealthCommand bodyHealthCommands,
         ICombatEquipmentRuntime combatEquipment,
         IWorldItemStackRuntime itemRuntime,
-        ICharacterPopulationService population)
+        ICharacterPopulationService population,
+        ICharacterNarrativeQuery narratives)
     {
         WorldRegistry = worldRegistry
             ?? throw new ArgumentNullException(nameof(worldRegistry));
@@ -23,6 +24,8 @@ public sealed class CaptivityCharacterContext
             ?? throw new ArgumentNullException(nameof(itemRuntime));
         Population = population
             ?? throw new ArgumentNullException(nameof(population));
+        Narratives = narratives
+            ?? throw new ArgumentNullException(nameof(narratives));
     }
 
     public ICharacterAiWorldRegistry WorldRegistry { get; }
@@ -31,6 +34,7 @@ public sealed class CaptivityCharacterContext
     public ICombatEquipmentRuntime CombatEquipment { get; }
     public IWorldItemStackRuntime ItemRuntime { get; }
     public ICharacterPopulationService Population { get; }
+    public ICharacterNarrativeQuery Narratives { get; }
 }
 
 public sealed class CaptivityWorldContext

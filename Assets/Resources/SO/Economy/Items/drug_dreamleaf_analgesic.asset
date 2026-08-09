@@ -32,29 +32,29 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 18
   features:
-  - rid: 7737211673962611640
-  - rid: 7737211673962611641
-  - rid: 7737211673962611642
-  - rid: 7737211673962611643
+  - rid: 7737211838068949713
+  - rid: 7737211838068949714
+  - rid: 7737211838068949715
+  - rid: 7737211838068949716
   references:
     version: 2
     RefIds:
-    - rid: 7737211673962611640
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949713
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:anesthesia
-    - rid: 7737211673962611641
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949714
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 4
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211673962611642
-      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949715
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6
-    - rid: 7737211673962611643
-      type: {class: SubstanceItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949716
+      type: {class: SubstanceItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         substanceId: substance:dreamleaf-analgesic
         useClass: 2

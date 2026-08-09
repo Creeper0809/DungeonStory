@@ -34,13 +34,17 @@ MonoBehaviour:
   battlefieldModifierIds:
   - battlefield:narrow-bridge
   counterTags:
+  - counter:reach
   - counter:pin-leader
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
   - enemyArchetypeId: enemy:settler-ranger-chief
     minimumCount: 1
     maximumCount: 2
-  - enemyArchetypeId: enemy:truth-null-warden
+  - enemyArchetypeId: enemy:settler-hunter
+    minimumCount: 1
+    maximumCount: 2
+  - enemyArchetypeId: enemy:settler-trapper
     minimumCount: 1
     maximumCount: 2

@@ -10,7 +10,8 @@ public sealed class CircusProgramContext
         ICaptivityRuntime captivity,
         ICaptivityCommandService captivityCommands,
         IWildlifeCaptureRuntime wildlifeCapture,
-        IExternalInfluenceRuntime externalInfluence)
+        IExternalInfluenceRuntime externalInfluence,
+        IWorldItemStackRuntime items)
     {
         Programs = programs ?? throw new ArgumentNullException(nameof(programs));
         Captivity = captivity ?? throw new ArgumentNullException(nameof(captivity));
@@ -20,6 +21,7 @@ public sealed class CircusProgramContext
             ?? throw new ArgumentNullException(nameof(wildlifeCapture));
         ExternalInfluence = externalInfluence
             ?? throw new ArgumentNullException(nameof(externalInfluence));
+        Items = items ?? throw new ArgumentNullException(nameof(items));
     }
 
     public CircusProgramRegistry Programs { get; }
@@ -27,6 +29,7 @@ public sealed class CircusProgramContext
     public ICaptivityCommandService CaptivityCommands { get; }
     public IWildlifeCaptureRuntime WildlifeCapture { get; }
     public IExternalInfluenceRuntime ExternalInfluence { get; }
+    public IWorldItemStackRuntime Items { get; }
 }
 
 public sealed class CircusWorldContext

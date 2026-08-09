@@ -89,6 +89,10 @@ public sealed class CaptiveState
     public string restraintItemId = string.Empty;
     public int restraintQuantity;
     public Vector2Int restraintPickupPosition;
+    public string assignedRestraintItemId = string.Empty;
+    public string assignedRestraintInstanceId = string.Empty;
+    [Min(0f)] public float assignedRestraintDurability;
+    [Min(0f)] public float assignedRestraintMaximumDurability;
     public Vector2Int capturePosition;
     public Vector2Int housingPosition;
     public Vector2Int escapeDestination;
@@ -105,6 +109,13 @@ public sealed class CaptiveState
     public bool stabilized;
     public bool restrained;
     public CaptiveLaborPermission laborPermissions;
+    public CaptiveLaborPermission pendingLaborPermissions;
+    public string laborToolDestinationId = string.Empty;
+    public string assignedLaborToolItemId = string.Empty;
+    public string assignedLaborToolInstanceId = string.Empty;
+    [Min(0f)] public float assignedLaborToolDurability;
+    [Min(0f)] public float assignedLaborToolMaximumDurability;
+    [Min(0f)] public float nextLaborToolWearAt;
     public string currentInteractionId = string.Empty;
     public string interactionMaterialDestinationId = string.Empty;
     public bool interactionMaterialsConsumed;

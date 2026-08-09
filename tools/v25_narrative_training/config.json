@@ -1,0 +1,54 @@
+{
+  "base_model": "Qwen/Qwen3-1.7B",
+  "language": "ko",
+  "thinking_mode": false,
+  "seed": 250825,
+  "dataset": {
+    "rule_scenarios": 50000,
+    "sft_after_filter": 40000,
+    "human_reviewed": 8000,
+    "train_preference": 6000,
+    "held_out_evaluation": 2000,
+    "artifact_directory": "Artifacts/Training/V25",
+    "review_chunk_size": 1000,
+    "review_encoding": "utf-8-sig",
+    "mix": {
+      "multi_perspective": 0.40,
+      "equipment_facility_skill_names": 0.20,
+      "character_records_monologues": 0.15,
+      "rumors_petitions_dialogue": 0.15,
+      "cliche_hallucination_corrections": 0.10
+    }
+  },
+  "sft": {
+    "quantization": "NF4",
+    "compute_dtype": "bfloat16",
+    "lora_rank": 32,
+    "lora_alpha": 64,
+    "lora_dropout": 0.05,
+    "max_sequence_length": 2048,
+    "effective_batch_size": 128,
+    "learning_rate": 0.0001,
+    "scheduler": "cosine",
+    "warmup_ratio": 0.03,
+    "maximum_epochs": 2
+  },
+  "dpo": {
+    "betas": [0.03, 0.05, 0.10],
+    "epochs": 1,
+    "learning_rate": 0.000005,
+    "preference_mix": {
+      "creative_grounded_over_generic_safe": 0.50,
+      "grounded_over_fact_distortion": 0.30,
+      "specific_viewpoint_over_motif_listing": 0.20
+    }
+  },
+  "release": {
+    "gguf_quantization": "Q4_K_M",
+    "maximum_model_bytes": 1500000000,
+    "maximum_host_rss_bytes": 2500000000,
+    "minimum_tokens_per_second": 10.0,
+    "maximum_persistent_ttft_p95_ms": 2500,
+    "maximum_dialogue_ttft_p95_ms": 1500
+  }
+}

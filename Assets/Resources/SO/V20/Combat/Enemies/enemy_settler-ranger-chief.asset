@@ -50,7 +50,7 @@ MonoBehaviour:
   counterTags:
   - counter:pin-leader
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   bossPhases:
   - healthThreshold: 0.5
     abilityIds:

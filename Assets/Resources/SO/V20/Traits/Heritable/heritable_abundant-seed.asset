@@ -26,3 +26,6 @@ MonoBehaviour:
   - kind: 4
     targetId: success-rate
     multiplierDelta: 0.12
+  - kind: 8
+    targetId: reproduction-hunger
+    multiplierDelta: 0.1

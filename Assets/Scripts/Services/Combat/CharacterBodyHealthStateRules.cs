@@ -190,6 +190,11 @@ internal sealed class CharacterBodyHealthStateRules
                 ?? new List<AnatomyNodeHealthState>(),
             bloodLoss = Mathf.Clamp(source.bloodLoss, 0f, 100f),
             suppression = Mathf.Clamp(source.suppression, 0f, 100f),
+            burningDamagePerSecond = Mathf.Max(0f, source.burningDamagePerSecond),
+            burningRemainingSeconds = Mathf.Max(0f, source.burningRemainingSeconds),
+            sedationRatio = Mathf.Clamp01(source.sedationRatio),
+            sedationRemainingSeconds = Mathf.Max(0f, source.sedationRemainingSeconds),
+            manaBlockedRemainingSeconds = Mathf.Max(0f, source.manaBlockedRemainingSeconds),
             downed = source.downed,
             lastDamageReason = source.lastDamageReason ?? string.Empty
         };
@@ -1003,6 +1008,11 @@ internal sealed class CharacterVitalsAuthority
             || !IsFiniteInRange(state.injurySeverity, 0f, 1f)
             || !IsFiniteInRange(state.bloodLoss, 0f, 100f)
             || !IsFiniteInRange(state.suppression, 0f, 100f)
+            || !IsFiniteInRange(state.burningDamagePerSecond, 0f, float.MaxValue)
+            || !IsFiniteInRange(state.burningRemainingSeconds, 0f, float.MaxValue)
+            || !IsFiniteInRange(state.sedationRatio, 0f, 1f)
+            || !IsFiniteInRange(state.sedationRemainingSeconds, 0f, float.MaxValue)
+            || !IsFiniteInRange(state.manaBlockedRemainingSeconds, 0f, float.MaxValue)
             || state.lastDamageReason == null || !string.Equals(state.lastDamageReason,
                 state.lastDamageReason.Trim(), StringComparison.Ordinal))
         {

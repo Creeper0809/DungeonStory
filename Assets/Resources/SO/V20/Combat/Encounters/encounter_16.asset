@@ -34,13 +34,15 @@ MonoBehaviour:
   battlefieldModifierIds:
   - battlefield:flooded-floor
   counterTags:
+  - counter:insulated
   - counter:brace
+  - counter:sabotage
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
   - enemyArchetypeId: enemy:merchant-caravan-blade
     minimumCount: 1
     maximumCount: 2
-  - enemyArchetypeId: enemy:settler-hunter
+  - enemyArchetypeId: enemy:merchant-hired-bulwark
     minimumCount: 1
     maximumCount: 2

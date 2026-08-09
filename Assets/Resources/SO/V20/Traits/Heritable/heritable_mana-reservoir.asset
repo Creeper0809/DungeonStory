@@ -26,3 +26,6 @@ MonoBehaviour:
   - kind: 7
     targetId: capacity
     multiplierDelta: 0.15
+  - kind: 10
+    targetId: mana-exposure
+    multiplierDelta: 0.15

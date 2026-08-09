@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 20
   features:
-  - rid: 7737211673962611538
-  - rid: 7737211673962611539
-  - rid: 7737211673962611540
+  - rid: 7737211838068949501
+  - rid: 7737211838068949502
+  - rid: 7737211838068949503
   references:
     version: 2
     RefIds:
-    - rid: 7737211673962611538
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949501
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:arcane:alchemy
-    - rid: 7737211673962611539
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949502
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 4096
         sharedIntermediate: 0
-    - rid: 7737211673962611540
-      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949503
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

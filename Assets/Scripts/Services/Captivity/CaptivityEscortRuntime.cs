@@ -107,7 +107,8 @@ internal sealed class CaptivityEscortRuntime :
             return false;
         }
 
-        if (inventory.CountItem(CaptivityItemDefinitions.RestraintsItemId) > 0)
+        if (!string.IsNullOrWhiteSpace(captive.assignedRestraintItemId)
+            || inventory.CountItem(captive.restraintItemId) > 0)
         {
             return true;
         }
@@ -181,12 +182,61 @@ internal sealed class CaptivityEscortRuntime :
             return false;
         }
 
-        if (inventory == null
-            || !inventory.TryConsumeItem(CaptivityItemDefinitions.RestraintsItemId, 1))
+        if (inventory == null)
         {
             failureReason = "구속구가 없습니다.";
             return false;
         }
+
+        if (!string.IsNullOrWhiteSpace(state.assignedRestraintItemId))
+        {
+            // A save captured during escort restores the already attached physical
+            // restraint through CaptiveState rather than creating a duplicate item.
+        }
+        else if (string.Equals(
+                state.restraintItemId,
+                CaptivityItemDefinitions.ReinforcedRestraintItemId,
+                StringComparison.Ordinal))
+        {
+            if (!inventory.TryTakeItem(
+                    state.restraintItemId,
+                    out CharacterCarriedItemSaveData restraint))
+            {
+                failureReason = "강화 구속구를 찾을 수 없습니다.";
+                return false;
+            }
+
+            if (!CaptivityDurableToolRuntime.TryAssignRestraint(
+                    state,
+                    restraint,
+                    out failureReason))
+            {
+                inventory.TryAddPartialStack(
+                    restraint.sourceStackId,
+                    restraint.itemInstanceId,
+                    restraint.itemId,
+                    restraint.quantity,
+                    itemRuntime.CatalogProvider,
+                    itemRuntime.HaulingSettingsProvider,
+                    restraint.wasteOrigin,
+                    restraint.contamination,
+                    restraint.components,
+                    out _,
+                    out _);
+                failureReason = string.IsNullOrWhiteSpace(failureReason)
+                    ? "강화 구속구를 장착할 수 없습니다."
+                    : failureReason;
+                return false;
+            }
+        }
+        else if (!inventory.TryConsumeItem(state.restraintItemId, 1))
+        {
+            failureReason = "구속구가 없습니다.";
+            return false;
+        }
+
+        state.restraintStackId = string.Empty;
+        state.restraintQuantity = 0;
 
         ConfiscateEquipment(subject, state.capturePosition);
         state.equipmentConfiscated = true;
@@ -226,6 +276,9 @@ internal sealed class CaptivityEscortRuntime :
         subject.SetLifecycleState(CharacterLifecycleState.Downed);
         state.status = CaptivityStatus.Confined;
         state.reservedCarrierId = string.Empty;
+        state.restraintStackId = string.Empty;
+        state.restraintItemId = string.Empty;
+        state.restraintQuantity = 0;
         state.health = EstimateHealth(subject);
         state.nextSecurityCheckAt = gameClock.Time + 5f;
         state.lastResult = "감방 수용 완료";
@@ -259,10 +312,17 @@ internal sealed class CaptivityEscortRuntime :
                 state.reservedCarrierId);
         }
 
+        CaptivityDurableToolRuntime.TryReturnRestraint(
+            itemRuntime,
+            state,
+            state.capturePosition);
+
         state.status = CaptivityStatus.AwaitingCapture;
         state.reservedCarrierId = string.Empty;
         state.housingBuildingId = string.Empty;
         state.restraintStackId = string.Empty;
+        state.restraintItemId = string.Empty;
+        state.restraintQuantity = 0;
         state.lastResult = string.IsNullOrWhiteSpace(reason)
             ? "포획 중단"
             : reason;
@@ -314,5 +374,152 @@ internal sealed class CaptivityEscortRuntime :
             actor.Stats.CurrentHealth / Mathf.Max(1f, actor.Stats.MaxHealth) * 100f,
             0f,
             100f);
+    }
+}
+
+internal static class CaptivityDurableToolRuntime
+{
+    private const float RestraintUseWear = 5f;
+
+    public static bool TryAssignRestraint(
+        CaptiveState state,
+        CharacterCarriedItemSaveData item,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (state == null
+            || item == null
+            || !string.Equals(
+                item.itemId,
+                CaptivityItemDefinitions.ReinforcedRestraintItemId,
+                StringComparison.Ordinal)
+            || !((ItemInstanceId)item.itemInstanceId).IsValid)
+        {
+            failureReason = "강화 구속구의 물리 인스턴스가 유효하지 않습니다.";
+            return false;
+        }
+
+        float current = DurableToolItemRules.ReadCurrentDurability(
+            item.itemId,
+            item.components);
+        if (!DurableToolItemRules.TryGetMaximumDurability(
+                item.itemId,
+                out float maximum)
+            || current <= RestraintUseWear)
+        {
+            failureReason = "강화 구속구가 파손되어 사용할 수 없습니다.";
+            return false;
+        }
+
+        state.assignedRestraintItemId = item.itemId;
+        state.assignedRestraintInstanceId = item.itemInstanceId;
+        state.assignedRestraintMaximumDurability = maximum;
+        state.assignedRestraintDurability = Mathf.Max(
+            0f,
+            current - RestraintUseWear);
+        return true;
+    }
+
+    public static bool TryAssignLaborTool(
+        CaptiveState state,
+        WorldItemStackSnapshot item)
+    {
+        if (state == null
+            || item == null
+            || !string.Equals(
+                item.ItemId,
+                CaptivityItemDefinitions.PrisonerWorkKitItemId,
+                StringComparison.Ordinal)
+            || !((ItemInstanceId)item.ItemInstanceId).IsValid
+            || !DurableToolItemRules.TryGetMaximumDurability(
+                item.ItemId,
+                out float maximum))
+        {
+            return false;
+        }
+
+        float current = DurableToolItemRules.ReadCurrentDurability(
+            item.ItemId,
+            item.Components);
+        if (current <= 0f)
+        {
+            return false;
+        }
+
+        state.assignedLaborToolItemId = item.ItemId;
+        state.assignedLaborToolInstanceId = item.ItemInstanceId;
+        state.assignedLaborToolDurability = current;
+        state.assignedLaborToolMaximumDurability = maximum;
+        return true;
+    }
+
+    public static bool TryReturnRestraint(
+        IWorldItemStackRuntime items,
+        CaptiveState state,
+        Vector2Int position) =>
+        TryReturn(
+            items,
+            state?.assignedRestraintItemId,
+            state?.assignedRestraintInstanceId,
+            state?.assignedRestraintDurability ?? 0f,
+            position,
+            () =>
+            {
+                state.assignedRestraintItemId = string.Empty;
+                state.assignedRestraintInstanceId = string.Empty;
+                state.assignedRestraintDurability = 0f;
+                state.assignedRestraintMaximumDurability = 0f;
+            });
+
+    public static bool TryReturnLaborTool(
+        IWorldItemStackRuntime items,
+        CaptiveState state,
+        Vector2Int position) =>
+        TryReturn(
+            items,
+            state?.assignedLaborToolItemId,
+            state?.assignedLaborToolInstanceId,
+            state?.assignedLaborToolDurability ?? 0f,
+            position,
+            () =>
+            {
+                state.assignedLaborToolItemId = string.Empty;
+                state.assignedLaborToolInstanceId = string.Empty;
+                state.assignedLaborToolDurability = 0f;
+                state.assignedLaborToolMaximumDurability = 0f;
+                state.nextLaborToolWearAt = 0f;
+            });
+
+    private static bool TryReturn(
+        IWorldItemStackRuntime items,
+        string itemId,
+        string instanceId,
+        float durability,
+        Vector2Int position,
+        Action clear)
+    {
+        if (string.IsNullOrWhiteSpace(itemId))
+        {
+            return true;
+        }
+
+        if (items == null
+            || !((ItemInstanceId)instanceId).IsValid
+            || !items.SpawnExistingUniqueItemAt(
+                itemId,
+                (ItemInstanceId)instanceId,
+                position,
+                WorldItemStackState.Loose,
+                string.Empty,
+                out string stackId))
+        {
+            return false;
+        }
+
+        items.TrySetInstanceComponent(
+            stackId,
+            DurableToolItemRules.CreateDurability(itemId, durability));
+        clear?.Invoke();
+        return true;
     }
 }

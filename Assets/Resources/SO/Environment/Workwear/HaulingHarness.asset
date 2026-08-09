@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4ba678a78e63274890cfcb96413c482, type: 3}
+  m_Name: HaulingHarness
+  m_EditorClassIdentifier: Assembly-CSharp::EnvironmentalWorkwearSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 812206
+  workwearId: workwear:hauling-harness
+  itemDefinitionId: tool:hauling-harness
+  displayName: "\uC6B4\uBC18 \uBA5C\uBE75"
+  description: "\uC6B4\uBC18 \uC791\uC5C5 \uC911 \uC801\uC7AC \uD55C\uB3C4\uB97C 25% \uB298\uB9AC\uACE0 \uC644\uB8CC \uC2DC \uB0B4\uAD6C\uB3C4\uB97C \uC18C\uBAA8\uD558\uB294 \uBB3C\uB9AC \uC791\uC5C5 \uC7A5\uBE44."
+  allowedSpecies: []
+  protection:
+    comfortMinimumOffset: 0
+    comfortMaximumOffset: 0
+    safeMinimumOffset: 0
+    safeMaximumOffset: 0
+    coldExposureMultiplier: 1
+    heatExposureMultiplier: 1
+  requiredResearchId: research:commerce:logistics

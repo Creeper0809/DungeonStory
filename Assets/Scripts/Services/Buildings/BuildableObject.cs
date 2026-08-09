@@ -19,6 +19,9 @@ public class BuildableObject : MonoBehaviour,
     public IReadOnlyList<Vector2Int> buildPoses =>
         buildPosesView ??= ReadOnlyView.List(mutableBuildPoses);
     public BuildingSO BuildingData { get; private set; }
+    public BuildingCraftsmanshipStateModule Craftsmanship =>
+        craftsmanshipState ??= new BuildingCraftsmanshipStateModule(
+            MarkFacilityDynamicStateDirty);
 
     protected Grid grid;
     public BuildingCategory category { get; private set; }
@@ -30,6 +33,7 @@ public class BuildableObject : MonoBehaviour,
     [SerializeField] private int facilityLevel = 1;
     [SerializeField] private string persistentInstanceId = string.Empty;
     [SerializeField] private FacilityRuntimeState facilityState = new FacilityRuntimeState();
+    private BuildingCraftsmanshipStateModule craftsmanshipState;
     private BuildingOccupancy occupancy;
     private BuildingAssignment assignment;
     private BuildableObjectStateAndCapabilityController stateAndCapabilities;
@@ -313,6 +317,9 @@ public class BuildableObject : MonoBehaviour,
         facilityState.CopyFrom(null);
         StateAndCapabilities.ResetStateModules();
         RegisterStateModule(new FacilityRuntimeStateModule(this));
+        craftsmanshipState = new BuildingCraftsmanshipStateModule(
+            MarkFacilityDynamicStateDirty);
+        RegisterStateModule(craftsmanshipState);
         (evolutionState ?? throw new InvalidOperationException(
                 $"{nameof(BuildableObject)} requires {nameof(IBuildingEvolutionStatePort)} injection."))
             .EnsureInitialized(this);

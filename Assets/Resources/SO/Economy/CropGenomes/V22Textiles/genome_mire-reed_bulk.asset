@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc6b8ba36b9d0d44ea0ef167ffca5446, type: 3}
+  m_Name: genome_mire-reed_bulk
+  m_EditorClassIdentifier: DungeonStory.Economy::CropGenomeDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9409
+  genomeId: genome:mire-reed:bulk
+  cropId: crop:mire-reed
+  cultivarName: "\uC2B5\uC9C0 \uAC08\uB300 \uB300\uB7C9\uC0DD\uC0B0\uC885"
+  description: "\uC131\uC7A5\xB7\uC218\uD655 \uC88C\uC704\uC758 \uD488\uC9C8 \uBE44\uC6A9\uC744
+    \uC9C0\uBD88\uD558\uACE0 \uBCF4\uD1B5\uAE09 \uC12C\uC720\uB97C \uB300\uB7C9 \uC0DD\uC0B0\uD55C\uB2E4."
+  authoringRevision: 1
+  tradeoffTags:
+  - tradeoff:quality
+  - role:bulk-fiber
+  loci:
+  - locus: 0
+    alleleA: -1
+    alleleB: -1
+  - locus: 1
+    alleleA: -1
+    alleleB: -1
+  - locus: 2
+    alleleA: 2
+    alleleB: 2
+  - locus: 3
+    alleleA: 2
+    alleleB: 2
+  - locus: 4
+    alleleA: -1
+    alleleB: -1
+  - locus: 5
+    alleleA: 1
+    alleleB: 1

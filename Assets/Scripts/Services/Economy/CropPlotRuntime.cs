@@ -41,6 +41,7 @@ public sealed class CropPlotWorldDependencies
         IProductionItemGateway items,
         IPhysicalSeedLotGateway seedLots,
         ICropEcologyService ecology,
+        IFacilityCapabilityQuery facilities,
         IFacilityCandidateCache facilityCandidates,
         IWorkforceReplanService workforce)
     {
@@ -50,6 +51,7 @@ public sealed class CropPlotWorldDependencies
         Items = items ?? throw new ArgumentNullException(nameof(items));
         SeedLots = seedLots ?? throw new ArgumentNullException(nameof(seedLots));
         Ecology = ecology ?? throw new ArgumentNullException(nameof(ecology));
+        Facilities = facilities ?? throw new ArgumentNullException(nameof(facilities));
         FacilityCandidates = facilityCandidates
             ?? throw new ArgumentNullException(nameof(facilityCandidates));
         Workforce = workforce ?? throw new ArgumentNullException(nameof(workforce));
@@ -60,6 +62,7 @@ public sealed class CropPlotWorldDependencies
     public IProductionItemGateway Items { get; }
     public IPhysicalSeedLotGateway SeedLots { get; }
     public ICropEcologyService Ecology { get; }
+    public IFacilityCapabilityQuery Facilities { get; }
     public IFacilityCandidateCache FacilityCandidates { get; }
     public IWorkforceReplanService Workforce { get; }
 }
@@ -111,6 +114,7 @@ public sealed class CropPlotRuntime :
     private readonly IProductionItemGateway items;
     private readonly IPhysicalSeedLotGateway seedLots;
     private readonly ICropEcologyService ecology;
+    private readonly IFacilityCapabilityQuery facilities;
     private readonly IGameClock gameClock;
     private readonly BlueprintResearchRuntime research;
     private readonly IGameSessionStateProvider gameDataProvider;
@@ -118,6 +122,7 @@ public sealed class CropPlotRuntime :
     private readonly IFacilityCandidateCache facilityCandidates;
     private readonly IWorkforceReplanService workforce;
     private readonly IGrandProjectBenefitQuery grandProjectBenefits;
+    private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
     private readonly IGameEventBus events;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private IDisposable dayEndedSubscription;
@@ -148,7 +153,8 @@ public sealed class CropPlotRuntime :
     public CropPlotRuntime(
         CropPlotWorldDependencies world,
         CropPlotSimulationDependencies simulation,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IMilestoneGameplayModifierQuery milestoneModifiers = null)
     {
         world = world ?? throw new ArgumentNullException(nameof(world));
         simulation = simulation ?? throw new ArgumentNullException(nameof(simulation));
@@ -157,6 +163,7 @@ public sealed class CropPlotRuntime :
         items = world.Items;
         seedLots = world.SeedLots;
         ecology = world.Ecology;
+        facilities = world.Facilities;
         facilityCandidates = world.FacilityCandidates;
         workforce = world.Workforce;
         gameClock = simulation.GameClock;
@@ -170,6 +177,8 @@ public sealed class CropPlotRuntime :
         events = simulation.Events;
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.milestoneModifiers = milestoneModifiers
+            ?? NeutralMilestoneGameplayModifierQuery.Instance;
     }
 
     public int Version
@@ -403,11 +412,19 @@ public sealed class CropPlotRuntime :
                     Mathf.Max(
                         1,
                         Mathf.RoundToInt(crop.Yield * outputMultiplier
-                            * ecologyResult.YieldMultiplier)),
+                            * ecologyResult.YieldMultiplier
+                            * (IsOperational(
+                                ResearchFacilityCommandKind.SoilDiagnostics)
+                                    ? 1.05f
+                                    : 1f))),
                     state.Building.centerPos);
                 if (!seedLots.SpawnSeedLot(
                         crop.SeedItemId,
-                        ecologyResult.ReturnedSeedCount,
+                        ecologyResult.ReturnedSeedCount
+                            + (IsOperational(
+                                ResearchFacilityCommandKind.SeedSelection)
+                                    ? 1
+                                    : 0),
                         ecologyResult.ReturnedSeedLot,
                         state.Building.centerPos))
                     throw new InvalidOperationException(
@@ -666,7 +683,12 @@ public sealed class CropPlotRuntime :
                 Mathf.CeilToInt(
                     crop.DailyWater
                     * (crop.GrowthHours / 24f)
-                    * waterRate));
+                    * waterRate
+                    * Mathf.Clamp(
+                        milestoneModifiers
+                            .WaterAndFertilizerConsumptionMultiplier,
+                        0.1f,
+                        1f)));
         if (water > 0)
         {
             if (!catalog.TryGetItem(CleanWaterItemId, out _))
@@ -680,7 +702,15 @@ public sealed class CropPlotRuntime :
 
         if (state.Ability.CompostPerCycle > 0)
         {
-            requirements[CompostItemId] = state.Ability.CompostPerCycle;
+            requirements[CompostItemId] = Mathf.Max(
+                1,
+                Mathf.CeilToInt(
+                    state.Ability.CompostPerCycle
+                    * Mathf.Clamp(
+                        milestoneModifiers
+                            .WaterAndFertilizerConsumptionMultiplier,
+                        0.1f,
+                        1f)));
         }
 
         if (state.Ability.FuelPerCycle > 0)
@@ -735,12 +765,23 @@ public sealed class CropPlotRuntime :
         blockedReason = string.Empty;
         if (state.Ability.Indoor)
         {
-            return state.Ability.GrowthMultiplier;
+            return state.Ability.GrowthMultiplier
+                * (IsOperational(ResearchFacilityCommandKind.ClimateControl)
+                    ? 1.08f
+                    : 1f)
+                * (IsOperational(ResearchFacilityCommandKind.CropCalendar)
+                    ? 1.05f
+                    : 1f)
+                * ecology.GetPhenotype(state.PlotId.Value).GrowthMultiplier;
         }
 
         SurvivalEnvironmentSnapshot environment =
             environmentQuery.GetEnvironmentSnapshot();
-        Vector2 range = crop.TemperatureRange;
+        CropGenomePhenotype phenotype = ecology.GetPhenotype(state.PlotId.Value);
+        Vector2 authoredRange = crop.TemperatureRange;
+        Vector2 range = new(
+            authoredRange.x - phenotype.ColdToleranceDegrees,
+            authoredRange.y + phenotype.HeatToleranceDegrees);
         if (environment.OutdoorTemperature < range.x)
         {
             blockedReason = $"기온이 너무 낮음 ({environment.OutdoorTemperature:0.#}도)";
@@ -771,7 +812,11 @@ public sealed class CropPlotRuntime :
 
         return state.Ability.GrowthMultiplier
             * weatherMultiplier
-            * dayMultiplier;
+            * dayMultiplier
+            * (IsOperational(ResearchFacilityCommandKind.CropCalendar)
+                ? 1.05f
+                : 1f)
+            * phenotype.GrowthMultiplier;
     }
 
     private void SynchronizePlots(bool force)
@@ -830,7 +875,15 @@ public sealed class CropPlotRuntime :
                      .ToArray())
         {
             if (!catalog.TryGetCrop(state.CropId, out CropDefinitionSO crop)) continue;
-            Vector2 range = crop.TemperatureRange;
+            if (IsOperational(ResearchFacilityCommandKind.SoilDiagnostics))
+            {
+                ecology.ApplyFungicide(state.PlotId.Value, 2f);
+            }
+            CropGenomePhenotype phenotype = ecology.GetPhenotype(state.PlotId.Value);
+            Vector2 authoredRange = crop.TemperatureRange;
+            Vector2 range = new(
+                authoredRange.x - phenotype.ColdToleranceDegrees,
+                authoredRange.y + phenotype.HeatToleranceDegrees);
             bool lethal = !state.Ability.Indoor
                 && (environment.OutdoorTemperature < range.x - 5f
                     || environment.OutdoorTemperature > range.y + 5f);
@@ -841,6 +894,9 @@ public sealed class CropPlotRuntime :
             MarkChanged();
         }
     }
+
+    private bool IsOperational(ResearchFacilityCommandKind command) =>
+        facilities.FindOperational(command).Count > 0;
 
     private CropPlotState CreateState(
         BuildableObject building,

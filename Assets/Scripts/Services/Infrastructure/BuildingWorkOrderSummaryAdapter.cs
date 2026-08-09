@@ -47,6 +47,12 @@ public sealed class BuildingWorkOrderSummaryAdapter :
             WorkOrderStatus.Blocked => BuildingWorkOrderSummaryStatus.Blocked,
             WorkOrderStatus.Completed => BuildingWorkOrderSummaryStatus.Completed,
             WorkOrderStatus.Cancelled => BuildingWorkOrderSummaryStatus.Cancelled,
+            WorkOrderStatus.WaitingForEligibleWorker =>
+                BuildingWorkOrderSummaryStatus.Blocked,
+            WorkOrderStatus.TargetCurrentlyUnreachable =>
+                BuildingWorkOrderSummaryStatus.Blocked,
+            WorkOrderStatus.WaitingForOutputSpace =>
+                BuildingWorkOrderSummaryStatus.Blocked,
             _ => throw new ArgumentOutOfRangeException(nameof(status), status, null)
         };
     }

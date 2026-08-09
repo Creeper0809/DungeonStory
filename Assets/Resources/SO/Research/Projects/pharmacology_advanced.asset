@@ -29,15 +29,9 @@ MonoBehaviour:
   field: 13
   requiredWork: 184
   prerequisites:
-  - {fileID: 11400000, guid: 1f0f04477ee507543893f06592b0442c, type: 2}
   - {fileID: 11400000, guid: 1e00aa14d0b75ed47aca30ba5989c043, type: 2}
   - {fileID: 11400000, guid: 3e92a60a5d0530d4abe6c67462148c11, type: 2}
   prerequisiteLinks:
-  - prerequisiteId: research:arcane:alchemy
-    prerequisite: {fileID: 11400000, guid: 1f0f04477ee507543893f06592b0442c, type: 2}
-    kind: 0
-    reason: "\uC5F0\uAE08 \uAC00\uACF5\uC758 \uC774\uB860\uC774(\uAC00) \uACE0\uAE09
-      \uC57D\uB9AC \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   - prerequisiteId: research:pharmacology:stimulants
     prerequisite: {fileID: 11400000, guid: 1e00aa14d0b75ed47aca30ba5989c043, type: 2}
     kind: 2

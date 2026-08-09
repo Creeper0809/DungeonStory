@@ -30,6 +30,8 @@ public interface ICharacterSkillGenerationService
 public sealed class CharacterSkillGenerationResponseDto : ILlmJsonPayload
 {
     public List<CharacterSkillCandidateResponseDto> candidates = new List<CharacterSkillCandidateResponseDto>();
+    public string[] usedMotifIds = Array.Empty<string>();
+    public string[] usedCharacterFactIds = Array.Empty<string>();
 
     public bool Validate(out string error)
     {
@@ -544,6 +546,11 @@ public sealed class CharacterSkillGenerationService :
     {
         if (!llmRuntimeProvider.TryGetRuntime(out ILocalLlmRuntime runtime))
         {
+            if (TryCompleteRuleFallback(request, out string fallbackError))
+            {
+                return;
+            }
+            LastDiagnostic = $"fallback-failed={request.draft.requestKey}; reason={fallbackError}";
             ScheduleRetry(request, now);
             return;
         }
@@ -602,6 +609,10 @@ public sealed class CharacterSkillGenerationService :
 
         if (valid)
         {
+            foreach (CharacterSkillInstance skill in skills)
+            {
+                skill.narrativeTrace = result.NarrativeTrace;
+            }
             request.draft.candidates = skills;
             request.draft.isReady = true;
             request.draft.requestSubmitted = false;
@@ -621,6 +632,16 @@ public sealed class CharacterSkillGenerationService :
         else
         {
             LastDiagnostic = $"failed={request.draft.requestKey}; status={result.Status}; error={result.Error}";
+            if (TryCompleteRuleFallback(request, out _))
+            {
+                return;
+            }
+        }
+
+        if (result.IsSuccess && request.attempts >= 1
+            && TryCompleteRuleFallback(request, out _))
+        {
+            return;
         }
 
         ScheduleRetry(request, uiClock.Time);
@@ -680,6 +701,120 @@ public sealed class CharacterSkillGenerationService :
         }
     }
 
+    private bool TryCompleteRuleFallback(PendingRequest request, out string error)
+    {
+        error = string.Empty;
+        if (request?.draft?.rules == null || request.progression == null)
+        {
+            error = "Rule fallback request is incomplete.";
+            return false;
+        }
+
+        string[] names = { "기록의 맹세", "철야의 수법", "귀환의 결" };
+        string characterName = request.progression.Actor?.Identity?.DisplayName;
+        if (string.IsNullOrWhiteSpace(characterName))
+        {
+            characterName = request.progression.GrowthState?.displayName;
+        }
+        characterName = string.IsNullOrWhiteSpace(characterName) ? "이 인물" : characterName.Trim();
+        if (characterName.Length > 24)
+        {
+            characterName = characterName.Substring(0, 24);
+        }
+
+        List<CharacterSkillInstance> skills = new List<CharacterSkillInstance>();
+        for (int index = 0; index < request.draft.rules.Count; index++)
+        {
+            CharacterSkillCandidateResponseDto candidate = new CharacterSkillCandidateResponseDto
+            {
+                index = index,
+                name = names[index % names.Length],
+                description = $"{characterName}의 실제 기록으로 확정된 기술이다.",
+                narrativeReason = "효과와 비용은 규칙이 정하고 문구만 임시로 붙였다."
+            };
+            if (!TryBuildSkill(request.draft, candidate, out CharacterSkillInstance skill, out error))
+            {
+                return false;
+            }
+            skill.narrativeTrace = new NarrativeGenerationTrace
+            {
+                schemaId = LocalLlmRequestProfiles.CharacterSkill.Id,
+                schemaVersion = LlmStaticSchemaCatalog.Require(
+                    LocalLlmRequestProfiles.CharacterSkill.Id).Version,
+                schemaHash = LlmStaticSchemaCatalog.Require(
+                    LocalLlmRequestProfiles.CharacterSkill.Id).Hash,
+                verdict = NarrativeQualityVerdict.SoftPass,
+                retryCount = request.attempts,
+                usedFallback = true
+            };
+            skills.Add(skill);
+        }
+
+        request.draft.candidates = skills;
+        request.draft.isReady = true;
+        request.draft.requestSubmitted = false;
+        request.progression.MarkGenerationRequestCompleted(request.draft.requestKey);
+        RemoveRequest(request.draft.requestKey);
+        request.progression.OnDraftReady(request.draft);
+        LastDiagnostic = $"rule-fallback={request.draft.requestKey}; candidates={skills.Count}";
+        return true;
+    }
+
+    private void ApplyRuleAuthorityToCandidate(
+        CharacterSkillDraft draft,
+        CharacterSkillCandidateRule rule,
+        CharacterSkillCandidateResponseDto candidate)
+    {
+        // V25: the model supplies presentation only. A deterministic rule-owned
+        // combination fixes every mechanical field before response validation.
+        List<CharacterSkillAllowedCombination> combinations = CharacterSkillCombinationCatalog
+            .Build(rule, settingsProvider.Settings, draft.kind);
+        if (combinations.Count == 0)
+        {
+            candidate.combinationId = string.Empty;
+            candidate.modules = new List<CharacterSkillModuleResponseDto>();
+            return;
+        }
+
+        int stable = CharacterGrowthRules.StableHash(
+            $"{draft.requestKey}|mechanics");
+        int offset = stable == int.MinValue ? 0 : Math.Abs(stable);
+        CharacterSkillAllowedCombination selected = combinations[
+            (offset + Mathf.Max(0, candidate.index)) % combinations.Count];
+
+        candidate.combinationId = selected.Id;
+        candidate.modules = new List<CharacterSkillModuleResponseDto>();
+        candidate.trigger = rule.trigger.ToString();
+        candidate.target = rule.target.ToString();
+        candidate.cooldownTurns = draft.kind switch
+        {
+            CharacterSkillKind.Passive => 0,
+            CharacterSkillKind.Ultimate => 5,
+            _ => 2 + (offset % 3)
+        };
+        candidate.ultimateDomain = CharacterUltimateDomain.None.ToString();
+
+        if (draft.kind != CharacterSkillKind.Ultimate)
+        {
+            return;
+        }
+
+        bool management = selected.Modules.All(selection =>
+            settingsProvider.Settings.FindModule(selection.moduleId)
+            is CharacterManagementSkillModuleRule);
+        if (management)
+        {
+            candidate.ultimateDomain = CharacterUltimateDomain.Management.ToString();
+            candidate.trigger = CharacterSkillTrigger.OperatingDayStarted.ToString();
+            candidate.target = CharacterSkillTarget.Dungeon.ToString();
+            return;
+        }
+
+        candidate.ultimateDomain = CharacterUltimateDomain.Offense.ToString();
+        candidate.trigger = CharacterSkillTrigger.ManualCombat.ToString();
+        candidate.target = CharacterSkillTarget.Enemy.ToString();
+    }
+
     private bool TryBuildSkill(
         CharacterSkillDraft draft,
         CharacterSkillCandidateResponseDto candidate,
@@ -689,6 +824,7 @@ public sealed class CharacterSkillGenerationService :
         skill = null;
         error = string.Empty;
         CharacterSkillCandidateRule rule = draft.rules[candidate.index];
+        ApplyRuleAuthorityToCandidate(draft, rule, candidate);
         if (string.IsNullOrWhiteSpace(candidate.name)
             || candidate.name.Trim().Length > 14
             || string.IsNullOrWhiteSpace(candidate.description)
@@ -981,6 +1117,11 @@ public static class CharacterSkillPromptBuilder
         builder.AppendLine("6. name, description, narrativeReason은 자연스러운 한국어로 쓴다. 일반 액티브와 패시브의 ultimateDomain은 None이다.");
         builder.AppendLine($"7. 각 후보의 name, description, narrativeReason 중 적어도 하나에는 캐릭터 이름 '{characterName}'을 정확히 넣고, description과 narrativeReason은 서로 다른 문장으로 쓴다.");
         builder.AppendLine("궁극기만 서사에 맞는 계열을 고른다.");
-        return builder.ToString();
+        return NarrativeRequestContextBuilder.ForProgression(
+                LocalLlmRequestProfiles.CharacterSkill.Id,
+                progression,
+                requireCharacterFact: true,
+                requireMotif: true)
+            .AppendToPrompt(builder.ToString());
     }
 }

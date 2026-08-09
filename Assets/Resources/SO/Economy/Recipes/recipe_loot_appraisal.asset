@@ -21,14 +21,14 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9161
+  id: 9108
   recipeId: recipe:loot-appraisal
   displayName: "\uC6D0\uC815 \uC804\uB9AC\uD488 \uAC10\uC815"
   description: "\uC6D0\uC815 \uC804\uB9AC\uD488 \uAC10\uC815 \uC0DD\uC0B0 \uC8FC\uBB38"
   facilityTag: workstation:v3:appraisal
   workstationTag: workstation:v3:appraisal
   requiredSupportTags: []
-  batchSupportTag:
+  batchSupportTag: 
   processKind: 0
   workTypeId: work:craft
   requiredResearchId: research:equipment:relic-appraisal

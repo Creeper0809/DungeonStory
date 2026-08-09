@@ -28,27 +28,27 @@ MonoBehaviour:
     \uC4F0\uB294 \uC78E."
   stockCategory: 5
   unitWeight: 0.08
-  maxStack: 75
+  maxStack: 200
   sprite: {fileID: 0}
   unitPrice: 6
   features:
-  - rid: 7737211674039681114
-  - rid: 7737211674039681115
-  - rid: 7737211674039681116
+  - rid: 7737211838068949439
+  - rid: 7737211838068949440
+  - rid: 7737211838068949441
   references:
     version: 2
     RefIds:
-    - rid: 7737211674039681114
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949439
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:herbalism
-    - rid: 7737211674039681115
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949440
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 0
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211674039681116
-      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949441
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

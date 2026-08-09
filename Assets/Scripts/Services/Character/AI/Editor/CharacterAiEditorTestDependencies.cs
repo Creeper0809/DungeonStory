@@ -487,7 +487,11 @@ internal static class CharacterAiEditorTestDependencies
                 NeutralCharacterSubstanceRuntime.Instance,
                 NeutralSurgicalAugmentationQuery.Instance,
                 NeutralCharacterEnvironmentStatusQuery.Instance,
-                NeutralExternalCombatInfluenceQuery.Instance);
+                NeutralExternalCombatInfluenceQuery.Instance,
+                NeutralContentWorkDelayQuery.Instance,
+                NeutralDiseaseSymptomEffectQuery.Instance,
+                NeutralCharacterCombatSpecialStatusQuery.Instance,
+                NeutralCombatEquipmentBurdenQuery.Instance);
         stats.ConstructCharacterStats(
             gameClock,
             needDefinitions,

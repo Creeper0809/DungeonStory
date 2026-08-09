@@ -19,7 +19,7 @@ MonoBehaviour:
   weight: 1.8
   occupiedHands: 2
   maxDurability: 100
-  requiredCraftWork: 6
+  requiredCraftWork: 124
   defaultMaterialId: material:iron
   primaryMaterialAmount: 2
   allowedMaterialFamilies: 03000000
@@ -29,6 +29,8 @@ MonoBehaviour:
     amount: 1
   - itemId: material:rope
     amount: 1
+  - itemId: material:laminated-lumber
+    amount: 1
   requiredResearchId: research:equipment:bowyery
   era: 1
   tier: 1
@@ -37,7 +39,7 @@ MonoBehaviour:
   growthEquipment: 0
   growthBaseStatMultiplier: 1
   verbs:
-  - rid: 7737211772876620158
+  - rid: 7737211838079696910
   rangeProfiles:
   - band: 1
     accuracyMultiplier: 1
@@ -55,6 +57,7 @@ MonoBehaviour:
   - ammo:arrow-iron
   - ammo:arrow-steel
   - ammo:arrow-rune
+  - ammo:incendiary-arrow
   magazineCapacity: 1
   reloadSeconds: 0.85
   supportsAimed: 1
@@ -66,7 +69,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211772876620158
+    - rid: 7737211838079696910
       type: {class: ProjectileVerb, ns: , asm: DungeonStory.Combat}
       data:
         attackTime: 0.9

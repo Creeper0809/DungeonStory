@@ -371,6 +371,9 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 Facility != null
                     ? Facility.supportedWorkTypes
                     : FacilityWorkType.None);
+        supported = RuntimeWorkCapabilityUtility.AddFallbackWorkTypes(
+            this,
+            supported);
         foreach (WorkTypeDefinition definition in FacilityWorkTypeMap.Enumerate(
                      supported))
         {

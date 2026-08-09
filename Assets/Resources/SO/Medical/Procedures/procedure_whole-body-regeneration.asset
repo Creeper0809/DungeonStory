@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6727f0b5178ce4d488345d0e7c4299ee, type: 3}
+  m_Name: procedure_whole-body-regeneration
+  m_EditorClassIdentifier: DungeonStory.Medical::SurgicalProcedureSO
+  procedureId: procedure:whole-body-regeneration
+  displayName: "\uC804\uC2E0 \uC7AC\uC0DD"
+  description: "\uC804\uC2E0 \uC7AC\uC0DD \uBC30\uC9C0\uB97C \uC0AC\uC6A9\uD574 \uC0DD\uBB3C\uD559\uC801
+    \uB098\uC774\uC640 \uCD08\uAE30 \uB178\uD654 \uC9C8\uD658\uC744 \uB418\uB3CC\uB9B0\uB2E4."
+  kind: 9
+  family: 7
+  urgency: 1
+  allowedAnatomyFamilies: []
+  allowedSpeciesIds: []
+  operatorRequirement:
+    stats: []
+    minimumWeightedScore: 3
+  targetNodeId: 
+  requiredResearchId: research:medical:whole-body-regeneration
+  requiredFacilityTags: 8192
+  requiredWork: 180
+  difficultyPenalty: 0.16
+  baseInfectionRisk: 0.1
+  baseBleedingRisk: 0.08
+  requiresAnesthesia: 1
+  requiresRestraintForUnwilling: 0
+  allowsLivingSubject: 1
+  allowsCorpseSubject: 0
+  allowsWildlife: 0
+  materials:
+  - itemId: medical:whole-body-regeneration-medium
+    quantity: 1
+    optional: 0
+  effects:
+  - rid: 7737211824080421222
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211824080421222
+      type: {class: ApplyAgeTreatmentEffect, ns: , asm: DungeonStory.Medical}
+      data:
+        effectId: ApplyAgeTreatmentEffect
+        treatment: 3

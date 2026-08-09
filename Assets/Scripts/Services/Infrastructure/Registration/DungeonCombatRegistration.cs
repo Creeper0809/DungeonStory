@@ -49,7 +49,8 @@ public static class DungeonCombatRegistration
             .AsSelf()
             .As<ICombatEquipmentRuntime>()
             .As<IBuildingEquipmentCraftingRuntimePort>()
-            .As<ICombatLoadoutRuntime>();
+            .As<ICombatLoadoutRuntime>()
+            .As<ICombatEquipmentBurdenQuery>();
         builder.Register<EquipmentExpeditionRewardService>(Lifetime.Singleton)
             .As<IEquipmentExpeditionRewardService>();
         builder.Register<EquipmentEvolutionRuntime>(Lifetime.Singleton)
@@ -78,6 +79,7 @@ public static class DungeonCombatRegistration
             .AsSelf()
             .As<ICharacterBodyHealthQuery>()
             .As<ICharacterBodyHealthCommand>()
+            .As<ICharacterCombatSpecialStatusQuery>()
             .As<ICharacterBodyHealthPersistence>()
             .As<IAnatomyHealthRuntime>()
             .As<IAnatomyEffectRuntime>();
@@ -130,6 +132,8 @@ public static class DungeonCombatRegistration
         builder.Register<ApplySurgicalBurdenEffectHandler>(Lifetime.Singleton)
             .As<ISurgicalProcedureEffectHandler>();
         builder.Register<ReduceSurgicalBurdenEffectHandler>(Lifetime.Singleton)
+            .As<ISurgicalProcedureEffectHandler>();
+        builder.Register<ApplyAgeTreatmentEffectHandler>(Lifetime.Singleton)
             .As<ISurgicalProcedureEffectHandler>();
         builder.Register<SurgeryContentServices>(Lifetime.Singleton);
         builder.Register<SurgeryWorldServices>(Lifetime.Singleton);

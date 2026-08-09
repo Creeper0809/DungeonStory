@@ -28,27 +28,27 @@ MonoBehaviour:
     \uAC00\uC8FD."
   stockCategory: 1
   unitWeight: 0.4
-  maxStack: 40
+  maxStack: 100
   sprite: {fileID: 0}
   unitPrice: 30
   features:
-  - rid: 7737211674039681127
-  - rid: 7737211674039681128
-  - rid: 7737211674039681129
+  - rid: 7737211838068949449
+  - rid: 7737211838068949450
+  - rid: 7737211838068949451
   references:
     version: 2
     RefIds:
-    - rid: 7737211674039681127
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949449
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:textile:rune-leather
-    - rid: 7737211674039681128
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949450
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 1152
         sharedIntermediate: 1
-    - rid: 7737211674039681129
-      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949451
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

@@ -157,25 +157,50 @@ internal static class CombatEquipmentRestoreBuilder
             RequireCanonicalId(
                 order.materialDestinationId,
                 "combat craft material destination");
+            bool ammunition = CombatEquipmentCraftingRuntime.IsAmmunitionRecipe(
+                order.definitionId);
             if (!ids.Add(order.orderId)
                 || !IsFinitePositive(order.requiredWork)
                 || !IsFiniteInRange(
                     order.completedWork,
                     0f,
                     order.requiredWork,
-                    includeMaximum: false)
+                    includeMaximum: true)
                 || !string.Equals(
                     order.materialDestinationId,
                     WorldItemStackRuntime.FacilityInputDestinationPrefix
                         + order.orderId,
-                    StringComparison.Ordinal))
+                    StringComparison.Ordinal)
+                || !Enum.IsDefined(
+                    typeof(CraftsmanshipQualityTier),
+                    order.minimumQuality)
+                || !Enum.IsDefined(
+                    typeof(RejectedOutputDisposition),
+                    order.rejectedDisposition)
+                || !Enum.IsDefined(
+                    typeof(QualityRepeatLimitMode),
+                    order.repeatLimitMode)
+                || !Enum.IsDefined(
+                    typeof(QualityTargetPipelineStage),
+                    order.qualityStage)
+                || order.maximumAttempts <= 0
+                || order.requiredAcceptedCount <= 0
+                || order.acceptedCount < 0
+                || order.acceptedCount > order.requiredAcceptedCount
+                || order.consumedWork < 0f
+                || (order.rejectedOutputConsumed
+                    && !order.dismantlingRejectedOutput)
+                || (order.dismantlingRejectedOutput
+                    && (string.IsNullOrWhiteSpace(order.rejectedInstanceId)
+                        || string.IsNullOrWhiteSpace(order.rejectedStackId)))
+                || (!ammunition
+                    && (order.qualityRoll == null
+                        || order.qualityRoll.attemptIndex
+                            != order.qualityAttemptIndex)))
             {
                 throw new InvalidOperationException(
                     $"Combat craft order '{order.orderId}' has duplicate ID or invalid work.");
             }
-
-            bool ammunition = CombatEquipmentCraftingRuntime.IsAmmunitionRecipe(
-                order.definitionId);
             if (!ammunition
                 && (!catalog.TryGet(order.definitionId, out CombatEquipmentDefinitionSO definition)
                     || !ValidateMaterial(definition, order.materialId, crafting)))

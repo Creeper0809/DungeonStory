@@ -18,7 +18,7 @@ public static class ProductionWorkshopDebugScenarios
 
         Debug.Log(
             "Production workshop contracts PASS: exact workstation ownership, "
-            + "physical intermediates, 28 supports, 216 research projects, "
+            + "physical intermediates, 28 supports, 180 research projects, "
             + "passive batch definitions and V3 save round-trip.");
     }
 
@@ -158,10 +158,10 @@ public static class ProductionWorkshopDebugScenarios
             }
         }
 
-        if (research.Length != 216)
+        if (research.Length != 180)
         {
             failures.Add(
-                $"Expected 216 research projects, found {research.Length}.");
+                $"Expected 180 research projects, found {research.Length}.");
         }
         string[] newResearch =
         {
@@ -216,7 +216,7 @@ public static class ProductionWorkshopDebugScenarios
             JsonUtility.FromJson<DungeonProductionBillSaveData>(
                 JsonUtility.ToJson(envelope));
         ProductionBillSaveData restoredBill = restored?.bills?.FirstOrDefault();
-        if (DungeonProductionBillSaveData.CurrentVersion != 5
+        if (DungeonProductionBillSaveData.CurrentVersion != 6
             || restoredBill == null
             || restoredBill.batchStage != ProductionBatchStage.Processing
             || !Mathf.Approximately(
@@ -235,7 +235,7 @@ public static class ProductionWorkshopDebugScenarios
             || restoredBill.logistics.parameters.Single()
                 != "validation-prefetch")
         {
-            failures.Add("Production bill V5 save round-trip failed.");
+            failures.Add("Production bill V6 save round-trip failed.");
         }
 
         ValidateDeterministicRoomLinks(failures);

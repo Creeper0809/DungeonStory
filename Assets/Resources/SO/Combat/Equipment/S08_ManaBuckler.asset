@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4dd42a37aa5e0b54386a00a864c4a4ca, type: 3}
+  m_Name: S08_ManaBuckler
+  m_EditorClassIdentifier: DungeonStory.Economy::CombatShieldSO
+  equipmentId: shield:mana-buckler
+  displayName: "\uB9C8\uB098 \uBC84\uD074\uB7EC"
+  description: "\uB9C8\uB098 \uBC84\uD074\uB7EC \uC804\uD22C \uC7A5\uBE44"
+  itemId: equipment-item:shield:mana-buckler
+  weight: 2.2
+  occupiedHands: 1
+  maxDurability: 160
+  requiredCraftWork: 256
+  defaultMaterialId: material:iron
+  primaryMaterialAmount: 2
+  allowedMaterialFamilies: 03000000
+  craftMaterials: []
+  requiredComponentInputs:
+  - itemId: material:mana-alloy
+    amount: 1
+  - itemId: component:rune-conductor
+    amount: 1
+  requiredResearchId: research:equipment:rune-module-tuning
+  era: 4
+  tier: 4
+  slotProfile: 1
+  lineageKind: 2
+  growthEquipment: 0
+  growthBaseStatMultiplier: 1
+  frontalBlockChance: 0.34
+  slashDefense: 14
+  pierceDefense: 24
+  bluntDefense: 18

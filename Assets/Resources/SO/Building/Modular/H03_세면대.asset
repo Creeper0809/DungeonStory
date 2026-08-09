@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uC138\uBA74\uB300"
   sprite: {fileID: 21300000, guid: 6d6dee36e848521429509ffba11e56b4, type: 3}
   icon: {fileID: 21300000, guid: 6d6dee36e848521429509ffba11e56b4, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730538791834
@@ -43,9 +48,9 @@ MonoBehaviour:
     - rid: 7737211730538791841
     - rid: 7737211730538791842
     - rid: 7737211730538791843
-    - rid: 7737211792661414894
-    - rid: 7737211792661414895
-    - rid: 7737211792998531503
+    - rid: 7737211838074978436
+    - rid: 7737211838074978437
+    - rid: 7737211838074978996
   width: 1
   height: 1
   layer: 1
@@ -143,14 +148,14 @@ MonoBehaviour:
         abilityId: BuildingVentilationAbility
         hygieneRiskReduction: 10
         smokeRiskReduction: 4
-    - rid: 7737211792661414894
+    - rid: 7737211838074978436
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737211792661414895
+    - rid: 7737211838074978437
       type: {class: BuildingWaterFixtureAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWaterFixtureAbility
@@ -160,7 +165,7 @@ MonoBehaviour:
         allowsManualWaterFallback: 1
         allowsDryFallback: 0
         manualWasteItemId: industrial:sludge
-    - rid: 7737211792998531503
+    - rid: 7737211838074978996
       type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceHubAbility

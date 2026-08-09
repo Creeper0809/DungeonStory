@@ -16,6 +16,8 @@ public sealed class SurgicalPartRuntime :
     private const float FuelRefreshInterval = 0.75f;
     private const string FuelDestinationPrefix =
         "surgery-organ-storage-fuel:";
+    private const string OrganPreservationCanisterItemId =
+        "medical:organ-preservation-canister";
 
     private readonly IWorldItemStackRuntime items;
     private readonly IBuildingWorldQuery buildings;
@@ -365,10 +367,12 @@ public sealed class SurgicalPartRuntime :
             }
 
             string storageId = string.Empty;
-            bool preserved = byStack.TryGetValue(
+            bool inWorkingStorage = byStack.TryGetValue(
                     part.worldStackId,
                     out WorldItemStackSnapshot stack)
                 && IsInWorkingOrganStorage(stack, out storageId);
+            bool preserved = inWorkingStorage
+                && TryEnsurePreservationCanister(part, stack, storageId);
             part.storedFacilityId = preserved ? storageId : string.Empty;
             part.freshnessSeconds -= deltaTime
                 * (preserved ? StoredFreshnessRate : 1f);
@@ -401,6 +405,52 @@ public sealed class SurgicalPartRuntime :
 
             parts.Remove(part);
         }
+    }
+
+    private bool TryEnsurePreservationCanister(
+        SurgicalPartInstance part,
+        WorldItemStackSnapshot organStack,
+        string storageId)
+    {
+        if (part.preservationCanisterApplied)
+        {
+            return true;
+        }
+
+        if (items.TryConsumeFacilityItemBuffer(
+                storageId,
+                new Dictionary<string, int>(StringComparer.Ordinal)
+                {
+                    [OrganPreservationCanisterItemId] = 1
+                },
+                out _))
+        {
+            part.preservationCanisterApplied = true;
+            return true;
+        }
+
+        bool deliveryPending = items.GetAllStacks().Any(candidate =>
+            candidate != null
+            && string.Equals(
+                candidate.ItemId,
+                OrganPreservationCanisterItemId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                candidate.DestinationId,
+                storageId,
+                StringComparison.Ordinal));
+        if (!deliveryPending)
+        {
+            items.TryRequestItemDelivery(
+                OrganPreservationCanisterItemId,
+                1,
+                organStack.Position,
+                storageId,
+                out _,
+                out _);
+        }
+
+        return false;
     }
 
     public IReadOnlyList<SurgicalPartInstance> CaptureParts()

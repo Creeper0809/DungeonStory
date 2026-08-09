@@ -31,16 +31,16 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 12
   features:
-  - rid: 7737211794726584756
-  - rid: 7737211794726584757
+  - rid: 7737211838078124258
+  - rid: 7737211838078124259
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584756
+    - rid: 7737211838078124258
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:agriculture:irrigation
-    - rid: 7737211794726584757
+    - rid: 7737211838078124259
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 0

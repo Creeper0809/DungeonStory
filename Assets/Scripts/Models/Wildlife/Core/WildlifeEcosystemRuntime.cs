@@ -25,6 +25,7 @@ public sealed partial class WildlifeEcosystemRuntime :
     private readonly IGameClock gameClock;
     private readonly IPersistentIdGenerator persistentIds;
     private readonly IRandomStream randomStream;
+    private readonly IGameCalendar calendar;
     private List<WildlifeHabitatPatch> patches = new List<WildlifeHabitatPatch>();
     private Dictionary<string, float> speciesRespawnAt =
         new Dictionary<string, float>(StringComparer.Ordinal);
@@ -43,7 +44,8 @@ public sealed partial class WildlifeEcosystemRuntime :
         IWildlifeEcosystemPresentationPort presentation,
         IGameClock gameClock,
         IRandomStreamProvider randomStreamProvider,
-        IPersistentIdGenerator persistentIds)
+        IPersistentIdGenerator persistentIds,
+        IGameCalendar calendar = null)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.presentation = presentation
@@ -52,6 +54,7 @@ public sealed partial class WildlifeEcosystemRuntime :
             ?? throw new ArgumentNullException(nameof(gameClock));
         this.persistentIds = persistentIds
             ?? throw new ArgumentNullException(nameof(persistentIds));
+        this.calendar = calendar;
         randomStream = (randomStreamProvider
             ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
             .Get("wildlife-ecosystem");
@@ -204,6 +207,13 @@ public sealed partial class WildlifeEcosystemRuntime :
     {
         if (actor == null || !actor.IsAlive || grid == null)
         {
+            return;
+        }
+
+        if (calendar != null && actor.Species != null
+            && !actor.Species.IsActiveIn(calendar.Season))
+        {
+            actor.SetIntent(WildlifeIntent.LeaveMap, "비활동 계절 이동");
             return;
         }
 
@@ -441,6 +451,7 @@ public sealed partial class WildlifeEcosystemRuntime :
         List<WildlifeSpeciesDefinition> candidates = species
             .Where(definition => definition != null
                 && definition.SpawnWeight > 0f
+                && (calendar == null || definition.IsActiveIn(calendar.Season))
                 && (!speciesRespawnAt.TryGetValue(definition.SpeciesId, out float speciesAt) || now >= speciesAt))
             .ToList();
         if (candidates.Count == 0)
@@ -448,7 +459,11 @@ public sealed partial class WildlifeEcosystemRuntime :
             return false;
         }
 
-        float totalWeight = candidates.Sum(candidate => ScoreRespawnWeight(candidate, food, water));
+        float totalWeight = candidates.Sum(candidate => ScoreRespawnWeight(
+            candidate,
+            food,
+            water,
+            calendar?.Season));
         if (totalWeight <= 0f)
         {
             return false;
@@ -457,7 +472,11 @@ public sealed partial class WildlifeEcosystemRuntime :
         float roll = randomStream.NextFloat() * totalWeight;
         foreach (WildlifeSpeciesDefinition candidate in candidates)
         {
-            roll -= ScoreRespawnWeight(candidate, food, water);
+            roll -= ScoreRespawnWeight(
+                candidate,
+                food,
+                water,
+                calendar?.Season);
             if (roll <= 0f)
             {
                 selectedSpecies = candidate;
@@ -732,7 +751,11 @@ public sealed partial class WildlifeEcosystemRuntime :
             : Mathf.Clamp01(matching.Average(patch => patch.Resource01));
     }
 
-    private static float ScoreRespawnWeight(WildlifeSpeciesDefinition species, float food, float water)
+    private static float ScoreRespawnWeight(
+        WildlifeSpeciesDefinition species,
+        float food,
+        float water,
+        Season? season = null)
     {
         if (species == null)
         {
@@ -744,7 +767,15 @@ public sealed partial class WildlifeEcosystemRuntime :
             : food;
         float waterFit = Mathf.Lerp(0.35f, 1f, water);
         float predatorPenalty = species.Diet == WildlifeDietType.Carnivore ? 0.75f : 1f;
-        return Mathf.Max(0f, species.SpawnWeight) * foodFit * waterFit * predatorPenalty;
+        float breedingMultiplier = season.HasValue
+            && season.Value == species.BreedingSeason
+                ? 1.65f
+                : 1f;
+        return Mathf.Max(0f, species.SpawnWeight)
+            * foodFit
+            * waterFit
+            * predatorPenalty
+            * breedingMultiplier;
     }
 
     private bool TryFindPatchTarget(
@@ -906,6 +937,10 @@ public sealed partial class WildlifeEcosystemRuntime :
                     StringComparison.Ordinal)
                 || !prey.IsAlive
                 || prey.Species == null
+                || !predator.Species.Hunts(prey.SpeciesId)
+                || prey.Species.PredatorSpeciesIds.Count > 0
+                    && !prey.Species.PredatorSpeciesIds.Contains(
+                        predator.SpeciesId)
                 || prey.Species.Diet == WildlifeDietType.Carnivore
                 || prey.MaxHealth > predator.MaxHealth + 10
                 || !TryFindAdjacentOpenCell(grid, predator, prey.GridPosition, out Vector2Int stand))

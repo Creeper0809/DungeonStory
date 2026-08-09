@@ -4,16 +4,19 @@ public readonly struct FacilityScoringContext
 {
     private readonly ISocialReputationBiasService reputationBiasService;
     private readonly IRoomFacilityPolicy roomFacilityPolicy;
+    private readonly ICharacterCultureGameplayQuery culturePreferences;
     private readonly bool ignoreReputationBias;
 
     public FacilityScoringContext(
         ISocialReputationBiasService reputationBiasService,
-        IRoomFacilityPolicy roomFacilityPolicy)
+        IRoomFacilityPolicy roomFacilityPolicy,
+        ICharacterCultureGameplayQuery culturePreferences = null)
     {
         this.reputationBiasService = reputationBiasService
             ?? throw new ArgumentNullException(nameof(reputationBiasService));
         this.roomFacilityPolicy = roomFacilityPolicy
             ?? throw new ArgumentNullException(nameof(roomFacilityPolicy));
+        this.culturePreferences = culturePreferences;
         ignoreReputationBias = false;
     }
 
@@ -24,6 +27,7 @@ public readonly struct FacilityScoringContext
         reputationBiasService = null;
         this.roomFacilityPolicy = roomFacilityPolicy
             ?? throw new ArgumentNullException(nameof(roomFacilityPolicy));
+        culturePreferences = null;
         this.ignoreReputationBias = ignoreReputationBias;
     }
 
@@ -76,6 +80,14 @@ public readonly struct FacilityScoringContext
     {
         return RequireRoomFacilityPolicy().GetRoomUtilityScore(building, role);
     }
+
+    public float GetCulturePreferenceBias(
+        CharacterActor actor,
+        BuildableObject building,
+        FacilityRole role) => culturePreferences?.GetFacilityUtilityBias(
+            actor,
+            building,
+            role) ?? 0f;
 
     private IRoomFacilityPolicy RequireRoomFacilityPolicy()
     {

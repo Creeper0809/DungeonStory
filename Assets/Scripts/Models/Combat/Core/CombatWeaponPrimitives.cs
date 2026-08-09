@@ -71,7 +71,8 @@ public sealed class CombatWeaponSnapshot
         bool gunpowderWeapon = false,
         float durabilityRatio = 1f,
         float maximumMisfireChance = 0f,
-        float smokeExposure = 0f)
+        float smokeExposure = 0f,
+        CombatEquipmentRoleFlags roleFlags = CombatEquipmentRoleFlags.None)
     {
         DefinitionId = definitionId ?? string.Empty;
         InstanceId = instanceId ?? string.Empty;
@@ -96,6 +97,7 @@ public sealed class CombatWeaponSnapshot
         DurabilityRatio = Mathf.Clamp01(durabilityRatio);
         MaximumMisfireChance = Mathf.Clamp01(maximumMisfireChance);
         SmokeExposure = Mathf.Max(0f, smokeExposure);
+        RoleFlags = roleFlags;
     }
 
     public string DefinitionId { get; }
@@ -119,6 +121,7 @@ public sealed class CombatWeaponSnapshot
     public float DurabilityRatio { get; }
     public float MaximumMisfireChance { get; }
     public float SmokeExposure { get; }
+    public CombatEquipmentRoleFlags RoleFlags { get; }
 
     public float MisfireChance => !GunpowderWeapon || DurabilityRatio >= 0.4f
         ? 0f
@@ -177,4 +180,125 @@ public sealed class CombatWeaponSnapshot
             false,
             false);
     }
+}
+
+public readonly struct CombatAmmunitionProfile
+{
+    public CombatAmmunitionProfile(
+        CombatSpecialEffectFlags effects,
+        float damageMultiplier = 1f,
+        float penetrationMultiplier = 1f,
+        float suppressionMultiplier = 1f,
+        float statusPotency = 0f,
+        int statusTurns = 0,
+        bool nonlethal = false,
+        float targetAirborneExposure = 0f)
+    {
+        Effects = effects;
+        DamageMultiplier = Mathf.Max(0f, damageMultiplier);
+        PenetrationMultiplier = Mathf.Max(0f, penetrationMultiplier);
+        SuppressionMultiplier = Mathf.Max(0f, suppressionMultiplier);
+        StatusPotency = Mathf.Max(0f, statusPotency);
+        StatusTurns = Mathf.Max(0, statusTurns);
+        Nonlethal = nonlethal;
+        TargetAirborneExposure = Mathf.Max(0f, targetAirborneExposure);
+    }
+
+    public CombatSpecialEffectFlags Effects { get; }
+    public float DamageMultiplier { get; }
+    public float PenetrationMultiplier { get; }
+    public float SuppressionMultiplier { get; }
+    public float StatusPotency { get; }
+    public int StatusTurns { get; }
+    public bool Nonlethal { get; }
+    public float TargetAirborneExposure { get; }
+
+    public static CombatAmmunitionProfile For(string ammunitionItemId) =>
+        (ammunitionItemId?.Trim() ?? string.Empty) switch
+        {
+            "ammo:incendiary-arrow" => new(
+                CombatSpecialEffectFlags.Burning,
+                damageMultiplier: 1.05f,
+                statusPotency: 2.5f,
+                statusTurns: 3),
+            "ammo:incendiary-bolt" => new(
+                CombatSpecialEffectFlags.Burning,
+                damageMultiplier: 1.08f,
+                penetrationMultiplier: 1.1f,
+                statusPotency: 3f,
+                statusTurns: 3),
+            "ammo:smoke-cartridge" => new(
+                CombatSpecialEffectFlags.SmokeScreen,
+                damageMultiplier: 0.2f,
+                suppressionMultiplier: 1.8f,
+                statusPotency: 20f,
+                statusTurns: 2,
+                targetAirborneExposure: 20f),
+            "ammo:armor-piercing-cartridge" => new(
+                CombatSpecialEffectFlags.None,
+                damageMultiplier: 0.9f,
+                penetrationMultiplier: 1.65f),
+            "ammo:scatter-cartridge" => new(
+                CombatSpecialEffectFlags.Scatter,
+                suppressionMultiplier: 1.5f),
+            "ammo:signal-flare" => new(
+                CombatSpecialEffectFlags.SignalSupport,
+                damageMultiplier: 0.35f,
+                statusPotency: 0.12f,
+                statusTurns: 2),
+            "ammo:blacksteel-bolt" => new(
+                CombatSpecialEffectFlags.ConstructPiercing,
+                penetrationMultiplier: 1.4f),
+            "ammo:rune-cartridge" => new(
+                CombatSpecialEffectFlags.RuneDamage,
+                damageMultiplier: 1.2f,
+                penetrationMultiplier: 1.15f),
+            "ammo:tranquilizer-dart" => new(
+                CombatSpecialEffectFlags.Tranquilized,
+                damageMultiplier: 0.25f,
+                suppressionMultiplier: 2.25f,
+                statusPotency: 0.35f,
+                statusTurns: 3,
+                nonlethal: true),
+            "ammo:mana-disruptor-bolt" => new(
+                CombatSpecialEffectFlags.ManaBlocked,
+                damageMultiplier: 0.65f,
+                statusPotency: 0.25f,
+                statusTurns: 2),
+            _ => new CombatAmmunitionProfile(CombatSpecialEffectFlags.None)
+        };
+
+    public float DamageMultiplierFor(
+        CombatRangeBand band,
+        bool defenderConstruct)
+    {
+        float multiplier = DamageMultiplier;
+        if ((Effects & CombatSpecialEffectFlags.Scatter) != 0)
+        {
+            multiplier *= band switch
+            {
+                CombatRangeBand.Contact => 1.35f,
+                CombatRangeBand.Near => 1.25f,
+                CombatRangeBand.Medium => 0.8f,
+                _ => 0.45f
+            };
+        }
+        if (defenderConstruct
+            && (Effects & CombatSpecialEffectFlags.ConstructPiercing) != 0)
+        {
+            multiplier *= 1.35f;
+        }
+        return multiplier;
+    }
+
+    public int PelletHitsFor(CombatRangeBand band) =>
+        (Effects & CombatSpecialEffectFlags.Scatter) == 0
+            ? 1
+            : band switch
+            {
+                CombatRangeBand.Contact => 5,
+                CombatRangeBand.Near => 4,
+                CombatRangeBand.Medium => 2,
+                _ => 1
+            };
 }

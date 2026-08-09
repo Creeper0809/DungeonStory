@@ -32,16 +32,16 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 102
   features:
-  - rid: 7737211793001939934
-  - rid: 7737211793001939935
+  - rid: 7737211838078124564
+  - rid: 7737211838078124565
   references:
     version: 2
     RefIds:
-    - rid: 7737211793001939934
+    - rid: 7737211838078124564
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:textile:dreamweave
-    - rid: 7737211793001939935
+    - rid: 7737211838078124565
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8

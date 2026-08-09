@@ -69,6 +69,10 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             DungeonSaveSectionPayload.ReadOrNew<DungeonCombatEquipmentSaveData>(
                 saveData,
                 CombatEquipmentSaveSection.Id);
+        DungeonInvasionSaveData invasion =
+            DungeonSaveSectionPayload.ReadOrNew<DungeonInvasionSaveData>(
+                saveData,
+                InvasionSaveSection.Id);
         EquipmentEvolutionSaveData evolution =
             DungeonSaveSectionPayload.ReadOrNew<EquipmentEvolutionSaveData>(
                 saveData,
@@ -130,6 +134,7 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
 
         PhysicalReferenceIndex physical = ValidatePhysicalItems(items, report);
         HashSet<string> characterIds = ValidateCharacters(characters, report);
+        AddActiveInvasionCharacterIds(invasion, characterIds, report);
         BuildingReferenceIndex buildingIds = ValidateBuildings(buildings, report);
         ValidateOffenseMembers(offense, characterIds, report);
         ValidateOffenseReferences(
@@ -195,6 +200,36 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
         {
             report.AddError(
                 $"Character '{characterId}' has no V19 life record.");
+        }
+    }
+
+    private static void AddActiveInvasionCharacterIds(
+        DungeonInvasionSaveData invasion,
+        ISet<string> characterIds,
+        DungeonGameRestoreReport report)
+    {
+        HashSet<string> activeIntruderIds = new(StringComparer.Ordinal);
+        foreach (DungeonInvasionIntruderSaveData intruder in
+                 invasion?.activeIntruders
+                 ?? new List<DungeonInvasionIntruderSaveData>())
+        {
+            string rawId = intruder?.enemyIndividual?.characterId;
+            CharacterId characterId = (CharacterId)rawId;
+            if (intruder == null
+                || !characterId.IsValid
+                || !string.Equals(rawId, characterId.Value, StringComparison.Ordinal)
+                || !activeIntruderIds.Add(characterId.Value))
+            {
+                report.AddError(
+                    $"Active invasion intruder has an invalid or duplicate character ID '{rawId ?? string.Empty}'.");
+                continue;
+            }
+
+            if (!characterIds.Add(characterId.Value))
+            {
+                report.AddError(
+                    $"Active invasion intruder character '{characterId.Value}' collides with a resident character.");
+            }
         }
     }
 

@@ -352,6 +352,10 @@ public sealed class CombatEquipmentLoadoutRuntime
             }
             CraftMaterialDefinitionSO material =
                 crafting.ResolveInstanceMaterial(instance, armor);
+            float powerMultiplier = CombatEquipmentRoleRules
+                .GetPowerPerformanceMultiplier(
+                    armor.EquipmentId,
+                    instance.powerCharge);
             foreach (CombatArmorPartValue value in armor.BodyPartDefense)
             {
                 if (value == null)
@@ -370,7 +374,12 @@ public sealed class CombatEquipmentLoadoutRuntime
                     (material?.PenetrationDefenseMultiplier ?? 1f)
                         * armor.BaseStatMultiplier
                         * statProjector.GetEvolutionMultiplier(instance, "combat.defense")
-                        * statProjector.GetInstalledModuleMultiplier(instance, true)));
+                        * statProjector.GetInstalledModuleMultiplier(instance, true)
+                        * powerMultiplier,
+                    armor.EquipmentId,
+                    CombatEquipmentRoleRules.ForPowerState(
+                        armor.EquipmentId,
+                        instance.powerCharge > 0f)));
             }
         }
         return result;
@@ -411,7 +420,14 @@ public sealed class CombatEquipmentLoadoutRuntime
                 * shield.BaseStatMultiplier
                 * statProjector.GetEvolutionMultiplier(instance, "combat.defense")
                 * statProjector.GetInstalledModuleMultiplier(instance, true)
-                ?? statProjector.GetEvolutionMultiplier(instance, "combat.defense"));
+                * CombatEquipmentRoleRules.GetPowerPerformanceMultiplier(
+                    shield.EquipmentId,
+                    instance.powerCharge)
+                ?? statProjector.GetEvolutionMultiplier(instance, "combat.defense"),
+            shield.EquipmentId,
+            CombatEquipmentRoleRules.ForPowerState(
+                shield.EquipmentId,
+                instance.powerCharge > 0f));
     }
 
     public IReadOnlyList<CombatEquipmentInstance> ConfiscateAll(string characterId)

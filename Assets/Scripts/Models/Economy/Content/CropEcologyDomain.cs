@@ -32,6 +32,32 @@ public enum CropGenomeLocus
     SeedYield = 5
 }
 
+public readonly struct CropGenomePhenotype
+{
+    public CropGenomePhenotype(
+        float coldToleranceDegrees,
+        float heatToleranceDegrees,
+        float growthMultiplier,
+        float yieldMultiplier,
+        float diseaseRiskMultiplier,
+        int seedYieldBonus)
+    {
+        ColdToleranceDegrees = Mathf.Clamp(coldToleranceDegrees, -5f, 5f);
+        HeatToleranceDegrees = Mathf.Clamp(heatToleranceDegrees, -5f, 5f);
+        GrowthMultiplier = Mathf.Clamp(growthMultiplier, 0.84f, 1.16f);
+        YieldMultiplier = Mathf.Clamp(yieldMultiplier, 0.90f, 1.10f);
+        DiseaseRiskMultiplier = Mathf.Clamp(diseaseRiskMultiplier, 0.76f, 1.24f);
+        SeedYieldBonus = Mathf.Clamp(seedYieldBonus, -1, 1);
+    }
+
+    public float ColdToleranceDegrees { get; }
+    public float HeatToleranceDegrees { get; }
+    public float GrowthMultiplier { get; }
+    public float YieldMultiplier { get; }
+    public float DiseaseRiskMultiplier { get; }
+    public int SeedYieldBonus { get; }
+}
+
 [Serializable]
 public sealed class DiploidLocusSaveData
 {
@@ -54,7 +80,6 @@ public sealed class SeedLotState
 {
     public string cropId = string.Empty;
     public string cultivarGenomeId = string.Empty;
-    [Range(0f, 100f)] public float quality = 50f;
     public int generation;
     [Range(0f, 100f)] public float pathogenLoad;
 
@@ -62,7 +87,6 @@ public sealed class SeedLotState
     {
         cropId = cropId,
         cultivarGenomeId = cultivarGenomeId,
-        quality = quality,
         generation = generation,
         pathogenLoad = pathogenLoad
     };
@@ -71,7 +95,7 @@ public sealed class SeedLotState
 public static class SeedLotItemStateCodec
 {
     public const string ComponentTypeId = "item-state:seed-lot";
-    public const int SchemaVersion = 1;
+    public const int SchemaVersion = 2;
 
     public static ItemInstanceComponentSaveData Encode(SeedLotState state)
     {
@@ -86,7 +110,6 @@ public static class SeedLotItemStateCodec
                 Text("crop-id", state.cropId),
                 Text("genome-id", state.cultivarGenomeId),
                 Integer("generation", state.generation),
-                Decimal("quality", state.quality),
                 Decimal("pathogen-load", state.pathogenLoad)
             }
         };
@@ -109,7 +132,6 @@ public static class SeedLotItemStateCodec
             cropId = Require(fields, "crop-id", ItemStateValueKind.String).stringValue,
             cultivarGenomeId = Require(fields, "genome-id", ItemStateValueKind.String).stringValue,
             generation = checked((int)Require(fields, "generation", ItemStateValueKind.Integer).integerValue),
-            quality = (float)Require(fields, "quality", ItemStateValueKind.Decimal).decimalValue,
             pathogenLoad = (float)Require(fields, "pathogen-load", ItemStateValueKind.Decimal).decimalValue
         };
         Validate(state);
@@ -122,7 +144,6 @@ public static class SeedLotItemStateCodec
             || string.IsNullOrWhiteSpace(state.cropId)
             || string.IsNullOrWhiteSpace(state.cultivarGenomeId)
             || state.generation < 0
-            || state.quality is < 0f or > 100f
             || state.pathogenLoad is < 0f or > 100f)
             throw new InvalidOperationException("Seed-lot state is invalid.");
     }
@@ -217,15 +238,14 @@ public sealed class CropEcologyAggregateState
                     ":base",
                     StringComparison.Ordinal))
             .OrderBy(value => value.cropId, StringComparer.Ordinal).ToArray();
-        if (bases.Length != 8)
+        if (bases.Length != 12)
             throw new InvalidOperationException(
-                $"Initial seed grant requires 8 base cultivars, found {bases.Length}.");
+                $"V22 initial seed grant requires 12 base cultivars, found {bases.Length}.");
         initialSeedGrantIssued = true;
         seedLots = bases.Select(value => new SeedLotState
         {
             cropId = value.cropId,
             cultivarGenomeId = value.genomeId,
-            quality = 70f,
             generation = 0,
             pathogenLoad = 0f
         }).ToArray();
@@ -273,6 +293,8 @@ public sealed class CropEcologyAggregateState
     {
         CropEcologyPlotSaveData plot = RequirePlot(plotId);
         if (plot.cropDead) return false;
+        Func<double> random = nextUnitRandom
+            ?? throw new ArgumentNullException(nameof(nextUnitRandom));
         plot.consecutiveLethalTemperatureDays = lethalTemperature
             ? plot.consecutiveLethalTemperatureDays + 1
             : 0;
@@ -282,12 +304,36 @@ public sealed class CropEcologyAggregateState
             return false;
         }
         if (plot.pestPressure >= 85f
-            && (nextUnitRandom ?? throw new ArgumentNullException(nameof(nextUnitRandom)))() < 0.25d)
+            && random() < 0.25d)
         {
             plot.cropDead = true;
             return false;
         }
+
+        CropGenomePhenotype phenotype = GetPhenotype(plotId);
+        float diseaseChance = Mathf.Clamp01(plot.diseasePressure / 500f)
+            * phenotype.DiseaseRiskMultiplier;
+        if (plot.disease == CropDiseaseKind.None
+            && diseaseChance > 0f
+            && random() < diseaseChance)
+        {
+            plot.disease = DiseaseFor(plot.currentGroup);
+            plot.diseasePressure = Mathf.Min(100f, plot.diseasePressure + 15f);
+        }
+        else if (plot.disease != CropDiseaseKind.None)
+        {
+            plot.diseasePressure = Mathf.Min(
+                100f,
+                plot.diseasePressure + 4f * phenotype.DiseaseRiskMultiplier);
+        }
         return true;
+    }
+
+    public CropGenomePhenotype GetPhenotype(string plotId)
+    {
+        CropEcologyPlotSaveData plot = RequirePlot(plotId);
+        CultivarGenomeSaveData genome = RequireGenome(plot.cultivarGenomeId);
+        return CreatePhenotype(genome);
     }
 
     public CropHarvestEcologyResult Harvest(
@@ -303,21 +349,20 @@ public sealed class CropEcologyAggregateState
         float rotationMultiplier = plot.hasPreviousGroup && plot.previousGroup == plot.currentGroup
             ? 0.85f : 1f;
         float fertilityMultiplier = Mathf.Lerp(0.55f, 1f, plot.fertility / 100f);
-        float genomeYield = 1f + GetLocusMean(parent, CropGenomeLocus.Yield) * 0.05f;
+        CropGenomePhenotype parentPhenotype = CreatePhenotype(parent);
         float diseaseMultiplier = 1f - Mathf.Clamp(plot.diseasePressure, 0f, 100f) * 0.003f;
         float yieldMultiplier = pestMultiplier * rotationMultiplier * fertilityMultiplier
-            * genomeYield * diseaseMultiplier;
+            * parentPhenotype.YieldMultiplier * diseaseMultiplier;
 
         CultivarGenomeSaveData child = Mutate(parent, nextUnitRandom);
         AddGeneratedGenome(child, externallyReferencedGenomeIds);
-        int seedBonus = Mathf.RoundToInt(GetLocusMean(child, CropGenomeLocus.SeedYield) * 0.5f);
+        int seedBonus = CreatePhenotype(child).SeedYieldBonus;
         int returnedSeeds = Mathf.Clamp(2 + (int)Math.Floor(ClampUnit(nextUnitRandom()) * 3d) + seedBonus, 2, 4);
         SeedLotState seedLot = new()
         {
             cropId = plot.cropId,
             cultivarGenomeId = child.genomeId,
             generation = child.generation,
-            quality = Mathf.Clamp(50f + plot.fertility * 0.35f - plot.diseasePressure * 0.25f, 0f, 100f),
             pathogenLoad = Mathf.Clamp(plot.diseasePressure * 0.5f, 0f, 100f)
         };
 
@@ -452,6 +497,32 @@ public sealed class CropEcologyAggregateState
         return (value.alleleA + value.alleleB) * 0.5f;
     }
 
+    private static CropGenomePhenotype CreatePhenotype(CultivarGenomeSaveData genome)
+    {
+        float cold = GetLocusMean(genome, CropGenomeLocus.ColdTolerance);
+        float heat = GetLocusMean(genome, CropGenomeLocus.HeatTolerance);
+        float growth = GetLocusMean(genome, CropGenomeLocus.GrowthSpeed);
+        float yield = GetLocusMean(genome, CropGenomeLocus.Yield);
+        float disease = GetLocusMean(genome, CropGenomeLocus.DiseaseResistance);
+        float seeds = GetLocusMean(genome, CropGenomeLocus.SeedYield);
+        return new CropGenomePhenotype(
+            cold * 2.5f,
+            heat * 2.5f,
+            1f + growth * 0.08f,
+            1f + yield * 0.05f,
+            1f - disease * 0.12f,
+            Mathf.RoundToInt(seeds * 0.5f));
+    }
+
+    private static CropDiseaseKind DiseaseFor(CropFamilyGroup group) => group switch
+    {
+        CropFamilyGroup.Grain or CropFamilyGroup.Fiber => CropDiseaseKind.GrainFiberRust,
+        CropFamilyGroup.Root => CropDiseaseKind.RootRot,
+        CropFamilyGroup.Leaf or CropFamilyGroup.Vine => CropDiseaseKind.LeafVinePowderyMildew,
+        CropFamilyGroup.Fungus => CropDiseaseKind.MushroomSporeMold,
+        _ => CropDiseaseKind.None
+    };
+
     private static void ValidateGenome(CultivarGenomeSaveData genome)
     {
         if (genome == null || string.IsNullOrWhiteSpace(genome.genomeId)
@@ -501,6 +572,7 @@ public interface ICropEcologyService
     int Version { get; }
     void Sow(string plotId, CropFamilyGroup group, SeedLotState seed);
     bool AdvanceDay(string plotId, bool lethalTemperature);
+    CropGenomePhenotype GetPhenotype(string plotId);
     CropHarvestEcologyResult Harvest(string plotId);
     void ApplyCompost(string plotId);
     void ApplyPestControl(string plotId, float amount);

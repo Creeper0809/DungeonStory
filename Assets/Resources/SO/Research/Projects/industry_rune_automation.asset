@@ -29,24 +29,25 @@ MonoBehaviour:
   field: 15
   requiredWork: 1200
   prerequisites:
+  - {fileID: 11400000, guid: 4b3074860ed56d9429b554e903f0d8e7, type: 2}
   - {fileID: 11400000, guid: 5f482d6d36c48094fbdc08be33a2735a, type: 2}
-  - {fileID: 11400000, guid: 1a6b6f4e88b9d684cb6300fb35b05a7a, type: 2}
   prerequisiteLinks:
+  - prerequisiteId: research:industry:mana-power
+    prerequisite: {fileID: 11400000, guid: 4b3074860ed56d9429b554e903f0d8e7, type: 2}
+    kind: 2
+    reason: "\uB9C8\uB098 \uB3D9\uB825\uACFC \uB8EC \uC804\uB825\uB9DD\uC758 \uACF5\uD559
+      \uC6D0\uB9AC\uC774(\uAC00) \uB8EC \uC790\uB3D9\uD654 \uAD6C\uD604\uC5D0 \uC9C1\uC811
+      \uD544\uC694\uD558\uB2E4."
   - prerequisiteId: research:industry:precision
     prerequisite: {fileID: 11400000, guid: 5f482d6d36c48094fbdc08be33a2735a, type: 2}
     kind: 2
     reason: "\uC815\uBC00 \uC790\uB3D9\uD654\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
       \uB8EC \uC790\uB3D9\uD654 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
-  - prerequisiteId: research:industry:rune-grid
-    prerequisite: {fileID: 11400000, guid: 1a6b6f4e88b9d684cb6300fb35b05a7a, type: 2}
-    kind: 2
-    reason: "\uB8EC \uC804\uB825\uB9DD\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
-      \uB8EC \uC790\uB3D9\uD654 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211793001939670
+    - rid: 7737211838079697115
   facilityRequirements:
   - capability: 0
     requiredCount: 2
@@ -58,7 +59,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211793001939670
+    - rid: 7737211838079697115
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 8833

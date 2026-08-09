@@ -38,6 +38,7 @@ public sealed class ProductionBillRuntime :
     private readonly IProductionBillSnapshotProjector snapshotProjector;
     private readonly IProductionAssemblyBridge buildingWorld;
     private readonly IGameClock clock;
+    private readonly IRecipeBalanceWorkCalculator balanceWorkCalculator;
     private IReadOnlyList<ProductionBillRecord> bills => stateStore.Bills;
     private int nextBillSequence
     {
@@ -70,6 +71,7 @@ public sealed class ProductionBillRuntime :
         snapshotProjector = execution.SnapshotProjector;
         buildingWorld = execution.Bridge;
         clock = execution.Clock;
+        balanceWorkCalculator = order.BalanceWorkCalculator;
     }
 
     public int Version => stateStore.BillVersion;
@@ -358,6 +360,22 @@ public sealed class ProductionBillRuntime :
         return ProductionBillCommandResult.Success(billId);
     }
 
+    public ProductionBillCommandResult SetWorkerPolicy(
+        ProductionBillId billId,
+        WorkerSelectionPolicySaveData policy)
+    {
+        ProductionBillRecord record = Find(billId);
+        if (record == null)
+        {
+            return ProductionBillCommandResult.Failed(
+                new DomainFailure(FailureCode.ProductionBillMissing, billId.Value));
+        }
+        record.SetWorkerPolicy(policy);
+        record.SetReservedWorker(string.Empty);
+        Touch(ResolveRecipe(record)?.WorkTypeId ?? default, requestWorker: true);
+        return ProductionBillCommandResult.Success(billId);
+    }
+
     public bool HasStockSensor(ProductionFacilityHandle facility)
     {
         return stockSensors.Has(facility);
@@ -431,6 +449,19 @@ public sealed class ProductionBillRuntime :
             return new ProductionWorkBeginResult(null, failure);
         }
 
+        if (!workshops.IsWorkerEligible(
+                worker,
+                record.workerPolicy,
+                out string workerFailure))
+        {
+            DomainFailure ineligible = new(
+                FailureCode.WorkOrderWorkerIneligible,
+                workerFailure ?? string.Empty);
+            record.SetBlockedFailure(ineligible);
+            record.SetReservedWorker(string.Empty);
+            return new ProductionWorkBeginResult(null, ineligible);
+        }
+
         ProductionRecipeSO recipe = ResolveRecipe(record);
         if (!TryValidateCycleStart(
                 record,
@@ -500,6 +531,19 @@ public sealed class ProductionBillRuntime :
         }
 
         string workerId = worker?.PersistentId ?? string.Empty;
+        if (!workshops.IsWorkerEligible(
+                worker,
+                record.workerPolicy,
+                out string workerFailure))
+        {
+            record.SetReservedWorker(string.Empty);
+            record.SetBlockedFailure(new DomainFailure(
+                FailureCode.WorkOrderWorkerIneligible,
+                workerFailure ?? string.Empty));
+            return FailedExecution(
+                FailureCode.WorkOrderWorkerIneligible,
+                workerFailure ?? string.Empty);
+        }
         if (!string.IsNullOrWhiteSpace(record.reservedWorkerId)
             && !string.Equals(record.reservedWorkerId, workerId, StringComparison.Ordinal))
         {
@@ -512,11 +556,21 @@ public sealed class ProductionBillRuntime :
         float requiredWork = ResolveCurrentRequiredWork(record, recipe);
         float supportWorkMultiplier =
             outputExecution.ResolveWorkSpeedMultiplier(facility, recipe);
+        float acceptedWork = Mathf.Min(
+            Mathf.Max(0f, amount) * supportWorkMultiplier,
+            Mathf.Max(0f, requiredWork - record.completedWork));
         record.SetCompletedWork(Mathf.Clamp(
             record.completedWork
-                + Mathf.Max(0f, amount) * supportWorkMultiplier,
+                + acceptedWork,
             0f,
             requiredWork));
+        CraftContributionAccumulator contributions =
+            new(record.workerContributions);
+        contributions.Add(
+            workerId,
+            acceptedWork,
+            workshops.GetRelevantCraftSkill(worker, recipe));
+        record.ReplaceWorkerContributions(contributions.Capture());
         if (record.completedWork + 0.001f < requiredWork)
         {
             return SuccessfulExecution(
@@ -585,6 +639,8 @@ public sealed class ProductionBillRuntime :
         record.SetOccupiedSupportNode(string.Empty);
         record.SetBlockedFailure(DomainFailure.None);
         record.SetReservedWorker(string.Empty);
+        record.ReplaceWorkerContributions(
+            Array.Empty<CraftContributionSaveData>());
         if (record.mode == ProductionOrderMode.RepeatCount)
         {
             record.SetRepeatCount(record.remainingCycles - 1);
@@ -885,18 +941,20 @@ public sealed class ProductionBillRuntime :
         return true;
     }
 
-    private static float ResolveCurrentRequiredWork(
+    private float ResolveCurrentRequiredWork(
         ProductionBillRecord record,
         ProductionRecipeSO recipe)
     {
+        float balancedWork = balanceWorkCalculator?.CalculateRecipe(recipe)
+            ?? recipe.RequiredWork;
         if (recipe.ProcessKind != ProductionProcessKind.PassiveBatch)
         {
-            return recipe.RequiredWork;
+            return balancedWork;
         }
 
         return record.batchStage == ProductionBatchStage.Finishing
-            ? recipe.FinishingWork
-            : recipe.PreparationWork;
+            ? (recipe.FinishingWork > 0f ? balancedWork * 0.20f : 0f)
+            : (recipe.FinishingWork > 0f ? balancedWork * 0.80f : balancedWork);
     }
 
     private static float ApplyOutageDecay(

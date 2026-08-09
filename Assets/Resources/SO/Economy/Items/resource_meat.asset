@@ -32,30 +32,30 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 4
   features:
-  - rid: 7737211673962611534
-  - rid: 7737211673962611535
-  - rid: 7737211673962611536
-  - rid: 7737211673962611537
+  - rid: 7737211838068949495
+  - rid: 7737211838068949496
+  - rid: 7737211838068949497
+  - rid: 7737211838068949498
   references:
     version: 2
     RefIds:
-    - rid: 7737211673962611534
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949495
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:husbandry:capture
-    - rid: 7737211673962611535
-      type: {class: FacilitySupplyItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949496
+      type: {class: FacilitySupplyItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         fuelValue: 0
         nutritionValue: 12
         feedEligible: 1
-    - rid: 7737211673962611536
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949497
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 5
         ingredientTags: 16
         sharedIntermediate: 0
-    - rid: 7737211673962611537
-      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949498
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

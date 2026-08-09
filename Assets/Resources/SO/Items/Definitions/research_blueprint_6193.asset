@@ -32,19 +32,19 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 340
   features:
-  - rid: 7737211729518788950
-  - rid: 7737211729518788951
+  - rid: 7737211830154035572
+  - rid: 7737211830154035573
   references:
     version: 2
     RefIds:
-    - rid: 7737211729518788950
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211830154035572
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211729518788951
-      type: {class: BlueprintItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211830154035573
+      type: {class: BlueprintItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         blueprintDefinitionId: 6193
         targetResearchId: research:arcane:resonance

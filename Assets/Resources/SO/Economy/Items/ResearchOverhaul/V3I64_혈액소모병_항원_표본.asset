@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 138
   features:
-  - rid: 7737211794726584976
-  - rid: 7737211794726584977
-  - rid: 7737211794726584978
+  - rid: 7737211838078124379
+  - rid: 7737211838078124380
+  - rid: 7737211838078124381
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584976
+    - rid: 7737211838078124379
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:pathogen-observation
-    - rid: 7737211794726584977
+    - rid: 7737211838078124380
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211794726584978
+    - rid: 7737211838078124381
       type: {class: PathogenSampleItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         diseaseId: disease:blood-wasting

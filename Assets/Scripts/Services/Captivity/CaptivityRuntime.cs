@@ -29,6 +29,7 @@ public sealed class CaptivityRuntime :
     private readonly ICombatEquipmentRuntime combatEquipment;
     private readonly IWorldItemStackRuntime itemRuntime;
     private readonly ICharacterPopulationService characterPopulation;
+    private readonly ICharacterNarrativeQuery narratives;
     private readonly IGridSystemProvider gridProvider;
     private readonly IGridPathSearchBroker pathSearchBroker;
     private readonly IRoomLayoutCache roomLayoutCache;
@@ -71,6 +72,7 @@ public sealed class CaptivityRuntime :
         combatEquipment = characters.CombatEquipment;
         itemRuntime = characters.ItemRuntime;
         characterPopulation = characters.Population;
+        narratives = characters.Narratives;
         gridProvider = world.GridProvider;
         pathSearchBroker = world.PathSearchBroker;
         roomLayoutCache = world.RoomLayoutCache;
@@ -186,7 +188,15 @@ public sealed class CaptivityRuntime :
             gameEventBus.Subscribe<CharacterBodyHealthRecoveredEvent>(
                 gameEvent => stateRuntime.OnCharacterRecovered(gameEvent.Actor));
         deathSubscription = gameEventBus.Subscribe<CharacterDeathEvent>(
-            stateRuntime.OnCharacterDeath);
+            gameEvent =>
+            {
+                CaptiveState state = FindState(gameEvent.CharacterId.Value);
+                if (state != null)
+                {
+                    ReturnAssignedCaptivityTools(state);
+                }
+                stateRuntime.OnCharacterDeath(gameEvent);
+            });
         invasionSubscription = gameEventBus.Subscribe<InvasionStartedEvent>(
             _ => escapeRuntime.HandleInvasionStarted());
 
@@ -244,6 +254,8 @@ public sealed class CaptivityRuntime :
             }
 
             state.health = EstimateHealth(actor);
+            TickLaborToolPreparation(state, actor);
+            TickLaborToolWear(state, actor);
             TickCarePriority(state, actor);
             RecalculateCaptiveState(state);
             if (gameClock.Time + 0.001f < state.nextSecurityCheckAt)
@@ -326,6 +338,144 @@ public sealed class CaptivityRuntime :
         state.nextCareSupplyAt = gameClock.Time + (deliveryRequested ? 15f : 5f);
     }
 
+    private void TickLaborToolPreparation(
+        CaptiveState state,
+        CharacterActor actor)
+    {
+        if (state == null
+            || actor == null
+            || state.pendingLaborPermissions == CaptiveLaborPermission.None
+            || string.IsNullOrWhiteSpace(state.laborToolDestinationId))
+        {
+            return;
+        }
+
+        WorldItemStackSnapshot delivered = itemRuntime.GetAllStacks()
+            .Where(stack => stack != null
+                && stack.Quantity > 0
+                && stack.State == WorldItemStackState.FacilityBuffer
+                && string.Equals(
+                    stack.ItemId,
+                    CaptivityItemDefinitions.PrisonerWorkKitItemId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    stack.DestinationId,
+                    state.laborToolDestinationId,
+                    StringComparison.Ordinal))
+            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (delivered == null
+            || !((ItemInstanceId)delivered.ItemInstanceId).IsValid
+            || DurableToolItemRules.ReadCurrentDurability(
+                delivered.ItemId,
+                delivered.Components) <= 0f
+            || !itemRuntime.TryConsumeStackQuantity(
+                delivered.StackId,
+                1,
+                out WorldItemStackSnapshot assigned)
+            || !CaptivityDurableToolRuntime.TryAssignLaborTool(state, assigned))
+        {
+            return;
+        }
+
+        CaptiveLaborPermission permissions = state.pendingLaborPermissions;
+        state.pendingLaborPermissions = CaptiveLaborPermission.None;
+        state.laborToolDestinationId = string.Empty;
+        state.nextLaborToolWearAt = gameClock.Time + 60f;
+        ApplyLaborPermissions(state, permissions);
+    }
+
+    private void TickLaborToolWear(
+        CaptiveState state,
+        CharacterActor actor)
+    {
+        if (state?.status != CaptivityStatus.Labor
+            || string.IsNullOrWhiteSpace(state.assignedLaborToolItemId)
+            || gameClock.Time + 0.001f < state.nextLaborToolWearAt
+            || actor?.GetAbility<AbilityWork>()?.isWorking != true)
+        {
+            return;
+        }
+
+        state.nextLaborToolWearAt = gameClock.Time + 60f;
+        state.assignedLaborToolDurability = Mathf.Max(
+            0f,
+            state.assignedLaborToolDurability - 1f);
+        if (state.assignedLaborToolDurability > 0f)
+        {
+            return;
+        }
+
+        ApplyLaborPermissions(state, CaptiveLaborPermission.None);
+        CaptivityDurableToolRuntime.TryReturnLaborTool(
+            itemRuntime,
+            state,
+            state.housingPosition);
+        state.lastResult = "포로 작업 도구 파손으로 노역 중단";
+    }
+
+    private void ApplyLaborPermissions(
+        CaptiveState state,
+        CaptiveLaborPermission permissions)
+    {
+        CaptiveLaborPermission normalized =
+            permissions & CaptiveLaborPermission.All;
+        state.laborPermissions = normalized;
+        state.status = normalized == CaptiveLaborPermission.None
+            ? CaptivityStatus.Confined
+            : CaptivityStatus.Labor;
+        CharacterActor laborer = FindActor(state.captiveId);
+        if (laborer != null)
+        {
+            laborer.characterType = normalized == CaptiveLaborPermission.None
+                ? CharacterType.Intruder
+                : CharacterType.NPC;
+        }
+        laborer?.SetAiPaused(normalized == CaptiveLaborPermission.None);
+        laborer?.SetLifecycleState(
+            normalized == CaptiveLaborPermission.None
+                ? CharacterLifecycleState.Downed
+                : CharacterLifecycleState.Active);
+        state.lastResult = normalized == CaptiveLaborPermission.None
+            ? "노역 해제"
+            : "노역 허용";
+    }
+
+    private void CancelLaborToolPreparation(CaptiveState state)
+    {
+        if (state == null)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(state.laborToolDestinationId))
+        {
+            itemRuntime.ReleaseStacksByDestination(
+                state.laborToolDestinationId,
+                state.housingPosition);
+        }
+        state.pendingLaborPermissions = CaptiveLaborPermission.None;
+        state.laborToolDestinationId = string.Empty;
+    }
+
+    private void ReturnAssignedCaptivityTools(CaptiveState state)
+    {
+        if (state == null)
+        {
+            return;
+        }
+
+        CancelLaborToolPreparation(state);
+        CaptivityDurableToolRuntime.TryReturnLaborTool(
+            itemRuntime,
+            state,
+            state.housingPosition);
+        CaptivityDurableToolRuntime.TryReturnRestraint(
+            itemRuntime,
+            state,
+            state.housingPosition);
+    }
+
     public bool TryGetCaptive(string captiveId, out CaptiveState captive)
     {
         CaptiveState state = FindState(captiveId);
@@ -371,7 +521,10 @@ public bool IsWorkAllowed(
             return true;
         }
 
-        if (state.status != CaptivityStatus.Labor || !state.CanLabor)
+        if (state.status != CaptivityStatus.Labor
+            || !state.CanLabor
+            || string.IsNullOrWhiteSpace(state.assignedLaborToolItemId)
+            || state.assignedLaborToolDurability <= 0f)
         {
             reason = "이 포로는 현재 노역에 투입할 수 없습니다.";
             return false;
@@ -499,16 +652,19 @@ public bool IsWorkAllowed(
         }
 
         CharacterCarryInventory inventory = CharacterCarryInventory.Ensure(carrier);
-        bool carrierHasRestraint =
-            inventory != null
-            && inventory.CountItem(CaptivityItemDefinitions.RestraintsItemId) > 0;
+        bool alreadyRestrained =
+            !string.IsNullOrWhiteSpace(state.assignedRestraintItemId)
+            && state.assignedRestraintDurability > 0f;
+        string restraintItemId = alreadyRestrained
+            ? state.assignedRestraintItemId
+            : ResolveCarriedRestraint(inventory);
+        bool carrierHasRestraint = alreadyRestrained
+            || !string.IsNullOrWhiteSpace(restraintItemId);
         WorldItemReservedStackQuantity restraintReservation = default;
         Vector2Int pickupPosition = default;
         if (!carrierHasRestraint
-            && !itemRuntime.TryReserveStoredItemForDirectPickup(
+            && !TryReserveRestraint(
                 carrier,
-                CaptivityItemDefinitions.RestraintsItemId,
-                1,
                 out restraintReservation,
                 out pickupPosition,
                 out failureReason))
@@ -526,7 +682,7 @@ public bool IsWorkAllowed(
         state.capturePosition = subject.GetNowXY();
         state.restraintStackId = restraintReservation.StackId;
         state.restraintItemId = carrierHasRestraint
-            ? CaptivityItemDefinitions.RestraintsItemId
+            ? restraintItemId
             : restraintReservation.ItemId;
         state.restraintQuantity = 1;
         state.restraintPickupPosition = pickupPosition;
@@ -623,31 +779,54 @@ public bool IsWorkAllowed(
             return false;
         }
 
-        if (!state.CanLabor)
+        CaptiveLaborPermission requestedPermissions =
+            permissions & CaptiveLaborPermission.All;
+        if (requestedPermissions != CaptiveLaborPermission.None
+            && !state.CanLabor)
         {
             failureReason = "순응도 50 이상, 건강 40% 이상부터 노역을 허용할 수 있습니다.";
             return false;
         }
 
-        state.laborPermissions = permissions & CaptiveLaborPermission.All;
-        state.status = permissions == CaptiveLaborPermission.None
-            ? CaptivityStatus.Confined
-            : CaptivityStatus.Labor;
-        CharacterActor laborer = FindActor(captiveId);
-        if (laborer != null)
+        CaptiveLaborPermission requested = requestedPermissions;
+        if (requested == CaptiveLaborPermission.None)
         {
-            laborer.characterType = permissions == CaptiveLaborPermission.None
-                ? CharacterType.Intruder
-                : CharacterType.NPC;
+            CancelLaborToolPreparation(state);
+            CaptivityDurableToolRuntime.TryReturnLaborTool(
+                itemRuntime,
+                state,
+                state.housingPosition);
+            ApplyLaborPermissions(state, CaptiveLaborPermission.None);
+            return true;
         }
-        laborer?.SetAiPaused(permissions == CaptiveLaborPermission.None);
-        laborer?.SetLifecycleState(
-            permissions == CaptiveLaborPermission.None
-                ? CharacterLifecycleState.Downed
-                : CharacterLifecycleState.Active);
-        state.lastResult = permissions == CaptiveLaborPermission.None
-            ? "노역 해제"
-            : "노역 허용";
+
+        if (!string.IsNullOrWhiteSpace(state.assignedLaborToolItemId)
+            && state.assignedLaborToolDurability > 0f)
+        {
+            ApplyLaborPermissions(state, requested);
+            return true;
+        }
+
+        string destinationId = $"captive-labor-tool:{state.captiveId}";
+        if (!itemRuntime.TryRequestItemDelivery(
+                CaptivityItemDefinitions.PrisonerWorkKitItemId,
+                1,
+                state.housingPosition,
+                destinationId,
+                out int requestedAmount,
+                out failureReason)
+            || requestedAmount < 1)
+        {
+            failureReason = string.IsNullOrWhiteSpace(failureReason)
+                ? "포로 작업 도구를 감방으로 운반할 수 없습니다."
+                : failureReason;
+            return false;
+        }
+
+        state.pendingLaborPermissions = requested;
+        state.laborToolDestinationId = destinationId;
+        state.status = CaptivityStatus.Confined;
+        state.lastResult = "포로 작업 도구 운반 대기";
         return true;
     }
 
@@ -698,6 +877,7 @@ public bool IsWorkAllowed(
         }
 
         characterPopulation.PromoteToStaff(actor);
+        ReturnAssignedCaptivityTools(state);
         state.status = CaptivityStatus.Recruited;
         state.lastResult = "정식 직원으로 영입됨";
         actor.characterType = CharacterType.NPC;
@@ -726,6 +906,7 @@ public bool IsWorkAllowed(
             return false;
         }
 
+        ReturnAssignedCaptivityTools(state);
         state.status = CaptivityStatus.Minion;
         state.lastResult = "타락한 하수인으로 전환됨";
         actor.characterType = CharacterType.NPC;
@@ -991,15 +1172,27 @@ public bool IsWorkAllowed(
             return;
         }
 
+        float originLoyalty = narratives.TryGet(
+                new CharacterId(state.captiveId),
+                out CharacterNarrativeSnapshot narrative)
+            && narrative.HasEnemyOrigin
+                ? narrative.Loyalty
+                : 50f;
         state.compliance = ClampStat(
             (100f - state.will) * 0.45f
             + state.fear * 0.35f
-            + state.trust * 0.2f);
+            + state.trust * 0.2f
+            + (50f - originLoyalty) * 0.15f);
         state.escapeRisk = ClampStat(
             25f
             + state.grudge * 0.45f
             + (100f - state.fear) * 0.2f
-            - state.compliance * 0.25f);
+            + (originLoyalty - 50f) * 0.1f
+            - state.compliance * 0.25f
+            - (!string.IsNullOrWhiteSpace(state.assignedRestraintItemId)
+                && state.assignedRestraintDurability > 0f
+                    ? 20f
+                    : 0f));
         state.falseCompliance =
             state.compliance >= 50f
             && state.grudge >= 60f
@@ -1015,6 +1208,7 @@ public bool IsWorkAllowed(
         CharacterActor actor,
         string result)
     {
+        ReturnAssignedCaptivityTools(state);
         state.status = CaptivityStatus.Released;
         state.restrained = false;
         state.lastResult = result ?? "석방됨";
@@ -1111,6 +1305,46 @@ public bool IsWorkAllowed(
             && !actor.IsDead
             && actor.characterType == CharacterType.Intruder
             && actor.CurrentLifecycleState == CharacterLifecycleState.Downed;
+    }
+
+    private static string ResolveCarriedRestraint(
+        CharacterCarryInventory inventory)
+    {
+        if (inventory?.CountItem(
+                CaptivityItemDefinitions.ReinforcedRestraintItemId) > 0)
+        {
+            return CaptivityItemDefinitions.ReinforcedRestraintItemId;
+        }
+
+        return inventory?.CountItem(CaptivityItemDefinitions.RestraintsItemId) > 0
+            ? CaptivityItemDefinitions.RestraintsItemId
+            : string.Empty;
+    }
+
+    private bool TryReserveRestraint(
+        CharacterActor carrier,
+        out WorldItemReservedStackQuantity reservation,
+        out Vector2Int pickupPosition,
+        out string failureReason)
+    {
+        if (itemRuntime.TryReserveStoredItemForDirectPickup(
+                carrier,
+                CaptivityItemDefinitions.ReinforcedRestraintItemId,
+                1,
+                out reservation,
+                out pickupPosition,
+                out failureReason))
+        {
+            return true;
+        }
+
+        return itemRuntime.TryReserveStoredItemForDirectPickup(
+            carrier,
+            CaptivityItemDefinitions.RestraintsItemId,
+            1,
+            out reservation,
+            out pickupPosition,
+            out failureReason);
     }
 
     private static string GetCharacterId(CharacterActor actor)

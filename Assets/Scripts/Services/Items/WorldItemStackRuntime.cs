@@ -182,11 +182,13 @@ public sealed class WorldItemStackRuntime :
 
         DungeonItemDefinition definition = catalogProvider.All
             .Where(candidate => candidate != null
-                && candidate.StockCategory == category)
+                && candidate.StockCategory == category
+                && candidate.MaxStack > 1)
             .OrderBy(candidate => candidate.ItemId, StringComparer.Ordinal)
             .FirstOrDefault()
             ?? throw new InvalidOperationException(
-                $"No authored concrete item belongs to stock category '{category}'.");
+                $"No authored stackable item belongs to stock category '{category}'. "
+                + "Unique equipment must be created through its authoritative equipment runtime.");
         spawned = Spawn(definition.ItemId, amount, dropoff, state, destinationId ?? string.Empty);
         return spawned == amount;
     }

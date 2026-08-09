@@ -1,0 +1,19 @@
+V24 Narrative Live Model Probe
+endpoint=http://127.0.0.1:11434/api/chat
+model=llama3.1:latest
+samplesPerProfile=20
+accepted=179/180
+fallbacks=1
+parseFailures=0
+pass=True
+
+CharacterSkill: schema=1:bdfdf0ee3a1bb4f6b638bf14b11133579c20f406a5851aec1c5e22eabf6529c3, accepted=20/20, strong=1, soft=19, retries=2, fallback=0, transport=0, parse=0, ttftMedianMs=700.1, ttftP95Ms=895.7
+Persona: schema=1:9c9cceff85740e25bf80ca12cb7216a37d58d8973c3d1e5b2f5bd75202c8ea36, accepted=20/20, strong=0, soft=20, retries=0, fallback=0, transport=0, parse=0, ttftMedianMs=697.9, ttftP95Ms=896.0
+MacroGoal: schema=1:28a1a566bd77d595fb68b24e5594aa371d29e84847aff4bf5b588cf87f46c986, accepted=20/20, strong=0, soft=20, retries=0, fallback=0, transport=0, parse=0, ttftMedianMs=697.4, ttftP95Ms=698.8
+MoodImpulse: schema=1:c39cc2053aad860b591692cb53f665fd82bf9a494ed5a8286b97a8f333a894ce, accepted=20/20, strong=0, soft=20, retries=0, fallback=0, transport=0, parse=0, ttftMedianMs=697.1, ttftP95Ms=699.1
+FacilityEvolution: schema=1:c0379bad351a7d99e7423e9189a22787d8dff1922511365bbd6ff4687ca36cf7, accepted=20/20, strong=1, soft=19, retries=0, fallback=0, transport=0, parse=0, ttftMedianMs=698.1, ttftP95Ms=797.8
+EvolutionHistory: schema=1:33554c4c454db722c68ab14f161bcbba4209918dba6f5b26f19a660783e5cf24, accepted=20/20, strong=2, soft=18, retries=1, fallback=0, transport=0, parse=0, ttftMedianMs=697.8, ttftP95Ms=897.1
+SocialRumor: schema=1:2d85293f917197bbb40501ab2d928d79c93b3db0304b3a311e2df2a17648a812, accepted=19/20, strong=0, soft=19, retries=0, fallback=1, transport=0, parse=0, ttftMedianMs=697.2, ttftP95Ms=699.8
+  errors=hard reject: Unknown inline reference. output={   "rumorType": "Recommendation",   "targetType": "Facility",   "targetFacilityId": 10,   "targetFacilityTag": "",   "targetCharacterId": "F01",   "targetCharacterName": "\uad6c\uc2a4\ub9d0\uc5b4\uc7ac\uc694 \uc8fc\uc18c\uc744 \ud638\uc138\uc694",   "sentiment": 1,   "summary": "\uc548\uae30 \uba38\uc3d1\uc694 \uad6c\
+CharacterRecord: schema=1:83bf8bc78b41a6e3094b512ea3258857c933615b419095c82486b4f4f663e799, accepted=20/20, strong=0, soft=20, retries=0, fallback=0, transport=0, parse=0, ttftMedianMs=697.9, ttftP95Ms=699.4
+BubbleLine: schema=1:60acdd472253d9ab938a4aeb2d895e48946083fb74fc67ab5d825e622ed9066e, accepted=20/20, strong=0, soft=20, retries=0, fallback=0, transport=0, parse=0, ttftMedianMs=697.6, ttftP95Ms=700.6

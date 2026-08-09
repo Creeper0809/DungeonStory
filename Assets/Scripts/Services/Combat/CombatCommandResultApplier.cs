@@ -32,6 +32,13 @@ public sealed class CombatCommandResultApplier
         string attackerName,
         CombatDamageType damageType)
     {
+        if ((result.SpecialEffects & CombatSpecialEffectFlags.SignalSupport) != 0
+            && attacker != null)
+        {
+            bodyHealth.ReduceSuppression(
+                attacker,
+                result.StatusPotency * 100f);
+        }
         if (result.CoverBlocked)
         {
             coverDurability.TryApplyDamage(result.CoverSourceId, result.CoverDamage);

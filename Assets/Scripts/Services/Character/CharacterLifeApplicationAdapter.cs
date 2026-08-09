@@ -36,14 +36,18 @@ public sealed class CharacterLifeApplicationAdapter : IStartable, IDisposable
 {
     private readonly CharacterLifeRuntime life;
     private readonly IGameEventBus events;
+    private readonly IHeritableTraitEffectQuery heritableTraits;
     private IDisposable dayEndedSubscription;
 
     public CharacterLifeApplicationAdapter(
         CharacterLifeRuntime life,
-        IGameEventBus events)
+        IGameEventBus events,
+        IHeritableTraitEffectQuery heritableTraits)
     {
         this.life = life ?? throw new ArgumentNullException(nameof(life));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
+        this.heritableTraits = heritableTraits
+            ?? throw new ArgumentNullException(nameof(heritableTraits));
     }
 
     public void Start()
@@ -61,7 +65,17 @@ public sealed class CharacterLifeApplicationAdapter : IStartable, IDisposable
     {
         Dictionary<CharacterId, CharacterLifeStage> previousStages = life.Records
             .ToDictionary(value => value.CharacterId, value => value.LifeStage);
-        IReadOnlyList<AgeConditionChange> changes = life.AdvanceAllOneDay();
+        List<AgeConditionChange> changes = new();
+        foreach (CharacterId characterId in previousStages.Keys
+                     .OrderBy(value => value.Value, StringComparer.Ordinal))
+        {
+            changes.AddRange(life.AdvanceDay(
+                characterId,
+                heritableTraits.GetMultiplier(
+                    characterId,
+                    HeritableTraitConsequenceKind.AgingRate,
+                    "biological-age")));
+        }
         for (int index = 0; index < changes.Count; index++)
         {
             events.Publish(new CharacterAgeConditionChangedEvent(changes[index]));

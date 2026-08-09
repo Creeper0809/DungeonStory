@@ -227,7 +227,7 @@ public sealed class OperationsFeatureCommandService : IOperationsFeatureCommandS
             succeeded
                 ? $"{FormatWasteOrigin(origin)} 급여 허용 오염도: "
                     + $"{policy.maximumFeedContamination:0}"
-                : result.Failure.Code.ToString());
+                : "폐기물 급여 기준을 변경하지 못했습니다.");
     }
 
     public OperationsFeatureCommandResult ToggleWastePolicy(
@@ -242,7 +242,7 @@ public sealed class OperationsFeatureCommandService : IOperationsFeatureCommandS
             succeeded
                 ? $"{FormatWasteOrigin(origin)} 정책 "
                     + (policy.enabled ? "활성화" : "중지")
-                : result.Failure.Code.ToString());
+                : "폐기물 처리 정책을 변경하지 못했습니다.");
     }
 
     private OperationsFeatureCommandResult UpdateMaintenance(

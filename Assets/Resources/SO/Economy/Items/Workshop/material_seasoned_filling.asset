@@ -32,16 +32,16 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 9
   features:
-  - rid: 7737211792998531436
-  - rid: 7737211792998531437
+  - rid: 7737211838074978931
+  - rid: 7737211838074978932
   references:
     version: 2
     RefIds:
-    - rid: 7737211792998531436
+    - rid: 7737211838074978931
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:kitchen-hygiene
-    - rid: 7737211792998531437
+    - rid: 7737211838074978932
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1

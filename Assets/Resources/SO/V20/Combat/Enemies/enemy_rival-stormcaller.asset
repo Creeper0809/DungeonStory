@@ -49,7 +49,7 @@ MonoBehaviour:
   counterTags:
   - counter:anti-air
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   bossPhases: []
   individualGeneration:
     minimumGeneralTraits: 2

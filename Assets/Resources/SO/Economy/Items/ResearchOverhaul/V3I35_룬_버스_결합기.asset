@@ -31,16 +31,16 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 80
   features:
-  - rid: 7737211794726584328
-  - rid: 7737211794726584329
+  - rid: 7737211838074979207
+  - rid: 7737211838074979208
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584328
+    - rid: 7737211838074979207
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        requiredResearchId: research:industry:rune-grid
-    - rid: 7737211794726584329
+        requiredResearchId: research:industry:mana-power
+    - rid: 7737211838074979208
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8

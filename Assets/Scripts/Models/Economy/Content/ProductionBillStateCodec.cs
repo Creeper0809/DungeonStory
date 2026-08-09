@@ -159,7 +159,7 @@ internal static class ProductionBillStateCodec
             temperatureOutageHours = record.temperatureOutageHours,
             occupiedSupportNodeId = record.occupiedSupportNodeId,
             blocked = CaptureFailure(record.blockedFailure),
-            reservedWorkerId = record.reservedWorkerId,
+            reservedWorkerId = string.Empty,
             materialDestinationId = record.materialDestinationId,
             prefetchBatchCount = record.prefetchBatchCount,
             estimatedDeliverySeconds = record.estimatedDeliverySeconds,
@@ -171,6 +171,12 @@ internal static class ProductionBillStateCodec
                 .ToList(),
             allowedWorkerIds = record.allowedWorkerIds
                 .OrderBy(id => id, StringComparer.Ordinal)
+                .ToList(),
+            workerPolicy = record.workerPolicy?.CloneNormalized()
+                ?? WorkerSelectionPolicySaveData.Anyone(),
+            workerContributions = record.workerContributions
+                .Where(value => value != null)
+                .Select(value => value.Clone())
                 .ToList(),
             hasPendingModeTransition = record.hasPendingModeTransition,
             pendingMode = record.pendingMode,
@@ -272,10 +278,51 @@ internal static class ProductionBillStateCodec
         ValidateStatus(saved.logistics, failure: false, billId.Value);
         ValidateCanonicalStrings(saved.allowedMaterialIds, "allowed material IDs");
         ValidateCanonicalStrings(saved.allowedWorkerIds, "allowed worker IDs");
+        ValidateWorkerPolicy(saved.workerPolicy, billId);
+        ValidateWorkerContributions(saved.workerContributions, billId);
         ValidateReservations(saved.outputReservations, catalog, billId);
         ValidateRoutes(saved.routePolicies, billId);
         ValidateSupplies(saved.selectedSupplies, catalog, billId);
         ValidateProcessState(saved, recipe, billId);
+    }
+
+    private static void ValidateWorkerPolicy(
+        WorkerSelectionPolicySaveData policy,
+        ProductionBillId billId)
+    {
+        if (policy == null
+            || !Enum.IsDefined(typeof(WorkerSelectionMode), policy.mode)
+            || !Enum.IsDefined(typeof(WorkerRequirementMatchMode), policy.matchMode)
+            || !Enum.IsDefined(typeof(WorkerCandidateSortMode), policy.sortMode)
+            || policy.minimumSkillExperience < 0
+            || policy.minimumCareerRank < 0)
+        {
+            throw new InvalidOperationException(
+                $"Production bill '{billId}' has an invalid worker policy.");
+        }
+        ValidateCanonicalStrings(policy.specificCharacterIds, "specific worker IDs");
+        ValidateCanonicalStrings(policy.excludedCharacterIds, "excluded worker IDs");
+        ValidateCanonicalStrings(policy.requiredTraitIds, "required worker traits");
+        ValidateCanonicalStrings(policy.excludedTraitIds, "excluded worker traits");
+    }
+
+    private static void ValidateWorkerContributions(
+        IReadOnlyList<CraftContributionSaveData> values,
+        ProductionBillId billId)
+    {
+        HashSet<string> ids = new(StringComparer.Ordinal);
+        foreach (CraftContributionSaveData value in values
+                     ?? Array.Empty<CraftContributionSaveData>())
+        {
+            if (value == null || !IsCanonical(value.characterId)
+                || !ids.Add(value.characterId)
+                || !IsFiniteNonNegative(value.contributedWork)
+                || !IsFiniteNonNegative(value.relevantSkill))
+            {
+                throw new InvalidOperationException(
+                    $"Production bill '{billId}' has invalid worker contributions.");
+            }
+        }
     }
 
     private static void ValidateProcessState(

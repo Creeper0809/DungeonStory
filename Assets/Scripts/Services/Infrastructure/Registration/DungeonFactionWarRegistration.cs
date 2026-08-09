@@ -20,5 +20,7 @@ public static class DungeonFactionWarRegistration
             .As<IFactionContractQuery>();
         builder.RegisterEntryPoint<InvasionCampaignRuntime>(Lifetime.Singleton)
             .As<IInvasionCampaignRuntime>();
+        builder.RegisterEntryPoint<MilestonePressureApplicationAdapter>(
+            Lifetime.Singleton);
     }
 }

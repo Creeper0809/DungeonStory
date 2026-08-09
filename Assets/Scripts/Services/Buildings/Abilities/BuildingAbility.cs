@@ -187,6 +187,10 @@ public sealed class BuildingWorkAmountAbility : BuildingAbility,
     [Min(0.1f), InspectorName("연구 작업량")] public float researchWorkRequired = 6f;
     [Min(0.1f), InspectorName("기본 운영 작업량")] public float operateWorkRequired = 10f;
     [SerializeField, InspectorName("건설 재료")]
+    private WorkerSelectionPolicySaveData defaultWorkerPolicy =
+        WorkerSelectionPolicySaveData.Anyone(
+            WorkerCandidateSortMode.SpecificThenBestExpectedQuality);
+    [SerializeField]
     private List<ItemAmountDefinition> constructionMaterials =
         new List<ItemAmountDefinition>();
     [NonSerialized] private IReadOnlyList<ItemAmountDefinition> constructionMaterialsView;
@@ -200,6 +204,11 @@ public sealed class BuildingWorkAmountAbility : BuildingAbility,
                 ReadOnlyView.List(constructionMaterials);
         }
     }
+
+    public WorkerSelectionPolicySaveData DefaultWorkerPolicy =>
+        defaultWorkerPolicy?.CloneNormalized()
+        ?? WorkerSelectionPolicySaveData.Anyone(
+            WorkerCandidateSortMode.SpecificThenBestExpectedQuality);
 
     public float GetRequiredWork(BuildableObject building, WorkTypeId workTypeId)
     {

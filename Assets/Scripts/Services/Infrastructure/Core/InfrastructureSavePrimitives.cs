@@ -35,7 +35,7 @@ public interface IDungeonSaveSlotCatalog
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonGameSaveData
 {
-    public const int CurrentVersion = 20;
+    public const int CurrentVersion = 23;
 
     public int version = CurrentVersion;
     public string savedAtUtc = string.Empty;
@@ -89,7 +89,7 @@ public static class DungeonSaveManifest
         if (manifest == null
             || manifest.compatibilityGeneration != DungeonGameSaveData.CurrentVersion)
         {
-            reason = "V20 save manifest is missing or has an incompatible generation.";
+            reason = "V23 save manifest is missing or has an incompatible generation.";
             return false;
         }
 
@@ -101,7 +101,7 @@ public static class DungeonSaveManifest
             string id = section?.sectionId?.Trim() ?? string.Empty;
             if (id.Length == 0 || !declared.TryAdd(id, section))
             {
-                reason = "V20 save manifest contains an empty or duplicate section id.";
+                reason = "V23 save manifest contains an empty or duplicate section id.";
                 return false;
             }
         }
@@ -114,7 +114,7 @@ public static class DungeonSaveManifest
             string id = envelope?.sectionId?.Trim() ?? string.Empty;
             if (id.Length == 0 || !payloads.TryAdd(id, envelope))
             {
-                reason = "V20 save payload contains an empty or duplicate section id.";
+                reason = "V23 save payload contains an empty or duplicate section id.";
                 return false;
             }
         }
@@ -125,7 +125,7 @@ public static class DungeonSaveManifest
             {
                 if (!pair.Value.optional)
                 {
-                    reason = $"V20 save is missing manifest-required section '{pair.Key}'.";
+                    reason = $"V23 save is missing manifest-required section '{pair.Key}'.";
                     return false;
                 }
 
@@ -135,7 +135,7 @@ public static class DungeonSaveManifest
             if (payload.sectionVersion != pair.Value.sectionVersion
                 || payload.optional != pair.Value.optional)
             {
-                reason = $"V20 save section '{pair.Key}' does not match its manifest.";
+                reason = $"V23 save section '{pair.Key}' does not match its manifest.";
                 return false;
             }
         }
@@ -143,7 +143,7 @@ public static class DungeonSaveManifest
         string undeclared = payloads.Keys.FirstOrDefault(id => !declared.ContainsKey(id));
         if (!string.IsNullOrEmpty(undeclared))
         {
-            reason = $"V20 save contains undeclared section '{undeclared}'.";
+            reason = $"V23 save contains undeclared section '{undeclared}'.";
             return false;
         }
 
@@ -154,8 +154,13 @@ public static class DungeonSaveManifest
 
 public static class DungeonSaveCompatibility
 {
-    public const string PreV20IncompatibilityReason =
-        "대규모 인물·사건·세력·조우·엔딩 콘텐츠 개편 이전 저장 — 새 게임 필요";
+    public const string PreV23IncompatibilityReason =
+        "V23 무등급 재료·작업자 지정·품질 반복 생산 개편 이전 저장 — 새 게임 필요";
+
+    public const string PreV22IncompatibilityReason =
+        "V22 해부학·재료 계보 의복 개편 이전 저장 — 새 게임 필요";
+
+    public const string PreV21IncompatibilityReason = PreV22IncompatibilityReason;
 
     public static bool TryGetIncompatibilityReason(
         int version,
@@ -168,7 +173,7 @@ public static class DungeonSaveCompatibility
         }
 
         incompatibilityReason = version < DungeonGameSaveData.CurrentVersion
-            ? PreV20IncompatibilityReason
+            ? PreV23IncompatibilityReason
             : $"현재 빌드보다 새로운 저장 버전입니다. 저장 V{version}, 지원 V{DungeonGameSaveData.CurrentVersion}";
         return true;
     }

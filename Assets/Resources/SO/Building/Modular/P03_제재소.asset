@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uC81C\uC7AC\uC18C"
   sprite: {fileID: 21300000, guid: 62a113a090aabc14daa87ff1cbb10073, type: 3}
   icon: {fileID: 21300000, guid: 62a113a090aabc14daa87ff1cbb10073, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730538791691
@@ -39,12 +44,12 @@ MonoBehaviour:
     - rid: 7737211730538791695
     - rid: 7737211730538791696
     - rid: 7737211730538791697
-    - rid: 7737211792661414758
-    - rid: 7737211792661414759
-    - rid: 7737211792661414760
-    - rid: 7737211792661414761
-    - rid: 7737211792998531270
-    - rid: 7737211792998531271
+    - rid: 7737211838074978358
+    - rid: 7737211838074978359
+    - rid: 7737211838074978360
+    - rid: 7737211838074978361
+    - rid: 7737211838074978763
+    - rid: 7737211838074978764
   width: 3
   height: 1
   layer: 1
@@ -118,21 +123,21 @@ MonoBehaviour:
           - key: Wood
             value: 2
           metrics: []
-    - rid: 7737211792661414758
+    - rid: 7737211838074978358
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7737211792661414759
+    - rid: 7737211838074978359
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7737211792661414760
+    - rid: 7737211838074978360
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -143,20 +148,20 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7737211792661414761
+    - rid: 7737211838074978361
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7737211792998531270
+    - rid: 7737211838074978763
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:sawmill
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211792998531271
+    - rid: 7737211838074978764
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility

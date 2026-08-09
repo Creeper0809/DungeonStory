@@ -35,13 +35,15 @@ MonoBehaviour:
   battlefieldModifierIds:
   - battlefield:hostage-chain
   counterTags:
+  - counter:nonlethal
+  - counter:smoke-hood
   - counter:rush
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
   - enemyArchetypeId: enemy:legion-arquebus
     minimumCount: 1
     maximumCount: 2
-  - enemyArchetypeId: enemy:inquisition-high-judge
+  - enemyArchetypeId: enemy:legion-pavise
     minimumCount: 1
     maximumCount: 2

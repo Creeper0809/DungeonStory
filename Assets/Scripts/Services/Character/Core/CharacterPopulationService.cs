@@ -697,25 +697,11 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
                 .Where(trait => trait != null)
                 .OrderBy(trait => trait.id));
         }
-        List<int> selected = new List<int>(3);
-        foreach (CharacterTraitSO candidate in traitPool.OrderBy(_ => random.NextInt(0, int.MaxValue)))
-        {
-            bool conflicts = settings.traitConflicts.Any(rule => rule != null
-                && ((rule.firstTraitId == candidate.id && selected.Contains(rule.secondTraitId))
-                    || (rule.secondTraitId == candidate.id && selected.Contains(rule.firstTraitId))));
-            if (selected.Contains(candidate.id) || conflicts)
-            {
-                continue;
-            }
-
-            selected.Add(candidate.id);
-            if (selected.Count >= 3)
-            {
-                break;
-            }
-        }
-
-        return selected;
+        return CharacterTraitSelectionRules.Select(
+                traitPool,
+                settings.traitConflicts,
+                random)
+            .ToList();
     }
 
     private static void SynchronizeProfile(WorldCharacterProfile profile, CharacterActor actor)

@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: "V3I132_\uD751\uAC15_\uBCFC\uD2B8"
+  m_EditorClassIdentifier: DungeonStory.Economy::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9032
+  itemId: ammo:blacksteel-bolt
+  displayName: "\uD751\uAC15 \uBCFC\uD2B8"
+  description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uD751\uAC15 \uBCFC\uD2B8."
+  stockCategory: 7
+  unitWeight: 4.18
+  maxStack: 120
+  sprite: {fileID: 0}
+  unitPrice: 274
+  features:
+  - rid: 7737211838078124918
+  - rid: 7737211838078124919
+  - rid: 7737211838078124920
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211838078124918
+      type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        ammunitionKindId: ammo:blacksteel-bolt
+    - rid: 7737211838078124919
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        requiredResearchId: research:industry:dark-foundry
+    - rid: 7737211838078124920
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        kind: 7
+        ingredientTags: 512
+        sharedIntermediate: 0

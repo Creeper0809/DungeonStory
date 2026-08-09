@@ -28,6 +28,7 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
     private IGameEventBus gameEventBus;
     private IGameClock gameClock;
     private IDungeonDebugRuleQuery debugRules;
+    private IRunMilestoneQuery milestoneQuery;
     private GridBuildingPlacementService placementService;
     private bool initialized;
     private bool resetGridModeAtEndOfFrame;
@@ -55,7 +56,8 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
         IWorkOrderRuntime workOrderRuntime,
         IGameEventBus gameEventBus,
         IGameClock gameClock,
-        IDungeonDebugRuleQuery debugRules)
+        IDungeonDebugRuleQuery debugRules,
+        IRunMilestoneQuery milestoneQuery = null)
     {
         this.gridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
@@ -88,6 +90,7 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         this.debugRules = debugRules ?? throw new ArgumentNullException(nameof(debugRules));
+        this.milestoneQuery = milestoneQuery;
     }
 
     private void Awake()
@@ -661,7 +664,12 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
     {
         ResolveGameDataProvider().TryGetSessionState(out GameSessionState gameData);
         BlueprintResearchState researchState = research.State;
-        return new BuildingConditionContext(gameData, researchState, moneyAccount, debugRules);
+        return new BuildingConditionContext(
+            gameData,
+            researchState,
+            moneyAccount,
+            debugRules,
+            milestoneQuery);
     }
 
     private void ConfigurePlacedBuilding(BuildableObject building)

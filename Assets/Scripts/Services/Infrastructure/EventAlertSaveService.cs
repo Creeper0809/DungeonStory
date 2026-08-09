@@ -30,12 +30,14 @@ public sealed class EventAlertSaveService : IEventAlertSaveService
                 detail = record.Detail,
                 importance = record.Importance,
                 category = record.Category,
+                sourceId = record.SourceId,
                 count = record.Count,
                 dismissed = runtime.IsDismissed(record),
                 choices = record.Choices.Select(choice => new DungeonEventAlertChoiceSaveData
                 {
                     label = choice.Label,
-                    description = choice.Description
+                    description = choice.Description,
+                    actionId = choice.ActionId
                 }).ToList()
             })
             .ToList();
@@ -62,9 +64,13 @@ public sealed class EventAlertSaveService : IEventAlertSaveService
                 record.category,
                 record.count,
                 record.choices
-                    .Select(choice => new EventAlertChoice(choice.label, choice.description))
+                    .Select(choice => new EventAlertChoice(
+                        choice.label,
+                        choice.description,
+                        choice.actionId))
                     .ToList(),
-                record.dismissed))
+                record.dismissed,
+                record.sourceId))
             .ToList());
     }
 

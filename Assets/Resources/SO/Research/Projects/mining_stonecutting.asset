@@ -40,8 +40,8 @@ MonoBehaviour:
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211792998531942
-    - rid: 7737211792998531943
+    - rid: 7737211838079697160
+    - rid: 7737211838079697161
   facilityRequirements:
   - capability: 0
     requiredCount: 1
@@ -51,11 +51,11 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211792998531942
+    - rid: 7737211838079697160
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1077
-    - rid: 7737211792998531943
+    - rid: 7737211838079697161
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1619

@@ -30,17 +30,19 @@ MonoBehaviour:
   boss: 1
   objective: 5
   objectiveRoundLimit: 6
-  objectiveTargetId: enemy:legion-pikeman
+  objectiveTargetId: enemy:truth-sealkeeper
   battlefieldModifierIds:
   - battlefield:unstable-device
   counterTags:
-  - counter:ranged
+  - counter:sabotage
+  - counter:mundane
+  - counter:nonlethal
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
-  - enemyArchetypeId: enemy:legion-pikeman
+  - enemyArchetypeId: enemy:truth-sealkeeper
     minimumCount: 1
     maximumCount: 1
-  - enemyArchetypeId: enemy:inquisition-rune-sniper
+  - enemyArchetypeId: enemy:truth-null-warden
     minimumCount: 1
     maximumCount: 2

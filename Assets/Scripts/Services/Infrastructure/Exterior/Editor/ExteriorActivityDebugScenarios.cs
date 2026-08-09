@@ -113,7 +113,7 @@ public static class ExteriorActivityDebugScenarios
             DungeonSaveSectionPayload.ReadOrNew<DungeonExteriorActivitySaveData>(
                 save,
                 ExteriorActivitySaveSection.Id);
-        return DungeonGameSaveData.CurrentVersion == 20
+        return DungeonGameSaveData.CurrentVersion == 23
             && save.version == DungeonGameSaveData.CurrentVersion
             && exterior.version == DungeonExteriorActivitySaveData.CurrentVersion;
     }

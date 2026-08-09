@@ -26,6 +26,8 @@ public sealed class FactionRuntimeApplicationAdapter :
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly IGameClock clock;
     private readonly IGameEventBus events;
+    private readonly IFactionCampaignQuery campaignQuery;
+    private readonly IFactionCampaignCommand campaignCommand;
     [ApplicationAdapterTransientState]
     private IDisposable daySubscription;
     [ApplicationAdapterTransientState]
@@ -44,6 +46,7 @@ public sealed class FactionRuntimeApplicationAdapter :
         FactionCharacterSpawnDependencies characterSpawning,
         IGameClock clock,
         IGameEventBus events,
+        V20CampaignRuntime campaign,
         DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -61,6 +64,8 @@ public sealed class FactionRuntimeApplicationAdapter :
         worldRegistry = characterSpawning.WorldRegistry;
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
+        campaignQuery = campaign ?? throw new ArgumentNullException(nameof(campaign));
+        campaignCommand = campaign;
         domain = new FactionDomainRuntime(
             aggregateRootStore ?? throw new ArgumentNullException(nameof(aggregateRootStore)));
     }
@@ -69,11 +74,11 @@ public sealed class FactionRuntimeApplicationAdapter :
         catalog.Definitions;
     public IReadOnlyList<DungeonFactionState> Factions =>
         catalog.Definitions
-            .Select(definition => factions.FirstOrDefault(value =>
-                string.Equals(
+            .Select(definition => ProjectCampaignRelationship(
+                factions.FirstOrDefault(value => string.Equals(
                     value.factionId,
                     definition.StableId,
-                    StringComparison.Ordinal)))
+                    StringComparison.Ordinal))))
             .Where(value => value != null)
             .ToArray();
     public IReadOnlyList<FactionRouteState> Routes => routes;
@@ -125,15 +130,37 @@ public sealed class FactionRuntimeApplicationAdapter :
         out DungeonFactionState faction)
     {
         EnsureInitialized();
-        return domain.TryGetFaction(factionId, out faction);
+        bool found = domain.TryGetFaction(factionId, out faction);
+        if (found)
+            ProjectCampaignRelationship(faction);
+        return found;
     }
 
     public bool IsContractUnlocked(
         string factionId,
         FactionContractKind contract)
     {
-        return TryGetFaction(factionId, out DungeonFactionState faction)
-            && domain.IsContractUnlocked(faction, contract);
+        if (!TryGetFaction(factionId, out DungeonFactionState faction)
+            || faction.NegotiationBlocked(currentDay)
+            || !campaignQuery.TryGetFaction(
+                factionId,
+                out FactionCampaignStateSaveData relationship))
+            return false;
+
+        return contract switch
+        {
+            FactionContractKind.Trade => relationship.rapport >= 20
+                && relationship.grievance <= 70,
+            FactionContractKind.Recruitment => relationship.rapport >= 35
+                && relationship.grievance <= 55,
+            FactionContractKind.Supply => relationship.rapport >= 50
+                && relationship.grievance <= 40,
+            FactionContractKind.Reinforcement => relationship.rapport >= 70
+                && relationship.grievance <= 25
+                && relationship.obligationTokens > 0
+                && faction.allianceProjectCompleted,
+            _ => false
+        };
     }
 
     public bool TryAdjustTrust(
@@ -154,14 +181,24 @@ public sealed class FactionRuntimeApplicationAdapter :
             return false;
         }
 
-        FactionTrustTransition transition = domain.AdjustTrust(faction, amount);
+        int previous = faction.trust;
+        int adjusted = amount > 0
+            ? Math.Max(1, (int)MathF.Round(
+                amount * MathF.Pow(0.85f, faction.betrayalScars)))
+            : amount;
+        campaignCommand.ApplyFactionChange(
+            factionId,
+            adjusted,
+            amount < 0 ? Math.Max(1, -amount / 2) : 0,
+            0);
+        ProjectCampaignRelationship(faction);
         events.Publish(new FactionTrustChangedEvent(
-            transition.FactionId,
-            transition.Previous,
-            transition.Current,
+            faction.factionId,
+            previous,
+            faction.trust,
             reason));
         message =
-            $"{DisplayName(factionId)} 신뢰 {transition.Previous} → {transition.Current}";
+            $"{DisplayName(factionId)} 우호 {previous} → {faction.trust}";
         return true;
     }
 
@@ -208,9 +245,13 @@ public sealed class FactionRuntimeApplicationAdapter :
         out string message)
     {
         if (!TryGetFaction(factionId, out DungeonFactionState faction)
-            || faction.trust < 70)
+            || !campaignQuery.TryGetFaction(
+                factionId,
+                out FactionCampaignStateSaveData relationship)
+            || relationship.rapport < 70
+            || relationship.grievance > 25)
         {
-            message = "신뢰 70 이상이어야 동맹 프로젝트를 완료할 수 있습니다.";
+            message = "우호 70 이상, 원한 25 이하여야 동맹 프로젝트를 완료할 수 있습니다.";
             return false;
         }
 
@@ -293,6 +334,8 @@ public sealed class FactionRuntimeApplicationAdapter :
         int stolenValue,
         out string message)
     {
+        foreach (DungeonFactionState state in factions)
+            ProjectCampaignRelationship(state);
         if (!TryGetFaction(factionId, out DungeonFactionState target))
         {
             message = "배신할 세력을 찾을 수 없습니다.";
@@ -311,6 +354,16 @@ public sealed class FactionRuntimeApplicationAdapter :
         foreach (FactionTrustTransition transition in
                  domain.ApplyBetrayal(target, actualLootValue))
         {
+            int rapportDelta = transition.Current - transition.Previous;
+            campaignCommand.ApplyFactionChange(
+                transition.FactionId,
+                rapportDelta,
+                string.Equals(transition.FactionId, factionId, StringComparison.Ordinal)
+                    ? 35
+                    : 10,
+                0);
+            if (domain.TryGetFaction(transition.FactionId, out DungeonFactionState projected))
+                ProjectCampaignRelationship(projected);
             events.Publish(new FactionTrustChangedEvent(
                 transition.FactionId,
                 transition.Previous,
@@ -350,6 +403,8 @@ public sealed class FactionRuntimeApplicationAdapter :
         }
 
         domain.AcceptRestitution(faction);
+        campaignCommand.ApplyFactionChange(factionId, 0, -30, 0);
+        ProjectCampaignRelationship(faction);
         message =
             $"{DisplayName(factionId)} 실물 배상 {consumedValue} 접수 완료";
         return true;
@@ -483,6 +538,8 @@ public sealed class FactionRuntimeApplicationAdapter :
         }
 
         domain.CompleteRecoveryEvent(faction);
+        campaignCommand.ApplyFactionChange(factionId, 5, -15, 0);
+        ProjectCampaignRelationship(faction);
         message = $"{DisplayName(factionId)} 구조·방어 사건 완료";
         return true;
     }
@@ -497,7 +554,27 @@ public sealed class FactionRuntimeApplicationAdapter :
             return;
         }
 
+        int previous = faction.trust;
         domain.RecordReinforcementLoss(faction, deaths, equipmentLosses);
+        int delta = faction.trust - previous;
+        if (delta != 0)
+            campaignCommand.ApplyFactionChange(
+                factionId,
+                delta,
+                Math.Max(0, deaths * 2 + equipmentLosses),
+                0);
+        ProjectCampaignRelationship(faction);
+    }
+
+    private DungeonFactionState ProjectCampaignRelationship(
+        DungeonFactionState faction)
+    {
+        if (faction != null
+            && campaignQuery.TryGetFaction(
+                faction.factionId,
+                out FactionCampaignStateSaveData relationship))
+            faction.trust = relationship.rapport;
+        return faction;
     }
 
     public DungeonFactionSaveData Capture()

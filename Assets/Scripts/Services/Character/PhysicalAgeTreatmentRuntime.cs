@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Operation;
 using VContainer.Unity;
 
 public interface IPhysicalAgeTreatmentService
@@ -383,27 +384,74 @@ public sealed class PhysicalAgeTreatmentRuntime :
 public sealed class TemporalStasisMaintenanceAdapter : IStartable, IDisposable
 {
     private readonly ITemporalStasisMaintenanceService maintenance;
+    private readonly ICharacterLifeQuery life;
+    private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
     private readonly IGameEventBus events;
-    private IDisposable subscription;
+    private IDisposable dayStartedSubscription;
+    private IDisposable dayEndedSubscription;
 
     public TemporalStasisMaintenanceAdapter(
         ITemporalStasisMaintenanceService maintenance,
+        ICharacterLifeQuery life,
+        IMilestoneGameplayModifierQuery milestoneModifiers,
         IGameEventBus events)
     {
         this.maintenance = maintenance
             ?? throw new ArgumentNullException(nameof(maintenance));
+        this.life = life ?? throw new ArgumentNullException(nameof(life));
+        this.milestoneModifiers = milestoneModifiers
+            ?? throw new ArgumentNullException(nameof(milestoneModifiers));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
     public void Start()
     {
-        subscription = events.Subscribe<OperatingDayEndedEvent>(
+        dayStartedSubscription = events.Subscribe<OperatingDayStartedEvent>(
+            OnDayStarted);
+        dayEndedSubscription = events.Subscribe<OperatingDayEndedEvent>(
             _ => maintenance.RefreshDailyMaintenance());
+    }
+
+    private void OnDayStarted(OperatingDayStartedEvent started)
+    {
+        int warningDays = Math.Max(
+            0,
+            milestoneModifiers.TemporalStasisWarningDays);
+        if (warningDays == 0)
+        {
+            return;
+        }
+
+        foreach (CharacterLifeRecord record in life.Records
+                     .Where(value => value != null
+                         && value.RequestedAgingCareMode
+                             == AgingCareMode.TemporalStasis)
+                     .OrderBy(value => value.CharacterId.Value,
+                         StringComparer.Ordinal))
+        {
+            int remaining = record.TemporalStasisNextMaintenanceAbsoluteDay
+                - started.day;
+            if (remaining <= 0 || remaining > warningDays)
+            {
+                continue;
+            }
+
+            events.Publish(new EventAlertRequestedEvent(new EventAlertRequest(
+                "시간 고정 유지보수 예고",
+                $"{record.CharacterId.Value}의 시간 고정 촉매 교체까지 {remaining}일 남았습니다. "
+                    + $"{PhysicalAgeTreatmentRuntime.RuneConductorItemId}와 "
+                    + $"{PhysicalAgeTreatmentRuntime.ManaCrystalItemId}을 시설 버퍼에 준비해야 합니다.",
+                EventAlertImportance.High,
+                "V21 시간 고정",
+                sourceId: $"temporal-stasis-maintenance-warning:{record.CharacterId.Value}")));
+        }
     }
 
     public void Dispose()
     {
-        subscription?.Dispose();
-        subscription = null;
+        dayStartedSubscription?.Dispose();
+        dayStartedSubscription = null;
+        dayEndedSubscription?.Dispose();
+        dayEndedSubscription = null;
     }
 }

@@ -176,7 +176,7 @@ public sealed class AnimalHusbandryBuildingPanelPresenter :
                 parent,
                 $"{speciesName} · {sex} · {animal.AgeDays:0.0}일 · {status}"
                 + (animal.SlaughterDesignated ? " · 도축 지정" : string.Empty)
-                + $"\n{animal.StatusCode}",
+                + $"\n{FormatStatus(animal.StatusCode)}",
                 font,
                 14f,
                 animal.SlaughterDesignated
@@ -198,7 +198,7 @@ public sealed class AnimalHusbandryBuildingPanelPresenter :
                     updated,
                     out AnimalHusbandryFailure failure))
             {
-                showFeedback?.Invoke(failure.Code.ToString());
+                showFeedback?.Invoke(FormatFailure(failure.Code));
                 return;
             }
 
@@ -206,6 +206,40 @@ public sealed class AnimalHusbandryBuildingPanelPresenter :
             refresh?.Invoke();
         }
     }
+
+    private static string FormatFailure(AnimalHusbandryFailureCode code) => code switch
+    {
+        AnimalHusbandryFailureCode.InvalidPenId => "축사 식별 정보가 올바르지 않습니다.",
+        AnimalHusbandryFailureCode.UnknownSpecies => "이 축사에서 돌볼 수 없는 종입니다.",
+        AnimalHusbandryFailureCode.AnimalNotFound => "대상 동물을 찾지 못했습니다.",
+        AnimalHusbandryFailureCode.PregnantAnimalProtected => "임신·부화 보호 중인 동물은 지정할 수 없습니다.",
+        AnimalHusbandryFailureCode.InvalidPen => "축사 조건이 맞지 않습니다.",
+        AnimalHusbandryFailureCode.NoPendingWork => "지금 처리할 축산 작업이 없습니다.",
+        _ => "축산 정책을 변경하지 못했습니다."
+    };
+
+    private static string FormatStatus(AnimalHusbandryStatusCode code) => code switch
+    {
+        AnimalHusbandryStatusCode.None => "안정",
+        AnimalHusbandryStatusCode.SlaughterDesignated => "도축 대상으로 지정됨",
+        AnimalHusbandryStatusCode.SlaughterDesignationCleared => "도축 지정 해제됨",
+        AnimalHusbandryStatusCode.TamingCompleted => "길들이기 완료",
+        AnimalHusbandryStatusCode.ProductCollected => "생산물 수거 완료",
+        AnimalHusbandryStatusCode.ProductStorageUnavailable => "생산물 저장 공간 부족",
+        AnimalHusbandryStatusCode.ManureCollected => "분뇨 수거 완료",
+        AnimalHusbandryStatusCode.ManureStorageUnavailable => "분뇨 저장 공간 부족",
+        AnimalHusbandryStatusCode.TamedAnimal => "길들여짐",
+        AnimalHusbandryStatusCode.AwaitingTaming => "길들이기 대기",
+        AnimalHusbandryStatusCode.Brooding => "알 품는 중",
+        AnimalHusbandryStatusCode.Pregnant => "임신 중",
+        AnimalHusbandryStatusCode.BirthWaitingForPenCapacity => "출산 공간 대기",
+        AnimalHusbandryStatusCode.HatchedJuvenile => "부화한 새끼",
+        AnimalHusbandryStatusCode.NewbornJuvenile => "갓 태어난 새끼",
+        AnimalHusbandryStatusCode.HatchingCompleted => "부화 완료",
+        AnimalHusbandryStatusCode.BirthCompleted => "출산 완료",
+        AnimalHusbandryStatusCode.AutoSlaughterPolicyTarget => "자동 도축 정책 대상",
+        _ => "상태 확인 필요"
+    };
 
     private static int NextLimit(int current)
     {

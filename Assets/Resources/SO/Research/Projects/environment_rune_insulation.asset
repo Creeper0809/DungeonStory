@@ -29,15 +29,9 @@ MonoBehaviour:
   field: 0
   requiredWork: 184
   prerequisites:
-  - {fileID: 11400000, guid: e352d43e288d89f45b1bc8be3bf62967, type: 2}
   - {fileID: 11400000, guid: 0bbcc9aa811fd5e4c840444868ba8a4b, type: 2}
   - {fileID: 11400000, guid: 8ac67a646af7ea148bef357bd91c4bb7, type: 2}
   prerequisiteLinks:
-  - prerequisiteId: research:arcane:advanced
-    prerequisite: {fileID: 11400000, guid: e352d43e288d89f45b1bc8be3bf62967, type: 2}
-    kind: 0
-    reason: "\uBE44\uC804 \uC5F0\uAD6C\uC758 \uC774\uB860\uC774(\uAC00) \uB8EC \uB2E8\uC5F4\uD559
-      \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   - prerequisiteId: research:environment:cold-work
     prerequisite: {fileID: 11400000, guid: 0bbcc9aa811fd5e4c840444868ba8a4b, type: 2}
     kind: 3
@@ -52,7 +46,8 @@ MonoBehaviour:
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211793001939500
+    - rid: 7737211838079697022
+    - rid: 7737211838079697023
   facilityRequirements:
   - capability: 0
     requiredCount: 1
@@ -62,7 +57,11 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211793001939500
+    - rid: 7737211838079697022
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1502
+    - rid: 7737211838079697023
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:rune-cold-suit

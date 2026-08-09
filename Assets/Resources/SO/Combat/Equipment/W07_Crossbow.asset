@@ -19,7 +19,7 @@ MonoBehaviour:
   weight: 3.8
   occupiedHands: 2
   maxDurability: 100
-  requiredCraftWork: 6
+  requiredCraftWork: 132
   defaultMaterialId: material:iron
   primaryMaterialAmount: 3
   allowedMaterialFamilies: 03000000
@@ -29,6 +29,8 @@ MonoBehaviour:
     amount: 1
   - itemId: component:machine-parts
     amount: 1
+  - itemId: material:laminated-lumber
+    amount: 1
   requiredResearchId: research:equipment:mechanical-projectiles
   era: 1
   tier: 1
@@ -37,7 +39,7 @@ MonoBehaviour:
   growthEquipment: 0
   growthBaseStatMultiplier: 1
   verbs:
-  - rid: 7737211772876620151
+  - rid: 7737211838079696903
   rangeProfiles:
   - band: 0
     accuracyMultiplier: 0.25
@@ -58,6 +60,10 @@ MonoBehaviour:
   - ammo:bolt-iron
   - ammo:bolt-steel
   - ammo:bolt-rune
+  - ammo:incendiary-bolt
+  - ammo:blacksteel-bolt
+  - ammo:mana-disruptor-bolt
+  - ammo:tranquilizer-dart
   magazineCapacity: 1
   reloadSeconds: 2.2
   supportsAimed: 1
@@ -69,7 +75,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211772876620151
+    - rid: 7737211838079696903
       type: {class: ProjectileVerb, ns: , asm: DungeonStory.Combat}
       data:
         attackTime: 1

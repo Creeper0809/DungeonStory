@@ -105,7 +105,9 @@ public sealed class CharacterDeprivationSystemDependencies
         IUiClock uiClock,
         IDoorAccessQuery doorAccessQuery,
         ICharacterNeedBalanceRuntime needBalanceRuntime,
-        IDungeonDebugRuleQuery debugRules)
+        IDungeonDebugRuleQuery debugRules,
+        IHeritableTraitEffectQuery heritableTraits,
+        IReproductionService reproduction)
     {
         GameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
@@ -123,6 +125,10 @@ public sealed class CharacterDeprivationSystemDependencies
             ?? throw new ArgumentNullException(nameof(needBalanceRuntime));
         DebugRules = debugRules
             ?? throw new ArgumentNullException(nameof(debugRules));
+        HeritableTraits = heritableTraits
+            ?? throw new ArgumentNullException(nameof(heritableTraits));
+        Reproduction = reproduction
+            ?? throw new ArgumentNullException(nameof(reproduction));
     }
 
     public IGameEventBus GameEventBus { get; }
@@ -133,6 +139,8 @@ public sealed class CharacterDeprivationSystemDependencies
     public IDoorAccessQuery DoorAccessQuery { get; }
     public ICharacterNeedBalanceRuntime NeedBalanceRuntime { get; }
     public IDungeonDebugRuleQuery DebugRules { get; }
+    public IHeritableTraitEffectQuery HeritableTraits { get; }
+    public IReproductionService Reproduction { get; }
 }
 
 public sealed class CharacterDeprivationAuthorityDependencies

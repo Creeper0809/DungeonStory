@@ -64,6 +64,7 @@ public static class OnboardingRunStartConstructorFacadeDebugScenarios
                     null,
                     null,
                     null,
+                    null,
                     null))
             && ThrowsArgumentNull(
                 () => new FirstRunObjectiveProgressContext(

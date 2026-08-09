@@ -29,18 +29,22 @@ MonoBehaviour:
   elite: 0
   boss: 0
   objective: 2
-  objectiveRoundLimit: 6
+  objectiveRoundLimit: 7
   objectiveTargetId: target:field-medic
   battlefieldModifierIds:
   - battlefield:mana-storm
   counterTags:
+  - counter:mana-grounding
   - counter:interrupt-heal
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
   - enemyArchetypeId: enemy:legion-surgeon
     minimumCount: 1
     maximumCount: 2
-  - enemyArchetypeId: enemy:merchant-caravan-blade
+  - enemyArchetypeId: enemy:legion-pikeman
+    minimumCount: 1
+    maximumCount: 2
+  - enemyArchetypeId: enemy:legion-arquebus
     minimumCount: 1
     maximumCount: 2

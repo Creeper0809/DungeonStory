@@ -302,7 +302,9 @@ public static class OffenseJourneyDebugScenarios
             equipment,
             BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                 .Create<IGameMoneyAccount>(),
-            new GameEventBus());
+            new GameEventBus(),
+            BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                .Create<IWorldDropZoneQuery>());
         returnPort.HandleMemberDeath(fixture.Actor);
 
         Require(equipment.TryGetInstance(
@@ -341,6 +343,7 @@ public static class OffenseJourneyDebugScenarios
             .Single(node => node.Kind == OffenseRouteNodeKind.Event);
         source.TryEnterNode(eventNode.Id, out _);
         source.TryResolveCurrentNode(false, out _, out _);
+        source.AddRecoveredEquipment("equipment:recovered:test");
 
         OffenseExpeditionRun restored = CreateRun(
             fixture.Actor,
@@ -355,6 +358,8 @@ public static class OffenseJourneyDebugScenarios
             source.Light,
             source.CompletedNodeIds,
             source.CarriedStock);
+        restored.RestoreRecoveredEquipment(
+            source.RecoveredEquipmentInstanceIds);
 
         Require(restored.Phase == source.Phase, "Journey phase changed during restore.");
         Require(restored.CurrentNodeId == source.CurrentNodeId, "Current route node changed during restore.");
@@ -364,6 +369,9 @@ public static class OffenseJourneyDebugScenarios
         Require(restored.MemberStates[0].Formation == OffenseFormationSlot.Rear
             && Mathf.Approximately(restored.MemberStates[0].TotalDamageTaken, 12f),
             "Member journey state did not restore.");
+        Require(new HashSet<string>(restored.RecoveredEquipmentInstanceIds)
+                .SetEquals(source.RecoveredEquipmentInstanceIds),
+            "Recovered physical equipment IDs changed during restore.");
         return true;
     }
 
@@ -378,6 +386,7 @@ public static class OffenseJourneyDebugScenarios
         run.TryEnterNode(eventNode.Id, out _);
         run.TryResolveCurrentNode(false, out _, out _);
         run.MemberStates[0].Restore(OffenseFormationSlot.Rear, 37f, 14f);
+        run.AddRecoveredEquipment("equipment:save-recovered:test");
 
         GameObject runtimeObject = new GameObject("Offense Save Payload Runtime");
         try
@@ -421,6 +430,9 @@ public static class OffenseJourneyDebugScenarios
                 && Mathf.Approximately(savedMember.stress, 37f)
                 && Mathf.Approximately(savedMember.totalDamageTaken, 14f),
                 "Member formation, stress, or damage did not round-trip.");
+            Require(saved.recoveredEquipmentInstanceIds.SequenceEqual(
+                    new[] { "equipment:save-recovered:test" }),
+                "Recovered physical equipment IDs did not round-trip.");
             return true;
         }
         finally

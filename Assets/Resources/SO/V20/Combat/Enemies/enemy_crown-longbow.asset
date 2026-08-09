@@ -29,7 +29,7 @@ MonoBehaviour:
   moveSpeed: 4.5
   equipment:
     weaponDefinitionId: weapon:longbow
-    armorDefinitionId: armor:padded
+    armorDefinitionId: armor:gambeson
     shieldDefinitionId: 
     ammunitionItemId: ammo:arrow
   abilityIds:
@@ -48,7 +48,7 @@ MonoBehaviour:
   counterTags:
   - counter:smoke
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   bossPhases: []
   individualGeneration:
     minimumGeneralTraits: 2

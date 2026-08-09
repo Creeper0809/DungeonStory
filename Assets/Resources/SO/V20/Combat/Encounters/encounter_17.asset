@@ -34,13 +34,14 @@ MonoBehaviour:
   battlefieldModifierIds:
   - battlefield:civilian-corridor
   counterTags:
+  - counter:precision
   - counter:separate-cargo
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
   - enemyArchetypeId: enemy:merchant-hired-bulwark
     minimumCount: 1
     maximumCount: 2
-  - enemyArchetypeId: enemy:settler-herbalist
+  - enemyArchetypeId: enemy:merchant-crossbow
     minimumCount: 1
     maximumCount: 2

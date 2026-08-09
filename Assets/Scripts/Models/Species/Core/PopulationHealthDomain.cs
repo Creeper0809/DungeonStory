@@ -37,7 +37,9 @@ public readonly struct DiseaseDefinition
         float baseSeverity,
         DiseaseTargetSystem targetSystem,
         bool vaccineAllowed,
-        bool chronic = false)
+        bool chronic = false,
+        string symptomProfileId = "",
+        IEnumerable<string> fieldResponseIds = null)
     {
         Id = id?.Trim() ?? string.Empty;
         DisplayName = displayName?.Trim() ?? string.Empty;
@@ -49,6 +51,13 @@ public readonly struct DiseaseDefinition
         TargetSystem = targetSystem;
         VaccineAllowed = vaccineAllowed;
         Chronic = chronic;
+        SymptomProfileId = symptomProfileId?.Trim() ?? string.Empty;
+        FieldResponseIds = (fieldResponseIds ?? Array.Empty<string>())
+            .Select(value => value?.Trim() ?? string.Empty)
+            .Where(value => value.Length > 0)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
     }
 
     public string Id { get; }
@@ -61,14 +70,47 @@ public readonly struct DiseaseDefinition
     public DiseaseTargetSystem TargetSystem { get; }
     public bool VaccineAllowed { get; }
     public bool Chronic { get; }
+    public string SymptomProfileId { get; }
+    public IReadOnlyList<string> FieldResponseIds { get; }
     public bool Contagious => ContagiousDays > 0
         && (Routes & ~DiseaseTransmissionRoute.Environment) != 0;
     public bool IsValid => Id.Length > 0
         && DisplayName.Length > 0
         && Routes != DiseaseTransmissionRoute.None
         && BaseSeverity > 0f
+        && SymptomProfileId.Length > 0
+        && FieldResponseIds.Count > 0
         && (!Chronic || !Contagious)
         && (!Contagious || BaseInfectionProbability > 0f);
+}
+
+public readonly struct DiseaseSymptomEffectSnapshot
+{
+    public DiseaseSymptomEffectSnapshot(
+        string diseaseId,
+        string symptomProfileId,
+        DiseaseTargetSystem targetSystem,
+        float severity,
+        float workSpeedMultiplier,
+        float moveSpeedMultiplier,
+        float moodDelta)
+    {
+        DiseaseId = diseaseId?.Trim() ?? string.Empty;
+        SymptomProfileId = symptomProfileId?.Trim() ?? string.Empty;
+        TargetSystem = targetSystem;
+        Severity = Math.Clamp(severity, 0f, 100f);
+        WorkSpeedMultiplier = Math.Clamp(workSpeedMultiplier, 0.1f, 1f);
+        MoveSpeedMultiplier = Math.Clamp(moveSpeedMultiplier, 0.1f, 1f);
+        MoodDelta = Math.Clamp(moodDelta, -20f, 0f);
+    }
+
+    public string DiseaseId { get; }
+    public string SymptomProfileId { get; }
+    public DiseaseTargetSystem TargetSystem { get; }
+    public float Severity { get; }
+    public float WorkSpeedMultiplier { get; }
+    public float MoveSpeedMultiplier { get; }
+    public float MoodDelta { get; }
 }
 
 public readonly struct PopulationDiseaseRouteExposureEvent
@@ -391,6 +433,36 @@ public sealed class PopulationHealthAggregateState
             throw new InvalidOperationException(
                 $"Character '{characterId.Value}' does not have condition '{disease.Id}'.");
         record.activeDiseases.Remove(active);
+    }
+
+    public float ApplyFieldResponse(
+        CharacterId characterId,
+        string diseaseId,
+        float severityReduction,
+        IDiseaseDefinitionCatalog definitions)
+    {
+        DiseaseDefinition disease = definitions.Require(diseaseId);
+        if (!characters.TryGetValue(characterId, out CharacterPopulationHealthSaveData record))
+            throw new InvalidOperationException(
+                $"Character '{characterId.Value}' has no population-health record.");
+        ActiveDiseaseSaveData active = record.activeDiseases.FirstOrDefault(value =>
+            string.Equals(value.diseaseId, disease.Id, StringComparison.Ordinal));
+        if (active == null
+            || CurrentAbsoluteDay < active.symptomDay
+            || CurrentAbsoluteDay >= active.recoveryDay)
+            throw new InvalidOperationException(
+                $"Character '{characterId.Value}' has no active symptoms for '{disease.Id}'.");
+
+        active.diagnosed = true;
+        active.severity = Math.Max(0f, active.severity - Math.Max(0f, severityReduction));
+        if (active.severity <= 0.001f)
+        {
+            record.activeDiseases.Remove(active);
+            if (disease.Contagious)
+                SetImmunity(record, disease.Id, 35f, 0.08f);
+            return 0f;
+        }
+        return active.severity;
     }
 
     public float GetImmunity(CharacterId characterId, string diseaseId)
@@ -759,6 +831,14 @@ public interface IPopulationHealthQuery
         out PopulationCharacterHealthSnapshot snapshot);
     IReadOnlyList<EpidemicSnapshot> GetEpidemics(bool declaredOnly);
     IReadOnlyList<ContagiousDiseaseSnapshot> GetContagious();
+}
+
+public interface IDiseaseSymptomEffectQuery
+{
+    IReadOnlyList<DiseaseSymptomEffectSnapshot> GetActiveSymptoms(
+        CharacterId characterId);
+    float GetWorkSpeedMultiplier(CharacterId characterId);
+    float GetMoveSpeedMultiplier(CharacterId characterId);
 }
 
 public interface IPopulationHealthPersistence

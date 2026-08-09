@@ -43,7 +43,12 @@ MonoBehaviour:
   laysEggs: 0
   bodySize: 1
   manureIntervalDays: 2
-  husbandryProducts: []
+  husbandryProducts:
+  - itemId: fiber:deep-goat-wool
+    amount: 2
+    intervalDays: 4
+    femaleOnly: 0
+    adultOnly: 1
   authoringRevision: 1
   preySpeciesIds: []
   predatorSpeciesIds:

@@ -27,8 +27,7 @@ public interface IEnemyTacticalDecisionService
         bool allowAbility = true);
 }
 
-public sealed class EnemyTacticalDecisionService :
-    IEnemyTacticalDecisionService
+public sealed class EnemyTacticalDecisionService : IEnemyTacticalDecisionService
 {
     private readonly IEnemyArchetypeCatalog archetypes;
 
@@ -48,10 +47,7 @@ public sealed class EnemyTacticalDecisionService :
         OffenseBattleCombatant actor = session.CurrentActor
             ?? throw new InvalidOperationException("The battle has no current actor.");
         if (actor.Team != OffenseBattleTeam.Enemies
-            || !string.Equals(
-                actor.PersistentId,
-                individual.characterId,
-                StringComparison.Ordinal))
+            || !string.Equals(actor.PersistentId, individual.characterId, StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
                 "Tactical input does not match the current enemy actor.");
@@ -60,13 +56,14 @@ public sealed class EnemyTacticalDecisionService :
         EnemyArchetypeDefinitionSO archetype =
             archetypes.Require(individual.enemyArchetypeId);
         EnemyTacticalProfile profile = archetype.tacticalProfile;
-        if (actor.HealthRatio <= profile.retreatHealthFraction
-            && profile.retreatWeight > 0f)
-        {
-            return new EnemyTacticalDecision(
-                EnemyTacticalIntentKind.Retreat,
-                actor.PersistentId);
-        }
+        EnemyBossPhaseRecord phase = ResolveActivePhase(archetype, actor.HealthRatio);
+        bool desperate = string.Equals(
+            phase?.tacticalProfileOverrideTag,
+            "desperate",
+            StringComparison.OrdinalIgnoreCase);
+        float attackWeight = profile.attackWeight + (desperate ? 2f : 0f);
+        float protectWeight = profile.protectWeight + (desperate ? 1f : 0f);
+        float abilityWeight = profile.abilityWeight + (desperate ? 3f : 0f);
 
         OffenseBattleCombatant[] opponents = session.Combatants
             .Where(value => value.Team == OffenseBattleTeam.Allies
@@ -76,69 +73,195 @@ public sealed class EnemyTacticalDecisionService :
             .ThenBy(value => StableTie(session, actor, value))
             .ToArray();
         if (opponents.Length == 0)
+        {
             return new EnemyTacticalDecision(
                 EnemyTacticalIntentKind.Protect,
                 actor.PersistentId);
+        }
 
-        if (allowAbility)
+        OffenseBattleCombatant attackTarget = null;
+        float bestAttackUtility = float.NegativeInfinity;
+        foreach (OffenseBattleCombatant candidate in opponents)
         {
-            CharacterCombatAbilityDefinition ability = actor.Abilities
-                .Where(value => actor.GetCooldown(value.Id) <= 0)
-                .OrderByDescending(value => AbilityScore(value, profile))
-                .ThenBy(value => value.Id, StringComparer.Ordinal)
-                .FirstOrDefault();
-            if (ability != null && profile.abilityWeight >= profile.attackWeight)
+            CombatAttackPreview preview = session.PreviewBasicAttack(actor, candidate);
+            if (!preview.Valid)
             {
-                string targetId = SelectAbilityTarget(
+                continue;
+            }
+
+            float utility = attackWeight
+                + preview.ExpectedDamage / Math.Max(1f, candidate.CurrentHealth) * 5f
+                - TargetScore(candidate, profile) * 0.05f;
+            if (utility > bestAttackUtility)
+            {
+                bestAttackUtility = utility;
+                attackTarget = candidate;
+            }
+        }
+
+        CharacterCombatAbilityDefinition bestAbility = null;
+        string bestAbilityTargetId = string.Empty;
+        float bestAbilityUtility = float.NegativeInfinity;
+        if (allowAbility && IsPositionAllowed(actor.Formation, OffenseFormationMask.Any))
+        {
+            foreach (CharacterCombatAbilityDefinition ability in actor.Abilities
+                .Where(value => actor.GetCooldown(value.Id) <= 0)
+                .Where(value => IsPositionAllowed(actor.Formation, value.UsableFrom))
+                .OrderBy(value => value.Id, StringComparer.Ordinal))
+            {
+                OffenseBattleCombatant abilityTarget = SelectAbilityTarget(
                     session,
                     actor,
                     opponents,
-                    ability);
-                if (!string.IsNullOrWhiteSpace(targetId))
+                    ability,
+                    profile);
+                if (abilityTarget == null)
                 {
-                    return new EnemyTacticalDecision(
-                        EnemyTacticalIntentKind.UseAbility,
-                        targetId,
-                        ability.Id);
+                    continue;
+                }
+
+                float utility = AbilityUtility(
+                    session,
+                    actor,
+                    abilityTarget,
+                    ability,
+                    profile,
+                    abilityWeight,
+                    protectWeight);
+                if (phase != null
+                    && (phase.abilityIds ?? new List<string>())
+                        .Contains(ability.Id, StringComparer.Ordinal))
+                {
+                    utility += 5f;
+                }
+                if (utility > bestAbilityUtility)
+                {
+                    bestAbilityUtility = utility;
+                    bestAbility = ability;
+                    bestAbilityTargetId = abilityTarget.PersistentId;
                 }
             }
         }
 
-        OffenseBattleCombatant target = opponents
-            .Where(value => session.PreviewBasicAttack(actor, value).Valid)
-            .OrderBy(value => TargetScore(value, profile))
-            .ThenBy(value => StableTie(session, actor, value))
-            .FirstOrDefault();
-        if (target != null)
+        float lowestFriendlyHealth = session.Combatants
+            .Where(value => value.Team == actor.Team && !value.IsDead)
+            .Select(value => value.HealthRatio)
+            .DefaultIfEmpty(1f)
+            .Min();
+        float protectUtility = protectWeight
+            + (1f - actor.HealthRatio) * 4f
+            + (1f - lowestFriendlyHealth) * 3f;
+        float retreatUtility = profile.retreatWeight * (1f - actor.HealthRatio) * 3f;
+        if (actor.HealthRatio <= profile.retreatHealthFraction
+            && profile.retreatWeight > 0f
+            && retreatUtility >= Math.Max(
+                protectUtility,
+                Math.Max(bestAttackUtility, bestAbilityUtility)))
         {
             return new EnemyTacticalDecision(
-                EnemyTacticalIntentKind.Attack,
-                target.PersistentId);
+                EnemyTacticalIntentKind.Retreat,
+                actor.PersistentId);
+        }
+
+        if (bestAbility != null
+            && bestAbilityUtility >= Math.Max(bestAttackUtility, protectUtility))
+        {
+            return new EnemyTacticalDecision(
+                EnemyTacticalIntentKind.UseAbility,
+                bestAbilityTargetId,
+                bestAbility.Id);
+        }
+        if (protectUtility > bestAttackUtility || attackTarget == null)
+        {
+            return new EnemyTacticalDecision(
+                EnemyTacticalIntentKind.Protect,
+                actor.PersistentId);
         }
 
         return new EnemyTacticalDecision(
-            EnemyTacticalIntentKind.Protect,
-            actor.PersistentId);
+            EnemyTacticalIntentKind.Attack,
+            attackTarget.PersistentId);
     }
 
-    private static string SelectAbilityTarget(
+    private static EnemyBossPhaseRecord ResolveActivePhase(
+        EnemyArchetypeDefinitionSO archetype,
+        float healthRatio) =>
+        (archetype?.bossPhases ?? new List<EnemyBossPhaseRecord>())
+            .Where(value => value != null && healthRatio <= value.healthThreshold)
+            .OrderBy(value => value.healthThreshold)
+            .FirstOrDefault();
+
+    private static OffenseBattleCombatant SelectAbilityTarget(
         OffenseBattleSession session,
         OffenseBattleCombatant actor,
         IReadOnlyList<OffenseBattleCombatant> opponents,
-        CharacterCombatAbilityDefinition ability)
+        CharacterCombatAbilityDefinition ability,
+        EnemyTacticalProfile profile)
     {
-        if (ability.TargetRule == OffenseBattleTargetRule.Self)
-            return actor.PersistentId;
-        if (ability.TargetRule == OffenseBattleTargetRule.Ally)
+        IEnumerable<OffenseBattleCombatant> candidates = ability.TargetRule switch
         {
-            return session.Combatants
-                .Where(value => value.Team == actor.Team && !value.IsDead)
+            OffenseBattleTargetRule.Self => new[] { actor },
+            OffenseBattleTargetRule.Ally => session.Combatants
+                .Where(value => value.Team == actor.Team && !value.IsDead),
+            _ => opponents
+        };
+        candidates = candidates.Where(value =>
+            IsPositionAllowed(value.Formation, ability.TargetPositions));
+        return ability.TargetRule == OffenseBattleTargetRule.Enemy
+            ? candidates
+                .OrderBy(value => TargetScore(value, profile))
+                .ThenBy(value => StableTie(session, actor, value))
+                .FirstOrDefault()
+            : candidates
                 .OrderBy(value => value.HealthRatio)
                 .ThenBy(value => value.PersistentId, StringComparer.Ordinal)
-                .Select(value => value.PersistentId)
-                .FirstOrDefault() ?? string.Empty;
+                .FirstOrDefault();
+    }
+
+    private static float AbilityUtility(
+        OffenseBattleSession session,
+        OffenseBattleCombatant actor,
+        OffenseBattleCombatant target,
+        CharacterCombatAbilityDefinition ability,
+        EnemyTacticalProfile profile,
+        float abilityWeight,
+        float protectWeight)
+    {
+        float utility = abilityWeight
+            + OffenseBattleSessionRules.EstimateAbilityDamageMultiplier(ability) * 2f;
+        foreach (OffenseCombatEffectModule effect in ability.Effects)
+        {
+            switch (effect)
+            {
+                case OffenseHealEffect:
+                    utility += (1f - target.HealthRatio) * 8f;
+                    break;
+                case OffenseGuardEffect:
+                case OffenseSummonEffect:
+                    utility += protectWeight * 0.5f + (1f - target.HealthRatio) * 5f;
+                    break;
+                case OffenseSmokeEffect:
+                    utility += session.Combatants.Count(value =>
+                        value.Team != actor.Team
+                        && !value.IsDead
+                        && value.Weapon?.IsRanged == true) * 0.75f;
+                    if (target.Statuses.Any(value =>
+                            value.Type == OffenseBattleStatusType.SmokeObscured))
+                    {
+                        utility -= 8f;
+                    }
+                    break;
+                case OffenseCleanseEffect:
+                    utility += target.Statuses.Count * 0.5f;
+                    break;
+            }
         }
-        return opponents.FirstOrDefault()?.PersistentId ?? string.Empty;
+
+        if (ability.TargetRule == OffenseBattleTargetRule.Enemy)
+        {
+            utility -= TargetScore(target, profile) * 0.05f;
+        }
+        return utility;
     }
 
     private static float TargetScore(
@@ -146,25 +269,57 @@ public sealed class EnemyTacticalDecisionService :
         EnemyTacticalProfile profile)
     {
         float score = target.HealthRatio * 10f - target.Stats.Attack * 0.05f;
-        if ((profile.preferredTargetTags ?? new List<string>())
-            .Contains("backline", StringComparer.Ordinal)
-            && target.Formation == OffenseFormationSlot.Rear)
+        foreach (string tag in profile.preferredTargetTags ?? new List<string>())
         {
-            score -= 4f;
+            if (MatchesTargetTag(target, tag))
+            {
+                score -= 4f;
+            }
         }
-        if ((profile.preferredTargetTags ?? new List<string>())
-            .Contains("fast", StringComparer.Ordinal))
+        foreach (string tag in profile.avoidedTargetTags ?? new List<string>())
         {
-            score -= target.Stats.MoveSpeed * 0.1f;
+            if (MatchesTargetTag(target, tag))
+            {
+                score += 6f;
+            }
         }
         return score;
     }
 
-    private static float AbilityScore(
-        CharacterCombatAbilityDefinition ability,
-        EnemyTacticalProfile profile) =>
-        profile.abilityWeight
-        + OffenseBattleSessionRules.EstimateAbilityDamageMultiplier(ability);
+    private static bool MatchesTargetTag(
+        OffenseBattleCombatant target,
+        string tag) => (tag ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "nearest" => target.Formation == OffenseFormationSlot.Front,
+            "backline" => target.Formation == OffenseFormationSlot.Rear,
+            "fast" => target.Stats.MoveSpeed >= 6f,
+            "shielded" => target.Shield.IsValid,
+            "armored" => target.Armor?.Count > 0,
+            "guarded" => target.Statuses.Any(value =>
+                value.Type == OffenseBattleStatusType.Guard
+                || value.Type == OffenseBattleStatusType.SummonedGuard),
+            "low-health" => target.HealthRatio <= 0.35f,
+            "construct" => target.SpeciesTag.IndexOf(
+                "golem",
+                StringComparison.OrdinalIgnoreCase) >= 0
+                || target.SpeciesTag.IndexOf(
+                    "construct",
+                    StringComparison.OrdinalIgnoreCase) >= 0,
+            _ => false
+        };
+
+    private static bool IsPositionAllowed(
+        OffenseFormationSlot formation,
+        OffenseFormationMask mask)
+    {
+        OffenseFormationMask flag = formation switch
+        {
+            OffenseFormationSlot.Front => OffenseFormationMask.Front,
+            OffenseFormationSlot.Middle => OffenseFormationMask.Middle,
+            _ => OffenseFormationMask.Rear
+        };
+        return (mask & flag) != 0;
+    }
 
     private static uint StableTie(
         OffenseBattleSession session,

@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uD574\uBD80\uB300"
   sprite: {fileID: 21300000, guid: 39081d193e7925e4c8bc6e38416c756f, type: 3}
   icon: {fileID: 21300000, guid: 39081d193e7925e4c8bc6e38416c756f, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730889015612
@@ -42,8 +47,8 @@ MonoBehaviour:
     - rid: 7737211730889015618
     - rid: 7737211730889015619
     - rid: 7737211730889015620
-    - rid: 7737211792998531118
-    - rid: 7737211792998531119
+    - rid: 7737211838074978659
+    - rid: 7737211838074978660
   width: 2
   height: 1
   layer: 1
@@ -132,14 +137,14 @@ MonoBehaviour:
         abilityId: BuildingAnatomyTableAbility
         successBonus: 0.02
         workSpeedMultiplier: 1
-    - rid: 7737211792998531118
+    - rid: 7737211838074978659
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737211792998531119
+    - rid: 7737211838074978660
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility

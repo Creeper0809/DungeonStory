@@ -118,7 +118,14 @@ public sealed class EquipmentCraftingPanelPresenter :
                 created);
         }
 
-        RenderQueue(parent, queue, font, created);
+        RenderQueue(
+            parent,
+            queue,
+            font,
+            facilityKey,
+            showFeedback,
+            refresh,
+            created);
 
         expandedDefinitionByFacility.TryGetValue(
             facilityKey,
@@ -236,6 +243,9 @@ public sealed class EquipmentCraftingPanelPresenter :
         Transform parent,
         IReadOnlyList<CombatEquipmentCraftOrderSaveData> queue,
         TMP_FontAsset font,
+        string facilityKey,
+        Action<string> showFeedback,
+        Action refresh,
         ICollection<GameObject> created)
     {
         for (int index = 0; index < queue.Count; index++)
@@ -267,8 +277,158 @@ public sealed class EquipmentCraftingPanelPresenter :
                     : DungeonUiTheme.Warning,
                 28f,
                 created);
+
+            GameObject controls = CreateRow(
+                parent,
+                $"EquipmentCraftControls_{index}",
+                34f);
+            created.Add(controls);
+            AddButton(
+                controls.transform,
+                $"작업자 {FormatWorkerMode(order.workerPolicy)}",
+                font,
+                false,
+                () =>
+                {
+                    equipment.SetCraftWorkerPolicy(
+                        order.orderId,
+                        NextWorkerPolicy(order.workerPolicy),
+                        out string message);
+                    feedbackByFacility[facilityKey] = message;
+                    showFeedback?.Invoke(message);
+                    refresh?.Invoke();
+                },
+                126f);
+            AddButton(
+                controls.transform,
+                $"최소 {GameplayUiPresentationText.Quality(order.minimumQuality)}",
+                font,
+                false,
+                () => UpdateQualityTarget(
+                    order,
+                    (CraftsmanshipQualityTier)(((int)order.minimumQuality + 1) % 7),
+                    order.rejectedDisposition,
+                    order.repeatLimitMode,
+                    facilityKey,
+                    showFeedback,
+                    refresh),
+                104f);
+            AddButton(
+                controls.transform,
+                FormatRejectedDisposition(order.rejectedDisposition),
+                font,
+                false,
+                () => UpdateQualityTarget(
+                    order,
+                    order.minimumQuality,
+                    NextRejectedDisposition(order.rejectedDisposition),
+                    order.repeatLimitMode,
+                    facilityKey,
+                    showFeedback,
+                    refresh),
+                108f);
+            AddButton(
+                controls.transform,
+                order.repeatLimitMode == QualityRepeatLimitMode.SafeLimits
+                    ? "안전 한도"
+                    : "성공까지",
+                font,
+                order.repeatLimitMode
+                    == QualityRepeatLimitMode.UnlimitedUntilSuccess,
+                () => UpdateQualityTarget(
+                    order,
+                    order.minimumQuality,
+                    order.rejectedDisposition,
+                    order.repeatLimitMode == QualityRepeatLimitMode.SafeLimits
+                        ? QualityRepeatLimitMode.UnlimitedUntilSuccess
+                        : QualityRepeatLimitMode.SafeLimits,
+                    facilityKey,
+                    showFeedback,
+                    refresh),
+                96f);
         }
     }
+
+    private void UpdateQualityTarget(
+        CombatEquipmentCraftOrderSaveData order,
+        CraftsmanshipQualityTier minimumQuality,
+        RejectedOutputDisposition disposition,
+        QualityRepeatLimitMode repeatMode,
+        string facilityKey,
+        Action<string> showFeedback,
+        Action refresh)
+    {
+        bool changed = equipment.SetCraftQualityTarget(
+            order.orderId,
+            minimumQuality,
+            disposition,
+            repeatMode,
+            Mathf.Max(1, order.maximumAttempts),
+            order.workBudget,
+            Mathf.Max(1, order.requiredAcceptedCount),
+            out string failure);
+        string message = changed ? "품질 반복 설정을 변경했습니다." : failure;
+        feedbackByFacility[facilityKey] = message;
+        showFeedback?.Invoke(message);
+        refresh?.Invoke();
+    }
+
+    private static string FormatWorkerMode(WorkerSelectionPolicySaveData policy)
+    {
+        WorkerSelectionPolicySaveData value = policy?.CloneNormalized()
+            ?? WorkerSelectionPolicySaveData.Anyone();
+        return value.mode == WorkerSelectionMode.RuleSet
+            ? "민첩 7+"
+            : value.sortMode == WorkerCandidateSortMode.BestExpectedQuality
+                ? "품질"
+                : "속도";
+    }
+
+    private static WorkerSelectionPolicySaveData NextWorkerPolicy(
+        WorkerSelectionPolicySaveData policy)
+    {
+        WorkerSelectionPolicySaveData value = policy?.CloneNormalized()
+            ?? WorkerSelectionPolicySaveData.Anyone();
+        if (value.mode == WorkerSelectionMode.Anyone
+            && value.sortMode == WorkerCandidateSortMode.Fastest)
+        {
+            return WorkerSelectionPolicySaveData.Anyone(
+                WorkerCandidateSortMode.BestExpectedQuality);
+        }
+        if (value.mode == WorkerSelectionMode.Anyone)
+        {
+            return new WorkerSelectionPolicySaveData
+            {
+                mode = WorkerSelectionMode.RuleSet,
+                matchMode = WorkerRequirementMatchMode.All,
+                sortMode = WorkerCandidateSortMode.BestExpectedQuality,
+                statRequirements = new List<WorkerStatRequirementSaveData>
+                {
+                    new()
+                    {
+                        statType = (int)CharacterStatType.Dexterity,
+                        minimumValue = 7
+                    }
+                }
+            };
+        }
+        return WorkerSelectionPolicySaveData.Anyone(
+            WorkerCandidateSortMode.Fastest);
+    }
+
+    private static string FormatRejectedDisposition(
+        RejectedOutputDisposition disposition) =>
+        GameplayUiPresentationText.RejectedOutput(disposition);
+
+    private static RejectedOutputDisposition NextRejectedDisposition(
+        RejectedOutputDisposition disposition) => disposition switch
+    {
+        RejectedOutputDisposition.AutoDismantle =>
+            RejectedOutputDisposition.KeepInStorage,
+        RejectedOutputDisposition.KeepInStorage =>
+            RejectedOutputDisposition.MarkForSale,
+        _ => RejectedOutputDisposition.AutoDismantle
+    };
 
     private void RenderMaterialPolicy(
         Transform parent,

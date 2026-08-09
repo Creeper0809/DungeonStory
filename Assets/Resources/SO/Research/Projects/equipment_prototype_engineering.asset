@@ -31,23 +31,17 @@ MonoBehaviour:
   requiredWork: 720
   prerequisites:
   - {fileID: 11400000, guid: 8977def00211a7544a442835d7cfaf58, type: 2}
-  - {fileID: 11400000, guid: a56b8e3c063ddeb4b971814a6f646477, type: 2}
   prerequisiteLinks:
   - prerequisiteId: research:equipment:material-testing
     prerequisite: {fileID: 11400000, guid: 8977def00211a7544a442835d7cfaf58, type: 2}
     kind: 0
     reason: "\uC7AC\uB8CC \uC2DC\uD5D8\uD559\uC758 \uC774\uB860\uC774(\uAC00) \uC2DC\uC81C\uD488
       \uACF5\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
-  - prerequisiteId: research:industry:factory-layout
-    prerequisite: {fileID: 11400000, guid: a56b8e3c063ddeb4b971814a6f646477, type: 2}
-    kind: 4
-    reason: "\uACF5\uC7A5 \uBC30\uCE58\uC758 \uC6B4\uC6A9 \uC808\uCC28\uC774(\uAC00)
-      \uC2DC\uC81C\uD488 \uACF5\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211793001938994
+    - rid: 7737211838079697037
   facilityRequirements:
   - capability: 0
     requiredCount: 2
@@ -59,7 +53,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211793001938994
+    - rid: 7737211838079697037
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 8825

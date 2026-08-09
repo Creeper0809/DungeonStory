@@ -26,7 +26,8 @@ public readonly struct FacilityEvolutionProposal
         float confidence,
         string source = "",
         string statusMessage = "",
-        IReadOnlyDictionary<string, string> rejectedHintTexts = null)
+        IReadOnlyDictionary<string, string> rejectedHintTexts = null,
+        NarrativeGenerationTrace narrativeTrace = null)
     {
         FacilityIdentitySummary = facilityIdentitySummary ?? string.Empty;
         ProposalIds = EventPayloadSnapshot.Copy(proposalIds);
@@ -37,6 +38,7 @@ public readonly struct FacilityEvolutionProposal
         Source = source ?? string.Empty;
         StatusMessage = statusMessage ?? string.Empty;
         RejectedHintTexts = SnapshotDictionary(rejectedHintTexts);
+        NarrativeTrace = narrativeTrace;
     }
 
     public string FacilityIdentitySummary { get; }
@@ -48,6 +50,7 @@ public readonly struct FacilityEvolutionProposal
     public string Source { get; }
     public string StatusMessage { get; }
     public IReadOnlyDictionary<string, string> RejectedHintTexts { get; }
+    public NarrativeGenerationTrace NarrativeTrace { get; }
     public bool IsLlmBacked => string.Equals(Source, FacilityEvolutionProposalSources.LocalLlm, StringComparison.Ordinal);
 
     private static IReadOnlyDictionary<string, string> SnapshotDictionary(

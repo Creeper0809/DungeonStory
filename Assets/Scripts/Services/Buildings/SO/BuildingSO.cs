@@ -229,6 +229,83 @@ public class FacilityData
     }
 }
 
+public enum FacilityUseClassification
+{
+    None = 0,
+    Structure = 1,
+    Storage = 2,
+    Production = 3,
+    Service = 4,
+    Environment = 5,
+    Logistics = 6,
+    Combat = 7,
+    DomainCommand = 8,
+    EventVenue = 9,
+    Decoration = 10
+}
+
+/// <summary>
+/// A typed gameplay entry point owned by an authored facility. This is not a
+/// presentation tag: runtime commands query these values directly and the V21
+/// connection audit rejects command facilities without a consumer.
+/// </summary>
+public enum ResearchFacilityCommandKind
+{
+    None = 0,
+    GatheringPreparation = 1,
+    BloodStageDrainage = 2,
+    LoggingPreparation = 3,
+    DirectionalFelling = 4,
+    SelectiveBreeding = 5,
+    StableHarnessing = 6,
+    WildlifeTaming = 7,
+    FlowMetering = 8,
+    WeaponPatternAccess = 9,
+    CropCalendar = 10,
+    SoilDiagnostics = 11,
+    BreedingSchedule = 12,
+    ClimateControl = 13,
+    HouseholdRegistry = 14,
+    NurseryCare = 15,
+    ClassroomEducation = 16,
+    SupervisedApprenticeship = 17,
+    GenerationArchive = 18,
+    AgingAssessment = 19,
+    BiologicalAgeMeasurement = 20,
+    GeriatricCare = 21,
+    ChronicCare = 22,
+    PathogenDiagnosis = 23,
+    Serology = 24,
+    EpidemicBoard = 25,
+    GeneticArchive = 26,
+    GeneticCounseling = 27,
+    FamilyPartition = 28,
+    GuardianRegistry = 29,
+    CorpseCare = 30,
+    ClimateMapping = 31,
+    ChronometricNavigation = 32,
+    SeedSelection = 33,
+    RetireeCare = 34,
+    MentorAcademy = 35,
+    ResonanceTuning = 36,
+    SecureTradeVault = 37,
+    DefenseControl = 38,
+    ApparelTailoring = 39,
+    ApparelDecoration = 40,
+    HandLaundry = 41,
+    IndoorDrying = 42,
+    PoweredLaundry = 43,
+    ApparelDisplay = 44,
+    DressingChange = 45,
+    ApparelRepair = 46,
+    FiberSorting = 47,
+    FiberScouring = 48,
+    ManualSpinning = 49,
+    TextileFinishing = 50,
+    PoweredSpinning = 51,
+    PoweredWeaving = 52
+}
+
 public readonly struct GridBuildingPlacement
 {
     public int Width { get; }
@@ -292,6 +369,10 @@ public class BuildingSO : DataScriptableObject, IGridBuildAreaCapability
     [SerializeField, Min(1)] private int authoringRevision = 1;
     [SerializeField, TextArea] private string sourceNote = string.Empty;
 
+    [Header("Gameplay Execution")]
+    [SerializeField] private FacilityUseClassification useClassification;
+    [SerializeField] private ResearchFacilityCommandKind researchFacilityCommand;
+
     [Header("Facility Abilities")]
     [InspectorName("능력 목록")]
     [SerializeField] private BuildingAbilityCollection abilityModules = new BuildingAbilityCollection();
@@ -343,6 +424,92 @@ public class BuildingSO : DataScriptableObject, IGridBuildAreaCapability
     public string ContentDefinitionId => contentDefinitionId?.Trim() ?? string.Empty;
     public int AuthoringRevision => authoringRevision;
     public string SourceNote => sourceNote?.Trim() ?? string.Empty;
+    public FacilityUseClassification UseClassification => useClassification;
+    public FacilityUseClassification EffectiveUseClassification =>
+        useClassification != FacilityUseClassification.None
+            ? useClassification
+            : InferUseClassification();
+    public ResearchFacilityCommandKind ResearchFacilityCommand =>
+        researchFacilityCommand;
+
+#if UNITY_EDITOR
+    public void ConfigureGameplayExecution(
+        FacilityUseClassification classification,
+        ResearchFacilityCommandKind command)
+    {
+        useClassification = classification;
+        researchFacilityCommand = command;
+    }
+#endif
+
+    private FacilityUseClassification InferUseClassification()
+    {
+        if (researchFacilityCommand != ResearchFacilityCommandKind.None)
+            return FacilityUseClassification.DomainCommand;
+        if (GetAbility<BuildingDefenseAbility>() != null
+            || GetAbility<BuildingCoverAbility>() != null
+            || GetAbility<BuildingSecurityAbility>() != null
+            || GetAbility<BuildingTreasuryPoweredDefenseAbility>() != null)
+            return FacilityUseClassification.Combat;
+        if (GetAbility<BuildingStorageAbility>() != null
+            || GetAbility<BuildingInternalStockAbility>() != null
+            || GetAbility<BuildingProtectiveEquipmentLockerAbility>() != null
+            || GetAbility<BuildingOrganStorageAbility>() != null)
+            return FacilityUseClassification.Storage;
+        if (GetAbility<BuildingProductionWorkstationAbility>() != null
+            || GetAbility<BuildingProductionAbility>() != null
+            || GetAbility<BuildingCropPlotAbility>() != null
+            || GetAbility<BuildingButcherAbility>() != null
+            || GetAbility<BuildingEquipmentCraftingAbility>() != null)
+            return FacilityUseClassification.Production;
+        if (GetAbility<BuildingConveyorSegmentAbility>() != null
+            || GetAbility<BuildingConveyorPortAbility>() != null
+            || GetAbility<BuildingConveyorOverflowAbility>() != null
+            || GetAbility<BuildingAutomationAbility>() != null)
+            return FacilityUseClassification.Logistics;
+        if (GetAbility<BuildingThermalEmitterAbility>() != null
+            || GetAbility<BuildingAirExchangeAbility>() != null
+            || GetAbility<BuildingAirDuctAbility>() != null
+            || GetAbility<BuildingTemperatureAbility>() != null
+            || GetAbility<BuildingVentilationAbility>() != null
+            || GetAbility<BuildingLightingAbility>() != null
+            || GetAbility<BuildingUtilityConnectionAbility>() != null
+            || GetAbility<BuildingPowerProducerAbility>() != null
+            || GetAbility<BuildingPowerConsumerAbility>() != null
+            || GetAbility<BuildingPowerStorageAbility>() != null
+            || GetAbility<BuildingWaterProducerAbility>() != null
+            || GetAbility<BuildingWaterStorageAbility>() != null
+            || GetAbility<BuildingWaterFixtureAbility>() != null
+            || GetAbility<BuildingWastewaterProcessorAbility>() != null)
+            return FacilityUseClassification.Environment;
+        if (GetAbility<BuildingCircusStageAbility>() != null
+            || GetAbility<BuildingAudienceSeatingAbility>() != null
+            || GetAbility<BuildingCircusTicketBoothAbility>() != null
+            || GetAbility<BuildingCircusGamblingAbility>() != null
+            || GetAbility<BuildingCircusAnnouncerAbility>() != null
+            || GetAbility<BuildingCircusHazardAbility>() != null
+            || GetAbility<BuildingPublicPunishmentAbility>() != null)
+            return FacilityUseClassification.EventVenue;
+        if (GetAbility<BuildingServiceAbility>() != null
+            || GetAbility<BuildingStaffedServiceAbility>() != null
+            || GetAbility<BuildingPaidFacilityServiceAbility>() != null
+            || GetAbility<BuildingMedicalAbility>() != null
+            || GetAbility<BuildingSurgeryTableAbility>() != null
+            || GetAbility<BuildingNeedRecoveryAbility>() != null
+            || GetAbility<BuildingTrainingAbility>() != null
+            || GetAbility<BuildingReceptionAbility>() != null
+            || GetAbility<BuildingCaptiveHousingAbility>() != null
+            || GetAbility<BuildingBeastPenAbility>() != null
+            || GetAbility<BuildingSeatingAbility>() != null
+            || GetAbility<BuildingTableAbility>() != null)
+            return FacilityUseClassification.Service;
+        if (IsStructuralWall
+            || IsDoor
+            || category == BuildingCategory.Movement
+            || GetAbility<BuildingStructuralIntegrityAbility>() != null)
+            return FacilityUseClassification.Structure;
+        return FacilityUseClassification.Decoration;
+    }
     public int Maintenance
     {
         get => GetAbility<BuildingEconomyAbility>()?.maintenance ?? 0;

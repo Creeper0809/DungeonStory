@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uC2E4\uB0B4 \uC7AC\uBC30\uC870"
   sprite: {fileID: 21300000, guid: ac6083de7238a0f40a30d7251fa6585c, type: 3}
   icon: {fileID: 21300000, guid: ac6083de7238a0f40a30d7251fa6585c, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730834227561
@@ -40,8 +45,8 @@ MonoBehaviour:
     - rid: 7737211730834227566
     - rid: 7737211730834227567
     - rid: 7737211730834227568
-    - rid: 7737211792998531589
-    - rid: 7737211792998531590
+    - rid: 7737211838074979082
+    - rid: 7737211838074979083
   width: 3
   height: 1
   layer: 1
@@ -130,13 +135,13 @@ MonoBehaviour:
           amount: 1
         - itemId: supply:nitrate-fertilizer
           amount: 1
-    - rid: 7737211792998531589
+    - rid: 7737211838074979082
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:hydroponics
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211792998531590
+    - rid: 7737211838074979083
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility

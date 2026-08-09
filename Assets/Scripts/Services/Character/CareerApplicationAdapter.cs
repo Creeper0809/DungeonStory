@@ -14,7 +14,7 @@ public sealed class CareerApplicationAdapter :
     private readonly IGameClock clock;
     private readonly IBuildingWorldQuery buildings;
     private readonly IGameEventBus events;
-    private readonly ICareerPositionDefinitionCatalog positions;
+    private readonly IWorldItemStackRuntime items;
     private IDisposable dayEndedSubscription;
 
     public CareerApplicationAdapter(
@@ -24,7 +24,7 @@ public sealed class CareerApplicationAdapter :
         IGameClock clock,
         IBuildingWorldQuery buildings,
         IGameEventBus events,
-        ICareerPositionDefinitionCatalog positions)
+        IWorldItemStackRuntime items)
     {
         this.careers = careers ?? throw new ArgumentNullException(nameof(careers));
         this.world = world ?? throw new ArgumentNullException(nameof(world));
@@ -32,7 +32,7 @@ public sealed class CareerApplicationAdapter :
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.buildings = buildings ?? throw new ArgumentNullException(nameof(buildings));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
-        this.positions = positions ?? throw new ArgumentNullException(nameof(positions));
+        this.items = items ?? throw new ArgumentNullException(nameof(items));
     }
 
     public void Start() => dayEndedSubscription ??=
@@ -70,12 +70,12 @@ public sealed class CareerApplicationAdapter :
         {
             CharacterActor mentor = FindLivingActor(assignment.MentorCharacterId);
             CharacterActor student = FindLivingActor(assignment.StudentCharacterId);
-            bool academyAvailable = buildings.Buildings.Any(building =>
+            BuildableObject academy = buildings.Buildings.FirstOrDefault(building =>
                 building != null && !building.isDestroy
                 && building.PersistentInstanceId.Equals(assignment.AcademyBuildingId)
-                && building.HasSemanticTag(positions.Require(
-                    CareerPositionKind.Mentor).requiredFacilityTag));
-            if (mentor == null || student?.Progression == null || !academyAvailable
+                && building.BuildingData?.ResearchFacilityCommand ==
+                    ResearchFacilityCommandKind.MentorAcademy);
+            if (mentor == null || student?.Progression == null || academy == null
                 || !careers.TryGet(
                     assignment.MentorCharacterId,
                     out CharacterCareerSnapshot mentorCareer)
@@ -88,14 +88,66 @@ public sealed class CareerApplicationAdapter :
                 continue;
             }
 
+            if (!TryUseCareerLedger(academy))
+            {
+                continue;
+            }
+
             if (careers.TryMarkMentoringAwarded(
                     assignment.StudentCharacterId,
                     ended.day))
             {
                 student.Progression.AddExperience(
-                    careers.ResolveMentoringXp(10));
+                    careers.ResolveMentoringXp(int.MaxValue));
             }
         }
+    }
+
+    private bool TryUseCareerLedger(BuildableObject academy)
+    {
+        string destinationId = academy.PersistentInstanceId.Value;
+        WorldItemStackSnapshot ledger = items.GetAllStacks()
+            .Where(stack => stack != null
+                && stack.State == WorldItemStackState.FacilityBuffer
+                && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal)
+                && string.Equals(
+                    stack.ItemId,
+                    DurableToolItemRules.CareerLedger,
+                    StringComparison.Ordinal)
+                && DurableToolItemRules.ReadCurrentDurability(
+                    stack.ItemId,
+                    stack.Components) > 0f)
+            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (ledger == null)
+        {
+            if (!items.GetAllStacks().Any(stack => stack != null
+                    && string.Equals(
+                        stack.ItemId,
+                        DurableToolItemRules.CareerLedger,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        stack.DestinationId,
+                        destinationId,
+                        StringComparison.Ordinal)))
+            {
+                items.TryRequestItemDelivery(
+                    DurableToolItemRules.CareerLedger,
+                    1,
+                    academy.centerPos,
+                    destinationId,
+                    out _,
+                    out _);
+            }
+            return false;
+        }
+
+        float current = DurableToolItemRules.ReadCurrentDurability(
+            ledger.ItemId,
+            ledger.Components);
+        return items.TrySetInstanceComponent(
+            ledger.StackId,
+            DurableToolItemRules.CreateDurability(ledger.ItemId, current - 0.5f));
     }
 
     private CharacterActor FindLivingActor(CharacterId characterId) =>

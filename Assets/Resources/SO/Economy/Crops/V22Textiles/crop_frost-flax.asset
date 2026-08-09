@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a00dd16ef9aaab44b6e51a3f9da8394, type: 3}
+  m_Name: crop_frost-flax
+  m_EditorClassIdentifier: DungeonStory.Economy::CropDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9351
+  cropId: crop:frost-flax
+  displayName: "\uC11C\uB9AC \uC544\uB9C8"
+  harvestItemId: fiber:frost-flax
+  seedItemId: seed-lot:frost-flax
+  baseGenome: {fileID: 11400000, guid: 300ddb9757b626b49993922bbafa12bc, type: 2}
+  familyGroup: 1
+  endemicDisease: 1
+  requiredResearchId: research:textile:fiber
+  growthHours: 84
+  sowWork: 4
+  harvestWork: 7
+  dailyWater: 0.35
+  yield: 6
+  indoorAllowed: 1
+  temperatureRange: {x: -8, y: 20}

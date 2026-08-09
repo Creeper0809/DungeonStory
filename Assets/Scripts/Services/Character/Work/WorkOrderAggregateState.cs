@@ -5,6 +5,8 @@ internal sealed class WorkOrderAggregateState
 {
     public Dictionary<string, WorkOrderRecord> OrdersById { get; } =
         new Dictionary<string, WorkOrderRecord>(StringComparer.Ordinal);
+    public Dictionary<string, QualityTargetPipelineSaveData> QualityPipelinesById
+        { get; } = new(StringComparer.Ordinal);
 
     public int NextOrderSequence { get; set; } = 1;
     public int CandidateVersion { get; set; }
@@ -19,6 +21,13 @@ internal sealed class WorkOrderAggregateState
         foreach (KeyValuePair<string, WorkOrderRecord> pair in OrdersById)
         {
             clone.OrdersById.Add(pair.Key, pair.Value.DeepClone());
+        }
+        foreach (KeyValuePair<string, QualityTargetPipelineSaveData> pair in
+                 QualityPipelinesById)
+        {
+            clone.QualityPipelinesById.Add(
+                pair.Key,
+                pair.Value.CloneNormalized());
         }
 
         return clone;

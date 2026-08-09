@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uD479\uC2E0\uD55C\uC758\uC790"
   sprite: {fileID: 21300000, guid: 44f24f9e987909740a88b964b39aee4b, type: 3}
   icon: {fileID: 21300000, guid: 44f24f9e987909740a88b964b39aee4b, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730834227457
@@ -38,7 +43,7 @@ MonoBehaviour:
     - rid: 7737211730834227459
     - rid: 7737211730834227460
     - rid: 7737211730834227461
-    - rid: 7737211792998531389
+    - rid: 7737211838074978882
   width: 1
   height: 1
   layer: 1
@@ -104,7 +109,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingSeatingAbility
         capacity: 1
-    - rid: 7737211792998531389
+    - rid: 7737211838074978882
       type: {class: BuildingServiceSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceSupportAbility

@@ -32,24 +32,24 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 154
   features:
-  - rid: 7737211794726584863
-  - rid: 7737211794726584864
-  - rid: 7737211794726584865
-  - rid: 7737211794726584866
+  - rid: 7737211838078124892
+  - rid: 7737211838078124893
+  - rid: 7737211838078124894
+  - rid: 7737211838078124895
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584863
+    - rid: 7737211838078124892
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:vaccination
-    - rid: 7737211794726584864
+    - rid: 7737211838078124893
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211794726584865
+    - rid: 7737211838078124894
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 0
@@ -57,7 +57,7 @@ MonoBehaviour:
         infectionReduction: 0
         detoxReduction: 0
         painReduction: 0
-    - rid: 7737211794726584866
+    - rid: 7737211838078124895
       type: {class: VaccineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         diseaseId: disease:slime-blight

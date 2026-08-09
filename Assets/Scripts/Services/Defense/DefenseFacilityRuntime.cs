@@ -46,12 +46,16 @@ public interface IDefenseFacilityRuntime
 public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
 {
     private const string MaintenancePartItemId = "material:iron-ingot";
+    private const string MixedDefenseAmmunitionBoxItemId =
+        "supply:defense-mixed-ammo-box";
+    private const int MixedDefenseAmmunitionUnitsPerBox = 8;
 
     private readonly IWorldItemStackRuntime items;
     private readonly IPowerInfrastructureQuery power;
     private readonly IGameClock clock;
     private readonly IGameEventBus events;
     private readonly IDefenseFacilityNetworkRuntime facilityNetwork;
+    private readonly IFacilityCapabilityQuery facilities;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
 
     private DefenseFacilityAggregateState Current =>
@@ -68,6 +72,7 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         IGameEventBus events,
         IPowerInfrastructureQuery power,
         IDefenseFacilityNetworkRuntime facilityNetwork,
+        IFacilityCapabilityQuery facilities,
         DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
@@ -76,6 +81,8 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         this.power = power ?? throw new ArgumentNullException(nameof(power));
         this.facilityNetwork = facilityNetwork
             ?? throw new ArgumentNullException(nameof(facilityNetwork));
+        this.facilities = facilities
+            ?? throw new ArgumentNullException(nameof(facilities));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
     }
@@ -137,7 +144,9 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         }
 
         if (facility.BuildingData?.id == 1805
-            && facilityNetwork?.HasAutomaticControl(facility) != true)
+            && facilityNetwork?.HasAutomaticControl(facility) != true
+            && facilities.FindOperational(
+                ResearchFacilityCommandKind.DefenseControl).Count == 0)
         {
             state.operationalState =
                 DefenseFacilityOperationalState.Preparing;
@@ -505,6 +514,24 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
             {
                 state.supply += wanted;
             }
+            else if (data.supplyCategory == StockCategory.Ammunition)
+            {
+                int boxes = Mathf.CeilToInt(
+                    wanted / (float)MixedDefenseAmmunitionUnitsPerBox);
+                if (items.TryConsumeFacilityItemBuffer(
+                        destinationId,
+                        new Dictionary<string, int>
+                        {
+                            [MixedDefenseAmmunitionBoxItemId] = boxes
+                        },
+                        out _))
+                {
+                    state.supply = Mathf.Min(
+                        capacity,
+                        state.supply
+                            + boxes * MixedDefenseAmmunitionUnitsPerBox);
+                }
+            }
         }
 
         if (state.supply >= required)
@@ -546,6 +573,20 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
             return;
         }
 
+        if (data.supplyCategory == StockCategory.Ammunition)
+        {
+            int boxCount = Mathf.CeilToInt(
+                wanted / (float)MixedDefenseAmmunitionUnitsPerBox);
+            items.TryRequestItemDelivery(
+                MixedDefenseAmmunitionBoxItemId,
+                boxCount,
+                facility.centerPos,
+                destinationId,
+                out _,
+                out _);
+            return;
+        }
+
         if (!string.IsNullOrWhiteSpace(data.supplyItemId))
         {
             items.TryRequestItemDelivery(
@@ -566,6 +607,7 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
                 out _,
                 out _);
         }
+
     }
 
     private bool HasPendingSupply(string destinationId)

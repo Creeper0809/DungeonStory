@@ -140,9 +140,17 @@ internal static class WorkOrderSaveValidation
                     $"Work order '{orderId}' has non-canonical destination or transient worker reservation state.");
             }
 
+            ValidateWorkerPolicy(order, orderId, report);
+            ValidateCraftState(order, orderId, report);
+
             ValidateMaterials(
                 order,
                 orderId,
+                report,
+                itemDefinitionExists);
+            ValidateMaterialList(
+                order.recoveryOutputs,
+                $"Work order '{orderId}' recovery outputs",
                 report,
                 itemDefinitionExists);
             if (definition.WorkTypeId != BuiltInWorkTypeIds.Construct)
@@ -183,6 +191,80 @@ internal static class WorkOrderSaveValidation
             report.AddError(
                 $"Work-order next sequence {snapshot.nextOrderSequence} does not exceed existing sequence {highestSequence}.");
         }
+
+        ValidateQualityPipelines(snapshot, report);
+    }
+
+    private static void ValidateQualityPipelines(
+        DungeonWorkOrderSaveData snapshot,
+        DungeonGameRestoreReport report)
+    {
+        if (snapshot.qualityPipelines == null)
+        {
+            report.AddError("Work-order payload has no quality pipeline list.");
+            return;
+        }
+        HashSet<string> pipelineIds = new(StringComparer.Ordinal);
+        string previous = string.Empty;
+        foreach (QualityTargetPipelineSaveData pipeline in snapshot.qualityPipelines)
+        {
+            string id = pipeline?.pipelineId?.Trim() ?? string.Empty;
+            if (pipeline == null
+                || id.Length == 0
+                || !string.Equals(id, pipeline.pipelineId, StringComparison.Ordinal)
+                || !pipelineIds.Add(id)
+                || pipeline.definitionId == null
+                || !string.Equals(
+                    pipeline.definitionId,
+                    pipeline.definitionId.Trim(),
+                    StringComparison.Ordinal)
+                || !Enum.IsDefined(typeof(CraftsmanshipQualityTier), pipeline.minimumQuality)
+                || !Enum.IsDefined(typeof(RejectedOutputDisposition), pipeline.rejectedDisposition)
+                || !Enum.IsDefined(typeof(QualityRepeatLimitMode), pipeline.limitMode)
+                || !Enum.IsDefined(typeof(QualityTargetPipelineStage), pipeline.stage)
+                || pipeline.requiredAcceptedCount <= 0
+                || pipeline.acceptedCount < 0
+                || pipeline.acceptedCount > pipeline.requiredAcceptedCount
+                || pipeline.attemptIndex < 0
+                || pipeline.maximumAttempts <= 0
+                || pipeline.workBudget < 0f
+                || pipeline.consumedWork < 0f
+                || pipeline.footprintWidth <= 0
+                || pipeline.footprintHeight <= 0)
+            {
+                report.AddError($"Quality pipeline '{id}' is invalid.");
+                continue;
+            }
+            if (previous.Length > 0 && string.CompareOrdinal(previous, id) >= 0)
+            {
+                report.AddError("Quality pipelines must use canonical ascending ID order.");
+            }
+            previous = id;
+
+            ValidateWorkerPolicy(
+                new WorkOrderSaveData { workerPolicy = pipeline.workerPolicy },
+                id,
+                report);
+            if (pipeline.currentRoll != null
+                && (pipeline.currentRoll.attemptIndex != pipeline.attemptIndex
+                    || pipeline.currentRoll.randomA < -10 || pipeline.currentRoll.randomA > 10
+                    || pipeline.currentRoll.randomB < -10 || pipeline.currentRoll.randomB > 10
+                    || pipeline.currentRoll.randomC < -10 || pipeline.currentRoll.randomC > 10))
+            {
+                report.AddError($"Quality pipeline '{id}' has invalid fixed random state.");
+            }
+        }
+
+        foreach (WorkOrderSaveData order in snapshot.orders)
+        {
+            string pipelineId = order?.qualityPipelineId?.Trim() ?? string.Empty;
+            if (pipelineId.StartsWith("quality:", StringComparison.Ordinal)
+                && !pipelineIds.Contains(pipelineId))
+            {
+                report.AddError(
+                    $"Work order '{order.workOrderId}' references missing quality pipeline '{pipelineId}'.");
+            }
+        }
     }
 
     private static void ValidateMaterials(
@@ -191,16 +273,28 @@ internal static class WorkOrderSaveValidation
         DungeonGameRestoreReport report,
         Func<string, bool> itemDefinitionExists)
     {
-        if (order.itemMaterials == null)
+        ValidateMaterialList(
+            order.itemMaterials,
+            $"Work order '{orderId}' item materials",
+            report,
+            itemDefinitionExists);
+    }
+
+    private static void ValidateMaterialList(
+        IReadOnlyList<WorkOrderItemMaterialSaveData> materials,
+        string label,
+        DungeonGameRestoreReport report,
+        Func<string, bool> itemDefinitionExists)
+    {
+        if (materials == null)
         {
-            report.AddError(
-                $"Work order '{orderId}' has a missing material list.");
+            report.AddError($"{label} list is missing.");
             return;
         }
 
         HashSet<string> itemIds = new HashSet<string>(StringComparer.Ordinal);
         string previousItemId = string.Empty;
-        foreach (WorkOrderItemMaterialSaveData material in order.itemMaterials)
+        foreach (WorkOrderItemMaterialSaveData material in materials)
         {
             string itemId = material?.itemId?.Trim() ?? string.Empty;
             if (material == null
@@ -218,17 +312,120 @@ internal static class WorkOrderSaveValidation
                 || !itemIds.Add(itemId))
             {
                 report.AddError(
-                    $"Work order '{orderId}' contains an invalid or duplicate item material '{itemId}'.");
+                    $"{label} contains an invalid or duplicate material '{itemId}'.");
             }
             else if (previousItemId.Length > 0
                 && string.CompareOrdinal(previousItemId, itemId) >= 0)
             {
                 report.AddError(
-                    $"Work order '{orderId}' item materials are not in canonical order.");
+                    $"{label} are not in canonical order.");
             }
             else
             {
                 previousItemId = itemId;
+            }
+        }
+    }
+
+    private static void ValidateWorkerPolicy(
+        WorkOrderSaveData order,
+        string orderId,
+        DungeonGameRestoreReport report)
+    {
+        WorkerSelectionPolicySaveData policy = order.workerPolicy;
+        if (policy == null
+            || !Enum.IsDefined(typeof(WorkerSelectionMode), policy.mode)
+            || !Enum.IsDefined(typeof(WorkerRequirementMatchMode), policy.matchMode)
+            || !Enum.IsDefined(typeof(WorkerCandidateSortMode), policy.sortMode)
+            || !Enum.IsDefined(typeof(CareerRank), policy.minimumCareerRank))
+        {
+            report.AddError($"Work order '{orderId}' has an invalid worker policy.");
+            return;
+        }
+
+        ValidateCanonicalIds(policy.specificCharacterIds, orderId, "specific worker", report);
+        ValidateCanonicalIds(policy.excludedCharacterIds, orderId, "excluded worker", report);
+        ValidateCanonicalIds(policy.requiredTraitIds, orderId, "required trait", report);
+        ValidateCanonicalIds(policy.excludedTraitIds, orderId, "excluded trait", report);
+        if (policy.minimumSkillExperience < 0
+            || policy.minimumSkillId == null
+            || !string.Equals(policy.minimumSkillId, policy.minimumSkillId.Trim(), StringComparison.Ordinal))
+        {
+            report.AddError($"Work order '{orderId}' has invalid skill requirements.");
+        }
+
+        HashSet<int> statTypes = new();
+        foreach (WorkerStatRequirementSaveData requirement in
+                 policy.statRequirements ?? new List<WorkerStatRequirementSaveData>())
+        {
+            if (requirement == null
+                || !Enum.IsDefined(typeof(CharacterStatType), requirement.statType)
+                || requirement.minimumValue < 0
+                || !statTypes.Add(requirement.statType))
+            {
+                report.AddError($"Work order '{orderId}' has invalid or duplicate stat requirements.");
+                break;
+            }
+        }
+    }
+
+    private static void ValidateCraftState(
+        WorkOrderSaveData order,
+        string orderId,
+        DungeonGameRestoreReport report)
+    {
+        HashSet<string> contributorIds = new(StringComparer.Ordinal);
+        foreach (CraftContributionSaveData contribution in
+                 order.contributions ?? new List<CraftContributionSaveData>())
+        {
+            string characterId = contribution?.characterId?.Trim() ?? string.Empty;
+            if (contribution == null
+                || characterId.Length == 0
+                || !string.Equals(characterId, contribution.characterId, StringComparison.Ordinal)
+                || !contributorIds.Add(characterId)
+                || !IsFinitePositive(contribution.contributedWork)
+                || float.IsNaN(contribution.relevantSkill)
+                || float.IsInfinity(contribution.relevantSkill)
+                || contribution.relevantSkill < 0f)
+            {
+                report.AddError($"Work order '{orderId}' has invalid craft contribution state.");
+                break;
+            }
+        }
+
+        if (order.qualityAttemptIndex < 0
+            || order.qualityRoll == null
+            || order.qualityRoll.attemptIndex != order.qualityAttemptIndex
+            || order.qualityRoll.randomA < -10 || order.qualityRoll.randomA > 10
+            || order.qualityRoll.randomB < -10 || order.qualityRoll.randomB > 10
+            || order.qualityRoll.randomC < -10 || order.qualityRoll.randomC > 10)
+        {
+            report.AddError($"Work order '{orderId}' has invalid deterministic quality roll state.");
+        }
+
+        string pipelineId = order.qualityPipelineId?.Trim() ?? string.Empty;
+        if (!string.Equals(pipelineId, order.qualityPipelineId ?? string.Empty, StringComparison.Ordinal))
+        {
+            report.AddError($"Work order '{orderId}' has a non-canonical quality pipeline ID.");
+        }
+    }
+
+    private static void ValidateCanonicalIds(
+        IEnumerable<string> source,
+        string orderId,
+        string label,
+        DungeonGameRestoreReport report)
+    {
+        HashSet<string> ids = new(StringComparer.Ordinal);
+        foreach (string value in source ?? Array.Empty<string>())
+        {
+            string canonical = value?.Trim() ?? string.Empty;
+            if (canonical.Length == 0
+                || !string.Equals(value, canonical, StringComparison.Ordinal)
+                || !ids.Add(canonical))
+            {
+                report.AddError($"Work order '{orderId}' has an invalid or duplicate {label} ID.");
+                return;
             }
         }
     }

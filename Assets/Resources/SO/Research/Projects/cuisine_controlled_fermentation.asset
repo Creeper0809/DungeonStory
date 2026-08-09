@@ -30,7 +30,6 @@ MonoBehaviour:
   requiredWork: 184
   prerequisites:
   - {fileID: 11400000, guid: aa7c653b442a12b44b0581cfac9b62bd, type: 2}
-  - {fileID: 11400000, guid: 8f63d37343e549b4a945b0f75f4558de, type: 2}
   - {fileID: 11400000, guid: e8304218a91814b44bbdc6fb4d4705b2, type: 2}
   prerequisiteLinks:
   - prerequisiteId: research:cuisine:fermentation
@@ -38,22 +37,18 @@ MonoBehaviour:
     kind: 1
     reason: "\uBC1C\uD6A8\uC758 \uC81C\uC791 \uAE30\uBC95\uC774(\uAC00) \uC81C\uC5B4
       \uBC1C\uD6A8 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
-  - prerequisiteId: research:industry:distribution
-    prerequisite: {fileID: 11400000, guid: 8f63d37343e549b4a945b0f75f4558de, type: 2}
-    kind: 2
-    reason: "\uBC30\uC804\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uC81C\uC5B4
-      \uBC1C\uD6A8 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   - prerequisiteId: research:plumbing:sewer
     prerequisite: {fileID: 11400000, guid: e8304218a91814b44bbdc6fb4d4705b2, type: 2}
     kind: 2
-    reason: "\uD558\uC218 \uBC30\uAD00\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
-      \uC81C\uC5B4 \uBC1C\uD6A8 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+    reason: "\uD558\uC218 \uCC98\uB9AC\uC640 \uC218\uC138 \uC704\uC0DD\uC758 \uACF5\uD559
+      \uC6D0\uB9AC\uC774(\uAC00) \uC81C\uC5B4 \uBC1C\uD6A8 \uAD6C\uD604\uC5D0 \uC9C1\uC811
+      \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211793001939030
-    - rid: 7737211793001939031
+    - rid: 7737211838079696983
+    - rid: 7737211838079696984
   facilityRequirements:
   - capability: 0
     requiredCount: 1
@@ -63,11 +58,11 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211793001939030
+    - rid: 7737211838079696983
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1603
-    - rid: 7737211793001939031
+    - rid: 7737211838079696984
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1605

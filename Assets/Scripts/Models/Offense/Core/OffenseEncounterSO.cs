@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
 
@@ -64,6 +65,20 @@ public sealed class OffenseEncounterSO : DataScriptableObject
                 or OffenseEncounterObjective.CaptureLeader)
             && string.IsNullOrWhiteSpace(objectiveTargetId))
             errors.Add($"'{encounterId}' objective requires a target id.");
+        if (objective == OffenseEncounterObjective.CaptureLeader
+            && !enemies.Exists(value => string.Equals(
+                value.enemyArchetypeId,
+                objectiveTargetId,
+                StringComparison.Ordinal)))
+            errors.Add($"'{encounterId}' capture target must be part of its authored composition.");
+        if (counterTags == null || counterTags.Count == 0
+            || counterTags.Exists(string.IsNullOrWhiteSpace)
+            || counterTags.Distinct(StringComparer.Ordinal).Count() != counterTags.Count)
+            errors.Add($"'{encounterId}' requires unique gameplay counter tags.");
+        if (rewardItemIds == null || rewardItemIds.Count == 0
+            || rewardItemIds.Exists(string.IsNullOrWhiteSpace)
+            || rewardItemIds.Distinct(StringComparer.Ordinal).Count() != rewardItemIds.Count)
+            errors.Add($"'{encounterId}' requires unique physical reward item ids.");
         return errors;
     }
 }

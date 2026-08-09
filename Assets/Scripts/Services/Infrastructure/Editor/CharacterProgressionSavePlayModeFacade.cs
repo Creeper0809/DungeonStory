@@ -241,7 +241,7 @@ public static class CharacterProgressionSavePlayModeFacade
             if (saveService.TryRestore(incompatible, out DungeonGameRestoreReport incompatibleReport)
                 || !incompatibleReport.Errors.Any(error => string.Equals(
                     error,
-                    DungeonSaveCompatibility.PreV20IncompatibilityReason,
+                    DungeonSaveCompatibility.PreV21IncompatibilityReason,
                     StringComparison.Ordinal)))
             {
                 message = "Legacy growth save was not rejected with the new-game compatibility message.";

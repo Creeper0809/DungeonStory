@@ -8,6 +8,7 @@ using VContainer.Unity;
 public sealed class CharacterBodyHealthRuntime :
     ICharacterBodyHealthQuery,
     ICharacterBodyHealthCommand,
+    ICharacterCombatSpecialStatusQuery,
     ICharacterBodyHealthPersistence,
     IAnatomyHealthRuntime,
     IAnatomyEffectRuntime,
@@ -143,6 +144,33 @@ public sealed class CharacterBodyHealthRuntime :
                     Kill(actor, CharacterDeathCauseCode.Combat, "combat:blood-loss");
                 }
             }
+
+            if (state.burningRemainingSeconds > 0f
+                && state.burningDamagePerSecond > 0f)
+            {
+                float burningDelta = Mathf.Min(
+                    delta,
+                    state.burningRemainingSeconds);
+                state.burningRemainingSeconds = Mathf.Max(
+                    0f,
+                    state.burningRemainingSeconds - delta);
+                ApplyAggregateDamage(
+                    actor,
+                    state,
+                    state.burningDamagePerSecond * burningDelta,
+                    "combat:incendiary-burning",
+                    allowDeath: false);
+                if (state.burningRemainingSeconds <= 0f)
+                    state.burningDamagePerSecond = 0f;
+            }
+            state.sedationRemainingSeconds = Mathf.Max(
+                0f,
+                state.sedationRemainingSeconds - delta);
+            if (state.sedationRemainingSeconds <= 0f)
+                state.sedationRatio = 0f;
+            state.manaBlockedRemainingSeconds = Mathf.Max(
+                0f,
+                state.manaBlockedRemainingSeconds - delta);
 
             TickAnatomyComplications(actor, state, delta);
             state.suppression = Mathf.Max(0f, state.suppression - 5f * delta);
@@ -327,6 +355,7 @@ public sealed class CharacterBodyHealthRuntime :
 
         CharacterBodyHealthState state = GetOrCreate(target);
         state.suppression = Mathf.Clamp(state.suppression + result.Suppression, 0f, 100f);
+        ApplySpecialStatus(state, result);
         if (!result.Hit || result.AppliedDamage <= 0f)
         {
             bool wasDowned = state.downed;
@@ -336,22 +365,29 @@ public sealed class CharacterBodyHealthRuntime :
         }
 
         CharacterBodyPartHealthState part = state.parts.First(item => item.bodyPart == result.BodyPart);
-        part.currentHealth = Mathf.Max(0f, part.currentHealth - result.AppliedDamage);
+        float appliedDamage = result.Nonlethal
+            ? Mathf.Min(
+                result.AppliedDamage,
+                Mathf.Max(0f, state.currentHealth - 1f),
+                Mathf.Max(0f, part.currentHealth - 1f))
+            : result.AppliedDamage;
+        part.currentHealth = Mathf.Max(0f, part.currentHealth - appliedDamage);
         part.bleedingPerSecond += result.Bleeding * 0.01f;
         stateRules.ApplyLegacyDamageToAnatomy(
             state,
             result.BodyPart,
-            result.AppliedDamage,
+            appliedDamage,
             result.Bleeding * 0.01f);
         state.lastDamageReason = reason ?? string.Empty;
         ApplyAggregateDamage(
             target,
             state,
-            result.AppliedDamage,
+            appliedDamage,
             reason,
             allowDeath: false);
 
-        if (!target.IsDead
+        if (!result.Nonlethal
+            && !target.IsDead
             && (result.BodyPart == CombatBodyPart.Head || result.BodyPart == CombatBodyPart.Torso)
             && part.currentHealth <= 0f)
         {
@@ -366,6 +402,51 @@ public sealed class CharacterBodyHealthRuntime :
         bool wasDownedAfterHit = state.downed;
         stateRules.UpdateDowned(state);
         SyncLifecycle(target, state, wasDownedAfterHit);
+    }
+
+    public CharacterCombatSpecialStatusSnapshot GetCombatSpecialStatus(
+        CharacterId characterId)
+    {
+        return characterId.IsValid
+            && ReadState.TryGet(characterId, out CharacterBodyHealthState state)
+                ? new CharacterCombatSpecialStatusSnapshot(
+                    state.burningDamagePerSecond,
+                    state.burningRemainingSeconds,
+                    state.sedationRatio,
+                    state.sedationRemainingSeconds,
+                    state.manaBlockedRemainingSeconds)
+                : default;
+    }
+
+    private static void ApplySpecialStatus(
+        CharacterBodyHealthState state,
+        CombatAttackResult result)
+    {
+        float seconds = Mathf.Max(1f, result.StatusTurns * 3f);
+        if ((result.SpecialEffects & CombatSpecialEffectFlags.Burning) != 0)
+        {
+            state.burningDamagePerSecond = Mathf.Max(
+                state.burningDamagePerSecond,
+                result.StatusPotency);
+            state.burningRemainingSeconds = Mathf.Max(
+                state.burningRemainingSeconds,
+                seconds);
+        }
+        if ((result.SpecialEffects & CombatSpecialEffectFlags.Tranquilized) != 0)
+        {
+            state.sedationRatio = Mathf.Max(
+                state.sedationRatio,
+                result.StatusPotency);
+            state.sedationRemainingSeconds = Mathf.Max(
+                state.sedationRemainingSeconds,
+                seconds);
+        }
+        if ((result.SpecialEffects & CombatSpecialEffectFlags.ManaBlocked) != 0)
+        {
+            state.manaBlockedRemainingSeconds = Mathf.Max(
+                state.manaBlockedRemainingSeconds,
+                seconds);
+        }
     }
 
     public void ApplySnapshot(
@@ -399,6 +480,16 @@ public sealed class CharacterBodyHealthRuntime :
 
         CharacterBodyHealthState state = GetOrCreate(target);
         state.suppression = Mathf.Clamp(state.suppression + amount, 0f, 100f);
+        bool wasDowned = state.downed;
+        stateRules.UpdateDowned(state);
+        SyncLifecycle(target, state, wasDowned);
+    }
+
+    public void ReduceSuppression(CharacterActor target, float amount)
+    {
+        if (target == null || amount <= 0f) return;
+        CharacterBodyHealthState state = GetOrCreate(target);
+        state.suppression = Mathf.Max(0f, state.suppression - amount);
         bool wasDowned = state.downed;
         stateRules.UpdateDowned(state);
         SyncLifecycle(target, state, wasDowned);

@@ -32,7 +32,7 @@ MonoBehaviour:
   batchSupportTag: 
   processKind: 0
   workTypeId: work:craft
-  requiredResearchId: research:industry:rune-grid
+  requiredResearchId: research:industry:mana-power
   requiredWork: 33.5
   preparationWork: 0
   finishingWork: 0

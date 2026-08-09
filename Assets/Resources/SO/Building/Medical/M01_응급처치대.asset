@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uC751\uAE09 \uCC98\uCE58\uB300"
   sprite: {fileID: 21300000, guid: e643cde27dd93af448d2fa7aa2b70179, type: 3}
   icon: {fileID: 21300000, guid: e643cde27dd93af448d2fa7aa2b70179, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730889015673
@@ -43,9 +48,9 @@ MonoBehaviour:
     - rid: 7737211730889015680
     - rid: 7737211730889015681
     - rid: 7737211730889015682
-    - rid: 7737211792998531240
-    - rid: 7737211792998531241
-    - rid: 7737211792998531363
+    - rid: 7737211838074978534
+    - rid: 7737211838074978535
+    - rid: 7737211838074978856
   width: 2
   height: 1
   layer: 1
@@ -144,14 +149,14 @@ MonoBehaviour:
         workSpeedMultiplier: 1.3
         baseSterility: 0.12
         patientSlots: 1
-    - rid: 7737211792998531240
+    - rid: 7737211838074978534
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737211792998531241
+    - rid: 7737211838074978535
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility
@@ -161,7 +166,7 @@ MonoBehaviour:
         wastewaterPerCycle: 0.2
         minimumQuality: 0
         allowsManualWaterFallback: 1
-    - rid: 7737211792998531363
+    - rid: 7737211838074978856
       type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceHubAbility

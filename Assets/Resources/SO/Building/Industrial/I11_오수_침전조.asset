@@ -31,14 +31,19 @@ MonoBehaviour:
   objectName: "\uC624\uC218 \uCE68\uC804\uC870"
   sprite: {fileID: 21300000, guid: fb7005b7766b7f7438c8abb22cae45cf, type: 3}
   icon: {fileID: 21300000, guid: fb7005b7766b7f7438c8abb22cae45cf, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
-    - rid: 7737211792661414746
-    - rid: 7737211792661414747
-    - rid: 7737211792661414748
-    - rid: 7737211792661414749
-    - rid: 7737211792661414750
-    - rid: 7737211792661414751
+    - rid: 7737211838074978341
+    - rid: 7737211838074978342
+    - rid: 7737211838074978343
+    - rid: 7737211838074978344
+    - rid: 7737211838074978345
+    - rid: 7737211838074978346
   width: 3
   height: 1
   layer: 1
@@ -54,12 +59,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211792661414746
+    - rid: 7737211838074978341
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I11
-    - rid: 7737211792661414747
+    - rid: 7737211838074978342
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -68,7 +73,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211792661414748
+    - rid: 7737211838074978343
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -80,14 +85,14 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: component:machine-parts
           amount: 5
-    - rid: 7737211792661414749
+    - rid: 7737211838074978344
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 100
         normallyOpen: 1
-    - rid: 7737211792661414750
+    - rid: 7737211838074978345
       type: {class: BuildingWastewaterProcessorAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWastewaterProcessorAbility
@@ -98,7 +103,7 @@ MonoBehaviour:
         sludgeItemId: industrial:sludge
         sludgeAmount: 1
         secondsPerBatch: 14
-    - rid: 7737211792661414751
+    - rid: 7737211838074978346
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

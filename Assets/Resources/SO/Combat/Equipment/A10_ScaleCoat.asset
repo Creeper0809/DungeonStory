@@ -19,13 +19,15 @@ MonoBehaviour:
   weight: 8.2
   occupiedHands: 0
   maxDurability: 120
-  requiredCraftWork: 6
+  requiredCraftWork: 208
   defaultMaterialId: material:iron
   primaryMaterialAmount: 7
   allowedMaterialFamilies: 03000000
   craftMaterials: []
   requiredComponentInputs:
   - itemId: component:growth-frame
+    amount: 1
+  - itemId: material:chain-mesh
     amount: 1
   requiredResearchId: research:equipment:mail-weaving
   era: 1

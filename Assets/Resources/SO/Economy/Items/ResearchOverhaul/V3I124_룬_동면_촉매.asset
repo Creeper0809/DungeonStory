@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: "V3I124_\uB8EC_\uB3D9\uBA74_\uCD09\uB9E4"
+  m_EditorClassIdentifier: DungeonStory.Economy::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9024
+  itemId: medical:rune-hibernation-catalyst
+  displayName: "\uB8EC \uB3D9\uBA74 \uCD09\uB9E4"
+  description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uB8EC \uB3D9\uBA74 \uCD09\uB9E4."
+  stockCategory: 5
+  unitWeight: 3.9399998
+  maxStack: 50
+  sprite: {fileID: 0}
+  unitPrice: 258
+  features:
+  - rid: 7737211838074979221
+  - rid: 7737211838074979222
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211838074979221
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        requiredResearchId: research:medical:rune-hibernation
+    - rid: 7737211838074979222
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        kind: 3
+        ingredientTags: 1024
+        sharedIntermediate: 0

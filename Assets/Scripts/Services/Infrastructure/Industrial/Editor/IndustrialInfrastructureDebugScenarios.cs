@@ -154,8 +154,8 @@ public static class IndustrialInfrastructureDebugScenarios
             .Select(AssetDatabase.LoadAssetAtPath<ResearchProjectSO>)
             .Where(project => project != null)
             .ToArray();
-        Require(projects.Length == 216,
-            $"Expected 216 research projects, got {projects.Length}.");
+        Require(projects.Length == 180,
+            $"Expected 180 research projects, got {projects.Length}.");
         Require(projects.Select(project => project.ProjectId.Value)
                 .Distinct(StringComparer.Ordinal)
                 .Count()

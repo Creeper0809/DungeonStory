@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: apparel_boots
+  m_EditorClassIdentifier: DungeonStory.Economy::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 0
+  itemId: apparel:boots
+  displayName: "\uC7A5\uD654"
+  description: "\uC7A5\uD654 \uBB3C\uB9AC \uC778\uC2A4\uD134\uC2A4. \uD06C\uAE30\xB7\uAC1C\uC870\xB7\uC7AC\uB8CC
+    \uACC4\uBCF4\xB7\uC704\uC0DD\xB7\uB0B4\uAD6C\uB3C4\uB97C \uBCF4\uC874\uD55C\uB2E4."
+  stockCategory: 1
+  unitWeight: 0.65
+  maxStack: 1
+  sprite: {fileID: 0}
+  unitPrice: 20
+  features:
+  - rid: 7737211833461506271
+  - rid: 7737211833461506272
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211833461506271
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        kind: 8
+        ingredientTags: 128
+        sharedIntermediate: 0
+    - rid: 7737211833461506272
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        requiredResearchId: research:textile:tailoring

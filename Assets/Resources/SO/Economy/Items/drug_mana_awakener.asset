@@ -32,29 +32,29 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 34
   features:
-  - rid: 7737211674039681150
-  - rid: 7737211674039681151
-  - rid: 7737211674039681152
-  - rid: 7737211674039681153
+  - rid: 7737211838068949491
+  - rid: 7737211838068949492
+  - rid: 7737211838068949493
+  - rid: 7737211838068949494
   references:
     version: 2
     RefIds:
-    - rid: 7737211674039681150
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949491
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:stimulants
-    - rid: 7737211674039681151
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949492
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 4
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737211674039681152
-      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949493
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6
-    - rid: 7737211674039681153
-      type: {class: SubstanceItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949494
+      type: {class: SubstanceItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         substanceId: substance:mana-awakener
         useClass: 2

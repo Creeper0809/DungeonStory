@@ -26,21 +26,23 @@ MonoBehaviour:
   displayName: "\uACBD\uC7C1 \uB358\uC804 \uD3EC\uC790\uBAA9\uC790 \uC804\uC220 \uC870\uC6B0"
   minimumSiteStrength: 8
   maximumSiteStrength: 11
-  elite: 1
+  elite: 0
   boss: 1
   objective: 5
-  objectiveRoundLimit: 6
+  objectiveRoundLimit: 7
   objectiveTargetId: enemy:rival-spore-shepherd
   battlefieldModifierIds:
   - battlefield:unstable-device
   counterTags:
+  - counter:sabotage
   - counter:fungicide
+  - counter:nonlethal
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
   - enemyArchetypeId: enemy:rival-spore-shepherd
     minimumCount: 1
     maximumCount: 1
-  - enemyArchetypeId: enemy:crown-levy
+  - enemyArchetypeId: enemy:rival-pactbinder
     minimumCount: 1
     maximumCount: 2

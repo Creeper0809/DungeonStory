@@ -35,6 +35,8 @@ public sealed class CharacterDeprivationRuntime :
     private readonly IRandomStream breakdownRandom;
     private readonly ICharacterNeedBalanceRuntime needBalanceRuntime;
     private readonly IDungeonDebugRuleQuery debugRules;
+    private readonly IHeritableTraitEffectQuery heritableTraits;
+    private readonly IReproductionService reproduction;
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly CharacterDeprivationStateStore stateStore;
     private readonly CharacterSafeDrinkPlanner safeDrinkPlanner;
@@ -95,6 +97,8 @@ public sealed class CharacterDeprivationRuntime :
             system.NeedBalanceRuntime;
         CharacterDeprivationStateStore stateStore = authority.StateStore;
         IDungeonDebugRuleQuery debugRules = system.DebugRules;
+        IHeritableTraitEffectQuery heritableTraits = system.HeritableTraits;
+        IReproductionService reproduction = system.Reproduction;
         ICharacterBodyHealthCommand bodyHealthCommands = authority.BodyHealthCommands;
 
         this.itemStackRuntime = itemStackRuntime ?? throw new ArgumentNullException(nameof(itemStackRuntime));
@@ -109,6 +113,10 @@ public sealed class CharacterDeprivationRuntime :
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
         this.debugRules = debugRules ?? throw new ArgumentNullException(nameof(debugRules));
+        this.heritableTraits = heritableTraits
+            ?? throw new ArgumentNullException(nameof(heritableTraits));
+        this.reproduction = reproduction
+            ?? throw new ArgumentNullException(nameof(reproduction));
         this.bodyHealthCommands = bodyHealthCommands
             ?? throw new ArgumentNullException(nameof(bodyHealthCommands));
         this.frameWorkBudget = frameWorkBudget
@@ -599,14 +607,26 @@ public sealed class CharacterDeprivationRuntime :
 
     public float GetMoveSpeedMultiplier(CharacterActor actor)
     {
+        float traitMultiplier = CharacterPersistentIdentity.TryGet(
+                actor,
+                out CharacterId characterId)
+            ? heritableTraits.GetMultiplier(
+                characterId,
+                HeritableTraitConsequenceKind.Movement,
+                "move-speed")
+            : 1f;
         if (!stateStore.TryGet(actor, out CharacterDeprivationState state))
         {
-            return 1f;
+            return Mathf.Clamp(traitMultiplier, 0.35f, 1.25f);
         }
 
         float exhaustion = CharacterDeprivationStateStore.GetBurden(state, DeprivationKind.Exhaustion).burden;
         float dehydration = CharacterDeprivationStateStore.GetBurden(state, DeprivationKind.Thirst).burden;
-        return Mathf.Clamp(1f - exhaustion * 0.004f - dehydration * 0.002f, 0.45f, 1f);
+        return Mathf.Clamp(
+            (1f - exhaustion * 0.004f - dehydration * 0.002f)
+            * traitMultiplier,
+            0.35f,
+            1.25f);
     }
 
     public float GetWorkSpeedMultiplier(CharacterActor actor)
@@ -886,6 +906,37 @@ public sealed class CharacterDeprivationRuntime :
         DeprivationBurdenSaveData burden = CharacterDeprivationStateStore.GetBurden(state, kind);
         float delta = CalculateBurdenDelta(needValue, elapsed);
         delta *= GetBurdenMultiplier(recovering: delta < 0f);
+        if (delta > 0f
+            && CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId))
+        {
+            if (kind == DeprivationKind.Hunger)
+            {
+                delta *= heritableTraits.GetMultiplier(
+                    characterId,
+                    HeritableTraitConsequenceKind.NeedRate,
+                    "hunger");
+                bool reproducing = reproduction.Processes.Any(process =>
+                    (process.Status is ReproductionProcessStatus.Active
+                        or ReproductionProcessStatus.WaitingForEnvironment
+                        or ReproductionProcessStatus.WaitingForEmergencyExtraction)
+                    && (process.CarrierId.Equals(characterId)
+                        || process.FirstParentId.Equals(characterId)));
+                if (reproducing)
+                {
+                    delta *= heritableTraits.GetMultiplier(
+                        characterId,
+                        HeritableTraitConsequenceKind.NeedRate,
+                        "reproduction-hunger");
+                }
+            }
+            else if (kind == DeprivationKind.Exhaustion)
+            {
+                delta *= heritableTraits.GetMultiplier(
+                    characterId,
+                    HeritableTraitConsequenceKind.NeedRate,
+                    "sleep");
+            }
+        }
         if (delta > 0f)
         {
             burden.burden = Mathf.Min(MaximumBurden, burden.burden + delta);

@@ -19,7 +19,7 @@ MonoBehaviour:
   weight: 1.4
   occupiedHands: 1
   maxDurability: 100
-  requiredCraftWork: 6
+  requiredCraftWork: 64
   defaultMaterialId: material:iron
   primaryMaterialAmount: 2
   allowedMaterialFamilies: 010000000200000003000000
@@ -33,7 +33,7 @@ MonoBehaviour:
   growthEquipment: 0
   growthBaseStatMultiplier: 1
   verbs:
-  - rid: 7737211772876620153
+  - rid: 7737211838079696905
   rangeProfiles:
   - band: 0
     accuracyMultiplier: 0.9
@@ -54,7 +54,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211772876620153
+    - rid: 7737211838079696905
       type: {class: RecoverableThrowVerb, ns: , asm: DungeonStory.Combat}
       data:
         attackTime: 0.9

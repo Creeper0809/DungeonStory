@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "policy": {
+    "copySourceSentences": false,
+    "copyModernFiction": false,
+    "allowFranchiseProperNouns": false,
+    "allowedUse": "High-level taxonomy, lexical validation, model/tool contracts, and licensing metadata only. All corpus prose is newly composed from DungeonStory facts."
+  },
+  "sources": [
+    {
+      "id": "qwen3-1.7b-model-card",
+      "url": "https://huggingface.co/Qwen/Qwen3-1.7B",
+      "owner": "Qwen Team",
+      "license": "Apache-2.0",
+      "use": "Base-model identity, non-thinking capability, multilingual scope, and generation guidance",
+      "copiedText": false
+    },
+    {
+      "id": "qwen3-1.7b-license",
+      "url": "https://huggingface.co/Qwen/Qwen3-1.7B/blob/main/LICENSE",
+      "owner": "Qwen Team",
+      "license": "Apache-2.0",
+      "use": "Release attribution and derivative-work obligations",
+      "copiedText": false
+    },
+    {
+      "id": "trl-dataset-formats",
+      "url": "https://huggingface.co/docs/trl/en/dataset_formats",
+      "owner": "Hugging Face",
+      "license": "Documentation terms apply",
+      "use": "Prompt/completion and preference dataset projection design",
+      "copiedText": false
+    },
+    {
+      "id": "nikl-urimalsaem",
+      "url": "https://opendict.korean.go.kr/",
+      "owner": "National Institute of Korean Language",
+      "license": "Entry-specific policy; bulk sentence reuse not authorized for this corpus",
+      "use": "Korean word existence and semantic-category validation only",
+      "copiedText": false
+    },
+    {
+      "id": "aks-korean-folklore-imitation",
+      "url": "https://encykorea.aks.ac.kr/Article/E0063887",
+      "owner": "Academy of Korean Studies",
+      "license": "Website terms apply; prose not copied",
+      "use": "High-level folklore structures: imitation, bargain, reversal, consequence",
+      "copiedText": false
+    },
+    {
+      "id": "aks-korean-folklore-dokkaebi",
+      "url": "https://encykorea.aks.ac.kr/Article/E0015531",
+      "owner": "Academy of Korean Studies",
+      "license": "Website terms apply; prose not copied",
+      "use": "High-level folklore structures: encounter, taboo, exchange, communal retelling",
+      "copiedText": false
+    },
+    {
+      "id": "khs-intangible-heritage-overview",
+      "url": "https://www.heritage.go.kr/heri/html/HtmlPage.do?pageNo=0&pg=%2Fcul%2FcultureEasySub01_04.jsp",
+      "owner": "Korea Heritage Service",
+      "license": "Public portal terms apply; catalogue prose not copied",
+      "use": "High-level taxonomy for craft, oral tradition, ritual, lifestyle, festivals, and martial practice",
+      "copiedText": false
+    },
+    {
+      "id": "khs-traditional-archery",
+      "url": "https://heritage.go.kr/heri/cul/culSelectDetail.do?ccbaAsno=01420000&ccbaBcode=07&ccbaCpno=127ZZ01420000&ccbaCtcd=ZZ&ccbaGcode=HK&ccbaKdcd=17&ccbaMcode=04&culPageNo=1&header=div&pageNo=1_1_4_1",
+      "owner": "Korea Heritage Service",
+      "license": "Public portal terms apply; catalogue prose not copied",
+      "use": "High-level framing of martial skill as technique, training, ritual, and communal transmission",
+      "copiedText": false
+    }
+  ]
+}

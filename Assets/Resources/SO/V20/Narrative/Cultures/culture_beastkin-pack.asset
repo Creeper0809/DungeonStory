@@ -28,6 +28,16 @@ MonoBehaviour:
   preferredFacilityIds: []
   environmentalPreferences:
   - warm shared quarters
+  roomPreference:
+    preferredRoles: 5
+    idealTemperatureC: 24
+    temperatureToleranceC: 8
+    minimumVentilation: 35
+    minimumLighting: 20
+    maximumLighting: 80
+    minimumCleanliness: 30
+    prefersSharedSpace: 1
+    prefersPrivateSpace: 0
   etiquetteRules:
   - "\uC0C1\uB300\uC758 \uB0C4\uC0C8\uD45C\uC2DD\uC744 \uD5C8\uB77D \uC5C6\uC774
     \uC9C0\uC6B0\uC9C0 \uC54A\uB294\uB2E4."
@@ -36,21 +46,21 @@ MonoBehaviour:
   - practice:beastkin-scent-vigil
   otherCultureAttitudes:
   - id: culture:adventurer-frontier
-    weight: 1
+    weight: 0.92
   - id: culture:demon-contract
-    weight: 1
+    weight: 0.98
   - id: culture:golem-core
-    weight: 1
+    weight: 1.01
   - id: culture:harpy-aerie
-    weight: 1
+    weight: 1.04
   - id: culture:kobold-toolclan
-    weight: 1
+    weight: 1.07
   - id: culture:myconid-grove
-    weight: 1
+    weight: 1.1
   - id: culture:orc-vigil
-    weight: 1
+    weight: 1.13
   - id: culture:slime-confluence
-    weight: 1
+    weight: 0.85
   - id: culture:vampire-nightcourt
-    weight: 1
+    weight: 0.88
   assimilationDays: 120

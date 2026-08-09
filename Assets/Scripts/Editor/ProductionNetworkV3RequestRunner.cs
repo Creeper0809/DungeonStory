@@ -41,6 +41,7 @@ public static class ProductionNetworkV3RequestRunner
             : $"PRODUCTION GRAPH FAIL ({graphFailures.Count})\n"
                 + string.Join("\n", graphFailures));
         RunStep("production runtime contracts", ProductionEconomyDebugScenarios.RunAll, report);
+        RunStep("V22 apparel contracts", V22ApparelDebugScenarios.RunAll, report);
         IReadOnlyList<string> researchFailures =
             ResearchEquipmentOverhaulDebugScenarios.ValidateAll(
                 out string pacingReport);

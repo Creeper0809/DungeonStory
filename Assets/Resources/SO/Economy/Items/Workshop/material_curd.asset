@@ -32,16 +32,16 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 6
   features:
-  - rid: 7737211792998531484
-  - rid: 7737211792998531485
+  - rid: 7737211838074978977
+  - rid: 7737211838074978978
   references:
     version: 2
     RefIds:
-    - rid: 7737211792998531484
+    - rid: 7737211838074978977
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:livestock
-    - rid: 7737211792998531485
+    - rid: 7737211838074978978
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1

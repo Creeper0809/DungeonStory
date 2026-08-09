@@ -20,6 +20,7 @@ internal sealed class AutomationRuntime :
     private readonly IProductionBillWorkExecution productionWork;
     private readonly IGameClock clock;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
     private readonly AutomationStateSession stateSession;
     private IReadOnlyList<AutomationFacilitySnapshot> facilities =
         Array.Empty<AutomationFacilitySnapshot>();
@@ -35,7 +36,8 @@ internal sealed class AutomationRuntime :
         IProductionBillQuery productionQuery,
         IProductionBillWorkExecution productionWork,
         IGameClock clock,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IMilestoneGameplayModifierQuery milestoneModifiers = null)
     {
         this.buildings = buildings
             ?? throw new ArgumentNullException(nameof(buildings));
@@ -49,6 +51,8 @@ internal sealed class AutomationRuntime :
             ?? throw new ArgumentNullException(nameof(clock));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.milestoneModifiers = milestoneModifiers
+            ?? NeutralMilestoneGameplayModifierQuery.Instance;
         stateSession = new AutomationStateSession(this.aggregateRootStore);
         projectedRestoreRevision =
             this.aggregateRootStore.PublishedRestoreRevision;
@@ -235,6 +239,10 @@ internal sealed class AutomationRuntime :
         float maintenanceDrain = Mathf.Max(
                 0f,
                 ability.maintenancePerGameHour)
+            * Mathf.Clamp(
+                milestoneModifiers.AutomaticMaintenanceWorkMultiplier,
+                0.1f,
+                1f)
             * deltaTime
             / SecondsPerGameHour;
         float maintenance = Mathf.Max(

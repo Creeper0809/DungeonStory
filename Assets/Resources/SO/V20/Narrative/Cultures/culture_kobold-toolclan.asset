@@ -28,6 +28,16 @@ MonoBehaviour:
   preferredFacilityIds: []
   environmentalPreferences:
   - compact warm workshops
+  roomPreference:
+    preferredRoles: 72
+    idealTemperatureC: 24
+    temperatureToleranceC: 7
+    minimumVentilation: 50
+    minimumLighting: 45
+    maximumLighting: 100
+    minimumCleanliness: 40
+    prefersSharedSpace: 1
+    prefersPrivateSpace: 0
   etiquetteRules:
   - "\uB3C4\uAD6C\uB97C \uBE4C\uB9B4 \uB54C\uB294 \uB3CC\uB824\uC904 \uC0C1\uD0DC\uB97C
     \uBA3C\uC800 \uC57D\uC18D\uD55C\uB2E4."
@@ -36,21 +46,21 @@ MonoBehaviour:
   - practice:kobold-bench-feast
   otherCultureAttitudes:
   - id: culture:adventurer-frontier
-    weight: 1
+    weight: 0.89
   - id: culture:beastkin-pack
-    weight: 1
+    weight: 0.92
   - id: culture:demon-contract
-    weight: 1
+    weight: 0.95
   - id: culture:golem-core
-    weight: 1
+    weight: 0.98
   - id: culture:harpy-aerie
-    weight: 1
+    weight: 1.01
   - id: culture:myconid-grove
-    weight: 1
+    weight: 1.07
   - id: culture:orc-vigil
-    weight: 1
+    weight: 1.1
   - id: culture:slime-confluence
-    weight: 1
+    weight: 1.13
   - id: culture:vampire-nightcourt
-    weight: 1
+    weight: 0.85
   assimilationDays: 120

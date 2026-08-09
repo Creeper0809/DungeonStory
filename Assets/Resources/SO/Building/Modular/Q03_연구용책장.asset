@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uC5F0\uAD6C\uC6A9\uCC45\uC7A5"
   sprite: {fileID: 21300000, guid: b46482218180b8b47aedb9d7b35cab8a, type: 3}
   icon: {fileID: 21300000, guid: b46482218180b8b47aedb9d7b35cab8a, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730538791756
@@ -38,8 +43,8 @@ MonoBehaviour:
     - rid: 7737211730538791758
     - rid: 7737211730538791759
     - rid: 7737211730538791760
-    - rid: 7737211792998531672
-    - rid: 7737211792998531673
+    - rid: 7737211838079696932
+    - rid: 7737211838079696933
   width: 1
   height: 1
   layer: 1
@@ -103,12 +108,12 @@ MonoBehaviour:
         category: 1
         capacity: 10
         allCategories: 0
-    - rid: 7737211792998531672
+    - rid: 7737211838079696932
       type: {class: BuildingResearchArchiveAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingResearchArchiveAbility
         capacity: 8
-    - rid: 7737211792998531673
+    - rid: 7737211838079696933
       type: {class: BuildingResearchCapacityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingResearchCapacityAbility

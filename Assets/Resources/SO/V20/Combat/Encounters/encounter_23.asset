@@ -29,18 +29,19 @@ MonoBehaviour:
   elite: 0
   boss: 0
   objective: 4
-  objectiveRoundLimit: 8
-  objectiveTargetId: 
+  objectiveRoundLimit: 7
+  objectiveTargetId:
   battlefieldModifierIds:
   - battlefield:spore-bloom
   counterTags:
+  - counter:fungicide
   - counter:smoke
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
   - enemyArchetypeId: enemy:settler-hunter
     minimumCount: 1
     maximumCount: 2
-  - enemyArchetypeId: enemy:rival-spore-shepherd
+  - enemyArchetypeId: enemy:settler-trapper
     minimumCount: 1
     maximumCount: 2

@@ -59,7 +59,9 @@ public static class CharacterEnvironmentSaveValidation
     {
         if (payload == null
             || payload.exposures == null
-            || payload.equippedWorkwear == null)
+            || payload.equippedWorkwear == null
+            || payload.equippedApparel == null
+            || payload.apparelWorkOrders == null)
         {
             report.AddError(
                 "Character-environment payload or required collection is null.");
@@ -129,6 +131,36 @@ public static class CharacterEnvironmentSaveValidation
                 continue;
             }
             previousCharacterId = rawCharacterId;
+        }
+
+        HashSet<ItemInstanceId> apparelItems = new();
+        string previousApparelKey = null;
+        foreach (EquippedApparelSaveData equipped in payload.equippedApparel)
+        {
+            string rawCharacterId = equipped?.characterId ?? string.Empty;
+            string rawItemId = equipped?.itemInstanceId ?? string.Empty;
+            CharacterId characterId = new(rawCharacterId);
+            ItemInstanceId itemId = (ItemInstanceId)rawItemId;
+            string apparelId = equipped?.apparelDefinitionId?.Trim() ?? string.Empty;
+            string key = equipped == null
+                ? string.Empty
+                : $"{rawCharacterId}\u001f{(int)equipped.layer:D2}\u001f{equipped.occupiedPoints:D10}\u001f{rawItemId}";
+            if (equipped == null
+                || !IsCanonical(characterId, rawCharacterId)
+                || !itemId.IsValid
+                || !string.Equals(itemId.Value, rawItemId, StringComparison.Ordinal)
+                || string.IsNullOrWhiteSpace(apparelId)
+                || !Enum.IsDefined(typeof(ApparelLayer), equipped.layer)
+                || equipped.occupiedPoints == 0u
+                || previousApparelKey != null
+                    && string.CompareOrdinal(previousApparelKey, key) >= 0
+                || !apparelItems.Add(itemId))
+            {
+                report.AddError(
+                    "Character-environment apparel contains a null, non-canonical, duplicate, unordered, or invalid slot reference.");
+                continue;
+            }
+            previousApparelKey = key;
         }
     }
 

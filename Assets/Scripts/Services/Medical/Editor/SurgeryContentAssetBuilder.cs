@@ -82,7 +82,7 @@ public static class SurgeryContentAssetBuilder
         ValidateBuiltContent();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
-        Debug.Log("Surgery content rebuilt: 13 facilities, 12 anatomy profiles, 7 condition lexicons, 42 procedures, 12 medical research projects.");
+        Debug.Log("Surgery content rebuilt: 13 facilities, 12 anatomy profiles, 7 condition lexicons, 47 procedures including 5 age treatments, 12 medical research projects.");
     }
 
     private static void BuildConditionLexicons()
@@ -571,41 +571,57 @@ public static class SurgeryContentAssetBuilder
     {
         foreach (ProcedureSpec spec in CreateProcedureSpecs())
         {
-            string path = $"{ProcedureRoot}/{Sanitize(spec.Id)}.asset";
-            SurgicalProcedureSO asset =
-                AssetDatabase.LoadAssetAtPath<SurgicalProcedureSO>(path);
-            if (asset == null)
-            {
-                asset = ScriptableObject.CreateInstance<SurgicalProcedureSO>();
-                AssetDatabase.CreateAsset(asset, path);
-            }
-
-            asset.Configure(
-                spec.Id,
-                spec.Name,
-                spec.Description,
-                spec.Kind,
-                string.Empty,
-                spec.ResearchId,
-                spec.FacilityTags,
-                spec.Work,
-                spec.Difficulty,
-                spec.Infection,
-                spec.Bleeding,
-                spec.Anesthesia,
-                spec.Restraint,
-                spec.Living,
-                spec.Corpse,
-                spec.Wildlife,
-                spec.Materials,
-                spec.Effects,
-                spec.Family,
-                spec.Urgency,
-                spec.AnatomyFamilies,
-                requirement: null,
-                speciesIds: spec.SpeciesIds);
-            EditorUtility.SetDirty(asset);
+            BuildProcedure(spec);
         }
+    }
+
+    public static void EnsureAgeTreatmentProcedures()
+    {
+        EnsureFolder(ProcedureRoot);
+        foreach (ProcedureSpec spec in CreateAgeTreatmentProcedureSpecs())
+        {
+            BuildProcedure(spec);
+        }
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+    }
+
+    private static void BuildProcedure(ProcedureSpec spec)
+    {
+        string path = $"{ProcedureRoot}/{Sanitize(spec.Id)}.asset";
+        SurgicalProcedureSO asset =
+            AssetDatabase.LoadAssetAtPath<SurgicalProcedureSO>(path);
+        if (asset == null)
+        {
+            asset = ScriptableObject.CreateInstance<SurgicalProcedureSO>();
+            AssetDatabase.CreateAsset(asset, path);
+        }
+
+        asset.Configure(
+            spec.Id,
+            spec.Name,
+            spec.Description,
+            spec.Kind,
+            string.Empty,
+            spec.ResearchId,
+            spec.FacilityTags,
+            spec.Work,
+            spec.Difficulty,
+            spec.Infection,
+            spec.Bleeding,
+            spec.Anesthesia,
+            spec.Restraint,
+            spec.Living,
+            spec.Corpse,
+            spec.Wildlife,
+            spec.Materials,
+            spec.Effects,
+            spec.Family,
+            spec.Urgency,
+            spec.AnatomyFamilies,
+            requirement: null,
+            speciesIds: spec.SpeciesIds);
+        EditorUtility.SetDirty(asset);
     }
 
     private static ProcedureSpec[] CreateProcedureSpecs()
@@ -697,7 +713,102 @@ public static class SurgeryContentAssetBuilder
                         infection = 6f
                     }))
         };
-        return core.Concat(CreateSpeciesProcedureSpecs()).ToArray();
+        return core
+            .Concat(CreateSpeciesProcedureSpecs())
+            .Concat(CreateAgeTreatmentProcedureSpecs())
+            .ToArray();
+    }
+
+    private static ProcedureSpec[] CreateAgeTreatmentProcedureSpecs()
+    {
+        ProcedureSpec Create(
+            string id,
+            string name,
+            string description,
+            SurgicalProcedureKind kind,
+            string researchId,
+            float work,
+            bool anesthesia,
+            AgeTreatmentEffectKind effect,
+            params SurgicalMaterialRequirement[] materials)
+        {
+            ProcedureSpec spec = Procedure(
+                id,
+                name,
+                description,
+                kind,
+                researchId,
+                SurgeryFacilityTag.AgeTreatment,
+                work,
+                difficulty: 0.16f,
+                infection: anesthesia ? 0.10f : 0.02f,
+                bleeding: anesthesia ? 0.08f : 0f,
+                anesthesia,
+                restraint: false,
+                living: true,
+                corpse: false,
+                wildlife: false,
+                materials,
+                Effects(new ApplyAgeTreatmentEffect { treatment = effect }));
+            spec.Family = MedicalProcedureFamily.Arcane;
+            spec.Urgency = MedicalProcedureUrgency.Elective;
+            return spec;
+        }
+
+        return new[]
+        {
+            Create(
+                "procedure:organ-regeneration",
+                "장기 재생",
+                "재생 골격과 배양액으로 노화 손상 기관을 복원한다.",
+                SurgicalProcedureKind.HealOrgan,
+                "research:medical:organ-regeneration",
+                96f,
+                anesthesia: true,
+                AgeTreatmentEffectKind.OrganRegeneration,
+                Material("medical:organ-regeneration-scaffold", 1),
+                Material("medical:regenerative-medium", 1)),
+            Create(
+                "procedure:blood-rejuvenation",
+                "혈액 회춘",
+                "회춘 혈청을 수혈해 생물학적 나이를 낮춘다.",
+                SurgicalProcedureKind.Transfusion,
+                "research:medical:blood-rejuvenation",
+                72f,
+                anesthesia: false,
+                AgeTreatmentEffectKind.BloodRejuvenation,
+                Material("medical:rejuvenation-serum", 1)),
+            Create(
+                "procedure:rune-hibernation",
+                "룬 동면",
+                "룬 동면 촉매를 사용해 활동을 멈추고 노화를 늦춘다.",
+                SurgicalProcedureKind.SpeciesStabilization,
+                "research:medical:rune-hibernation",
+                64f,
+                anesthesia: false,
+                AgeTreatmentEffectKind.RuneHibernation,
+                Material("medical:rune-hibernation-catalyst", 1)),
+            Create(
+                "procedure:whole-body-regeneration",
+                "전신 재생",
+                "전신 재생 배지를 사용해 생물학적 나이와 초기 노화 질환을 되돌린다.",
+                SurgicalProcedureKind.ArcaneModification,
+                "research:medical:whole-body-regeneration",
+                180f,
+                anesthesia: true,
+                AgeTreatmentEffectKind.WholeBodyRegeneration,
+                Material("medical:whole-body-regeneration-medium", 1)),
+            Create(
+                "procedure:temporal-stasis",
+                "시간 고정",
+                "시간 고정 인장을 결속해 동력 공급 중 노화와 신규 노화 질환을 멈춘다.",
+                SurgicalProcedureKind.SpeciesStabilization,
+                "research:medical:temporal-stasis",
+                140f,
+                anesthesia: false,
+                AgeTreatmentEffectKind.TemporalStasis,
+                Material("component:temporal-stasis-seal", 1))
+        };
     }
 
     private static ProcedureSpec[] CreateSpeciesProcedureSpecs()
@@ -914,9 +1025,9 @@ public static class SurgeryContentAssetBuilder
         {
             throw new InvalidOperationException($"Expected 13 surgery facilities, found {buildings.Length}.");
         }
-        if (procedures.Length != 42)
+        if (procedures.Length != 47)
         {
-            throw new InvalidOperationException($"Expected 42 surgical procedures, found {procedures.Length}.");
+            throw new InvalidOperationException($"Expected 47 surgical procedures, found {procedures.Length}.");
         }
         if (anatomy.Length != 12)
         {
@@ -927,10 +1038,10 @@ public static class SurgeryContentAssetBuilder
             throw new InvalidOperationException(
                 $"Expected 7 anatomy condition lexicons, found {conditionLexicons.Length}.");
         }
-        if (research.Length != 216)
+        if (research.Length != 180)
         {
             throw new InvalidOperationException(
-                $"Expected 216 research projects, found {research.Length}.");
+                $"Expected 180 research projects, found {research.Length}.");
         }
 
         ResourceAnatomyProfileCatalog anatomyCatalog =

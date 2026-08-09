@@ -119,6 +119,119 @@ public interface IItemTransferService
         out string failureReason);
 }
 
+public readonly struct ReservedItemConsumption
+{
+    public ReservedItemConsumption(string stackId, int quantity)
+    {
+        StackId = stackId?.Trim() ?? string.Empty;
+        Quantity = Mathf.Max(0, quantity);
+    }
+
+    public string StackId { get; }
+    public int Quantity { get; }
+    public bool IsValid => StackId.Length > 0 && Quantity > 0;
+}
+
+/// <summary>
+/// Commits an already-reserved set of physical item costs as one repository
+/// mutation. Every stack and quantity is validated before the first item is
+/// removed, so a stale or stolen final stack cannot leave a partial payment.
+/// </summary>
+public interface IAtomicItemConsumptionService
+{
+    bool TryConsumeReserved(
+        IReadOnlyList<ReservedItemConsumption> consumptions,
+        string reservationOwnerId,
+        out DomainFailure failure);
+}
+
+public sealed class AtomicItemConsumptionService :
+    IAtomicItemConsumptionService
+{
+    private readonly WorldItemRepository repository;
+    private readonly IItemMarkerPresenter markerPresenter;
+
+    public AtomicItemConsumptionService(
+        WorldItemRepository repository,
+        IItemMarkerPresenter markerPresenter)
+    {
+        this.repository = repository
+            ?? throw new ArgumentNullException(nameof(repository));
+        this.markerPresenter = markerPresenter
+            ?? throw new ArgumentNullException(nameof(markerPresenter));
+    }
+
+    public bool TryConsumeReserved(
+        IReadOnlyList<ReservedItemConsumption> consumptions,
+        string reservationOwnerId,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        string owner = reservationOwnerId?.Trim() ?? string.Empty;
+        ReservedItemConsumption[] costs = (consumptions
+                ?? Array.Empty<ReservedItemConsumption>())
+            .Where(value => value.IsValid)
+            .GroupBy(value => value.StackId, StringComparer.Ordinal)
+            .Select(group => new ReservedItemConsumption(
+                group.Key,
+                group.Sum(value => value.Quantity)))
+            .OrderBy(value => value.StackId, StringComparer.Ordinal)
+            .ToArray();
+        if (costs.Length == 0)
+        {
+            return true;
+        }
+        if (owner.Length == 0)
+        {
+            failure = new DomainFailure(FailureCode.ItemTransferConsumptionFailed);
+            return false;
+        }
+
+        List<(WorldItemStackRecord record, int quantity)> resolved = new();
+        foreach (ReservedItemConsumption cost in costs)
+        {
+            if (!repository.RecordsById.TryGetValue(
+                    cost.StackId,
+                    out WorldItemStackRecord record)
+                || record == null
+                || record.quantity < cost.Quantity
+                || !string.Equals(
+                    record.reservedByPersistentId,
+                    owner,
+                    StringComparison.Ordinal))
+            {
+                failure = new DomainFailure(
+                    FailureCode.ItemTransferConsumptionFailed);
+                return false;
+            }
+            resolved.Add((record, cost.Quantity));
+        }
+
+        HashSet<Vector2Int> changedPositions = new();
+        foreach ((WorldItemStackRecord record, int quantity) in resolved)
+        {
+            changedPositions.Add(record.position);
+            record.quantity -= quantity;
+            if (record.quantity > 0)
+            {
+                record.reservedByPersistentId = string.Empty;
+                continue;
+            }
+            if (!string.IsNullOrWhiteSpace(record.itemInstanceId))
+            {
+                repository.TryMarkEquipmentLostBySourceStack(record.stackId);
+            }
+            repository.Remove(record);
+        }
+        repository.MarkChanged();
+        foreach (Vector2Int position in changedPositions)
+        {
+            markerPresenter.RefreshAt(position);
+        }
+        return true;
+    }
+}
+
 public readonly struct ItemTransitStackSnapshot
 {
     public ItemTransitStackSnapshot(

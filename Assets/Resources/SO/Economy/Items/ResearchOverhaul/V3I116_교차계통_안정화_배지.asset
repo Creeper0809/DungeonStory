@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: "V3I116_\uAD50\uCC28\uACC4\uD1B5_\uC548\uC815\uD654_\uBC30\uC9C0"
+  m_EditorClassIdentifier: DungeonStory.Economy::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9016
+  itemId: medical:cross-lineage-medium
+  displayName: "\uAD50\uCC28\uACC4\uD1B5 \uC548\uC815\uD654 \uBC30\uC9C0"
+  description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uAD50\uCC28\uACC4\uD1B5
+    \uC548\uC815\uD654 \uBC30\uC9C0."
+  stockCategory: 5
+  unitWeight: 3.6999998
+  maxStack: 50
+  sprite: {fileID: 0}
+  unitPrice: 242
+  features:
+  - rid: 7737211838074979189
+  - rid: 7737211838074979190
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211838074979189
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        requiredResearchId: research:genetics:cross-lineage-stabilization
+    - rid: 7737211838074979190
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        kind: 3
+        ingredientTags: 1024
+        sharedIntermediate: 0

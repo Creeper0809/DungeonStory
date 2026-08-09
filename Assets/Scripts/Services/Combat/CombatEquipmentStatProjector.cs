@@ -64,7 +64,8 @@ public sealed class CombatEquipmentStatProjector
         {
             if (node == null
                 || !node.active
-                || node.historical && (!node.playerVisible || !activeHistory.Contains(node.nodeId)))
+                || !node.mechanicallyUnlocked
+                || node.historical && !activeHistory.Contains(node.nodeId))
             {
                 continue;
             }
@@ -127,9 +128,22 @@ public sealed class CombatEquipmentStatProjector
         evolution.evolutionNodes ??= new List<EvolutionNode>();
         evolution.narrativeRequests ??= new List<EvolutionNarrativeRequestSnapshot>();
         foreach (EvolutionNode node in evolution.evolutionNodes
-                     .Where(node => node != null && !node.historical))
+                     .Where(node => node != null))
         {
-            node.playerVisible = true;
+            if (!string.IsNullOrWhiteSpace(node.effectId))
+            {
+                node.mechanicallyUnlocked = true;
+            }
+            if (!node.historical)
+            {
+                node.narrativeReady = true;
+                node.uiVisible = true;
+            }
+            else if (node.playerVisible)
+            {
+                node.uiVisible = true;
+            }
+            node.playerVisible = node.uiVisible;
         }
     }
 

@@ -22,13 +22,15 @@ public sealed class ProductionBillSnapshotProjector :
     private readonly IProductionAssemblyBridge inputLogistics;
     private readonly IProductionStockSensorRuntime stockSensors;
     private readonly IProductionDistributionQuery distribution;
+    private readonly IRecipeBalanceWorkCalculator balanceWorkCalculator;
 
     public ProductionBillSnapshotProjector(
         IResourceEconomyContentCatalog catalog,
         IProductionAssemblyBridge bridge,
         IProductionOutputPlanningService outputPlanning,
         IProductionStockSensorRuntime stockSensors,
-        IProductionDistributionQuery distribution)
+        IProductionDistributionQuery distribution,
+        IRecipeBalanceWorkCalculator balanceWorkCalculator = null)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         items = bridge ?? throw new ArgumentNullException(nameof(bridge));
@@ -39,6 +41,7 @@ public sealed class ProductionBillSnapshotProjector :
             ?? throw new ArgumentNullException(nameof(stockSensors));
         this.distribution = distribution
             ?? throw new ArgumentNullException(nameof(distribution));
+        this.balanceWorkCalculator = balanceWorkCalculator;
     }
 
     public ProductionBillSnapshot Project(
@@ -66,6 +69,11 @@ public sealed class ProductionBillSnapshotProjector :
             status = ProductionBillStatus.WaitingForDistributionRoute;
             blockedFailure = new DomainFailure(
                 FailureCode.ProductionDistributionRouteUnavailable);
+        }
+        else if (record.blockedFailure.Code
+            == FailureCode.WorkOrderWorkerIneligible)
+        {
+            status = ProductionBillStatus.WaitingForEligibleWorker;
         }
         else if (recipe != null
             && !HasOutputCapacity(
@@ -152,6 +160,9 @@ public sealed class ProductionBillSnapshotProjector :
             TemperatureOutageHours = record.temperatureOutageHours,
             OccupiedSupportNodeId = record.occupiedSupportNodeId,
             ReservedWorkerId = record.reservedWorkerId,
+            WorkerPolicy = record.workerPolicy?.CloneNormalized()
+                ?? WorkerSelectionPolicySaveData.Anyone(
+                    WorkerCandidateSortMode.Fastest),
             MaterialDestinationId = record.materialDestinationId,
             BlockedFailure = blockedFailure,
             PrefetchBatchCount = record.prefetchBatchCount,
@@ -227,17 +238,19 @@ public sealed class ProductionBillSnapshotProjector :
                     : null;
     }
 
-    private static float ResolveCurrentRequiredWork(
+    private float ResolveCurrentRequiredWork(
         ProductionBillRecord record,
         ProductionRecipeSO recipe)
     {
+        float balancedWork = balanceWorkCalculator?.CalculateRecipe(recipe)
+            ?? recipe.RequiredWork;
         if (recipe.ProcessKind != ProductionProcessKind.PassiveBatch)
         {
-            return recipe.RequiredWork;
+            return balancedWork;
         }
 
         return record.batchStage == ProductionBatchStage.Finishing
-            ? recipe.FinishingWork
-            : recipe.PreparationWork;
+            ? (recipe.FinishingWork > 0f ? balancedWork * 0.20f : 0f)
+            : (recipe.FinishingWork > 0f ? balancedWork * 0.80f : balancedWork);
     }
 }

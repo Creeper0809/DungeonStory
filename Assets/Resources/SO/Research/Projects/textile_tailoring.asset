@@ -39,7 +39,53 @@ MonoBehaviour:
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
-    items: []
+    items:
+    - rid: 7737211838079697253
+    - rid: 7737211838079697254
+    - rid: 7737211838079697255
+    - rid: 7737211838079697256
+    - rid: 7737211838079697257
+    - rid: 7737211838079697258
+    - rid: 7737211838079697259
+    - rid: 7737211838079697260
+    - rid: 7737211838079697261
+    - rid: 7737211838079697262
+    - rid: 7737211838079697263
+    - rid: 7737211838079697264
+    - rid: 7737211838079697265
+    - rid: 7737211838079697266
+    - rid: 7737211838079697267
+    - rid: 7737211838079697268
+    - rid: 7737211838079697269
+    - rid: 7737211838079697270
+    - rid: 7737211838079697271
+    - rid: 7737211838079697272
+    - rid: 7737211838079697273
+    - rid: 7737211838079697274
+    - rid: 7737211838079697275
+    - rid: 7737211838079697276
+    - rid: 7737211838079697277
+    - rid: 7737211838079697278
+    - rid: 7737211838079697279
+    - rid: 7737211838079697280
+    - rid: 7737211838079697281
+    - rid: 7737211838079697282
+    - rid: 7737211838079697283
+    - rid: 7737211838079697284
+    - rid: 7737211838079697285
+    - rid: 7737211838079697286
+    - rid: 7737211838079697287
+    - rid: 7737211838079697288
+    - rid: 7737211838079697289
+    - rid: 7737211838079697290
+    - rid: 7737211838079697291
+    - rid: 7737211838079697292
+    - rid: 7737211838079697293
+    - rid: 7737211838079697294
+    - rid: 7737211838079697295
+    - rid: 7737211838079697296
+    - rid: 7737211838079697297
+    - rid: 7737211838079697298
   facilityRequirements:
   - capability: 0
     requiredCount: 1
@@ -48,4 +94,188 @@ MonoBehaviour:
   icon: {fileID: 0}
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211838079697253
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 9301
+    - rid: 7737211838079697254
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 9302
+    - rid: 7737211838079697255
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 9306
+    - rid: 7737211838079697256
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 9307
+    - rid: 7737211838079697257
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:apron
+    - rid: 7737211838079697258
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:belt
+    - rid: 7737211838079697259
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:blouse
+    - rid: 7737211838079697260
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:boots
+    - rid: 7737211838079697261
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:ceremonial-dress
+    - rid: 7737211838079697262
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:cloak
+    - rid: 7737211838079697263
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:contract-sash
+    - rid: 7737211838079697264
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:daily-robe
+    - rid: 7737211838079697265
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:envoy-coat
+    - rid: 7737211838079697266
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:farmer-workwear
+    - rid: 7737211838079697267
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:festival-vest
+    - rid: 7737211838079697268
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:formal-coat
+    - rid: 7737211838079697269
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:gloves
+    - rid: 7737211838079697270
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:hat
+    - rid: 7737211838079697271
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:hooded-robe
+    - rid: 7737211838079697272
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:horn-ring
+    - rid: 7737211838079697273
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:keeper-coat
+    - rid: 7737211838079697274
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:mourning-clothes
+    - rid: 7737211838079697275
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:ritual-robe
+    - rid: 7737211838079697276
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:scarf
+    - rid: 7737211838079697277
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:shorts
+    - rid: 7737211838079697278
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:skirt
+    - rid: 7737211838079697279
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:sky-chorus-shawl
+    - rid: 7737211838079697280
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:sleep-bottom
+    - rid: 7737211838079697281
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:sleep-top
+    - rid: 7737211838079697282
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:spore-garden-cloak
+    - rid: 7737211838079697283
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:sterile-gown
+    - rid: 7737211838079697284
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:surgical-apron
+    - rid: 7737211838079697285
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:tail-ribbon
+    - rid: 7737211838079697286
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:trousers
+    - rid: 7737211838079697287
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:tunic
+    - rid: 7737211838079697288
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:vest
+    - rid: 7737211838079697289
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:weapon-vigil-cloak
+    - rid: 7737211838079697290
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:wing-cloak
+    - rid: 7737211838079697291
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:wing-harness
+    - rid: 7737211838079697292
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:work-shirt
+    - rid: 7737211838079697293
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:spin:cave-silk
+    - rid: 7737211838079697294
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:spin:dreamweave
+    - rid: 7737211838079697295
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:weave:cave-silk
+    - rid: 7737211838079697296
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:weave:dreamweave
+    - rid: 7737211838079697297
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:mending-scrap
+    - rid: 7737211838079697298
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:sewing-kit

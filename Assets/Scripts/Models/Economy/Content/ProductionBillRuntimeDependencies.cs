@@ -9,7 +9,8 @@ public sealed class ProductionBillOrderDependencies
         IResourceEconomyContentCatalog catalog,
         IProductionAssemblyBridge bridge,
         IProductionStockSensorRuntime stockSensors,
-        ProductionAggregateStateStore stateStore)
+        ProductionAggregateStateStore stateStore,
+        IRecipeBalanceWorkCalculator balanceWorkCalculator = null)
     {
         Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         Bridge = bridge ?? throw new ArgumentNullException(nameof(bridge));
@@ -17,12 +18,14 @@ public sealed class ProductionBillOrderDependencies
             ?? throw new ArgumentNullException(nameof(stockSensors));
         StateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
+        BalanceWorkCalculator = balanceWorkCalculator;
     }
 
     public IResourceEconomyContentCatalog Catalog { get; }
     public IProductionAssemblyBridge Bridge { get; }
     public IProductionStockSensorRuntime StockSensors { get; }
     public ProductionAggregateStateStore StateStore { get; }
+    public IRecipeBalanceWorkCalculator BalanceWorkCalculator { get; }
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

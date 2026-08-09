@@ -34,13 +34,15 @@ MonoBehaviour:
   battlefieldModifierIds:
   - battlefield:unstable-device
   counterTags:
+  - counter:sabotage
   - counter:cover
+  - counter:nonlethal
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
   - enemyArchetypeId: enemy:merchant-crossbow
     minimumCount: 1
     maximumCount: 1
-  - enemyArchetypeId: enemy:settler-ranger-chief
+  - enemyArchetypeId: enemy:merchant-caravan-blade
     minimumCount: 1
     maximumCount: 2

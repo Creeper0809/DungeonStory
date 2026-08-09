@@ -68,7 +68,10 @@ public sealed class CharacterConsumablesRuntime :
     public bool IsMealAllowed(
         CharacterId characterId,
         CharacterConsumablesMealDefinitionSnapshot meal) =>
-        meal.Id.IsValid && CharacterConsumablesPolicyRules.AllowsMeal(
+        meal.Id.IsValid
+        && world.GetCultureMealPreference(characterId, meal.Id)
+            != CharacterCultureMealPreference.Forbidden
+        && CharacterConsumablesPolicyRules.AllowsMeal(
             GetDietPolicy(characterId),
             meal.DietClass,
             meal.ForbiddenIngredient);
@@ -771,6 +774,10 @@ public sealed class CharacterConsumablesRuntime :
                 continue;
             }
             float score = (allowed ? 1000f : 0f)
+                + (world.GetCultureMealPreference(actor.Id, meal.Id)
+                    == CharacterCultureMealPreference.Preferred
+                        ? 250f
+                        : 0f)
                 + (1f - stack.Freshness01) * 120f
                 + meal.Nutrition
                 + meal.Mood * 2f;

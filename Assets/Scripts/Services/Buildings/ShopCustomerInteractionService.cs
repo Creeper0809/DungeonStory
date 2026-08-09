@@ -576,6 +576,10 @@ internal sealed class ShopCustomerInteractionService
         switch (stage)
         {
             case BuildingCheckoutWaitStage.Restless:
+                owner.CustomerGameEventBus.Publish(
+                    new CharacterTraitReactionEvent(
+                        new[] { actor.BuildingCharacterId },
+                        "queue:delay"));
                 actor.ApplyMoodFactor(
                     $"checkout-wait:{owner.RequirePersistentInstanceId().Value}:restless",
                     "계산대가 오래 걸림",

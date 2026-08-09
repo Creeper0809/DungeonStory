@@ -67,6 +67,10 @@ public sealed class ProductionBillSceneFacade :
         ProductionDistributionMode mode,
         IReadOnlyList<ProductionConsumerRoutePolicy> routes) =>
         orders.SetDistributionPolicy(billId, mode, routes);
+    public ProductionBillCommandResult SetWorkerPolicy(
+        ProductionBillId billId,
+        WorkerSelectionPolicySaveData policy) =>
+        orders.SetWorkerPolicy(billId, policy);
     public ProductionBillCommandResult RequestStockSensorInstallation(
         BuildableObject facility) => orders.RequestStockSensorInstallation(
             bridge.CaptureFacility(facility));
@@ -98,4 +102,3 @@ public sealed class ProductionBillSceneFacade :
             billId,
             amount);
 }
-

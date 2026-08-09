@@ -31,13 +31,18 @@ MonoBehaviour:
   objectName: "\uCE58\uC988 \uC219\uC131 \uC120\uBC18"
   sprite: {fileID: 0}
   icon: {fileID: 0}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
-    - rid: 7737211792998531561
-    - rid: 7737211792998531562
-    - rid: 7737211792998531563
-    - rid: 7737211792998531564
-    - rid: 7737211792998531565
+    - rid: 7737211838074979054
+    - rid: 7737211838074979055
+    - rid: 7737211838074979056
+    - rid: 7737211838074979057
+    - rid: 7737211838074979058
   width: 1
   height: 1
   layer: 1
@@ -53,12 +58,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211792998531561
+    - rid: 7737211838074979054
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: WS16
-    - rid: 7737211792998531562
+    - rid: 7737211838074979055
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -67,7 +72,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7737211792998531563
+    - rid: 7737211838074979056
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -79,14 +84,14 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: material:lumber
           amount: 2
-    - rid: 7737211792998531564
+    - rid: 7737211838074979057
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - production-support
         - support:cheese-rack
-    - rid: 7737211792998531565
+    - rid: 7737211838074979058
       type: {class: BuildingProductionSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionSupportAbility

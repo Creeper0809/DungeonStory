@@ -18,6 +18,7 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
     private readonly IWarehouseWorldQuery warehouses;
     private readonly IWorkforceReplanService workforce;
     private readonly IReadOnlyList<IProductionOutputHandler> outputHandlers;
+    private readonly IWorkerNarrativeQualificationQuery narrativeQualification;
 
     public ProductionAssemblyBridgeAdapter(
         IProductionItemGateway items,
@@ -28,7 +29,8 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
         IBuildingWorldQuery buildings,
         IWarehouseWorldQuery warehouses,
         IWorkforceReplanService workforce,
-        IReadOnlyList<IProductionOutputHandler> outputHandlers)
+        IReadOnlyList<IProductionOutputHandler> outputHandlers,
+        IWorkerNarrativeQualificationQuery narrativeQualification = null)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.outputBuffer = outputBuffer
@@ -47,6 +49,7 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
             ?? throw new ArgumentNullException(nameof(workforce));
         this.outputHandlers = outputHandlers
             ?? throw new ArgumentNullException(nameof(outputHandlers));
+        this.narrativeQualification = narrativeQualification;
     }
 
     public IReadOnlyList<ProductionFacilityHandle> Facilities =>
@@ -94,6 +97,41 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
         return new ProductionWorkerHandle(
             worker,
             worker.Identity?.PersistentId ?? string.Empty);
+    }
+
+    public bool IsWorkerEligible(
+        ProductionWorkerHandle worker,
+        WorkerSelectionPolicySaveData policy,
+        out string failureReason)
+    {
+        return WorkerSelectionPolicyRules.IsEligible(
+            policy,
+            worker?.RuntimeObject as CharacterActor,
+            narrativeQualification,
+            out failureReason);
+    }
+
+    public float GetRelevantCraftSkill(
+        ProductionWorkerHandle worker,
+        ProductionRecipeSO recipe)
+    {
+        CharacterActor actor = worker?.RuntimeObject as CharacterActor;
+        if (actor == null)
+        {
+            return 0f;
+        }
+        ProductionProcessClass process =
+            V23BalanceWorkCalculator.ResolveProductionProcessClass(recipe);
+        CharacterStatType primary = process switch
+        {
+            ProductionProcessClass.Medical => CharacterStatType.Medical,
+            ProductionProcessClass.Precision or ProductionProcessClass.Rune =>
+                CharacterStatType.Research,
+            ProductionProcessClass.ForgingHeavyAssembly
+                or ProductionProcessClass.HeavyIndustrial => CharacterStatType.Strength,
+            _ => CharacterStatType.Dexterity
+        };
+        return actor.GetCharacterStat(primary);
     }
 
     public int CountDelivered(string itemId, string destinationId) =>

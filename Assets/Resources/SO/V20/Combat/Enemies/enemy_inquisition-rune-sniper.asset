@@ -49,7 +49,7 @@ MonoBehaviour:
   counterTags:
   - counter:decoy
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   bossPhases: []
   individualGeneration:
     minimumGeneralTraits: 2

@@ -59,7 +59,10 @@ public interface IEquipmentEvolutionRuntime : IEquipmentEvolutionPersistence
         float amount,
         string ownerPersistentId,
         int attunementPoints,
-        IEnumerable<string> sourceTags = null);
+        IEnumerable<string> sourceTags = null,
+        HistoricalEvidenceKind historicalEvidenceKind = HistoricalEvidenceKind.None,
+        string outcomeId = "",
+        int repeatCount = 1);
     bool TryRecordUsage(
         string equipmentInstanceId,
         string eventId,
@@ -67,7 +70,10 @@ public interface IEquipmentEvolutionRuntime : IEquipmentEvolutionPersistence
         float amount,
         string ownerPersistentId,
         int attunementPoints,
-        IEnumerable<string> sourceTags = null);
+        IEnumerable<string> sourceTags = null,
+        HistoricalEvidenceKind historicalEvidenceKind = HistoricalEvidenceKind.None,
+        string outcomeId = "",
+        int repeatCount = 1);
     EquipmentReforgePreview GetPreview(string equipmentInstanceId);
     bool TryGetActiveReforge(
         BuildableObject craftingFacility,

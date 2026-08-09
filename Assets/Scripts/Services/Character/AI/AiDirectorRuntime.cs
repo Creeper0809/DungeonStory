@@ -357,14 +357,12 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
             return;
         }
 
-        CharacterMacroGoal runtimeGoal = dto.ToRuntimeGoal("LocalLLM", gameClock.Time);
-        lastAppliedMacroGoalType = runtimeGoal.type;
+        CharacterMacroGoal runtimeGoal = dto.ToRuntimeGoal("NarrativeOnly", gameClock.Time);
+        lastAppliedMacroGoalType = CharacterMacroGoalType.None;
         lastAppliedMacroActorName = actor.name;
         lastAppliedMacroGoalDebug =
-            $"{runtimeGoal.type} targetId={runtimeGoal.targetFacilityId} tag={runtimeGoal.targetFacilityTag} reason={runtimeGoal.reason}";
+            $"narrative-only suggested={runtimeGoal.type} reason={runtimeGoal.reason}";
         lastError = string.Empty;
-        actor.Blackboard.SetMacroGoal(runtimeGoal);
-        RequireAiSchedulingService().RequestImmediateDecision(actor);
     }
 
     private void OnMoodImpulseResult(CharacterActor actor, LocalLlmResult result)
@@ -402,21 +400,11 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
             return;
         }
 
-        lastAppliedMoodImpulseType = impulse.type;
+        lastAppliedMoodImpulseType = CharacterMoodImpulseType.None;
         lastAppliedMoodImpulseActorName = actor.name;
         lastAppliedMoodImpulseDebug =
-            $"{impulse.type} strength={impulse.strength:0.###} targetId={impulse.targetFacilityId} tag={impulse.targetFacilityTag} reason={impulse.reason}";
+            $"narrative-only suggested={impulse.type} reason={impulse.reason}";
         lastError = string.Empty;
-
-        if (impulse.type == CharacterMoodImpulseType.None || impulse.strength <= 0f)
-        {
-            actor.Blackboard.ClearMoodImpulse("LocalLLM returned no mood impulse.");
-            return;
-        }
-
-        actor.Blackboard.SetMoodImpulse(impulse);
-        ApplyMoodImpulseSideEffects(actor, impulse);
-        RequireAiSchedulingService().RequestImmediateDecision(actor);
     }
 
     private bool TryGetLlmRuntime(out ILocalLlmRuntime queue)
@@ -495,10 +483,14 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
         string prompt = builder.ToString();
         if (prompt.Length > maxPromptCharacters)
         {
-            return prompt.Substring(0, maxPromptCharacters);
+            prompt = prompt.Substring(0, maxPromptCharacters);
         }
-
-        return prompt;
+        return NarrativeRequestContextBuilder.ForActor(
+                LocalLlmRequestProfiles.MacroGoal.Id,
+                actor,
+                requireCharacterFact: false,
+                requireMotif: false)
+            .AppendToPrompt(prompt);
     }
 
     private string BuildMoodImpulsePrompt(CharacterActor actor)
@@ -538,10 +530,14 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
         string prompt = builder.ToString();
         if (prompt.Length > maxPromptCharacters)
         {
-            return prompt.Substring(0, maxPromptCharacters);
+            prompt = prompt.Substring(0, maxPromptCharacters);
         }
-
-        return prompt;
+        return NarrativeRequestContextBuilder.ForActor(
+                LocalLlmRequestProfiles.MoodImpulse.Id,
+                actor,
+                requireCharacterFact: false,
+                requireMotif: false)
+            .AppendToPrompt(prompt);
     }
 
     private bool ValidateMoodImpulseTarget(CharacterMoodImpulse impulse, out string error)

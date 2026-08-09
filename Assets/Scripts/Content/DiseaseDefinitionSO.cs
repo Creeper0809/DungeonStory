@@ -33,7 +33,9 @@ public sealed class DiseaseDefinitionSO : ScriptableObject
         baseSeverity,
         targetSystem,
         vaccineAllowed,
-        chronic);
+        chronic,
+        symptomProfileId,
+        fieldResponseIds);
 
     public IReadOnlyList<string> ValidateDefinition()
     {

@@ -27,27 +27,27 @@ MonoBehaviour:
   description: "\uADE0\uD615 \uC7A1\uD78C \uC5F0\uAC11\uACFC \uC7A5\uBE44\uC758 \uC8FC\uC7AC\uB8CC."
   stockCategory: 1
   unitWeight: 0.45
-  maxStack: 60
+  maxStack: 100
   sprite: {fileID: 0}
   unitPrice: 10
   features:
-  - rid: 7737211673962611618
-  - rid: 7737211673962611619
-  - rid: 7737211673962611620
+  - rid: 7737211838068949618
+  - rid: 7737211838068949619
+  - rid: 7737211838068949620
   references:
     version: 2
     RefIds:
-    - rid: 7737211673962611618
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949618
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:textile:tanning
-    - rid: 7737211673962611619
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949619
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 128
         sharedIntermediate: 1
-    - rid: 7737211673962611620
-      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949620
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

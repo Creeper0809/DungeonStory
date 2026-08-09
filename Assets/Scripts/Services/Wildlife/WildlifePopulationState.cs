@@ -13,6 +13,7 @@ internal sealed class WildlifePopulationState
         new List<WildlifeFoodRaidOrderSaveData>();
 
     public int NextSequence { get; set; } = 1;
+    public int LastDiseaseVectorAbsoluteDay { get; set; }
     public bool InitialSpawnCompleted { get; set; }
     public float NextCarcassTickAt { get; set; }
 }

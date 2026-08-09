@@ -29,8 +29,8 @@ MonoBehaviour:
   moveSpeed: 3.5
   equipment:
     weaponDefinitionId: weapon:mace
-    armorDefinitionId: armor:scale
-    shieldDefinitionId: 
+    armorDefinitionId: armor:scale-coat
+    shieldDefinitionId: shield:tower
     ammunitionItemId: 
   abilityIds:
   - enemy-ability:shield-wall
@@ -49,7 +49,7 @@ MonoBehaviour:
   counterTags:
   - counter:separate-cargo
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   bossPhases: []
   individualGeneration:
     minimumGeneralTraits: 2

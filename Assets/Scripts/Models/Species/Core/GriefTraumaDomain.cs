@@ -144,6 +144,10 @@ public sealed class CharacterGriefAggregate
             out int attendedYear)
         && attendedYear == year;
 
+    public bool NeedsFuneral(CharacterId deceasedCharacterId) =>
+        grief.TryGetValue(deceasedCharacterId, out GriefIncidentSaveData incident)
+        && !incident.funeralCompleted;
+
     public void RecordFestivalAttendance(string festivalId, int year)
     {
         string normalized = festivalId?.Trim() ?? string.Empty;
@@ -246,6 +250,15 @@ public sealed class CharacterGriefAggregate
         LastLongNightMemorialYear = date.Year;
     }
 
+    public void ApplyGriefConversion(float percent)
+    {
+        float multiplier = 1f - Math.Clamp(percent, 0f, 100f) / 100f;
+        foreach (GriefIncidentSaveData incident in grief.Values)
+        {
+            incident.remainingMultiplier *= multiplier;
+        }
+    }
+
     public void AdvanceToDay(int currentAbsoluteDay)
     {
         foreach (GriefIncidentSaveData incident in grief.Values)
@@ -285,6 +298,21 @@ public sealed class CharacterGriefAggregate
     }
 
     public void ApplyCounseling() => ReduceTrauma(5f);
+
+    public void ApplyTraumaDelta(
+        string eventType,
+        int absoluteDay,
+        float amount)
+    {
+        if (amount > 0f)
+        {
+            AddTrauma(eventType, absoluteDay, amount);
+        }
+        else if (amount < 0f)
+        {
+            ReduceTrauma(-amount);
+        }
+    }
 
     public TraumaThresholdEffect GetThresholdEffects()
     {

@@ -5,7 +5,11 @@ using UnityEngine.UI;
 
 internal static class BuildingInfoActionViewFactory
 {
-    public static GameObject CreateCraftButton(Transform parent, string label, Action callback, TMP_FontAsset font)
+    public static GameObject CreateCraftButton(
+        Transform parent,
+        string label,
+        Action callback,
+        TMP_FontAsset font)
     {
         GameObject root = CreateRoot(parent, "BuildingCraftButton", 180f, 46f, true);
         Button button = root.GetComponent<Button>();
@@ -19,7 +23,10 @@ internal static class BuildingInfoActionViewFactory
         return root;
     }
 
-    public static GameObject CreateConstructionProgressBar(Transform parent, WorkOrderProgressState order, TMP_FontAsset font)
+    public static GameObject CreateConstructionProgressBar(
+        Transform parent,
+        WorkOrderProgressState order,
+        TMP_FontAsset font)
     {
         GameObject root = CreateRoot(parent, "BuildingConstructionProgress", 360f, 38f, false);
         CreateFill(root.transform, order?.ProgressRatio ?? 0f);
@@ -30,7 +37,11 @@ internal static class BuildingInfoActionViewFactory
         return root;
     }
 
-    public static GameObject CreateMaintenanceProgressBar(Transform parent, string equipmentName, CombatEquipmentRepairOrder order, TMP_FontAsset font)
+    public static GameObject CreateMaintenanceProgressBar(
+        Transform parent,
+        string equipmentName,
+        CombatEquipmentRepairOrder order,
+        TMP_FontAsset font)
     {
         GameObject root = CreateRoot(parent, "BuildingMaintenanceProgress", 360f, 48f, false);
         CreateFill(root.transform, order.ProgressRatio);
@@ -42,9 +53,16 @@ internal static class BuildingInfoActionViewFactory
         return root;
     }
 
-    public static GameObject CreateCraftStatus(Transform parent, string message, TMP_FontAsset font)
+    public static GameObject CreateCraftStatus(
+        Transform parent,
+        string message,
+        TMP_FontAsset font)
     {
-        GameObject root = new GameObject("BuildingCraftStatus", typeof(RectTransform), typeof(TextMeshProUGUI), typeof(LayoutElement));
+        GameObject root = new(
+            "BuildingCraftStatus",
+            typeof(RectTransform),
+            typeof(TextMeshProUGUI),
+            typeof(LayoutElement));
         root.transform.SetParent(parent, false);
         LayoutElement layout = root.GetComponent<LayoutElement>();
         layout.preferredWidth = 360f;
@@ -61,7 +79,12 @@ internal static class BuildingInfoActionViewFactory
         return root;
     }
 
-    private static GameObject CreateRoot(Transform parent, string name, float width, float height, bool button)
+    private static GameObject CreateRoot(
+        Transform parent,
+        string name,
+        float width,
+        float height,
+        bool button)
     {
         GameObject root = button
             ? new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement))
@@ -76,7 +99,7 @@ internal static class BuildingInfoActionViewFactory
 
     private static void CreateFill(Transform parent, float progress)
     {
-        GameObject fillObject = new GameObject("Fill", typeof(RectTransform), typeof(Image));
+        GameObject fillObject = new("Fill", typeof(RectTransform), typeof(Image));
         fillObject.transform.SetParent(parent, false);
         RectTransform rect = fillObject.GetComponent<RectTransform>();
         rect.anchorMin = Vector2.zero;
@@ -90,7 +113,7 @@ internal static class BuildingInfoActionViewFactory
 
     private static TMP_Text CreateLabel(Transform parent, TMP_FontAsset font)
     {
-        GameObject label = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
+        GameObject label = new("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
         label.transform.SetParent(parent, false);
         RectTransform rect = label.GetComponent<RectTransform>();
         rect.anchorMin = Vector2.zero;
@@ -106,15 +129,12 @@ internal static class BuildingInfoActionViewFactory
         return text;
     }
 
-    private static string FormatRepairState(CombatEquipmentRepairOrderState state)
+    private static string FormatRepairState(CombatEquipmentRepairOrderState state) => state switch
     {
-        return state switch
-        {
-            CombatEquipmentRepairOrderState.PendingCombatEnd => "교전 종료 대기",
-            CombatEquipmentRepairOrderState.WaitingForDelivery => "운반 대기",
-            CombatEquipmentRepairOrderState.Ready => "수리 준비",
-            CombatEquipmentRepairOrderState.InProgress => "수리 중",
-            _ => "대기"
-        };
-    }
+        CombatEquipmentRepairOrderState.PendingCombatEnd => "교전 종료 대기",
+        CombatEquipmentRepairOrderState.WaitingForDelivery => "재료 운반 대기",
+        CombatEquipmentRepairOrderState.Ready => "수리 준비 완료",
+        CombatEquipmentRepairOrderState.InProgress => "수리 중",
+        _ => "대기"
+    };
 }

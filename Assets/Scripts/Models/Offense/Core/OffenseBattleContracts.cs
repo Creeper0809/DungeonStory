@@ -20,7 +20,8 @@ public enum OffenseBattleActionType
     Retreat,
     Reload,
     SwitchWeapon,
-    SetFireMode
+    SetFireMode,
+    DeployCover
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -35,12 +36,20 @@ public enum OffenseBattleOutcome
 
 public sealed class OffenseBattleEncounterRules
 {
+    private readonly HashSet<string> authoredCounterTags;
+    private readonly HashSet<string> availableCounterTags =
+        new HashSet<string>(StringComparer.Ordinal);
+    private readonly HashSet<string> matchedCounterTags =
+        new HashSet<string>(StringComparer.Ordinal);
+
     public OffenseBattleEncounterRules(
         OffenseEncounterObjective objective,
         int roundLimit,
         string objectiveTargetId,
         string objectiveCombatantId,
-        IEnumerable<BattlefieldModifierDefinitionSO> modifiers)
+        IEnumerable<BattlefieldModifierDefinitionSO> modifiers,
+        IEnumerable<string> counterTags = null,
+        IEnumerable<string> rewardItemIds = null)
     {
         Objective = objective;
         RoundLimit = objective == OffenseEncounterObjective.DefeatAll
@@ -53,6 +62,17 @@ public sealed class OffenseBattleEncounterRules
             .GroupBy(value => value.stableId, StringComparer.Ordinal)
             .Select(group => group.First())
             .OrderBy(value => value.stableId, StringComparer.Ordinal)
+            .ToArray();
+        authoredCounterTags = new HashSet<string>(
+            (counterTags ?? Array.Empty<string>())
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => value.Trim()),
+            StringComparer.Ordinal);
+        RewardItemIds = (rewardItemIds ?? Array.Empty<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray();
         MovementMultiplier = Mathf.Clamp(
             Modifiers.Aggregate(1f, (value, modifier) => value * modifier.movementMultiplier),
@@ -76,6 +96,70 @@ public sealed class OffenseBattleEncounterRules
     public float MovementMultiplier { get; }
     public float AccuracyMultiplier { get; }
     public float DamageMultiplier { get; }
+    public IReadOnlyCollection<string> AvailableCounterTags => availableCounterTags;
+    public IReadOnlyCollection<string> MatchedCounterTags => matchedCounterTags;
+    public IReadOnlyList<string> RewardItemIds { get; }
+
+    public void EvaluatePartyCounters(IEnumerable<OffenseBattleCombatant> combatants)
+    {
+        availableCounterTags.Clear();
+        matchedCounterTags.Clear();
+
+        OffenseBattleCombatant[] allies = (combatants
+                ?? Array.Empty<OffenseBattleCombatant>())
+            .Where(value => value != null
+                && value.Team == OffenseBattleTeam.Allies)
+            .ToArray();
+        foreach (string tag in OffenseBattleCounterRules.Project(allies))
+        {
+            availableCounterTags.Add(tag);
+        }
+
+        foreach (string tag in authoredCounterTags)
+        {
+            if (availableCounterTags.Contains(tag))
+            {
+                matchedCounterTags.Add(tag);
+            }
+        }
+        foreach (BattlefieldModifierDefinitionSO modifier in Modifiers)
+        {
+            string required = modifier.requiredCounterTag?.Trim() ?? string.Empty;
+            if (required.Length > 0 && availableCounterTags.Contains(required))
+            {
+                matchedCounterTags.Add(required);
+            }
+        }
+    }
+
+    public float GetMovementMultiplier(OffenseBattleTeam team) =>
+        GetTeamMultiplier(team, modifier => modifier.movementMultiplier);
+
+    public float GetAccuracyMultiplier(OffenseBattleTeam team) =>
+        GetTeamMultiplier(team, modifier => modifier.accuracyMultiplier);
+
+    public float GetDamageMultiplier(OffenseBattleTeam team) =>
+        GetTeamMultiplier(team, modifier => modifier.damageMultiplier);
+
+    private float GetTeamMultiplier(
+        OffenseBattleTeam team,
+        Func<BattlefieldModifierDefinitionSO, float> selector)
+    {
+        float value = 1f;
+        foreach (BattlefieldModifierDefinitionSO modifier in Modifiers)
+        {
+            bool countered = team == OffenseBattleTeam.Allies
+                && !string.IsNullOrWhiteSpace(modifier.requiredCounterTag)
+                && matchedCounterTags.Contains(modifier.requiredCounterTag.Trim());
+            value *= countered ? 1f : selector(modifier);
+        }
+
+        if (team == OffenseBattleTeam.Allies && matchedCounterTags.Count > 0)
+        {
+            value *= 1f + Mathf.Min(0.15f, matchedCounterTags.Count * 0.03f);
+        }
+        return Mathf.Clamp(value, 0.25f, 2f);
+    }
 
     public void ResolveProtectedCombatant(IEnumerable<OffenseBattleCombatant> combatants)
     {
@@ -93,13 +177,152 @@ public sealed class OffenseBattleEncounterRules
     }
 }
 
+public static class OffenseBattleCounterRules
+{
+    public static IReadOnlyCollection<string> Project(
+        IEnumerable<OffenseBattleCombatant> combatants)
+    {
+        OffenseBattleCombatant[] party = (combatants
+                ?? Array.Empty<OffenseBattleCombatant>())
+            .Where(value => value != null)
+            .ToArray();
+        HashSet<string> tags = new HashSet<string>(StringComparer.Ordinal);
+        bool melee = false;
+        bool ranged = false;
+        bool front = false;
+        bool rear = false;
+
+        foreach (OffenseBattleCombatant member in party)
+        {
+            CombatWeaponSnapshot weapon = member.Weapon
+                ?? CombatWeaponSnapshot.CreateUnarmed();
+            string weaponId = weapon.DefinitionId ?? string.Empty;
+            string ammunitionId = weapon.AmmunitionItemId ?? string.Empty;
+            string shieldId = member.Shield.DefinitionId ?? string.Empty;
+            CombatEquipmentRoleFlags armorFlags = member.Armor.Aggregate(
+                CombatEquipmentRoleFlags.None,
+                (value, armor) => value | armor.RoleFlags);
+            CombatEquipmentRoleFlags allFlags = weapon.RoleFlags
+                | member.Shield.RoleFlags
+                | armorFlags;
+
+            melee |= !weapon.IsRanged;
+            ranged |= weapon.IsRanged;
+            front |= member.Formation == OffenseFormationSlot.Front;
+            rear |= member.Formation == OffenseFormationSlot.Rear;
+
+            if (weapon.IsRanged)
+            {
+                Add(tags, "counter:ranged", "counter:anti-air", "counter:kite");
+                if (weapon.MaximumRange >= 6 || weapon.SupportsAimed)
+                {
+                    Add(tags, "counter:precision", "counter:focus-support");
+                }
+                if (weapon.SupportsSuppressive)
+                {
+                    Add(tags, "counter:pin-leader", "counter:split-pressure");
+                }
+            }
+            if (weaponId.Contains("spear", StringComparison.Ordinal)
+                || weaponId.Contains("halberd", StringComparison.Ordinal)
+                || weaponId.Contains("poleaxe", StringComparison.Ordinal)
+                || weaponId.Contains("lance", StringComparison.Ordinal))
+            {
+                Add(tags, "counter:reach", "counter:brace");
+            }
+            if ((allFlags & CombatEquipmentRoleFlags.ArmorBreaker) != 0)
+            {
+                Add(tags,
+                    "counter:armor-break",
+                    "counter:destroy-cover",
+                    "counter:physical-burst",
+                    "counter:sabotage");
+            }
+            if (member.Shield.IsValid)
+            {
+                Add(tags,
+                    "counter:cover",
+                    "counter:brace",
+                    "counter:guard-backline",
+                    "counter:slow-advance");
+            }
+            if ((allFlags & CombatEquipmentRoleFlags.SpellBlock) != 0
+                || ammunitionId.Contains("mana-disruptor", StringComparison.Ordinal))
+            {
+                Add(tags,
+                    "counter:mana-disrupt",
+                    "counter:mana-grounding",
+                    "counter:dispel");
+            }
+            if ((allFlags & CombatEquipmentRoleFlags.BlastAndSmokeProtection) != 0
+                || member.Armor.Any(value =>
+                    value.DefinitionId.Contains("smoke-hood", StringComparison.Ordinal)
+                    || value.DefinitionId.Contains("blast-coat", StringComparison.Ordinal)))
+            {
+                Add(tags, "counter:air-filter", "counter:smoke-hood", "counter:insulated");
+            }
+            if (ammunitionId.Contains("smoke", StringComparison.Ordinal))
+            {
+                tags.Add("counter:smoke");
+            }
+            if (ammunitionId.Contains("tranquilizer", StringComparison.Ordinal))
+            {
+                tags.Add("counter:nonlethal");
+            }
+            if (weapon.GunpowderWeapon)
+            {
+                tags.Add("counter:powder");
+            }
+            if (weaponId.Contains("rune", StringComparison.Ordinal)
+                || weaponId.Contains("mana", StringComparison.Ordinal))
+            {
+                tags.Add("counter:arcane");
+            }
+            if ((allFlags & CombatEquipmentRoleFlags.Powered) != 0)
+            {
+                Add(tags, "counter:engineering", "counter:mobile");
+            }
+            if (shieldId.Contains("pavise", StringComparison.Ordinal))
+            {
+                Add(tags, "counter:cover", "counter:slow-advance");
+            }
+            if (member.Abilities.Any(value => value.Id.Contains("heal", StringComparison.Ordinal)
+                || value.Id.Contains("dressing", StringComparison.Ordinal)))
+            {
+                tags.Add("counter:interrupt-heal");
+            }
+        }
+
+        if (melee && ranged) tags.Add("counter:mixed-tactics");
+        if (front && rear) tags.Add("counter:flank");
+        if (party.Length > 0 && party.All(value =>
+            !(value.Weapon?.DefinitionId?.Contains("rune", StringComparison.Ordinal) ?? false)
+            && !(value.Weapon?.DefinitionId?.Contains("mana", StringComparison.Ordinal) ?? false)))
+        {
+            tags.Add("counter:mundane");
+        }
+
+        return tags.OrderBy(value => value, StringComparer.Ordinal).ToArray();
+    }
+
+    private static void Add(HashSet<string> tags, params string[] values)
+    {
+        foreach (string value in values) tags.Add(value);
+    }
+}
+
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public enum OffenseBattleStatusType
 {
     Guard,
     Vulnerability,
     DamageOverTime,
-    AttackModifier
+    AttackModifier,
+    Sedated,
+    ManaBlocked,
+    SignalSupport,
+    SmokeObscured,
+    SummonedGuard
 }
 
 [Serializable]
@@ -149,7 +372,9 @@ public sealed class OffenseBattleStatus
     {
         Id = id ?? string.Empty;
         Type = type;
-        Value = Mathf.Max(0f, value);
+        Value = type == OffenseBattleStatusType.AttackModifier
+            ? Mathf.Clamp(value, -0.9f, 2f)
+            : Mathf.Max(0f, value);
         RemainingTurns = Mathf.Max(1, remainingTurns);
         SourceId = sourceId ?? string.Empty;
     }
@@ -162,8 +387,27 @@ public sealed class OffenseBattleStatus
 
     public void Refresh(float value, int turns)
     {
-        Value = Mathf.Max(Value, Mathf.Max(0f, value));
+        Value = Type == OffenseBattleStatusType.AttackModifier
+            ? Mathf.Clamp(
+                Mathf.Abs(value) > Mathf.Abs(Value) ? value : Value,
+                -0.9f,
+                2f)
+            : Mathf.Max(Value, Mathf.Max(0f, value));
         RemainingTurns = Mathf.Max(RemainingTurns, Mathf.Max(1, turns));
+    }
+
+    public float Absorb(float incomingDamage)
+    {
+        if (Type != OffenseBattleStatusType.SummonedGuard
+            || incomingDamage <= 0f
+            || Value <= 0f)
+        {
+            return 0f;
+        }
+
+        float absorbed = Mathf.Min(Value, incomingDamage);
+        Value = Mathf.Max(0f, Value - absorbed);
+        return absorbed;
     }
 
     public bool ConsumeTurn()
@@ -245,6 +489,7 @@ public sealed class OffenseBattleCombatant
     public IReadOnlyList<CharacterBodyPartHealthState> BodyParts => bodyPartsView;
     public CombatWeaponSnapshot Weapon { get; private set; } = CombatWeaponSnapshot.CreateUnarmed();
     public IReadOnlyList<CombatArmorSnapshot> Armor => armor;
+    public CombatShieldSnapshot Shield { get; private set; }
     public float Suppression { get; private set; }
     public float BloodLoss { get; private set; }
     public float Consciousness => CalculateConsciousness();
@@ -257,10 +502,12 @@ public sealed class OffenseBattleCombatant
 
     public void SetCombatEquipment(
         CombatWeaponSnapshot weapon,
-        IReadOnlyList<CombatArmorSnapshot> armor)
+        IReadOnlyList<CombatArmorSnapshot> armor,
+        CombatShieldSnapshot shield = default)
     {
         Weapon = weapon ?? CombatWeaponSnapshot.CreateUnarmed();
         this.armor = armor ?? Array.Empty<CombatArmorSnapshot>();
+        Shield = shield;
     }
 
     public void SetCover(float blockChance)
@@ -348,12 +595,18 @@ public sealed class OffenseBattleCombatant
         LastHitBodyPart = result.BodyPart;
         BloodLoss = Mathf.Clamp(BloodLoss + result.Bleeding, 0f, 100f);
         CharacterBodyPartHealthState part = GetBodyPart(result.BodyPart);
-        part.currentHealth = Mathf.Max(0f, part.currentHealth - result.AppliedDamage);
+        float appliedDamage = result.Nonlethal
+            ? Mathf.Min(
+                result.AppliedDamage,
+                Mathf.Max(0f, CurrentHealth - 1f),
+                Mathf.Max(0f, part.currentHealth - 1f))
+            : result.AppliedDamage;
+        part.currentHealth = Mathf.Max(0f, part.currentHealth - appliedDamage);
         part.bleedingPerSecond = Mathf.Max(
             0f,
             part.bleedingPerSecond + result.Bleeding * 0.01f);
-        float applied = ApplyRawDamage(result.AppliedDamage);
-        if (IsVitalPartDestroyed())
+        float applied = ApplyRawDamage(appliedDamage);
+        if (!result.Nonlethal && IsVitalPartDestroyed())
         {
             ApplyRawDamage(CurrentHealth);
         }
@@ -713,6 +966,7 @@ public sealed class OffenseBattleCombatantPersistenceState
     public float currentHealth;
     public float totalDamageTaken;
     public float initiativePenalty;
+    public float coverBlockChance;
     public int turnsStarted;
     public OffenseFormationSlot formation;
     public float suppression;

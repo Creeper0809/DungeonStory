@@ -97,6 +97,9 @@ public static class V20FactionServiceContentAssetBuilder
         authored.AddRange(Requests.Select(CreateRequest));
         authored.AddRange(CreateIncidents());
         if (authored.Count != 82 || relics.Count != 18) throw new InvalidOperationException($"Expected 82 faction/service and 18 relic definitions; found {authored.Count}/{relics.Count}.");
+        FactionChapterDefinitionSO[] chapterDefinitions=authored.OfType<FactionChapterDefinitionSO>().ToArray();
+        if(chapterDefinitions.Select(V20StoryContentCatalog.FactionChapterMechanicalSignature).Distinct(StringComparer.Ordinal).Count()!=36)
+            throw new InvalidOperationException("All 36 faction chapters require distinct mechanical choice signatures.");
         List<string> errors = authored.OfType<V20AuthoredContentSO>().SelectMany(x=>x.ValidateDefinition()).Concat(relics.SelectMany(x=>x.ValidateDefinition())).ToList();
         if(errors.Count>0) throw new InvalidOperationException(string.Join(" | ",errors));
         Type[] owned={typeof(FactionArcDefinitionSO),typeof(FactionChapterDefinitionSO),typeof(FactionContractDefinitionSO),typeof(GuestRequestDefinitionSO),typeof(ServiceIncidentDefinitionSO)};
@@ -114,6 +117,73 @@ public static class V20FactionServiceContentAssetBuilder
     }
 
     private static FactionChapterDefinitionSO CreateChapter(FactionSpec spec,int number)
+    {
+        FactionChapterDefinitionSO value=Asset<FactionChapterDefinitionSO>($"{Root}/Chapters/chapter_{spec.Key}_{number}.asset");
+        Meta(value,$"faction-chapter:{spec.Key}:{number}",spec.ChapterNames[number-1],spec.ChapterDescriptions[number-1]);
+        value.factionId=spec.Id;
+        value.chapterNumber=number;
+        value.kind=(FactionChapterKind)(number-1);
+        value.crossFactionId=number==3?spec.CrossFaction:string.Empty;
+        value.triggerRequirements=new V20ContentRequirementSet
+        {
+            factions=new List<V20FactionRequirement>
+            {
+                new(){factionId=spec.Id,minimumRapport=-100,maximumGrievance=100}
+            }
+        };
+        string itemId=number switch
+        {
+            1 or 4=>spec.SupplyItem,
+            2 or 5=>spec.CrisisItem,
+            _=>spec.StrategicItem
+        };
+        string capability=number switch
+        {
+            2=>"Medical",
+            3 or 5=>"Security",
+            _=>"Administration"
+        };
+        int supportCost=number+3;
+        List<V20ContentEffect> supportEffects=new()
+        {
+            Effect(V20ContentEffectKind.FactionRapport,spec.Id,5+number),
+            Effect(V20ContentEffectKind.WorkDelayDays,$"faction-work:{spec.Key}:{number}",1+(number%3))
+        };
+        List<V20ContentEffect> bargainEffects=new()
+        {
+            Effect(V20ContentEffectKind.FactionRapport,spec.Id,2+(number/2)),
+            Effect(V20ContentEffectKind.FactionObligation,spec.Id,1),
+            Effect(V20ContentEffectKind.WorkDelayDays,$"faction-work:{spec.Key}:{number}:bargain",1)
+        };
+        List<V20ContentEffect> refuseEffects=new()
+        {
+            Effect(V20ContentEffectKind.FactionGrievance,spec.Id,3+number),
+            Effect(V20ContentEffectKind.Threat,$"faction-followup:{spec.Key}:{number}",1)
+        };
+        if(number==3)
+        {
+            supportEffects.Add(Effect(V20ContentEffectKind.FactionGrievance,spec.CrossFaction,3));
+            bargainEffects.Add(Effect(V20ContentEffectKind.FactionRapport,spec.CrossFaction,1));
+            refuseEffects.Add(Effect(V20ContentEffectKind.FactionRapport,spec.CrossFaction,2));
+        }
+        value.choices=new List<V20ChoiceDefinition>
+        {
+            ChapterChoice("support","요구를 지원한다",itemId,supportCost,capability,supportEffects),
+            ChapterChoice("bargain","절반의 비용과 의무를 협상한다",itemId,(supportCost+1)/2,capability,bargainEffects),
+            new()
+            {
+                choiceId="refuse",
+                title="거절하고 후속 위험을 감수한다",
+                outcomeText="거절로 물자를 보존하지만 원한과 후속 위협이 남는다.",
+                requirements=new V20ContentRequirementSet(),
+                effects=refuseEffects
+            }
+        };
+        Dirty(value);
+        return value;
+    }
+
+    private static FactionChapterDefinitionSO CreateLegacyChapter(FactionSpec spec,int number)
     {
         FactionChapterDefinitionSO value=Asset<FactionChapterDefinitionSO>($"{Root}/Chapters/chapter_{spec.Key}_{number}.asset");
         Meta(value,$"faction-chapter:{spec.Key}:{number}",spec.ChapterNames[number-1],spec.ChapterDescriptions[number-1]);value.factionId=spec.Id;value.chapterNumber=number;value.kind=(FactionChapterKind)(number-1);value.crossFactionId=number==3?spec.CrossFaction:string.Empty;
@@ -163,6 +233,24 @@ public static class V20FactionServiceContentAssetBuilder
     }
 
     private static V20ChoiceDefinition Choice(string id,string title,V20ContentEffectKind kind,string target,float amount)=>new(){choiceId=id,title=title,outcomeText=title,requirements=new V20ContentRequirementSet(),effects=new List<V20ContentEffect>{Effect(kind,target,amount)}};
+    private static V20ChoiceDefinition ChapterChoice(string id,string title,string itemId,int amount,string capability,IEnumerable<V20ContentEffect> effects)=>new()
+    {
+        choiceId=id,
+        title=title,
+        outcomeText=title,
+        requirements=new V20ContentRequirementSet
+        {
+            items=new List<V20ItemAmountRequirement>
+            {
+                new(){itemDefinitionId=itemId,amount=amount,consume=true}
+            },
+            facilities=new List<V20FacilityRequirement>
+            {
+                new(){capabilityId=capability,minimumCount=1,mustBeOperational=true}
+            }
+        },
+        effects=effects.ToList()
+    };
     private static V20ContentEffect Effect(V20ContentEffectKind kind,string target,float amount)=>new(){kind=kind,targetId=target,amount=amount};
     private static bool IsFactionEffect(V20ContentEffectKind kind)=>kind is V20ContentEffectKind.FactionRapport or V20ContentEffectKind.FactionGrievance or V20ContentEffectKind.FactionObligation;
     private static void Meta(V20AuthoredContentSO value,string id,string name,string description)=>value.ConfigureMetadata(id,name,description,1,"V20 hand-authored faction/service manifest.");

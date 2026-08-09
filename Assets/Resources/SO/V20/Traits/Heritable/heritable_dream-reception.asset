@@ -27,3 +27,6 @@ MonoBehaviour:
   - kind: 7
     targetId: dream
     multiplierDelta: 0.1
+  - kind: 8
+    targetId: sleep
+    multiplierDelta: 0.1

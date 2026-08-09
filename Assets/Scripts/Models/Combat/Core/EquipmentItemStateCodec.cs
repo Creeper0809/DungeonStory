@@ -6,7 +6,7 @@ using UnityEngine.Scripting.APIUpdating;
 
 public static class EquipmentItemStateCodec
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
     private const string StateJsonKey = "state-json";
 
     public static ItemInstanceComponentSaveData Encode(
@@ -101,6 +101,23 @@ public static class EquipmentItemStateCodec
                 || string.IsNullOrWhiteSpace(restored.equipment.definitionId))
             {
                 error = "Equipment item-state payload has no persistent identity.";
+                return false;
+            }
+
+            restored.equipment.loadedAmmunition ??=
+                new LoadedAmmunitionBatch();
+            restored.equipment.powerCharge = Mathf.Clamp(
+                restored.equipment.powerCharge,
+                0f,
+                100f);
+            if (restored.equipment.loadedAmmunition.remaining <= 0)
+            {
+                restored.equipment.loadedAmmunition.Clear();
+            }
+            else if (string.IsNullOrWhiteSpace(
+                         restored.equipment.loadedAmmunition.ammunitionItemId))
+            {
+                error = "Loaded ammunition has quantity but no physical ammunition item ID.";
                 return false;
             }
 

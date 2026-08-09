@@ -28,6 +28,16 @@ MonoBehaviour:
   preferredFacilityIds: []
   environmentalPreferences:
   - dark private chambers
+  roomPreference:
+    preferredRoles: 516
+    idealTemperatureC: 18
+    temperatureToleranceC: 7
+    minimumVentilation: 40
+    minimumLighting: 0
+    maximumLighting: 30
+    minimumCleanliness: 55
+    prefersSharedSpace: 0
+    prefersPrivateSpace: 1
   etiquetteRules:
   - "\uD608\uC561\uACFC \uAC1C\uC778 \uC11C\uC0AC\uB294 \uBA85\uC2DC\uC801 \uD5C8\uB77D
     \uC5C6\uC774 \uAC70\uB798\uD558\uC9C0 \uC54A\uB294\uB2E4."
@@ -36,21 +46,21 @@ MonoBehaviour:
   - practice:vampire-incense-memory
   otherCultureAttitudes:
   - id: culture:adventurer-frontier
-    weight: 1
+    weight: 0.86
   - id: culture:beastkin-pack
-    weight: 1
+    weight: 0.89
   - id: culture:demon-contract
-    weight: 1
+    weight: 0.92
   - id: culture:golem-core
-    weight: 1
+    weight: 0.95
   - id: culture:harpy-aerie
-    weight: 1
+    weight: 0.98
   - id: culture:kobold-toolclan
-    weight: 1
+    weight: 1.01
   - id: culture:myconid-grove
-    weight: 1
+    weight: 1.04
   - id: culture:orc-vigil
-    weight: 1
+    weight: 1.07
   - id: culture:slime-confluence
-    weight: 1
+    weight: 1.1
   assimilationDays: 120

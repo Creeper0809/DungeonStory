@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uBC14\uB2E5\uBC30\uC218\uAD6C"
   sprite: {fileID: 21300000, guid: 68532db1af549474fa9a803af5da545c, type: 3}
   icon: {fileID: 21300000, guid: 68532db1af549474fa9a803af5da545c, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730834227379
@@ -40,7 +45,7 @@ MonoBehaviour:
     - rid: 7737211730834227383
     - rid: 7737211730834227384
     - rid: 7737211730863325754
-    - rid: 7737211792661414752
+    - rid: 7737211838074978550
   width: 1
   height: 1
   layer: 5
@@ -116,7 +121,7 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 536870912
           disabledWhenDamaged: 1
-    - rid: 7737211792661414752
+    - rid: 7737211838074978550
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility

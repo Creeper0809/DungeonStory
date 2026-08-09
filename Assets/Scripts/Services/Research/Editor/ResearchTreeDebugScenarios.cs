@@ -50,8 +50,8 @@ public static class ResearchTreeDebugScenarios
     public static bool RunAll(bool logSuccess)
     {
         List<string> failures = new List<string>();
-        Verify("216개 프로젝트와 설계도 규칙", VerifyCatalog, failures);
-        Verify("216개 결정적 자동 배치", () => VerifyLayout(LoadProjects()), failures);
+        Verify("180개 프로젝트와 설계도 규칙", VerifyCatalog, failures);
+        Verify("180개 결정적 자동 배치", () => VerifyLayout(LoadProjects()), failures);
         Verify("100개 합성 그래프 배치", () => VerifySyntheticLayout(100), failures);
         Verify("250개 합성 그래프 배치", () => VerifySyntheticLayout(250), failures);
         Verify("선행 자동 큐와 설계도 우회", VerifyQueueRules, failures);
@@ -102,7 +102,7 @@ public static class ResearchTreeDebugScenarios
         HashSet<ResearchProjectSO> temporalClosure = new();
         AddClosure(temporalStasis, temporalClosure);
         float temporalClosureWork = temporalClosure.Sum(project => project.RequiredWork);
-        return projects.Length == 216
+        return projects.Length == 180
             && catalog.Validate().Count == 0
             && required == 4
             && shortcut == 3
@@ -111,7 +111,7 @@ public static class ResearchTreeDebugScenarios
             && blueprints.All(blueprint => blueprint.Unlocks.Count == 0)
             && projectUnlockCount > 0
             && temporalStasis != null
-            && temporalClosure.Count == 108
+            && temporalClosure.Count == 90
             && Mathf.Approximately(temporalClosureWork, 95448f)
             && Mathf.Abs(temporalClosureWork / 99f - 964.1212f) < 0.05f
             && archiveConfigured;
@@ -377,7 +377,7 @@ public static class ResearchTreeDebugScenarios
         {
             rejectedLegacy = true;
             _ = exception.Message.Contains(
-                "대규모 생산망·연구·장비 개편 이전 저장 — 새 게임 필요",
+                DungeonSaveCompatibility.PreV21IncompatibilityReason,
                 StringComparison.Ordinal);
         }
 

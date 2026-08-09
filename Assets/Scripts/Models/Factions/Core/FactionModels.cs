@@ -131,7 +131,20 @@ public sealed class FactionDefinitionSnapshot
 public sealed class DungeonFactionState
 {
     public string factionId = string.Empty;
-    public int trust;
+    [NonSerialized] private int projectedRapport;
+
+    /// <summary>
+    /// Compatibility projection for legacy views and events. This value is
+    /// deliberately not serialized or owned by the faction aggregate. The
+    /// authoritative relationship is the V21 campaign
+    /// rapport/grievance/obligation state and the application adapter refreshes
+    /// this projection before returning a faction snapshot.
+    /// </summary>
+    public int trust
+    {
+        get => projectedRapport;
+        set => projectedRapport = value;
+    }
     public int betrayalScars;
     public int negotiationBlockedUntilDay;
     public bool discovered;

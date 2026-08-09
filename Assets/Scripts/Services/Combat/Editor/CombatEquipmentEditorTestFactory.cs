@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// Explicit Editor-test composition for the equipment aggregate. Production
@@ -46,7 +47,8 @@ public static class CombatEquipmentEditorTestFactory
                     moduleCatalog,
                     researchProvider,
                     physicalState,
-                    itemStackRuntime),
+                    itemStackRuntime,
+                    AllFacilityCapabilityQuery.Instance),
                 new EquipmentHistoryTransferRuntime(
                     itemInstances,
                     catalog,
@@ -64,6 +66,7 @@ public static class CombatEquipmentEditorTestFactory
                 researchProvider,
                 itemStackRuntime,
                 collaborators.StatProjector,
+                AllFacilityCapabilityQuery.Instance,
                 stateStore);
         CombatEquipmentLoadoutRuntime loadoutRuntime =
             new CombatEquipmentLoadoutRuntime(
@@ -81,6 +84,20 @@ public static class CombatEquipmentEditorTestFactory
             collaborators,
             crafting,
             loadoutRuntime);
+    }
+
+    private sealed class AllFacilityCapabilityQuery : IFacilityCapabilityQuery
+    {
+        public static readonly AllFacilityCapabilityQuery Instance = new();
+        private static readonly IReadOnlyList<BuildableObject> Available =
+            new BuildableObject[1];
+
+        public IReadOnlyList<BuildableObject> FindOperational(
+            FacilityCapabilityKind capability,
+            string buildingDefinitionId = "") => Available;
+
+        public IReadOnlyList<BuildableObject> FindOperational(
+            ResearchFacilityCommandKind command) => Available;
     }
 
     private static T Require<T>(T value, string parameterName)

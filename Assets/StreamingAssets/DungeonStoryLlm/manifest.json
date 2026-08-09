@@ -1,0 +1,132 @@
+{
+  "protocolVersion": 25,
+  "hostKind": "LlamaCppServer",
+  "hostWindows": "DungeonStoryLlmHost.exe",
+  "hostLinux": "",
+  "hostWindowsSha256": "23f1fa1f7fc673768b10fba736e3bc34ba6ae03187f94c37eb70d9699617ee9d",
+  "hostLinuxSha256": "",
+  "supportFiles": [
+    {
+      "file": "ggml-base.dll",
+      "sha256": "81789fc8fe43741b103447d1c7c1e503451d8fcc986000a7c7036e4c1cbe37b1"
+    },
+    {
+      "file": "ggml-cpu-alderlake.dll",
+      "sha256": "f9af5edbdb7443532e8f8468983f9cbd56fb64e194f066b427c4550bcfe3e987"
+    },
+    {
+      "file": "ggml-cpu-cannonlake.dll",
+      "sha256": "a7b1df024d350a344ef25119fd5fac7643f812d4ba2014bae6661c237a7e3cff"
+    },
+    {
+      "file": "ggml-cpu-cascadelake.dll",
+      "sha256": "a50b73090ef48bf8ca470d8e09962a1bbb725dee9a28381867740bf133100ed9"
+    },
+    {
+      "file": "ggml-cpu-cooperlake.dll",
+      "sha256": "2629536acffb580cbfb1910bf7aa41914ec282bb7cd89778c58e73aab353b46d"
+    },
+    {
+      "file": "ggml-cpu-haswell.dll",
+      "sha256": "231161384855d11b3af5c847644e01ffbb1712ba7a7e012fe209412fb8ca9005"
+    },
+    {
+      "file": "ggml-cpu-icelake.dll",
+      "sha256": "02a050f41c8b73524ced00bcd67e804a104abaaeea43b8c441520a61eadcc40b"
+    },
+    {
+      "file": "ggml-cpu-ivybridge.dll",
+      "sha256": "435b7e02e45af13733ba9eb28669c97e991de76a562a4e732d40b038d19b79e9"
+    },
+    {
+      "file": "ggml-cpu-piledriver.dll",
+      "sha256": "f5a0cef6db0627e39f2673855c3bb4012149d5fe664cc544fb2a3e02f15b22db"
+    },
+    {
+      "file": "ggml-cpu-sandybridge.dll",
+      "sha256": "2b2d3b6c7354f264ed1121db474ff580dbebc9c954e0b928d6c289accfc75353"
+    },
+    {
+      "file": "ggml-cpu-sapphirerapids.dll",
+      "sha256": "fc2765662cfdbe6a5092d37a54c46275f9b05c4be01ff6c8585e35e9be869019"
+    },
+    {
+      "file": "ggml-cpu-skylakex.dll",
+      "sha256": "d6dda5e3d4cc68d519751d3471f28cb355e93e87c04da7abac998f1fc5e64cb9"
+    },
+    {
+      "file": "ggml-cpu-sse42.dll",
+      "sha256": "e779756e5a4e73ed941509d7c148beb4cde62813ada3e166779554c659868d96"
+    },
+    {
+      "file": "ggml-cpu-x64.dll",
+      "sha256": "ef688bed04eda6175c44c333d4a115b1f41fdd2a9fbe559518ef9b1af4e4f775"
+    },
+    {
+      "file": "ggml-cpu-zen4.dll",
+      "sha256": "6bd7e62e04c5df0fb6b77ee140c20da085dfa69471c97426554deb9e7fb152f5"
+    },
+    {
+      "file": "ggml-rpc.dll",
+      "sha256": "6942c5d6530662687c098437339c4b58133a22569e3c0fcb6487054a92d56802"
+    },
+    {
+      "file": "ggml.dll",
+      "sha256": "d30a76f9363c9a6d697277cbac6b0f527de1fd5fc9f18d1f82b00046f163967f"
+    },
+    {
+      "file": "libomp140.x86_64.dll",
+      "sha256": "4a20c1e5c115c29771a12324513eb109badac72180f79481527ad79d996ffb33"
+    },
+    {
+      "file": "llama-batched-bench-impl.dll",
+      "sha256": "6a03a56fe7794ef14da49aa31f8cd2ff5e0fe4f2d138e2f971c0c6971829cde0"
+    },
+    {
+      "file": "llama-bench-impl.dll",
+      "sha256": "2d868a73422ed6ca162d17bf7faa56fad0cdd59dec357ac01bebffcda3712121"
+    },
+    {
+      "file": "llama-cli-impl.dll",
+      "sha256": "7615fe695f5e14095d4d29a0237758547862f4904ebeefce40f49ff19090ff62"
+    },
+    {
+      "file": "llama-common.dll",
+      "sha256": "9974ade33d399b97170d4ea0bce9fb51ee2836689c026edf20733f6502f82d71"
+    },
+    {
+      "file": "llama-completion-impl.dll",
+      "sha256": "425f5fc771140f013dac9f7b85c36107e650a7b7f6e48ec7c04fc3efb0ec74cd"
+    },
+    {
+      "file": "llama-fit-params-impl.dll",
+      "sha256": "8c90355b56edbce3c2c999ce8d60441303e9909ff3bf412a8cbf087f8b2c2465"
+    },
+    {
+      "file": "llama-perplexity-impl.dll",
+      "sha256": "d72761c7eeed8dd90fc559ddc9a6b8c32ae196c997ba801fa6b3d6c34a8262bc"
+    },
+    {
+      "file": "llama-quantize-impl.dll",
+      "sha256": "975782d7d1e7e2b6705835b624ca4f9e45e1344d083b89688592d34230688780"
+    },
+    {
+      "file": "llama-server-impl.dll",
+      "sha256": "45953d105c1ce5745fdf3242d2c3719affcbc84c0ff3efa85d15e562a87e8eb9"
+    },
+    {
+      "file": "llama.dll",
+      "sha256": "2b63f7fb9f390ab8cde06c6dbb710dd25071687b5ca3b6e40149fd5e737515c1"
+    },
+    {
+      "file": "mtmd.dll",
+      "sha256": "5f59bc3317bc92690181c0a7f6e78a32143be2249c3604c3222337dae646689e"
+    }
+  ],
+  "modelFile": "DungeonStory-Qwen3-1.7B-Q4_K_M.gguf",
+  "modelSha256": "d2387ca2dbfee2ffabce7120d3770dadca0b293052bc2f0e138fdc940d9bc7b5",
+  "maximumModelBytes": 1500000000,
+  "modelVersion": "Qwen3-1.7B-base-Q4_K_M@ggml-org/b10331",
+  "releaseCertified": false,
+  "trainingState": "base-untrained"
+}

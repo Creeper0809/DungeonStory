@@ -9,6 +9,7 @@ public static class BuildingStateModuleIds
     public const string FacilityEvolution = "facility.evolution";
     public const string WarehouseInventory = "inventory.warehouse";
     public const string ShopStock = "inventory.shop";
+    public const string Craftsmanship = "facility.craftsmanship";
 
     public static string ForAbility(string capability, string abilityId)
     {
@@ -31,6 +32,82 @@ public static class BuildingStateModuleIds
         }
 
         return normalized;
+    }
+}
+
+[Serializable]
+public sealed class BuildingCraftsmanshipSaveData
+{
+    public CraftsmanshipQualityTier quality = CraftsmanshipQualityTier.Normal;
+    public float score = 50f;
+    public string pipelineId = string.Empty;
+    public int attemptIndex;
+}
+
+public sealed class BuildingCraftsmanshipStateModule : IBuildingStateModule
+{
+    private readonly Action markDirty;
+    private BuildingCraftsmanshipSaveData state = new();
+
+    public BuildingCraftsmanshipStateModule(Action markDirty)
+    {
+        this.markDirty = markDirty ?? throw new ArgumentNullException(nameof(markDirty));
+    }
+
+    public string ModuleId => BuildingStateModuleIds.Craftsmanship;
+    public int CurrentVersion => 1;
+    public CraftsmanshipQualityTier Quality => state.quality;
+    public float Score => state.score;
+    public string PipelineId => state.pipelineId ?? string.Empty;
+    public int AttemptIndex => Mathf.Max(0, state.attemptIndex);
+
+    public void Configure(
+        CraftQualityResolution resolution,
+        string pipelineId,
+        int attemptIndex)
+    {
+        state.quality = resolution.Tier;
+        state.score = resolution.Score;
+        state.pipelineId = pipelineId?.Trim() ?? string.Empty;
+        state.attemptIndex = Mathf.Max(0, attemptIndex);
+        markDirty();
+    }
+
+    public string CaptureState() => JsonUtility.ToJson(state);
+
+    public bool TryRestoreState(int version, string payload, out string error)
+    {
+        error = string.Empty;
+        if (version != CurrentVersion)
+        {
+            error = $"Unsupported craftsmanship-state version {version}.";
+            return false;
+        }
+
+        BuildingCraftsmanshipSaveData restored;
+        try
+        {
+            restored = JsonUtility.FromJson<BuildingCraftsmanshipSaveData>(payload);
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            return false;
+        }
+        if (restored == null
+            || !Enum.IsDefined(typeof(CraftsmanshipQualityTier), restored.quality)
+            || float.IsNaN(restored.score)
+            || float.IsInfinity(restored.score)
+            || restored.attemptIndex < 0)
+        {
+            error = "Craftsmanship-state payload is invalid.";
+            return false;
+        }
+
+        state = restored;
+        state.pipelineId = state.pipelineId?.Trim() ?? string.Empty;
+        markDirty();
+        return true;
     }
 }
 

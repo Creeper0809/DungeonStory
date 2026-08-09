@@ -25,6 +25,8 @@ public class UIBuildingInfo : SerializedMonoBehaviour
     private ICombatEquipmentCatalog combatEquipmentCatalog;
     private IWorkOrderRuntime workOrderRuntime;
     private IGameEventBus gameEventBus;
+    private IDungeonUserSettingsService userSettings;
+    private IDungeonDebugModeService debugMode;
     private IDoorAccessPanelPresenter doorAccessPanelPresenter;
     private ICircusBuildingPanelPresenter circusBuildingPanelPresenter;
     private IEnvironmentalBuildingPanelPresenter
@@ -34,6 +36,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
     private IProductionBuildingPanelPresenter productionBuildingPanelPresenter;
     private ICropPlotBuildingPanelPresenter cropPlotBuildingPanelPresenter;
     private IAnimalHusbandryBuildingPanelPresenter animalHusbandryPanelPresenter;
+    private IApparelBuildingPanelPresenter apparelBuildingPanelPresenter;
     private ISurgeryBuildingPanelPresenter surgeryBuildingPanelPresenter;
     private IPaidFacilityBuildingPanelPresenter
         paidFacilityBuildingPanelPresenter;
@@ -76,12 +79,15 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         IProductionBuildingPanelPresenter productionBuildingPanelPresenter,
         ICropPlotBuildingPanelPresenter cropPlotBuildingPanelPresenter,
         IAnimalHusbandryBuildingPanelPresenter animalHusbandryPanelPresenter,
+        IApparelBuildingPanelPresenter apparelBuildingPanelPresenter,
         ISurgeryBuildingPanelPresenter surgeryBuildingPanelPresenter,
         IPaidFacilityBuildingPanelPresenter
             paidFacilityBuildingPanelPresenter,
         IServiceRoomBuildingPanelPresenter serviceRoomBuildingPanelPresenter,
         ITreasuryDefenseBuildingPanelPresenter
-            treasuryDefenseBuildingPanelPresenter)
+            treasuryDefenseBuildingPanelPresenter,
+        IDungeonUserSettingsService userSettings,
+        IDungeonDebugModeService debugMode)
     {
         this.buildingDefinitionLookup = buildingDefinitionLookup
             ?? throw new ArgumentNullException(nameof(buildingDefinitionLookup));
@@ -120,6 +126,9 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         this.animalHusbandryPanelPresenter = animalHusbandryPanelPresenter
             ?? throw new ArgumentNullException(
                 nameof(animalHusbandryPanelPresenter));
+        this.apparelBuildingPanelPresenter = apparelBuildingPanelPresenter
+            ?? throw new ArgumentNullException(
+                nameof(apparelBuildingPanelPresenter));
         this.surgeryBuildingPanelPresenter = surgeryBuildingPanelPresenter
             ?? throw new ArgumentNullException(
                 nameof(surgeryBuildingPanelPresenter));
@@ -135,6 +144,10 @@ public class UIBuildingInfo : SerializedMonoBehaviour
             treasuryDefenseBuildingPanelPresenter
             ?? throw new ArgumentNullException(
                 nameof(treasuryDefenseBuildingPanelPresenter));
+        this.userSettings = userSettings
+            ?? throw new ArgumentNullException(nameof(userSettings));
+        this.debugMode = debugMode
+            ?? throw new ArgumentNullException(nameof(debugMode));
     }
 
     [Inject]
@@ -187,6 +200,10 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         }
 
         if (building != selectedBuilding && !hidden) return;
+        if (building != selectedBuilding)
+        {
+            craftStatusMessage = string.Empty;
+        }
         selectedBuilding = building;
         productionBuildingPanelPresenter?.ShowWorldLinks(building);
         BuildingSO buildingData = ResolveBuildingLookup().GetBuilding(building.id) ?? building.BuildingData;
@@ -262,7 +279,23 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         canvasGroup.blocksRaycasts = true;
         ResolvePopupService().BlockTouch();
         canvasGroup.DOKill();
-        canvasGroup.DOFade(1.0f, 0.1f).SetUpdate(true);
+        transform.DOKill();
+        if (userSettings?.Current?.reducedMotion == true)
+        {
+            canvasGroup.alpha = 1f;
+            transform.localScale = Vector3.one;
+        }
+        else
+        {
+            canvasGroup.alpha = 0f;
+            transform.localScale = new Vector3(0.985f, 0.985f, 1f);
+            canvasGroup.DOFade(1.0f, 0.14f)
+                .SetEase(Ease.OutCubic)
+                .SetUpdate(true);
+            transform.DOScale(Vector3.one, 0.18f)
+                .SetEase(Ease.OutCubic)
+                .SetUpdate(true);
+        }
     }
     public void CloseDispaly()
     {
@@ -280,13 +313,29 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         }
 
         canvasGroup.DOKill();
-        canvasGroup.DOFade(0f, 0.1f).SetUpdate(true).OnComplete(() =>
+        transform.DOKill();
+        if (userSettings?.Current?.reducedMotion == true)
         {
-            canvasGroup.interactable = false;
-            canvasGroup.blocksRaycasts = false;
-            gameObject.SetActive(false);
-            ResolvePopupService().ReleaseTouch();
+            FinishCloseDisplay();
+            return;
+        }
+        transform.DOScale(new Vector3(0.99f, 0.99f, 1f), 0.1f)
+            .SetEase(Ease.InCubic)
+            .SetUpdate(true);
+        canvasGroup.DOFade(0f, 0.1f).SetEase(Ease.InCubic).SetUpdate(true).OnComplete(() =>
+        {
+            FinishCloseDisplay();
         });
+    }
+
+    private void FinishCloseDisplay()
+    {
+        canvasGroup.alpha = 0f;
+        canvasGroup.interactable = false;
+        canvasGroup.blocksRaycasts = false;
+        transform.localScale = Vector3.one;
+        gameObject.SetActive(false);
+        ResolvePopupService().ReleaseTouch();
     }
 
     public void OnTriggerEvent(InfoFeedEvent eventType)
@@ -337,9 +386,19 @@ public class UIBuildingInfo : SerializedMonoBehaviour
     private void RenderContextActions(BuildingSO buildingData, BuildableObject building)
     {
         ClearCraftActions();
+        if (!string.IsNullOrWhiteSpace(craftStatusMessage))
+        {
+            GameObject feedback = CreateCraftStatus(
+                RequireContextActionsRoot(),
+                craftStatusMessage,
+                nameText?.font);
+            feedback.name = "BuildingActionFeedback";
+            craftActionObjects.Add(feedback);
+        }
         if (building is ConstructionSite constructionSite)
         {
             RenderConstructionActions(constructionSite);
+            RenderDebugIdentity(buildingData, building);
             return;
         }
 
@@ -392,6 +451,14 @@ public class UIBuildingInfo : SerializedMonoBehaviour
                 message => craftStatusMessage = message,
                 () => DisplayBuildingInfo(building));
         craftActionObjects.AddRange(husbandryObjects);
+        IReadOnlyList<GameObject> apparelObjects =
+            apparelBuildingPanelPresenter.Render(
+                RequireContextActionsRoot(),
+                building,
+                nameText != null ? nameText.font : null,
+                message => craftStatusMessage = message,
+                () => DisplayBuildingInfo(building));
+        craftActionObjects.AddRange(apparelObjects);
         IReadOnlyList<GameObject> surgeryObjects =
             surgeryBuildingPanelPresenter.Render(
                 RequireContextActionsRoot(),
@@ -443,11 +510,30 @@ public class UIBuildingInfo : SerializedMonoBehaviour
                     () => DisplayBuildingInfo(building));
             craftActionObjects.AddRange(circusObjects);
         }
+        RenderDebugIdentity(buildingData, building);
+    }
+
+    private void RenderDebugIdentity(BuildingSO definition, BuildableObject building)
+    {
+        if (debugMode?.IsDeveloperModeEnabled != true
+            || definition == null
+            || building == null)
+        {
+            return;
+        }
+
+        string instanceId = building.RequirePersistentInstanceId().Value;
+        GameObject diagnostic = CreateCraftStatus(
+            RequireContextActionsRoot(),
+            $"DEBUG · definition={definition.ContentDefinitionId}\n"
+            + $"instance={instanceId} · cell={building.centerPos.x},{building.centerPos.y}",
+            nameText?.font);
+        diagnostic.name = "BuildingDebugIdentity";
+        craftActionObjects.Add(diagnostic);
     }
 
     private void RenderConstructionActions(ConstructionSite site)
     {
-        craftStatusMessage = string.Empty;
         if (site == null)
         {
             return;
@@ -457,6 +543,93 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         if (workOrderRuntime.TryGetOrderFor(site, BuiltInWorkTypeIds.Construct, out WorkOrderProgressState order))
         {
             craftActionObjects.Add(CreateConstructionProgressBar(actionsRoot, order, nameText?.font));
+            if (workOrderRuntime is IWorkOrderWorkerPolicyCommand workerCommands)
+            {
+                GameObject workerButton = CreateCraftButton(
+                    actionsRoot,
+                    FormatConstructionWorkerPolicy(order.WorkerPolicy),
+                    () =>
+                    {
+                        workerCommands.SetWorkerPolicy(
+                            order.WorkOrderId,
+                            NextConstructionWorkerPolicy(order.WorkerPolicy),
+                            out DomainFailure failure);
+                        craftStatusMessage = failure.IsFailure
+                            ? GameplayUiPresentationText.FailureFallback(
+                                failure,
+                                debugMode?.IsDeveloperModeEnabled == true)
+                            : "건설 작업자 정책을 변경했습니다.";
+                        DisplayBuildingInfo(site);
+                    },
+                    nameText?.font);
+                workerButton.name = "BuildingConstructionWorkerPolicy";
+                craftActionObjects.Add(workerButton);
+            }
+
+            if (workOrderRuntime is IQualityTargetPipelineCommand qualityCommands
+                && workOrderRuntime is IQualityTargetPipelineQuery qualityQuery)
+            {
+                bool hasPipeline = qualityQuery.TryGetQualityPipeline(
+                    order.QualityPipelineId,
+                    out QualityTargetPipelineSaveData pipeline);
+                GameObject qualityButton = CreateCraftButton(
+                    actionsRoot,
+                    hasPipeline
+                        ? $"품질 반복: {GameplayUiPresentationText.Quality(pipeline.minimumQuality)}"
+                            + $" · {GameplayUiPresentationText.QualityStage(pipeline.stage)}"
+                        : "품질 반복: 양호 이상",
+                    () =>
+                    {
+                        if (!hasPipeline)
+                        {
+                            qualityCommands.CreateForWorkOrder(
+                                order.WorkOrderId,
+                                new QualityTargetPipelineSaveData
+                                {
+                                    definitionId = site.BuildingData?
+                                        .ContentDefinitionId ?? string.Empty,
+                                    minimumQuality = CraftsmanshipQualityTier.Good,
+                                    requiredAcceptedCount = 1,
+                                    workerPolicy = order.WorkerPolicy?
+                                        .CloneNormalized(),
+                                    rejectedDisposition =
+                                        RejectedOutputDisposition
+                                            .DismantleFacilityAndRetry,
+                                    limitMode = QualityRepeatLimitMode.SafeLimits,
+                                    maximumAttempts = 10,
+                                    footprintWidth = Mathf.Max(
+                                        1,
+                                        site.BuildingData?.width ?? 1),
+                                    footprintHeight = Mathf.Max(
+                                        1,
+                                        site.BuildingData?.height ?? 1)
+                                },
+                                out _,
+                                out DomainFailure failure);
+                            craftStatusMessage = failure.IsFailure
+                                ? GameplayUiPresentationText.FailureFallback(
+                                    failure,
+                                    debugMode?.IsDeveloperModeEnabled == true)
+                                : "시설 품질 반복을 설정했습니다.";
+                        }
+                        else if (pipeline.stage == QualityTargetPipelineStage.Paused)
+                        {
+                            qualityCommands.ResumeQualityPipeline(
+                                pipeline.pipelineId,
+                                out _);
+                        }
+                        else
+                        {
+                            qualityCommands.PauseQualityPipeline(
+                                pipeline.pipelineId,
+                                out _);
+                        }
+                        DisplayBuildingInfo(site);
+                    },
+                    nameText?.font);
+                qualityButton.name = "BuildingConstructionQualityPipeline";
+                craftActionObjects.Add(qualityButton);
+            }
         }
 
         GameObject cancelButton = CreateCraftButton(
@@ -470,6 +643,49 @@ public class UIBuildingInfo : SerializedMonoBehaviour
             nameText?.font);
         cancelButton.name = "BuildingConstructionCancel";
         craftActionObjects.Add(cancelButton);
+    }
+
+    private static string FormatConstructionWorkerPolicy(
+        WorkerSelectionPolicySaveData policy)
+    {
+        return $"건설 작업자 · {GameplayUiPresentationText.WorkerPolicy(policy)}";
+    }
+
+    private static WorkerSelectionPolicySaveData NextConstructionWorkerPolicy(
+        WorkerSelectionPolicySaveData policy)
+    {
+        WorkerSelectionPolicySaveData normalized = policy?.CloneNormalized()
+            ?? WorkerSelectionPolicySaveData.Anyone();
+        if (normalized.mode == WorkerSelectionMode.Anyone
+            && normalized.sortMode != WorkerCandidateSortMode.BestExpectedQuality)
+        {
+            return WorkerSelectionPolicySaveData.Anyone(
+                WorkerCandidateSortMode.BestExpectedQuality);
+        }
+        if (normalized.mode == WorkerSelectionMode.Anyone)
+        {
+            return new WorkerSelectionPolicySaveData
+            {
+                mode = WorkerSelectionMode.RuleSet,
+                matchMode = WorkerRequirementMatchMode.All,
+                sortMode = WorkerCandidateSortMode.BestExpectedQuality,
+                statRequirements = new List<WorkerStatRequirementSaveData>
+                {
+                    new()
+                    {
+                        statType = (int)CharacterStatType.Strength,
+                        minimumValue = 7
+                    },
+                    new()
+                    {
+                        statType = (int)CharacterStatType.Dexterity,
+                        minimumValue = 7
+                    }
+                }
+            };
+        }
+        return WorkerSelectionPolicySaveData.Anyone(
+            WorkerCandidateSortMode.SpecificThenBestExpectedQuality);
     }
 
     private void RenderMaintenanceActions(
@@ -752,9 +968,11 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         }
 
         canvasGroup.DOKill();
+        transform.DOKill();
         canvasGroup.alpha = 0f;
         canvasGroup.interactable = false;
         canvasGroup.blocksRaycasts = false;
+        transform.localScale = Vector3.one;
     }
 
     private IBuildingDefinitionLookup ResolveBuildingLookup()

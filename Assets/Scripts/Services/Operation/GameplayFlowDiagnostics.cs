@@ -320,6 +320,27 @@ public static class GameplayFlowDiagnosticsBuilder
                 "대상이나 동선이 막혔습니다. 현장 정보를 열어 퇴로·예약을 확인하고, 필요하면 취소 후 다시 배치하세요.");
         }
 
+        if (order.status == WorkOrderStatus.WaitingForEligibleWorker)
+        {
+            return Critical(
+                target,
+                "작업자 지정 조건을 만족하는 주민이 없습니다. 주문의 능력치·숙련·제외 조건을 확인하세요.");
+        }
+
+        if (order.status == WorkOrderStatus.TargetCurrentlyUnreachable)
+        {
+            return Critical(
+                target,
+                "현재 작업자·시설·도구 조합으로 목표 품질에 도달할 수 없습니다.");
+        }
+
+        if (order.status == WorkOrderStatus.WaitingForOutputSpace)
+        {
+            return Warning(
+                target,
+                "완성품 또는 회수 재료를 놓을 출력 공간이 없습니다.");
+        }
+
         if (order.status == WorkOrderStatus.WaitingForMaterials)
         {
             return BuildMaterialDiagnostic(order, target, stacks, workers);
@@ -462,6 +483,12 @@ public static class GameplayFlowDiagnosticsBuilder
             WorkOrderStatus.Blocked => GameplayFlowDiagnosticSeverity.Critical,
             WorkOrderStatus.WaitingForMaterials => GameplayFlowDiagnosticSeverity.Warning,
             WorkOrderStatus.Ready => GameplayFlowDiagnosticSeverity.Warning,
+            WorkOrderStatus.WaitingForEligibleWorker =>
+                GameplayFlowDiagnosticSeverity.Critical,
+            WorkOrderStatus.TargetCurrentlyUnreachable =>
+                GameplayFlowDiagnosticSeverity.Critical,
+            WorkOrderStatus.WaitingForOutputSpace =>
+                GameplayFlowDiagnosticSeverity.Warning,
             _ => GameplayFlowDiagnosticSeverity.Info
         };
     }

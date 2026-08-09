@@ -35,7 +35,7 @@ public static class DungeonStoryFinalAcceptanceRunner
         Run("V19 equipment item state", EquipmentItemStateV18DebugScenarios.RunAll, steps);
         Run("Combat equipment materials", CombatEquipmentMaterialDebugScenarios.RunAll, steps);
         Run("Research tree", () => Require(ResearchTreeDebugScenarios.RunAll(false)), steps);
-        Run("216 research/equipment overhaul", ValidateResearchEquipmentOverhaul, steps);
+        Run("180 research/equipment overhaul", ValidateResearchEquipmentOverhaul, steps);
         Run("Branched production network", ValidateBranchedProduction, steps);
         Run("Production economy", ProductionEconomyDebugScenarios.RunAll, steps);
         Run("Industrial infrastructure", IndustrialInfrastructureDebugScenarios.RunAll, steps);

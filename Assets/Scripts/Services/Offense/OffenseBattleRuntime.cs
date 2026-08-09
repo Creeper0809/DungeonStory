@@ -705,7 +705,8 @@ public sealed class OffenseBattleRuntime :
             out CombatWeaponSnapshot weapon);
         combatant.SetCombatEquipment(
             weapon,
-            combatEquipmentRuntime.GetArmor(combatant.PersistentId));
+            combatEquipmentRuntime.GetArmor(combatant.PersistentId),
+            combatEquipmentRuntime.GetShield(combatant.PersistentId));
     }
 
     private void ConfigureBodyHealth(CharacterActor actor, OffenseBattleCombatant combatant)

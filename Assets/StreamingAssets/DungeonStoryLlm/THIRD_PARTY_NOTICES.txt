@@ -1,0 +1,7 @@
+DungeonStory local narrative development mount
+
+Model: ggml-org/Qwen3-1.7B-GGUF (Q4_K_M)
+Original model: Qwen/Qwen3-1.7B
+Inference runtime: ggml-org/llama.cpp b10331
+This is the untrained base model and is not a V25 release-certified build.
+See the upstream repositories for their complete license texts and notices.

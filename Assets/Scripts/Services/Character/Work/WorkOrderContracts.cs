@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public enum WorkOrderStatus
@@ -9,7 +10,10 @@ public enum WorkOrderStatus
     InProgress = 2,
     Blocked = 3,
     Completed = 4,
-    Cancelled = 5
+    Cancelled = 5,
+    WaitingForEligibleWorker = 6,
+    TargetCurrentlyUnreachable = 7,
+    WaitingForOutputSpace = 8
 }
 
 [Serializable]
@@ -32,6 +36,14 @@ public sealed class WorkOrderSaveData
     public float completedWork;
     public string materialDestinationId = string.Empty;
     public string reservedWorkerPersistentId = string.Empty;
+    public WorkerSelectionPolicySaveData workerPolicy =
+        WorkerSelectionPolicySaveData.Anyone();
+    public List<CraftContributionSaveData> contributions = new();
+    public CraftQualityRollSaveData qualityRoll;
+    public string qualityPipelineId = string.Empty;
+    public int qualityAttemptIndex;
+    public bool facilityRemovedForRetry;
+    public List<WorkOrderItemMaterialSaveData> recoveryOutputs = new();
     public WorkOrderStatus status = WorkOrderStatus.WaitingForMaterials;
     public List<WorkOrderItemMaterialSaveData> itemMaterials =
         new List<WorkOrderItemMaterialSaveData>();
@@ -40,11 +52,12 @@ public sealed class WorkOrderSaveData
 [Serializable]
 public sealed class DungeonWorkOrderSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 5;
 
     public int version = CurrentVersion;
     public int nextOrderSequence = 1;
     public List<WorkOrderSaveData> orders = new List<WorkOrderSaveData>();
+    public List<QualityTargetPipelineSaveData> qualityPipelines = new();
 }
 
 public sealed class WorkOrderProgressState
@@ -57,10 +70,31 @@ public sealed class WorkOrderProgressState
     public float CompletedWork { get; set; }
     public string MaterialDestinationId { get; set; }
     public string ReservedWorkerPersistentId { get; set; }
+    public WorkerSelectionPolicySaveData WorkerPolicy { get; set; }
+    public IReadOnlyList<CraftContributionSaveData> Contributions { get; set; }
+    public CraftQualityRollSaveData QualityRoll { get; set; }
+    public string QualityPipelineId { get; set; }
+    public int QualityAttemptIndex { get; set; }
     public WorkOrderStatus Status { get; set; }
     public IReadOnlyDictionary<string, int> ItemMaterialRequirements { get; set; }
     public IReadOnlyDictionary<string, int> DeliveredItemMaterials { get; set; }
     public float ProgressRatio => RequiredWork <= 0f ? 1f : Mathf.Clamp01(CompletedWork / RequiredWork);
+}
+
+public interface IWorkOrderWorkerPolicyQuery
+{
+    bool IsWorkerEligible(
+        string orderId,
+        CharacterActor actor,
+        out string failureReason);
+}
+
+public interface IWorkOrderWorkerPolicyCommand
+{
+    bool SetWorkerPolicy(
+        string orderId,
+        WorkerSelectionPolicySaveData policy,
+        out DomainFailure failure);
 }
 
 public interface IWorkOrderQuery
@@ -96,10 +130,21 @@ internal sealed class WorkOrderRecord
     public float completedWork;
     public string materialDestinationId = string.Empty;
     public string reservedWorkerPersistentId = string.Empty;
+    public WorkerSelectionPolicySaveData workerPolicy =
+        WorkerSelectionPolicySaveData.Anyone();
+    public readonly List<CraftContributionSaveData> contributions = new();
+    public CraftQualityRollSaveData qualityRoll;
+    public string qualityPipelineId = string.Empty;
+    public int qualityAttemptIndex;
+    public bool facilityRemovedForRetry;
     public WorkOrderStatus status = WorkOrderStatus.WaitingForMaterials;
     public readonly Dictionary<string, int> requiredItemMaterials =
         new Dictionary<string, int>(StringComparer.Ordinal);
     public readonly Dictionary<string, int> deliveredItemMaterials =
+        new Dictionary<string, int>(StringComparer.Ordinal);
+    public readonly Dictionary<string, int> requiredRecoveryOutputs =
+        new Dictionary<string, int>(StringComparer.Ordinal);
+    public readonly Dictionary<string, int> spawnedRecoveryOutputs =
         new Dictionary<string, int>(StringComparer.Ordinal);
 
     public WorkOrderRecord DeepClone()
@@ -114,10 +159,26 @@ internal sealed class WorkOrderRecord
             completedWork = completedWork,
             materialDestinationId = materialDestinationId,
             reservedWorkerPersistentId = reservedWorkerPersistentId,
+            workerPolicy = workerPolicy?.CloneNormalized()
+                ?? WorkerSelectionPolicySaveData.Anyone(),
+            qualityRoll = qualityRoll == null ? null : new CraftQualityRollSaveData
+            {
+                attemptIndex = qualityRoll.attemptIndex,
+                randomA = qualityRoll.randomA,
+                randomB = qualityRoll.randomB,
+                randomC = qualityRoll.randomC
+            },
+            qualityPipelineId = qualityPipelineId ?? string.Empty,
+            qualityAttemptIndex = Math.Max(0, qualityAttemptIndex),
+            facilityRemovedForRetry = facilityRemovedForRetry,
             status = status
         };
+        clone.contributions.AddRange(contributions.Select(value => value?.Clone())
+            .Where(value => value != null));
         Copy(requiredItemMaterials, clone.requiredItemMaterials);
         Copy(deliveredItemMaterials, clone.deliveredItemMaterials);
+        Copy(requiredRecoveryOutputs, clone.requiredRecoveryOutputs);
+        Copy(spawnedRecoveryOutputs, clone.spawnedRecoveryOutputs);
         return clone;
     }
 

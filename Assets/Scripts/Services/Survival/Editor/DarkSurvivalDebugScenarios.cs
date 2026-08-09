@@ -143,7 +143,7 @@ public static class DarkSurvivalDebugScenarios
 
     private static string VerifyV19V2RoundTrip()
     {
-        Require(DungeonGameSaveData.CurrentVersion == 20, "game save version is not V20");
+        Require(DungeonGameSaveData.CurrentVersion == 23, "game save version is not V23");
         DungeonGameSaveData save = new DungeonGameSaveData();
         DungeonDarkSurvivalSaveData darkSurvival = new DungeonDarkSurvivalSaveData();
         darkSurvival.characters.Add(new CharacterDeprivationState

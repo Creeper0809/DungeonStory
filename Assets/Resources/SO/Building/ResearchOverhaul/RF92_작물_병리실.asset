@@ -31,16 +31,21 @@ MonoBehaviour:
   objectName: "\uC791\uBB3C \uBCD1\uB9AC\uC2E4"
   sprite: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
   icon: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 3
+  researchFacilityCommand: 0
   abilityModules:
     items:
-    - rid: 7737211794726584817
-    - rid: 7737211794726584818
-    - rid: 7737211794726584819
-    - rid: 7737211794726584820
-    - rid: 7737211794726584821
-    - rid: 7737211794726584822
-    - rid: 7737211794726584823
-    - rid: 7737211794726584824
+    - rid: 7737211838078124847
+    - rid: 7737211838078124848
+    - rid: 7737211838078124849
+    - rid: 7737211838078124850
+    - rid: 7737211838078124851
+    - rid: 7737211838078124852
+    - rid: 7737211838078124853
+    - rid: 7737211838078124854
   width: 1
   height: 1
   layer: 1
@@ -56,12 +61,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584817
+    - rid: 7737211838078124847
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF92
-    - rid: 7737211794726584818
+    - rid: 7737211838078124848
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -69,13 +74,13 @@ MonoBehaviour:
         - research-overhaul
         - research:agriculture:crop-pathology
         - workstation:v19:crop-pathology
-    - rid: 7737211794726584819
+    - rid: 7737211838078124849
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v19:crop-pathology
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211794726584820
+    - rid: 7737211838078124850
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -83,7 +88,7 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211794726584821
+    - rid: 7737211838078124851
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -92,22 +97,22 @@ MonoBehaviour:
         maintenance: 8
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211794726584822
+    - rid: 7737211838078124852
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
         settings:
-          roles: 80
+          roles: 4096
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
-          supportedWorkTypes: 0
+          supportedWorkTypes: 32769
           disabledWhenDamaged: 1
-    - rid: 7737211794726584823
+    - rid: 7737211838078124853
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211794726584824
+    - rid: 7737211838078124854
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility

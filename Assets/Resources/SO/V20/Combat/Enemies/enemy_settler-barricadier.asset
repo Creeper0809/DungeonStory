@@ -29,8 +29,8 @@ MonoBehaviour:
   moveSpeed: 4
   equipment:
     weaponDefinitionId: weapon:spear
-    armorDefinitionId: armor:padded
-    shieldDefinitionId: 
+    armorDefinitionId: armor:gambeson
+    shieldDefinitionId: shield:wood
     ammunitionItemId: 
   abilityIds:
   - enemy-ability:shield-wall
@@ -48,7 +48,7 @@ MonoBehaviour:
   counterTags:
   - counter:destroy-cover
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   bossPhases: []
   individualGeneration:
     minimumGeneralTraits: 2

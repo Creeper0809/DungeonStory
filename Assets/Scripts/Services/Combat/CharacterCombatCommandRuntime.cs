@@ -718,7 +718,11 @@ public sealed class CharacterCombatCommandRuntime :
                 weapon,
                 gameClock,
                 worldUiHierarchy);
-            equipment.TryConsumeLoadedAmmo(weapon.InstanceId);
+            equipment.TryConsumeLoadedAmmo(
+                weapon.InstanceId,
+                CombatEquipmentRoleRules.GetAmmunitionPerAttack(
+                    weapon,
+                    profile?.fireMode ?? CombatFireMode.Aimed));
             command.attackCooldownRemaining = resolution.CalculateAttackInterval(
                 CombatRuntimeStatFactory.Create(actor, bodyHealth.GetSnapshot(actor)),
                 weapon,
@@ -762,6 +766,7 @@ public sealed class CharacterCombatCommandRuntime :
         CharacterBodyHealthSnapshot defenderBody = impactTarget.IsCharacter
             ? bodyHealth.GetSnapshot(impactTarget.Character)
             : default;
+        ConsumePoweredAttack(weapon);
         CombatAttackResult result = resolution.Resolve(new CombatAttackRequest(
             command.commandId + ":" + command.revision++,
             GetId(actor),
@@ -793,6 +798,7 @@ public sealed class CharacterCombatCommandRuntime :
             BlockCommand(command, result.FailureReason);
             return;
         }
+        ConsumePoweredDefense(impactTarget, result);
 
         CombatCommandProjectileLauncher.Launch(
             actor.transform.position,
@@ -807,7 +813,9 @@ public sealed class CharacterCombatCommandRuntime :
                 ? impactTarget.Character.transform.position
                 : impactTarget.Wildlife.transform.position,
             weapon);
-        equipment.TryConsumeLoadedAmmo(weapon.InstanceId);
+        equipment.TryConsumeLoadedAmmo(
+            weapon.InstanceId,
+            Mathf.Max(1, result.AmmunitionConsumed));
         resultApplier.Apply(
             impactTarget,
             result,
@@ -844,6 +852,7 @@ public sealed class CharacterCombatCommandRuntime :
         CharacterBodyHealthSnapshot defenderBody = target.IsCharacter
             ? bodyHealth.GetSnapshot(target.Character)
             : default;
+        ConsumePoweredAttack(weapon);
         CombatAttackResult result = resolution.Resolve(new CombatAttackRequest(
             command.commandId + ":" + command.revision++,
             GetId(actor),
@@ -870,6 +879,7 @@ public sealed class CharacterCombatCommandRuntime :
             BlockCommand(command, result.FailureReason);
             return;
         }
+        ConsumePoweredDefense(target, result);
 
         Vector3 targetWorld = target.IsCharacter
             ? target.Character.transform.position
@@ -889,6 +899,47 @@ public sealed class CharacterCombatCommandRuntime :
         command.state = CharacterCombatCommandState.Executing;
         command.status = result.Hit ? "근접 공격 명중" : "근접 공격 빗나감";
         MarkDirty();
+    }
+
+    private void ConsumePoweredAttack(CombatWeaponSnapshot weapon)
+    {
+        if (weapon != null
+            && (weapon.RoleFlags & CombatEquipmentRoleFlags.Powered) != 0
+            && !string.IsNullOrWhiteSpace(weapon.InstanceId))
+        {
+            equipment.TryConsumePower(weapon.InstanceId, 5f);
+        }
+    }
+
+    private void ConsumePoweredDefense(
+        CombatParticipantRef target,
+        CombatAttackResult result)
+    {
+        if (!target.IsCharacter)
+        {
+            return;
+        }
+
+        CombatShieldSnapshot shield = equipment.GetShield(target.Id);
+        if (shield.IsValid
+            && (shield.RoleFlags & CombatEquipmentRoleFlags.Powered) != 0)
+        {
+            equipment.TryConsumePower(shield.InstanceId, 3f);
+        }
+        if (!result.Hit)
+        {
+            return;
+        }
+
+        foreach (string instanceId in equipment.GetArmor(target.Id)
+            .Where(value =>
+                (value.RoleFlags & CombatEquipmentRoleFlags.Powered) != 0)
+            .Select(value => value.InstanceId)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.Ordinal))
+        {
+            equipment.TryConsumePower(instanceId, 2f);
+        }
     }
 
     private bool BeginReload(

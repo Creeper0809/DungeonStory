@@ -209,6 +209,103 @@ public static class ItemInstanceComponentIds
     public const string EquipmentModule = "item-state:equipment-module";
     public const string Provenance = "item-state:provenance";
     public const string SeedLot = "item-state:seed-lot";
+    public const string FiberBatch = "item-state:fiber-batch";
+    public const string Apparel = "item-state:apparel";
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public static class DurableToolItemRules
+{
+    public const string BanquetCart = "tool:banquet-cart";
+    public const string ArcaneIndex = "record:arcane-index";
+    public const string BreedingLedger = "record:breeding-ledger";
+    public const string CareerLedger = "record:career-ledger";
+    public const string SeasonalAlmanac = "book:seasonal-almanac";
+    public const string WeatherObservationKit = "tool:weather-observation-kit";
+    public const string InspectionGauge = "tool:inspection-gauge";
+    public const string PrisonerWorkKit = "tool:prisoner-work-kit";
+    public const string ReinforcedRestraint = "tool:reinforced-restraint";
+    public const string RuneIdentificationLens = "tool:rune-identification-lens";
+    public const string AdministrativeSeal = "tool:administrative-seal";
+    public const string HaulingHarness = "tool:hauling-harness";
+    public const string WatchSignalHorn = "tool:watch-signal-horn";
+
+    public static bool TryGetMaximumDurability(string itemId, out float durability)
+    {
+        durability = (itemId?.Trim() ?? string.Empty) switch
+        {
+            BanquetCart => 120f,
+            ArcaneIndex => 160f,
+            BreedingLedger => 140f,
+            CareerLedger => 140f,
+            SeasonalAlmanac => 180f,
+            WeatherObservationKit => 120f,
+            InspectionGauge => 90f,
+            PrisonerWorkKit => 100f,
+            ReinforcedRestraint => 140f,
+            RuneIdentificationLens => 80f,
+            AdministrativeSeal => 160f,
+            HaulingHarness => 120f,
+            WatchSignalHorn => 120f,
+            _ => 0f
+        };
+        return durability > 0f;
+    }
+
+    public static ItemInstanceComponentSaveData CreateDurability(
+        string itemId,
+        float current = -1f)
+    {
+        if (!TryGetMaximumDurability(itemId, out float maximum))
+        {
+            return null;
+        }
+
+        float resolvedCurrent = current < 0f
+            ? maximum
+            : Mathf.Clamp(current, 0f, maximum);
+        return new ItemInstanceComponentSaveData
+        {
+            componentTypeId = ItemInstanceComponentIds.Durability,
+            values = new List<ItemStateValueSaveData>
+            {
+                new ItemStateValueSaveData
+                {
+                    key = "current",
+                    kind = ItemStateValueKind.Decimal,
+                    decimalValue = resolvedCurrent
+                },
+                new ItemStateValueSaveData
+                {
+                    key = "maximum",
+                    kind = ItemStateValueKind.Decimal,
+                    decimalValue = maximum
+                }
+            }
+        };
+    }
+
+    public static float ReadCurrentDurability(
+        string itemId,
+        IEnumerable<ItemInstanceComponentSaveData> components)
+    {
+        TryGetMaximumDurability(itemId, out float fallback);
+        ItemInstanceComponentSaveData durability = (components
+                ?? Array.Empty<ItemInstanceComponentSaveData>())
+            .FirstOrDefault(component => component != null
+                && string.Equals(
+                    component.componentTypeId,
+                    ItemInstanceComponentIds.Durability,
+                    StringComparison.Ordinal));
+        ItemStateValueSaveData current = durability?.values?
+            .FirstOrDefault(value => value != null
+                && string.Equals(value.key, "current", StringComparison.Ordinal)
+                && value.kind == ItemStateValueKind.Decimal);
+        return Mathf.Clamp(
+            current != null ? (float)current.decimalValue : fallback,
+            0f,
+            fallback);
+    }
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

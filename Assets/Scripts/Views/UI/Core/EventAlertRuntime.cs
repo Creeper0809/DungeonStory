@@ -21,6 +21,8 @@ public class EventAlertRuntime : MonoBehaviour
     private IGameEventBus gameEventBus;
     private IDisposable requestedSubscription;
     private DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private IEventAlertChoiceActionDispatcher choiceActionDispatcher =
+        NullEventAlertChoiceActionDispatcher.Instance;
     private int projectedRestoreRevision;
 
     public IReadOnlyList<EventAlertRecord> EventLog =>
@@ -34,7 +36,8 @@ public class EventAlertRuntime : MonoBehaviour
     public void Construct(
         IEventAlertViewPresenterFactory viewPresenterFactory,
         IGameEventBus gameEventBus,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IEventAlertChoiceActionDispatcher choiceActionDispatcher)
     {
         this.viewPresenterFactory = viewPresenterFactory
             ?? throw new System.ArgumentNullException(nameof(viewPresenterFactory));
@@ -42,10 +45,22 @@ public class EventAlertRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.choiceActionDispatcher = choiceActionDispatcher
+            ?? throw new ArgumentNullException(nameof(choiceActionDispatcher));
         projectedRestoreRevision = this.aggregateRootStore.PublishedRestoreRevision;
         SubscribeToScopedEvents();
         RebuildPresentationFromState();
     }
+
+    public void Construct(
+        IEventAlertViewPresenterFactory viewPresenterFactory,
+        IGameEventBus gameEventBus,
+        DungeonRuntimeAggregateRootStore aggregateRootStore) =>
+        Construct(
+            viewPresenterFactory,
+            gameEventBus,
+            aggregateRootStore,
+            NullEventAlertChoiceActionDispatcher.Instance);
 
     public void OnTriggerEvent(EventAlertRequestedEvent eventType)
     {
@@ -66,7 +81,10 @@ public class EventAlertRuntime : MonoBehaviour
         }
         else
         {
-            record.Increment();
+            if (string.IsNullOrWhiteSpace(record.SourceId))
+            {
+                record.Increment();
+            }
             if (state.DismissedRecordIds.Remove(record.Id))
             {
                 CreateButton(record);
@@ -128,10 +146,24 @@ public class EventAlertRuntime : MonoBehaviour
 
     public bool ExecuteChoice(int index)
     {
-        if (!selectionState.ExecuteChoice(index))
+        if (!selectionState.TryGetChoice(index, out EventAlertChoice choice))
         {
             return false;
         }
+
+
+        EventAlertRecord selected = selectionState.SelectedRecord;
+        if (!string.IsNullOrWhiteSpace(choice.ActionId))
+        {
+            if (!choiceActionDispatcher.TryDispatch(choice.ActionId, out _))
+            {
+                return false;
+            }
+
+            return Dismiss(selected);
+        }
+
+        choice.Callback?.Invoke();
 
         CloseDetail();
         return true;
@@ -178,7 +210,11 @@ public class EventAlertRuntime : MonoBehaviour
                 snapshot.Importance,
                 snapshot.Category,
                 snapshot.Count,
-                snapshot.Choices.Select(choice => new EventAlertChoice(choice.Label, choice.Description)));
+                snapshot.Choices.Select(choice => new EventAlertChoice(
+                    choice.Label,
+                    choice.Description,
+                    choice.ActionId)),
+                snapshot.SourceId);
             restored.Records.Add(record);
             restored.NextId = Math.Max(restored.NextId, record.Id + 1);
             if (snapshot.IsDismissed)

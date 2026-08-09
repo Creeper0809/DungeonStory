@@ -11,6 +11,7 @@ public static class V19LifeSimulationDebugScenarios
     {
         VerifyLifeStageBoundaries();
         VerifyDailyAgingRates();
+        VerifyFertilityTreatmentPersistenceAndEffects();
         (double meanAfterElder, int medianAfterElder) =
             SimulateUntreatedPopulation();
 
@@ -94,6 +95,58 @@ public static class V19LifeSimulationDebugScenarios
         Require(
             minor.BiologicalAgeDayUnits == orc.AdultAgeDayUnits + 6d,
             "An adult did not age exactly six biological day units.");
+    }
+
+    private static void VerifyFertilityTreatmentPersistenceAndEffects()
+    {
+        ReproductionDefinition definition = new(
+            new CharacterSpeciesId("Orc"),
+            ReproductionMode.Pregnancy,
+            0.5f,
+            10f,
+            32f,
+            new[]
+            {
+                new ReproductionPhaseDefinition
+                {
+                    phase = ReproductionPhaseKind.Attempt,
+                    durationDays = 1
+                },
+                new ReproductionPhaseDefinition
+                {
+                    phase = ReproductionPhaseKind.Pregnancy,
+                    durationDays = 2
+                }
+            });
+        ReproductionProcess source = new(
+            "reproduction:qa:fertility-treatment",
+            new CharacterId("character:qa:first-parent"),
+            new CharacterId("character:qa:second-parent"),
+            new CharacterId("character:qa:first-parent"),
+            definition.SpeciesId,
+            definition,
+            1,
+            crossLineageIncubatorUsed: false,
+            supportFacilityInstanceId: "facility:qa:maternity",
+            expressedTraitIds: Array.Empty<string>(),
+            latentTraitIds: Array.Empty<string>(),
+            aptitudes: Array.Empty<InnateAptitudeSaveData>(),
+            startActive: false,
+            fertilityTreatmentUsed: false);
+        source.SelectFertilityTreatment(useTreatment: true);
+        ReproductionProcess restored = ReproductionProcess.Restore(
+            source.Capture(),
+            definition);
+        Require(restored.FertilityTreatmentUsed,
+            "Fertility-treatment usage did not round-trip with the reproduction process.");
+        Require(Math.Abs(
+                ReproductionRules.ApplyFertilityTreatmentToCoefficient(0.5f, true)
+                - 0.6f) < 0.0001f,
+            "Fertility treatment did not increase conception coefficient by 20%.");
+        Require(Math.Abs(
+                ReproductionRules.ApplyFertilityTreatmentToGestationStability(1f, true)
+                - 1.15f) < 0.0001f,
+            "Fertility treatment did not increase gestation stability by 15%.");
     }
 
     private static (double Mean, int Median) SimulateUntreatedPopulation()

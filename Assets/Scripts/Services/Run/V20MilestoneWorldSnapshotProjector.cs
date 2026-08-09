@@ -3,7 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public sealed class V20MilestoneWorldSnapshotProjector
+public interface IV20MilestoneWorldSnapshotQuery
+{
+    IReadOnlyList<CharacterActor> LivingCharacters { get; }
+    RunMilestoneEvaluationSnapshot Build(int absoluteDay);
+}
+
+public sealed class V20MilestoneWorldSnapshotProjector :
+    IV20MilestoneWorldSnapshotQuery
 {
     private readonly ICharacterWorldQuery characters;
     private readonly IBuildingWorldQuery buildings;

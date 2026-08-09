@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 70
   features:
-  - rid: 7737211674039681069
-  - rid: 7737211674039681070
-  - rid: 7737211674039681071
+  - rid: 7737211838068949970
+  - rid: 7737211838068949971
+  - rid: 7737211838068949972
   references:
     version: 2
     RefIds:
-    - rid: 7737211674039681069
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949970
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:metallurgy:blacksteel
-    - rid: 7737211674039681070
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949971
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 1536
         sharedIntermediate: 1
-    - rid: 7737211674039681071
-      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949972
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

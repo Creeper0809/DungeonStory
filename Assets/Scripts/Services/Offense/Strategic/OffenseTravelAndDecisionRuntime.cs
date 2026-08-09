@@ -296,18 +296,25 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
     private readonly IOffenseWorldSimulation world;
     private readonly IOffenseReturnSafetyRuntime returnSafety;
     private readonly IOffenseFieldMedicalRuntime fieldMedical;
+    private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
+    private readonly IFacilityCapabilityQuery facilities;
     private Dictionary<string, OffenseTravelStateData> states =
         new Dictionary<string, OffenseTravelStateData>(StringComparer.Ordinal);
 
     public OffenseTravelRuntime(
         IOffenseWorldSimulation world,
         IOffenseReturnSafetyRuntime returnSafety,
-        IOffenseFieldMedicalRuntime fieldMedical)
+        IOffenseFieldMedicalRuntime fieldMedical,
+        IMilestoneGameplayModifierQuery milestoneModifiers = null,
+        IFacilityCapabilityQuery facilities = null)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.returnSafety = returnSafety
             ?? throw new ArgumentNullException(nameof(returnSafety));
         this.fieldMedical = fieldMedical;
+        this.milestoneModifiers = milestoneModifiers
+            ?? NeutralMilestoneGameplayModifierQuery.Instance;
+        this.facilities = facilities;
     }
 
     public IReadOnlyCollection<OffenseTravelStateData> ActiveTravel =>
@@ -558,7 +565,13 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
             state.movementTimeMultiplier = fieldMedical?.GetMovementTimeMultiplier(
                     expeditionId)
                 ?? Mathf.Max(1f, state.movementTimeMultiplier);
-            float stepSeconds = 2.5f * Mathf.Max(1f, state.movementTimeMultiplier);
+            float stepSeconds = 2.5f
+                * Mathf.Max(1f, state.movementTimeMultiplier)
+                * Mathf.Clamp(
+                    milestoneModifiers.ExpeditionTravelTimeMultiplier,
+                    0.1f,
+                    1f)
+                * FacilityTravelMultiplier();
             state.progressToNextTile += elapsed;
             if (state.progressToNextTile < stepSeconds)
             {
@@ -572,6 +585,26 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
                 out _,
                 out _);
         }
+    }
+
+    private float FacilityTravelMultiplier()
+    {
+        if (facilities == null)
+        {
+            return 1f;
+        }
+        float multiplier = 1f;
+        if (facilities.FindOperational(
+                ResearchFacilityCommandKind.ClimateMapping).Count > 0)
+        {
+            multiplier *= 0.95f;
+        }
+        if (facilities.FindOperational(
+                ResearchFacilityCommandKind.ChronometricNavigation).Count > 0)
+        {
+            multiplier *= 0.95f;
+        }
+        return multiplier;
     }
 
     public IReadOnlyList<OffenseTravelStateData> Capture()

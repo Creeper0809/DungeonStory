@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa401bda1083a0a49abbc7ea825b25a0, type: 3}
+  m_Name: W28_BlacksteelPoleaxe
+  m_EditorClassIdentifier: DungeonStory.Economy::CombatWeaponSO
+  equipmentId: weapon:blacksteel-poleaxe
+  displayName: "\uD751\uAC15 \uD3F4\uC561\uC2A4"
+  description: "\uD751\uAC15 \uD3F4\uC561\uC2A4 \uC804\uD22C \uC7A5\uBE44"
+  itemId: equipment-item:weapon:blacksteel-poleaxe
+  weight: 6.8
+  occupiedHands: 2
+  maxDurability: 100
+  requiredCraftWork: 312
+  defaultMaterialId: material:iron
+  primaryMaterialAmount: 6
+  allowedMaterialFamilies: 03000000
+  craftMaterials: []
+  requiredComponentInputs:
+  - itemId: component:growth-frame
+    amount: 1
+  - itemId: material:blacksteel-ingot
+    amount: 2
+  - itemId: material:spring-steel
+    amount: 1
+  requiredResearchId: research:industry:dark-foundry
+  era: 4
+  tier: 4
+  slotProfile: 4
+  lineageKind: 0
+  growthEquipment: 1
+  growthBaseStatMultiplier: 0.88
+  verbs:
+  - rid: 7737211838079696924
+  rangeProfiles:
+  - band: 0
+    accuracyMultiplier: 0.94
+    damageMultiplier: 1.38
+  maximumRange: 2
+  compatibleAmmunitionItemIds: []
+  magazineCapacity: 0
+  reloadSeconds: 0
+  supportsAimed: 1
+  supportsRapid: 0
+  supportsSuppressive: 0
+  gunpowderWeapon: 0
+  maximumMisfireChance: 0
+  smokeExposure: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211838079696924
+      type: {class: MeleeStrikeVerb, ns: , asm: DungeonStory.Combat}
+      data:
+        attackTime: 1.45
+        baseDamage: 34
+        penetration: 35
+        damageType: 1
+        tracking: 0.025

@@ -79,7 +79,8 @@ public static class WorkTypeCatalog
         Definition(BuiltInWorkTypeIds.AnimalCare, "동물 돌봄", 115, WorkPriorityLevel.Priority2, "husbandry:care"),
         Definition(BuiltInWorkTypeIds.GrandProject, "대형 사업", 116, WorkPriorityLevel.Priority2, "economy:grand-project"),
         Definition(BuiltInWorkTypeIds.ThreatMitigation, "위협 완화", 117, WorkPriorityLevel.Priority1, "offense:threat-mitigation"),
-        Definition(BuiltInWorkTypeIds.Plumbing, "배관", 118, WorkPriorityLevel.Priority2, "infrastructure:plumbing")
+        Definition(BuiltInWorkTypeIds.Plumbing, "배관", 118, WorkPriorityLevel.Priority2, "infrastructure:plumbing"),
+        Definition(BuiltInWorkTypeIds.Dismantle, "시설 해체", 119, WorkPriorityLevel.Priority2, "building:dismantle")
     };
 
     public static IReadOnlyList<WorkTypeDefinition> All => Definitions;

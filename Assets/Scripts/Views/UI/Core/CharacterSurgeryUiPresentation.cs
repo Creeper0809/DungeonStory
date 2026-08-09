@@ -223,7 +223,7 @@ public static class CharacterSurgeryUiText
         SurgeryUiCommandResult result)
     {
         return result.Succeeded
-            ? $"수술을 예약했습니다.\n주문: {result.OrderId}"
+            ? "수술을 예약했습니다. 환자 입실과 재료 운반을 시작합니다."
             : LocalizeFailure(result.Failure);
     }
 

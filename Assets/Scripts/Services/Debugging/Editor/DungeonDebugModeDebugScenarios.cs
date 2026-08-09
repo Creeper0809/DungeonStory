@@ -7,12 +7,12 @@ using UnityEngine;
 
 public static class DungeonDebugModeDebugScenarios
 {
-    [MenuItem("DungeonStory/Debug/Developer Mode/Run EditMode Scenarios")]
+    [MenuItem("DungeonStory/Debug/Debug Mode/Run EditMode Scenarios")]
     public static void RunFromMenu()
     {
         if (!RunAll(logSuccess: true))
         {
-            Debug.LogError("Developer mode EditMode scenarios failed.");
+            Debug.LogError("Debug Mode EditMode scenarios failed.");
         }
     }
 
@@ -20,6 +20,8 @@ public static class DungeonDebugModeDebugScenarios
     {
         List<string> failures = new List<string>();
         Verify("settings v1 migration defaults developer mode off", VerifySettingsMigration, failures);
+        Verify("player copy hides stable ids until debug mode", VerifyPlayerCopyProjection, failures);
+        Verify("quality and worker policies use player labels", VerifyGameplayPolicyLabels, failures);
         Verify("run history is capped and save-safe", VerifyHistoryAndTransientReset, failures);
         Verify("debug rules are isolated per runtime scope", VerifyScopedRuleIsolation, failures);
         Verify("target contracts reject approximate selections", VerifyExactTargetContracts, failures);
@@ -32,7 +34,7 @@ public static class DungeonDebugModeDebugScenarios
 
         if (failures.Count == 0 && logSuccess)
         {
-            Debug.Log("Developer mode EditMode scenarios passed.");
+            Debug.Log("Debug Mode EditMode scenarios passed.");
         }
 
         return failures.Count == 0;
@@ -109,6 +111,42 @@ public static class DungeonDebugModeDebugScenarios
             && !empty.Matches(DungeonDebugTargetKind.ItemPile)
             && cell.Matches(DungeonDebugTargetKind.GridCell)
             && !cell.Matches(DungeonDebugTargetKind.Wildlife);
+    }
+
+    private static bool VerifyPlayerCopyProjection()
+    {
+        const string orderId = "apparel-order:scenario:17";
+        string normal = GameplayUiPresentationText.OrderCreated(orderId, false);
+        string debug = GameplayUiPresentationText.OrderCreated(orderId, true);
+        return !normal.Contains(orderId, StringComparison.Ordinal)
+            && !normal.Contains("DEBUG", StringComparison.Ordinal)
+            && debug.Contains(orderId, StringComparison.Ordinal)
+            && debug.Contains("DEBUG", StringComparison.Ordinal);
+    }
+
+    private static bool VerifyGameplayPolicyLabels()
+    {
+        WorkerSelectionPolicySaveData policy = new()
+        {
+            mode = WorkerSelectionMode.RuleSet,
+            matchMode = WorkerRequirementMatchMode.All,
+            sortMode = WorkerCandidateSortMode.BestExpectedQuality,
+            statRequirements = new List<WorkerStatRequirementSaveData>
+            {
+                new()
+                {
+                    statType = (int)CharacterStatType.Dexterity,
+                    minimumValue = 7
+                }
+            }
+        };
+        string worker = GameplayUiPresentationText.WorkerPolicy(policy);
+        return GameplayUiPresentationText.Quality(CraftsmanshipQualityTier.Masterwork)
+                == "명품"
+            && GameplayUiPresentationText.RejectedOutput(
+                RejectedOutputDisposition.AutoDismantle) == "불합격품 자동 분해"
+            && worker.Contains("민첩 7+", StringComparison.Ordinal)
+            && !worker.Contains(nameof(WorkerSelectionMode.RuleSet), StringComparison.Ordinal);
     }
 
     private static bool VerifyScopedRuleIsolation()

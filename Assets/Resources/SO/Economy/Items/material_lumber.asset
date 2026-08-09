@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 6
   features:
-  - rid: 7737211674039681091
-  - rid: 7737211674039681092
-  - rid: 7737211674039681093
+  - rid: 7737211838068949394
+  - rid: 7737211838068949395
+  - rid: 7737211838068949396
   references:
     version: 2
     RefIds:
-    - rid: 7737211674039681091
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949394
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:forestry:sawmill
-    - rid: 7737211674039681092
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949395
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 256
         sharedIntermediate: 1
-    - rid: 7737211674039681093
-      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949396
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

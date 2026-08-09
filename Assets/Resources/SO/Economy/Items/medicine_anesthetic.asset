@@ -32,29 +32,29 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 24
   features:
-  - rid: 7737211673962611605
-  - rid: 7737211673962611606
-  - rid: 7737211673962611607
-  - rid: 7737211673962611608
+  - rid: 7737211838068949679
+  - rid: 7737211838068949680
+  - rid: 7737211838068949681
+  - rid: 7737211838068949682
   references:
     version: 2
     RefIds:
-    - rid: 7737211673962611605
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949679
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:anesthesia
-    - rid: 7737211673962611606
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949680
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211673962611607
-      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949681
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6
-    - rid: 7737211673962611608
-      type: {class: MedicineItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949682
+      type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 0
         treatmentPotency: 0.75

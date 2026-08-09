@@ -174,10 +174,11 @@ public sealed class WildlifeFoodRaidOrderSaveData
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonWildlifeSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     public int version = CurrentVersion;
     public int nextSequence = 1;
+    public int lastDiseaseVectorAbsoluteDay;
     public List<WildlifeSaveData> wildlife = new List<WildlifeSaveData>();
     public List<WildlifeCarcassFreshnessSaveData> carcasses =
         new List<WildlifeCarcassFreshnessSaveData>();

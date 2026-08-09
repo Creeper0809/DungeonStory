@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 60
   features:
-  - rid: 7737211674039681237
-  - rid: 7737211674039681238
-  - rid: 7737211674039681239
+  - rid: 7737211838068949700
+  - rid: 7737211838068949701
+  - rid: 7737211838068949702
   references:
     version: 2
     RefIds:
-    - rid: 7737211674039681237
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949700
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:metallurgy:precious
-    - rid: 7737211674039681238
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949701
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 512
         sharedIntermediate: 1
-    - rid: 7737211674039681239
-      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949702
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: "V3I96_\uC885\uC871_\uC7A5\uB840_\uC900\uBE44\uD488"
+  m_EditorClassIdentifier: DungeonStory.Economy::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8996
+  itemId: supply:funeral-preparation-kit
+  displayName: "\uC885\uC871 \uC7A5\uB840 \uC900\uBE44\uD488"
+  description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC885\uC871 \uC7A5\uB840
+    \uC900\uBE44\uD488."
+  stockCategory: 1
+  unitWeight: 3.1
+  maxStack: 50
+  sprite: {fileID: 0}
+  unitPrice: 202
+  features:
+  - rid: 7737211838078124771
+  - rid: 7737211838078124772
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211838078124771
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        requiredResearchId: research:society:corpse-care
+    - rid: 7737211838078124772
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        kind: 8
+        ingredientTags: 128
+        sharedIntermediate: 0

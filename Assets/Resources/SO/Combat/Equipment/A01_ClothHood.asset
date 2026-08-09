@@ -19,7 +19,7 @@ MonoBehaviour:
   weight: 0.4
   occupiedHands: 0
   maxDurability: 120
-  requiredCraftWork: 6
+  requiredCraftWork: 52
   defaultMaterialId: material:cloth
   primaryMaterialAmount: 1
   allowedMaterialFamilies: 0400000005000000

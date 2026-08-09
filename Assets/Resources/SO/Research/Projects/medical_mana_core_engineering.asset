@@ -29,14 +29,8 @@ MonoBehaviour:
   field: 14
   requiredWork: 252
   prerequisites:
-  - {fileID: 11400000, guid: 56ffa2cea97e51048b951d004cec9b2b, type: 2}
   - {fileID: 11400000, guid: 35b0271bac2979541bcef9f4a1014dc3, type: 2}
   prerequisiteLinks:
-  - prerequisiteId: research:arcane:resonance
-    prerequisite: {fileID: 11400000, guid: 56ffa2cea97e51048b951d004cec9b2b, type: 2}
-    kind: 0
-    reason: "\uBE44\uC804 \uACF5\uBA85\uC758 \uC774\uB860\uC774(\uAC00) \uB9C8\uD575
-      \uACF5\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   - prerequisiteId: research:medical:aberrant-augmentation
     prerequisite: {fileID: 11400000, guid: 35b0271bac2979541bcef9f4a1014dc3, type: 2}
     kind: 2

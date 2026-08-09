@@ -28,8 +28,8 @@ MonoBehaviour:
   dexterity: 14
   moveSpeed: 4
   equipment:
-    weaponDefinitionId: weapon:rune-staff
-    armorDefinitionId: armor:powered-plate
+    weaponDefinitionId: weapon:mana-lance
+    armorDefinitionId: armor:powered-harness
     shieldDefinitionId: 
     ammunitionItemId: 
   abilityIds:
@@ -50,7 +50,7 @@ MonoBehaviour:
   counterTags:
   - counter:mixed-tactics
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   bossPhases:
   - healthThreshold: 0.5
     abilityIds:

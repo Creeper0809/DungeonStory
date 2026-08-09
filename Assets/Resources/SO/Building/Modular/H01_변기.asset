@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uBCC0\uAE30"
   sprite: {fileID: 21300000, guid: 646661d4b2dd10642b5c9f209a01f520, type: 3}
   icon: {fileID: 21300000, guid: 646661d4b2dd10642b5c9f209a01f520, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730538791653
@@ -41,8 +46,8 @@ MonoBehaviour:
     - rid: 7737211730538791658
     - rid: 7737211730538791659
     - rid: 7737211730538791660
-    - rid: 7737211792661414732
-    - rid: 7737211792661414733
+    - rid: 7737211838074978327
+    - rid: 7737211838074978328
   width: 1
   height: 1
   layer: 1
@@ -127,14 +132,14 @@ MonoBehaviour:
       data:
         abilityId: BuildingCleaningAbility
         restoredCleanliness: 100
-    - rid: 7737211792661414732
+    - rid: 7737211838074978327
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737211792661414733
+    - rid: 7737211838074978328
       type: {class: BuildingWaterFixtureAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWaterFixtureAbility

@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uAC04\uC774\uD654\uB355"
   sprite: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
   icon: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730538791823
@@ -44,11 +49,11 @@ MonoBehaviour:
     - rid: 7737211730538791831
     - rid: 7737211730538791832
     - rid: 7737211730538791833
-    - rid: 7737211792661414896
-    - rid: 7737211792661414897
-    - rid: 7737211792661414898
-    - rid: 7737211792661414899
-    - rid: 7737211792661414900
+    - rid: 7737211838074978438
+    - rid: 7737211838074978439
+    - rid: 7737211838074978440
+    - rid: 7737211838074978441
+    - rid: 7737211838074978442
   width: 1
   height: 1
   layer: 1
@@ -157,14 +162,14 @@ MonoBehaviour:
         roomTemperatureOffset: 4
         coldProtection: 6
         heatProtection: 1
-    - rid: 7737211792661414896
+    - rid: 7737211838074978438
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7737211792661414897
+    - rid: 7737211838074978439
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -175,21 +180,21 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7737211792661414898
+    - rid: 7737211838074978440
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7737211792661414899
+    - rid: 7737211838074978441
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 7
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7737211792661414900
+    - rid: 7737211838074978442
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility

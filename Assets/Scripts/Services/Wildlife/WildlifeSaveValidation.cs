@@ -36,6 +36,10 @@ internal static class WildlifeSaveValidation
         {
             report.AddError("Wildlife next sequence must be positive.");
         }
+        if (payload.lastDiseaseVectorAbsoluteDay < 0)
+        {
+            report.AddError("Wildlife disease-vector day cannot be negative.");
+        }
 
         if (payload.wildlife == null
             || payload.carcasses == null

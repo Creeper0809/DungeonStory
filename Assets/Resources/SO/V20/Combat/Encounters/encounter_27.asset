@@ -30,18 +30,19 @@ MonoBehaviour:
   elite: 0
   boss: 0
   objective: 2
-  objectiveRoundLimit: 6
+  objectiveRoundLimit: 7
   objectiveTargetId: target:field-medic
   battlefieldModifierIds:
   - battlefield:elevated-gallery
   counterTags:
+  - counter:anti-air
   - counter:dispel
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
   - enemyArchetypeId: enemy:rival-pactbinder
     minimumCount: 1
     maximumCount: 2
-  - enemyArchetypeId: enemy:neutral-mercenary
+  - enemyArchetypeId: enemy:rival-packbreaker
     minimumCount: 1
     maximumCount: 2

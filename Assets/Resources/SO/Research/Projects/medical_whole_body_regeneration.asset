@@ -30,7 +30,6 @@ MonoBehaviour:
   requiredWork: 12000
   prerequisites:
   - {fileID: 11400000, guid: e483b33cb8ad49840b70380b88e2efc1, type: 2}
-  - {fileID: 11400000, guid: cba480f7439733e4c84f154fc71b1085, type: 2}
   - {fileID: 11400000, guid: 605d2f26eb52060489dec987c76054f1, type: 2}
   - {fileID: 11400000, guid: 7b52a6635613de84cacb3b29226f032e, type: 2}
   prerequisiteLinks:
@@ -38,11 +37,6 @@ MonoBehaviour:
     prerequisite: {fileID: 11400000, guid: e483b33cb8ad49840b70380b88e2efc1, type: 2}
     kind: 2
     reason: "\uD608\uC561 \uD68C\uCD98\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
-      \uC804\uC2E0 \uC7AC\uC0DD \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
-  - prerequisiteId: research:medical:organ-regeneration
-    prerequisite: {fileID: 11400000, guid: cba480f7439733e4c84f154fc71b1085, type: 2}
-    kind: 2
-    reason: "\uC7A5\uAE30 \uC7AC\uC0DD\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
       \uC804\uC2E0 \uC7AC\uC0DD \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   - prerequisiteId: research:medical:rune-hibernation
     prerequisite: {fileID: 11400000, guid: 605d2f26eb52060489dec987c76054f1, type: 2}
@@ -58,7 +52,7 @@ MonoBehaviour:
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211792998531755
+    - rid: 7737211838079697145
   facilityRequirements:
   - capability: 0
     requiredCount: 1
@@ -70,7 +64,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211792998531755
+    - rid: 7737211838079697145
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 8871

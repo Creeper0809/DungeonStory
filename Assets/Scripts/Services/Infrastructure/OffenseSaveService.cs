@@ -75,6 +75,7 @@ public sealed class DungeonOffenseExpeditionRunSaveData
         new List<DungeonOffenseExpeditionMemberStateSaveData>();
     public List<DungeonOffenseStockRewardSaveData> carriedStock =
         new List<DungeonOffenseStockRewardSaveData>();
+    public List<string> recoveredEquipmentInstanceIds = new List<string>();
     public int supplyCapacity;
     public float startingLight;
     public float campHealRatio;
@@ -364,6 +365,8 @@ public sealed class OffenseSaveService : IOffenseSaveService
                 light,
                 completedNodes,
                 carriedStock);
+            restoredRun.RestoreRecoveredEquipment(
+                savedRun.recoveredEquipmentInstanceIds);
             restoredRun.RestoreFieldFunds(
                 savedRun.fieldFunds,
                 savedRun.fieldFundsReturned);
@@ -540,6 +543,9 @@ public sealed class OffenseSaveService : IOffenseSaveService
                     category = pair.Key,
                     amount = pair.Value
                 })
+                .ToList(),
+            recoveredEquipmentInstanceIds = expedition.RecoveredEquipmentInstanceIds
+                .OrderBy(value => value, StringComparer.Ordinal)
                 .ToList(),
             supplyCapacity = expedition.Preparation.SupplyCapacity,
             startingLight = expedition.Preparation.StartingLight,

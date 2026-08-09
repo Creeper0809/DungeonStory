@@ -34,13 +34,15 @@ MonoBehaviour:
   battlefieldModifierIds:
   - battlefield:collapsing-ceiling
   counterTags:
+  - counter:mobile
   - counter:focus-support
+  - counter:nonlethal
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
   - enemyArchetypeId: enemy:settler-herbalist
     minimumCount: 1
     maximumCount: 1
-  - enemyArchetypeId: enemy:truth-sealkeeper
+  - enemyArchetypeId: enemy:settler-barricadier
     minimumCount: 1
     maximumCount: 2

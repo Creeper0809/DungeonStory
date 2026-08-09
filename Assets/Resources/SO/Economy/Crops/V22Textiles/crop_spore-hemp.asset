@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a00dd16ef9aaab44b6e51a3f9da8394, type: 3}
+  m_Name: crop_spore-hemp
+  m_EditorClassIdentifier: DungeonStory.Economy::CropDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9354
+  cropId: crop:spore-hemp
+  displayName: "\uD3EC\uC790 \uC0BC"
+  harvestItemId: fiber:spore-hemp
+  seedItemId: seed-lot:spore-hemp
+  baseGenome: {fileID: 11400000, guid: 88121a49367c5a24bb2aac6bbc139e93, type: 2}
+  familyGroup: 1
+  endemicDisease: 1
+  requiredResearchId: research:textile:fiber
+  growthHours: 108
+  sowWork: 4
+  harvestWork: 7
+  dailyWater: 0.5
+  yield: 6
+  indoorAllowed: 1
+  temperatureRange: {x: 6, y: 30}

@@ -32,7 +32,7 @@ MonoBehaviour:
   batchSupportTag: 
   processKind: 0
   workTypeId: work:craft
-  requiredResearchId: research:industry:maintenance
+  requiredResearchId: research:industry:breakers
   requiredWork: 26
   preparationWork: 0
   finishingWork: 0

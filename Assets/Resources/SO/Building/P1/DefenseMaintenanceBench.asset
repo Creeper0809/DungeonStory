@@ -31,14 +31,19 @@ MonoBehaviour:
   objectName: "\uD568\uC815 \uC815\uBE44\uB300"
   sprite: {fileID: 21300000, guid: 68d3bc636cc832648b4d2b07c0bd12a0, type: 3}
   icon: {fileID: 21300000, guid: 68d3bc636cc832648b4d2b07c0bd12a0, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 8800000000000001803
     - rid: 7302563312817144280
     - rid: 7302563312817144283
     - rid: 7302563313672520644
-    - rid: 7737211792998531642
-    - rid: 7737211792998531643
+    - rid: 7737211838074979135
+    - rid: 7737211838074979136
   width: 2
   height: 1
   layer: 1
@@ -75,7 +80,7 @@ MonoBehaviour:
         category: 1
         capacity: 12
         allCategories: 0
-    - rid: 7737211792998531642
+    - rid: 7737211838074979135
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -86,7 +91,7 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 4
           disabledWhenDamaged: 1
-    - rid: 7737211792998531643
+    - rid: 7737211838074979136
       type: {class: BuildingDefenseAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingDefenseAbility

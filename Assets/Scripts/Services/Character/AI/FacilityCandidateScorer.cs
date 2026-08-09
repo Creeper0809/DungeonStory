@@ -532,6 +532,10 @@ public static class FacilityCandidateScorer
         float noveltyScore = GetNoveltyScore(actor, building);
         float reputationBias = GetReputationBias(actor, building, scoringContext);
         float roomScore = scoringContext.GetRoomUtilityScore(building, matchedRole);
+        float cultureBias = scoringContext.GetCulturePreferenceBias(
+            actor,
+            building,
+            matchedRole);
         float facilityStateScore = GetFacilityStateScore(building);
         float memoryScore = actor != null && actor.AiMemory != null
             ? actor.AiMemory.GetFacilityMemoryScore(building)
@@ -567,6 +571,7 @@ public static class FacilityCandidateScorer
             + pathScore * 0.03f
             + fatigueScore * 0.02f
             + scheduleScore * 0.02f
+            + cultureBias
             + reputationBias;
 
         float finalScore = ApplySpeciesAffinityBias(score, speciesAffinityBias);

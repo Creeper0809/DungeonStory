@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa401bda1083a0a49abbc7ea825b25a0, type: 3}
+  m_Name: W27_PoweredStrikingGauntlet
+  m_EditorClassIdentifier: DungeonStory.Economy::CombatWeaponSO
+  equipmentId: weapon:powered-striking-gauntlet
+  displayName: "\uB3D9\uB825 \uD0C0\uACA9\uC7A5\uAC11"
+  description: "\uB3D9\uB825 \uD0C0\uACA9\uC7A5\uAC11 \uC804\uD22C \uC7A5\uBE44"
+  itemId: equipment-item:weapon:powered-striking-gauntlet
+  weight: 7.2
+  occupiedHands: 1
+  maxDurability: 100
+  requiredCraftWork: 296
+  defaultMaterialId: material:iron
+  primaryMaterialAmount: 6
+  allowedMaterialFamilies: 03000000
+  craftMaterials: []
+  requiredComponentInputs:
+  - itemId: material:plate-blank
+    amount: 1
+  - itemId: component:machine-parts
+    amount: 2
+  requiredResearchId: research:equipment:powered-armor
+  era: 4
+  tier: 4
+  slotProfile: 1
+  lineageKind: 0
+  growthEquipment: 0
+  growthBaseStatMultiplier: 1
+  verbs:
+  - rid: 7737211838079696923
+  rangeProfiles:
+  - band: 0
+    accuracyMultiplier: 1.05
+    damageMultiplier: 1.42
+  maximumRange: 1
+  compatibleAmmunitionItemIds: []
+  magazineCapacity: 0
+  reloadSeconds: 0
+  supportsAimed: 1
+  supportsRapid: 0
+  supportsSuppressive: 0
+  gunpowderWeapon: 0
+  maximumMisfireChance: 0
+  smokeExposure: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211838079696923
+      type: {class: MeleeStrikeVerb, ns: , asm: DungeonStory.Combat}
+      data:
+        attackTime: 1.6
+        baseDamage: 32
+        penetration: 28
+        damageType: 2
+        tracking: 0.025

@@ -268,6 +268,20 @@ public sealed class ProductionBuildingPanelPresenter :
                     refresh?.Invoke();
                 });
 
+            ProductionBuildingViewFactory.AddButton(
+                actions.transform,
+                FormatWorkerPolicy(bill.WorkerPolicy),
+                font,
+                false,
+                () => ApplyResult(
+                    billCommands.SetWorkerPolicy(
+                        bill.BillId,
+                        NextWorkerPolicy(bill.WorkerPolicy)),
+                    facilityKey,
+                    showFeedback,
+                    refresh),
+                $"ProductionWorkerPolicy_{index}");
+
             GameObject modes = ProductionBuildingViewFactory.CreateRow(
                 parent,
                 $"ProductionBillModes_{index}",
@@ -395,6 +409,50 @@ public sealed class ProductionBuildingPanelPresenter :
         }
 
         return created;
+    }
+
+    private static string FormatWorkerPolicy(
+        WorkerSelectionPolicySaveData policy)
+    {
+        WorkerSelectionPolicySaveData normalized = policy?.CloneNormalized()
+            ?? WorkerSelectionPolicySaveData.Anyone();
+        if (normalized.mode == WorkerSelectionMode.RuleSet)
+            return "작업자: 민첩 7+";
+        return normalized.sortMode == WorkerCandidateSortMode.BestExpectedQuality
+            ? "작업자: 품질 우선"
+            : "작업자: 속도 우선";
+    }
+
+    private static WorkerSelectionPolicySaveData NextWorkerPolicy(
+        WorkerSelectionPolicySaveData policy)
+    {
+        WorkerSelectionPolicySaveData normalized = policy?.CloneNormalized()
+            ?? WorkerSelectionPolicySaveData.Anyone();
+        if (normalized.mode == WorkerSelectionMode.Anyone
+            && normalized.sortMode == WorkerCandidateSortMode.Fastest)
+        {
+            return WorkerSelectionPolicySaveData.Anyone(
+                WorkerCandidateSortMode.BestExpectedQuality);
+        }
+        if (normalized.mode == WorkerSelectionMode.Anyone)
+        {
+            return new WorkerSelectionPolicySaveData
+            {
+                mode = WorkerSelectionMode.RuleSet,
+                matchMode = WorkerRequirementMatchMode.All,
+                sortMode = WorkerCandidateSortMode.BestExpectedQuality,
+                statRequirements = new List<WorkerStatRequirementSaveData>
+                {
+                    new()
+                    {
+                        statType = (int)CharacterStatType.Dexterity,
+                        minimumValue = 7
+                    }
+                }
+            };
+        }
+        return WorkerSelectionPolicySaveData.Anyone(
+            WorkerCandidateSortMode.Fastest);
     }
 
     private void RenderSupportDetail(

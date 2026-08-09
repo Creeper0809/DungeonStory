@@ -34,13 +34,14 @@ MonoBehaviour:
   battlefieldModifierIds:
   - battlefield:broken-pillars
   counterTags:
+  - counter:flank
   - counter:armor-break
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   enemies:
   - enemyArchetypeId: enemy:crown-tower-guard
     minimumCount: 1
     maximumCount: 2
-  - enemyArchetypeId: enemy:legion-surgeon
+  - enemyArchetypeId: enemy:crown-longbow
     minimumCount: 1
     maximumCount: 2

@@ -29,7 +29,7 @@ MonoBehaviour:
   moveSpeed: 4.5
   equipment:
     weaponDefinitionId: weapon:longsword
-    armorDefinitionId: armor:plate
+    armorDefinitionId: armor:breastplate
     shieldDefinitionId: 
     ammunitionItemId: 
   abilityIds:
@@ -49,7 +49,7 @@ MonoBehaviour:
   counterTags:
   - counter:isolate-leader
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   bossPhases:
   - healthThreshold: 0.5
     abilityIds:

@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uC774\uCE35\uCE68\uB300"
   sprite: {fileID: 21300000, guid: 967d93a9c572b4f4b8d4e8083f886fa7, type: 3}
   icon: {fileID: 21300000, guid: 967d93a9c572b4f4b8d4e8083f886fa7, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730834227539
@@ -43,7 +48,7 @@ MonoBehaviour:
     - rid: 7737211730834227546
     - rid: 7737211730834227547
     - rid: 7737211730834227548
-    - rid: 7737211792998531588
+    - rid: 7737211838074979081
   width: 2
   height: 1
   layer: 1
@@ -147,7 +152,7 @@ MonoBehaviour:
         roomTemperatureOffset: 1
         coldProtection: 4
         heatProtection: 2
-    - rid: 7737211792998531588
+    - rid: 7737211838074979081
       type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceHubAbility

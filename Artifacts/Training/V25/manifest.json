@@ -1,0 +1,196 @@
+{
+  "formatVersion": 1,
+  "seed": 250825,
+  "counts": {
+    "raw": 50000,
+    "filtered": 40000,
+    "sftTrainCandidates": 38000,
+    "preferenceReview": 6000,
+    "heldOutReview": 2000,
+    "humanReviewRows": 8000
+  },
+  "rawCategoryDistribution": {
+    "character_records_monologues": 7500,
+    "cliche_hallucination_corrections": 5000,
+    "equipment_facility_skill_names": 10000,
+    "multi_perspective": 20000,
+    "rumors_petitions_dialogue": 7500
+  },
+  "filteredCategoryDistribution": {
+    "character_records_monologues": 6000,
+    "cliche_hallucination_corrections": 4000,
+    "equipment_facility_skill_names": 8000,
+    "multi_perspective": 16000,
+    "rumors_petitions_dialogue": 6000
+  },
+  "reviewProfileDistribution": {
+    "BubbleLine": 292,
+    "CharacterRecord": 802,
+    "CharacterSkill": 719,
+    "EvolutionHistory": 887,
+    "FacilityEvolution": 398,
+    "MacroGoal": 405,
+    "MoodImpulse": 405,
+    "MultiPerspective": 3200,
+    "Persona": 600,
+    "SocialRumor": 292
+  },
+  "reviewCultureDistribution": {
+    "adventurer-frontier": 838,
+    "beastkin-pack": 782,
+    "demon-contract": 768,
+    "golem-core": 854,
+    "harpy-aerie": 810,
+    "kobold-toolclan": 748,
+    "myconid-grove": 780,
+    "orc-vigil": 810,
+    "slime-confluence": 796,
+    "vampire-nightcourt": 814
+  },
+  "contentInventoryCounts": {
+    "backgrounds": 12,
+    "ambitions": 18,
+    "events": 32,
+    "practices": 20,
+    "traits": 56,
+    "heritable": 24,
+    "equipment": 61,
+    "buildings": 368
+  },
+  "corpusAudit": {
+    "recordCount": 40000,
+    "proseFieldCount": 78998,
+    "profileProseFieldCounts": {
+      "BubbleLine": 1645,
+      "CharacterRecord": 3980,
+      "CharacterSkill": 10563,
+      "EvolutionHistory": 13446,
+      "FacilityEvolution": 5988,
+      "MacroGoal": 1875,
+      "MoodImpulse": 1875,
+      "MultiPerspective": 32000,
+      "Persona": 6000,
+      "SocialRumor": 1626
+    },
+    "koreanCoverage": 1.0,
+    "exactDuplicateCount": 11777,
+    "exactDuplicateRate": 0.14908,
+    "longProseFieldCount": 50835,
+    "longProseExactDuplicateCount": 505,
+    "longProseExactDuplicateRate": 0.009934,
+    "tokenCount": 1422622,
+    "uniqueTokenCount": 28543,
+    "vocabularyEntropyBits": 9.045316,
+    "distinct2": 0.098134,
+    "distinct3": 0.176589,
+    "genericChosenCount": 0,
+    "rejectedProseFieldCount": 78998,
+    "rejectedUniqueProseRate": 0.34911,
+    "rejectedFixedFallbackCount": 0,
+    "negativeTypeCounts": {
+      "fact_distortion": 12150,
+      "generic_safe": 20289,
+      "motif_listing": 7561
+    },
+    "gate": {
+      "koreanCoverageIsComplete": true,
+      "genericChosenIsZero": true,
+      "repeatedFixedRejectedFallbackIsZero": true,
+      "allHardNegativeTypesPresent": true,
+      "longProseExactDuplicateRateAtMostTwoPercent": true
+    }
+  },
+  "humanApprovalClaimed": false,
+  "files": [
+    {
+      "path": "content_inventory.json",
+      "bytes": 105096,
+      "sha256": "4407510dbd966361ccf70453949a308a437eb303bfac171ce993dfce7dd827d3"
+    },
+    {
+      "path": "corpus_audit.json",
+      "bytes": 1231,
+      "sha256": "cd3d31ce0e878ee90ac0ba016372c360275ea6b78ba92a7cf25159ce9d02abd7"
+    },
+    {
+      "path": "filtered_pool_40000.jsonl.gz",
+      "bytes": 20527206,
+      "sha256": "a344fbabf95a0970a95c5f3e8cae76e18cf138320f60430eaf15040a1c12f0ee"
+    },
+    {
+      "path": "held_out_review_candidates_2000.jsonl.gz",
+      "bytes": 1033968,
+      "sha256": "b38654f426850b1d275a83d1bfface34e1a143c4604785365a0a35e28d95b6ca"
+    },
+    {
+      "path": "preference_review_candidates_6000.jsonl.gz",
+      "bytes": 3099280,
+      "sha256": "2ae463410da0b597629792ba43d734839611fe8a8ead204fa5d1bf46f496a24e"
+    },
+    {
+      "path": "raw_scenarios_50000.jsonl.gz",
+      "bytes": 25241406,
+      "sha256": "012662c9ccc89992b8f7be86ea402f63e3cb17e2d511cd4d4c04a00c40b496be"
+    },
+    {
+      "path": "review/review_00001_01000.csv",
+      "bytes": 3877200,
+      "sha256": "80a25bcb1050bbfdee8f5fffd94471aa6b1d14446e6ebb90ddc16d18b46329e4"
+    },
+    {
+      "path": "review/review_01001_02000.csv",
+      "bytes": 3866292,
+      "sha256": "09cd29388b1b28802c8b8656a1a52591ef0c9724ae27cb732ba5d43f61b05ab5"
+    },
+    {
+      "path": "review/review_02001_03000.csv",
+      "bytes": 3840882,
+      "sha256": "a63a94de7f2ecc01901621d72928150f052fffe4c52a5ea6183f03384dac8215"
+    },
+    {
+      "path": "review/review_03001_04000.csv",
+      "bytes": 3865970,
+      "sha256": "13c0ba5711bc22ff0639ba4e3f8a707d78ab31b83e6c1f721d83761f3d1abede"
+    },
+    {
+      "path": "review/review_04001_05000.csv",
+      "bytes": 3834135,
+      "sha256": "6d2510650097371aa146a27e4178c7d7bbc4a0cec25d8d161d99d923acad2727"
+    },
+    {
+      "path": "review/review_05001_06000.csv",
+      "bytes": 3831194,
+      "sha256": "e183eb80d84d32b6441f9d114fa0eadd838d599fe48009c059c501450b58f24e"
+    },
+    {
+      "path": "review/review_06001_07000.csv",
+      "bytes": 3852784,
+      "sha256": "2193f2ee932c8bf2ab6ce65847fff84e85e845a13cdb098b1f3f7b1f3a1da84e"
+    },
+    {
+      "path": "review/review_07001_08000.csv",
+      "bytes": 3848001,
+      "sha256": "dca8bd3ca28aeb68a7e8953fc2afe3ef9614f2cb05a6c8d2d1f7f3566eb5ebbe"
+    },
+    {
+      "path": "review/review_key_8000.jsonl.gz",
+      "bytes": 99123,
+      "sha256": "3d29ca73feb7ba8bb75d1cf8789423de64715f101f05a9b6574d7566b6212de6"
+    },
+    {
+      "path": "sft_train_candidates_38000.jsonl.gz",
+      "bytes": 19566468,
+      "sha256": "df726428b4c304b3b04761c348f894160c8d3f7a4928fd9f083a7e119b9eb737"
+    },
+    {
+      "path": "sources.json",
+      "bytes": 3156,
+      "sha256": "d54f3f5d342839716c19c329cfd32af16f0f2a765a3e1548522e6cc3c3b81845"
+    },
+    {
+      "path": "trl_sft_train_38000.jsonl.gz",
+      "bytes": 9127778,
+      "sha256": "92a495f759c78cc2dd3f6bf73f8ad31a6a9ca93ac51384ad1d9c8a58b2f6c11f"
+    }
+  ]
+}

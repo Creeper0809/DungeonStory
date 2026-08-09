@@ -71,10 +71,15 @@ MonoBehaviour:
     heatExposureMultiplier: 1
   incompatibilityGroups: []
   behaviorPreferences:
-  - behaviorTag: legacy-trait:108
-    utilityDelta: 0.2
-  moodReactions: []
-  eventWeights: []
+  - behaviorTag: work:research
+    utilityDelta: 0.55
+  moodReactions:
+  - triggerTag: event:research-completed
+    moodDelta: 3
+    durationDays: 3
+  eventWeights:
+  - eventCategoryId: discovery
+    multiplier: 1.35
   references:
     version: 2
     RefIds: []

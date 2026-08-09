@@ -22,6 +22,8 @@ public sealed class FacilityEvolutionProposalJsonDto : ILlmJsonPayload
     public string[] mutationTagSuggestions;
     public string flavorText;
     public float confidence;
+    public string[] usedMotifIds = Array.Empty<string>();
+    public string[] usedCharacterFactIds = Array.Empty<string>();
 
     public bool Validate(out string error)
     {
@@ -222,7 +224,7 @@ public sealed class CachedLocalLlmFacilityEvolutionProposalProvider : IFacilityE
 
         if (!pendingSignatures.Contains(signature))
         {
-            TryRequestProposal(signature, context);
+            TryRequestProposal(signature, context, fallback);
         }
 
         string status = statusBySignature.TryGetValue(signature, out string message)
@@ -236,7 +238,10 @@ public sealed class CachedLocalLlmFacilityEvolutionProposalProvider : IFacilityE
         return Rewrap(fallback, source, status);
     }
 
-    private void TryRequestProposal(string signature, FacilityEvolutionContext context)
+    private void TryRequestProposal(
+        string signature,
+        FacilityEvolutionContext context,
+        FacilityEvolutionProposal ruleProposal)
     {
         if (!allowRequestsOutsidePlayMode && !Application.isPlaying)
         {
@@ -267,7 +272,12 @@ public sealed class CachedLocalLlmFacilityEvolutionProposalProvider : IFacilityE
         pendingSignatures.Add(signature);
         SetStatus(signature, "LLM proposal requested.");
         bool accepted = runtime.GenerateFacilityEvolutionAsync(prompt, (result) =>
-            OnLlmResult(signature, result, validCandidateIds, validMutationTags));
+            OnLlmResult(
+                signature,
+                result,
+                validCandidateIds,
+                validMutationTags,
+                ruleProposal));
         if (!accepted)
         {
             pendingSignatures.Remove(signature);
@@ -279,7 +289,8 @@ public sealed class CachedLocalLlmFacilityEvolutionProposalProvider : IFacilityE
         string signature,
         LocalLlmResult result,
         IReadOnlyCollection<string> validCandidateIds,
-        IReadOnlyCollection<string> validMutationTags)
+        IReadOnlyCollection<string> validMutationTags,
+        FacilityEvolutionProposal ruleProposal)
     {
         pendingSignatures.Remove(signature);
         LastResponse = result.Content;
@@ -305,7 +316,17 @@ public sealed class CachedLocalLlmFacilityEvolutionProposalProvider : IFacilityE
             validCandidateIds,
             validMutationTags,
             out string statusMessage);
-        cachedProposals[signature] = proposal;
+        cachedProposals[signature] = new FacilityEvolutionProposal(
+            proposal.FacilityIdentitySummary,
+            ruleProposal.ProposalIds,
+            ruleProposal.ProposalReasons,
+            ruleProposal.MutationTagSuggestions,
+            proposal.FlavorText,
+            ruleProposal.Confidence,
+            ruleProposal.Source,
+            "Rule-authoritative proposal with local narrative interpretation.",
+            ruleProposal.RejectedHintTexts,
+            result.NarrativeTrace);
         SetStatus(signature, statusMessage);
     }
 
@@ -353,6 +374,17 @@ public static class FacilityEvolutionPromptFormatter
         AppendPairs(builder, context.Profile != null ? context.Profile.IdentityPressures : null);
         AppendTokenPairs(builder, context.Profile != null ? context.Profile.RecordTokens : null);
         return builder.ToString();
+    }
+
+    private static string StableNarrativeToken(string value)
+    {
+        string token = new string((value ?? string.Empty)
+            .ToLowerInvariant()
+            .Where(character => char.IsLetterOrDigit(character)
+                || character is ':' or '-' or '_')
+            .Take(40)
+            .ToArray());
+        return string.IsNullOrWhiteSpace(token) ? "event" : token;
     }
 
     public static string BuildPrompt(FacilityEvolutionContext context)
@@ -407,7 +439,25 @@ public static class FacilityEvolutionPromptFormatter
 
         builder.AppendLine();
         builder.AppendLine("Choose proposalIds only from the candidate pool. Reasons should explain the current context, not restate raw numbers only.");
-        return builder.ToString();
+        NarrativeRequestContext narrativeContext =
+            NarrativeCultureStyleCatalog.Create(
+                LocalLlmRequestProfiles.FacilityEvolution.Id,
+                string.Empty,
+                requireCharacterFact: false,
+                requireMotif: true);
+        if (profile != null)
+        {
+            foreach (string recentEvent in profile.RecentEvents
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Take(6))
+            {
+                narrativeContext.AddFact(
+                    "fact:facility-event:" + StableNarrativeToken(recentEvent),
+                    "Facility history event: " + recentEvent,
+                    60);
+            }
+        }
+        return narrativeContext.AppendToPrompt(builder.ToString());
     }
 
     private static void AppendPairs(StringBuilder builder, IReadOnlyDictionary<string, float> values)

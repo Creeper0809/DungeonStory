@@ -50,6 +50,14 @@ public sealed class CombatWeaponSO : CombatEquipmentDefinitionSO
         CombatAttackVerb verb = Verbs.Count > 0
             ? Verbs[Mathf.Clamp(verbIndex, 0, Verbs.Count - 1)]
             : new MeleeStrikeVerb();
+        float powerMultiplier = CombatEquipmentRoleRules
+            .GetPowerPerformanceMultiplier(
+                EquipmentId,
+                instance?.powerCharge ?? 100f);
+        CombatEquipmentRoleFlags roleFlags = CombatEquipmentRoleRules
+            .ForPowerState(
+                EquipmentId,
+                (instance?.powerCharge ?? 100f) > 0f);
         return new CombatWeaponSnapshot(
             EquipmentId,
             instance?.instanceId,
@@ -58,7 +66,12 @@ public sealed class CombatWeaponSO : CombatEquipmentDefinitionSO
             RangeProfiles,
             MaximumRange,
             instance?.quality ?? CombatEquipmentQuality.Normal,
-            AmmunitionItemId,
+            instance?.loadedAmmunition != null
+                && instance.loadedAmmunition.remaining > 0
+                && !string.IsNullOrWhiteSpace(
+                    instance.loadedAmmunition.ammunitionItemId)
+                    ? instance.loadedAmmunition.ammunitionItemId
+                    : AmmunitionItemId,
             MagazineCapacity,
             instance?.loadedAmmo ?? 0,
             ReloadSeconds * Mathf.Max(0.05f, evolutionReloadMultiplier),
@@ -67,14 +80,17 @@ public sealed class CombatWeaponSO : CombatEquipmentDefinitionSO
             SupportsSuppressive,
             (material?.DamageMultiplier ?? 1f)
                 * BaseStatMultiplier
-                * Mathf.Max(0.05f, evolutionDamageMultiplier),
+                * Mathf.Max(0.05f, evolutionDamageMultiplier)
+                * powerMultiplier,
             (material?.PenetrationDefenseMultiplier ?? 1f)
                 * BaseStatMultiplier
-                * Mathf.Max(0.05f, evolutionPenetrationMultiplier),
+                * Mathf.Max(0.05f, evolutionPenetrationMultiplier)
+                * powerMultiplier,
             evolutionAccuracyMultiplier,
             gunpowderWeapon,
             instance?.durabilityRatio ?? 1f,
             MaximumMisfireChance,
-            SmokeExposure);
+            SmokeExposure,
+            roleFlags);
     }
 }

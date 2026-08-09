@@ -106,6 +106,10 @@ public class UIManager : SerializedMonoBehaviour
             + $"{calendar.DayOfSeason}일 {calendar.Hour:00}:00 · "
             + $"{climate.OutdoorTemperatureC:0.#}℃ "
             + $"{WeatherLabel(climate.WeatherFrontId)}"
+            + (climate is IWeatherForecastQuery forecast
+                && forecast.ObservationToolsOperational
+                    ? $" · 예보 {forecast.ForecastHorizonDays}일"
+                    : string.Empty)
             + (epidemic.Length > 0 ? $" · 유행: {epidemic}" : string.Empty);
     }
 

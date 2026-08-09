@@ -43,6 +43,15 @@ public static class EnvironmentalProtectionAssetBuilder
             Array.Empty<string>(),
             Protection(-10f, -10f, 0.2f),
             "research:environment:rune-insulation");
+        EnsureWorkwear(
+            "HaulingHarness",
+            "workwear:hauling-harness",
+            DurableToolItemRules.HaulingHarness,
+            "운반 멜빵",
+            "운반 작업 중 적재 한도를 25% 늘리고 완료 시 내구도를 소모하는 물리 작업 장비.",
+            Array.Empty<string>(),
+            Protection(0f, 0f, 1f),
+            "research:commerce:logistics");
         EnsureColdResistantSlimeTrait();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();

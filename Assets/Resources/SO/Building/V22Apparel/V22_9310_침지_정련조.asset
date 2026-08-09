@@ -1,0 +1,101 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: "V22_9310_\uCE68\uC9C0_\uC815\uB828\uC870"
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 9310
+  objectName: "\uCE68\uC9C0\xB7\uC815\uB828\uC870"
+  sprite: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
+  icon: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 3
+  researchFacilityCommand: 48
+  abilityModules:
+    items:
+    - rid: 7737211838078124800
+    - rid: 7737211838078124801
+    - rid: 7737211838078124802
+    - rid: 7737211838078124803
+    - rid: 7737211838078124804
+  width: 1
+  height: 1
+  layer: 1
+  category: 6
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  runtimeArchetype: 1
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 2
+  facilityAnchors:
+    slots: []
+  unlocked: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211838078124800
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 48
+        repairWorkRequired: 12
+        cleanWorkRequired: 8
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:stone-block
+          amount: 4
+        - itemId: material:lumber
+          amount: 2
+    - rid: 7737211838078124801
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: V22A10
+    - rid: 7737211838078124802
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - v22-apparel
+        - research:textile:fiber
+        - workstation:v22:fiber-scouring
+    - rid: 7737211838078124803
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:v22:fiber-scouring
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211838078124804
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 12
+        outputCapacities: []
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}

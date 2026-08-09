@@ -25,8 +25,8 @@ MonoBehaviour:
   recipeId: recipe:treated-lumber
   displayName: "\uBAA9\uC7AC \uCC98\uB9AC"
   description: "\uBAA9\uC7AC \uCC98\uB9AC \uC0DD\uC0B0 \uC8FC\uBB38"
-  facilityTag: sawmill
-  workstationTag: workstation:sawmill
+  facilityTag: workstation:v3:treated-lumber
+  workstationTag: workstation:v3:treated-lumber
   requiredSupportTags: []
   batchSupportTag: 
   processKind: 0

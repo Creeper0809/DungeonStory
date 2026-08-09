@@ -26,3 +26,6 @@ MonoBehaviour:
   - kind: 6
     targetId: bone-density
     multiplierDelta: 0.15
+  - kind: 9
+    targetId: move-speed
+    multiplierDelta: -0.06

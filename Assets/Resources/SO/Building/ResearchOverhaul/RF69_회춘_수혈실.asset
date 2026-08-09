@@ -31,16 +31,22 @@ MonoBehaviour:
   objectName: "\uD68C\uCD98 \uC218\uD608\uC2E4"
   sprite: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
   icon: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 3
+  researchFacilityCommand: 0
   abilityModules:
     items:
-    - rid: 7737211794726585149
-    - rid: 7737211794726585150
-    - rid: 7737211794726585151
-    - rid: 7737211794726585152
-    - rid: 7737211794726585153
-    - rid: 7737211794726585154
-    - rid: 7737211794726585155
-    - rid: 7737211794726585156
+    - rid: 7737211838078125048
+    - rid: 7737211838078125049
+    - rid: 7737211838078125050
+    - rid: 7737211838078125051
+    - rid: 7737211838078125052
+    - rid: 7737211838078125053
+    - rid: 7737211838078125054
+    - rid: 7737211838078125055
+    - rid: 7737211838079696896
   width: 1
   height: 1
   layer: 1
@@ -56,12 +62,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726585149
+    - rid: 7737211838078125048
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF69
-    - rid: 7737211794726585150
+    - rid: 7737211838078125049
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -69,13 +75,13 @@ MonoBehaviour:
         - research-overhaul
         - research:medical:blood-rejuvenation
         - workstation:v19:blood-rejuvenation
-    - rid: 7737211794726585151
+    - rid: 7737211838078125050
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v19:blood-rejuvenation
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211794726585152
+    - rid: 7737211838078125051
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -83,7 +89,7 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211794726585153
+    - rid: 7737211838078125052
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -92,22 +98,31 @@ MonoBehaviour:
         maintenance: 6
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211794726585154
+    - rid: 7737211838078125053
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
         settings:
-          roles: 80
+          roles: 4096
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
-          supportedWorkTypes: 0
+          supportedWorkTypes: 134250496
           disabledWhenDamaged: 1
-    - rid: 7737211794726585155
+    - rid: 7737211838078125054
+      type: {class: BuildingSurgeryTableAbility, ns: , asm: DungeonStory.Medical}
+      data:
+        abilityId: BuildingSurgeryTableAbility
+        allowedProcedureTags: 8192
+        successBonus: 0.12
+        workSpeedMultiplier: 1
+        baseSterility: 0.45
+        patientSlots: 1
+    - rid: 7737211838078125055
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211794726585156
+    - rid: 7737211838079696896
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility

@@ -71,7 +71,8 @@ public static class FacilityProgression
         BuildingSO building,
         GameSessionState gameData,
         IBuildingUnlockStateView unlockState,
-        IDungeonDebugRuleQuery debugRules)
+        IDungeonDebugRuleQuery debugRules,
+        IRunMilestoneQuery milestoneQuery = null)
     {
         if (building == null)
         {
@@ -82,6 +83,13 @@ public static class FacilityProgression
             .IsEnabled(DungeonDebugCheat.IgnoreUnlocks))
         {
             return true;
+        }
+
+        string definitionId = building.ContentDefinitionId;
+        if (milestoneQuery != null
+            && milestoneQuery.IsLandmarkBuilding(definitionId))
+        {
+            return milestoneQuery.IsLandmarkUnlocked(definitionId);
         }
 
         if (unlockState != null && unlockState.IsBuildingUnlocked(building.id))

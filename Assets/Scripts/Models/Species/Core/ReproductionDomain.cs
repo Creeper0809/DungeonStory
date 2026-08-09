@@ -91,6 +91,8 @@ public sealed class ReproductionProcessSaveData
     public int carrierDeathAbsoluteDay;
     public bool emergencyExtracted;
     public bool crossLineageIncubatorUsed;
+    public bool fertilityTreatmentUsed;
+    public string supportFacilityInstanceId = string.Empty;
     public bool resultPublished;
     public string resultCharacterId = string.Empty;
     public List<string> expressedTraitIds = new();
@@ -101,7 +103,7 @@ public sealed class ReproductionProcessSaveData
 [Serializable]
 public sealed class ReproductionWorldSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
     public int version = CurrentVersion;
     public FamilyPlanningPolicy familyPlanningPolicy = FamilyPlanningPolicy.Planned;
     public int lastAllowedPolicyEvaluationDay;
@@ -115,19 +117,25 @@ public readonly struct ReproductionDailyContext
         float carrierHealth,
         float carrierNutrition,
         float environmentTemperature,
-        float fertilityAgeCoefficient = 1f)
+        float fertilityAgeCoefficient = 1f,
+        float gestationStabilityMultiplier = 1f)
     {
         AbsoluteDay = absoluteDay;
         CarrierHealth = carrierHealth;
         CarrierNutrition = carrierNutrition;
         EnvironmentTemperature = environmentTemperature;
         FertilityAgeCoefficient = Math.Clamp(fertilityAgeCoefficient, 0f, 1f);
+        GestationStabilityMultiplier = Math.Clamp(
+            gestationStabilityMultiplier,
+            0.5f,
+            1.5f);
     }
     public int AbsoluteDay { get; }
     public float CarrierHealth { get; }
     public float CarrierNutrition { get; }
     public float EnvironmentTemperature { get; }
     public float FertilityAgeCoefficient { get; }
+    public float GestationStabilityMultiplier { get; }
 }
 
 public sealed class ReproductionProcess
@@ -146,6 +154,38 @@ public sealed class ReproductionProcess
         IEnumerable<string> expressedTraitIds,
         IEnumerable<string> latentTraitIds,
         IEnumerable<InnateAptitudeSaveData> aptitudes)
+        : this(
+            processId,
+            firstParentId,
+            secondParentId,
+            carrierId,
+            phenotypeSpeciesId,
+            definition,
+            startedAbsoluteDay,
+            crossLineageIncubatorUsed,
+            string.Empty,
+            expressedTraitIds,
+            latentTraitIds,
+            aptitudes,
+            fertilityTreatmentUsed: false)
+    {
+    }
+
+    public ReproductionProcess(
+        string processId,
+        CharacterId firstParentId,
+        CharacterId secondParentId,
+        CharacterId carrierId,
+        CharacterSpeciesId phenotypeSpeciesId,
+        ReproductionDefinition definition,
+        int startedAbsoluteDay,
+        bool crossLineageIncubatorUsed,
+        string supportFacilityInstanceId,
+        IEnumerable<string> expressedTraitIds,
+        IEnumerable<string> latentTraitIds,
+        IEnumerable<InnateAptitudeSaveData> aptitudes,
+        bool startActive = true,
+        bool fertilityTreatmentUsed = false)
     {
         if (string.IsNullOrWhiteSpace(processId) || !firstParentId.IsValid
             || definition.Mode != ReproductionMode.GolemAssembly && !secondParentId.IsValid
@@ -159,13 +199,18 @@ public sealed class ReproductionProcess
         this.definition = definition;
         StartedAbsoluteDay = startedAbsoluteDay;
         CrossLineageIncubatorUsed = crossLineageIncubatorUsed;
+        FertilityTreatmentUsed = fertilityTreatmentUsed;
+        SupportFacilityInstanceId = supportFacilityInstanceId?.Trim()
+            ?? string.Empty;
         ExpressedTraitIds = NormalizeTraits(expressedTraitIds, 4);
         LatentTraitIds = NormalizeTraits(latentTraitIds, 2);
         InnateAptitudes = (aptitudes ?? Array.Empty<InnateAptitudeSaveData>())
             .Where(value => value != null && !string.IsNullOrWhiteSpace(value.skillId))
             .OrderBy(value => value.skillId, StringComparer.Ordinal)
             .ToArray();
-        Status = ReproductionProcessStatus.Active;
+        Status = startActive
+            ? ReproductionProcessStatus.Active
+            : ReproductionProcessStatus.Planned;
     }
 
     public string ProcessId { get; }
@@ -184,6 +229,8 @@ public sealed class ReproductionProcess
     public int CarrierDeathAbsoluteDay { get; private set; }
     public bool EmergencyExtracted { get; private set; }
     public bool CrossLineageIncubatorUsed { get; }
+    public bool FertilityTreatmentUsed { get; private set; }
+    public string SupportFacilityInstanceId { get; }
     public bool ResultPublished { get; private set; }
     public CharacterId ResultCharacterId { get; private set; }
     public IReadOnlyList<string> ExpressedTraitIds { get; }
@@ -192,6 +239,25 @@ public sealed class ReproductionProcess
     public float ProgressRatio => definition.TotalDurationDays > 0
         ? Math.Clamp(TotalProgressDays / (float)definition.TotalDurationDays, 0f, 1f)
         : 0f;
+
+    public void Start()
+    {
+        if (Status != ReproductionProcessStatus.Planned)
+            throw new InvalidOperationException(
+                "Only a planned reproduction process can be started.");
+        Status = ReproductionProcessStatus.Active;
+    }
+
+    public void SelectFertilityTreatment(bool useTreatment)
+    {
+        if (Status != ReproductionProcessStatus.Planned)
+            throw new InvalidOperationException(
+                "Fertility treatment can only be selected for a planned process.");
+        if (Mode == ReproductionMode.GolemAssembly && useTreatment)
+            throw new InvalidOperationException(
+                "Biological fertility treatment cannot be used for golem assembly.");
+        FertilityTreatmentUsed = useTreatment;
+    }
 
     public void AdvanceDay(ReproductionDailyContext context, double miscarriageRandom)
     {
@@ -209,7 +275,8 @@ public sealed class ReproductionProcess
                 == ReproductionPhaseKind.Pregnancy
             && !EmergencyExtracted
             && (context.CarrierHealth < 30f || context.CarrierNutrition < 20f)
-            && Math.Clamp(miscarriageRandom, 0d, 0.999999d) < 0.10d)
+            && Math.Clamp(miscarriageRandom, 0d, 0.999999d)
+                < 0.10d / context.GestationStabilityMultiplier)
         {
             Fail(ReproductionFailureCode.Miscarriage);
             return;
@@ -307,6 +374,8 @@ public sealed class ReproductionProcess
         carrierDeathAbsoluteDay = CarrierDeathAbsoluteDay,
         emergencyExtracted = EmergencyExtracted,
         crossLineageIncubatorUsed = CrossLineageIncubatorUsed,
+        fertilityTreatmentUsed = FertilityTreatmentUsed,
+        supportFacilityInstanceId = SupportFacilityInstanceId,
         resultPublished = ResultPublished,
         resultCharacterId = ResultCharacterId.Value,
         expressedTraitIds = ExpressedTraitIds.ToList(),
@@ -334,9 +403,12 @@ public sealed class ReproductionProcess
             definition,
             data.startedAbsoluteDay,
             data.crossLineageIncubatorUsed,
+            data.supportFacilityInstanceId,
             data.expressedTraitIds,
             data.latentTraitIds,
-            data.innateAptitudes)
+            data.innateAptitudes,
+            startActive: data.status != ReproductionProcessStatus.Planned,
+            fertilityTreatmentUsed: data.fertilityTreatmentUsed)
         {
             Status = data.status,
             Failure = data.failure,
@@ -446,8 +518,10 @@ public sealed class ReproductionWorldAggregate
 public interface IReproductionService
 {
     FamilyPlanningPolicy FamilyPlanningPolicy { get; }
+    int LastAllowedPolicyEvaluationDay { get; }
     IReadOnlyList<ReproductionProcess> Processes { get; }
     void SetFamilyPlanningPolicy(FamilyPlanningPolicy policy);
+    void MarkAllowedPolicyEvaluation(int absoluteDay);
     void AddProcess(ReproductionProcess process);
     void AdvanceProcess(string processId, ReproductionDailyContext context);
     void NotifyCarrierDeath(CharacterId carrierId, int absoluteDay);
@@ -494,6 +568,16 @@ public static class ReproductionRules
         return Math.Clamp(baseChance * condition
             * Math.Clamp(fertilityAgeCoefficient, 0f, 1f), 0f, 1f);
     }
+
+    public static float ApplyFertilityTreatmentToCoefficient(
+        float coefficient,
+        bool treatmentUsed) =>
+        Math.Clamp(coefficient * (treatmentUsed ? 1.2f : 1f), 0f, 1f);
+
+    public static float ApplyFertilityTreatmentToGestationStability(
+        float stability,
+        bool treatmentUsed) =>
+        Math.Clamp(stability * (treatmentUsed ? 1.15f : 1f), 0.5f, 1.5f);
 
     public static CharacterSpeciesId SelectPhenotype(
         CharacterSpeciesId first,

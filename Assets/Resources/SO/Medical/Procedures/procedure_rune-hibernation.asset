@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6727f0b5178ce4d488345d0e7c4299ee, type: 3}
+  m_Name: procedure_rune-hibernation
+  m_EditorClassIdentifier: DungeonStory.Medical::SurgicalProcedureSO
+  procedureId: procedure:rune-hibernation
+  displayName: "\uB8EC \uB3D9\uBA74"
+  description: "\uB8EC \uB3D9\uBA74 \uCD09\uB9E4\uB97C \uC0AC\uC6A9\uD574 \uD65C\uB3D9\uC744
+    \uBA48\uCD94\uACE0 \uB178\uD654\uB97C \uB2A6\uCD98\uB2E4."
+  kind: 12
+  family: 7
+  urgency: 1
+  allowedAnatomyFamilies: []
+  allowedSpeciesIds: []
+  operatorRequirement:
+    stats: []
+    minimumWeightedScore: 3
+  targetNodeId: 
+  requiredResearchId: research:medical:rune-hibernation
+  requiredFacilityTags: 8192
+  requiredWork: 64
+  difficultyPenalty: 0.16
+  baseInfectionRisk: 0.02
+  baseBleedingRisk: 0
+  requiresAnesthesia: 0
+  requiresRestraintForUnwilling: 0
+  allowsLivingSubject: 1
+  allowsCorpseSubject: 0
+  allowsWildlife: 0
+  materials:
+  - itemId: medical:rune-hibernation-catalyst
+    quantity: 1
+    optional: 0
+  effects:
+  - rid: 7737211824080421853
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211824080421853
+      type: {class: ApplyAgeTreatmentEffect, ns: , asm: DungeonStory.Medical}
+      data:
+        effectId: ApplyAgeTreatmentEffect
+        treatment: 2

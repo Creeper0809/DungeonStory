@@ -33,6 +33,9 @@ public static class DungeonWorkRegistration
             .As<IWorkExecutionHandler>()
             .As<IWorkCandidateProvider>()
             .As<IWorkUrgencyProvider>();
+        builder.RegisterFactory<ICircusRuntime>(
+            resolver => () => resolver.Resolve<ICircusRuntime>(),
+            Lifetime.Singleton);
         builder.Register<PerformWorkExecutionUnityAdapter>(Lifetime.Singleton)
             .As<IWorkExecutionHandler>()
             .As<IWorkCandidateProvider>()
@@ -71,11 +74,15 @@ public static class DungeonWorkRegistration
             .As<IWorkStatPolicyRegistry>();
         builder.Register<WorkAmountCalculator>(Lifetime.Singleton)
             .As<IWorkAmountCalculator>();
+        builder.Register<EligibleWorkerQuery>(Lifetime.Singleton)
+            .As<IEligibleWorkerQuery>();
 
         builder.Register<SurvivalBuildingAbilityHandler>(Lifetime.Singleton)
             .As<IBuildingAbilityWorkCompletedHandler>();
         builder.Register<ButcherBuildingAbilityHandler>(Lifetime.Singleton)
             .As<IBuildingAbilityWorkCompletedHandler>()
+            .As<IBuildingWorkCompletionFallbackHandler>();
+        builder.Register<ResearchFacilityOperationFallbackHandler>(Lifetime.Singleton)
             .As<IBuildingWorkCompletionFallbackHandler>();
         builder.Register<EquipmentCraftingBuildingAbilityHandler>(Lifetime.Singleton)
             .As<IBuildingAbilityWorkCompletedHandler>();

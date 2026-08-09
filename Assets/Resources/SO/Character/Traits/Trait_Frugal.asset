@@ -71,10 +71,15 @@ MonoBehaviour:
     heatExposureMultiplier: 1
   incompatibilityGroups: []
   behaviorPreferences:
-  - behaviorTag: legacy-trait:102
-    utilityDelta: 0.2
-  moodReactions: []
-  eventWeights: []
+  - behaviorTag: choice:conserve
+    utilityDelta: 0.35
+  moodReactions:
+  - triggerTag: stock:surplus
+    moodDelta: 2
+    durationDays: 3
+  eventWeights:
+  - eventCategoryId: contract
+    multiplier: 0.85
   references:
     version: 2
     RefIds: []

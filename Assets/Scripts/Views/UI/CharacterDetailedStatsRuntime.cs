@@ -192,11 +192,17 @@ public sealed class CharacterDetailedStatsRuntime : ICharacterDetailedStatsRunti
         List<CharacterDetailedStatRow> rows = new();
         equipment.TryGetActiveWeapon(characterId, out CombatWeaponSnapshot weapon);
         weapon ??= CombatWeaponSnapshot.CreateUnarmed();
+        string weaponName = equipment.TryGetDefinition(
+                weapon.DefinitionId,
+                out CombatEquipmentDefinitionSO weaponDefinition)
+            ? weaponDefinition.DisplayName
+            : CharacterDetailedStatsTextFormatter.Get(
+                "CharacterSummary.Common.None");
         rows.Add(Row(
             "combat:weapon",
             CharacterDetailedStatsTextFormatter.Get(
                 "CharacterSummary.Detailed.Combat.PrimaryWeapon"),
-            weapon.DefinitionId,
+            weaponName,
             CharacterDetailedStatsTextFormatter.Get(
                 "CharacterSummary.Detailed.Combat.WeaponDetail",
                 weapon.Verb?.baseDamage ?? 0f,

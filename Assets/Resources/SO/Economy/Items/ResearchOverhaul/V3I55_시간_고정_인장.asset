@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 120
   features:
-  - rid: 7737211794726585019
-  - rid: 7737211794726585020
-  - rid: 7737211794726585021
+  - rid: 7737211838078124413
+  - rid: 7737211838078124414
+  - rid: 7737211838078124415
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726585019
+    - rid: 7737211838078124413
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:temporal-stasis
-    - rid: 7737211794726585020
+    - rid: 7737211838078124414
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1536
         sharedIntermediate: 0
-    - rid: 7737211794726585021
+    - rid: 7737211838078124415
       type: {class: MedicalProcedureSupplyItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         procedureId: procedure:temporal-stasis

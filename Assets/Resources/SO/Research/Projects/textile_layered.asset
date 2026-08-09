@@ -39,7 +39,25 @@ MonoBehaviour:
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
-    items: []
+    items:
+    - rid: 7737211838079697235
+    - rid: 7737211838079697236
+    - rid: 7737211838079697237
+    - rid: 7737211838079697238
+    - rid: 7737211838079697239
+    - rid: 7737211838079697240
+    - rid: 7737211838079697241
+    - rid: 7737211838079697242
+    - rid: 7737211838079697243
+    - rid: 7737211838079697244
+    - rid: 7737211838079697245
+    - rid: 7737211838079697246
+    - rid: 7737211838079697247
+    - rid: 7737211838079697248
+    - rid: 7737211838079697249
+    - rid: 7737211838079697250
+    - rid: 7737211838079697251
+    - rid: 7737211838079697252
   facilityRequirements:
   - capability: 0
     requiredCount: 1
@@ -48,4 +66,76 @@ MonoBehaviour:
   icon: {fileID: 0}
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211838079697235
+      type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        buildingId: 9312
+    - rid: 7737211838079697236
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:golem-functional-lining
+    - rid: 7737211838079697237
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:heat-work-suit
+    - rid: 7737211838079697238
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:miner-workwear
+    - rid: 7737211838079697239
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:raincoat
+    - rid: 7737211838079697240
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:smith-apron
+    - rid: 7737211838079697241
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:smoke-protection-hood
+    - rid: 7737211838079697242
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:spore-protection-hood
+    - rid: 7737211838079697243
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:tail-guard
+    - rid: 7737211838079697244
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:apparel:waterproof-work-suit
+    - rid: 7737211838079697245
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:spin:deep-goat-wool
+    - rid: 7737211838079697246
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:spin:frost-wool
+    - rid: 7737211838079697247
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:spin:mire-canvas
+    - rid: 7737211838079697248
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:spin:spore-hemp
+    - rid: 7737211838079697249
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:weave:deep-goat-wool
+    - rid: 7737211838079697250
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:weave:frost-wool
+    - rid: 7737211838079697251
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:weave:mire-canvas
+    - rid: 7737211838079697252
+      type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
+      data:
+        recipeId: recipe:v22:weave:spore-hemp

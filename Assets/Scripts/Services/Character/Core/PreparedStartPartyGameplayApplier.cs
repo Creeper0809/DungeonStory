@@ -114,7 +114,8 @@ public sealed class PreparedStartPartyWorldContext
         IDungeonGridBuildingControllerProvider gridBuildingControllerProvider,
         DungeonSceneRuntimeReferences sceneRuntimes,
         IMainCameraProvider mainCameraProvider,
-        IRuntimeBuildingArchetypeCatalog buildingCatalog)
+        IRuntimeBuildingArchetypeCatalog buildingCatalog,
+        IAnatomyAttachmentQuery anatomyAttachmentQuery)
     {
         ItemStackRuntime = itemStackRuntime
             ?? throw new ArgumentNullException(nameof(itemStackRuntime));
@@ -133,6 +134,8 @@ public sealed class PreparedStartPartyWorldContext
             ?? throw new ArgumentNullException(nameof(mainCameraProvider));
         BuildingCatalog = buildingCatalog
             ?? throw new ArgumentNullException(nameof(buildingCatalog));
+        AnatomyAttachmentQuery = anatomyAttachmentQuery
+            ?? throw new ArgumentNullException(nameof(anatomyAttachmentQuery));
     }
 
     public IWorldItemStackRuntime ItemStackRuntime { get; }
@@ -142,6 +145,7 @@ public sealed class PreparedStartPartyWorldContext
     public RunVariableRuntime RunVariables { get; }
     public IMainCameraProvider MainCameraProvider { get; }
     public IRuntimeBuildingArchetypeCatalog BuildingCatalog { get; }
+    public IAnatomyAttachmentQuery AnatomyAttachmentQuery { get; }
 }
 
 public sealed class PreparedStartPartyGameplayApplier :
@@ -169,6 +173,7 @@ public sealed class PreparedStartPartyGameplayApplier :
     private readonly IMainCameraProvider mainCameraProvider;
     private readonly IRuntimeBuildingArchetypeCatalog buildingCatalog;
     private readonly ICharacterLifetimeQuery characterLifetimeQuery;
+    private readonly IAnatomyAttachmentQuery anatomyAttachmentQuery;
 
     public string LastReport { get; private set; } = string.Empty;
 
@@ -191,6 +196,7 @@ public sealed class PreparedStartPartyGameplayApplier :
         runVariables = world.RunVariables;
         mainCameraProvider = world.MainCameraProvider;
         buildingCatalog = world.BuildingCatalog;
+        anatomyAttachmentQuery = world.AnatomyAttachmentQuery;
     }
 
     public bool TryApply(PreparedStartPartySnapshot snapshot, out string message)
@@ -272,6 +278,14 @@ public sealed class PreparedStartPartyGameplayApplier :
         owner.Progression.RestorePersistentState(snapshot.owner.ToProgressionSnapshot());
         owner.gameObject.name = owner.Progression.GrowthState.displayName;
         PlaceParty(owner, preparedStaff, spawner);
+        if (!TrySpawnStarterApparel(
+                new[] { owner }.Concat(preparedStaff).ToArray(),
+                out string apparelFailure))
+        {
+            DestroyPreparedStaff(preparedStaff);
+            message = apparelFailure;
+            return false;
+        }
         FocusCameraOnStarterDungeon();
         RemoveDuplicateStartingStaff(preparedStaff, diagnostics);
         foreach (CharacterActor staff in preparedStaff)
@@ -311,8 +325,140 @@ public sealed class PreparedStartPartyGameplayApplier :
             return false;
         }
 
+        WorldItemStackSnapshot dropoffStack = itemStackRuntime.GetAllStacks()
+            .Where(value => value != null)
+            .OrderBy(value => value.StackId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (dropoffStack == null
+            || !itemStackRuntime.SpawnUniqueItemAt(
+                "tool:sewing-kit",
+                dropoffStack.Position,
+                WorldItemStackState.Loose,
+                string.Empty,
+                out _)
+            || !itemStackRuntime.SpawnItemAt(
+                "material:sewing-thread",
+                12,
+                dropoffStack.Position,
+                WorldItemStackState.Loose,
+                string.Empty,
+                out int threadSpawned)
+            || threadSpawned != 12
+            || !itemStackRuntime.SpawnItemAt(
+                "material:mending-scrap",
+                6,
+                dropoffStack.Position,
+                WorldItemStackState.Loose,
+                string.Empty,
+                out int scrapSpawned)
+            || scrapSpawned != 6)
+        {
+            itemStackRuntime.Restore(beforeSpawn);
+            failureReason = "V22 초기 재봉 도구·재봉실·수선 조각을 지급하지 못했습니다.";
+            return false;
+        }
+
         failureReason = string.Empty;
         return true;
+    }
+
+    private bool TrySpawnStarterApparel(
+        IReadOnlyList<CharacterActor> party,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        DungeonPhysicalItemSaveData beforeSpawn = itemStackRuntime.Capture();
+        WorldItemStackSnapshot dropoffStack = itemStackRuntime.GetAllStacks()
+            .Where(value => value != null)
+            .OrderBy(value => value.StackId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (dropoffStack == null)
+        {
+            failureReason = "V22 초기 속옷을 둘 입구 회수 지점을 찾지 못했습니다.";
+            return false;
+        }
+
+        foreach (CharacterActor actor in party.Where(value => value != null))
+        {
+            if (!CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId)
+                || anatomyAttachmentQuery.GetBodyForm(characterId)
+                    == ApparelBodyForm.Construct)
+            {
+                continue;
+            }
+            ApparelSizeClass size = anatomyAttachmentQuery.GetSize(characterId);
+            AnatomyAttachmentPoint points =
+                anatomyAttachmentQuery.GetAvailablePoints(characterId);
+            for (int setIndex = 0; setIndex < 3; setIndex++)
+            {
+                if (!SpawnStarterApparelItem(
+                        "apparel:lower-underwear",
+                        size,
+                        (points & AnatomyAttachmentPoint.Tail) != 0
+                            ? ApparelModificationKind.TailOpening
+                            : ApparelModificationKind.None,
+                        characterId,
+                        setIndex,
+                        dropoffStack.Position)
+                    || !SpawnStarterApparelItem(
+                        "apparel:undershirt",
+                        size,
+                        (points & AnatomyAttachmentPoint.Wings) != 0
+                            ? ApparelModificationKind.WingSlits
+                            : ApparelModificationKind.None,
+                        characterId,
+                        setIndex,
+                        dropoffStack.Position))
+                {
+                    itemStackRuntime.Restore(beforeSpawn);
+                    failureReason = $"{characterId.Value}의 크기별 초기 속옷 3세트를 지급하지 못했습니다.";
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private bool SpawnStarterApparelItem(
+        string itemId,
+        ApparelSizeClass size,
+        ApparelModificationKind modifications,
+        CharacterId wearer,
+        int setIndex,
+        Vector2Int position)
+    {
+        if (!itemStackRuntime.SpawnUniqueItemAt(
+                itemId,
+                position,
+                WorldItemStackState.Loose,
+                string.Empty,
+                out string stackId))
+        {
+            return false;
+        }
+        string hashSource = $"{wearer.Value}:{setIndex}:{itemId}";
+        ulong hash = 1469598103934665603UL;
+        foreach (char value in hashSource)
+        {
+            hash ^= value;
+            hash *= 1099511628211UL;
+        }
+        ApparelInstanceState state = new()
+        {
+            apparelDefinitionId = itemId,
+            primaryMaterialId = "textile:shade-cloth",
+            craftsmanshipQuality = CraftsmanshipQualityTier.Normal,
+            sourceKind = TextileSourceKind.Crop,
+            sourceDefinitionId = "textile:shade-cloth",
+            size = size,
+            modifications = modifications,
+            durability = 100f,
+            designatedWearerCharacterId = wearer.Value,
+            deterministicBatchHash = hash
+        };
+        return itemStackRuntime.TrySetInstanceComponent(
+            stackId,
+            ApparelItemStateCodec.Create(state));
     }
 
     private void EnsureStarterDungeonShell()

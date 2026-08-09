@@ -29,8 +29,8 @@ MonoBehaviour:
   moveSpeed: 3.5
   equipment:
     weaponDefinitionId: weapon:mace
-    armorDefinitionId: armor:plate
-    shieldDefinitionId: 
+    armorDefinitionId: armor:breastplate
+    shieldDefinitionId: shield:mana-buckler
     ammunitionItemId: 
   abilityIds:
   - enemy-ability:rune-ward
@@ -49,7 +49,7 @@ MonoBehaviour:
   counterTags:
   - counter:physical-burst
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   bossPhases: []
   individualGeneration:
     minimumGeneralTraits: 2

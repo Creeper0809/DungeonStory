@@ -28,7 +28,7 @@ MonoBehaviour:
   dexterity: 11
   moveSpeed: 4.5
   equipment:
-    weaponDefinitionId: weapon:handgun
+    weaponDefinitionId: weapon:matchlock-pistol
     armorDefinitionId: armor:blast-coat
     shieldDefinitionId: 
     ammunitionItemId: ammo:paper-cartridge
@@ -49,7 +49,7 @@ MonoBehaviour:
   counterTags:
   - counter:detector
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   bossPhases: []
   individualGeneration:
     minimumGeneralTraits: 2

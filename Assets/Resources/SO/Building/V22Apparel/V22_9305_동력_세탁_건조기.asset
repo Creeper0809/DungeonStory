@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: "V22_9305_\uB3D9\uB825_\uC138\uD0C1_\uAC74\uC870\uAE30"
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 9305
+  objectName: "\uB3D9\uB825 \uC138\uD0C1\xB7\uAC74\uC870\uAE30"
+  sprite: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
+  icon: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 8
+  researchFacilityCommand: 43
+  abilityModules:
+    items:
+    - rid: 7737211838078124807
+    - rid: 7737211838078124808
+    - rid: 7737211838078124809
+    - rid: 7737211838078124810
+    - rid: 7737211838078124811
+  width: 1
+  height: 1
+  layer: 1
+  category: 6
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  runtimeArchetype: 1
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 2
+  facilityAnchors:
+    slots: []
+  unlocked: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211838078124807
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 90
+        repairWorkRequired: 12
+        cleanWorkRequired: 8
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:steel-ingot
+          amount: 4
+        - itemId: component:machine-parts
+          amount: 3
+        - itemId: material:lumber
+          amount: 2
+    - rid: 7737211838078124808
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: V22A05
+    - rid: 7737211838078124809
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - v22-apparel
+        - research:industry:automatic-sanitation
+        - workstation:v22:powered-laundry
+    - rid: 7737211838078124810
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:v22:powered-laundry
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211838078124811
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 12
+        outputCapacities: []
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}

@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: material_frost_linen
+  m_EditorClassIdentifier: DungeonStory.Economy::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 0
+  itemId: material:frost-linen
+  displayName: "\uC11C\uB9AC \uB9B0\uB128"
+  description: "\uC11C\uB9AC \uB9B0\uB128 \uBB3C\uB9AC \uC6D0\uB2E8. \uD488\uC9C8
+    \uB4F1\uAE09\uACFC Ready/Wet/Contaminated \uC0C1\uD0DC\uB85C \uBCD1\uD569\uB41C\uB2E4."
+  stockCategory: 1
+  unitWeight: 0.164
+  maxStack: 100
+  sprite: {fileID: 0}
+  unitPrice: 10
+  features:
+  - rid: 7737211833461506408
+  - rid: 7737211833461506409
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211833461506408
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        kind: 1
+        ingredientTags: 128
+        sharedIntermediate: 0
+    - rid: 7737211833461506409
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        requiredResearchId: research:textile:fiber

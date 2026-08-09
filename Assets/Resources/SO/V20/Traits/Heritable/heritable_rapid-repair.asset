@@ -26,3 +26,6 @@ MonoBehaviour:
   - kind: 3
     targetId: recovery
     multiplierDelta: 0.15
+  - kind: 5
+    targetId: biological-age
+    multiplierDelta: 0.08

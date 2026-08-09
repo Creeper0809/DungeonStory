@@ -28,7 +28,7 @@ MonoBehaviour:
   dexterity: 9
   moveSpeed: 4
   equipment:
-    weaponDefinitionId: weapon:handgun
+    weaponDefinitionId: weapon:matchlock-pistol
     armorDefinitionId: armor:brigandine
     shieldDefinitionId: 
     ammunitionItemId: ammo:paper-cartridge
@@ -49,7 +49,7 @@ MonoBehaviour:
   counterTags:
   - counter:deny-retreat
   rewardItemIds:
-  - loot:enemy-salvage
+  - offense:unappraised-loot
   bossPhases: []
   individualGeneration:
     minimumGeneralTraits: 2

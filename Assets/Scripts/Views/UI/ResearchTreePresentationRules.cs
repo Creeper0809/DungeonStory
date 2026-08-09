@@ -73,8 +73,12 @@ internal sealed class ResearchTreePresentationRules
             rewardCatalog.GetRewards(project.ProjectId);
         if (rewards.Count > 0)
         {
-            return string.Join(", ", rewards.Select(reward =>
-                $"[{reward.Kind}] {reward.DisplayName}"));
+            return string.Join("\n", rewards
+                .GroupBy(reward => reward.Kind)
+                .OrderBy(group => GetRewardDisplayOrder(group.Key))
+                .Select(group =>
+                    $"<b>{FormatRewardKind(group.Key)}</b>  "
+                    + string.Join(", ", group.Select(reward => reward.DisplayName))));
         }
 
         List<string> values = new List<string>();
@@ -103,6 +107,36 @@ internal sealed class ResearchTreePresentationRules
             ? "없음"
             : string.Join(", ", values.Distinct());
     }
+
+    private static int GetRewardDisplayOrder(ResearchRewardKind kind) => kind switch
+    {
+        ResearchRewardKind.Facility => 0,
+        ResearchRewardKind.CraftMaterial => 10,
+        ResearchRewardKind.Crop => 15,
+        ResearchRewardKind.ProductionRecipe => 20,
+        ResearchRewardKind.ProductionItem => 30,
+        ResearchRewardKind.InstallationComponent => 35,
+        ResearchRewardKind.CombatEquipment => 40,
+        ResearchRewardKind.EnvironmentalWorkwear => 45,
+        ResearchRewardKind.Ammunition => 50,
+        ResearchRewardKind.MedicalProcedure => 60,
+        _ => 100
+    };
+
+    private static string FormatRewardKind(ResearchRewardKind kind) => kind switch
+    {
+        ResearchRewardKind.Facility => "핵심 시설",
+        ResearchRewardKind.CraftMaterial => "신규 재료",
+        ResearchRewardKind.Crop => "작물과 종자",
+        ResearchRewardKind.ProductionRecipe => "생산 조합식",
+        ResearchRewardKind.ProductionItem => "제작 아이템",
+        ResearchRewardKind.InstallationComponent => "설치 부품",
+        ResearchRewardKind.CombatEquipment => "무기·방어구·방패",
+        ResearchRewardKind.EnvironmentalWorkwear => "환경 작업복",
+        ResearchRewardKind.Ammunition => "탄약과 전투 소모품",
+        ResearchRewardKind.MedicalProcedure => "의료 시술",
+        _ => kind.ToString()
+    };
 
     public static float CalculateRemainingPrerequisiteWork(
         ResearchProjectSO project,

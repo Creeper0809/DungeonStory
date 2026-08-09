@@ -32,16 +32,16 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 86
   features:
-  - rid: 7737211794726584833
-  - rid: 7737211794726584834
+  - rid: 7737211838078124300
+  - rid: 7737211838078124301
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584833
+    - rid: 7737211838078124300
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        requiredResearchId: research:equipment:blast-protection
-    - rid: 7737211794726584834
+        requiredResearchId: research:equipment:pressure-barrels
+    - rid: 7737211838078124301
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8

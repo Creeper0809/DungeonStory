@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uC7AC\uD65C \uBCF4\uC870\uB300"
   sprite: {fileID: 21300000, guid: 3afac5514984ad645af2220793c0bee6, type: 3}
   icon: {fileID: 21300000, guid: 3afac5514984ad645af2220793c0bee6, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730889015591
@@ -43,8 +48,8 @@ MonoBehaviour:
     - rid: 7737211730889015598
     - rid: 7737211730889015599
     - rid: 7737211730889015600
-    - rid: 7737211792998531100
-    - rid: 7737211792998531101
+    - rid: 7737211838074978649
+    - rid: 7737211838074978650
   width: 2
   height: 1
   layer: 1
@@ -143,14 +148,14 @@ MonoBehaviour:
         primaryOperatingFacility: 1
         runeSuture: 0
         manaCrystalCost: 0
-    - rid: 7737211792998531100
+    - rid: 7737211838074978649
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737211792998531101
+    - rid: 7737211838074978650
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility

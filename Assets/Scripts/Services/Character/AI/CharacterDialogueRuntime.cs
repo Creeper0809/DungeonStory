@@ -259,7 +259,7 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
             && runtime.Persona != null
                 ? runtime.Persona.traitName
                 : "unknown";
-        return "Write one short in-character speech bubble as JSON {\"line\":\"...\"}.\n"
+        string prompt = "Write one short in-character speech bubble as JSON {\"line\":\"...\"}.\n"
             + "The line must be 80 characters or fewer. Use 4 to 10 words. No narration, no markdown, no extra keys.\n"
             + "Do not copy the original event text verbatim; rewrite it as a natural speech bubble.\n"
             + $"persona: {persona}\n"
@@ -267,6 +267,12 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
             + $"outcome: {entry.Activity?.OutcomeId}\n"
             + $"reasonCode: {entry.Activity?.ReasonCode}\n"
             + $"event: {entry.OriginalMessage}";
+        return NarrativeRequestContextBuilder.ForActor(
+                LocalLlmRequestProfiles.BubbleLine.Id,
+                actor,
+                requireCharacterFact: false,
+                requireMotif: false)
+            .AppendToPrompt(prompt);
     }
 
     private static bool ShouldRequestBubble(CharacterLogEntry entry)

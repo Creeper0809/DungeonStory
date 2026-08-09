@@ -12,6 +12,8 @@ public sealed class CharacterRuntimeProfile
     private readonly IReadOnlyList<string> expressedTraitIds;
     private readonly IReadOnlyList<string> latentTraitIds;
     private readonly IReadOnlyList<string> traitDisplayNames;
+    private readonly IReadOnlyDictionary<string, float> behaviorUtilityDeltas;
+    private readonly IReadOnlyDictionary<string, float> eventWeightMultipliers;
     private readonly IReadOnlyDictionary<string, int> innateAptitudes;
     private readonly SpeciesNeedProfile needProfile;
     private readonly SpeciesEnvironmentProfile environmentProfile;
@@ -44,6 +46,8 @@ public sealed class CharacterRuntimeProfile
         traitDisplayNames = (expressedTraits ?? Array.Empty<CharacterTraitSO>())
             .Select(value => value?.traitName?.Trim() ?? string.Empty)
             .ToArray();
+        behaviorUtilityDeltas = BuildBehaviorUtilityDeltas(expressedTraits);
+        eventWeightMultipliers = BuildEventWeightMultipliers(expressedTraits);
         innateAptitudes = new Dictionary<string, int>(
             request.InnateAptitudes,
             StringComparer.Ordinal);
@@ -71,6 +75,80 @@ public sealed class CharacterRuntimeProfile
     public IReadOnlyList<string> TraitDisplayNames => traitDisplayNames;
     public IReadOnlyDictionary<string, int> InnateAptitudes => innateAptitudes;
     public string SpeciesTag { get; }
+
+    public float GetBehaviorUtilityMultiplier(
+        IEnumerable<string> actionSemanticTags)
+    {
+        string[] tags = (actionSemanticTags ?? Array.Empty<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .ToArray();
+        float delta = behaviorUtilityDeltas
+            .Where(pair => BehaviorMatchesAction(pair.Key, tags))
+            .Sum(pair => pair.Value);
+        return Mathf.Clamp(1f + delta, 0.25f, 2f);
+    }
+
+    public float GetEventWeightMultiplier(params string[] categoryOrEventIds)
+    {
+        float multiplier = 1f;
+        foreach (string id in categoryOrEventIds ?? Array.Empty<string>())
+        {
+            if (!string.IsNullOrWhiteSpace(id)
+                && eventWeightMultipliers.TryGetValue(id.Trim(), out float value))
+                multiplier *= value;
+        }
+        return Mathf.Clamp(multiplier, 0.1f, 10f);
+    }
+
+    private static IReadOnlyDictionary<string, float> BuildBehaviorUtilityDeltas(
+        IEnumerable<CharacterTraitSO> traits) =>
+        (traits ?? Array.Empty<CharacterTraitSO>())
+        .Where(value => value != null)
+        .SelectMany(value => value.behaviorPreferences
+            ?? new List<CharacterTraitBehaviorPreference>())
+        .Where(value => value != null && value.IsValid)
+        .GroupBy(value => value.behaviorTag.Trim(), StringComparer.Ordinal)
+        .ToDictionary(
+            group => group.Key,
+            group => Mathf.Clamp(group.Sum(value => value.utilityDelta), -0.75f, 1f),
+            StringComparer.Ordinal);
+
+    private static IReadOnlyDictionary<string, float> BuildEventWeightMultipliers(
+        IEnumerable<CharacterTraitSO> traits) =>
+        (traits ?? Array.Empty<CharacterTraitSO>())
+        .Where(value => value != null)
+        .SelectMany(value => value.eventWeights
+            ?? new List<CharacterTraitEventWeight>())
+        .Where(value => value != null && value.IsValid)
+        .GroupBy(value => value.eventCategoryId.Trim(), StringComparer.Ordinal)
+        .ToDictionary(
+            group => group.Key,
+            group => Mathf.Clamp(
+                group.Aggregate(1f, (current, value) => current * value.multiplier),
+                0.1f,
+                10f),
+            StringComparer.Ordinal);
+
+    private static bool BehaviorMatchesAction(
+        string behaviorTag,
+        IReadOnlyCollection<string> actionTags)
+    {
+        if (actionTags.Contains(behaviorTag, StringComparer.Ordinal)) return true;
+        string prefix = behaviorTag.Split(':')[0];
+        return prefix switch
+        {
+            "work" or "research" or "career" =>
+                actionTags.Contains(CharacterAiActionTags.Work),
+            "food" or "health" or "rest" or "room" =>
+                actionTags.Contains(CharacterAiActionTags.SelfCare),
+            "danger" or "safety" or "emergency" or "combat" =>
+                actionTags.Contains(CharacterAiActionTags.Work),
+            "item" or "choice" =>
+                actionTags.Contains(CharacterAiActionTags.Curiosity),
+            "service" => actionTags.Contains(CharacterAiActionTags.Shopping),
+            _ => false
+        };
+    }
 
     internal static CharacterRuntimeProfile Create(
         CharacterSpawnRequest request,

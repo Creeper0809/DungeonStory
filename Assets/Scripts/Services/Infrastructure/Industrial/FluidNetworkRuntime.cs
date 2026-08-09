@@ -22,6 +22,7 @@ internal sealed class FluidNetworkRuntime :
     private readonly IWorldItemStackRuntime items;
     private readonly IWorldFilthQuery filth;
     private readonly IGameClock clock;
+    private readonly IFacilityCapabilityQuery facilities;
     private readonly FluidNetworkStateStore stateStore;
     private readonly FluidNetworkProjectionAdapter projectionAdapter;
     private readonly Dictionary<string, float> nextBackflowAt =
@@ -36,6 +37,7 @@ internal sealed class FluidNetworkRuntime :
         IWorldItemStackRuntime items,
         IWorldFilthQuery filth,
         IGameClock clock,
+        IFacilityCapabilityQuery facilities,
         DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         this.topologyRuntime = topologyRuntime
@@ -44,6 +46,8 @@ internal sealed class FluidNetworkRuntime :
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.filth = filth ?? throw new ArgumentNullException(nameof(filth));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.facilities = facilities
+            ?? throw new ArgumentNullException(nameof(facilities));
         stateStore = new FluidNetworkStateStore(
             aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore)));
@@ -914,6 +918,10 @@ internal sealed class FluidNetworkRuntime :
 
     private void ApplyLeaksAndBackflow(float deltaTime)
     {
+        float meteringLeakMultiplier = facilities.FindOperational(
+                ResearchFacilityCommandKind.FlowMetering).Count > 0
+            ? 0.85f
+            : 1f;
         IndustrialTopologySnapshot topology = topologyRuntime.Current;
         foreach (IndustrialNodeDescriptor node in topology.Nodes.Values)
         {
@@ -922,7 +930,8 @@ internal sealed class FluidNetworkRuntime :
             {
                 float leaked = Mathf.Min(
                     state.CleanWater + state.UnsafeWater + state.FoulWater,
-                    state.Leak * 0.001f * deltaTime);
+                    state.Leak * 0.001f * deltaTime
+                        * meteringLeakMultiplier);
                 FluidNodeWaterRules.Remove(
                     state,
                     WorldWaterQuality.Foul,

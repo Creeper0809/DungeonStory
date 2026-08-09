@@ -13,38 +13,31 @@ public static class ProductionBuildingViewFactory
         int queueIndex,
         string blockedMessage)
     {
-        GameObject root = new GameObject(
+        GameObject root = new(
             $"ProductionBill_{queueIndex}",
             typeof(RectTransform),
             typeof(Image),
             typeof(LayoutElement));
         root.transform.SetParent(parent, false);
-        root.GetComponent<LayoutElement>().preferredHeight = 48f;
-        root.GetComponent<Image>().color =
-            DungeonUiThemePalette.Panel(highContrast: false);
+        root.GetComponent<LayoutElement>().preferredHeight = 52f;
+        root.GetComponent<Image>().color = DungeonUiThemePalette.Panel(false);
 
-        GameObject fillObject = new GameObject(
-            "Fill",
-            typeof(RectTransform),
-            typeof(Image));
+        GameObject fillObject = new("Fill", typeof(RectTransform), typeof(Image));
         fillObject.transform.SetParent(root.transform, false);
         RectTransform fillRect = fillObject.GetComponent<RectTransform>();
         fillRect.anchorMin = Vector2.zero;
-        float visibleProgress = bill.Status == ProductionBillStatus.Processing
-            || bill.Status == ProductionBillStatus.WaitingForUtilities
-                ? bill.ProcessingProgressRatio
-                : bill.ProgressRatio;
-        fillRect.anchorMax = new Vector2(visibleProgress, 1f);
+        float progress = bill.Status is ProductionBillStatus.Processing
+            or ProductionBillStatus.WaitingForUtilities
+            ? bill.ProcessingProgressRatio
+            : bill.ProgressRatio;
+        fillRect.anchorMax = new Vector2(Mathf.Clamp01(progress), 1f);
         fillRect.offsetMin = Vector2.zero;
         fillRect.offsetMax = Vector2.zero;
         Image fill = fillObject.GetComponent<Image>();
-        fill.color = DungeonUiThemePalette.Accent(highContrast: false);
+        fill.color = DungeonUiThemePalette.Accent(false);
         fill.raycastTarget = false;
 
-        GameObject labelObject = new GameObject(
-            "Label",
-            typeof(RectTransform),
-            typeof(TextMeshProUGUI));
+        GameObject labelObject = new("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
         labelObject.transform.SetParent(root.transform, false);
         RectTransform labelRect = labelObject.GetComponent<RectTransform>();
         labelRect.anchorMin = Vector2.zero;
@@ -52,54 +45,45 @@ public static class ProductionBuildingViewFactory
         labelRect.offsetMin = new Vector2(8f, 3f);
         labelRect.offsetMax = new Vector2(-8f, -3f);
         TMP_Text text = labelObject.GetComponent<TMP_Text>();
-        text.text = $"{queueIndex}. {bill.RecipeName} · "
-            + $"{FormatStatus(bill.Status)} · {bill.ProgressRatio:P0}"
+        text.text = $"{queueIndex}. {bill.RecipeName} · {FormatStatus(bill.Status)} · {bill.ProgressRatio:P0}"
             + (bill.OutputCapacity > 0
-                ? $" · 출력 {bill.OutputBufferedQuantity}"
-                    + $"(+{bill.ReservedOutputQuantity})/{bill.OutputCapacity}"
+                ? $" · 출력 {bill.OutputBufferedQuantity}(+{bill.ReservedOutputQuantity})/{bill.OutputCapacity}"
                 : string.Empty)
-            + (string.IsNullOrWhiteSpace(blockedMessage)
-                ? string.Empty
-                : $"\n{blockedMessage}");
+            + (string.IsNullOrWhiteSpace(blockedMessage) ? string.Empty : $"\n{blockedMessage}");
         text.font = font;
         text.fontSize = 15f;
         text.enableAutoSizing = true;
         text.fontSizeMin = 10f;
         text.fontSizeMax = 15f;
-        text.color = DungeonUiThemePalette.TextPrimary(highContrast: false);
+        text.color = DungeonUiThemePalette.TextPrimary(false);
         text.alignment = TextAlignmentOptions.MidlineLeft;
         text.textWrappingMode = TextWrappingModes.Normal;
         text.raycastTarget = false;
         return root;
     }
 
-    public static string FormatStatus(ProductionBillStatus status)
+    public static string FormatStatus(ProductionBillStatus status) => status switch
     {
-        return status switch
-        {
-            ProductionBillStatus.WaitingForMaterials => "재료 운반 대기",
-            ProductionBillStatus.Ready => "작업 가능",
-            ProductionBillStatus.InProgress => "제작 중",
-            ProductionBillStatus.Suspended => "일시 중지",
-            ProductionBillStatus.Completed => "완료",
-            ProductionBillStatus.Cancelled => "취소됨",
-            ProductionBillStatus.WaitingForSupports => "연결 시설 대기",
-            ProductionBillStatus.WaitingForUtilities => "설비 대기",
-            ProductionBillStatus.Processing => "시간 공정 중",
-            ProductionBillStatus.WaitingForFinishing => "마감 작업 대기",
-            ProductionBillStatus.WaitingForOutputSpace => "출력 버퍼 가득 참",
-            ProductionBillStatus.WaitingForStockSensor => "재고 감지반 필요",
-            ProductionBillStatus.WaitingForDistributionRoute => "분기 배출 경로 대기",
-            _ => status.ToString()
-        };
-    }
+        ProductionBillStatus.WaitingForMaterials => "재료 운반 대기",
+        ProductionBillStatus.Ready => "작업 준비 완료",
+        ProductionBillStatus.InProgress => "제작 중",
+        ProductionBillStatus.Suspended => "일시정지",
+        ProductionBillStatus.Completed => "완료",
+        ProductionBillStatus.Cancelled => "취소됨",
+        ProductionBillStatus.WaitingForSupports => "연결 시설 대기",
+        ProductionBillStatus.WaitingForUtilities => "전력·용수 대기",
+        ProductionBillStatus.Processing => "시간 공정 진행 중",
+        ProductionBillStatus.WaitingForFinishing => "마감 작업 대기",
+        ProductionBillStatus.WaitingForOutputSpace => "출력 공간 대기",
+        ProductionBillStatus.WaitingForStockSensor => "재고 감지반 필요",
+        ProductionBillStatus.WaitingForDistributionRoute => "배출 경로 대기",
+        ProductionBillStatus.WaitingForEligibleWorker => "조건에 맞는 작업자 대기",
+        _ => "대기"
+    };
 
-    public static GameObject CreateRow(
-        Transform parent,
-        string name,
-        float height)
+    public static GameObject CreateRow(Transform parent, string name, float height)
     {
-        GameObject row = new GameObject(
+        GameObject row = new(
             name,
             typeof(RectTransform),
             typeof(HorizontalLayoutGroup),
@@ -116,55 +100,13 @@ public static class ProductionBuildingViewFactory
         return row;
     }
 
-    public static void AddRecipeText(
-        Transform parent,
-        string value,
-        TMP_FontAsset font)
-    {
-        GameObject textObject = new GameObject(
-            "ProductionRecipeLabel",
-            typeof(RectTransform),
-            typeof(TextMeshProUGUI),
-            typeof(LayoutElement));
-        textObject.transform.SetParent(parent, false);
-        textObject.GetComponent<LayoutElement>().preferredWidth = 330f;
-        TMP_Text text = textObject.GetComponent<TMP_Text>();
-        text.text = value;
-        text.font = font;
-        text.fontSize = 14f;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 10f;
-        text.fontSizeMax = 14f;
-        text.color = DungeonUiThemePalette.TextPrimary(highContrast: false);
-        text.alignment = TextAlignmentOptions.MidlineLeft;
-        text.textWrappingMode = TextWrappingModes.Normal;
-        text.raycastTarget = false;
-    }
+    public static void AddRecipeText(Transform parent, string value, TMP_FontAsset font) =>
+        AddSizedText(parent, "ProductionRecipeLabel", value, font, 330f, 14f,
+            DungeonUiThemePalette.TextPrimary(false));
 
-    public static void AddRecipeProcessText(
-        Transform parent,
-        string value,
-        TMP_FontAsset font)
-    {
-        GameObject textObject = new GameObject(
-            "ProductionProcessLabel",
-            typeof(RectTransform),
-            typeof(TextMeshProUGUI),
-            typeof(LayoutElement));
-        textObject.transform.SetParent(parent, false);
-        textObject.GetComponent<LayoutElement>().preferredWidth = 245f;
-        TMP_Text text = textObject.GetComponent<TMP_Text>();
-        text.text = value;
-        text.font = font;
-        text.fontSize = 13f;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 9f;
-        text.fontSizeMax = 13f;
-        text.color = DungeonUiThemePalette.TextSecondary(highContrast: false);
-        text.alignment = TextAlignmentOptions.MidlineLeft;
-        text.textWrappingMode = TextWrappingModes.Normal;
-        text.raycastTarget = false;
-    }
+    public static void AddRecipeProcessText(Transform parent, string value, TMP_FontAsset font) =>
+        AddSizedText(parent, "ProductionProcessLabel", value, font, 245f, 13f,
+            DungeonUiThemePalette.TextSecondary(false));
 
     public static void AddButton(
         Transform parent,
@@ -175,45 +117,18 @@ public static class ProductionBuildingViewFactory
         string objectName = "ProductionButton",
         float preferredWidth = 118f)
     {
-        GameObject buttonObject = new GameObject(
-            string.IsNullOrWhiteSpace(objectName)
-                ? "ProductionButton"
-                : objectName,
+        GameObject root = new(
+            string.IsNullOrWhiteSpace(objectName) ? "ProductionButton" : objectName,
             typeof(RectTransform),
             typeof(Image),
             typeof(Button),
             typeof(LayoutElement));
-        buttonObject.transform.SetParent(parent, false);
-        buttonObject.GetComponent<LayoutElement>().preferredWidth =
-            Mathf.Max(52f, preferredWidth);
-        Button button = buttonObject.GetComponent<Button>();
-        DungeonUiThemePalette.StyleButton(
-            button,
-            highContrast: false,
-            reducedMotion: false,
-            selected: selected);
+        root.transform.SetParent(parent, false);
+        root.GetComponent<LayoutElement>().preferredWidth = Mathf.Max(52f, preferredWidth);
+        Button button = root.GetComponent<Button>();
+        DungeonUiThemePalette.StyleButton(button, false, false, selected);
         button.onClick.AddListener(() => action?.Invoke());
-
-        GameObject textObject = new GameObject(
-            "Label",
-            typeof(RectTransform),
-            typeof(TextMeshProUGUI));
-        textObject.transform.SetParent(buttonObject.transform, false);
-        RectTransform rect = textObject.GetComponent<RectTransform>();
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = new Vector2(5f, 2f);
-        rect.offsetMax = new Vector2(-5f, -2f);
-        TMP_Text text = textObject.GetComponent<TMP_Text>();
-        text.text = label;
-        text.font = font;
-        text.fontSize = 14f;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 10f;
-        text.fontSizeMax = 14f;
-        text.color = DungeonUiThemePalette.TextPrimary(highContrast: false);
-        text.alignment = TextAlignmentOptions.Center;
-        text.raycastTarget = false;
+        AddButtonLabel(root.transform, label, font);
     }
 
     public static GameObject CreateRouteEditor(
@@ -223,18 +138,15 @@ public static class ProductionBuildingViewFactory
         TMP_FontAsset font,
         float preferredHeight = 52f)
     {
-        GameObject root = new GameObject(
+        GameObject root = new(
             name,
             typeof(RectTransform),
             typeof(HorizontalLayoutGroup),
             typeof(LayoutElement),
             typeof(Image));
         root.transform.SetParent(parent, false);
-        root.GetComponent<LayoutElement>().preferredHeight =
-            Mathf.Clamp(preferredHeight, 24f, 52f);
-        root.GetComponent<Image>().color =
-            DungeonUiThemePalette.Panel(highContrast: false);
-
+        root.GetComponent<LayoutElement>().preferredHeight = Mathf.Clamp(preferredHeight, 24f, 52f);
+        root.GetComponent<Image>().color = DungeonUiThemePalette.Panel(false);
         HorizontalLayoutGroup layout = root.GetComponent<HorizontalLayoutGroup>();
         layout.padding = new RectOffset(6, 6, 3, 3);
         layout.spacing = 4f;
@@ -243,29 +155,8 @@ public static class ProductionBuildingViewFactory
         layout.childControlHeight = true;
         layout.childForceExpandWidth = false;
         layout.childForceExpandHeight = true;
-
-        GameObject labelObject = new GameObject(
-            "ProductionRouteLabel",
-            typeof(RectTransform),
-            typeof(TextMeshProUGUI),
-            typeof(LayoutElement));
-        labelObject.transform.SetParent(root.transform, false);
-        LayoutElement labelLayout = labelObject.GetComponent<LayoutElement>();
-        labelLayout.preferredWidth = 220f;
-        labelLayout.flexibleWidth = 1f;
-        TMP_Text label = labelObject.GetComponent<TMP_Text>();
-        label.text = consumerLabel;
-        label.font = font;
-        label.fontSize = 13f;
-        label.enableAutoSizing = true;
-        label.fontSizeMin = 9f;
-        label.fontSizeMax = 13f;
-        label.color = DungeonUiThemePalette.TextPrimary(highContrast: false);
-        label.alignment = TextAlignmentOptions.MidlineLeft;
-        label.textWrappingMode = TextWrappingModes.Normal;
-        label.overflowMode = TextOverflowModes.Truncate;
-        label.raycastTarget = false;
-
+        AddSizedText(root.transform, "ProductionRouteLabel", consumerLabel, font,
+            220f, 13f, DungeonUiThemePalette.TextPrimary(false), flexible: true);
         return root;
     }
 
@@ -278,21 +169,68 @@ public static class ProductionBuildingViewFactory
         float height,
         ICollection<GameObject> created)
     {
-        GameObject textObject = new GameObject(
+        GameObject root = new(
             "ProductionText",
             typeof(RectTransform),
             typeof(TextMeshProUGUI),
             typeof(LayoutElement));
-        textObject.transform.SetParent(parent, false);
-        textObject.GetComponent<LayoutElement>().preferredHeight = height;
-        TMP_Text text = textObject.GetComponent<TMP_Text>();
+        root.transform.SetParent(parent, false);
+        root.GetComponent<LayoutElement>().preferredHeight = height;
+        TMP_Text text = root.GetComponent<TMP_Text>();
+        ConfigureText(text, value, font, fontSize, color, TextAlignmentOptions.MidlineLeft);
+        created.Add(root);
+    }
+
+    private static void AddSizedText(
+        Transform parent,
+        string name,
+        string value,
+        TMP_FontAsset font,
+        float width,
+        float size,
+        Color color,
+        bool flexible = false)
+    {
+        GameObject root = new(name, typeof(RectTransform), typeof(TextMeshProUGUI), typeof(LayoutElement));
+        root.transform.SetParent(parent, false);
+        LayoutElement layout = root.GetComponent<LayoutElement>();
+        layout.preferredWidth = width;
+        layout.flexibleWidth = flexible ? 1f : 0f;
+        TMP_Text text = root.GetComponent<TMP_Text>();
+        ConfigureText(text, value, font, size, color, TextAlignmentOptions.MidlineLeft);
+        text.overflowMode = flexible ? TextOverflowModes.Truncate : TextOverflowModes.Overflow;
+    }
+
+    private static void AddButtonLabel(Transform parent, string value, TMP_FontAsset font)
+    {
+        GameObject root = new("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
+        root.transform.SetParent(parent, false);
+        RectTransform rect = root.GetComponent<RectTransform>();
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = new Vector2(5f, 2f);
+        rect.offsetMax = new Vector2(-5f, -2f);
+        ConfigureText(root.GetComponent<TMP_Text>(), value, font, 14f,
+            DungeonUiThemePalette.TextPrimary(false), TextAlignmentOptions.Center);
+    }
+
+    private static void ConfigureText(
+        TMP_Text text,
+        string value,
+        TMP_FontAsset font,
+        float size,
+        Color color,
+        TextAlignmentOptions alignment)
+    {
         text.text = value;
         text.font = font;
-        text.fontSize = fontSize;
+        text.fontSize = size;
+        text.enableAutoSizing = true;
+        text.fontSizeMin = Mathf.Max(9f, size - 4f);
+        text.fontSizeMax = size;
         text.color = color;
-        text.alignment = TextAlignmentOptions.MidlineLeft;
+        text.alignment = alignment;
         text.textWrappingMode = TextWrappingModes.Normal;
         text.raycastTarget = false;
-        created.Add(textObject);
     }
 }

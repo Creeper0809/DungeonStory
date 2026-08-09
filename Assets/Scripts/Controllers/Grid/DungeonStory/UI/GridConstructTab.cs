@@ -35,6 +35,7 @@ public class GridConstructTab : UITab
     private ITmpKoreanFontService tmpKoreanFontService;
     private IGridConstructButtonFactory buttonFactory;
     private IBuildingCategoryDefinitionCatalog buildingCategoryCatalog;
+    private IRunMilestoneQuery milestoneQuery;
     private bool preservePlacementOnClose;
 
     [Inject]
@@ -45,7 +46,8 @@ public class GridConstructTab : UITab
         ProgressionSceneRuntimeReferences progressionRuntimes,
         ITmpKoreanFontService tmpKoreanFontService,
         IGridConstructButtonFactory buttonFactory,
-        IBuildingCategoryDefinitionCatalog buildingCategoryCatalog)
+        IBuildingCategoryDefinitionCatalog buildingCategoryCatalog,
+        IRunMilestoneQuery milestoneQuery)
     {
         this.dataCatalog = dataCatalog ?? throw new ArgumentNullException(nameof(dataCatalog));
         this.popupService = popupService ?? throw new ArgumentNullException(nameof(popupService));
@@ -61,6 +63,7 @@ public class GridConstructTab : UITab
         this.buttonFactory = buttonFactory ?? throw new ArgumentNullException(nameof(buttonFactory));
         this.buildingCategoryCatalog = buildingCategoryCatalog
             ?? throw new ArgumentNullException(nameof(buildingCategoryCatalog));
+        this.milestoneQuery = milestoneQuery ?? throw new ArgumentNullException(nameof(milestoneQuery));
     }
 
     private void Start()
@@ -474,6 +477,12 @@ public class GridConstructTab : UITab
         if (building == null)
         {
             return false;
+        }
+
+        if (milestoneQuery != null
+            && milestoneQuery.IsLandmarkBuilding(building.ContentDefinitionId))
+        {
+            return milestoneQuery.IsLandmarkUnlocked(building.ContentDefinitionId);
         }
 
         if (building.unlocked)

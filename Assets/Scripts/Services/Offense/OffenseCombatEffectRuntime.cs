@@ -60,6 +60,21 @@ internal static class OffenseCombatEffectRuntime
                     attackModifier.Turns,
                     $"attack-modifier:{context.Source.PersistentId}:{context.Target.PersistentId}");
                 return;
+            case OffenseSmokeEffect smoke:
+                context.Session.ApplySmoke(
+                    context.Target,
+                    smoke.Obscuration,
+                    smoke.Turns,
+                    context.Source.PersistentId);
+                return;
+            case OffenseSummonEffect summon:
+                AddStatus(
+                    context,
+                    OffenseBattleStatusType.SummonedGuard,
+                    summon.InterceptHealth,
+                    summon.Turns,
+                    $"summoned-guard:{context.Source.PersistentId}");
+                return;
             case OffenseCleanseEffect cleanse:
                 context.Session.Cleanse(context.Target, cleanse.MaximumStatuses);
                 return;

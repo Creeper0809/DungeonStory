@@ -341,15 +341,30 @@ internal static class PhysicalItemSaveValidation
             {
                 continue;
             }
+            bool equipmentBacked = PhysicalItemIds.TryGetEquipmentDefinitionId(
+                    itemId,
+                    out _)
+                || PhysicalItemIds.IsEquipmentModule(itemId);
             UniqueItemInstanceSaveData unique = null;
             if (!typedInstanceId.IsValid
                 || !string.Equals(instanceId, typedInstanceId.Value, StringComparison.Ordinal)
-                || !stackedInstanceIds.Add(instanceId)
-                || !uniqueById.TryGetValue(instanceId, out unique)
-                || !string.Equals(unique.definitionId, itemId, StringComparison.Ordinal))
+                || !stackedInstanceIds.Add(instanceId))
             {
                 report.AddError(
-                    $"Physical stack '{stackId}' has an invalid, duplicate, or mismatched item-instance ID '{instanceId}'.");
+                    $"Physical stack '{stackId}' has an invalid or duplicate item-instance ID '{instanceId}'.");
+                continue;
+            }
+            if (equipmentBacked
+                && (!uniqueById.TryGetValue(instanceId, out unique)
+                    || !string.Equals(unique.definitionId, itemId, StringComparison.Ordinal)))
+            {
+                report.AddError(
+                    $"Physical equipment stack '{stackId}' has no matching authoritative item instance '{instanceId}'.");
+            }
+            else if (!equipmentBacked && uniqueById.ContainsKey(instanceId))
+            {
+                report.AddError(
+                    $"Inline-authority unique stack '{stackId}' must not duplicate item instance '{instanceId}' in the equipment registry.");
             }
             if (PhysicalItemIds.IsEquipmentModule(itemId)
                 && unique != null)

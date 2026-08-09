@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a00dd16ef9aaab44b6e51a3f9da8394, type: 3}
+  m_Name: crop_ember-cotton
+  m_EditorClassIdentifier: DungeonStory.Economy::CropDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9352
+  cropId: crop:ember-cotton
+  displayName: "\uC7BF\uBD88 \uBAA9\uD654"
+  harvestItemId: fiber:ember-cotton
+  seedItemId: seed-lot:ember-cotton
+  baseGenome: {fileID: 11400000, guid: f2eb5ce2d306e4548877d4ddf69c9033, type: 2}
+  familyGroup: 1
+  endemicDisease: 1
+  requiredResearchId: research:textile:fiber
+  growthHours: 92
+  sowWork: 4
+  harvestWork: 7
+  dailyWater: 0.4
+  yield: 6
+  indoorAllowed: 1
+  temperatureRange: {x: 14, y: 42}

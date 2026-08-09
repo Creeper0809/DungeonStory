@@ -32,6 +32,7 @@ public static class CaptivityCircusDebugScenarios
         Run("door_presets", VerifyDoorAccessPresets, lines, errors);
         Run("captive_thresholds_and_clone", VerifyCaptiveThresholds, lines, errors);
         Run("captivity_save_validation", VerifyCaptivitySaveValidation, lines, errors);
+        Run("durable_captivity_tools", VerifyDurableCaptivityTools, lines, errors);
         Run("interaction_registry_and_materials", VerifyInteractions, lines, errors);
         Run("circus_registry_and_programs", VerifyCircusPrograms, lines, errors);
         Run("circus_persistent_identity", VerifyCircusPersistentIdentity, lines, errors);
@@ -274,6 +275,92 @@ public static class CaptivityCircusDebugScenarios
             policies = source.policies.Select(policy => policy.Clone()).ToList(),
             captives = source.captives.Select(captive => captive.Clone()).ToList()
         };
+    }
+
+    private static string VerifyDurableCaptivityTools()
+    {
+        foreach (string itemId in new[]
+                 {
+                     CaptivityItemDefinitions.PrisonerWorkKitItemId,
+                     CaptivityItemDefinitions.ReinforcedRestraintItemId
+                 })
+        {
+            Require(
+                DurableToolItemRules.TryGetMaximumDurability(
+                    itemId,
+                    out float maximum)
+                && maximum > 0f,
+                $"{itemId} has no durable-tool contract");
+            ItemInstanceComponentSaveData component =
+                DurableToolItemRules.CreateDurability(itemId, maximum - 7f);
+            Require(
+                Mathf.Approximately(
+                    DurableToolItemRules.ReadCurrentDurability(
+                        itemId,
+                        new[] { component }),
+                    maximum - 7f),
+                $"{itemId} durability component did not round-trip");
+
+            ResourceItemDefinitionSO asset = AssetDatabase
+                .FindAssets("t:ResourceItemDefinitionSO")
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadAssetAtPath<ResourceItemDefinitionSO>)
+                .FirstOrDefault(candidate => candidate != null
+                    && string.Equals(
+                        candidate.ItemId,
+                        itemId,
+                        StringComparison.Ordinal));
+            Require(asset != null, $"{itemId} asset is missing");
+            Require(asset.MaxStack == 1, $"{itemId} is not a unique physical item");
+        }
+
+        CaptivitySaveData labor = new CaptivitySaveData
+        {
+            policies = new List<CaptivePolicyData>
+            {
+                new CaptivePolicyData
+                {
+                    policyId = CaptivityPolicyIds.Standard,
+                    displayName = "표준 수용"
+                }
+            },
+            captives = new List<CaptiveState>
+            {
+                new CaptiveState
+                {
+                    captiveId = "character:captive:durable-tool",
+                    displayName = "도구 포로",
+                    speciesTag = "human",
+                    status = CaptivityStatus.Labor,
+                    policyId = CaptivityPolicyIds.Standard,
+                    housingBuildingId = "building:test-cell",
+                    compliance = 60f,
+                    health = 80f,
+                    laborPermissions = CaptiveLaborPermission.Clean,
+                    assignedLaborToolItemId =
+                        CaptivityItemDefinitions.PrisonerWorkKitItemId,
+                    assignedLaborToolInstanceId =
+                        "item-instance:test-prisoner-work-kit",
+                    assignedLaborToolDurability = 80f,
+                    assignedLaborToolMaximumDurability = 100f,
+                    nextLaborToolWearAt = 60f
+                }
+            }
+        };
+        DungeonGameRestoreReport validReport = new DungeonGameRestoreReport();
+        CaptivitySaveValidation.Validate(labor, validReport);
+        Require(
+            validReport.Success,
+            "valid assigned labor tool failed save validation: "
+            + string.Join(" | ", validReport.Errors));
+
+        labor.captives[0].assignedLaborToolDurability = 0f;
+        DungeonGameRestoreReport brokenReport = new DungeonGameRestoreReport();
+        CaptivitySaveValidation.Validate(labor, brokenReport);
+        Require(
+            !brokenReport.Success,
+            "labor remained valid with a broken assigned work kit");
+        return "captivity tools are unique durable instances and labor save state requires a usable assigned kit";
     }
 
     private static string VerifyCircusPrograms()

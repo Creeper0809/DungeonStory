@@ -146,7 +146,8 @@ public static class GameContentCatalogAssetBuilder
         ScriptableObject[] definitions = domainCatalog.Definitions
             .Where(asset => asset != null
                 && asset is not ResearchProjectSO
-                && !IsLegacyDungeonFactionShadow(asset))
+                && !IsLegacyDungeonFactionShadow(asset)
+                && !IsLegacyFestivalShadow(asset))
             .Concat(projects.Cast<ScriptableObject>())
             .Distinct()
             .ToArray();
@@ -161,6 +162,105 @@ public static class GameContentCatalogAssetBuilder
         EditorUtility.SetDirty(domainCatalog);
     }
 
+    /// <summary>
+    /// Replaces only the V22 apparel and textile definition slices. The full
+    /// catalog migration is deliberately avoided so unrelated authored assets
+    /// and open Inspector changes are never rewritten by the apparel builder.
+    /// </summary>
+    public static void ReindexV22ApparelDefinitions()
+    {
+        GameDomainContentCatalogSO domainCatalog =
+            AssetDatabase.LoadAssetAtPath<GameDomainContentCatalogSO>(
+                DomainCatalogPath)
+            ?? throw new InvalidOperationException(
+                $"Required domain content catalog is missing at '{DomainCatalogPath}'.");
+        ScriptableObject[] apparel = AssetDatabase.FindAssets(
+                "t:ApparelDefinitionSO", new[] { "Assets/Resources/SO/Apparel" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<ApparelDefinitionSO>)
+            .Where(value => value != null)
+            .Cast<ScriptableObject>()
+            .ToArray();
+        ScriptableObject[] materials = AssetDatabase.FindAssets(
+                "t:TextileMaterialDefinitionSO", new[] { "Assets/Resources/SO/Apparel" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<TextileMaterialDefinitionSO>)
+            .Where(value => value != null)
+            .Cast<ScriptableObject>()
+            .ToArray();
+        ScriptableObject[] textileCrops = AssetDatabase.FindAssets(
+                "t:CropDefinitionSO", new[]
+                {
+                    "Assets/Resources/SO/Economy/Crops/V22Textiles"
+                })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<CropDefinitionSO>)
+            .Where(value => value != null)
+            .Cast<ScriptableObject>()
+            .ToArray();
+        ScriptableObject[] textileGenomes = AssetDatabase.FindAssets(
+                "t:CropGenomeDefinitionSO", new[]
+                {
+                    "Assets/Resources/SO/Economy/CropGenomes/V22Textiles"
+                })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<CropGenomeDefinitionSO>)
+            .Where(value => value != null)
+            .Cast<ScriptableObject>()
+            .ToArray();
+        ScriptableObject[] textileRecipes = AssetDatabase.FindAssets(
+                "t:ProductionRecipeSO", new[]
+                {
+                    "Assets/Resources/SO/Economy/Recipes/V22Apparel"
+                })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<ProductionRecipeSO>)
+            .Where(value => value != null)
+            .Cast<ScriptableObject>()
+            .ToArray();
+        ScriptableObject[] definitions = domainCatalog.Definitions
+            .Where(value => value != null
+                && value is not ApparelDefinitionSO
+                && value is not TextileMaterialDefinitionSO
+                && !IsV22TextileCrop(value)
+                && !IsV22TextileGenome(value)
+                && !IsV22TextileRecipe(value))
+            .Concat(apparel)
+            .Concat(materials)
+            .Concat(textileCrops)
+            .Concat(textileGenomes)
+            .Concat(textileRecipes)
+            .Distinct()
+            .ToArray();
+        domainCatalog.SetDefinitions(definitions);
+        IReadOnlyList<string> errors = domainCatalog.ValidateCatalog();
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "V22 apparel domain-definition reindex failed:\n"
+                + string.Join("\n", errors));
+        }
+        EditorUtility.SetDirty(domainCatalog);
+    }
+
+    private static bool IsV22TextileCrop(ScriptableObject value) =>
+        value is CropDefinitionSO crop
+        && crop.CropId is "crop:frost-flax"
+            or "crop:ember-cotton"
+            or "crop:mire-reed"
+            or "crop:spore-hemp";
+
+    private static bool IsV22TextileRecipe(ScriptableObject value) =>
+        value is ProductionRecipeSO recipe
+        && recipe.RecipeId.StartsWith("recipe:v22:", StringComparison.Ordinal);
+
+    private static bool IsV22TextileGenome(ScriptableObject value) =>
+        value is CropGenomeDefinitionSO genome
+        && (genome.GenomeId.StartsWith("genome:frost-flax:", StringComparison.Ordinal)
+            || genome.GenomeId.StartsWith("genome:ember-cotton:", StringComparison.Ordinal)
+            || genome.GenomeId.StartsWith("genome:mire-reed:", StringComparison.Ordinal)
+            || genome.GenomeId.StartsWith("genome:spore-hemp:", StringComparison.Ordinal));
+
     private static bool IsLegacyDungeonFactionShadow(ScriptableObject asset)
     {
         if (asset is not DungeonFactionDefinitionSO)
@@ -172,6 +272,21 @@ public static class GameContentCatalogAssetBuilder
             .Replace('\\', '/');
         return path.StartsWith(
             "Assets/Resources/SO/Factions/faction_dungeon_",
+            StringComparison.Ordinal)
+            && path.EndsWith(".asset", StringComparison.Ordinal);
+    }
+
+    private static bool IsLegacyFestivalShadow(ScriptableObject asset)
+    {
+        if (asset is not FestivalDefinitionSO)
+        {
+            return false;
+        }
+
+        string path = AssetDatabase.GetAssetPath(asset)
+            .Replace('\\', '/');
+        return path.StartsWith(
+            "Assets/Resources/SO/Population/Festivals/",
             StringComparison.Ordinal)
             && path.EndsWith(".asset", StringComparison.Ordinal);
     }
@@ -226,7 +341,8 @@ public static class GameContentCatalogAssetBuilder
                 && asset is not GameContentCatalogSO
                 && asset is not GameDomainContentCatalogSO
                 && asset is not GameMediaCatalogSO
-                && !IsLegacyDungeonFactionShadow(asset))
+                && !IsLegacyDungeonFactionShadow(asset)
+                && !IsLegacyFestivalShadow(asset))
             .Append(wasteRules)
             .Distinct()
             .ToArray();

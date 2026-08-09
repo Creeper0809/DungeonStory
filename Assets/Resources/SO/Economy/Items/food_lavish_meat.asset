@@ -32,29 +32,29 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 27
   features:
-  - rid: 7737211674039681303
-  - rid: 7737211674039681304
-  - rid: 7737211674039681305
-  - rid: 7737211674039681306
+  - rid: 7737211838068949854
+  - rid: 7737211838068949855
+  - rid: 7737211838068949856
+  - rid: 7737211838068949857
   references:
     version: 2
     RefIds:
-    - rid: 7737211674039681303
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949854
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:lavish
-    - rid: 7737211674039681304
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949855
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2
         ingredientTags: 21
         sharedIntermediate: 0
-    - rid: 7737211674039681305
-      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949856
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6
-    - rid: 7737211674039681306
-      type: {class: FoodItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949857
+      type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         quality: 2
         nutrition: 60

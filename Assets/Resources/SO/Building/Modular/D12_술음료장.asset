@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uC220\uC74C\uB8CC\uC7A5"
   sprite: {fileID: 21300000, guid: 5b8278d53f5799b419abb77a8dd5a731, type: 3}
   icon: {fileID: 21300000, guid: 5b8278d53f5799b419abb77a8dd5a731, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730834227589
@@ -43,8 +48,8 @@ MonoBehaviour:
     - rid: 7737211730834227597
     - rid: 7737211730834227598
     - rid: 7737211730834227599
-    - rid: 7737211792998531440
-    - rid: 7737211792998531441
+    - rid: 7737211838074978927
+    - rid: 7737211838074978928
   width: 1
   height: 1
   layer: 1
@@ -146,13 +151,13 @@ MonoBehaviour:
         abilityId: BuildingMercenaryHiringAbility
         rolePremium: 0
         minimumCandidateSatisfaction: 65
-    - rid: 7737211792998531440
+    - rid: 7737211838074978927
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:tavern-brewery
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211792998531441
+    - rid: 7737211838074978928
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility

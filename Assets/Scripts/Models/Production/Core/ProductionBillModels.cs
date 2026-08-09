@@ -18,7 +18,8 @@ public enum ProductionBillStatus
     WaitingForFinishing = 9,
     WaitingForOutputSpace = 10,
     WaitingForStockSensor = 11,
-    WaitingForDistributionRoute = 12
+    WaitingForDistributionRoute = 12,
+    WaitingForEligibleWorker = 13
 }
 
 public enum ProductionBatchStage
@@ -124,6 +125,9 @@ public sealed class ProductionBillSaveData
     public ProductionStatusSaveData logistics = new();
     public List<string> allowedMaterialIds = new List<string>();
     public List<string> allowedWorkerIds = new List<string>();
+    public WorkerSelectionPolicySaveData workerPolicy =
+        WorkerSelectionPolicySaveData.Anyone(WorkerCandidateSortMode.Fastest);
+    public List<CraftContributionSaveData> workerContributions = new();
     public bool hasPendingModeTransition;
     public ProductionOrderMode pendingMode;
     public string outputDestinationId = string.Empty;
@@ -151,7 +155,7 @@ public sealed class ProductionSelectedSupplySaveData
 [Serializable]
 public sealed class DungeonProductionBillSaveData
 {
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 6;
 
     public int version = CurrentVersion;
     public int nextBillSequence = 1;
@@ -184,6 +188,9 @@ public sealed class ProductionBillSnapshot
     public float TemperatureOutageHours { get; set; }
     public string OccupiedSupportNodeId { get; set; } = string.Empty;
     public string ReservedWorkerId { get; set; } = string.Empty;
+    public WorkerSelectionPolicySaveData WorkerPolicy { get; set; } =
+        WorkerSelectionPolicySaveData.Anyone(
+            WorkerCandidateSortMode.Fastest);
     public string MaterialDestinationId { get; set; } = string.Empty;
     public DomainFailure BlockedFailure { get; set; } = DomainFailure.None;
     public int PrefetchBatchCount { get; set; } = 1;

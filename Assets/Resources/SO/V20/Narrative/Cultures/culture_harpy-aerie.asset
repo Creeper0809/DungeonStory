@@ -27,6 +27,16 @@ MonoBehaviour:
   preferredFacilityIds: []
   environmentalPreferences:
   - high airy rooms
+  roomPreference:
+    preferredRoles: 4
+    idealTemperatureC: 18
+    temperatureToleranceC: 10
+    minimumVentilation: 70
+    minimumLighting: 50
+    maximumLighting: 100
+    minimumCleanliness: 35
+    prefersSharedSpace: 1
+    prefersPrivateSpace: 0
   etiquetteRules:
   - "\uB178\uB798 \uC911\uAC04\uC5D0 \uB9D0\uC744 \uB04A\uB294 \uAC83\uC740 \uACF5\uAC1C\uC801\uC778
     \uB3C4\uC804\uC774\uB2E4."
@@ -35,21 +45,21 @@ MonoBehaviour:
   - practice:harpy-first-flight
   otherCultureAttitudes:
   - id: culture:adventurer-frontier
-    weight: 1
+    weight: 1.13
   - id: culture:beastkin-pack
-    weight: 1
+    weight: 0.85
   - id: culture:demon-contract
-    weight: 1
+    weight: 0.88
   - id: culture:golem-core
-    weight: 1
+    weight: 0.91
   - id: culture:kobold-toolclan
-    weight: 1
+    weight: 0.97
   - id: culture:myconid-grove
     weight: 1
   - id: culture:orc-vigil
-    weight: 1
+    weight: 1.03
   - id: culture:slime-confluence
-    weight: 1
+    weight: 1.06
   - id: culture:vampire-nightcourt
-    weight: 1
+    weight: 1.09
   assimilationDays: 120

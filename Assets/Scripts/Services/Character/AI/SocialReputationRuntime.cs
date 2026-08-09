@@ -188,14 +188,23 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
             return false;
         }
 
-        if (!TryGetLlmRuntime(out ILocalLlmRuntime queue))
-        {
-            return false;
-        }
-
         BuildableObject eventFacility = RequirePromptComposer().ResolveFacility(entry);
         float inferredSentiment = InferSocialEventSentiment(entry);
         bool hasInferredSentiment = Mathf.Abs(inferredSentiment) > 0.01f;
+        bool ruleApplied = eventFacility != null && hasInferredSentiment
+            && ApplyRuleFacilityRumor(
+                speaker,
+                eventFacility,
+                inferredSentiment,
+                entry.OriginalMessage,
+                "RuleEvent");
+        if (!TryGetLlmRuntime(out ILocalLlmRuntime queue))
+        {
+            nextRequestTimeByActor[speaker] =
+                RequireGameClock().Time + Mathf.Max(0.1f, minSecondsBetweenActorRequests);
+            return ruleApplied;
+        }
+
         string prompt = RequirePromptComposer().BuildEventPrompt(
             speaker,
             entry,
@@ -219,7 +228,7 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
             lastRequestSkipDebug = lastError;
             nextRequestTimeByActor[speaker] =
                 RequireGameClock().Time + Mathf.Max(0.1f, minSecondsBetweenActorRequests);
-            return false;
+            return ruleApplied;
         }
 
         nextRequestTimeByActor[speaker] =
@@ -245,12 +254,20 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
             return false;
         }
 
+        float expectedSentiment = Mathf.Clamp(sentiment, -1f, 1f);
+        bool ruleApplied = ApplyRuleFacilityRumor(
+            speaker,
+            facility,
+            expectedSentiment,
+            summary,
+            string.IsNullOrWhiteSpace(eventName) ? "RuleExperience" : eventName.Trim());
         if (!TryGetLlmRuntime(out ILocalLlmRuntime queue))
         {
-            return false;
+            nextRequestTimeByActor[speaker] =
+                RequireGameClock().Time + Mathf.Max(0.1f, minSecondsBetweenActorRequests);
+            return ruleApplied;
         }
 
-        float expectedSentiment = Mathf.Clamp(sentiment, -1f, 1f);
         string prompt = RequirePromptComposer().BuildFacilityExperiencePrompt(
             speaker,
             facility,
@@ -267,7 +284,7 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
             lastRequestSkipDebug = lastError;
             nextRequestTimeByActor[speaker] =
                 RequireGameClock().Time + Mathf.Max(0.1f, minSecondsBetweenActorRequests);
-            return false;
+            return ruleApplied;
         }
 
         nextRequestTimeByActor[speaker] =
@@ -561,11 +578,47 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
             return;
         }
 
-        if (!ApplyRumor(rumor, speaker))
+        // V25: validation protects the prose channel, but mechanical reputation
+        // was already committed from the rule-owned event facts. Never apply
+        // model-authored type, spread, trust, target, or sentiment values here.
+        lastError = string.Empty;
+        lastRumorDebug = $"narrative-only: {rumor.summary}";
+    }
+
+    private bool ApplyRuleFacilityRumor(
+        CharacterActor speaker,
+        BuildableObject facility,
+        float sentiment,
+        string summary,
+        string source)
+    {
+        if (speaker == null || facility == null || Mathf.Abs(sentiment) <= 0.01f)
         {
-            lastError = "Social rumor had no valid target.";
-            LogSocialWarningIfNeeded(logWarnings, lastError);
+            return false;
         }
+
+        float normalized = Mathf.Clamp(sentiment, -1f, 1f);
+        SocialRumor rumor = new SocialRumor
+        {
+            type = normalized >= 0.5f
+                ? SocialRumorType.Praise
+                : normalized > 0f
+                    ? SocialRumorType.Recommendation
+                    : normalized <= -0.5f
+                        ? SocialRumorType.Warning
+                        : SocialRumorType.Complaint,
+            targetType = SocialRumorTargetType.Facility,
+            targetFacilityId = facility.id,
+            sentiment = normalized,
+            spreadChance = Mathf.Clamp01(0.25f + 0.35f * Mathf.Abs(normalized)),
+            trustImpact = 0.25f * normalized,
+            validUntil = RequireGameClock().Time + 120f,
+            summary = string.IsNullOrWhiteSpace(summary)
+                ? "시설 이용 경험"
+                : summary.Trim(),
+            source = source ?? "RuleSystem"
+        };
+        return ApplyRumor(rumor, speaker);
     }
 
     private void LogSocialWarningIfNeeded(bool logWarnings, string message)

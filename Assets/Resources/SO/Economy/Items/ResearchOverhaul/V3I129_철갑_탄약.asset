@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: "V3I129_\uCCA0\uAC11_\uD0C4\uC57D"
+  m_EditorClassIdentifier: DungeonStory.Economy::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9029
+  itemId: ammo:armor-piercing-cartridge
+  displayName: "\uCCA0\uAC11 \uD0C4\uC57D"
+  description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uCCA0\uAC11 \uD0C4\uC57D."
+  stockCategory: 7
+  unitWeight: 4.09
+  maxStack: 120
+  sprite: {fileID: 0}
+  unitPrice: 268
+  features:
+  - rid: 7737211838078124350
+  - rid: 7737211838078124351
+  - rid: 7737211838078124352
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211838078124350
+      type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        ammunitionKindId: ammo:armor-piercing-cartridge
+    - rid: 7737211838078124351
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        requiredResearchId: research:equipment:pressure-barrels
+    - rid: 7737211838078124352
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        kind: 7
+        ingredientTags: 512
+        sharedIntermediate: 0

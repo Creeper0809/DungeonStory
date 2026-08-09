@@ -78,6 +78,10 @@ public static class DungeonWorldSimulationRegistration
             .As<IStockQuery>();
         builder.Register<ItemReservationService>(Lifetime.Singleton)
             .As<IItemReservationService>();
+        builder.Register<LeasedItemReservationService>(Lifetime.Singleton)
+            .As<ILeasedItemReservationService>();
+        builder.Register<AtomicItemConsumptionService>(Lifetime.Singleton)
+            .As<IAtomicItemConsumptionService>();
         builder.Register<WorldItemSpawner>(Lifetime.Singleton)
             .As<IWorldItemSpawner>();
         builder.Register<WorldItemQueryService>(Lifetime.Singleton)
@@ -253,8 +257,40 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<ResourceEnvironmentalWorkwearCatalog>(
                 Lifetime.Singleton)
             .As<IEnvironmentalWorkwearCatalog>();
+        builder.Register<ResourceApparelDefinitionCatalog>(Lifetime.Singleton)
+            .As<IApparelDefinitionCatalog>();
+        builder.Register<ResourceTextileMaterialCatalog>(Lifetime.Singleton)
+            .As<ITextileMaterialCatalog>();
+        builder.Register<ResourceMaterialEconomicProfileCatalog>(Lifetime.Singleton)
+            .As<IMaterialEconomicProfileCatalog>();
+        builder.Register<V23BalanceWorkCalculator>(Lifetime.Singleton)
+            .As<IBalanceWorkCalculator>()
+            .As<IRecipeBalanceWorkCalculator>();
+        builder.Register<V23MaterialSalvageCalculator>(Lifetime.Singleton)
+            .As<IMaterialSalvageCalculator>();
+        builder.Register<DeterministicCraftQualityResolver>(Lifetime.Singleton)
+            .As<ICraftQualityResolver>();
+        builder.Register<TextileBatchCompactionService>(Lifetime.Singleton)
+            .As<ITextileBatchCompactionService>();
+        builder.Register<ApparelWorkOrderRuntime>(Lifetime.Singleton)
+            .AsSelf()
+            .As<IApparelWorkOrderCommand>()
+            .As<IApparelWorkOrderQuery>()
+            .As<IApparelWorkOrderPersistence>();
         builder.Register<CharacterEnvironmentAggregateStateStore>(
             Lifetime.Singleton);
+        builder.Register<CharacterApparelAggregateStateStore>(Lifetime.Singleton);
+        builder.Register<AnatomyAttachmentQuery>(Lifetime.Singleton)
+            .As<IAnatomyAttachmentQuery>();
+        builder.Register<ApparelMaterialProjector>(Lifetime.Singleton)
+            .As<IApparelMaterialProjector>();
+        builder.Register<ApparelAvailabilityIndex>(Lifetime.Singleton)
+            .As<IApparelAvailabilityIndex>();
+        builder.Register<CharacterApparelAggregate>(Lifetime.Singleton)
+            .AsSelf()
+            .As<ICharacterApparelQuery>()
+            .As<ICharacterApparelCommand>()
+            .As<ICharacterApparelPersistence>();
         builder.Register<EnvironmentalWorkwearRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<IEnvironmentalWorkwearQuery>()
@@ -302,6 +338,10 @@ public static class DungeonWorldSimulationRegistration
         builder.RegisterEntryPoint<WorkOrderRuntime>(Lifetime.Singleton)
             .As<IWorkOrderRuntime>()
             .As<IWorkOrderQuery>()
+            .As<IWorkOrderWorkerPolicyQuery>()
+            .As<IWorkOrderWorkerPolicyCommand>()
+            .As<IQualityTargetPipelineQuery>()
+            .As<IQualityTargetPipelineCommand>()
             .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<ResourceWildlifeSpeciesCatalogProvider>(
                 Lifetime.Singleton)
@@ -347,6 +387,11 @@ public static class DungeonWorldSimulationRegistration
             .As<ICropEcologyService>()
             .As<ICropEcologyPersistence>()
             .As<IInitialCropSeedGrant>();
+        builder.Register<CertifiedSeedRuntime>(Lifetime.Singleton)
+            .AsSelf()
+            .As<ICertifiedSeedCommand>();
+        builder.RegisterEntryPoint<CertifiedSeedApplicationAdapter>(
+            Lifetime.Singleton);
         builder.Register<PhysicalCropTreatmentRuntime>(Lifetime.Singleton)
             .As<IPhysicalCropTreatmentService>();
         builder.RegisterEntryPoint<CropSeedBootstrapRuntime>(Lifetime.Singleton);

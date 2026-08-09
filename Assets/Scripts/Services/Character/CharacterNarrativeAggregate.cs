@@ -9,6 +9,10 @@ internal sealed class CharacterNarrativeRecord
     private readonly List<string> latentTraits;
     private readonly List<CharacterNarrativeEventSaveData> recentEvents;
     private readonly Dictionary<LifeEventCategory, CharacterNarrativeEventSummarySaveData> summaries;
+    private readonly Dictionary<string, CulturalPracticeParticipationSaveData>
+        practiceParticipations;
+    private readonly Dictionary<string, int> skillExperienceById;
+    private readonly Dictionary<string, float> backgroundFactionReactionById;
 
     private CharacterNarrativeRecord(CharacterNarrativeSaveData data)
     {
@@ -24,12 +28,39 @@ internal sealed class CharacterNarrativeRecord
         AssimilationDays = data.assimilationDays;
         expressedTraits = (data.expressedHeritableTraitIds ?? new()).Distinct(StringComparer.Ordinal).ToList();
         latentTraits = (data.latentHeritableTraitIds ?? new()).Distinct(StringComparer.Ordinal).ToList();
+        HeritableTraitsAnalyzed = data.heritableTraitsAnalyzed;
         recentEvents = (data.recentEvents ?? new()).Select(Clone).OrderBy(value => value.absoluteDay).ToList();
         summaries = (data.eventSummaries ?? new()).ToDictionary(value => value.category, Clone);
+        practiceParticipations = (data.practiceParticipations ?? new())
+            .Where(value => value != null)
+            .ToDictionary(value => Normalize(value.practiceId), Clone,
+                StringComparer.Ordinal);
         OriginEnemyArchetypeId = Normalize(data.originEnemyArchetypeId);
         OriginFactionId = Normalize(data.originFactionId);
         MilitaryTrainingId = Normalize(data.militaryTrainingId);
         Loyalty = Math.Max(0f, Math.Min(100f, data.loyalty));
+        BackgroundInitialized = data.backgroundInitialized;
+        BackgroundInitializedAbsoluteDay = Math.Max(
+            0,
+            data.backgroundInitializedAbsoluteDay);
+        InitialMemoryCode = Normalize(data.initialMemoryCode);
+        skillExperienceById = (data.skillExperience ?? new())
+            .Where(value => value != null
+                && !string.IsNullOrWhiteSpace(value.skillId))
+            .GroupBy(value => Normalize(value.skillId), StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Sum(value => Math.Max(0, value.experience)),
+                StringComparer.Ordinal);
+        backgroundFactionReactionById =
+            (data.backgroundFactionReactions ?? new())
+            .Where(value => value != null
+                && !string.IsNullOrWhiteSpace(value.factionId))
+            .GroupBy(value => Normalize(value.factionId), StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Last().reaction,
+                StringComparer.Ordinal);
     }
 
     public CharacterId CharacterId { get; }
@@ -42,10 +73,14 @@ internal sealed class CharacterNarrativeRecord
     public int NextAmbitionAllowedAbsoluteDay { get; private set; }
     public SpeciesCultureId AssimilationTargetCultureId { get; private set; }
     public int AssimilationDays { get; private set; }
+    public bool HeritableTraitsAnalyzed { get; private set; }
     public string OriginEnemyArchetypeId { get; }
     public string OriginFactionId { get; }
     public string MilitaryTrainingId { get; }
     public float Loyalty { get; private set; }
+    public bool BackgroundInitialized { get; private set; }
+    public int BackgroundInitializedAbsoluteDay { get; private set; }
+    public string InitialMemoryCode { get; private set; }
 
     public static CharacterNarrativeRecord Create(
         CharacterId characterId,
@@ -88,6 +123,8 @@ internal sealed class CharacterNarrativeRecord
         catalog.Require(value.BackgroundId);
         catalog.Require(value.CultureId);
         if (value.ActiveAmbitionId.IsValid) catalog.Require(value.ActiveAmbitionId);
+        foreach (string traitId in value.expressedTraits.Concat(value.latentTraits))
+            catalog.RequireHeritable(traitId);
         if (value.expressedTraits.Count > 4 || value.latentTraits.Count > 2)
             throw new InvalidOperationException($"'{data.characterId}' exceeds heritable trait limits.");
         if (value.recentEvents.Count > RecentEventLimit)
@@ -106,6 +143,19 @@ internal sealed class CharacterNarrativeRecord
             throw new InvalidOperationException($"'{data.characterId}' has an invalid enemy-origin record.");
         foreach (CharacterNarrativeEventSaveData resolved in value.recentEvents)
             catalog.Require(new NarrativeEventId(resolved.eventId));
+        foreach (CulturalPracticeParticipationSaveData participation in
+                 value.practiceParticipations.Values)
+        {
+            if (!catalog.Practices.Any(practice => string.Equals(
+                    practice.StableId,
+                    participation.practiceId,
+                    StringComparison.Ordinal))
+                || participation.lastAbsoluteDay < 0)
+            {
+                throw new InvalidOperationException(
+                    $"'{data.characterId}' has an invalid cultural-practice history.");
+            }
+        }
         return value;
     }
 
@@ -117,6 +167,70 @@ internal sealed class CharacterNarrativeRecord
         ActiveAmbitionId = id;
         AmbitionStatus = CharacterAmbitionStatus.Active;
         AmbitionProgress = 0;
+    }
+
+    public bool TryInitializeBackground(
+        CharacterBackgroundDefinitionSO definition,
+        int absoluteDay,
+        out BackgroundInitializationOutcome outcome)
+    {
+        outcome = null;
+        if (BackgroundInitialized)
+        {
+            return false;
+        }
+        if (definition == null
+            || !string.Equals(
+                definition.StableId,
+                BackgroundId.Value,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Background initialization definition does not match the character.");
+        }
+
+        foreach (V20SkillBonus bonus in definition.startingSkills
+                     ?? new List<V20SkillBonus>())
+        {
+            if (bonus == null || string.IsNullOrWhiteSpace(bonus.skillId))
+            {
+                continue;
+            }
+            string skillId = Normalize(bonus.skillId);
+            skillExperienceById[skillId] = checked(
+                (skillExperienceById.TryGetValue(skillId, out int current)
+                    ? current
+                    : 0) + Math.Max(0, bonus.experience));
+        }
+        foreach (V20WeightedId reaction in definition.factionReactions
+                     ?? new List<V20WeightedId>())
+        {
+            if (reaction == null || string.IsNullOrWhiteSpace(reaction.id))
+            {
+                continue;
+            }
+            backgroundFactionReactionById[Normalize(reaction.id)] =
+                Math.Clamp((reaction.weight - 1f) * 5f, -10f, 45f);
+        }
+        InitialMemoryCode = Normalize(definition.initialMemoryCode);
+        BackgroundInitialized = true;
+        BackgroundInitializedAbsoluteDay = Math.Max(0, absoluteDay);
+        outcome = new BackgroundInitializationOutcome
+        {
+            BackgroundId = BackgroundId,
+            InitialMemoryCode = InitialMemoryCode,
+            SkillExperienceById = new Dictionary<string, int>(
+                skillExperienceById,
+                StringComparer.Ordinal),
+            FactionReactionById = new Dictionary<string, float>(
+                backgroundFactionReactionById,
+                StringComparer.Ordinal),
+            StartingEffects = (definition.startingEffects
+                    ?? new List<V20ContentEffect>())
+                .Where(value => value != null && value.IsValid)
+                .ToArray()
+        };
+        return true;
     }
 
     public void AddAmbitionProgress(int amount, int targetProgress, int absoluteDay)
@@ -155,6 +269,83 @@ internal sealed class CharacterNarrativeRecord
         AssimilationDays = 0;
     }
 
+    public bool CanPerformPractice(
+        string practiceId,
+        int absoluteDay,
+        out int nextAllowedAbsoluteDay)
+    {
+        string id = Normalize(practiceId);
+        nextAllowedAbsoluteDay = practiceParticipations.TryGetValue(
+            id,
+            out CulturalPracticeParticipationSaveData previous)
+                ? checked(previous.lastAbsoluteDay + 10)
+                : 0;
+        return id.StartsWith("practice:", StringComparison.Ordinal)
+            && absoluteDay >= nextAllowedAbsoluteDay;
+    }
+
+    public void RecordPracticeParticipation(
+        string practiceId,
+        SpeciesCultureId practiceCultureId,
+        int requiredAssimilationDays,
+        int absoluteDay)
+    {
+        if (!CanPerformPractice(
+                practiceId,
+                absoluteDay,
+                out int nextAllowedAbsoluteDay))
+        {
+            throw new InvalidOperationException(
+                $"Cultural practice is on cooldown until day {nextAllowedAbsoluteDay}.");
+        }
+
+        string id = Normalize(practiceId);
+        practiceParticipations[id] = new CulturalPracticeParticipationSaveData
+        {
+            practiceId = id,
+            lastAbsoluteDay = Math.Max(0, absoluteDay),
+            performed = true
+        };
+        if (practiceCultureId.Equals(CultureId))
+        {
+            return;
+        }
+        if (!AssimilationTargetCultureId.Equals(practiceCultureId))
+        {
+            BeginAssimilation(practiceCultureId);
+        }
+        AssimilationDays++;
+        if (AssimilationDays < Math.Max(1, requiredAssimilationDays))
+        {
+            return;
+        }
+        CultureId = AssimilationTargetCultureId;
+        AssimilationTargetCultureId = default;
+        AssimilationDays = 0;
+    }
+
+    public void RecordPracticeNeglect(
+        string practiceId,
+        int absoluteDay)
+    {
+        if (!CanPerformPractice(
+                practiceId,
+                absoluteDay,
+                out int nextAllowedAbsoluteDay))
+        {
+            throw new InvalidOperationException(
+                $"Cultural practice is on cooldown until day {nextAllowedAbsoluteDay}.");
+        }
+
+        string id = Normalize(practiceId);
+        practiceParticipations[id] = new CulturalPracticeParticipationSaveData
+        {
+            practiceId = id,
+            lastAbsoluteDay = Math.Max(0, absoluteDay),
+            performed = false
+        };
+    }
+
     public void RecordEvent(
         LifeEventDefinitionSO definition,
         string choiceId,
@@ -184,6 +375,14 @@ internal sealed class CharacterNarrativeRecord
         }
     }
 
+    public void MarkHeritableTraitsAnalyzed()
+    {
+        if (HeritableTraitsAnalyzed)
+            throw new InvalidOperationException(
+                "Heritable traits were already analyzed for this character.");
+        HeritableTraitsAnalyzed = true;
+    }
+
     public CharacterNarrativeSnapshot Snapshot() => new()
     {
         CharacterId = CharacterId,
@@ -197,12 +396,29 @@ internal sealed class CharacterNarrativeRecord
         AssimilationDays = AssimilationDays,
         ExpressedHeritableTraitIds = expressedTraits.ToArray(),
         LatentHeritableTraitIds = latentTraits.ToArray(),
+        VisibleLatentHeritableTraitIds = HeritableTraitsAnalyzed
+            ? latentTraits.ToArray()
+            : Array.Empty<string>(),
+        HeritableTraitsAnalyzed = HeritableTraitsAnalyzed,
         RecentEvents = recentEvents.Select(Clone).ToArray(),
         EventSummaries = summaries.Values.OrderBy(value => value.category).Select(Clone).ToArray(),
         OriginEnemyArchetypeId = OriginEnemyArchetypeId,
         OriginFactionId = OriginFactionId,
         MilitaryTrainingId = MilitaryTrainingId,
-        Loyalty = Loyalty
+        Loyalty = Loyalty,
+        BackgroundInitialized = BackgroundInitialized,
+        BackgroundInitializedAbsoluteDay = BackgroundInitializedAbsoluteDay,
+        InitialMemoryCode = InitialMemoryCode,
+        SkillExperienceById = new Dictionary<string, int>(
+            skillExperienceById,
+            StringComparer.Ordinal),
+        BackgroundFactionReactionById = new Dictionary<string, float>(
+            backgroundFactionReactionById,
+            StringComparer.Ordinal),
+        PracticeParticipations = practiceParticipations.Values
+            .OrderBy(value => value.practiceId, StringComparer.Ordinal)
+            .Select(Clone)
+            .ToArray()
     };
 
     public CharacterNarrativeSaveData Capture() => new()
@@ -219,12 +435,36 @@ internal sealed class CharacterNarrativeRecord
         assimilationDays = AssimilationDays,
         expressedHeritableTraitIds = expressedTraits.ToList(),
         latentHeritableTraitIds = latentTraits.ToList(),
+        heritableTraitsAnalyzed = HeritableTraitsAnalyzed,
         recentEvents = recentEvents.Select(Clone).ToList(),
         eventSummaries = summaries.Values.OrderBy(value => value.category).Select(Clone).ToList(),
         originEnemyArchetypeId = OriginEnemyArchetypeId,
         originFactionId = OriginFactionId,
         militaryTrainingId = MilitaryTrainingId,
-        loyalty = Loyalty
+        loyalty = Loyalty,
+        backgroundInitialized = BackgroundInitialized,
+        backgroundInitializedAbsoluteDay = BackgroundInitializedAbsoluteDay,
+        initialMemoryCode = InitialMemoryCode,
+        skillExperience = skillExperienceById
+            .OrderBy(value => value.Key, StringComparer.Ordinal)
+            .Select(value => new NarrativeSkillExperienceSaveData
+            {
+                skillId = value.Key,
+                experience = value.Value
+            })
+            .ToList(),
+        backgroundFactionReactions = backgroundFactionReactionById
+            .OrderBy(value => value.Key, StringComparer.Ordinal)
+            .Select(value => new NarrativeFactionReactionSaveData
+            {
+                factionId = value.Key,
+                reaction = value.Value
+            })
+            .ToList(),
+        practiceParticipations = practiceParticipations.Values
+            .OrderBy(value => value.practiceId, StringComparer.Ordinal)
+            .Select(Clone)
+            .ToList()
     };
 
     private static string[] RequireTraits(IReadOnlyList<string> source, int maximum, string label)
@@ -249,6 +489,14 @@ internal sealed class CharacterNarrativeRecord
         category = value?.category ?? default,
         count = value?.count ?? 0,
         lastAbsoluteDay = value?.lastAbsoluteDay ?? 0
+    };
+
+    private static CulturalPracticeParticipationSaveData Clone(
+        CulturalPracticeParticipationSaveData value) => new()
+    {
+        practiceId = value?.practiceId ?? string.Empty,
+        lastAbsoluteDay = value?.lastAbsoluteDay ?? 0,
+        performed = value?.performed ?? false
     };
 }
 

@@ -563,6 +563,79 @@ public sealed class ResourceUsageIndex :
             }
         }
 
+        foreach (ApparelDefinitionSO apparel in
+                 content.GetAll<ApparelDefinitionSO>())
+        {
+            if (apparel == null)
+            {
+                continue;
+            }
+            if (staticEntries.TryGetValue(
+                    apparel.PhysicalItemId,
+                    out StaticUsage apparelUsage))
+            {
+                apparelUsage.AddConsumer(
+                    $"apparel-equip:{apparel.ApparelId}",
+                    apparel.RequiredResearchId,
+                    ProductionConsumerKind.EquipmentUse,
+                    apparel.DisplayName);
+            }
+            foreach (TextileMaterialDefinitionSO material in
+                     content.GetAll<TextileMaterialDefinitionSO>())
+            {
+                if (material != null
+                    && (material.Tags & apparel.AllowedMaterialTags) != 0
+                    && staticEntries.TryGetValue(
+                        material.PhysicalItemId,
+                        out StaticUsage materialUsage))
+                {
+                    materialUsage.AddConsumer(
+                        $"apparel-material:{apparel.ApparelId}",
+                        apparel.RequiredResearchId,
+                        ProductionConsumerKind.EquipmentMaterial,
+                        apparel.DisplayName);
+                }
+            }
+        }
+
+        IndexApparelMaintenanceSupply(
+            "tool:sewing-kit",
+            "apparel-repair:tool",
+            ProductionConsumerKind.EquipmentUse);
+        IndexApparelMaintenanceSupply(
+            "material:sewing-thread",
+            "apparel-repair:thread",
+            ProductionConsumerKind.EquipmentMaterial);
+        IndexApparelMaintenanceSupply(
+            "material:sewing-thread",
+            "apparel-alteration:thread",
+            ProductionConsumerKind.EquipmentMaterial);
+        IndexApparelMaintenanceSupply(
+            "material:mending-scrap",
+            "apparel-repair:patch",
+            ProductionConsumerKind.EquipmentMaterial);
+        IndexApparelMaintenanceSupply(
+            "material:mending-scrap",
+            "apparel-alteration:patch",
+            ProductionConsumerKind.EquipmentMaterial);
+
+        foreach (GuestRequestDefinitionSO guest in
+                 content.GetAll<GuestRequestDefinitionSO>())
+        {
+            IndexConsumableRequirements(
+                guest.StableId,
+                guest.DisplayName,
+                guest.serviceRequirements);
+        }
+        foreach (FactionContractDefinitionSO contract in
+                 content.GetAll<FactionContractDefinitionSO>())
+        {
+            IndexConsumableRequirements(
+                contract.StableId,
+                contract.DisplayName,
+                contract.completionRequirements);
+        }
+
         foreach (ResourceItemDefinitionSO item in catalog.Items)
         {
             if (item != null
@@ -864,6 +937,46 @@ public sealed class ResourceUsageIndex :
                     "research:medical:mycelial-grafting");
             }
 
+        }
+    }
+
+    private void IndexApparelMaintenanceSupply(
+        string itemId,
+        string consumerId,
+        ProductionConsumerKind kind)
+    {
+        if (staticEntries.TryGetValue(itemId, out StaticUsage usage))
+        {
+            usage.AddConsumer(
+                consumerId,
+                "research:textile:tailoring",
+                kind,
+                consumerId);
+        }
+    }
+
+    private void IndexConsumableRequirements(
+        string consumerId,
+        string displayName,
+        V20ContentRequirementSet requirements)
+    {
+        foreach (V20ItemAmountRequirement requirement in
+                 requirements?.items ?? new List<V20ItemAmountRequirement>())
+        {
+            if (requirement == null
+                || !requirement.consume
+                || !staticEntries.TryGetValue(
+                    requirement.itemDefinitionId?.Trim() ?? string.Empty,
+                    out StaticUsage usage))
+            {
+                continue;
+            }
+
+            usage.AddConsumer(
+                consumerId,
+                string.Empty,
+                ProductionConsumerKind.SocietyEvent,
+                displayName);
         }
     }
 

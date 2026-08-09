@@ -22,6 +22,8 @@ public sealed class CharacterEnvironmentUnityAdapter :
     private readonly ICharacterSpeciesEnvironmentCatalog speciesEnvironment;
     private readonly ICharacterEnvironmentProtectionResolver protection;
     private readonly IEnvironmentalWorkwearPersistence workwear;
+    private readonly ICharacterApparelPersistence apparel;
+    private readonly IApparelWorkOrderPersistence apparelWorkOrders;
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly IGameClock clock;
     private readonly CharacterEnvironmentAggregateStateStore stateStore;
@@ -37,6 +39,8 @@ public sealed class CharacterEnvironmentUnityAdapter :
         ICharacterSpeciesEnvironmentCatalog speciesEnvironment,
         ICharacterEnvironmentProtectionResolver protection,
         IEnvironmentalWorkwearPersistence workwear,
+        ICharacterApparelPersistence apparel,
+        IApparelWorkOrderPersistence apparelWorkOrders,
         ICharacterBodyHealthCommand bodyHealthCommands,
         IGameClock clock,
         CharacterEnvironmentAggregateStateStore stateStore)
@@ -50,6 +54,10 @@ public sealed class CharacterEnvironmentUnityAdapter :
             ?? throw new ArgumentNullException(nameof(protection));
         this.workwear = workwear
             ?? throw new ArgumentNullException(nameof(workwear));
+        this.apparel = apparel
+            ?? throw new ArgumentNullException(nameof(apparel));
+        this.apparelWorkOrders = apparelWorkOrders
+            ?? throw new ArgumentNullException(nameof(apparelWorkOrders));
         this.bodyHealthCommands = bodyHealthCommands
             ?? throw new ArgumentNullException(nameof(bodyHealthCommands));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
@@ -192,7 +200,9 @@ public sealed class CharacterEnvironmentUnityAdapter :
                 .OrderBy(state => state.characterId, StringComparer.Ordinal)
                 .Select(Clone)
                 .ToArray(),
-            equippedWorkwear = workwear.CaptureEquipped().ToArray()
+            equippedWorkwear = workwear.CaptureEquipped().ToArray(),
+            equippedApparel = apparel.CaptureApparel().ToArray(),
+            apparelWorkOrders = apparelWorkOrders.CaptureOrders()
         };
     }
 
@@ -253,19 +263,33 @@ public sealed class CharacterEnvironmentUnityAdapter :
                 "Character-environment workwear candidate is invalid: "
                 + string.Join(" | ", report.Errors));
         }
-        foreach (KeyValuePair<CharacterId, ItemInstanceId> pair in preparedWorkwear)
+        CharacterApparelRestoreCandidate preparedApparel =
+            apparel.PrepareRestoreApparel(source.equippedApparel, report);
+        if (!report.Success)
         {
-            restored.EquippedWorkwearByCharacter.Add(pair.Key, pair.Value);
+            throw new InvalidOperationException(
+                "Character-environment apparel candidate is invalid: "
+                + string.Join(" | ", report.Errors));
         }
-        return new CharacterEnvironmentRestoreCandidate(restored);
+        // V22 keeps equippedWorkwear as a derived compatibility projection.
+        // It is validated above but no longer copied into the environment state.
+        _ = preparedWorkwear;
+        IReadOnlyList<ApparelWorkOrderSaveData> preparedWorkOrders =
+            apparelWorkOrders.PrepareRestoreOrders(source.apparelWorkOrders);
+        return new CharacterEnvironmentRestoreCandidate(
+            restored,
+            preparedApparel,
+            preparedWorkOrders);
     }
 
     public void PublishRestoreCandidate(
         CharacterEnvironmentRestoreCandidate candidate)
     {
-        stateStore.Replace(
-            (candidate ?? throw new ArgumentNullException(nameof(candidate)))
-            .State);
+        CharacterEnvironmentRestoreCandidate required = candidate
+            ?? throw new ArgumentNullException(nameof(candidate));
+        stateStore.Replace(required.State);
+        apparel.PublishRestoreApparel(required.Apparel);
+        apparelWorkOrders.PublishRestoreOrders(required.ApparelWorkOrders);
     }
 
     public void Reset()
@@ -274,6 +298,8 @@ public sealed class CharacterEnvironmentUnityAdapter :
         {
             WorkwearVersion = stateStore.Current.WorkwearVersion + 1
         });
+        apparel.ResetApparel();
+        apparelWorkOrders.ResetOrders();
     }
 
     public static void CalculateTemperatureRates(
@@ -424,7 +450,8 @@ public sealed class CharacterEnvironmentUnityAdapter :
         CharacterActor actor,
         ThermalProtectionProfile protectionProfile)
     {
-        AbilityWork work = actor?.GetAbility<AbilityWork>();
+        AbilityWork work = null;
+        actor?.TryGetAbility(out work);
         BuildableObject restFacility = work?.assignedShop;
         if (work?.AssignedWorkType != FacilityWorkType.Rest
             || restFacility?.Facility

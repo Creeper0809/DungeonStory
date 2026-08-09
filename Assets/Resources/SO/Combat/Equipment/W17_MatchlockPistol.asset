@@ -19,7 +19,7 @@ MonoBehaviour:
   weight: 2.6
   occupiedHands: 1
   maxDurability: 100
-  requiredCraftWork: 6
+  requiredCraftWork: 168
   defaultMaterialId: material:iron
   primaryMaterialAmount: 2
   allowedMaterialFamilies: 03000000
@@ -41,7 +41,7 @@ MonoBehaviour:
   growthEquipment: 1
   growthBaseStatMultiplier: 0.88
   verbs:
-  - rid: 7737211772876620161
+  - rid: 7737211838079696913
   rangeProfiles:
   - band: 1
     accuracyMultiplier: 0.8
@@ -52,6 +52,11 @@ MonoBehaviour:
   maximumRange: 14
   compatibleAmmunitionItemIds:
   - ammo:paper-cartridge
+  - ammo:smoke-cartridge
+  - ammo:armor-piercing-cartridge
+  - ammo:scatter-cartridge
+  - ammo:rune-cartridge
+  - ammo:signal-flare
   magazineCapacity: 1
   reloadSeconds: 6
   supportsAimed: 1
@@ -63,7 +68,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211772876620161
+    - rid: 7737211838079696913
       type: {class: ProjectileVerb, ns: , asm: DungeonStory.Combat}
       data:
         attackTime: 1.4

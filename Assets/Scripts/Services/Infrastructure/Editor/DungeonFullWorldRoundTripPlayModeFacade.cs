@@ -524,7 +524,21 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
         }
 
         Destroy(gameObject);
+        bool ownedByUnityTestRunner = Environment.GetCommandLineArgs()
+            .Any(argument => string.Equals(
+                argument,
+                "-runTests",
+                StringComparison.OrdinalIgnoreCase));
+        if (ownedByUnityTestRunner)
+        {
+            return;
+        }
         EditorApplication.ExitPlaymode();
+        if (Application.isBatchMode)
+        {
+            EditorApplication.delayCall += () =>
+                EditorApplication.Exit(passed ? 0 : 1);
+        }
     }
 
     private void CaptureLog(

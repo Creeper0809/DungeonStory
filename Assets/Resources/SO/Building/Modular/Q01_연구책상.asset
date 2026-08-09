@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "\uC5F0\uAD6C\uCC45\uC0C1"
   sprite: {fileID: 21300000, guid: 08fd728bf07a36f4aa5870833f9b9950, type: 3}
   icon: {fileID: 21300000, guid: 08fd728bf07a36f4aa5870833f9b9950, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730834227229
@@ -40,7 +45,7 @@ MonoBehaviour:
     - rid: 7737211730834227233
     - rid: 7737211730834227234
     - rid: 7737211730834227235
-    - rid: 7737211792998531765
+    - rid: 7737211838079696930
   width: 2
   height: 1
   layer: 1
@@ -120,7 +125,7 @@ MonoBehaviour:
           hunger: 0
           excretion: 0
           hygiene: 0
-    - rid: 7737211792998531765
+    - rid: 7737211838079696930
       type: {class: BuildingResearchCapacityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingResearchCapacityAbility

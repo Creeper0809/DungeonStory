@@ -781,8 +781,17 @@ public static class WorkAmountDebugScenarios
                     materialDestinationId =
                         $"{WorkOrderRuntime.ConstructionDestinationPrefix}{building.id}:{position.x}:{position.y}",
                     reservedWorkerPersistentId = string.Empty,
+                    qualityRoll = new CraftQualityRollSaveData
+                    {
+                        attemptIndex = 0,
+                        randomA = 0,
+                        randomB = 0,
+                        randomC = 0
+                    },
+                    qualityAttemptIndex = 0,
                     status = WorkOrderStatus.Ready,
-                    itemMaterials = new List<WorkOrderItemMaterialSaveData>()
+                    itemMaterials = new List<WorkOrderItemMaterialSaveData>(),
+                    recoveryOutputs = new List<WorkOrderItemMaterialSaveData>()
                 }
             }
         };

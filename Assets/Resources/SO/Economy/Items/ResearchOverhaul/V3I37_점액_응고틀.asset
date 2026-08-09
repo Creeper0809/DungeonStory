@@ -31,16 +31,16 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 84
   features:
-  - rid: 7737211794726584989
-  - rid: 7737211794726584990
+  - rid: 7737211838078124389
+  - rid: 7737211838078124390
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584989
+    - rid: 7737211838078124389
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:slime-bioengineering
-    - rid: 7737211794726584990
+    - rid: 7737211838078124390
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8

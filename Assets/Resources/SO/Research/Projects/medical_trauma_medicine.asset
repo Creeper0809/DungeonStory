@@ -46,13 +46,13 @@ MonoBehaviour:
   - prerequisiteId: research:society:household-records
     prerequisite: {fileID: 11400000, guid: 0e987e63f3ceb724aa404607804069ad, type: 2}
     kind: 0
-    reason: "\uAC00\uAD6C \uAE30\uB85D\uC758 \uC774\uB860\uC774(\uAC00) \uD2B8\uB77C\uC6B0\uB9C8
-      \uC758\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+    reason: "\uAC00\uAD6C \uAE30\uB85D\uACFC \uC601\uC544 \uB3CC\uBD04\uC758 \uC774\uB860\uC774(\uAC00)
+      \uD2B8\uB77C\uC6B0\uB9C8 \uC758\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211792998531696
+    - rid: 7737211838079697144
   facilityRequirements:
   - capability: 0
     requiredCount: 1
@@ -64,7 +64,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211792998531696
+    - rid: 7737211838079697144
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 8885

@@ -28,27 +28,27 @@ MonoBehaviour:
     \uBC14\uAFB8\uC9C0 \uC54A\uB294 \uC791\uC5C5\uBCF5."
   stockCategory: 1
   unitWeight: 0.8
-  maxStack: 1
+  maxStack: 25
   sprite: {fileID: 0}
   unitPrice: 95
   features:
-  - rid: 7737211673962611646
-  - rid: 7737211673962611647
-  - rid: 7737211673962611648
+  - rid: 7737211838068949710
+  - rid: 7737211838068949711
+  - rid: 7737211838068949712
   references:
     version: 2
     RefIds:
-    - rid: 7737211673962611646
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949710
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:environment:rune-insulation
-    - rid: 7737211673962611647
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949711
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1152
         sharedIntermediate: 0
-    - rid: 7737211673962611648
-      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+    - rid: 7737211838068949712
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

@@ -31,7 +31,7 @@ MonoBehaviour:
   prerequisites:
   - {fileID: 11400000, guid: 464827d49a6d4654f8c5bf76b8816dc9, type: 2}
   - {fileID: 11400000, guid: f115c236ee997ae4c849fb7b1fc8409b, type: 2}
-  - {fileID: 11400000, guid: 8f63d37343e549b4a945b0f75f4558de, type: 2}
+  - {fileID: 11400000, guid: 4ee2df589417d314295a42c252406053, type: 2}
   - {fileID: 11400000, guid: dd2109148e59a2244a05b77b4681c17b, type: 2}
   prerequisiteLinks:
   - prerequisiteId: research:bath-business
@@ -44,11 +44,11 @@ MonoBehaviour:
     kind: 2
     reason: "\uD658\uB300 \uC6B4\uC601\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
       \uC11C\uBE44\uC2A4 \uC790\uB3D9\uD654 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
-  - prerequisiteId: research:industry:distribution
-    prerequisite: {fileID: 11400000, guid: 8f63d37343e549b4a945b0f75f4558de, type: 2}
+  - prerequisiteId: research:industry:steam-power
+    prerequisite: {fileID: 11400000, guid: 4ee2df589417d314295a42c252406053, type: 2}
     kind: 2
-    reason: "\uBC30\uC804\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uC11C\uBE44\uC2A4
-      \uC790\uB3D9\uD654 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+    reason: "\uC99D\uAE30 \uB3D9\uB825\uACFC \uBC30\uC804\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC11C\uBE44\uC2A4 \uC790\uB3D9\uD654 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   - prerequisiteId: research:medical-reception
     prerequisite: {fileID: 11400000, guid: dd2109148e59a2244a05b77b4681c17b, type: 2}
     kind: 2
@@ -58,13 +58,13 @@ MonoBehaviour:
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211792998531875
-    - rid: 7737211792998531876
-    - rid: 7737211792998531877
-    - rid: 7737211792998531878
-    - rid: 7737211792998531879
-    - rid: 7737211792998531880
-    - rid: 7737211792998531881
+    - rid: 7737211838079697176
+    - rid: 7737211838079697177
+    - rid: 7737211838079697178
+    - rid: 7737211838079697179
+    - rid: 7737211838079697180
+    - rid: 7737211838079697181
+    - rid: 7737211838079697182
   facilityRequirements:
   - capability: 0
     requiredCount: 2
@@ -76,31 +76,31 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211792998531875
+    - rid: 7737211838079697176
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1704
-    - rid: 7737211792998531876
+    - rid: 7737211838079697177
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1705
-    - rid: 7737211792998531877
+    - rid: 7737211838079697178
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1706
-    - rid: 7737211792998531878
+    - rid: 7737211838079697179
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1707
-    - rid: 7737211792998531879
+    - rid: 7737211838079697180
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1708
-    - rid: 7737211792998531880
+    - rid: 7737211838079697181
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1714
-    - rid: 7737211792998531881
+    - rid: 7737211838079697182
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1715

@@ -1,5 +1,41 @@
 # DungeonStory Progress
 
+## 2026-08-09 - current Qwen3 base model mounted
+
+- Added a reproducible `mount_base_model.cmd/.py` path that downloads only the official Qwen3-1.7B Q4_K_M GGUF and official llama.cpp Windows CPU distribution, refuses checkpoints/adapters, validates GGUF/size, and emits a hash-locked development manifest.
+- Mounted the 1.22 GiB base GGUF plus CPU runtime in `Assets/StreamingAssets/DungeonStoryLlm`; runtime startup forces `--gpu-layers 0`, disables thinking, uses two 4,096-token slots, a 256 MiB in-memory prompt cache, loopback API-key authentication, and no web UI.
+- Replaced the unavailable custom HTTP endpoints with llama.cpp's local chat/completion endpoints while preserving static JSON Schema enforcement, constrained equipment-choice grammar, C# quality gates, and deterministic rule fallback.
+- Added support-file hash validation, model training/certification status exposure, startup-queue retention, and real `/health` readiness rather than TCP-listener readiness.
+- Added corrupt-model and backend contract scenarios (`8/8` pass) plus a real Unity CPU generation/lifecycle smoke. Unity 6000.3.8f1 returned 0; generated structured Korean JSON contained valid F01/M01 references; host count remained `0 -> 0` after shutdown.
+- SFT/DPO remains stopped. This mount is explicitly untrained and uncertified; it enables current gameplay integration testing while fine-tuning, held-out quality certification, and Linux native packaging remain deferred.
+
+## 2026-08-09 - V25 runtime integration
+
+- Added the dedicated-host HTTP boundary, manifest/model/host SHA-256 verification, Windows suspended Job Object launch, Linux socketpair boundary, data-free LifetimePipe, single-outstanding asynchronous heartbeat, and bounded asynchronous stdout/stderr drain.
+- Added deadline/persistence/prefix-affinity scheduling, static two/three-choice GBNF, trailing-whitespace canonicalization, one-request multi-perspective contracts, typed equipment evidence, and deterministic legal-candidate fallback.
+- Removed LLM mechanical authority from skills, personas, AI directives, facilities, social reputation, and equipment effect unlocks. Missing or failed inference no longer blocks rule gameplay.
+- Added V25 dataset/config/evaluation/package tooling with DPO diversity gates and host/model hash emission. Python source and JSON contracts passed syntax/self-tests.
+- Unity MCP compilation passed with Console Error 0 / Warning 0. Focused V24 structured-output scenarios passed 6/6 and V25 inference scenarios passed 6/6, including missing-host fail-closed behavior.
+- Updated the comprehensive design document to V25. Native llama.cpp host builds, the trained Q4_K_M model, human review, crash/suspend certification, held-out quality, and hardware performance remain external release gates.
+
+## 2026-08-08 - persisted actionable alerts
+
+- Added saved `EventAlertChoice.ActionId` and `EventAlertRecord.SourceId`, four-choice preservation, exact save validation, and event-alert section version 2.
+- Added `IEventAlertChoiceActionDispatcher` and the V21 content dispatcher for society, faction chapter, and faction contract requests.
+- Projected active society events and current faction chapters into the existing functional alert UI; dispatch failures retain the open choice and successful actions dismiss it.
+- Added an editor regression scenario proving source de-duplication plus action-ID save/restore/dispatch.
+- Offline Roslyn compilation passed for `DungeonStory.Operation`, `DungeonStory.Presentation`, Assembly-CSharp, and Assembly-CSharp-Editor.
+- Added functional alert actions for planned reproduction start, due festivals, recent funerals, trauma counseling, four restorative age treatments, and temporal stasis.
+- Added `IFestivalCommand.Schedule/Resolve` with operational-facility checks, success/partial/failure grading, exact item reservations, atomic consumption, detached psychosocial commit, mood/grief projection, and faction rapport application.
+- Removed the legacy no-cost festival/funeral bypass; counseling now consumes its actual trauma-care kit at the counseling facility.
+- Recompiled Species, main, and Editor successfully after the social-care contract additions.
+
+## 2026-08-08 - hereditary reproduction authority
+
+- Split inherited heritable-trait IDs from ordinary character trait IDs across reproduction planning and child spawn.
+- Registered inherited child narrative state explicitly and added deterministic compatible hereditary defaults for ordinary narrative registration.
+- Offline Species, Economy, main, and Editor compilation passed.
+
 ## 2026-08-05 - Post-Copilot final closure resumed
 
 - Resumed the active completion goal with three non-overlapping offline workers: final PlayMode gate hardening, authored equipment-module dependency links, and the five failing architecture contracts. Only the root agent may use the project-scoped Unity MCP relay.
@@ -2547,3 +2583,261 @@
 - The focused V20 campaign test now passes through milestones, 6x6 faction chapters, contracts, 120-day self-sufficiency, a ten-year bounded event simulation, endless composition, and save round trip.
 - Removed eager life/narrative registration for transient battle/invasion enemies. Only actual capture candidates are materialized into those aggregates, preventing dead/despawned enemies from polluting full-world save references.
 - Requested the 68-section full-world PlayMode round trip. Unity completed script-domain reload but then stopped advancing the Editor main thread before the runner could delete its request or emit a report. The process was intentionally not killed; project Enter Play Mode Options were restored to the previously working no-domain-reload mode for the required retry after Editor restart.
+
+## 2026-08-08 — Phase 125 design-document consolidation
+
+- Audited the existing `docs/DungeonStory_Game_Design_and_Implementation.md`: 1,970 lines organized primarily as a V17 subsystem/status inventory.
+- Replaced the stale overview with a 1,009-line player-experience-led design authority covering the core fantasy, emotional goals, anti-goals, run cadence, nested loops, exact content map, construction, physical production, research, characters, generations, climate, disease, agriculture, guests, factions, combat, persistent enemies, captivity, equipment, lineage, medicine, milestones, EndlessAge, architecture, save boundaries, authoring rules, and validation status.
+- Added exact V19/V20 rules and totals: 216 research, 450 net-new V20 definitions, 9 milestones, 9 landmarks, 36 enemy archetypes, 36 encounters, 12 battlefield modifiers, 18 wildlife, 16 diseases, 20 crop genomes/cultivars, and 68 V20 save sections.
+- Preserved the user-approved test deferral by labeling the 68/68/68 full-world round trip, final scale simulations, balance probes, two-resolution Unity MCP capture matrix, and final integrated Console proof as remaining evidence rather than completed work.
+- Verified the 24-row net-new content manifest sums to 450; found no stale V17/168/141/192 authority claims, Unicode replacement characters, or trailing whitespace. Code fences are balanced at twelve.
+- Confirmed the target file is ignored by the repository-wide `docs/` rule and therefore cannot be represented by normal Git diff output, despite being present and verified in the workspace.
+
+## 2026-08-08 — Phase 126 exhaustive content-intent catalog
+
+- Started a source-authority inventory in response to the requirement that every facility, event, and trait receive its own design intent rather than being represented only by category counts.
+- Located 349 building assets and the canonical `BuildingSO` identity/ability contract; raw assets will be deduplicated and classified before documentation.
+- Read the general/hereditary trait and V20 event contracts. Their authored behavior, mood, event-weight, typed consequence, requirement, choice, and effect fields will be used as the factual basis for each intent entry.
+- Classified all 400 BuildingSO assets and excluded the 42 internal runtime archetypes, fixing exhaustive player-facing facility scope at 358 unique IDs/names.
+- Extracted the complete grouped facility name/ID inventory and confirmed event/trait asset totals against the V20 root.
+- Added all 358 placeable facilities to the design document as individual intent entries, grouped for navigation but never collapsed into count-only descriptions.
+- Inspected festival and encounter contracts to lock event documentation fields: physical requirements/outcomes for festivals and objective/modifier/composition/counter data for encounters.
+- Extracted all 32 life-event and 16 festival names/descriptions plus every authored life-event choice; also extracted all 14 guest requests and eight service incidents with response options.
+- Completed the 358-entry facility intent catalog and the 32-entry life-event intent catalog in the authoritative design document.
+- Extracted all 28 seasonal events and 36 faction chapters, including the current repeated faction-choice mechanics that must be documented without embellishment.
+- Added individual intent entries for every festival, seasonal event, cultural practice, faction chapter, faction contract, guest request, service incident, combat encounter, and milestone.
+- Added individual intent entries for all 56 general traits and 24 hereditary traits, including advantages, costs, incompatibilities, behavior preferences, mood reactions, and event weighting where authored.
+- Verified exact document/source coverage: facilities 358/358; life events 32/32; festivals 16/16; seasonal events 28/28; cultural practices 20/20; faction chapters 36/36; contracts 18/18; guest requests 14/14; service incidents 8/8; encounters 36/36; milestones 9/9; general traits 56/56; hereditary traits 24/24. Every category has zero missing and zero extra stable IDs.
+- Recorded current content-quality gaps rather than hiding them: repeated faction choice mechanics, templated contract copy, cyclic encounter generation, encounter 03-06 name/composition mismatch, and scalar-only legacy traits.
+
+## 2026-08-08 — Phase 127 V21 research consolidation and physical unlock expansion
+
+- Accepted the complete V21 implementation request and re-established the project architecture rules before code changes.
+- Audited the current research reward boundary, save generation, equipment distribution, resource materials, crops, and research-gated item inventory.
+- Locked the phase plan around the 180-node merge, expanded physical reward indexing, branched production materials, equipment/ammunition content, V21 new-game boundary, and focused Unity evidence.
+- Confirmed that no save-file migration is required. The V21 save task is reduced to the version boundary, the explicit incompatibility message for V20 and earlier, and V21-native capture/restore validation only.
+- Completed the V21 research consolidation: 180 generated project assets and 180 unlock-bundle assets now total exactly 138,824 work; all 36 absorbed IDs are absent from non-Editor runtime code.
+- Expanded reward indexing and presentation for facilities, recipes, craft materials, crops, environmental workwear, ammunition, installation components, equipment, and downstream consumers while keeping `requiredResearchId` as the sole lock authority.
+- Authored and rebuilt the V21 branched materials, six facilities, utility/medical/installation goods, 18 role-distinct combat equipment definitions, and exactly 10 physical ammunition definitions. The mixed defense ammunition box remains a finished supply good rather than an eleventh ammunition kind.
+- Wired service and medical goods into consumable guest/faction requirements, installation parts into real construction BOMs, ammunition into compatible weapon loading, and equipment into the physical crafting/runtime lock path.
+- Production dependency validation and research/equipment validation previously completed with zero failures; pacing measured 32.2/80.4/234.3/372.0 days and the temporal-stasis closure remained 95,448 work / 964.12 days.
+- Raised the save root to V21 and aligned compatibility tests with the exact V20-or-earlier rejection message. No runtime alias table, deleted-ID restore mapping, or save-file migration was added; the consolidation map is Editor-only authoring code.
+- Updated the design authority document from the stale 216-research/V20 save description to V21's 180 nodes, 61 equipment definitions, branched materials, physical tools/medical supplies, role equipment, ammunition, and explicit no-migration boundary.
+- Unity completed a clean script compile after the final validator updates (`Tundra build success`, 2,172 evaluated). Two oversized dynamic validation calls timed out at the relay-response layer without a failure marker; the new exact assertions were independently confirmed from authored assets (180 projects, 138,824 work, 10 ammunition IDs), and filtered project-scoped Unity MCP queries then confirmed Console Error 0 / Warning 0.
+# 2026-08-08 Phase 128 actual-gameplay connection closure
+
+- Restored the repository planning context and recorded the user-approved implementation plan as Phase 128 without replacing completed V19-V21 history.
+- Reconfirmed the first implementation boundary: atomic society/content resolution, followed by removal of fake guest-request sinks and contained vertical connections such as ammunition identity and six-locus crops.
+- Read the Unity C# scripting, ScriptableObject architecture, and persistent file-planning skill contracts. Mutable run state will remain outside SO assets and all edits will retain existing state/save authorities.
+- Implemented `IContentResolutionService.TryExecute` as the atomic gameplay entry for society/faction/seasonal/life/contract resolution, with typed requirement evaluation, exact item reservations, detached campaign staging, typed domain effects, and publish-last semantics.
+- Removed all fabricated V21 `GuestSupplies` consumers from the builder and guest assets.
+- Implemented planned/started reproduction commands with ten-day Allowed proposals, exact cross-lineage/golem facilities and physical inputs, candidate validation, save ownership, and atomic publication.
+- Implemented five authored age-treatment procedures and routed `IAgeTreatmentCommand.TryCreateOrder` through the surgery queue, physical hauling/consumption, clinician work, typed treatment handlers, and surgery persistence.
+- Rebuilt research-reward facility roles/capabilities, added design intent rows for facilities 8897-8901, and root-registered their authored assets together with the V21 role equipment and age procedures.
+- Replaced count-only loaded ammunition state with saved ammunition ID plus count, enforcing same-type refill and empty-magazine type changes.
+- Connected all six crop-genome loci to authoritative gameplay calculations and added a focused deterministic Editor scenario covering phenotype effects, disease probability, physical seed return, harvest output, and save restoration.
+- Unity previously compiled the reproduction/age/facility changes successfully. The newest crop compile/scenario and final Console gate are pending because the project MCP bridge still has four stale pending requests; the live Editor was deliberately left untouched.
+- Reused Unity 6's generated Bee response files with `Data/DotNetSdkRoslyn/csc.dll` and isolated temporary outputs. `DungeonStory.Economy`, `Assembly-CSharp`, and `Assembly-CSharp-Editor` (including the new crop scenario) all compile with zero errors; live scenario execution and Console 0/0 remain pending on the stuck Editor command queue.
+- Replaced the last rejected typed content effect: `WorkDelayDays` now writes validated scoped records into society save V3, is applied inside the detached campaign candidate, and reaches actual work-speed projection only after atomic publish.
+- Added a focused campaign scenario that resolves a real service-incident delay, checks work output influence, and verifies exact society save restoration.
+- Connected general-trait behavior preferences to Utility AI scoring and general-trait/ambition event weights to deterministic event and participant selection.
+- Added `IHeritableTraitEffectQuery` and connected expressed aging, disease-resistance, fertility-success, gestation-stability, and offspring-stability consequences to their authoritative daily calculations.
+- Recompiled `DungeonStory.Species`, `DungeonStory.Economy`, `Assembly-CSharp`, and `Assembly-CSharp-Editor` with Unity 6 Roslyn after these changes; all completed with zero compiler errors. Live Editor Console evidence remains pending because the existing MCP bridge still has stale pending requests.
+- Replaced all 36 repeated faction-chapter outcomes with distinct physical costs and consequences. Support consumes the full chapter item cost at an operational typed facility, bargain consumes a smaller amount and records obligation, refusal creates grievance plus a chapter-specific pressure, and all six rival chapters also mutate the counterpart faction. Duplicate mechanical signatures now fail catalog construction.
+- Reauthored all 36 encounter compositions explicitly, corrected encounters 03-06, connected counter tags to actual party equipment/ammunition/formation, and moved encounter/enemy rewards into physical expedition return. Dead-enemy equipment preserves its unique instance, durability, modules, power and loaded ammunition; living captives keep their equipment.
+- Added typed culture room preferences to all ten cultures and connected them to Facility AI scoring using actual room temperature, ventilation, lighting, cleanliness, area and privacy. Cultural etiquette, forbidden-food rules and 90 authored inter-culture attitudes now change deterministic service-incident weights.
+- Unity Roslyn offline compilation passes for the current main and Editor assemblies after the faction and culture integrations. The live Editor Console/scenario gate remains unavailable because the existing bridge queue is still stuck and the user-owned Editor process has not been restarted.
+- Connected cultural-practice neglect through a saved alert action, typed neglect effects, no-cost/no-assimilation semantics, ten-day cooldown, and exact narrative save restoration. Added a focused campaign Editor regression for the saved neglect outcome.
+- Applied authored inter-culture attitude weights as one-time bidirectional relationship memories when a newly initialized resident meets existing initialized residents; service-incident weighting remains a separate use of the same typed culture data.
+- Recompiled the main and Editor assemblies with Unity 6 Roslyn after both culture changes; both passed with zero compiler errors. Scoped `git diff --check` is clean apart from repository line-ending notices.
+- Added real indoor crop-plot executors to research facilities 8854 and 8813. Every greenhouse cycle now consumes `supply:greenhouse-nutrient`; every fungal shelf cycle consumes `supply:inoculated-log`, using the existing delivery destination, seed-lot atomic consumption, growth simulation, and crop save section.
+- Added builder-time assertions for both intended cultivation supplies, patched the current authored assets, passed structural asset checks, and recompiled the Editor assembly with zero errors.
+- Replaced the nine legacy traits' meaningless `legacy-trait:*` preferences with authored AI behavior preferences, mood reactions, and event weights. Added a typed trait-reaction runtime fed by successful meals, research completion, invasion outcomes, festivals, room cleanliness/spaciousness/temperature, and checkout delay; current main and Editor assemblies compile with zero errors.
+- Added seven authored hereditary cost consequences: regeneration and rapid metabolism increase hunger, dream reception increases sleep burden, dense bones reduce movement, mana reservoirs amplify mana-disease exposure, abundant seed increases hunger only during an active reproduction process, and rapid immune repair accelerates biological aging. Updated current assets, passed the exact seven-cost structural check, and compiled Species, Content, main, and Editor assemblies successfully.
+- Replaced the two captivity fake-sink tools with physical gameplay paths. Reinforced restraints and prisoner work kits are max-stack-one persistent instances with durability components; capture prioritizes and carries the exact reinforced restraint, prisoner labor starts only after a work kit reaches the cell, real work wears the kit, reinforced restraints reduce escape risk, and release/recruitment/minion conversion/death return the same instance with remaining durability.
+- Extended captivity V21 save validation for assigned restraint/tool identity, durability, pending delivery, and labor invariants; escort restore reuses an already attached restraint rather than duplicating it. Added focused Editor contract coverage and recompiled Items, Captivity, main, and Editor assemblies with zero compiler errors. Live Unity scenario/Console execution remains blocked by the existing Editor bridge queue.
+- Connected `medical:fertility-treatment` as an optional persisted reproduction choice. Atomic start consumes one physical treatment only when selected; the authoritative rules then apply +20% conception coefficient and +15% gestation stability, while golem assembly rejects the biological treatment.
+- The planned-reproduction alert now exposes separate normal and fertility-treatment start actions for biological processes. The dispatcher carries that choice into the detached process candidate before cost reservation/consumption, so the treatment path is player-reachable rather than API-only.
+- Connected `medical:trait-analysis-kit` through `ITraitAnalysisCommand`. It requires operational facility `building:8879`, reserves and atomically consumes one kit, stages the narrative Aggregate, and publishes a persisted latent-trait reveal only after successful consumption. Internal inheritance remains deterministic before discovery.
+- Trait analysis is now player-reachable: when the analyzer is operational, living characters with undiscovered latent traits receive a stable functional alert action. The analyzer asset/builder role was corrected from generic Research/Logistics to Medical/Research with Treat/Research/Operate work support.
+- Added focused save/effect regressions for fertility treatment and trait analysis. `DungeonStory.Species`, `Assembly-CSharp`, and `Assembly-CSharp-Editor` compile cleanly through Unity 6 Roslyn; live scenario execution and Console 0/0 remain blocked by the existing Editor bridge queue.
+- Completed the research-facility execution audit. All 101 assets now carry a non-None gameplay classification; 63 have an exact workstation recipe and the remaining 38 have a typed `ResearchFacilityCommandKind`, with no overlap or uncovered facility.
+- Added an exhaustive command-owner registry and made the normal `Operate` building-work completion path reject ownerless commands. Command work awards real character XP, records persistent activity, and applies typed recovery/mood outcomes where appropriate.
+- Connected typed facilities to crop, husbandry, workforce, circus sanitation, equipment crafting/tuning, mentorship, diagnosis, fluid metering, expedition planning, secure trade, and defense control. Corrected the 8882/8883 room-partition circular BOM and bound treated-lumber production to the actual 8816 workstation.
+- Added a hard Editor ratchet requiring exactly 101 facilities, 63 recipe executors, 38 command executors, non-None classifications, and complete enum ownership. Asset-level offline inspection reports `facilities=101 recipes=63 commands=38 missing=0 unclassified=0`; runtime and Editor assemblies compile with zero C# errors.
+- Added milestone-authority checks to the construction list, selection button, placement validator, and facility progression boundary. The campaign scenario now proves all nine landmarks are locked initially and unlocked only by their matching milestone.
+- Split `OffenseWorldMapRuntime` and `OffenseWorldMapPanel` into filename-matching Unity scripts while preserving the authored runtime GUID. This fixes the real missing campaign-scene adapter found by the first full-world PlayMode attempt.
+- Connected background faction reactions to generated enemy loyalty and captivity compliance/escape calculations. The enemy continuity gate now reports `backgroundFactionReaction=true`.
+- Added and passed the isolated functional-alert PlayMode facade: reproduction, festival schedule/resolve, funeral, counseling, and age-treatment routes all execute through real `EventAlertRuntime` actions (`reproduction=1; festival=1/1; funeral=1; counseling=1; ageTreatment=1; alerts=5`).
+- Re-ran the isolated V21 vertical gate after the scene-reference repair. It passed atomic save-section scenarios, alerts, six-locus crops, ecology, medicine, offense/defense, enemy continuity, campaign/faction authority, 101 research facilities, 10,000+10,000 deterministic trait probes, and the 2,000×3-generation narrative probe.
+- Added a Unity Test Framework entry for the existing full-world runner and made the runner defer process ownership when invoked by `-runTests`. The isolated Unity 6 batch host still stopped during PlayMode transition or pre-test asset refresh, so no post-repair 68/68/68 PASS report or integrated Console 0/0 claim is recorded.
+- Fixed the final full-world capture blocker: bulk category stock creation no longer selects max-stack-one equipment, preventing starter supplies from creating item-instance IDs without authoritative equipment instances.
+- Extended cross-aggregate save preflight to recognize canonical active-invasion CharacterIds, allowing enemy life and loadout state to round-trip while the invasion section remains the actor owner.
+- Embedded VContainer 1.19 in `Packages/jp.hadashikick.vcontainer` and memoized its circular-dependency DAG traversal so the large production container builds promptly without weakening cycle detection.
+- Closed the V22 reservation re-evaluation gap. Apparel work orders first attempt to restore their exact saved stacks, release the complete lease set on invalidation, then rebuild only the replaceable portion: craft orders rerun their saved material policy and repair orders reselect thread/scraps, while laundry, drying, alteration, and the repaired garment preserve their exact persistent item identities.
+- Forced a Unity source refresh with a temporary compile pulse, removed the pulse and generated meta, and recompiled again after removal. Final `Assembly-CSharp.dll` was rebuilt at 18:24:34 with no C# compiler errors; the focused report remains `V22 apparel contracts: PASS` and `RESEARCH/EQUIPMENT PASS`.
+- The first V22 full-world run found every apparel/material SO still carrying numeric compatibility ID 0. The builder now authors apparel IDs 23001-23056 and textile-material IDs 23101-23112, the focused validator ratchets positivity/uniqueness, and the regenerated YAML was checked for exact ranges.
+- The next full-world run found the preserved V20 8-crop/20-genome constructor and starter-seed assertions. Crop ecology now requires exactly 12 crops, 32 genomes, one base genome per crop, and grants all 12 base seed lots.
+- Starter apparel exposed an older physical-save assumption that every MaxStack-one instance must be combat equipment. Physical validation now keeps equipment/module registry matching strict while accepting non-equipment inline-authority unique stacks such as apparel; restore already preserves their item-instance ID and stack components.
+- Re-ran the V22 full-world PlayMode gate successfully: `registeredSections=68`, `capturedSections=68`, `postRoundTripSections=68`, `baselineRestored=True`, `canonicalBaselineMatched=True`, `consoleWarnings=0`, and `consoleErrors=0`. A final current-code focused run again reported V22 apparel and research/equipment PASS.
+- Re-ran the focused V21 gameplay vertical gate successfully: atomic save sections, functional alerts, six crop loci, wildlife/disease, medical, offense/defense, enemy continuity, campaign/faction authority, 101 research facilities, 10,000+10,000 deterministic trait probes, and the 2,000-by-three-generation narrative probe all passed with no compiler errors or Unity warnings.
+- Passed the current-code full-world PlayMode report through the embedded package: `registeredSections=68`, `capturedSections=68`, `postRoundTripSections=68`, `baselineRestored=True`, `canonicalBaselineMatched=True`, `consoleWarnings=0`, `consoleErrors=0`.
+# 2026-08-08 Phase 129 exhaustive research-node intent catalog
+
+- Started the requested exhaustive research-node documentation pass using the existing persistent planning files.
+- Added a five-step source inventory, authoring, and exact-coverage validation plan.
+- Logged the non-mutating CP949 failure from the optional session-catchup helper; direct planning-file restoration succeeded.
+- Located the V21 research authority in `ResearchProjectAssetBuilder` plus the generated project assets. The authored spec carries the complete node identity/work/prerequisite description, while rewards are assembled from merged unlocks and content-owned `requiredResearchId` declarations.
+- Confirmed 180 project assets and 180 bundle assets, then mapped the serialized identity/name/research fields for every reward family used by `ResearchRewardCatalog`.
+- Confirmed the target document has zero `research:*` stable-ID entries and identified the canonical building-name field needed for unlock resolution.
+- The inline extractor prototype was abandoned after producing no observable output; a direct project-local tool will be used so extraction and validation are reproducible.
+- Added `Tools/ResearchDocumentationCatalog.ps1`; the first direct invocation hit the host execution policy before running and will be retried with a process-scoped bypass.
+- Adjusted the extractor for Windows PowerShell 5 syntax and explicit UTF-8 loading after the host misread the no-BOM script under CP949.
+- Added a current-workspace fallback for explicit UTF-8 ScriptBlock execution, which lacks PowerShell's normal `$PSScriptRoot` automatic value.
+- The extractor now passes: 180 projects, 138,824 work, no duplicate/missing prerequisite IDs, no rewardless project, and 919 deduplicated reward entries. Source inventory and reverse reward reconstruction are complete.
+- Corrected the prerequisite Markdown formatter before document insertion after the first four-node preview exposed literal PowerShell interpolation syntax.
+- Added Section 26's authority/reading rules to the design document; field tables will follow this contract.
+- Inserted the first 42 nodes, reviewed their rendered rows, and paused further insertion to fix blank mirror rewards and unresolved recipe display names in the documentation extractor.
+- The corrected extractor reports 899 direct rewards and identified exactly eleven already-inserted rows affected by the presentation bug.
+- Extended recipe-name resolution to the three facility-synthesis upgrades used directly by research projects.
+- Corrected all eleven affected early rows and inserted research fields 4-8. The document now contains 79/180 node rows across nine fields with no known formatter artifacts.
+- Inserted fields 9-13 and verified the running 117/180 rows; blank kinds, raw recipe IDs, interpolation fragments, and empty table cells remain at zero.
+- Inserted the final 63 nodes across surgery/transplant, industry/automation, and plumbing. The resulting 180-row appendix exactly matches regenerated source-derived Markdown.
+- Added navigation from Section 7.3 to the new Section 26 authority and listed the reproducible research-documentation verifier in Section 21.
+- Added a Windows-compatible command wrapper for the research documentation verifier so the checked-in tool can be invoked without manual UTF-8 ScriptBlock setup.
+- The wrapper itself passed the full 180/138,824 summary. A separate concise report command then hit a non-mutating PowerShell formatting typo and will be rerun with simpler intermediate variables.
+- Completed Phase 129. Final source/document comparison reports `rows=180 ids=180 work=138824 fields=17 exact=True`, with zero malformed columns, formatter artifacts, or trailing whitespace. Scoped tracked-file `git diff --check` is clean; the comprehensive document is present and verified in the workspace but remains hidden from Git status by the existing `docs/` ignore rule.
+
+# 2026-08-08 Phase 130 V22 apparel and textile industry
+
+- Started implementation of the approved V22 vertical and recorded the fixed 180/138,824, 450-definition, and 68-section compatibility constraints.
+- Preserved the dirty V19-V21 workspace and established a scoped implementation order: domain contracts, transactional runtime, authored content, UI/save integration, then focused and full validation.
+- Carried forward the mandatory performance and deadlock safeguards as acceptance gates: bounded textile signatures, allocation-free indexed AI candidates, expiring leases, safe deferred recovery, non-blocking underwear fallback, and deterministic crop-quality tradeoffs.
+- Added the full V22 authored catalog and physical chain: 56 apparel, 10 woven/2 non-woven materials, 4 crops, 12 genomes, 3 husbandry products, facilities 9301-9314, and 89 recipes while retaining the 180/138,824 research contract.
+- Added anatomy/size/layer/opening checks, a single mutable character apparel aggregate, material provenance and projection caches, an eight-candidate availability index, finite textile stack signatures/compaction, leased reservations, and persisted craft/laundry/dry/repair/alteration orders.
+- Connected starter underwear (three complete sets per biological resident), sewing maintenance supplies, V22 save generation 22, the existing 68-section environment boundary, and V21-and-earlier rejection.
+- Connected V22 facilities to real work orders. Tailoring, laundry, drying, repair, and wardrobe panels now create typed orders; facility work resolves only the matching order rather than granting a generic fake effect.
+- Corrected short wardrobe operations to close/reopen existing tail, wing, or horn openings without recutting the garment or changing its size.
+- Added and ran `V22ApparelDebugScenarios`. Unity reports `V22 apparel contracts: PASS` for apparel/material/crop/genome/animal/facility/recipe counts, concrete facility materials, execution contracts, exact stack caps, save generations, and all 81 yield/growth quality combinations.
+- Updated the comprehensive design authority to V22, documented all 56 garments, textile performance and finite-lot rules, production/maintenance/UI/save contracts, and the exact mapping from the unchanged 180 research nodes to the 14 new facilities.
+- Live Unity compilation succeeds for Assembly-CSharp and Assembly-CSharp-Editor. The broader production report still exposes 24 older V21 real-consumer failures; the V22 focused slice itself is clean.
+- Corrected the final focused validator to count crops and genomes from the authoritative domain catalog instead of a partial asset folder. After Unity recompilation, the report passes with 12 crops, 32 genomes, one base genome per crop, V22 apparel PASS, and research/equipment PASS.
+# V23 implementation session - 2026-08-08
+
+- Read the planning-with-files, Unity C# scripting, and Unity ScriptableObject skill contracts.
+- Restored existing planning context and audited the dirty worktree without modifying or discarding user-owned V21/V22 changes.
+- Added Phase 131 as the authoritative V23 implementation phase and recorded initial work-order/apparel integration findings.
+- Added shared V23 worker-selection, weighted-contribution, deterministic craftsmanship-quality, quality-pipeline DTOs and the immutable material-economic-profile SO/catalog.
+- Added central construction/recipe/equipment/apparel work calculators and registered their catalogs/resolvers in the world container.
+- Added a craftsmanship state module to every buildable object so facility quality persists through the existing modular-facility save section without changing the 68-section manifest.
+### 2026-08-08 V23 compile checkpoint
+
+- V23 작업자 정책을 건설 작업 배정, 기여 작업량, 결정론적 품질 난수 및 작업 주문 V4 저장 검증에 연결했다.
+- 로컬 `dotnet build DungeonStory.sln --no-restore`는 코드 오류가 아니라 설치된 .NET SDK가 없어 실행할 수 없었다. Unity 컴파일 또는 프로젝트 제공 검증 경로로 확인해야 한다.
+- Unity 6000.3.8f1의 Roslyn 컴파일러와 Bee 응답 파일로 Foundation, Economy, Assembly-CSharp를 순서대로 컴파일해 오류 0건을 확인했다.
+- 스택형 섬유와 종자에서 품질 필드를 제거하고 상태/유전체/병원체만 남겼다. 완제품 의복은 별도의 7단계 제작 품질을 저장한다.
+- 건설·의복 제작에 중앙 작업량 계산기를 연결했고, 작업자 정책·기여 작업량·고정 난수·품질 파이프라인 상태를 기존 작업 주문 저장 경계에 추가했다.
+- 시설 품질 파이프라인은 현재 합격 판정, 안전 한도, 일시정지/재개/취소와 `Dismantling` 대기 단계까지 연결됐다. 물리 해체·회수·동일 위치 재건 실행기는 후속 연결이 필요하다.
+
+### 2026-08-08 V23 integration checkpoint
+
+- 시설 품질 파이프라인을 실제 완공→가동 금지→해체→물리 회수→동일 footprint 재건 흐름에 연결하고, 시설 품질이 실제 작업 처리량에 반영되게 했다.
+- 의복과 전투 장비의 불합격 자동 분해를 원본 선소비·회수 의무 후출력 방식으로 바꿔 출력 포화 및 저장 복원 중 중복 생성 창을 닫았다.
+- 의복·장비에도 적합 작업자 부재와 목표 품질 도달 불가 사전 검사를 추가했다. 두 경우 모두 재료를 소비하지 않고 예약을 해제하며 조건 변화 뒤 같은 고정 난수로 재검증한다.
+- 장비 작업자의 0..10 능력치를 공통 0..100 품질 척도로 수정하고, 61개 장비의 공통 제작량 6을 제거했다. 현재 기준 작업량은 28~392, 37개 고유값이다.
+- 누락으로 보고되던 24개 물품을 실제 번식·의료·연구·세력·방어·포획 명령 소비자에 연결하고, 가짜 `sink:*` 소비자는 만들지 않았다.
+- 현재 에셋 수량은 플레이어 시설 368, 조합식 354, 전투 장비 61, 의복 56이며 시설 368개 모두 직렬화된 BOM을 가진다.
+- Unity 6 Bee 응답 파일을 사용해 Foundation, Buildings, Work, Production, Combat, Items, Economy, Assembly-CSharp와 Editor 어셈블리를 다시 컴파일했고 오류 0건을 확인했다.
+- `IEligibleWorkerQuery.FindCandidates`와 할당 없는 bounded 결과 버퍼를 추가해 정책 통과 인원, 예상 속도·품질, 거리와 현재 작업 여부를 공통 정렬할 수 있게 하고 DI에 등록했다.
+- 활성 Unity Editor 세션을 강제 종료하지 않았으므로 V23 메뉴 시나리오 실행, 자동 부록 생성, PlayMode 중단 시나리오와 V23 68/68/68·Console 0/0은 아직 최종 증거로 남아 있다.
+## 2026-08-08 - Phase 132 started: gameplay UI and debug-mode separation
+
+- Added the authoritative Phase 132 plan and fixed UX rules to `task_plan.md`.
+- Confirmed the existing user-settings authority already persists a default-off developer/debug flag, avoiding a new save section or duplicate setting.
+- Began inventorying the settings UI, runtime debug overlay, scene debug roots, and V23 construction/production/equipment/apparel panels.
+- No implementation-complete claim yet; debug-root classification, centralized visibility projection, player-facing panel hierarchy, presentation choreography, compilation, and focused scenarios remain in progress.
+
+## 2026-08-08 - Phase 132 completed: player UI and Debug Mode separation
+
+- Reused the default-off persisted user setting as the single Debug Mode authority and exposed it in the normal options UI.
+- Added centralized scene-root visibility projection for `__Debug` and `__Runtime/Debug`, while retaining Editor-only debug menu tools.
+- Added `GameplayUiPresentationText` and applied player labels to V23 worker, quality, reject, repeat and blocked-stage feedback. Raw IDs and enum names are Debug Mode-only in the updated construction/apparel paths.
+- Reworked building construction/repair, production and apparel panels with readable state, requirements, outcomes and advanced-policy disclosure. Added panel open/close and feedback choreography with Reduced Motion support.
+- Hid the character AI diagnostics tab by default and linked its visibility live to Debug Mode. Removed raw surgery, combat-equipment and husbandry identifiers/enums from normal player copy.
+- Added focused EditMode projection checks and PlayMode assertions for default-off state, option pointer toggle, authored/runtime debug roots, AI diagnostics visibility, palette, targeting, overlays, debug save metadata and transient reset.
+- Unity MCP PlayMode verification passed at 1600×900 and 900×1600 with fresh captures in `Artifacts/QA/`, all report checks PASS, Console Error 0 / Warning 0.
+- Final Unity/Bee Roslyn response compilation passed: `DungeonStory.Presentation`, `Assembly-CSharp`, `Assembly-CSharp-Editor`, and `DungeonStory.Architecture.Tests`.
+2026-08-08: Began Phase 133 V24. Read the required planning and Unity C# skills, restored existing planning context, confirmed the dirty worktree boundary, and recorded the approved static-schema/fact-reference/soft-pass constraints before source changes.
+2026-08-08: Audited all nine local-LLM call sites and located the five DTO ownership areas and distributed prompt builders. No source implementation changed yet.
+2026-08-08: Audited queue construction/response extraction and the exact DTO/enum wire contracts. Chose the existing queue as the transport boundary so fake runtimes and public generation interfaces remain source-compatible.
+2026-08-08: Added the profile-static schema catalog and native Ollama `/api/chat` backend, then connected queue schema/capability diagnostics. The first Unity refresh command failed because its unqualified `CompilationPipeline` resolved to the wrong namespace; retry will use the fully qualified UnityEditor type.
+# 2026-08-08 — V24 정적 Structured Output 후속
+
+- 정적 스키마/네이티브 Ollama 전송부 이후 추가된 `Fxx/Mxx` 컨텍스트 및 품질 게이트 소스를 점검했다.
+- 점검 중 일부 한국어 문자열이 잘못된 인코딩으로 저장되어 C# 문자열 리터럴 자체가 깨진 상태를 확인했다. 해당 파일은 ASCII 안전 소스와 Unicode escape 기반 문화 모티프로 교체한 뒤 다시 컴파일한다.
+- 캐릭터 서사·생애 쿼리(`ICharacterNarrativeQuery`, `ICharacterLifeQuery`)와 9개 프로필의 프롬프트 생성 지점을 확인했다.
+- `NarrativeRequestContext.cs`를 인코딩 안전 소스로 교체했다. 요청별 결정론 참조표, 문화 문체, actor/progression 사실, 권위 서사·생애 사실 투영, 공개된 잠재 형질만 포함하는 필터와 Soft/Strong/Hard 판정을 포함한다.
+- 도구 오류 기록: 여러 `rg`를 한 PowerShell 호출에서 실행한 조사 명령이 마지막 검색의 무결과 코드 `1`을 전체 실패로 반환했다. 읽기 결과는 유효했으며 이후 검색은 존재 경로와 독립 호출로 좁혔다.
+- 도구 오류 기록: 인코딩 손상 문자열을 포함한 큐 파일의 부분 패치는 실제 바이트와 터미널 표시가 달라 문맥 매칭에 두 차례 실패했다. 해당 문자열은 별도 안전 교체 방식으로 처리한다.
+- Unity 전체 임포트를 강제하자 `DungeonStory.AI` 큐가 일반 게임 어셈블리의 품질 게이트를 참조할 수 없는 컴파일 오류가 드러났다. 참조표·문화 카탈로그·품질 게이트·trace를 `Models/AI/Core`로 이동하고, actor/생애/서사 투영기만 일반 게임 어셈블리에 남겨 의존 방향을 수정했다.
+- 도구 오류 기록: Editor 전용 시나리오를 동적 MCP 명령에서 직접 참조하거나 reflection으로 호출하는 방식은 명령 어셈블리 참조/보안 제약으로 실패했다. 프로젝트 메뉴 시나리오는 유지하고, 핵심 런타임 계약은 AI 코어 타입으로 직접 검증한다.
+- 전체 프로젝트 컴파일에서 추가로 드러난 `HeritableTraitDefinitionSO.displayName`, 시설 프롬프트 삽입 위치, `List<string>` null-coalescing 타입 오류를 수정했고 `Assembly-CSharp`와 Editor 어셈블리가 다시 생성됐다.
+- V24 정적 시나리오 6개 중 5개는 통과했으며, 공개/비공개 잠재 형질 격리 fixture에서 NRE가 발생해 상세 스택을 남기도록 진단을 보강했다.
+- 잠재 형질 fixture의 빈 ID 구성을 수정한 뒤 V24 정적 Structured Output 시나리오가 6/6 통과했다. 9개 schema, 10,000-context hash 안정성, warm lookup 0B, native Ollama body, 결정론 참조, 품질 gate와 미공개 잠재 형질 차단을 함께 검증했다.
+- 스킬·페르소나·진화 계보와 시설 진화 결과에 `NarrativeGenerationTrace`를 연결하고, 스키마/문화/사용 사실·모티프/통과 단계/재시도·폴백 상태가 기존 저장 소유자 안에서 유지되도록 했다.
+- 9개 프로필을 실제 Ollama에 스트리밍 호출하고 profile별 중앙/p95 TTFT, Strong/Soft Pass, 교정·폴백·파싱 실패를 기록하는 quick/full Editor 프로브를 추가했다. 최초 컴파일의 `Debug` 이름 충돌은 `Stopwatch` 별칭으로 수정한다.
+- 실제 9-profile smoke 1차는 CharacterSkill HTTP 400과 stable-id 반복을 재현했고, 수정 후 2차는 모든 schema transport 성공 및 8/9 품질 통과를 기록했다. BubbleLine의 motif 토큰이 fact 배열에 들어간 마지막 실패는 정적 prefix pattern으로 차단한다.
+- 20/profile 1차 acceptance는 167/180, parse 0, fallback 13으로 목표 미달이었다. 실패의 12/13이 선택형 BubbleLine reference 과잉 생성임을 report로 확인했고, 해당 정적 schema를 line-only로 축소하며 live fixture를 실제 영속 컨텍스트에 가까운 4개 사실로 보강했다.
+- 20/profile 2차 acceptance는 179/180, fallback 1이었지만 SocialRumor 한 건이 256 tokens에서 잘려 parse 1이었다. SocialRumor cap을 384로 조정하고 프로필별 문체 강도를 중앙 prompt sanitizer에 추가한 최종 코드를 다시 실측한다.
+- 20/profile 3차도 179/180이었고 이전 실패 프로필은 모두 20/20이었다. FacilityEvolution 한 건의 256-token 절단만 남아 복합 schema 예산을 768로 올리고 bounded proposal fixture를 추가했다.
+- 최종 20/profile acceptance가 179/180 accepted, parse 0, fallback 1로 PASS했다. profile별 TTFT median 697.1~700.1 ms, p95 698.8~897.1 ms를 `Artifacts/QA/v24-narrative-live-probe.txt`에 기록했다.
+- Final clean Unity validation passed: V24 static structured-output scenarios 6/6, Console Error 0 / Warning 0.
+
+## 2026-08-09 - Phase 135 V25 training corpus completed
+
+- Researched official Qwen, Hugging Face TRL, National Institute of Korean Language, Academy of Korean Studies, and Korea Heritage Service sources. Recorded licensing/use boundaries and copied no source prose into training examples.
+- Added deterministic corpus build, fail-closed validation, same-seed build comparison, human-review merge tooling, schema/configuration, source ledger, and Korean review instructions under `tools/v25_narrative_training`.
+- Generated `Artifacts/Training/V25`: 50,000 raw scenarios, 40,000 filtered records, 38,000 SFT candidates, 6,000 preference-review candidates, 2,000 held-out evaluation candidates, and eight blank 1,000-row review CSV files.
+- Validation passes all counts, static profile shapes, F/M grounding, source-asset existence, fixed mechanical field preservation, review blankness, manifest hashes, TRL projection count, and zero held-out scenario-family leakage.
+- Corpus audit passes: 78,998 player-facing prose fields, Korean coverage 1.0, selected generic fallback count 0, long-prose exact duplicate rate 0.009934, vocabulary entropy 9.045316 bits, Distinct-2 0.098134, and Distinct-3 0.176589.
+- Built the corpus independently a second time and compared 19 files byte-for-byte: zero missing files and zero SHA-256 mismatches. Removed only the verified temporary `Artifacts/Training/V25_repro` directory after comparison.
+
+## 2026-08-09 - Phase 136 local review workbench started
+
+- Activated the file-based planning and local-browser validation workflows.
+- Added the authoritative Phase 136 plan. The original eight CSV files will remain read-only inputs; explicit review state and exports will use separate files.
+- Added a dependency-free loopback server, atomic reviewer state, deterministic warnings/similarity index, bounded confirmed bulk actions, undo and merge-ready export.
+- Added the responsive Korean review interface with fact/motif cards, side-by-side candidates, warning highlights, filters, distribution/progress views, shortcuts and rewrite/drop flows.
+- Focused backend tests pass 4/4, including immutable source hashes, autosave/resume, draft preservation, undo, bulk confirmation, 8,000-row export, API token rejection and loopback HTTP actions.
+- Browser binding discovery returned an empty list after troubleshooting, so visual pointer verification is pending; no unrelated browser surface was substituted.
+- Expanded the focused suite to 6/6: static HTML/JavaScript ID wiring, no third-party resources, CSP, keyboard mappings, responsive CSS, rewrite shape/mechanical/reference enforcement, and an actual `apply_human_review.py` partial merge now pass.
+- Moved persistent review state/export to `Artifacts/Review/V25` so rebuilding `Artifacts/Training/V25` cannot erase human work.
+- JavaScript syntax validation passes. Temporary server, state, export and redirected-log artifacts were removed after confirming the test listener/process had stopped; no real review state was written.
+
+## 2026-08-09 - Phase 137 semantic reviewer and SFT handoff
+
+- Replaced raw JSON candidate panes with profile-aware cards for viewpoints, skills, histories, facilities, records, persona, dialogue, rumors, goals and impulses. Raw JSON remains collapsed under an advanced disclosure.
+- Rebuilt the desktop reviewer as a fixed-height workspace. Facts, motifs, warnings and A/B candidates scroll internally while decisions and navigation remain visible; narrow screens retain a vertical mobile layout.
+- Replaced the raw rewrite-first flow with an A/B-based modal that exposes only player-facing prose fields. It reconstructs the complete JSON internally and retains the existing server-side schema, mechanic and F/M reference checks.
+- Removed the repeated generic rejected sentence and rebuilt all corpus/review artifacts with deterministic 50/30/20 hard-negative classes. Validation passed and an independent rebuild matched 19/19 files.
+- Reviewer suite passes 6/6; JavaScript syntax and all corpus validators pass. The rebuilt reviewer has 2,347 FACT warnings and no fixed-cliche warning flood.
+- Confirmed RTX 4080 Laptop 12GB and created a pinned Python 3.11 QLoRA environment. Added SFT setup/start scripts and a trainer that consumes only the 38,000 grounded prompt-completion records.
+- The first SFT smoke identified slow Hugging Face Xet fallback; added pinned `hf_xet`. It also exposed TRL's unsafe packing-without-FlashAttention warning, so packing was disabled to prevent cross-example attention on Windows.
+- The corrected 64-record/two-step NF4 QLoRA smoke completed: loss 2.699822, 108,930 tokens, mean token accuracy 0.610006, adapter/tokenizer saved, and `training_evidence.json` written. This is pipeline evidence, not the release model.
+- Restarted the full 38,000-record/two-epoch SFT after one observed optimizer step so recoverable checkpoints are written every 20 steps. The explicit old training PIDs were stopped, only the validated incomplete model directory was removed, prior logs were retained with a timestamp, and the new hidden run is active. `sft_status.cmd` shows preprocessing completion and entry into the 594-step trainer.
+- Re-ran the reviewer in its supported direct-test mode: all 6 tests pass. Dataset verification, JavaScript syntax, and the regenerated review-corpus phrase audit also pass; the discarded fixed sentence appears in zero CSV/JSON review artifacts.
+- The full SFT triggered a Windows blue screen and was not auto-resumed. Local evidence: bugcheck `0x0000001E` with `0xC0000005`, NVIDIA `UVMLiteProcess` failure followed by `GPU recovery action ... Node Reboot Required`, and a later Disk 2 I/O retry on the workspace's external USB `WD My Passport`. The GPU had previously reached 87 C under sustained 99% load.
+- `checkpoint-20` is incomplete: its adapter safetensors index and first tensor read successfully, but `optimizer.pt` lacks a valid ZIP central directory and trainer/scheduler/RNG state files are absent. It was preserved for diagnosis but must not be used to resume. Local CDB could not read the protected minidump without elevation, so the exact crashing stack/module is not claimed.
+- Post-reboot integrity checks pass for the authoritative corpus (18 manifest files, all counts and zero held-out leakage) and the reviewer suite remains 6/6. The corruption is currently isolated to the interrupted training checkpoint rather than the review dataset.
+# Phase 139 session - 2026-08-09
+
+- Diagnosed the rejected `main` push from the VS Code Git log: two 133.05 MiB non-LFS `.safetensors` blobs triggered GitHub `GH001`.
+- Confirmed the worktree is otherwise clean, `main` is one commit ahead, and the release GGUF is already covered by Git LFS.
+- Identified two broken ephemeral Codex checkpoint refs that block pull and automatic repository maintenance.
+- Started a preservation-first repair: local model outputs remain on disk while derived training checkpoints will be removed only from Git tracking.
+- Added ignore rules for `Artifacts/Training/V25/models/`, `__pycache__/`, and Python bytecode; removed 41 model-output files and nine bytecode files from Git tracking only.
+- Rechecked the local output directory after untracking: all 41 files and all 602,705,393 bytes remain present, and the nine local `.pyc` files remain ignored.
+- Backed up the two 270-character Codex checkpoint refs under `.git/codex-broken-refs-backup/20260809/` and moved them out of the active ref namespace.
+- Post-repair `git for-each-ref` reports zero warnings and `git fsck --no-reflogs --connectivity-only` exits 0 with zero integrity errors.
+- Amended the rejected local commit from `a525783` to `366d19b5` while preserving its original message; the worktree returned clean.
+- Pre-push gates pass: Git connectivity 0 errors, `git lfs fsck` OK, oversized ordinary blobs at or above 50 MiB = 0, remote fetch succeeds, and `main` remains exactly one commit ahead/zero behind.

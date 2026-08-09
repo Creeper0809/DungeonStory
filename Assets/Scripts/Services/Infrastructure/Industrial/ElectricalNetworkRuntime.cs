@@ -53,6 +53,7 @@ internal sealed class ElectricalNetworkRuntime :
     private readonly IWorldItemStackRuntime items;
     private readonly AutomationPowerDemandRegistry automationPowerDemand;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
     private readonly Dictionary<string, float> nextFuelRequestAt =
         new Dictionary<string, float>(StringComparer.Ordinal);
     private readonly Dictionary<string, ElectricalNetworkSummaryState>
@@ -82,7 +83,8 @@ internal sealed class ElectricalNetworkRuntime :
         IGameClock clock,
         IWorldItemStackRuntime items,
         AutomationPowerDemandRegistry automationPowerDemand,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IMilestoneGameplayModifierQuery milestoneModifiers = null)
     {
         this.topologyRuntime = topologyRuntime
             ?? throw new ArgumentNullException(nameof(topologyRuntime));
@@ -92,6 +94,8 @@ internal sealed class ElectricalNetworkRuntime :
             ?? throw new ArgumentNullException(nameof(automationPowerDemand));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.milestoneModifiers = milestoneModifiers
+            ?? NeutralMilestoneGameplayModifierQuery.Instance;
         projectedRestoreRevision =
             this.aggregateRootStore.PublishedRestoreRevision;
     }
@@ -610,7 +614,7 @@ internal sealed class ElectricalNetworkRuntime :
             float removed = Mathf.Min(available, remainingEnergy);
             state.StoredPower -= removed;
             remainingEnergy -= removed;
-            suppliedEnergy += removed * Mathf.Clamp01(storage.efficiency);
+            suppliedEnergy += removed * ResolveStorageEfficiency(storage);
             if (remainingEnergy <= 0.001f)
             {
                 break;
@@ -648,7 +652,7 @@ internal sealed class ElectricalNetworkRuntime :
                 storage.transferPerSecond * deltaTime);
             float stored = Mathf.Min(
                 room,
-                input * Mathf.Clamp01(storage.efficiency));
+                input * ResolveStorageEfficiency(storage));
             state.StoredPower += stored;
             energy -= input;
             if (energy <= 0.001f)
@@ -691,6 +695,16 @@ internal sealed class ElectricalNetworkRuntime :
                 state.Powered = false;
             }
         }
+    }
+
+    private float ResolveStorageEfficiency(BuildingPowerStorageAbility storage)
+    {
+        float authored = Mathf.Clamp01(storage?.efficiency ?? 0f);
+        float remainingLoss = (1f - authored) * Mathf.Clamp(
+            milestoneModifiers.ManaTransferLossMultiplier,
+            0f,
+            1f);
+        return Mathf.Clamp01(1f - remainingLoss);
     }
 
     private ElectricalNodeState EnsureState(IndustrialNodeDescriptor node)

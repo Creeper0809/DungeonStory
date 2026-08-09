@@ -36,6 +36,16 @@ public static class DungeonCharacterRegistration
             .As<ICharacterNarrativeQuery>()
             .As<ICharacterNarrativeCommand>()
             .As<ICharacterNarrativePersistence>();
+        builder.Register<WorkerNarrativeQualificationQuery>(Lifetime.Singleton)
+            .As<IWorkerNarrativeQualificationQuery>();
+        builder.Register<TraitAnalysisCommandRuntime>(Lifetime.Singleton)
+            .As<ITraitAnalysisCommand>();
+        builder.Register<HeritableTraitEffectQuery>(Lifetime.Singleton)
+            .As<IHeritableTraitEffectQuery>();
+        builder.RegisterEntryPoint<CharacterTraitReactionRuntime>(Lifetime.Singleton)
+            .As<ICharacterTraitReactionService>();
+        builder.Register<CharacterCultureGameplayRuntime>(Lifetime.Singleton)
+            .As<ICharacterCultureGameplayQuery>();
         builder.RegisterEntryPoint<CharacterNarrativeApplicationAdapter>(
             Lifetime.Singleton);
         builder.Register<V20StoryContentCatalog>(Lifetime.Singleton)
@@ -48,14 +58,26 @@ public static class DungeonCharacterRegistration
             .AsSelf()
             .As<IV20CampaignPersistence>()
             .As<IRunMilestoneQuery>()
+            .As<IMilestoneGameplayModifierQuery>()
             .As<IRunMilestoneCommand>()
             .As<ISeasonalEventQuery>()
             .As<ISocietyEventQuery>()
-            .As<ISocietyEventCommand>()
+            .As<IContentWorkDelayQuery>()
+            .As<IContentWorkDelayCommand>()
             .As<IFactionCampaignQuery>()
             .As<IFactionCampaignCommand>()
             .As<IEndlessCrisisCommand>();
-        builder.Register<V20MilestoneWorldSnapshotProjector>(Lifetime.Singleton);
+        builder.Register<FacilityCapabilityQuery>(Lifetime.Singleton)
+            .As<IFacilityCapabilityQuery>();
+        builder.Register<ContentRequirementEvaluator>(Lifetime.Singleton)
+            .As<IContentRequirementEvaluator>();
+        builder.Register<V20ContentResolutionService>(Lifetime.Singleton)
+            .As<IContentResolutionService>();
+        builder.Register<V21ContentAlertChoiceActionDispatcher>(Lifetime.Singleton)
+            .As<DungeonStory.Operation.IEventAlertChoiceActionDispatcher>();
+        builder.Register<V20MilestoneWorldSnapshotProjector>(Lifetime.Singleton)
+            .AsSelf()
+            .As<IV20MilestoneWorldSnapshotQuery>();
         builder.RegisterEntryPoint<V20CampaignApplicationAdapter>(
             Lifetime.Singleton);
         builder.Register<ResourceCharacterSpeciesCatalog>(Lifetime.Singleton)
@@ -69,9 +91,13 @@ public static class DungeonCharacterRegistration
             .As<ICharacterLifeQuery>()
             .As<ICharacterLifeCommand>()
             .As<ICharacterLifePersistence>();
+        builder.RegisterEntryPoint<NarrativeAuthorityContextBootstrap>(
+            Lifetime.Singleton);
         builder.Register<PhysicalAgeTreatmentRuntime>(Lifetime.Singleton)
             .As<IPhysicalAgeTreatmentService>()
             .As<ITemporalStasisMaintenanceService>();
+        builder.Register<AgeTreatmentCommandRuntime>(Lifetime.Singleton)
+            .As<IAgeTreatmentCommand>();
         builder.RegisterEntryPoint<TemporalStasisMaintenanceAdapter>(Lifetime.Singleton);
         builder.RegisterEntryPoint<CharacterLifeApplicationAdapter>(Lifetime.Singleton);
         builder.RegisterEntryPoint<CharacterLifeCelebrationAdapter>(Lifetime.Singleton);
@@ -87,6 +113,10 @@ public static class DungeonCharacterRegistration
         builder.Register<ReproductionRuntime>(Lifetime.Singleton)
             .As<IReproductionService>()
             .As<IReproductionPersistence>();
+        builder.Register<ReproductionCommandRuntime>(Lifetime.Singleton)
+            .As<IReproductionCommand>();
+        builder.RegisterEntryPoint<ReproductionProposalAdapter>(
+            Lifetime.Singleton);
         builder.RegisterEntryPoint<ReproductionApplicationAdapter>(
             Lifetime.Singleton);
         builder.Register<CareerRuntime>(Lifetime.Singleton)
@@ -103,7 +133,9 @@ public static class DungeonCharacterRegistration
         builder.Register<CareerPositionDefinitionCatalog>(Lifetime.Singleton)
             .As<ICareerPositionDefinitionCatalog>();
         builder.Register<FuneralFestivalRuntime>(Lifetime.Singleton)
-            .As<IFuneralFestivalService>();
+            .As<IFuneralFestivalService>()
+            .As<IFestivalCommand>()
+            .As<ISocialCareCommand>();
         builder.RegisterEntryPoint<CharacterDeathPopulationAdapter>(
             Lifetime.Singleton);
         builder.Register<ChildSafetyEnvironmentalProjection>(Lifetime.Singleton)
@@ -123,9 +155,12 @@ public static class DungeonCharacterRegistration
         builder.Register<PopulationHealthRuntime>(Lifetime.Singleton)
             .As<IPopulationHealthService>()
             .As<IPopulationHealthQuery>()
+            .As<IDiseaseSymptomEffectQuery>()
             .As<IPopulationHealthPersistence>();
         builder.Register<PhysicalVaccinationRuntime>(Lifetime.Singleton)
             .As<IPhysicalVaccinationService>();
+        builder.Register<DiseaseFieldResponseRuntime>(Lifetime.Singleton)
+            .As<IDiseaseFieldResponseCommand>();
         builder.RegisterEntryPoint<PopulationHealthApplicationAdapter>(Lifetime.Singleton);
         builder.Register<SpeciesIncidentHandlerRegistry>(Lifetime.Singleton)
             .As<ISpeciesIncidentHandlerRegistry>();

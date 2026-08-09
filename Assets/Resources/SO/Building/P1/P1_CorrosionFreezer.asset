@@ -31,6 +31,11 @@ MonoBehaviour:
   objectName: "3\uC131 \uBD80\uC2DD \uB0C9\uAC01 \uD568\uC815"
   sprite: {fileID: 21300000, guid: 45c10551019307744835c1c79d4066de, type: 3}
   icon: {fileID: 21300000, guid: 45c10551019307744835c1c79d4066de, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 8800000000000000057

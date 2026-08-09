@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: "V3I100_\uAC15\uD654_\uAD6C\uC18D\uAD6C"
+  m_EditorClassIdentifier: DungeonStory.Economy::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9000
+  itemId: tool:reinforced-restraint
+  displayName: "\uAC15\uD654 \uAD6C\uC18D\uAD6C"
+  description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uAC15\uD654 \uAD6C\uC18D\uAD6C."
+  stockCategory: 1
+  unitWeight: 3.22
+  maxStack: 1
+  sprite: {fileID: 0}
+  unitPrice: 210
+  features:
+  - rid: 7737211838078124837
+  - rid: 7737211838078124838
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211838078124837
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        requiredResearchId: research:control:restraints
+    - rid: 7737211838078124838
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        kind: 8
+        ingredientTags: 640
+        sharedIntermediate: 0

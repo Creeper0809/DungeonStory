@@ -32,16 +32,16 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 88
   features:
-  - rid: 7737211794726584772
-  - rid: 7737211794726584773
+  - rid: 7737211838078124278
+  - rid: 7737211838078124279
   references:
     version: 2
     RefIds:
-    - rid: 7737211794726584772
+    - rid: 7737211838078124278
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:armor-tailoring
-    - rid: 7737211794726584773
+    - rid: 7737211838078124279
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8

@@ -143,18 +143,18 @@ public sealed class PerformWorkExecutionUnityAdapter :
     IWorkUrgencyProvider
 {
     private static readonly WorkTypeId[] Ids = { BuiltInWorkTypeIds.Perform };
-    private readonly ICircusRuntime circus;
+    private readonly Func<ICircusRuntime> circusProvider;
     private readonly IWorkAmountCalculator workAmount;
     private readonly IGameClock clock;
     private readonly PerformWorkExecutionHandler flow =
         new PerformWorkExecutionHandler();
 
     public PerformWorkExecutionUnityAdapter(
-        ICircusRuntime circus,
+        Func<ICircusRuntime> circusProvider,
         IWorkAmountCalculator workAmount,
         IGameClock clock)
     {
-        this.circus = circus ?? throw new ArgumentNullException(nameof(circus));
+        this.circusProvider = circusProvider ?? throw new ArgumentNullException(nameof(circusProvider));
         this.workAmount = workAmount ?? throw new ArgumentNullException(nameof(workAmount));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
     }
@@ -167,7 +167,7 @@ public sealed class PerformWorkExecutionUnityAdapter :
         BuildableObject target,
         out string reason)
     {
-        bool available = TryGetOrder(circus, target, out _);
+        bool available = TryGetOrder(circusProvider(), target, out _);
         reason = available ? string.Empty : "준비할 공연이 없습니다.";
         return available;
     }
@@ -177,10 +177,10 @@ public sealed class PerformWorkExecutionUnityAdapter :
         CharacterActor actor,
         BuildableObject target) =>
         CaptivityWorkExecutionRules.GetPerformUrgency(
-            TryGetOrder(circus, target, out _));
+            TryGetOrder(circusProvider(), target, out _));
 
     public IEnumerator Execute(WorkExecutionContext context, WorkExecutionResult result) =>
-        flow.Execute(new PerformSession(context, result, circus, workAmount, clock));
+        flow.Execute(new PerformSession(context, result, circusProvider(), workAmount, clock));
 
     private static bool TryGetOrder(
         ICircusRuntime circus,

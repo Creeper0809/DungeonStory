@@ -31,13 +31,18 @@ MonoBehaviour:
   objectName: "\uC124\uACC4\uD310"
   sprite: {fileID: 21300000, guid: de1735b711679c54e8e84e70512259d0, type: 3}
   icon: {fileID: 21300000, guid: de1735b711679c54e8e84e70512259d0, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  useClassification: 0
+  researchFacilityCommand: 0
   abilityModules:
     items:
     - rid: 7737211730538791852
     - rid: 7737211730538791853
     - rid: 7737211730538791854
     - rid: 7737211730538791855
-    - rid: 7737211793001939224
+    - rid: 7737211838079696936
   width: 1
   height: 1
   layer: 3
@@ -94,7 +99,7 @@ MonoBehaviour:
           - key: Service
             value: 2.5
           metrics: []
-    - rid: 7737211793001939224
+    - rid: 7737211838079696936
       type: {class: BuildingResearchCapacityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingResearchCapacityAbility

@@ -38,16 +38,16 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211673752633491
-      type: {class: EquipmentItemFeature, ns: , asm: Assembly-CSharp}
+      type: {class: EquipmentItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         equipmentDefinitionId: armor:blast-coat
     - rid: 7737211673752633492
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 0
         sharedIntermediate: 0
     - rid: 7737211673752633493
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        requiredResearchId: research:equipment:blast-protection
+        requiredResearchId: research:equipment:pressure-barrels

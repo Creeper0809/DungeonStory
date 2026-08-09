@@ -52,7 +52,8 @@ public static class FacilityWorkTypeMap
         Map(FacilityWorkType.AnimalCare, BuiltInWorkTypeIds.AnimalCare),
         Map(FacilityWorkType.GrandProject, BuiltInWorkTypeIds.GrandProject),
         Map(FacilityWorkType.ThreatMitigation, BuiltInWorkTypeIds.ThreatMitigation),
-        Map(FacilityWorkType.Plumbing, BuiltInWorkTypeIds.Plumbing)
+        Map(FacilityWorkType.Plumbing, BuiltInWorkTypeIds.Plumbing),
+        Map(FacilityWorkType.Dismantle, BuiltInWorkTypeIds.Dismantle)
     };
 
     public static bool TryGet(

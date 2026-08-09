@@ -32,7 +32,7 @@ MonoBehaviour:
   batchSupportTag: 
   processKind: 0
   workTypeId: work:craft
-  requiredResearchId: research:agriculture:pest-control
+  requiredResearchId: research:agriculture:soil-cycles
   requiredWork: 49.25
   preparationWork: 0
   finishingWork: 0

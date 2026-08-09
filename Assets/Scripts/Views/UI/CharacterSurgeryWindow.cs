@@ -949,11 +949,18 @@ public sealed class CharacterSurgeryWindowService :
             out SurgicalProcedureSO procedure)
                 ? procedure.DisplayName
                 : order.procedureId;
+        CharacterActor doctor = characters.Characters.FirstOrDefault(candidate =>
+            candidate != null
+            && string.Equals(
+                candidate.Identity?.PersistentId,
+                order.doctorId,
+                StringComparison.Ordinal));
+        string doctorName = doctor?.Identity?.DisplayName ?? doctor?.name ?? string.Empty;
         return new SurgeryOrderUiProjection
         {
             OrderId = order.orderId,
             ProcedureName = procedureName,
-            DoctorId = order.doctorId,
+            DoctorId = doctorName,
             State = order.state,
             EnvironmentResumeStage = order.environmentResumeStage,
             EnvironmentStableSeconds = order.environmentStableSeconds,

@@ -30,16 +30,17 @@ MonoBehaviour:
   field: 3
   requiredWork: 12000
   prerequisites:
-  - {fileID: 11400000, guid: 4ea7616cd1f65854ca0a55c325ae6d17, type: 2}
+  - {fileID: 11400000, guid: 5e6daba52a76ac0409910907f9648f9c, type: 2}
   - {fileID: 11400000, guid: ab84d33186cca914daf2b16fa1f89833, type: 2}
   - {fileID: 11400000, guid: 4f834632a53941b439cb9e9b2fd7ab5e, type: 2}
   - {fileID: 11400000, guid: 86942f51ed093024ca893dd17fc05eb0, type: 2}
   prerequisiteLinks:
-  - prerequisiteId: research:climate:chronometric-navigation
-    prerequisite: {fileID: 11400000, guid: 4ea7616cd1f65854ca0a55c325ae6d17, type: 2}
+  - prerequisiteId: research:climate:regional-climatology
+    prerequisite: {fileID: 11400000, guid: 5e6daba52a76ac0409910907f9648f9c, type: 2}
     kind: 2
-    reason: "\uC2DC\uAC01 \uD56D\uBC95\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
-      \uC2DC\uAC04 \uACE0\uC815 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+    reason: "\uC9C0\uC5ED \uAE30\uD6C4\uD559\uACFC \uC2DC\uAC01 \uD56D\uBC95\uC758
+      \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uC2DC\uAC04 \uACE0\uC815 \uAD6C\uD604\uC5D0
+      \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   - prerequisiteId: research:equipment:rune-module-tuning
     prerequisite: {fileID: 11400000, guid: ab84d33186cca914daf2b16fa1f89833, type: 2}
     kind: 2
@@ -59,7 +60,7 @@ MonoBehaviour:
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211793001939385
+    - rid: 7737211838079697143
   facilityRequirements:
   - capability: 0
     requiredCount: 1
@@ -73,7 +74,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211793001939385
+    - rid: 7737211838079697143
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 8872

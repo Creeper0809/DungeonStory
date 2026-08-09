@@ -239,6 +239,12 @@ public interface IClimateQuery
     float OutdoorTemperatureC { get; }
 }
 
+public interface IWeatherForecastQuery
+{
+    bool ObservationToolsOperational { get; }
+    int ForecastHorizonDays { get; }
+}
+
 public interface IClimatePersistence
 {
     ClimateWorldSaveData Capture();

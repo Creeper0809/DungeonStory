@@ -30,7 +30,6 @@ MonoBehaviour:
   requiredWork: 7200
   prerequisites:
   - {fileID: 11400000, guid: 3cf28d5b589b21647a65f6b037fedc43, type: 2}
-  - {fileID: 11400000, guid: a43694aaa3ed9fd4eb3061371f0c5a56, type: 2}
   - {fileID: 11400000, guid: bea0ba010ab47b745ad5a17a505932e8, type: 2}
   prerequisiteLinks:
   - prerequisiteId: research:medical:regenerative-culture
@@ -38,11 +37,6 @@ MonoBehaviour:
     kind: 2
     reason: "\uC7AC\uC0DD \uBC30\uC591\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
       \uC7A5\uAE30 \uC7AC\uC0DD \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
-  - prerequisiteId: research:medical:surgery
-    prerequisite: {fileID: 11400000, guid: a43694aaa3ed9fd4eb3061371f0c5a56, type: 2}
-    kind: 2
-    reason: "\uC678\uACFC\uC220\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uC7A5\uAE30
-      \uC7AC\uC0DD \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   - prerequisiteId: research:medical:xenotransplant
     prerequisite: {fileID: 11400000, guid: bea0ba010ab47b745ad5a17a505932e8, type: 2}
     kind: 2
@@ -52,7 +46,7 @@ MonoBehaviour:
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211792998531724
+    - rid: 7737211838079697132
   facilityRequirements:
   - capability: 0
     requiredCount: 1
@@ -64,7 +58,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211792998531724
+    - rid: 7737211838079697132
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 8868

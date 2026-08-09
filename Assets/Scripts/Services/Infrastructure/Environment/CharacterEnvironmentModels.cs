@@ -61,7 +61,7 @@ public sealed class EnvironmentalWorkwearSaveData
 [Serializable]
 public sealed class DungeonCharacterEnvironmentSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 5;
 
     public int version = CurrentVersion;
     // Arrays intentionally have no initializer. Unity JsonUtility preserves a
@@ -69,6 +69,8 @@ public sealed class DungeonCharacterEnvironmentSaveData
     // malformed payload from a deliberately captured empty collection.
     public CharacterEnvironmentExposure[] exposures;
     public EnvironmentalWorkwearSaveData[] equippedWorkwear;
+    public EquippedApparelSaveData[] equippedApparel;
+    public ApparelWorkOrderSaveData[] apparelWorkOrders;
 }
 
 public readonly struct EnvironmentExposureChannelProjection
@@ -212,17 +214,28 @@ public interface ICharacterEnvironmentPersistence
 public sealed class CharacterEnvironmentRestoreCandidate
 {
     public CharacterEnvironmentRestoreCandidate()
-        : this(new CharacterEnvironmentAggregateState())
+        : this(
+            new CharacterEnvironmentAggregateState(),
+            new CharacterApparelRestoreCandidate(
+                new CharacterApparelAggregateState()),
+            Array.Empty<ApparelWorkOrderSaveData>())
     {
     }
 
     internal CharacterEnvironmentRestoreCandidate(
-        CharacterEnvironmentAggregateState state)
+        CharacterEnvironmentAggregateState state,
+        CharacterApparelRestoreCandidate apparel,
+        IReadOnlyList<ApparelWorkOrderSaveData> apparelWorkOrders)
     {
         State = state ?? throw new ArgumentNullException(nameof(state));
+        Apparel = apparel ?? throw new ArgumentNullException(nameof(apparel));
+        ApparelWorkOrders = apparelWorkOrders
+            ?? throw new ArgumentNullException(nameof(apparelWorkOrders));
     }
 
     internal CharacterEnvironmentAggregateState State { get; }
+    internal CharacterApparelRestoreCandidate Apparel { get; }
+    internal IReadOnlyList<ApparelWorkOrderSaveData> ApparelWorkOrders { get; }
 }
 
 public interface IEnvironmentWorkPolicy

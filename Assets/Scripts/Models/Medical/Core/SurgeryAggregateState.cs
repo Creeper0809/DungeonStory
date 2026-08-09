@@ -247,6 +247,7 @@ public static class SurgeryStateCloner
             worldStackId = source.worldStackId ?? string.Empty,
             storedFacilityId = source.storedFacilityId ?? string.Empty,
             reservedOrderId = source.reservedOrderId ?? string.Empty,
+            preservationCanisterApplied = source.preservationCanisterApplied,
             installed = source.installed,
             installedSubjectId = source.installedSubjectId ?? string.Empty
         };

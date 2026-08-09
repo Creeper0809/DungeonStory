@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
@@ -32,6 +33,8 @@ public sealed class DungeonSettingsUiController :
     private GameObject modalRoot;
     private Image scrimImage;
     private Image panelImage;
+    private CanvasGroup modalCanvasGroup;
+    private RectTransform settingsPanelRect;
     private GameObject[] pages;
     private Button optionButton;
     private Button closeButton;
@@ -98,6 +101,8 @@ public sealed class DungeonSettingsUiController :
     public void Dispose()
     {
         RestorePause();
+        modalCanvasGroup?.DOKill();
+        settingsPanelRect?.DOKill();
         if (optionButton != null)
         {
             optionButton.onClick.RemoveListener(Show);
@@ -123,6 +128,7 @@ public sealed class DungeonSettingsUiController :
         modalRoot.SetActive(true);
         runtimeRoot.transform.SetAsLastSibling();
         hotkeyBehaviour.enabled = true;
+        PlayOpenPresentation();
     }
 
     public void Close()
@@ -132,8 +138,79 @@ public sealed class DungeonSettingsUiController :
             return;
         }
 
-        modalRoot.SetActive(false);
         hotkeyBehaviour.enabled = false;
+        PlayClosePresentation();
+    }
+
+    private void PlayOpenPresentation()
+    {
+        if (modalCanvasGroup == null || settingsPanelRect == null)
+        {
+            return;
+        }
+
+        modalCanvasGroup.DOKill();
+        settingsPanelRect.DOKill();
+        modalCanvasGroup.interactable = true;
+        modalCanvasGroup.blocksRaycasts = true;
+        if (settingsService.Current.reducedMotion)
+        {
+            modalCanvasGroup.alpha = 1f;
+            settingsPanelRect.localScale = Vector3.one;
+            return;
+        }
+
+        modalCanvasGroup.alpha = 0f;
+        settingsPanelRect.localScale = new Vector3(0.975f, 0.975f, 1f);
+        modalCanvasGroup.DOFade(1f, 0.14f)
+            .SetEase(Ease.OutCubic)
+            .SetUpdate(true);
+        settingsPanelRect.DOScale(Vector3.one, 0.18f)
+            .SetEase(Ease.OutCubic)
+            .SetUpdate(true);
+    }
+
+    private void PlayClosePresentation()
+    {
+        if (modalCanvasGroup == null || settingsPanelRect == null)
+        {
+            FinishClosePresentation();
+            return;
+        }
+
+        modalCanvasGroup.DOKill();
+        settingsPanelRect.DOKill();
+        modalCanvasGroup.interactable = false;
+        modalCanvasGroup.blocksRaycasts = false;
+        if (settingsService.Current.reducedMotion)
+        {
+            FinishClosePresentation();
+            return;
+        }
+
+        settingsPanelRect.DOScale(new Vector3(0.985f, 0.985f, 1f), 0.1f)
+            .SetEase(Ease.InCubic)
+            .SetUpdate(true);
+        modalCanvasGroup.DOFade(0f, 0.1f)
+            .SetEase(Ease.InCubic)
+            .SetUpdate(true)
+            .OnComplete(FinishClosePresentation);
+    }
+
+    private void FinishClosePresentation()
+    {
+        if (modalRoot != null)
+        {
+            modalRoot.SetActive(false);
+        }
+        if (modalCanvasGroup != null)
+        {
+            modalCanvasGroup.alpha = 1f;
+        }
+        if (settingsPanelRect != null)
+        {
+            settingsPanelRect.localScale = Vector3.one;
+        }
         RestorePause();
     }
 
@@ -172,9 +249,13 @@ public sealed class DungeonSettingsUiController :
         hotkeyBehaviour.Initialize(Close);
         hotkeyBehaviour.enabled = false;
 
-        modalRoot = new GameObject("SettingsModal", typeof(RectTransform));
+        modalRoot = new GameObject(
+            "SettingsModal",
+            typeof(RectTransform),
+            typeof(CanvasGroup));
         modalRoot.transform.SetParent(runtimeRoot.transform, false);
         Stretch(modalRoot.GetComponent<RectTransform>());
+        modalCanvasGroup = modalRoot.GetComponent<CanvasGroup>();
 
         GameObject scrim = new GameObject("InputBlocker", typeof(RectTransform), typeof(Image), typeof(Button));
         scrim.transform.SetParent(modalRoot.transform, false);
@@ -186,6 +267,7 @@ public sealed class DungeonSettingsUiController :
         GameObject panel = new GameObject("SettingsPanel", typeof(RectTransform), typeof(Image));
         panel.transform.SetParent(modalRoot.transform, false);
         RectTransform panelRect = panel.GetComponent<RectTransform>();
+        settingsPanelRect = panelRect;
         panelRect.anchorMin = panelRect.anchorMax = new Vector2(0.5f, 0.5f);
         panelRect.pivot = new Vector2(0.5f, 0.5f);
         panelRect.sizeDelta = new Vector2(900f, 760f);
@@ -225,7 +307,7 @@ public sealed class DungeonSettingsUiController :
             new Vector2(0.25f, 0f), new Vector2(0.5f, 1f), new Vector2(4f, 0f), new Vector2(-4f, 0f)));
         tabButtons.Add(CreateButton(tabBar.transform, "AccessibilitySettingsTab", "접근성", () => ShowPage(2),
             new Vector2(0.5f, 0f), new Vector2(0.75f, 1f), new Vector2(4f, 0f), new Vector2(-4f, 0f)));
-        tabButtons.Add(CreateButton(tabBar.transform, "DeveloperSettingsTab", "개발", () => ShowPage(3),
+        tabButtons.Add(CreateButton(tabBar.transform, "DeveloperSettingsTab", "디버그", () => ShowPage(3),
             new Vector2(0.75f, 0f), new Vector2(1f, 1f), new Vector2(4f, 0f), Vector2.zero));
 
         pages = new GameObject[4];
@@ -328,14 +410,15 @@ public sealed class DungeonSettingsUiController :
         developerModeToggle = CreateToggleRow(
             page,
             "DeveloperMode",
-            "개발자 모드",
+            "디버그 모드",
             16f,
             value => UpdateSetting(data => data.developerMode = value));
 
         TMP_Text description = CreateText(
             page,
             "DeveloperModeDescription",
-            "활성화하면 게임 화면 중상단에 디버그 팔레트 버튼이 나타납니다.",
+            "켜면 원시 ID, 진단 수치, 테스트 명령과 월드 오버레이가 표시됩니다.\n"
+            + "디버그 명령을 사용한 저장은 수정 이력이 남지만, 모드 자체는 게임 규칙을 바꾸지 않습니다.",
             18f,
             TextAlignmentOptions.TopLeft,
             new Vector2(0f, 1f),

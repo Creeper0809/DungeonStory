@@ -32,6 +32,10 @@ public sealed class WildlifeRuntime :
     private readonly WildlifeExecutionServices executionServices;
     private readonly WildlifeWorldRuntime worldRuntime;
     private readonly WildlifeRestoreCoordinator restoreCoordinator;
+    private readonly ICharacterAiWorldRegistry characterWorld;
+    private readonly IGameCalendar calendar;
+    private readonly IGameEventBus events;
+    private readonly IDiseaseDefinitionCatalog diseases;
     private WildlifeHuntRuntime huntRuntime;
     private WildlifeBehaviorRuntime behaviorRuntime;
     private WildlifePopulationState population = new WildlifePopulationState();
@@ -45,6 +49,11 @@ public sealed class WildlifeRuntime :
     {
         get => population.NextSequence;
         set => population.NextSequence = value;
+    }
+    private int lastDiseaseVectorAbsoluteDay
+    {
+        get => population.LastDiseaseVectorAbsoluteDay;
+        set => population.LastDiseaseVectorAbsoluteDay = value;
     }
     private bool initialSpawnCompleted
     {
@@ -82,6 +91,10 @@ public sealed class WildlifeRuntime :
         gameClock = requiredExecution.Clock;
         performanceRecorder = requiredExecution.Performance;
         randomStream = requiredExecution.RandomStreams.Get("wildlife.runtime");
+        characterWorld = requiredWorld.WorldRegistry;
+        calendar = requiredWorld.Calendar;
+        events = requiredWorld.Events;
+        diseases = requiredWorld.Diseases;
         worldRuntime = new WildlifeWorldRuntime(requiredWorld, requiredExecution);
         RebuildPopulationRuntimes();
         restoreCoordinator = new WildlifeRestoreCoordinator(
@@ -235,6 +248,7 @@ public sealed class WildlifeRuntime :
         }
 
         TryRespawnWildlife(grid, now);
+        PublishDailyDiseaseVectorExposure();
 
         if (now >= nextCarcassTickAt)
         {
@@ -273,6 +287,9 @@ public sealed class WildlifeRuntime :
         {
             version = DungeonWildlifeSaveData.CurrentVersion,
             nextSequence = Mathf.Max(1, nextSequence),
+            lastDiseaseVectorAbsoluteDay = Math.Max(
+                0,
+                lastDiseaseVectorAbsoluteDay),
             wildlife = wildlife
                 .Where(actor => actor != null && actor.IsAlive)
                 .Select(actor => actor.Capture())
@@ -284,6 +301,67 @@ public sealed class WildlifeRuntime :
                 .Select(WildlifeBehaviorRuntime.CloneFoodRaidOrder)
                 .ToList()
         };
+    }
+
+    private void PublishDailyDiseaseVectorExposure()
+    {
+        int absoluteDay = calendar.Day;
+        if (absoluteDay <= 0 || absoluteDay == lastDiseaseVectorAbsoluteDay)
+            return;
+
+        lastDiseaseVectorAbsoluteDay = absoluteDay;
+        CharacterActor[] living = characterWorld.Characters
+            .Where(value => value != null && !value.IsDead)
+            .OrderBy(value => CharacterPersistentIdentity.Require(value).Value,
+                StringComparer.Ordinal)
+            .ToArray();
+        foreach (WildlifeActor vector in wildlife
+                     .Where(value => value != null
+                         && value.IsAlive
+                         && value.Species?.DiseaseVectorIds.Count > 0)
+                     .OrderBy(value => value.WildlifeId, StringComparer.Ordinal))
+        {
+            foreach (CharacterActor target in living)
+            {
+                int distance = Mathf.Abs(target.GetNowXY().x - vector.GridPosition.x)
+                    + Mathf.Abs(target.GetNowXY().y - vector.GridPosition.y);
+                if (distance > 2)
+                    continue;
+
+                CharacterId characterId = CharacterPersistentIdentity.Require(target);
+                foreach (string diseaseId in vector.Species.DiseaseVectorIds)
+                {
+                    DiseaseDefinition disease = diseases.Require(diseaseId);
+                    DiseaseTransmissionRoute route = ResolveVectorRoute(
+                        disease.Routes);
+                    if (route == DiseaseTransmissionRoute.None)
+                        continue;
+                    events.Publish(new PopulationDiseaseRouteExposureEvent(
+                        characterId,
+                        diseaseId,
+                        route,
+                        exposureHours: distance == 0 ? 1f : 0.5f,
+                        environmentCoefficient: 1f));
+                }
+            }
+        }
+    }
+
+    private static DiseaseTransmissionRoute ResolveVectorRoute(
+        DiseaseTransmissionRoute routes)
+    {
+        DiseaseTransmissionRoute[] priority =
+        {
+            DiseaseTransmissionRoute.Contact,
+            DiseaseTransmissionRoute.Blood,
+            DiseaseTransmissionRoute.Air,
+            DiseaseTransmissionRoute.Droplet,
+            DiseaseTransmissionRoute.Environment,
+            DiseaseTransmissionRoute.Food,
+            DiseaseTransmissionRoute.Water,
+            DiseaseTransmissionRoute.ManaExposure
+        };
+        return priority.FirstOrDefault(value => (routes & value) != 0);
     }
 
     public bool DebugSpawn(

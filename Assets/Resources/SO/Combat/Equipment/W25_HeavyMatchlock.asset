@@ -1,0 +1,81 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa401bda1083a0a49abbc7ea825b25a0, type: 3}
+  m_Name: W25_HeavyMatchlock
+  m_EditorClassIdentifier: DungeonStory.Economy::CombatWeaponSO
+  equipmentId: weapon:heavy-matchlock
+  displayName: "\uC911\uD654\uC2B9\uCD1D"
+  description: "\uC911\uD654\uC2B9\uCD1D \uC804\uD22C \uC7A5\uBE44"
+  itemId: equipment-item:weapon:heavy-matchlock
+  weight: 8.4
+  occupiedHands: 2
+  maxDurability: 100
+  requiredCraftWork: 208
+  defaultMaterialId: material:iron
+  primaryMaterialAmount: 7
+  allowedMaterialFamilies: 03000000
+  craftMaterials: []
+  requiredComponentInputs:
+  - itemId: component:growth-frame
+    amount: 1
+  - itemId: component:machine-parts
+    amount: 1
+  - itemId: component:precision-parts
+    amount: 1
+  - itemId: component:engineering-drawing
+    amount: 1
+  - itemId: material:barrel-steel
+    amount: 1
+  requiredResearchId: research:equipment:pressure-barrels
+  era: 3
+  tier: 3
+  slotProfile: 3
+  lineageKind: 0
+  growthEquipment: 1
+  growthBaseStatMultiplier: 0.88
+  verbs:
+  - rid: 7737211838079696921
+  rangeProfiles:
+  - band: 2
+    accuracyMultiplier: 1
+    damageMultiplier: 1.28
+  - band: 3
+    accuracyMultiplier: 0.82
+    damageMultiplier: 1.12
+  maximumRange: 28
+  compatibleAmmunitionItemIds:
+  - ammo:paper-cartridge
+  - ammo:smoke-cartridge
+  - ammo:armor-piercing-cartridge
+  - ammo:scatter-cartridge
+  - ammo:rune-cartridge
+  - ammo:signal-flare
+  magazineCapacity: 1
+  reloadSeconds: 14
+  supportsAimed: 1
+  supportsRapid: 0
+  supportsSuppressive: 1
+  gunpowderWeapon: 1
+  maximumMisfireChance: 0.2
+  smokeExposure: 10
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211838079696921
+      type: {class: ProjectileVerb, ns: , asm: DungeonStory.Combat}
+      data:
+        attackTime: 2.15
+        baseDamage: 48
+        penetration: 46
+        damageType: 1
+        tracking: 0.01
+        projectileSpeed: 18
