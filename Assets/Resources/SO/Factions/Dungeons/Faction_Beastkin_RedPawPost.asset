@@ -42,6 +42,9 @@ MonoBehaviour:
     amount: 8
   - itemId: feed:hay
     amount: 10
+  tradeCooldownDays: 7
+  supplyCooldownDays: 20
+  reinforcementCooldownDays: 10
 --- !u!28 &6042577699991537944
 Texture2D:
   m_ObjectHideFlags: 0
@@ -109,7 +112,7 @@ Sprite:
   m_IsPolygon: 0
   m_PackingTag: 
   m_RenderDataKey:
-    00000000000000000000000000000000: 0
+    d8d78a0ed38e0a44eabfe116928c6907: 6718755981451334900
   m_AtlasTags: []
   m_SpriteAtlas: {fileID: 0}
   m_RD:

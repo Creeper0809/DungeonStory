@@ -1,0 +1,26 @@
+PASS
+PASS RUNTIME_SCOPE: runtime scope resolved
+PASS RUNTIME_CONTAINER: runtime container built
+PASS START_COMMIT: committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; staff=2; actors=Arin:-5569668:character:staff:1:02:active=True,Roma:-5569600:character:staff:1:01:active=True; diagnostics=prepared-1:name=Roma;go=-5569572;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-5569640;id=character:staff:1:02;active=False || scan:name=Roma;go=-5569572;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-5569640;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-5569572;id=character:staff:1:01;active=True || retained:name=Arin;go=-5569640;id=character:staff:1:02;active=True
+PASS PARTY_SIZE: party=3
+start-environment=character:staff:1:01@(19, 0):species=Slime:temp=20:air=100:light=20:lethal=0..40 | character:staff:1:02@(20, 0):species=Slime:temp=20:air=100:light=20:lethal=0..40 | owner@(18, 0):species=Slime:temp=20:air=100:light=20:lethal=0..40
+PASS START_RATIONS: count=24
+PASS START_WATER: count=30
+PASS START_LUMBER: count=15
+PASS START_CLOTH: count=9
+PASS NO_VINEGAR_AS_FOOD: count=0
+PASS NO_RESTRAINTS_AS_GENERAL: count=0
+PASS NO_SERVICE_FOUNDATION: meal/rest/toilet/hygiene=0/0/0/0
+PASS FOCUSED_SETUP: actor=owner; external=False
+PASS FOCUSED_FIELD_MEAL_REGISTERED: AIPrimitiveFieldMeal
+PASS FOCUSED_FIELD_MEAL_SUPPRESSED_BY_FACILITY: canStart=False; role=Meal; need=34
+PASS FOCUSED_FLOOR_REST_REGISTERED: AIPrimitiveFloorRest
+PASS FOCUSED_FLOOR_REST_SUPPRESSED_BY_FACILITY: canStart=False; role=Rest; need=29
+PASS FOCUSED_PRIMITIVE_LATRINE_REGISTERED: AIPrimitiveLatrine
+PASS FOCUSED_PRIMITIVE_LATRINE_SUPPRESSED_BY_FACILITY: canStart=False; role=Toilet; need=24
+PASS FOCUSED_BUCKET_WASH_REGISTERED: AIPrimitiveBucketWash
+PASS FOCUSED_BUCKET_WASH_SUPPRESSED_BY_FACILITY: canStart=False; role=Hygiene; need=19
+PASS FOCUSED_FIELD_MEAL_AUTHORITY: primitive=0; physical=0
+primitive-counts=
+physical-field-meals=0
+physical-meals=0

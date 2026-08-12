@@ -1,4 +1,4 @@
-[INFO] FAST_PARTY_COMMIT committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; staff=2; actors=Dion:-3385782:character:staff:1:02:active=True,Sion:-3385714:character:staff:1:01:active=True; diagnostics=prepared-1:name=Sion;go=-3385686;id=character:staff:1:01;active=False || prepared-2:name=Dion;go=-3385754;id=character:staff:1:02;active=False || scan:name=Sion;go=-3385686;id=character:staff:1:01;active=True;retained=True || scan:name=Dion;go=-3385754;id=character:staff:1:02;active=True;retained=True || retained:name=Sion;go=-3385686;id=character:staff:1:01;active=True || retained:name=Dion;go=-3385754;id=character:staff:1:02;active=True
+[INFO] FAST_PARTY_COMMIT committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; staff=2; actors=Roma:-11700072:character:staff:1:01:active=True,Arin:-11700140:character:staff:1:02:active=True; diagnostics=prepared-1:name=Roma;go=-11700044;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-11700112;id=character:staff:1:02;active=False || scan:name=Roma;go=-11700044;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-11700112;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-11700044;id=character:staff:1:01;active=True || retained:name=Arin;go=-11700112;id=character:staff:1:02;active=True
 [PASS] PLAYABLE_RUN_READY owner=Leon
 [PASS] SCOPE_READY gameplay LifetimeScope resolved
 [PASS] EVENT_BUS_READY character info event bus resolved
@@ -10,47 +10,67 @@
 [PASS] SUMMARY_GENERATED_1600x900 generated summary view is active
 [PASS] SUMMARY_BOUNDS_1600x900 (x:20.00, y:66.67, width:416.67, height:583.33)
 [PASS] SUMMARY_MEDICAL_POINTER_TARGETS_1600x900 health=True; population=True; surgery=True; automatic=True; close=True
-[PASS] HEALTH_TAB_POINTER_1600x900_HIT_TEST point=(103.85, 564.17); hits=2; top=HealthTab; expected=HealthTab
+[PASS] HEALTH_TAB_POINTER_1600x900_HIT_TEST point=(114.52, 564.17); hits=2; objects=HealthTab,Panel; top=HealthTab; expected=HealthTab
 [PASS] HEALTH_TAB_POINTER_1600x900_DISPATCH Unity pointer event dispatched
 [PASS] HEALTH_TAB_SELECTED_1600x900 health=True; status=False
 [PASS] HEALTH_COMMAND_BOUNDS_1600x900 surgery=(x:164.17, y:503.33, width:128.33, height:36.67); automatic=(x:296.67, y:503.33, width:128.33, height:36.67)
 [PASS] HEALTH_COMMAND_LABELS_FIT_1600x900 health and surgery command labels do not overflow
-[PASS] AUTOMATIC_SURGERY_ENABLE_POINTER_1600x900_HIT_TEST point=(360.83, 521.67); hits=2; top=AutomaticSurgery; expected=AutomaticSurgery
+[PASS] AUTOMATIC_SURGERY_ENABLE_POINTER_1600x900_HIT_TEST point=(360.83, 521.67); hits=2; objects=AutomaticSurgery,Panel; top=AutomaticSurgery; expected=AutomaticSurgery
 [PASS] AUTOMATIC_SURGERY_ENABLE_POINTER_1600x900_DISPATCH Unity pointer event dispatched
 [PASS] AUTOMATIC_SURGERY_TOGGLED_1600x900 True->False
-[PASS] AUTOMATIC_SURGERY_RESTORE_POINTER_1600x900_HIT_TEST point=(360.83, 521.67); hits=2; top=AutomaticSurgery; expected=AutomaticSurgery
+[PASS] AUTOMATIC_SURGERY_RESTORE_POINTER_1600x900_HIT_TEST point=(360.83, 521.67); hits=2; objects=AutomaticSurgery,Panel; top=AutomaticSurgery; expected=AutomaticSurgery
 [PASS] AUTOMATIC_SURGERY_RESTORE_POINTER_1600x900_DISPATCH Unity pointer event dispatched
 [PASS] AUTOMATIC_SURGERY_RESTORED_1600x900 expected=True; actual=True
-[PASS] SUMMARY_HEALTH_CAPTURE_1600x900 size=1600x900; bytes=220701; visible=1413408; path=Artifacts/QA/CharacterSummaryMedical\1600x900-summary-health.png
-[PASS] POPULATION_TAB_POINTER_1600x900_HIT_TEST point=(153.65, 564.17); hits=2; top=PopulationTab; expected=PopulationTab
+[PASS] SUMMARY_HEALTH_CAPTURE_1600x900 size=1600x900; bytes=235343; visible=1414503; path=Artifacts/QA/CharacterSummaryMedical\1600x900-summary-health.png
+[PASS] POPULATION_TAB_POINTER_1600x900_HIT_TEST point=(171.43, 564.17); hits=2; objects=PopulationTab,Panel; top=PopulationTab; expected=PopulationTab
 [PASS] POPULATION_TAB_POINTER_1600x900_DISPATCH Unity pointer event dispatched
 [PASS] POPULATION_TAB_SELECTED_1600x900 population=True; health=False
 [PASS] POPULATION_POINTER_TARGETS_1600x900 global=True; character=True; summary=True
 [PASS] POPULATION_CONTENT_1600x900 [생애] 생물학적 나이 20.6세 · 실제 경과 492일 · 성년 생일 연중 83일 · 노화 관리 일반 노화 질환 없음  [가족·계보] 세대 0 · 동반자 없음 부모 없음 자녀 없음 보호자 없음 가족계획 계획 · 진행 없음  [질병·면역] 활성 질병 없음 면역 없음  [경력] 경력 기록 없음  [아동 안전] 현재 구역 금지 · 위험 치명 온도 감독 도제 정책 비활성 · 개별 허용 청소년만 설정 가능
-[PASS] POPULATION_BOUNDS_1600x900 tab=(x:131.25, y:546.67, width:44.79, height:35.00); global=(x:31.67, y:503.33, width:194.17, height:36.67); character=(x:230.83, y:503.33, width:194.17, height:36.67); summary=(x:31.67, y:122.23, width:393.33, height:376.10)
+[PASS] POPULATION_BOUNDS_1600x900 tab=(x:145.48, y:546.67, width:51.90, height:35.00); global=(x:31.67, y:503.33, width:194.17, height:36.67); character=(x:230.83, y:503.33, width:194.17, height:36.67); summary=(x:31.67, y:122.23, width:393.33, height:376.10)
 [PASS] POPULATION_LABELS_FIT_1600x900 population command labels do not overflow
-[PASS] GLOBAL_APPRENTICESHIP_POINTER_1600x900_HIT_TEST point=(128.75, 521.67); hits=2; top=GlobalApprenticeship; expected=GlobalApprenticeship
+[PASS] GLOBAL_APPRENTICESHIP_POINTER_1600x900_HIT_TEST point=(128.75, 521.67); hits=2; objects=GlobalApprenticeship,Panel; top=GlobalApprenticeship; expected=GlobalApprenticeship
 [PASS] GLOBAL_APPRENTICESHIP_POINTER_1600x900_DISPATCH Unity pointer event dispatched
 [PASS] GLOBAL_APPRENTICESHIP_TOGGLED_1600x900 감독 도제: 끔->감독 도제: 켬
-[PASS] GLOBAL_APPRENTICESHIP_RESTORE_POINTER_1600x900_HIT_TEST point=(128.75, 521.67); hits=2; top=GlobalApprenticeship; expected=GlobalApprenticeship
+[PASS] GLOBAL_APPRENTICESHIP_RESTORE_POINTER_1600x900_HIT_TEST point=(128.75, 521.67); hits=2; objects=GlobalApprenticeship,Panel; top=GlobalApprenticeship; expected=GlobalApprenticeship
 [PASS] GLOBAL_APPRENTICESHIP_RESTORE_POINTER_1600x900_DISPATCH Unity pointer event dispatched
 [PASS] GLOBAL_APPRENTICESHIP_RESTORED_1600x900 감독 도제: 끔
-[PASS] SUMMARY_POPULATION_CAPTURE_1600x900 size=1600x900; bytes=222925; visible=1413408; path=Artifacts/QA/CharacterSummaryMedical\1600x900-summary-population.png
-[PASS] HEALTH_TAB_RESTORE_POINTER_1600x900_HIT_TEST point=(103.85, 564.17); hits=2; top=HealthTab; expected=HealthTab
+[PASS] SUMMARY_POPULATION_CAPTURE_1600x900 size=1600x900; bytes=237577; visible=1414503; path=Artifacts/QA/CharacterSummaryMedical\1600x900-summary-population.png
+[PASS] DETAILED_STATS_POINTER_1600x900_HIT_TEST point=(335.00, 625.00); hits=3; objects=DetailedStatsButton,Header,Panel; top=DetailedStatsButton; expected=DetailedStatsButton
+[PASS] DETAILED_STATS_POINTER_1600x900_DISPATCH Unity pointer event dispatched
+[PASS] DETAILED_PROFICIENCY_TARGETS_1600x900 overlay=True; tab=True; raycast=True; enabled=True; canvas=UI; depth=-1; cull=False; overlaySibling=7/8
+[PASS] PROFICIENCY_TAB_POINTER_1600x900_HIT_TEST point=(275.00, 546.67); hits=1; objects=Panel; top=Panel; expected=DetailedTab_Proficiencies
+[PASS] PROFICIENCY_TAB_POINTER_1600x900_DISPATCH Unity pointer event dispatched
+[PASS] PROFICIENCY_TAB_SELECTED_1600x900 manage=True; containsXp=True
+[PASS] PROFICIENCY_BOUNDS_1600x900 tab=(x:228.33, y:531.67, width:93.33, height:30.00); manage=(x:285.00, y:78.33, width:140.00, height:31.67)
+[PASS] PROFICIENCY_LABELS_FIT_1600x900 proficiency and mentorship labels do not overflow
+[PASS] SUMMARY_PROFICIENCIES_CAPTURE_1600x900 size=1600x900; bytes=234354; visible=1414497; path=Artifacts/QA/CharacterSummaryMedical\1600x900-summary-proficiencies.png
+[PASS] MENTORSHIP_MANAGE_POINTER_1600x900_HIT_TEST point=(355.00, 94.17); hits=3; objects=MentorshipManageButton,DetailedOverlay,Panel; top=MentorshipManageButton; expected=MentorshipManageButton
+[PASS] MENTORSHIP_MANAGE_POINTER_1600x900_DISPATCH Unity pointer event dispatched
+[PASS] MENTORSHIP_MODAL_TARGETS_1600x900 panel=True; status=배정 가능한 주민, 숙련, 가동 중인 멘토 학원을 확인하세요.
+[PASS] MENTORSHIP_MODAL_BOUNDS_1600x900 (x:28.33, y:204.17, width:400.00, height:308.33)
+[PASS] MENTORSHIP_MODAL_LABELS_FIT_1600x900 mentorship command labels do not overflow
+[PASS] MENTORSHIP_MODAL_CAPTURE_1600x900 size=1600x900; bytes=212319; visible=1414493; path=Artifacts/QA/CharacterSummaryMedical\1600x900-mentorship-modal.png
+[PASS] MENTORSHIP_CLOSE_POINTER_1600x900_HIT_TEST point=(374.17, 256.67); hits=5; objects=Close,MentorshipPanel,DetailedViewport,DetailedOverlay,Panel; top=Close; expected=Close
+[PASS] MENTORSHIP_CLOSE_POINTER_1600x900_DISPATCH Unity pointer event dispatched
+[PASS] DETAILED_CLOSE_POINTER_1600x900_HIT_TEST point=(398.33, 625.83); hits=4; objects=DetailedClose,DetailedHeader,DetailedOverlay,Panel; top=DetailedClose; expected=DetailedClose
+[PASS] DETAILED_CLOSE_POINTER_1600x900_DISPATCH Unity pointer event dispatched
+[PASS] DETAILED_CLOSED_1600x900 active=False
+[PASS] HEALTH_TAB_RESTORE_POINTER_1600x900_HIT_TEST point=(114.52, 564.17); hits=2; objects=HealthTab,Panel; top=HealthTab; expected=HealthTab
 [PASS] HEALTH_TAB_RESTORE_POINTER_1600x900_DISPATCH Unity pointer event dispatched
 [PASS] HEALTH_TAB_RESTORED_1600x900 health=True
-[PASS] SURGERY_OPEN_POINTER_1600x900_HIT_TEST point=(228.33, 521.67); hits=2; top=SurgeryCommand; expected=SurgeryCommand
+[PASS] SURGERY_OPEN_POINTER_1600x900_HIT_TEST point=(228.33, 521.67); hits=2; objects=SurgeryCommand,Panel; top=SurgeryCommand; expected=SurgeryCommand
 [PASS] SURGERY_OPEN_POINTER_1600x900_DISPATCH Unity pointer event dispatched
 [PASS] SURGERY_MODAL_OPEN_1600x900 CharacterSurgeryWindow
 [PASS] SURGERY_PANEL_BOUNDS_1600x900 (x:391.67, y:108.33, width:816.67, height:683.33)
 [PASS] SURGERY_FOOTER_TARGETS_1600x900 schedule=True; cancel=True; close=True
 [PASS] SURGERY_FOOTER_BOUNDS_1600x900 schedule=(x:408.33, y:123.33, width:256.67, height:63.33); cancel=(x:671.67, y:123.33, width:256.67, height:63.33); close=(x:935.00, y:123.33, width:256.67, height:63.33)
 [PASS] SURGERY_FOOTER_LABELS_FIT_1600x900 surgery footer labels do not overflow
-[PASS] SURGERY_MODAL_CAPTURE_1600x900 size=1600x900; bytes=237692; visible=1440000; path=Artifacts/QA/CharacterSummaryMedical\1600x900-surgery-modal.png
-[PASS] SURGERY_CLOSE_POINTER_1600x900_HIT_TEST point=(1063.33, 155.00); hits=4; top=Close; expected=Close
+[PASS] SURGERY_MODAL_CAPTURE_1600x900 size=1600x900; bytes=250602; visible=1440000; path=Artifacts/QA/CharacterSummaryMedical\1600x900-surgery-modal.png
+[PASS] SURGERY_CLOSE_POINTER_1600x900_HIT_TEST point=(1063.33, 155.00); hits=4; objects=Label,Close,SurgeryPanel,CharacterSurgeryWindow; top=Close; expected=Close
 [PASS] SURGERY_CLOSE_POINTER_1600x900_DISPATCH Unity pointer event dispatched
 [PASS] SURGERY_MODAL_CLOSED_1600x900 close pointer removed the surgery modal
-[PASS] SUMMARY_CLOSE_POINTER_1600x900_HIT_TEST point=(398.33, 625.00); hits=3; top=CloseButton; expected=CloseButton
+[PASS] SUMMARY_CLOSE_POINTER_1600x900_HIT_TEST point=(398.33, 625.00); hits=3; objects=CloseButton,Header,Panel; top=CloseButton; expected=CloseButton
 [PASS] SUMMARY_CLOSE_POINTER_1600x900_DISPATCH Unity pointer event dispatched
 [PASS] SUMMARY_CLOSED_1600x900 close pointer hid CharacterSummaryInfo
 [PASS] RESOLUTION_900x1600 actual=900x1600
@@ -58,47 +78,67 @@
 [PASS] SUMMARY_GENERATED_900x1600 generated summary view is active
 [PASS] SUMMARY_BOUNDS_900x1600 (x:20.00, y:66.67, width:416.67, height:583.33)
 [PASS] SUMMARY_MEDICAL_POINTER_TARGETS_900x1600 health=True; population=True; surgery=True; automatic=True; close=True
-[PASS] HEALTH_TAB_POINTER_900x1600_HIT_TEST point=(103.85, 564.17); hits=2; top=HealthTab; expected=HealthTab
+[PASS] HEALTH_TAB_POINTER_900x1600_HIT_TEST point=(114.52, 564.17); hits=2; objects=HealthTab,Panel; top=HealthTab; expected=HealthTab
 [PASS] HEALTH_TAB_POINTER_900x1600_DISPATCH Unity pointer event dispatched
 [PASS] HEALTH_TAB_SELECTED_900x1600 health=True; status=False
 [PASS] HEALTH_COMMAND_BOUNDS_900x1600 surgery=(x:164.17, y:503.33, width:128.33, height:36.67); automatic=(x:296.67, y:503.33, width:128.33, height:36.67)
 [PASS] HEALTH_COMMAND_LABELS_FIT_900x1600 health and surgery command labels do not overflow
-[PASS] AUTOMATIC_SURGERY_ENABLE_POINTER_900x1600_HIT_TEST point=(360.83, 521.67); hits=2; top=AutomaticSurgery; expected=AutomaticSurgery
+[PASS] AUTOMATIC_SURGERY_ENABLE_POINTER_900x1600_HIT_TEST point=(360.83, 521.67); hits=2; objects=AutomaticSurgery,Panel; top=AutomaticSurgery; expected=AutomaticSurgery
 [PASS] AUTOMATIC_SURGERY_ENABLE_POINTER_900x1600_DISPATCH Unity pointer event dispatched
 [PASS] AUTOMATIC_SURGERY_TOGGLED_900x1600 True->False
-[PASS] AUTOMATIC_SURGERY_RESTORE_POINTER_900x1600_HIT_TEST point=(360.83, 521.67); hits=2; top=AutomaticSurgery; expected=AutomaticSurgery
+[PASS] AUTOMATIC_SURGERY_RESTORE_POINTER_900x1600_HIT_TEST point=(360.83, 521.67); hits=2; objects=AutomaticSurgery,Panel; top=AutomaticSurgery; expected=AutomaticSurgery
 [PASS] AUTOMATIC_SURGERY_RESTORE_POINTER_900x1600_DISPATCH Unity pointer event dispatched
 [PASS] AUTOMATIC_SURGERY_RESTORED_900x1600 expected=True; actual=True
-[PASS] SUMMARY_HEALTH_CAPTURE_900x1600 size=900x1600; bytes=200774; visible=1434730; path=Artifacts/QA/CharacterSummaryMedical\900x1600-summary-health.png
-[PASS] POPULATION_TAB_POINTER_900x1600_HIT_TEST point=(153.65, 564.17); hits=2; top=PopulationTab; expected=PopulationTab
+[PASS] SUMMARY_HEALTH_CAPTURE_900x1600 size=900x1600; bytes=216518; visible=1434652; path=Artifacts/QA/CharacterSummaryMedical\900x1600-summary-health.png
+[PASS] POPULATION_TAB_POINTER_900x1600_HIT_TEST point=(171.43, 564.17); hits=2; objects=PopulationTab,Panel; top=PopulationTab; expected=PopulationTab
 [PASS] POPULATION_TAB_POINTER_900x1600_DISPATCH Unity pointer event dispatched
 [PASS] POPULATION_TAB_SELECTED_900x1600 population=True; health=False
 [PASS] POPULATION_POINTER_TARGETS_900x1600 global=True; character=True; summary=True
 [PASS] POPULATION_CONTENT_900x1600 [생애] 생물학적 나이 20.6세 · 실제 경과 492일 · 성년 생일 연중 83일 · 노화 관리 일반 노화 질환 없음  [가족·계보] 세대 0 · 동반자 없음 부모 없음 자녀 없음 보호자 없음 가족계획 계획 · 진행 없음  [질병·면역] 활성 질병 없음 면역 없음  [경력] 경력 기록 없음  [아동 안전] 현재 구역 금지 · 위험 치명 온도 감독 도제 정책 비활성 · 개별 허용 청소년만 설정 가능
-[PASS] POPULATION_BOUNDS_900x1600 tab=(x:131.25, y:546.67, width:44.79, height:35.00); global=(x:31.67, y:503.33, width:194.17, height:36.67); character=(x:230.83, y:503.33, width:194.17, height:36.67); summary=(x:31.67, y:122.23, width:393.33, height:376.10)
+[PASS] POPULATION_BOUNDS_900x1600 tab=(x:145.48, y:546.67, width:51.90, height:35.00); global=(x:31.67, y:503.33, width:194.17, height:36.67); character=(x:230.83, y:503.33, width:194.17, height:36.67); summary=(x:31.67, y:122.23, width:393.33, height:376.10)
 [PASS] POPULATION_LABELS_FIT_900x1600 population command labels do not overflow
-[PASS] GLOBAL_APPRENTICESHIP_POINTER_900x1600_HIT_TEST point=(128.75, 521.67); hits=2; top=GlobalApprenticeship; expected=GlobalApprenticeship
+[PASS] GLOBAL_APPRENTICESHIP_POINTER_900x1600_HIT_TEST point=(128.75, 521.67); hits=2; objects=GlobalApprenticeship,Panel; top=GlobalApprenticeship; expected=GlobalApprenticeship
 [PASS] GLOBAL_APPRENTICESHIP_POINTER_900x1600_DISPATCH Unity pointer event dispatched
 [PASS] GLOBAL_APPRENTICESHIP_TOGGLED_900x1600 감독 도제: 끔->감독 도제: 켬
-[PASS] GLOBAL_APPRENTICESHIP_RESTORE_POINTER_900x1600_HIT_TEST point=(128.75, 521.67); hits=2; top=GlobalApprenticeship; expected=GlobalApprenticeship
+[PASS] GLOBAL_APPRENTICESHIP_RESTORE_POINTER_900x1600_HIT_TEST point=(128.75, 521.67); hits=2; objects=GlobalApprenticeship,Panel; top=GlobalApprenticeship; expected=GlobalApprenticeship
 [PASS] GLOBAL_APPRENTICESHIP_RESTORE_POINTER_900x1600_DISPATCH Unity pointer event dispatched
 [PASS] GLOBAL_APPRENTICESHIP_RESTORED_900x1600 감독 도제: 끔
-[PASS] SUMMARY_POPULATION_CAPTURE_900x1600 size=900x1600; bytes=203789; visible=1434730; path=Artifacts/QA/CharacterSummaryMedical\900x1600-summary-population.png
-[PASS] HEALTH_TAB_RESTORE_POINTER_900x1600_HIT_TEST point=(103.85, 564.17); hits=2; top=HealthTab; expected=HealthTab
+[PASS] SUMMARY_POPULATION_CAPTURE_900x1600 size=900x1600; bytes=219212; visible=1434652; path=Artifacts/QA/CharacterSummaryMedical\900x1600-summary-population.png
+[PASS] DETAILED_STATS_POINTER_900x1600_HIT_TEST point=(335.00, 625.00); hits=3; objects=DetailedStatsButton,Header,Panel; top=DetailedStatsButton; expected=DetailedStatsButton
+[PASS] DETAILED_STATS_POINTER_900x1600_DISPATCH Unity pointer event dispatched
+[PASS] DETAILED_PROFICIENCY_TARGETS_900x1600 overlay=True; tab=True; raycast=True; enabled=True; canvas=UI; depth=-1; cull=False; overlaySibling=7/8
+[PASS] PROFICIENCY_TAB_POINTER_900x1600_HIT_TEST point=(275.00, 546.67); hits=1; objects=Panel; top=Panel; expected=DetailedTab_Proficiencies
+[PASS] PROFICIENCY_TAB_POINTER_900x1600_DISPATCH Unity pointer event dispatched
+[PASS] PROFICIENCY_TAB_SELECTED_900x1600 manage=True; containsXp=True
+[PASS] PROFICIENCY_BOUNDS_900x1600 tab=(x:228.33, y:531.67, width:93.33, height:30.00); manage=(x:285.00, y:78.33, width:140.00, height:31.67)
+[PASS] PROFICIENCY_LABELS_FIT_900x1600 proficiency and mentorship labels do not overflow
+[PASS] SUMMARY_PROFICIENCIES_CAPTURE_900x1600 size=900x1600; bytes=215639; visible=1434646; path=Artifacts/QA/CharacterSummaryMedical\900x1600-summary-proficiencies.png
+[PASS] MENTORSHIP_MANAGE_POINTER_900x1600_HIT_TEST point=(355.00, 94.17); hits=3; objects=MentorshipManageButton,DetailedOverlay,Panel; top=MentorshipManageButton; expected=MentorshipManageButton
+[PASS] MENTORSHIP_MANAGE_POINTER_900x1600_DISPATCH Unity pointer event dispatched
+[PASS] MENTORSHIP_MODAL_TARGETS_900x1600 panel=True; status=배정 가능한 주민, 숙련, 가동 중인 멘토 학원을 확인하세요.
+[PASS] MENTORSHIP_MODAL_BOUNDS_900x1600 (x:28.33, y:204.17, width:400.00, height:308.33)
+[PASS] MENTORSHIP_MODAL_LABELS_FIT_900x1600 mentorship command labels do not overflow
+[PASS] MENTORSHIP_MODAL_CAPTURE_900x1600 size=900x1600; bytes=194930; visible=1434642; path=Artifacts/QA/CharacterSummaryMedical\900x1600-mentorship-modal.png
+[PASS] MENTORSHIP_CLOSE_POINTER_900x1600_HIT_TEST point=(374.17, 256.67); hits=5; objects=Close,MentorshipPanel,DetailedViewport,DetailedOverlay,Panel; top=Close; expected=Close
+[PASS] MENTORSHIP_CLOSE_POINTER_900x1600_DISPATCH Unity pointer event dispatched
+[PASS] DETAILED_CLOSE_POINTER_900x1600_HIT_TEST point=(398.33, 625.83); hits=4; objects=DetailedClose,DetailedHeader,DetailedOverlay,Panel; top=DetailedClose; expected=DetailedClose
+[PASS] DETAILED_CLOSE_POINTER_900x1600_DISPATCH Unity pointer event dispatched
+[PASS] DETAILED_CLOSED_900x1600 active=False
+[PASS] HEALTH_TAB_RESTORE_POINTER_900x1600_HIT_TEST point=(114.52, 564.17); hits=2; objects=HealthTab,Panel; top=HealthTab; expected=HealthTab
 [PASS] HEALTH_TAB_RESTORE_POINTER_900x1600_DISPATCH Unity pointer event dispatched
 [PASS] HEALTH_TAB_RESTORED_900x1600 health=True
-[PASS] SURGERY_OPEN_POINTER_900x1600_HIT_TEST point=(228.33, 521.67); hits=2; top=SurgeryCommand; expected=SurgeryCommand
+[PASS] SURGERY_OPEN_POINTER_900x1600_HIT_TEST point=(228.33, 521.67); hits=2; objects=SurgeryCommand,Panel; top=SurgeryCommand; expected=SurgeryCommand
 [PASS] SURGERY_OPEN_POINTER_900x1600_DISPATCH Unity pointer event dispatched
 [PASS] SURGERY_MODAL_OPEN_900x1600 CharacterSurgeryWindow
 [PASS] SURGERY_PANEL_BOUNDS_900x1600 (x:108.33, y:308.33, width:683.33, height:983.33)
 [PASS] SURGERY_FOOTER_TARGETS_900x1600 schedule=True; cancel=True; close=True
 [PASS] SURGERY_FOOTER_BOUNDS_900x1600 schedule=(x:125.00, y:323.33, width:212.22, height:113.33); cancel=(x:343.89, y:323.33, width:212.22, height:113.33); close=(x:562.78, y:323.33, width:212.22, height:113.33)
 [PASS] SURGERY_FOOTER_LABELS_FIT_900x1600 surgery footer labels do not overflow
-[PASS] SURGERY_MODAL_CAPTURE_900x1600 size=900x1600; bytes=198188; visible=1440000; path=Artifacts/QA/CharacterSummaryMedical\900x1600-surgery-modal.png
-[PASS] SURGERY_CLOSE_POINTER_900x1600_HIT_TEST point=(668.89, 380.00); hits=4; top=Close; expected=Close
+[PASS] SURGERY_MODAL_CAPTURE_900x1600 size=900x1600; bytes=216303; visible=1440000; path=Artifacts/QA/CharacterSummaryMedical\900x1600-surgery-modal.png
+[PASS] SURGERY_CLOSE_POINTER_900x1600_HIT_TEST point=(668.89, 380.00); hits=4; objects=Label,Close,SurgeryPanel,CharacterSurgeryWindow; top=Close; expected=Close
 [PASS] SURGERY_CLOSE_POINTER_900x1600_DISPATCH Unity pointer event dispatched
 [PASS] SURGERY_MODAL_CLOSED_900x1600 close pointer removed the surgery modal
-[PASS] SUMMARY_CLOSE_POINTER_900x1600_HIT_TEST point=(398.33, 625.00); hits=3; top=CloseButton; expected=CloseButton
+[PASS] SUMMARY_CLOSE_POINTER_900x1600_HIT_TEST point=(398.33, 625.00); hits=3; objects=CloseButton,Header,Panel; top=CloseButton; expected=CloseButton
 [PASS] SUMMARY_CLOSE_POINTER_900x1600_DISPATCH Unity pointer event dispatched
 [PASS] SUMMARY_CLOSED_900x1600 close pointer hid CharacterSummaryInfo
 capturedErrors=0; <none>

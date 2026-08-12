@@ -39,6 +39,7 @@ public readonly struct CharacterSubstanceUseRequest
         string substanceId,
         ItemDefinitionId itemDefinitionId,
         string displayName,
+        SubstanceUseClass useClass,
         float urgency,
         bool medicalContext,
         bool combatContext,
@@ -47,6 +48,7 @@ public readonly struct CharacterSubstanceUseRequest
         SubstanceId = substanceId?.Trim() ?? string.Empty;
         ItemDefinitionId = itemDefinitionId;
         DisplayName = displayName ?? string.Empty;
+        UseClass = useClass;
         Urgency = Mathf.Clamp01(urgency);
         MedicalContext = medicalContext;
         CombatContext = combatContext;
@@ -57,6 +59,7 @@ public readonly struct CharacterSubstanceUseRequest
     public ItemDefinitionId ItemDefinitionId { get; }
     public string ItemId => ItemDefinitionId.Value;
     public string DisplayName { get; }
+    public SubstanceUseClass UseClass { get; }
     public float Urgency { get; }
     public bool MedicalContext { get; }
     public bool CombatContext { get; }
@@ -73,6 +76,7 @@ public readonly struct MealConsumptionResult
     private MealConsumptionResult(
         bool success,
         CharacterConsumablesFailureCode failureCode,
+        ConsumableOperationId operationId,
         ItemDefinitionId itemDefinitionId,
         ItemStackId itemStackId,
         string displayName,
@@ -87,6 +91,7 @@ public readonly struct MealConsumptionResult
     {
         Success = success;
         FailureCode = failureCode;
+        OperationId = operationId;
         this.parameters = parameters == null || parameters.Length == 0
             ? Array.Empty<string>()
             : Array.AsReadOnly((string[])parameters.Clone());
@@ -104,6 +109,11 @@ public readonly struct MealConsumptionResult
 
     public bool Success { get; }
     public CharacterConsumablesFailureCode FailureCode { get; }
+    public ConsumableOperationId OperationId { get; }
+    public bool IsAcceptedPending =>
+        !Success
+        && FailureCode == CharacterConsumablesFailureCode.DeliveryPending
+        && OperationId.IsValid;
     public IReadOnlyList<string> Parameters => parameters ?? Array.Empty<string>();
     public ItemDefinitionId ItemDefinitionId { get; }
     public ItemStackId ItemStackId { get; }
@@ -120,7 +130,7 @@ public readonly struct MealConsumptionResult
     public static MealConsumptionResult Failed(
         CharacterConsumablesFailureCode code,
         params string[] parameters) =>
-        new(false, code, default, default, string.Empty,
+        new(false, code, default, default, default, string.Empty,
             MealDietClass.Vegan, MealQualityTier.Simple, 0f, 0f, 0, false, false,
             parameters);
 
@@ -135,6 +145,7 @@ public readonly struct MealConsumptionResult
         return new MealConsumptionResult(
             true,
             CharacterConsumablesFailureCode.None,
+            default,
             item?.StableId ?? default,
             itemStackId,
             item?.DisplayName ?? string.Empty,
@@ -152,6 +163,7 @@ public readonly struct MealConsumptionResult
         new(
             result.Success,
             result.FailureCode,
+            result.OperationId,
             (ItemDefinitionId)result.Meal.Id.Value,
             result.ItemStackId,
             result.Meal.DisplayName,
@@ -272,6 +284,9 @@ public interface IMealConsumptionQuery
         CharacterActor actor,
         BuildableObject facility,
         out CharacterConsumablesFailure failure);
+    bool TryGetMealOperationResult(
+        ConsumableOperationId operationId,
+        out MealConsumptionResult result);
 }
 
 public interface ICharacterSubstanceQuery
@@ -294,6 +309,19 @@ public interface IMealConsumptionCommand
     bool TryConsumeMeal(ConsumeMealCommand command, out MealConsumptionResult result);
 }
 
+public interface IFieldMealConsumptionCommand
+{
+    bool TryFindFieldMeal(
+        CharacterActor actor,
+        out ItemStackId stackId,
+        out Vector2Int position,
+        out CharacterConsumablesFailure failure);
+    bool TryConsumeFieldMeal(
+        CharacterActor actor,
+        ItemStackId stackId,
+        out MealConsumptionResult result);
+}
+
 public interface ICharacterSubstanceCommand
 {
     void SetPolicy(
@@ -307,6 +335,10 @@ public interface ICharacterSubstanceCommand
         string substanceId,
         bool medicalContext,
         bool combatContext,
+        out SubstanceUseResult result);
+    bool TryConsumeAtFacility(
+        CharacterActor actor,
+        BuildableObject facility,
         out SubstanceUseResult result);
     bool TryConsume(ConsumeSubstanceCommand command, out SubstanceUseResult result);
 }

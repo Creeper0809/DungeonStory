@@ -17,22 +17,6 @@ public enum CharacterRole
     Owner
 }
 
-public enum CharacterStatType
-{
-    Attack = 0,
-    Sales = 1,
-    Research = 2,
-    MoveSpeed = 3,
-    Strength = 4,
-    Toughness = 5,
-    Dexterity = 6,
-    Cleaning = 7,
-    Endurance = 8,
-    Shooting = 9,
-    Evasion = 10,
-    Medical = 11
-}
-
 public enum CharacterCondition
 {
     HUNGER,

@@ -27,28 +27,33 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uB3D9\uAD74 \uB3C5\uAC10
     \uD56D\uC6D0 \uD45C\uBCF8."
   stockCategory: 1
-  unitWeight: 1.99
+  unitWeight: 0.9
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 128
+  unitPrice: 9
   features:
-  - rid: 7737211838078124139
-  - rid: 7737211838078124140
-  - rid: 7737211838078124141
+  - rid: 7737211905658585118
+  - rid: 7737211905658585119
+  - rid: 7737211905658585120
+  - rid: 7737211905660420455
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124139
+    - rid: 7737211905658585118
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:pathogen-observation
-    - rid: 7737211838078124140
+    - rid: 7737211905658585119
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211838078124141
+    - rid: 7737211905658585120
       type: {class: PathogenSampleItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         diseaseId: disease:cave-flu
+    - rid: 7737211905660420455
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.57549703

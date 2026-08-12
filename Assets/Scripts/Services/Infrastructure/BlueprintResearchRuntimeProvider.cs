@@ -15,7 +15,17 @@ public interface IBlueprintResearchStateService
     BlueprintResearchState GetState();
 }
 
-public sealed class BlueprintResearchWorkService : IBlueprintResearchWorkService
+public interface IBlueprintResearchWorkforcePolicyQuery
+{
+    bool TryGetWorkforcePolicy(
+        BuildableObject facility,
+        out string projectId,
+        out int maximumResearchers);
+}
+
+public sealed class BlueprintResearchWorkService :
+    IBlueprintResearchWorkService,
+    IBlueprintResearchWorkforcePolicyQuery
 {
     private readonly BlueprintResearchRuntime runtime;
     private readonly IMetaProgressionRuntimeReader metaProgressionReader;
@@ -48,6 +58,33 @@ public sealed class BlueprintResearchWorkService : IBlueprintResearchWorkService
 
         return runtime.HasActiveResearch
             || knowledgeProcessing?.HasProcessingWorkFor(facility) == true;
+    }
+
+    public bool TryGetWorkforcePolicy(
+        BuildableObject facility,
+        out string projectId,
+        out int maximumResearchers)
+    {
+        if (runtime.TryGetActiveProject(out ResearchProjectSO project, out _)
+            && project != null)
+        {
+            projectId = project.ProjectId.Value;
+            maximumResearchers = project.MaximumResearchers;
+            return true;
+        }
+
+        if (facility != null
+            && knowledgeProcessing.HasProcessingWorkFor(facility))
+        {
+            projectId =
+                $"research:knowledge-processing:{facility.RequirePersistentInstanceId().Value}";
+            maximumResearchers = 1;
+            return true;
+        }
+
+        projectId = string.Empty;
+        maximumResearchers = 0;
+        return false;
     }
 
     public BlueprintResearchWorkResult ApplyResearchWork(

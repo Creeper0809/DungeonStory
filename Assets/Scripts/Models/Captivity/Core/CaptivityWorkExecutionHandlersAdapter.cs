@@ -8,6 +8,7 @@ public interface ICaptivityWorkExecutionSession
     bool HasCurrentWork { get; }
     bool IsCompleted { get; }
     bool TryAdvance(out string status);
+    bool TrySuspendAtCheckpoint();
     void SetStatus(string status);
     void Complete(bool succeeded);
 }
@@ -48,6 +49,11 @@ internal static class CaptivityWorkExecutionFlow
             }
 
             session.SetStatus(status);
+            if (!session.IsCompleted && session.TrySuspendAtCheckpoint())
+            {
+                session.Complete(succeeded: false);
+                yield break;
+            }
             yield return null;
         }
 

@@ -24,12 +24,12 @@ MonoBehaviour:
     SerializationNodes:
     - Name: tiles
       Entry: 7
-      Data: 1|System.Collections.Generic.Dictionary`2[[GridTexture+TilemapLayer,
+      Data: 0|System.Collections.Generic.Dictionary`2[[GridTexture+TilemapLayer,
         Assembly-CSharp],[UnityEngine.Tilemaps.Tile, UnityEngine.TilemapModule]],
         mscorlib
     - Name: comparer
       Entry: 7
-      Data: 2|System.Collections.Generic.EnumEqualityComparer`1[[GridTexture+TilemapLayer,
+      Data: 1|System.Collections.Generic.EnumEqualityComparer`1[[GridTexture+TilemapLayer,
         Assembly-CSharp]], mscorlib
     - Name: 
       Entry: 12
@@ -63,14 +63,14 @@ MonoBehaviour:
       Data: 
     - Name: OnBuildCondition
       Entry: 7
-      Data: 3|System.Collections.Generic.List`1[[IBuildingCondition, Assembly-CSharp]],
+      Data: 2|System.Collections.Generic.List`1[[IBuildingCondition, DungeonStory.Buildings]],
         mscorlib
     - Name: 
       Entry: 12
       Data: 2
     - Name: 
       Entry: 7
-      Data: 4|ConditionNeedToConnect, Assembly-CSharp
+      Data: 3|ConditionNeedToConnect, DungeonStory.Buildings
     - Name: connectWithEntrance
       Entry: 5
       Data: true
@@ -82,7 +82,7 @@ MonoBehaviour:
       Data: 
     - Name: 
       Entry: 7
-      Data: 5|ConditionNeedMoney, Assembly-CSharp
+      Data: 4|ConditionNeedMoney, DungeonStory.Buildings
     - Name: cost
       Entry: 3
       Data: 3000
@@ -99,6 +99,26 @@ MonoBehaviour:
   objectName: "\uC0AC\uC7A5\uC2E4"
   sprite: {fileID: 21300000, guid: e793412c40fe2e0439f63209afb25b89, type: 3}
   icon: {fileID: 21300000, guid: e793412c40fe2e0439f63209afb25b89, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  deprecatedCompatibilityAsset: 1
+  useClassification: 0
+  researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
     - rid: 8800000000000000003
@@ -121,11 +141,23 @@ MonoBehaviour:
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
         constructionWorkRequired: 66
         repairWorkRequired: 26
         cleanWorkRequired: 16.25
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
         - itemId: material:lumber
           amount: 5

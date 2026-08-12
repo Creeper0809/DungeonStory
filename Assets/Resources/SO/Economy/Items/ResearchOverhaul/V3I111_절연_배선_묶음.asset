@@ -27,23 +27,28 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC808\uC5F0 \uBC30\uC120
     \uBB36\uC74C."
   stockCategory: 1
-  unitWeight: 3.55
+  unitWeight: 2.5
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 232
+  unitPrice: 33
   features:
-  - rid: 7737211838078124182
-  - rid: 7737211838078124183
+  - rid: 7737211905658585830
+  - rid: 7737211905658585831
+  - rid: 7737211905660420731
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124182
+    - rid: 7737211905658585830
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:industry:electric-lighting
-    - rid: 7737211838078124183
+    - rid: 7737211905658585831
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 640
         sharedIntermediate: 0
+    - rid: 7737211905660420731
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6076162

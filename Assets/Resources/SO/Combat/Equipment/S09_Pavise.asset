@@ -19,7 +19,7 @@ MonoBehaviour:
   weight: 12
   occupiedHands: 1
   maxDurability: 160
-  requiredCraftWork: 152
+  requiredCraftWork: 232
   defaultMaterialId: material:iron
   primaryMaterialAmount: 9
   allowedMaterialFamilies: 03000000
@@ -36,6 +36,15 @@ MonoBehaviour:
   lineageKind: 2
   growthEquipment: 0
   growthBaseStatMultiplier: 1
+  proficiency:
+    primaryProficiencyId: proficiency:crafting
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  effects: []
+  allowMythicInspiration: 1
   frontalBlockChance: 0.68
   slashDefense: 34
   pierceDefense: 31

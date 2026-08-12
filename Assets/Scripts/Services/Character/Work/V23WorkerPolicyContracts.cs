@@ -41,7 +41,7 @@ public interface IEligibleWorkerQuery
 {
     int FindCandidates(
         WorkerSelectionPolicySaveData policy,
-        CharacterStatType relevantStat,
+        string performanceFormulaId,
         Vector2Int workPosition,
         Span<EligibleWorkerCandidate> destination);
 }
@@ -56,18 +56,22 @@ public sealed class EligibleWorkerQuery : IEligibleWorkerQuery
 {
     private readonly ICharacterWorldQuery world;
     private readonly IWorkerNarrativeQualificationQuery narrative;
+    private readonly ICharacterPerformanceQuery performance;
 
     public EligibleWorkerQuery(
         ICharacterWorldQuery world,
-        IWorkerNarrativeQualificationQuery narrative = null)
+        IWorkerNarrativeQualificationQuery narrative = null,
+        ICharacterPerformanceQuery performance = null)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.narrative = narrative;
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
     }
 
     public int FindCandidates(
         WorkerSelectionPolicySaveData policy,
-        CharacterStatType relevantStat,
+        string performanceFormulaId,
         Vector2Int workPosition,
         Span<EligibleWorkerCandidate> destination)
     {
@@ -90,7 +94,12 @@ public sealed class EligibleWorkerQuery : IEligibleWorkerQuery
             {
                 continue;
             }
-            float stat = Mathf.Max(0f, actor.GetCharacterStat(relevantStat));
+            if (performance == null)
+                throw new InvalidOperationException(
+                    "Worker candidate ranking requires the character performance query.");
+            float stat = Mathf.Max(
+                0f,
+                performance.Evaluate(actor, performanceFormulaId).Value);
             float workload = CharacterWorkRoleUtility.TryGetWork(
                     actor,
                     out AbilityWork work)
@@ -99,8 +108,8 @@ public sealed class EligibleWorkerQuery : IEligibleWorkerQuery
                     : 0f;
             EligibleWorkerCandidate candidate = new(
                 actor,
-                .5f + stat * .1f,
-                stat * 10f,
+                stat,
+                stat * 50f,
                 Vector2.Distance(actor.transform.position, workPosition),
                 workload);
             InsertSorted(normalized, candidate, destination, ref count);
@@ -213,16 +222,6 @@ public static class WorkerSelectionPolicyRules
         string characterId)
     {
         List<bool> results = new();
-        foreach (WorkerStatRequirementSaveData requirement in
-                 policy.statRequirements ?? new List<WorkerStatRequirementSaveData>())
-        {
-            if (requirement != null)
-            {
-                results.Add(actor.GetCharacterStat((CharacterStatType)requirement.statType)
-                    >= Mathf.Max(0, requirement.minimumValue));
-            }
-        }
-
         string skillId = policy.minimumSkillId?.Trim() ?? string.Empty;
         if (skillId.Length > 0 || policy.minimumSkillExperience > 0
             || policy.minimumCareerRank > (int)CareerRank.Apprentice)

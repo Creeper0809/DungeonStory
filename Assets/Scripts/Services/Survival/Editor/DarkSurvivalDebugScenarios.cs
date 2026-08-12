@@ -27,7 +27,7 @@ public static class DarkSurvivalDebugScenarios
         Run("filth_cleaning_work", VerifyFilthCleaningWork, errors, logSuccess);
         Run("shared_water_patch_save", VerifySharedWaterPatchSave, errors, logSuccess);
         Run("humanoid_corpse_contract", VerifyHumanoidCorpseContract, errors, logSuccess);
-        Run("v19_v2_round_trip", VerifyV19V2RoundTrip, errors, logSuccess);
+        Run("current_root_round_trip", VerifyCurrentRootRoundTrip, errors, logSuccess);
         Run("deprivation_authority", VerifyDeprivationAuthority, errors, logSuccess);
         Run("separate_breakdown_actions", VerifySeparateBreakdownActions, errors, logSuccess);
         Run("permanent_taboo_social_memory", VerifyPermanentTabooSocialMemory, errors, logSuccess);
@@ -141,9 +141,9 @@ public static class DarkSurvivalDebugScenarios
         return $"corpseStack={corpse.MaxStack}; weight={corpse.UnitWeight:0.#}";
     }
 
-    private static string VerifyV19V2RoundTrip()
+    private static string VerifyCurrentRootRoundTrip()
     {
-        Require(DungeonGameSaveData.CurrentVersion == 23, "game save version is not V23");
+        Require(DungeonGameSaveData.CurrentVersion == 24, "game save version is not V24");
         DungeonGameSaveData save = new DungeonGameSaveData();
         DungeonDarkSurvivalSaveData darkSurvival = new DungeonDarkSurvivalSaveData();
         darkSurvival.characters.Add(new CharacterDeprivationState
@@ -187,7 +187,9 @@ public static class DarkSurvivalDebugScenarios
             DungeonSaveSectionPayload.ReadOrNew<DungeonDarkSurvivalSaveData>(
                 restored,
                 DarkSurvivalSaveSection.Id);
-        Require(restored != null && restored.version == 20, "V20 root did not round-trip");
+        Require(
+            restored != null && restored.version == DungeonGameSaveData.CurrentVersion,
+            $"V{DungeonGameSaveData.CurrentVersion} root did not round-trip");
         Require(restoredDarkSurvival.characters.Single().burdens
                 .Single(entry => entry.kind == DeprivationKind.Thirst).burden == 74f,
             "deprivation burden did not round-trip");

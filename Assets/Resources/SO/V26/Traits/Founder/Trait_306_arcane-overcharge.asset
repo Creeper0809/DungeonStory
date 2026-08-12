@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d73e94ec113318588b25eed8f9f9ee0, type: 3}
+  m_Name: Trait_306_arcane-overcharge
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterTraitSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 306
+  traitName: "\uB9C8\uB825 \uACFC\uCDA9\uC804"
+  description: "\uC0DD\uBA85\uACFC \uC7A5\uBE44 \uB0B4\uAD6C\uB3C4\uB97C \uD0DC\uC6CC
+    \uB9C8\uB825\uC744 \uD3ED\uC8FC\uC2DC\uD0A8\uB2E4."
+  modifiers:
+    preferredFacilityRoles: 0
+    dislikedFacilityRoles: 0
+    preferredWorkTypes: 0
+    dislikedWorkTypes: 0
+  combatAbilities:
+    abilities: []
+  environmentalProtection:
+    comfortMinimumOffset: 0
+    comfortMaximumOffset: 0
+    safeMinimumOffset: 0
+    safeMaximumOffset: 0
+    coldExposureMultiplier: 1
+    heatExposureMultiplier: 1
+  selectionRarity: 3
+  polarity: 4
+  selectionFamilyId: extreme:arcane
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
+  incompatibilityGroups: []
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:306:effect:0
+    definition: {fileID: 11400000, guid: 2def16a1f3203194fb94602201f7990f, type: 2}
+    value: 1.6
+    condition: {fileID: 11400000, guid: 4357e7626178bea40a67ec4811dd4a79, type: 2}
+  - bindingId: trait:306:effect:1
+    definition: {fileID: 11400000, guid: 5af4dc67ed2ae4342944dc336be80966, type: 2}
+    value: 0.5
+    condition: {fileID: 11400000, guid: 3b3cdfe594bcbe940b567409c07a9921, type: 2}
+  identityRules:
+  - rid: 7737211921986486534
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211921986486534
+      type: {class: ArcaneOverchargeRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: extreme:arcane-overcharge
+        priority: 100
+        manaThreshold: 0.3
+        durationSeconds: 20
+        selfDamageFraction: 0.15
+        equipmentDurabilityFraction: 0.25
+        aftermathDays: 1

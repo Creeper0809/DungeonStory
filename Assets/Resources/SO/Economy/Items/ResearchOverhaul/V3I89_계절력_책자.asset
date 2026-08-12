@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uACC4\uC808\uB825 \uCC45\uC790"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uACC4\uC808\uB825 \uCC45\uC790."
   stockCategory: 1
-  unitWeight: 2.8899999
+  unitWeight: 1.1
   maxStack: 1
   sprite: {fileID: 0}
-  unitPrice: 188
+  unitPrice: 22
   features:
-  - rid: 7737211838074979239
-  - rid: 7737211838074979240
+  - rid: 7737211905658585677
+  - rid: 7737211905658585678
+  - rid: 7737211905660420700
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074979239
+    - rid: 7737211905658585677
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:life:seasonal-calendar
-    - rid: 7737211838074979240
+    - rid: 7737211905658585678
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1
         sharedIntermediate: 0
+    - rid: 7737211905660420700
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.60448116

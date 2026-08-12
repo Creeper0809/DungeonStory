@@ -12,7 +12,9 @@ public sealed class SurgeryContentServices
         ISurgeryPolicyRuntime policies,
         IAnatomyProfileCatalog anatomyProfiles,
         ICharacterSpeciesCatalog species,
-        IReadOnlyList<ISurgicalProcedureEffectHandler> effects)
+        ICharacterSpeciesQuery speciesRuntime,
+        IReadOnlyList<ISurgicalProcedureEffectHandler> effects,
+        ICharacterPerformanceQuery performance)
     {
         Procedures = procedures ?? throw new ArgumentNullException(nameof(procedures));
         Facilities = facilities ?? throw new ArgumentNullException(nameof(facilities));
@@ -21,7 +23,10 @@ public sealed class SurgeryContentServices
         Policies = policies ?? throw new ArgumentNullException(nameof(policies));
         AnatomyProfiles = anatomyProfiles ?? throw new ArgumentNullException(nameof(anatomyProfiles));
         Species = species ?? throw new ArgumentNullException(nameof(species));
+        SpeciesRuntime = speciesRuntime
+            ?? throw new ArgumentNullException(nameof(speciesRuntime));
         Effects = effects ?? throw new ArgumentNullException(nameof(effects));
+        Performance = performance ?? throw new ArgumentNullException(nameof(performance));
     }
 
     public ISurgicalProcedureCatalog Procedures { get; }
@@ -31,7 +36,9 @@ public sealed class SurgeryContentServices
     public ISurgeryPolicyRuntime Policies { get; }
     public IAnatomyProfileCatalog AnatomyProfiles { get; }
     public ICharacterSpeciesCatalog Species { get; }
+    public ICharacterSpeciesQuery SpeciesRuntime { get; }
     public IReadOnlyList<ISurgicalProcedureEffectHandler> Effects { get; }
+    public ICharacterPerformanceQuery Performance { get; }
 }
 
 public sealed class SurgeryWorldServices
@@ -106,19 +113,28 @@ public sealed class SurgeryExecutionServices
         IGameClock clock,
         IRandomStreamProvider randomStreams,
         ICharacterEnvironmentStatusQuery environmentStatus,
-        ISurgeryEnvironmentRiskEvaluator environmentRisk)
+        ISurgeryEnvironmentRiskEvaluator environmentRisk,
+        ExtremeTraitRuntime extremeTraits = null,
+        IRunSeedProvider runSeedProvider = null,
+        CharacterIdentityEventPublisher identityEvents = null)
     {
         Clock = clock ?? throw new ArgumentNullException(nameof(clock));
         EnvironmentStatus = environmentStatus ?? throw new ArgumentNullException(nameof(environmentStatus));
         EnvironmentRisk = environmentRisk ?? throw new ArgumentNullException(nameof(environmentRisk));
         OutcomeRandom = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams)))
             .Get("medical:surgery-outcomes");
+        ExtremeTraits = extremeTraits;
+        RunSeedProvider = runSeedProvider;
+        IdentityEvents = identityEvents;
     }
 
     public IGameClock Clock { get; }
     public IRandomStream OutcomeRandom { get; }
     public ICharacterEnvironmentStatusQuery EnvironmentStatus { get; }
     public ISurgeryEnvironmentRiskEvaluator EnvironmentRisk { get; }
+    public ExtremeTraitRuntime ExtremeTraits { get; }
+    public IRunSeedProvider RunSeedProvider { get; }
+    public CharacterIdentityEventPublisher IdentityEvents { get; }
 }
 
 internal static class SurgeryRuntimeSupport

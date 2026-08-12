@@ -60,6 +60,10 @@ public interface IDefenseCombatExecutor
         CombatFireMode mode,
         CombatLineOfSightResult sight,
         int distance);
+    void AwardEncounterCompletion(
+        DefenseEngagement engagement,
+        CharacterActor actor,
+        CharacterProficiencyId proficiencyId);
 }
 
 public sealed class DefenseCombatSupportServices
@@ -72,7 +76,8 @@ public sealed class DefenseCombatSupportServices
         IMilestoneGameplayModifierQuery milestoneModifiers,
         IRunMilestoneCommand milestoneCommands,
         IFacilityCapabilityQuery facilityCapabilities,
-        IWorldItemStackRuntime worldItems)
+        IWorldItemStackRuntime worldItems,
+        ICharacterProficiencyCommand proficiencyCommands)
     {
         WorldThreatModifiers = worldThreatModifiers
             ?? throw new ArgumentNullException(nameof(worldThreatModifiers));
@@ -89,6 +94,8 @@ public sealed class DefenseCombatSupportServices
             ?? throw new ArgumentNullException(nameof(facilityCapabilities));
         WorldItems = worldItems
             ?? throw new ArgumentNullException(nameof(worldItems));
+        ProficiencyCommands = proficiencyCommands
+            ?? throw new ArgumentNullException(nameof(proficiencyCommands));
     }
 
     public IWorldThreatModifierQuery WorldThreatModifiers { get; }
@@ -99,6 +106,7 @@ public sealed class DefenseCombatSupportServices
     public IRunMilestoneCommand MilestoneCommands { get; }
     public IFacilityCapabilityQuery FacilityCapabilities { get; }
     public IWorldItemStackRuntime WorldItems { get; }
+    public ICharacterProficiencyCommand ProficiencyCommands { get; }
 }
 
 public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
@@ -116,6 +124,8 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
     private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
     private readonly IRunMilestoneCommand milestoneCommands;
     private readonly IFacilityCapabilityQuery facilityCapabilities;
+    private readonly ICharacterProficiencyCommand proficiencyCommands;
+    private readonly ICharacterPerformanceQuery performance;
 
     public DefenseCombatExecutor(
         ICombatResolutionService combatResolution,
@@ -124,7 +134,8 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         ICharacterBodyHealthCommand bodyHealthCommands,
         CombatCoverServices coverServices,
         IWorldItemStackRuntime itemStackRuntime,
-        DefenseCombatSupportServices supportServices)
+        DefenseCombatSupportServices supportServices,
+        ICharacterPerformanceQuery performance)
     {
         this.combatResolution = combatResolution
             ?? throw new ArgumentNullException(nameof(combatResolution));
@@ -147,6 +158,9 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         milestoneModifiers = requiredSupport.MilestoneModifiers;
         milestoneCommands = requiredSupport.MilestoneCommands;
         facilityCapabilities = requiredSupport.FacilityCapabilities;
+        proficiencyCommands = requiredSupport.ProficiencyCommands;
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
     }
 
     public CharacterCombatLoadoutProfile GetActiveProfile(CharacterActor actor)
@@ -369,6 +383,26 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
             weapon,
             result,
             "던전 방어 교전");
+        if (attackerIsGuard)
+        {
+            AwardCombatExperience(
+                attacker,
+                BuiltInCharacterProficiencyIds.MeleeCombat,
+                result,
+                engagement,
+                "melee-attack",
+                defensiveBlock: false);
+        }
+        else if (result.ShieldBlocked)
+        {
+            AwardCombatExperience(
+                defender,
+                BuiltInCharacterProficiencyIds.MeleeCombat,
+                result,
+                engagement,
+                "melee-defense",
+                defensiveBlock: true);
+        }
         engagement.ExchangeCount++;
         TriggerDamagePassive(
             defender,
@@ -469,6 +503,13 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
             status = result.ShieldBlocked ? "방패에 막힘" : "원거리 교전";
         }
 
+        AwardCombatExperience(
+            attacker,
+            BuiltInCharacterProficiencyIds.RangedCombat,
+            result,
+            engagement,
+            "ranged-attack",
+            defensiveBlock: false);
         engagement.ExchangeCount++;
         TriggerDamagePassive(
             defender,
@@ -481,6 +522,29 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
             status);
     }
 
+    public void AwardEncounterCompletion(
+        DefenseEngagement engagement,
+        CharacterActor actor,
+        CharacterProficiencyId proficiencyId)
+    {
+        if (engagement == null
+            || actor == null
+            || actor.IsDead
+            || !CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId))
+        {
+            return;
+        }
+
+        proficiencyCommands.AddCombatExperience(
+            characterId,
+            proficiencyId,
+            0.50f,
+            training: false,
+            stableAwardKey:
+                $"{engagement.Id}:complete:{characterId.Value}:{proficiencyId.Value}",
+            absoluteHour: calendar.AbsoluteHour);
+    }
+
     private static bool CanExecute(
         DefenseEngagement engagement,
         CharacterActor attacker,
@@ -491,6 +555,47 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
             && !attacker.IsDead
             && defender != null
             && !defender.IsDead;
+    }
+
+    private void AwardCombatExperience(
+        CharacterActor actor,
+        CharacterProficiencyId proficiencyId,
+        CombatAttackResult result,
+        DefenseEngagement engagement,
+        string eventKind,
+        bool defensiveBlock)
+    {
+        if (actor == null
+            || engagement == null
+            || !CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId))
+        {
+            return;
+        }
+
+        float experience;
+        if (defensiveBlock)
+        {
+            experience = 0.25f;
+        }
+        else
+        {
+            if (!result.Hit || result.AppliedDamage <= 0f)
+            {
+                return;
+            }
+            experience = 0.20f
+                + 0.15f
+                + Math.Min(0.35f, result.AppliedDamage * 0.01f);
+        }
+
+        proficiencyCommands.AddCombatExperience(
+            characterId,
+            proficiencyId,
+            experience,
+            training: false,
+            stableAwardKey:
+                $"{engagement.Id}:{engagement.ExchangeCount + 1}:{eventKind}:{characterId.Value}",
+            absoluteHour: calendar.AbsoluteHour);
     }
 
     private void ApplyResult(
@@ -508,13 +613,19 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         }
         if (result.Hit)
         {
+            CombatDamageType damageType =
+                weapon?.Verb?.damageType ?? CombatDamageType.Slash;
+            CombatAttackResult appliedResult = damageType == CombatDamageType.Blunt
+                ? result.WithAppliedDamageMultiplier(
+                    defender.GetDetailedStatMultiplier("damage:blunt-taken"))
+                : result;
             bodyHealthCommands.ApplyCombatResult(
                 defender,
-                result,
+                appliedResult,
                 $"{source}: {attacker.Identity?.DisplayName ?? attacker.name}");
             DefenseCombatPresentation.Ensure(defender)?.PlayHit(
-                result.AppliedDamage,
-                weapon?.Verb?.damageType ?? CombatDamageType.Slash,
+                appliedResult.AppliedDamage,
+                damageType,
                 worldUiHierarchy);
             ApplyArmorDurabilityDamage(result);
             return;
@@ -683,30 +794,11 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         }
     }
 
-    private static CombatStatSnapshot CreateCombatStats(
+    private CombatStatSnapshot CreateCombatStats(
         CharacterActor actor,
         CharacterBodyHealthSnapshot body)
     {
-        if (actor == null)
-        {
-            return default;
-        }
-
-        float health = Mathf.Clamp01(
-            actor.CurrentHealth / Mathf.Max(1f, actor.MaxHealth));
-        float bodyEfficiency = Mathf.Min(
-            body.Consciousness,
-            Mathf.Lerp(0.5f, 1f, body.Manipulation));
-        return new CombatStatSnapshot(
-            actor.GetCharacterStat(CharacterStatType.Attack),
-            actor.GetCharacterStat(CharacterStatType.Shooting),
-            actor.GetCharacterStat(CharacterStatType.Evasion),
-            actor.GetCharacterStat(CharacterStatType.MoveSpeed) * body.Mobility,
-            actor.GetCharacterStat(CharacterStatType.Strength),
-            actor.GetCharacterStat(CharacterStatType.Toughness),
-            actor.GetCharacterStat(CharacterStatType.Dexterity)
-                * body.Manipulation,
-            health * bodyEfficiency);
+        return CombatRuntimeStatFactory.Create(actor, body, performance);
     }
 
     private static void TriggerDamagePassive(

@@ -129,7 +129,9 @@ internal sealed class CharacterDeprivationConsequences
         state.breakdown.targetId = string.Empty;
         state.breakdown.lastReplanReason = reason ?? string.Empty;
         actor?.Stats?.RemoveMoodFactor("survival:breakdown");
-        actor?.Brain?.EndExternallyDrivenAction(clearFailures: true);
+        actor?.Brain?.EndExternallyDrivenAction(
+            CharacterBreakdownActionRunner.IntentOwnerId,
+            clearFailures: true);
     }
 
     public void EndActiveBreakdownIfRelieved(CharacterActor actor)

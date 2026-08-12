@@ -41,11 +41,11 @@ MonoBehaviour:
     quantity: 1
     optional: 0
   effects:
-  - rid: 7737211730889015539
+  - rid: 7737211857806557868
   references:
     version: 2
     RefIds:
-    - rid: 7737211730889015539
+    - rid: 7737211857806557868
       type: {class: RemoveSurgicalNodeEffect, ns: , asm: DungeonStory.Medical}
       data:
         effectId: RemoveSurgicalNodeEffect

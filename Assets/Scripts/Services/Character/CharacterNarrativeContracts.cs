@@ -63,12 +63,14 @@ public interface ICharacterNarrativeCatalog
     IReadOnlyList<SpeciesCultureDefinitionSO> Cultures { get; }
     IReadOnlyList<CulturalPracticeDefinitionSO> Practices { get; }
     IReadOnlyList<HeritableTraitDefinitionSO> HeritableTraits { get; }
+    IReadOnlyList<ProficiencyDefinitionSO> Proficiencies { get; }
     CharacterBackgroundDefinitionSO Require(CharacterBackgroundId id);
     CharacterAmbitionDefinitionSO Require(CharacterAmbitionId id);
     LifeEventDefinitionSO Require(NarrativeEventId id);
     SpeciesCultureDefinitionSO Require(SpeciesCultureId id);
     SpeciesCultureDefinitionSO RequireDefaultCulture(string speciesId);
     HeritableTraitDefinitionSO RequireHeritable(string traitId);
+    ProficiencyDefinitionSO Require(CharacterProficiencyId id);
 }
 
 public interface ICharacterNarrativeQuery
@@ -116,7 +118,9 @@ public interface ICharacterNarrativeCommand
         CharacterId characterId,
         CharacterSpeciesId phenotypeSpeciesId,
         IReadOnlyList<string> expressedHeritableTraitIds,
-        IReadOnlyList<string> latentHeritableTraitIds);
+        IReadOnlyList<string> latentHeritableTraitIds,
+        IReadOnlyList<CharacterStartingProficiencyExperience>
+            startingProficiencies = null);
     CharacterNarrativeSnapshot RegisterEnemyOrigin(
         CharacterId characterId,
         CharacterSpeciesId phenotypeSpeciesId,
@@ -127,7 +131,9 @@ public interface ICharacterNarrativeCommand
         string enemyArchetypeId,
         string originFactionId,
         string militaryTrainingId,
-        float loyalty);
+        float loyalty,
+        IReadOnlyList<CharacterStartingProficiencyExperience>
+            startingProficiencies = null);
     bool TryInitializeBackground(
         CharacterId characterId,
         int absoluteDay,
@@ -210,6 +216,8 @@ public sealed class CharacterNarrativeSnapshot
     public string InitialMemoryCode { get; internal set; }
     public IReadOnlyDictionary<string, int> SkillExperienceById
         { get; internal set; }
+    public IReadOnlyList<CharacterProficiencySnapshot> Proficiencies
+        { get; internal set; }
     public IReadOnlyDictionary<string, float> BackgroundFactionReactionById
         { get; internal set; }
     public IReadOnlyList<CulturalPracticeParticipationSaveData>
@@ -268,9 +276,10 @@ public static class BackgroundFactionReactionRules
 [Serializable]
 public sealed class CharacterNarrativeWorldSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 8;
     public int version = CurrentVersion;
     public List<CharacterNarrativeSaveData> characters = new();
+    public List<CharacterIdentityRuntimeStateSaveData> identityStates = new();
 }
 
 [Serializable]
@@ -308,8 +317,20 @@ public sealed class CharacterNarrativeSaveData
 [Serializable]
 public sealed class NarrativeSkillExperienceSaveData
 {
-    public string skillId = string.Empty;
-    public int experience;
+    public string proficiencyId = string.Empty;
+    public float learningMultiplier =
+        CharacterProficiencySpecializationRules.NeutralLearningMultiplier;
+    public long currentMilliExperience;
+    public long lifetimeMilliExperience;
+    public long lastPracticeAbsoluteHour;
+    public long lastDecaySettlementAbsoluteHour;
+    public long maintenancePracticeMilliExperience;
+    public int practiceAbsoluteDay = -1;
+    public long practiceMilliExperienceToday;
+    public int combatAwardAbsoluteDay = -1;
+    public long combatAwardMilliToday;
+    public long trainingAwardMilliToday;
+    public List<string> recentCombatAwardKeys = new();
 }
 
 [Serializable]

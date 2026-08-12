@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uBD88\uC548\uD55C \uACC4\uD68D\uAC00"
   description: "\uBE44\uC0C1 \uBE44\uCD95\uACFC \uB300\uD53C\uB85C\uB97C \uBC18\uBCF5
     \uD655\uC778\uD574\uC57C \uB9C8\uC74C\uC774 \uB193\uC778\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,42 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 1
+  polarity: 1
+  selectionFamilyId: planning
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: safety:prepare
-    utilityDelta: 0.45
-  moodReactions:
-  - triggerTag: stock:shortage
-    moodDelta: -4
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: seasonal
-    multiplier: 1.4
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:220:effect:0
+    definition: {fileID: 11400000, guid: ab46736f68b07c442bc3c27bbc87e7cc, type: 2}
+    value: 0.85
+    condition: {fileID: 11400000, guid: 14f05794c90f2dc4d920fb68b028a331, type: 2}
+  identityRules:
+  - rid: 7737211921986486488
+  - rid: 7737211921986486489
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486488
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:check-emergency-stock
+        priority: 0
+        behaviorTag: work:emergency-check
+        utilityDelta: 0.75
+    - rid: 7737211921986486489
+      type: {class: PersistentNeedRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: need:emergency-readiness
+        priority: 0
+        needId: need:emergency-readiness
+        satisfiedEventId: stockpile:emergency-ready
+        deprivedEventId: stockpile:emergency-shortage
+        deprivationDays: 1
+        deprivedMoodDelta: -4
+        satisfiedMoodDelta: 2
+        moodDurationDays: 1

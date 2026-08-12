@@ -533,7 +533,7 @@ public sealed class InstanceEvolutionPanelPresenter :
             .Where(stack => stack != null
                 && stack.Quantity > 0
                 && !stack.Forbidden
-                && !stack.IsReserved
+                && stack.AvailableQuantity > 0
                 && stack.State is WorldItemStackState.Loose
                     or WorldItemStackState.Stored
                 && EvolutionCatalystItemId.TryParseCatalyst(

@@ -43,6 +43,7 @@ public static class CharacterSummaryCombatTextFormatter
             CombatEquipmentQuality.Excellent => Get("CharacterSummary.Combat.Quality.Excellent"),
             CombatEquipmentQuality.Masterwork => Get("CharacterSummary.Combat.Quality.Masterwork"),
             CombatEquipmentQuality.Legendary => Get("CharacterSummary.Combat.Quality.Legendary"),
+            CombatEquipmentQuality.Mythic => Get("CharacterSummary.Combat.Quality.Mythic"),
             _ => Get("CharacterSummary.Combat.Quality.Normal")
         };
     }

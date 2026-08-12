@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uC628\uB3C4 \uBBFC\uAC10"
   description: "\uCF8C\uC801\uD55C \uC628\uB3C4\uC5D0\uC11C \uB2A5\uB960\uC774 \uB192\uC9C0\uB9CC
     \uAE30\uD6C4 \uBCC0\uB3D9\uC5D0 \uC27D\uAC8C \uC9C0\uCE5C\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1.03
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,50 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 0
+  polarity: 1
+  selectionFamilyId: temperature
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: room:climate-controlled
-    utilityDelta: 0.35
-  moodReactions:
-  - triggerTag: temperature:uncomfortable
-    moodDelta: -4
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: seasonal
-    multiplier: 1.35
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:212:effect:0
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 1.03
+    condition: {fileID: 11400000, guid: 334a747873403c541b827c37372051f2, type: 2}
+  - bindingId: trait:212:effect:1
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 0.9
+    condition: {fileID: 11400000, guid: 1ce88e098053e044ba91e59c6346791f, type: 2}
+  - bindingId: trait:212:effect:2
+    definition: {fileID: 11400000, guid: 426f03603ba79a7459d9214b87e09318, type: 2}
+    value: 1.2
+    condition: {fileID: 11400000, guid: 8c8711624a750724fa009ef638b667e6, type: 2}
+  - bindingId: trait:212:effect:3
+    definition: {fileID: 11400000, guid: e2cec60c35a7dd848919d427b9d0a433, type: 2}
+    value: 1.2
+    condition: {fileID: 11400000, guid: 8376f2f2e01facd44b202c0dbee9771b, type: 2}
+  identityRules:
+  - rid: 7737211921986486446
+  - rid: 7737211921986486447
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486446
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:conditioned-room
+        priority: 0
+        behaviorTag: room:temperature-controlled
+        utilityDelta: 0.7
+    - rid: 7737211921986486447
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:uncomfortable-temperature
+        priority: 0
+        eventId: temperature:uncomfortable-long
+        moodDelta: -4
+        durationDays: 1

@@ -107,7 +107,12 @@ InitTestScene*.unity*
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
 
-docs/
+# Design documents are local by default, except the two authoritative balance sources.
+docs/*
+!docs/DungeonStory_Game_Design_and_Implementation.md
+!docs/game-design/
+docs/game-design/*
+!docs/game-design/whole-game-balance-baseline.md
 .planning/
 
 # Local V25 narrative-model training environment

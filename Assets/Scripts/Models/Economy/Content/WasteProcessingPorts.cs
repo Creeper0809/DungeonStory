@@ -8,11 +8,14 @@ public sealed class WasteProcessingStackSnapshot
     public ItemStackId StackId { get; set; }
     public string ItemId { get; set; } = string.Empty;
     public int Quantity { get; set; }
+    public int ReservedQuantity { get; set; }
+    public int AvailableQuantity => Math.Max(0, Quantity - ReservedQuantity);
     public WorldItemStackState State { get; set; }
     public Vector2Int Position { get; set; }
     public string DestinationId { get; set; } = string.Empty;
     public bool Forbidden { get; set; }
-    public bool IsReserved { get; set; }
+    [Obsolete("Use ReservedQuantity or AvailableQuantity.")]
+    public bool IsReserved => ReservedQuantity > 0;
     public WasteOriginKind WasteOrigin { get; set; }
     public float Contamination { get; set; }
     public bool IsWaste => WasteOrigin != WasteOriginKind.Unknown;

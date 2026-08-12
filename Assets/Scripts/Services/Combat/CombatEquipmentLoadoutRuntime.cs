@@ -300,6 +300,24 @@ public sealed class CombatEquipmentLoadoutRuntime
             : GetActiveProfile(GetOrCreate(characterId)).Clone();
     }
 
+    public bool TryGetActiveProfileSnapshot(
+        string characterId,
+        out CharacterCombatLoadoutProfile profile)
+    {
+        profile = null;
+        string normalizedId = characterId?.Trim() ?? string.Empty;
+        if (normalizedId.Length == 0
+            || !States.TryGetValue(
+                normalizedId,
+                out CharacterCombatLoadoutState state))
+        {
+            return false;
+        }
+
+        profile = GetActiveProfile(state).Clone();
+        return true;
+    }
+
     public bool TryGetActiveWeapon(string characterId, out CombatWeaponSnapshot weapon)
     {
         weapon = CombatWeaponSnapshot.CreateUnarmed();

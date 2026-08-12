@@ -27,29 +27,30 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uB9C8\uB098\uB450\uCC3D
     \uBC31\uC2E0."
   stockCategory: 5
-  unitWeight: 2.32
+  unitWeight: 0.6
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 150
+  unitPrice: 27
   features:
-  - rid: 7737211838078124921
-  - rid: 7737211838078124922
-  - rid: 7737211838078124923
-  - rid: 7737211838078124924
+  - rid: 7737211905660420289
+  - rid: 7737211905660420290
+  - rid: 7737211905660420291
+  - rid: 7737211905660420292
+  - rid: 7737211905660420887
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124921
+    - rid: 7737211905660420289
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:vaccination
-    - rid: 7737211838078124922
+    - rid: 7737211905660420290
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737211838078124923
+    - rid: 7737211905660420291
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 0
@@ -57,8 +58,12 @@ MonoBehaviour:
         infectionReduction: 0
         detoxReduction: 0
         painReduction: 0
-    - rid: 7737211838078124924
+    - rid: 7737211905660420292
       type: {class: VaccineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         diseaseId: disease:mana-pox
         doses: 1
+    - rid: 7737211905660420887
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6031716

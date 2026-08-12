@@ -31,6 +31,26 @@ MonoBehaviour:
   objectName: "\uC800\uAC00 \uC74C\uC2DD\uC810"
   sprite: {fileID: 21300000, guid: e3c11092861b23d7abd8dcaf94075978, type: 3}
   icon: {fileID: 21300000, guid: e3c11092861b23d7abd8dcaf94075978, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  deprecatedCompatibilityAsset: 1
+  useClassification: 0
+  researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: proficiency:food-production
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
     - rid: 8800000000000000010
@@ -55,18 +75,6 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 8800000000000000010
-      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 30
-        repairWorkRequired: 14
-        cleanWorkRequired: 9
-        researchWorkRequired: 6
-        operateWorkRequired: 10
-        constructionMaterials:
-        - itemId: material:steel-ingot
-          amount: 1
     - rid: 7302562978982527660
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -79,28 +87,52 @@ MonoBehaviour:
           supportedWorkTypes: 7
           disabledWhenDamaged: 1
     - rid: 7302562985835495565
-      type: {class: BuildingInternalStockAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingInternalStockAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 20
         restockRequestThreshold: 5
     - rid: 7302562985835495566
-      type: {class: BuildingRequiresStockAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingRequiresStockAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRequiresStockAbility
     - rid: 7302562985835495567
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
     - rid: 7302562985835495568
-      type: {class: BuildingSelfContainedRoomAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSelfContainedRoomAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSelfContainedRoomAbility
     - rid: 7302562987322638440
-      type: {class: BuildingSpeciesAffinityAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSpeciesAffinityAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSpeciesAffinityAbility
         preferredTags:
         - Slime
         dislikedTags:
         - Demon
+    - rid: 8800000000000000010
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
+        constructionWorkRequired: 30
+        repairWorkRequired: 14
+        cleanWorkRequired: 9
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
+        constructionMaterials:
+        - itemId: material:steel-ingot
+          amount: 1

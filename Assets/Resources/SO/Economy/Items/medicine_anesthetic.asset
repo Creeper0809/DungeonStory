@@ -32,28 +32,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 24
   features:
-  - rid: 7737211838068949679
-  - rid: 7737211838068949680
-  - rid: 7737211838068949681
-  - rid: 7737211838068949682
+  - rid: 7737211905666711970
+  - rid: 7737211905666711971
+  - rid: 7737211905666711972
+  - rid: 7737211905666711973
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949679
+    - rid: 7737211905666711970
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:anesthesia
-    - rid: 7737211838068949680
+    - rid: 7737211905666711971
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211838068949681
+    - rid: 7737211905666711972
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6
-    - rid: 7737211838068949682
+    - rid: 7737211905666711973
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 0

@@ -25,8 +25,8 @@ MonoBehaviour:
   cultureId: culture:vampire-nightcourt
   requiredBuildingDefinitionId: workstation:v19:memorial-room
   requiredItems:
-  - itemDefinitionId: item:candle
-    amount: 16
+  - itemDefinitionId: craft:candle
+    amount: 8
   minimumParticipants: 6
   successOutcome:
     moodDelta: 6

@@ -283,69 +283,6 @@ public sealed class CharacterProgression : MonoBehaviour
             && EquippedSkillIds.Contains(skillId, StringComparer.Ordinal);
     }
 
-    public int GetFinalStat(CharacterStatType statType)
-    {
-        EnsureInitialized();
-        return RequireProfileProjector().GetFinalStat(
-            actor,
-            GrowthState,
-            statType);
-    }
-
-    public CharacterStatBreakdown GetStatBreakdown(CharacterStatType statType)
-    {
-        EnsureInitialized();
-        return RequireProfileProjector().GetStatBreakdown(
-            actor,
-            GrowthState,
-            statType);
-    }
-
-    public int GetBaseStat(CharacterStatType statType)
-    {
-        EnsureInitialized();
-        return RequireProfileProjector().GetBaseStat(
-            actor,
-            GrowthState,
-            statType);
-    }
-
-    public int GetSpeciesTraitStatBonus(CharacterStatType statType)
-    {
-        EnsureInitialized();
-        return RequireProfileProjector().GetSpeciesTraitStatBonus(
-            actor,
-            GrowthState,
-            statType);
-    }
-
-    public int GetLevelGrowthStat(CharacterStatType statType)
-    {
-        EnsureInitialized();
-        return RequireProfileProjector().GetLevelGrowthStat(
-            GrowthState,
-            statType);
-    }
-
-    public int GetCurrentConditionalPassiveStatBonus(CharacterStatType statType)
-    {
-        EnsureInitialized();
-        return RequireProfileProjector().GetConditionalPassiveStatBonus(
-            actor,
-            GrowthState,
-            statType);
-    }
-
-    public int GetFinalStat(string statId)
-    {
-        return CharacterStatCatalog.TryGet(
-                statId,
-                out CharacterStatDefinition definition)
-            && definition.LegacyType.HasValue
-                ? GetFinalStat(definition.LegacyType.Value)
-                : 0;
-    }
-
     public IReadOnlyList<CharacterTraitSO> ResolveSelectedTraits()
     {
         EnsureInitialized();
@@ -492,7 +429,6 @@ public sealed class CharacterProgression : MonoBehaviour
         narrativeLedger = snapshot.NarrativeLedger?.Clone() ?? new CharacterNarrativeLedger();
         InvalidateEffectiveRuntimeProfile();
         GrowthState.EnsureCollections();
-        EnsureMedicalStat();
         RebuildLegacySkillViews();
         EnsureInitialized();
         WarmEffectiveRuntimeProfile();
@@ -520,24 +456,36 @@ public sealed class CharacterProgression : MonoBehaviour
         string displayName,
         string origin,
         IEnumerable<int> traitIds,
-        CharacterStatBlock initialStats,
         CharacterPotentialGrade potential,
         int generationSeed,
-        bool autoChooseDrafts)
+        bool autoChooseDrafts,
+        int? startingProficiencySeed = null,
+        CharacterStartingProfileState startingProfile = null,
+        IEnumerable<CharacterStartingProficiencyExperience>
+            preparedStartingProficiencies = null)
     {
         generationService?.CancelRequests(this);
         GrowthState.skillGenerationRevision++;
         GrowthState.initialized = true;
         GrowthState.displayName = displayName?.Trim() ?? string.Empty;
         GrowthState.origin = origin?.Trim() ?? string.Empty;
-        GrowthState.traitIds = traitIds?.Distinct().Take(3).ToList() ?? new List<int>();
-        GrowthState.initialBaseStats = CharacterSkillModelUtility.CopyStats(initialStats);
-        EnsureMedicalStat();
-        GrowthState.levelGrowthStats = new CharacterStatBlock();
+        GrowthState.traitSelectionAuthorityVersion =
+            CharacterGrowthState.CurrentTraitSelectionAuthorityVersion;
+        GrowthState.traitSelectionAuthorityOrigin =
+            CharacterTraitSelectionAuthorityOrigin.PreparedSelection;
+        GrowthState.traitIds = traitIds?.Distinct().Take(4).ToList() ?? new List<int>();
+        GrowthState.startingProfile = startingProfile?.Clone()
+            ?? new CharacterStartingProfileState();
+        GrowthState.startingProficiencies = (preparedStartingProficiencies
+                ?? CharacterStartingProficiencyRules.Create(
+                    startingProficiencySeed ?? generationSeed))
+            .Select(value => value.Clone())
+            .ToList();
+        CharacterStartingProficiencyRules.Validate(
+            GrowthState.startingProficiencies);
         GrowthState.potentialGrade = potential;
         GrowthState.generationSeed = generationSeed;
         GrowthState.autoChooseDrafts = autoChooseDrafts;
-        GrowthState.allocatedGrowthPoints = 0;
         GrowthState.activeSkills.Clear();
         GrowthState.passiveSkills.Clear();
         GrowthState.ultimate = null;
@@ -576,11 +524,6 @@ public sealed class CharacterProgression : MonoBehaviour
             actor,
             GrowthState,
             SkillSettings);
-    }
-
-    private void EnsureMedicalStat()
-    {
-        RequireProfileProjector().EnsureMedicalStat(GrowthState);
     }
 
     private void EnsureUnlockedDrafts()
@@ -658,12 +601,8 @@ public sealed class CharacterProgression : MonoBehaviour
 
     private void AllocateStatsForReachedLevel(int reachedLevel)
     {
-        CharacterSkillSystemSettingsSO settings = SkillSettings;
-        CharacterProgressionGrowthApplicationAdapter.AllocateGrowthPoints(
-            GrowthState,
-            NarrativeLedger,
-            reachedLevel,
-            settings);
+        // V26: generic character levels unlock narrative skills only.
+        // Proficiency grows exclusively from approved work, combat, and mentoring.
     }
 
 
@@ -730,14 +669,7 @@ public sealed class CharacterProgression : MonoBehaviour
             float score = (int)candidate.rarity * 100f;
             foreach (CharacterSkillModuleSelection module in candidate.modules ?? new List<CharacterSkillModuleSelection>())
             {
-                score += module.moduleId switch
-                {
-                    "damage" when GetFinalStat(CharacterStatType.Attack) >= 7 => 20f,
-                    "heal" when GetFinalStat(CharacterStatType.Research) >= 7 => 16f,
-                    "guard" when GetFinalStat(CharacterStatType.Toughness) >= 7 => 16f,
-                    "delay" when GetFinalStat(CharacterStatType.Dexterity) >= 7 => 14f,
-                    _ => 1f
-                };
+                score += 1f;
             }
 
             if (score > bestScore)
@@ -788,32 +720,6 @@ public sealed class CharacterProgression : MonoBehaviour
             ?? throw new InvalidOperationException(
                 "Character progression profile projector is not configured.");
     }
-}
-
-public readonly struct CharacterStatBreakdown
-{
-    public CharacterStatBreakdown(
-        CharacterStatType statType,
-        int baseValue,
-        int speciesTraitValue,
-        int levelGrowthValue,
-        int conditionalPassiveValue,
-        int finalValue)
-    {
-        StatType = statType;
-        BaseValue = baseValue;
-        SpeciesTraitValue = speciesTraitValue;
-        LevelGrowthValue = levelGrowthValue;
-        ConditionalPassiveValue = conditionalPassiveValue;
-        FinalValue = finalValue;
-    }
-
-    public CharacterStatType StatType { get; }
-    public int BaseValue { get; }
-    public int SpeciesTraitValue { get; }
-    public int LevelGrowthValue { get; }
-    public int ConditionalPassiveValue { get; }
-    public int FinalValue { get; }
 }
 
 public sealed class CharacterProgressionSnapshot

@@ -31,15 +31,35 @@ MonoBehaviour:
   objectName: "\uCCAD\uC18C\uB3C4\uAD6C\uD568"
   sprite: {fileID: 21300000, guid: 63f03661259d8b14fa0cb53af0ab225f, type: 3}
   icon: {fileID: 21300000, guid: 63f03661259d8b14fa0cb53af0ab225f, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  deprecatedCompatibilityAsset: 0
+  useClassification: 0
+  researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730834227718
-    - rid: 7737211730834227719
-    - rid: 7737211730834227720
-    - rid: 7737211730834227721
-    - rid: 7737211730834227722
-    - rid: 7737211730834227723
-    - rid: 7737211730834227724
+    - rid: 7737211921440179108
+    - rid: 7737211921440179109
+    - rid: 7737211921440179110
+    - rid: 7737211921440179111
+    - rid: 7737211921440179112
+    - rid: 7737211921440179113
+    - rid: 7737211921440179114
   width: 1
   height: 1
   layer: 1
@@ -55,13 +75,13 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730834227718
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440179108
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: H06
-    - rid: 7737211730834227719
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440179109
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 60
@@ -69,19 +89,35 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211730834227720
+    - rid: 7737211921440179110
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 19.2
-        repairWorkRequired: 10
-        cleanWorkRequired: 6.25
+        constructionProjectScale: 0
+        constructionWorkRequired: 160
+        repairWorkRequired: 40
+        cleanWorkRequired: 10
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: material:lumber
-          amount: 3
-    - rid: 7737211730834227721
+        - itemId: material:treated-lumber
+          amount: 4
+        - itemId: material:iron-ingot
+          amount: 2
+        - itemId: material:stone-block
+          amount: 2
+    - rid: 7737211921440179111
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -96,20 +132,20 @@ MonoBehaviour:
           - key: Storage
             value: 2.5
           metrics: []
-    - rid: 7737211730834227722
-      type: {class: BuildingStorageAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440179112
+      type: {class: BuildingStorageAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingStorageAbility
         category: 1
         capacity: 8
         allCategories: 0
-    - rid: 7737211730834227723
-      type: {class: BuildingCleaningAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440179113
+      type: {class: BuildingCleaningAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingCleaningAbility
         restoredCleanliness: 100
-    - rid: 7737211730834227724
-      type: {class: BuildingVentilationAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440179114
+      type: {class: BuildingVentilationAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingVentilationAbility
         hygieneRiskReduction: 12

@@ -50,6 +50,8 @@ internal readonly struct MealDeliveryRoute : IEquatable<MealDeliveryRoute>
 internal sealed class CharacterConsumablesAggregateState
 {
     internal readonly Dictionary<CharacterId, CharacterDietPolicyState> DietPolicies = new();
+    internal readonly Dictionary<CharacterId, CharacterMealQualityPolicyState>
+        MealQualityPolicies = new();
     internal readonly Dictionary<CharacterSubstanceKey, CharacterSubstancePolicyState>
         SubstancePolicies = new();
     internal readonly Dictionary<CharacterSubstanceKey, CharacterSubstanceState>
@@ -60,6 +62,9 @@ internal sealed class CharacterConsumablesAggregateState
         DeliveryByRoute = new();
     internal readonly Dictionary<ConsumableOperationId, CharacterConsumableOperationState>
         CompletedOperations = new();
+    internal readonly Dictionary<CharacterId, float> MealFollowupCooldownUntil = new();
+    internal readonly Dictionary<ConsumableOperationId, CharacterMealPlan>
+        ActiveMealPlans = new();
     internal long NextOperationSequence = 1;
     internal long NextDeliverySequence = 1;
     internal float NextDeliveryPruneAt;
@@ -75,6 +80,13 @@ internal sealed class CharacterConsumablesAggregateState
         foreach (KeyValuePair<CharacterId, CharacterDietPolicyState> pair in DietPolicies)
         {
             clone.DietPolicies.Add(pair.Key, CharacterConsumablesStateRules.Clone(pair.Value));
+        }
+        foreach (KeyValuePair<CharacterId, CharacterMealQualityPolicyState> pair in
+                 MealQualityPolicies)
+        {
+            clone.MealQualityPolicies.Add(
+                pair.Key,
+                CharacterConsumablesStateRules.Clone(pair.Value));
         }
         foreach (KeyValuePair<CharacterSubstanceKey, CharacterSubstancePolicyState> pair in SubstancePolicies)
         {
@@ -94,17 +106,87 @@ internal sealed class CharacterConsumablesAggregateState
         {
             clone.CompletedOperations.Add(pair.Key, CharacterConsumablesStateRules.Clone(pair.Value));
         }
+        foreach (KeyValuePair<CharacterId, float> pair in MealFollowupCooldownUntil)
+            clone.MealFollowupCooldownUntil.Add(pair.Key, pair.Value);
+        foreach (KeyValuePair<ConsumableOperationId, CharacterMealPlan> pair in
+                 ActiveMealPlans)
+        {
+            clone.ActiveMealPlans.Add(
+                pair.Key,
+                CharacterConsumablesStateRules.Clone(pair.Value));
+        }
         return clone;
     }
 }
 
 internal static class CharacterConsumablesStateRules
 {
+    internal static CharacterMealPlan Clone(CharacterMealPlan source) => new()
+    {
+        planId = source?.planId ?? string.Empty,
+        characterId = source?.characterId ?? string.Empty,
+        facilityInstanceId = source?.facilityInstanceId ?? string.Empty,
+        sourceStackId = source?.sourceStackId ?? string.Empty,
+        transportStackId = source?.transportStackId ?? string.Empty,
+        itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
+        mealQuantityLeaseId = source?.mealQuantityLeaseId ?? string.Empty,
+        phase = source?.phase ?? CharacterMealPlanPhase.Aborted,
+        createdAt = source?.createdAt ?? 0d,
+        leaseExpiresAt = source?.leaseExpiresAt ?? 0d,
+        expectedCompletionEta = source?.expectedCompletionEta ?? 0f,
+        physicalConsumptionCommitted = source?.physicalConsumptionCommitted ?? false,
+        automaticOperation = source?.automaticOperation ?? false,
+        beginContamination = source?.beginContamination ?? 0f,
+        facilitySlotReserved = source?.facilitySlotReserved ?? false
+    };
+
+    internal static CharacterMealPlanSaveData ToSaveData(
+        CharacterMealPlan source) => new()
+    {
+        planId = source?.planId ?? string.Empty,
+        characterId = source?.characterId ?? string.Empty,
+        facilityInstanceId = source?.facilityInstanceId ?? string.Empty,
+        sourceStackId = source?.sourceStackId ?? string.Empty,
+        itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
+        phase = source?.phase ?? CharacterMealPlanPhase.Aborted,
+        createdAt = source?.createdAt ?? 0d,
+        leaseExpiresAt = source?.leaseExpiresAt ?? 0d,
+        expectedCompletionEta = source?.expectedCompletionEta ?? 0f,
+        automaticOperation = source?.automaticOperation ?? false,
+        beginContamination = source?.beginContamination ?? 0f
+    };
+
+    internal static CharacterMealPlan FromSaveData(
+        CharacterMealPlanSaveData source) => new()
+    {
+        planId = source?.planId ?? string.Empty,
+        characterId = source?.characterId ?? string.Empty,
+        facilityInstanceId = source?.facilityInstanceId ?? string.Empty,
+        sourceStackId = source?.sourceStackId ?? string.Empty,
+        itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
+        mealQuantityLeaseId = string.Empty,
+        phase = source?.phase ?? CharacterMealPlanPhase.Aborted,
+        createdAt = source?.createdAt ?? 0d,
+        leaseExpiresAt = source?.leaseExpiresAt ?? 0d,
+        expectedCompletionEta = source?.expectedCompletionEta ?? 0f,
+        automaticOperation = source?.automaticOperation ?? false,
+        beginContamination = source?.beginContamination ?? 0f,
+        facilitySlotReserved = false
+    };
+
     internal static CharacterDietPolicyState Clone(CharacterDietPolicyState source) =>
         new()
         {
             characterId = source?.characterId ?? string.Empty,
             policy = source?.policy ?? CharacterDietPolicyKind.Free
+        };
+
+    internal static CharacterMealQualityPolicyState Clone(
+        CharacterMealQualityPolicyState source) => new()
+        {
+            characterId = source?.characterId ?? string.Empty,
+            maximumQuality = source?.maximumQuality
+                ?? CharacterMealQualityLimit.Inherit
         };
 
     internal static CharacterSubstancePolicyState Clone(
@@ -155,6 +237,8 @@ internal static class CharacterConsumablesStateRules
             itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
             itemStackId = source?.itemStackId ?? string.Empty,
             meal = source?.meal ?? false,
+            policyViolation = source?.policyViolation ?? false,
+            contaminated = source?.contaminated ?? false,
             completedAt = source?.completedAt ?? 0f
         };
 
@@ -175,6 +259,8 @@ internal static class CharacterConsumablesStateRules
             nextDeliverySequence = state.NextDeliverySequence,
             dietPolicies = state.DietPolicies.Values.Select(Clone)
                 .OrderBy(value => value.characterId, StringComparer.Ordinal).ToList(),
+            mealQualityPolicies = state.MealQualityPolicies.Values.Select(Clone)
+                .OrderBy(value => value.characterId, StringComparer.Ordinal).ToList(),
             substancePolicies = state.SubstancePolicies.Values.Select(Clone)
                 .OrderBy(value => value.characterId, StringComparer.Ordinal)
                 .ThenBy(value => value.itemDefinitionId, StringComparer.Ordinal).ToList(),
@@ -184,7 +270,19 @@ internal static class CharacterConsumablesStateRules
             pendingMealDeliveries = state.PendingDeliveries.Values.Select(Clone)
                 .OrderBy(value => value.deliveryId, StringComparer.Ordinal).ToList(),
             completedOperations = state.CompletedOperations.Values.Select(Clone)
-                .OrderBy(value => value.operationId, StringComparer.Ordinal).ToList()
+                .OrderBy(value => value.operationId, StringComparer.Ordinal).ToList(),
+            activeMealPlans = state.ActiveMealPlans.Values
+                .Select(ToSaveData)
+                .OrderBy(value => value.planId, StringComparer.Ordinal)
+                .ToList(),
+            mealFollowupCooldowns = state.MealFollowupCooldownUntil
+                .OrderBy(pair => pair.Key.Value, StringComparer.Ordinal)
+                .Select(pair => new CharacterMealFollowupCooldownSaveData
+                {
+                    characterId = pair.Key.Value,
+                    untilGameSeconds = pair.Value
+                })
+                .ToList()
         };
         DungeonGameRestoreReport report = new();
         ValidateSequenceWatermarks(payload, report);
@@ -221,7 +319,10 @@ internal static class CharacterConsumablesStateRules
         }
         if (payload.dietPolicies == null || payload.substancePolicies == null
             || payload.substanceStates == null || payload.pendingMealDeliveries == null
-            || payload.completedOperations == null)
+            || payload.completedOperations == null
+            || payload.mealFollowupCooldowns == null
+            || payload.mealQualityPolicies == null
+            || payload.activeMealPlans == null)
         {
             report.AddError("Character consumables payload contains a null collection.");
             return;
@@ -232,11 +333,13 @@ internal static class CharacterConsumablesStateRules
         HashSet<CharacterId> characters = world.CharacterIds.Where(id => id.IsValid).ToHashSet();
         HashSet<BuildingInstanceId> facilities = world.FacilityIds.Where(id => id.IsValid).ToHashSet();
         HashSet<CharacterId> dietIds = new();
+        HashSet<CharacterId> mealQualityIds = new();
         HashSet<CharacterSubstanceKey> policyKeys = new();
         HashSet<CharacterSubstanceKey> stateKeys = new();
         HashSet<ConsumableDeliveryId> deliveryIds = new();
         HashSet<MealDeliveryRoute> deliveryRoutes = new();
         HashSet<ConsumableOperationId> operationIds = new();
+        HashSet<CharacterId> cooldownIds = new();
 
         string previous = null;
         foreach (CharacterDietPolicyState state in payload.dietPolicies)
@@ -248,6 +351,23 @@ internal static class CharacterConsumablesStateRules
                 || !IsAfter(previous, state.characterId))
             {
                 report.AddError("Character consumables diet policies contain an invalid, unknown, duplicate, or unordered CharacterId.");
+                break;
+            }
+            previous = state.characterId;
+        }
+
+        previous = null;
+        foreach (CharacterMealQualityPolicyState state in payload.mealQualityPolicies)
+        {
+            if (state == null
+                || !IsExactCharacterId(state.characterId, state.CharacterId)
+                || !characters.Contains(state.CharacterId)
+                || !mealQualityIds.Add(state.CharacterId)
+                || !Enum.IsDefined(typeof(CharacterMealQualityLimit), state.maximumQuality)
+                || !IsAfter(previous, state.characterId))
+            {
+                report.AddError(
+                    "Character consumables meal-quality policies contain invalid, duplicate, or unordered state.");
                 break;
             }
             previous = state.characterId;
@@ -349,6 +469,63 @@ internal static class CharacterConsumablesStateRules
             }
             previous = operation.operationId;
         }
+
+        previous = null;
+        foreach (CharacterMealPlanSaveData plan in payload.activeMealPlans)
+        {
+            bool validMeal = plan != null
+                && inventory.TryGetMeal(plan.ItemDefinitionId, out _);
+            if (plan == null
+                || !plan.OperationId.IsValid
+                || !IsExactValue(plan.planId, plan.OperationId.Value)
+                || !IsExactCharacterId(plan.characterId, plan.CharacterId)
+                || !characters.Contains(plan.CharacterId)
+                || !plan.FacilityId.IsValid
+                || !IsExactValue(
+                    plan.facilityInstanceId,
+                    plan.FacilityId.Value)
+                || !facilities.Contains(plan.FacilityId)
+                || !plan.SourceStackId.IsValid
+                || !IsExactValue(plan.sourceStackId, plan.SourceStackId.Value)
+                || !plan.ItemDefinitionId.IsValid
+                || !IsExactValue(
+                    plan.itemDefinitionId,
+                    plan.ItemDefinitionId.Value)
+                || !validMeal
+                || plan.phase != CharacterMealPlanPhase.Eating
+                || !operationIds.Add(plan.OperationId)
+                || !IsFiniteNonNegative(plan.createdAt)
+                || !IsFiniteNonNegative(plan.leaseExpiresAt)
+                || plan.leaseExpiresAt < plan.createdAt
+                || !IsFiniteNonNegative(plan.expectedCompletionEta)
+                || plan.expectedCompletionEta <= 0f
+                || !IsFiniteNonNegative(plan.beginContamination)
+                || !IsAfter(previous, plan.planId))
+            {
+                report.AddError(
+                    "Character consumables active meal plans contain an invalid, duplicate, unordered, or unknown reservation intent.");
+                break;
+            }
+            previous = plan.planId;
+        }
+
+        previous = null;
+        foreach (CharacterMealFollowupCooldownSaveData cooldown in
+                 payload.mealFollowupCooldowns)
+        {
+            if (cooldown == null
+                || !IsExactCharacterId(cooldown.characterId, cooldown.CharacterId)
+                || !characters.Contains(cooldown.CharacterId)
+                || !cooldownIds.Add(cooldown.CharacterId)
+                || !IsFiniteNonNegative(cooldown.untilGameSeconds)
+                || !IsAfter(previous, cooldown.characterId))
+            {
+                report.AddError(
+                    "Character meal follow-up cooldowns contain invalid, duplicate, or unordered state.");
+                break;
+            }
+            previous = cooldown.characterId;
+        }
     }
 
     internal static CharacterConsumablesAggregateState Build(
@@ -363,6 +540,11 @@ internal static class CharacterConsumablesStateRules
         {
             CharacterDietPolicyState clone = Clone(source);
             state.DietPolicies.Add(clone.CharacterId, clone);
+        }
+        foreach (CharacterMealQualityPolicyState source in payload.mealQualityPolicies)
+        {
+            CharacterMealQualityPolicyState clone = Clone(source);
+            state.MealQualityPolicies.Add(clone.CharacterId, clone);
         }
         foreach (CharacterSubstancePolicyState source in payload.substancePolicies)
         {
@@ -384,6 +566,18 @@ internal static class CharacterConsumablesStateRules
         {
             CharacterConsumableOperationState clone = Clone(source);
             state.CompletedOperations.Add(clone.OperationId, clone);
+        }
+        foreach (CharacterMealPlanSaveData source in payload.activeMealPlans)
+        {
+            CharacterMealPlan plan = FromSaveData(source);
+            state.ActiveMealPlans.Add(source.OperationId, plan);
+        }
+        foreach (CharacterMealFollowupCooldownSaveData source in
+                 payload.mealFollowupCooldowns)
+        {
+            state.MealFollowupCooldownUntil.Add(
+                source.CharacterId,
+                source.untilGameSeconds);
         }
         return state;
     }
@@ -415,6 +609,14 @@ internal static class CharacterConsumablesStateRules
             CharacterConsumableIdContract.ClassifyOperation,
             "operation",
             report);
+        highestOperation = Math.Max(
+            highestOperation,
+            ValidateGeneratedIds(
+                payload.activeMealPlans,
+                value => value?.planId,
+                CharacterConsumableIdContract.ClassifyOperation,
+                "active meal operation",
+                report));
         long highestDelivery = ValidateGeneratedIds(
             payload.pendingMealDeliveries,
             value => value?.deliveryId,
@@ -496,6 +698,8 @@ internal static class CharacterConsumablesStateRules
         out long sequence);
     private static bool IsFiniteNonNegative(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value) && value >= 0f;
+    private static bool IsFiniteNonNegative(double value) =>
+        !double.IsNaN(value) && !double.IsInfinity(value) && value >= 0d;
     private static bool InRange(float value, float minimum, float maximum) =>
         IsFiniteNonNegative(value) && value >= minimum && value <= maximum;
 }

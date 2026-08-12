@@ -48,17 +48,17 @@ MonoBehaviour:
   - id: culture:adventurer-frontier
     weight: 0.86
   - id: culture:beastkin-pack
-    weight: 0.89
+    weight: 0.89000005
   - id: culture:demon-contract
     weight: 0.92
   - id: culture:golem-core
-    weight: 0.95
+    weight: 0.95000005
   - id: culture:harpy-aerie
     weight: 0.98
   - id: culture:kobold-toolclan
     weight: 1.01
   - id: culture:myconid-grove
-    weight: 1.04
+    weight: 1.0400001
   - id: culture:orc-vigil
     weight: 1.07
   - id: culture:slime-confluence

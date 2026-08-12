@@ -13,6 +13,12 @@ public sealed class CharacterSpeciesRuntimeState
     public float NextIncidentAt { get; set; }
     public string LastIncidentId { get; set; } = string.Empty;
     public int IncidentCount { get; set; }
+    public float WearWorkRemainder { get; set; }
+    public int CompletedWorkIndex { get; set; }
+    public string RechargeWorkerId { get; set; } = string.Empty;
+    public string RechargeFacilityId { get; set; } = string.Empty;
+    public string RechargeMaterialStackId { get; set; } = string.Empty;
+    public float RechargeProgressWork { get; set; }
 
     public CharacterSpeciesRuntimeState Clone() => new()
     {
@@ -22,7 +28,13 @@ public sealed class CharacterSpeciesRuntimeState
         Integrity = Integrity,
         NextIncidentAt = NextIncidentAt,
         LastIncidentId = LastIncidentId ?? string.Empty,
-        IncidentCount = IncidentCount
+        IncidentCount = IncidentCount,
+        WearWorkRemainder = WearWorkRemainder,
+        CompletedWorkIndex = CompletedWorkIndex,
+        RechargeWorkerId = RechargeWorkerId ?? string.Empty,
+        RechargeFacilityId = RechargeFacilityId ?? string.Empty,
+        RechargeMaterialStackId = RechargeMaterialStackId ?? string.Empty,
+        RechargeProgressWork = RechargeProgressWork
     };
 }
 
@@ -37,13 +49,19 @@ public sealed class CharacterSpeciesRuntimeRecordSaveData
     public float nextIncidentAt;
     public string lastIncidentId = string.Empty;
     public int incidentCount;
+    public float wearWorkRemainder;
+    public int completedWorkIndex;
+    public string rechargeWorkerId = string.Empty;
+    public string rechargeFacilityId = string.Empty;
+    public string rechargeMaterialStackId = string.Empty;
+    public float rechargeProgressWork;
 }
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CharacterSpeciesRuntimeSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
     public int version = CurrentVersion;
     public List<CharacterSpeciesRuntimeRecordSaveData> characters = new();
 }
@@ -83,12 +101,13 @@ public interface ICharacterSpeciesQuery
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public interface ICharacterSpeciesCommand
 {
-    bool Recharge(
-        CharacterId characterId,
-        float amount,
-        out DomainFailure failure);
     bool RepairIntegrity(
         CharacterId characterId,
         float amount,
+        out DomainFailure failure);
+    bool RecordCompletedWork(
+        CharacterId characterId,
+        string workTypeId,
+        float completedWork,
         out DomainFailure failure);
 }

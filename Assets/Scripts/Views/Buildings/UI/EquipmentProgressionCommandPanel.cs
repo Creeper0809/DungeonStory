@@ -92,7 +92,7 @@ public sealed class EquipmentProgressionCommandPanel
             .Where(stack => stack != null
                 && stack.Quantity > 0
                 && !stack.Forbidden
-                && !stack.IsReserved
+                && stack.AvailableQuantity > 0
                 && stack.State == WorldItemStackState.FacilityBuffer
                 && string.Equals(
                     stack.DestinationId,
@@ -413,7 +413,7 @@ public sealed class EquipmentProgressionCommandPanel
             .Where(stack => stack != null
                 && stack.Quantity > 0
                 && !stack.Forbidden
-                && !stack.IsReserved
+                && stack.AvailableQuantity > 0
                 && stack.State == WorldItemStackState.FacilityBuffer
                 && string.Equals(
                     stack.DestinationId,
@@ -437,7 +437,7 @@ public sealed class EquipmentProgressionCommandPanel
             .ToArray();
         WorldItemStackSnapshot[] seals = physicalStacks
             .Where(stack => !stack.Forbidden
-                && !stack.IsReserved
+                && stack.AvailableQuantity > 0
                 && string.Equals(
                     stack.ItemId,
                     EquipmentProgressionItemIds.LineageSeal,

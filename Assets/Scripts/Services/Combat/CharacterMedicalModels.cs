@@ -148,30 +148,6 @@ public sealed class DungeonCharacterMedicalSaveData
     public int orderSequence;
 }
 
-public readonly struct CharacterPhysicalCapacitySnapshot
-{
-    public CharacterPhysicalCapacitySnapshot(
-        float consciousness,
-        float manipulation,
-        float mobility)
-    {
-        Consciousness = Mathf.Clamp01(consciousness);
-        Manipulation = Mathf.Clamp01(manipulation);
-        Mobility = Mathf.Clamp01(mobility);
-    }
-
-    public float Consciousness { get; }
-    public float Manipulation { get; }
-    public float Mobility { get; }
-}
-
-public interface ICharacterPhysicalCapacityQuery
-{
-    CharacterPhysicalCapacitySnapshot GetSnapshot(CharacterActor actor);
-    float GetMoveMultiplier(CharacterActor actor);
-    float GetWorkMultiplier(CharacterActor actor, WorkTypeId workTypeId);
-}
-
 public interface ICharacterMedicalQuery
 {
     IReadOnlyList<CharacterMedicalOrder> ActiveOrders { get; }
@@ -228,51 +204,6 @@ public interface ICharacterCarePriorityQuery
 {
     bool IsCareSubject(string persistentCharacterId);
     int GetCarePriority(string persistentCharacterId);
-}
-
-public sealed class CharacterPhysicalCapacityQuery :
-    ICharacterPhysicalCapacityQuery
-{
-    private readonly ICharacterBodyHealthQuery bodyHealthQuery;
-    private readonly IAnatomyEffectRuntime anatomyEffects;
-
-    public CharacterPhysicalCapacityQuery(
-        ICharacterBodyHealthQuery bodyHealthQuery,
-        IAnatomyEffectRuntime anatomyEffects)
-    {
-        this.bodyHealthQuery = bodyHealthQuery
-            ?? throw new ArgumentNullException(nameof(bodyHealthQuery));
-        this.anatomyEffects = anatomyEffects
-            ?? throw new ArgumentNullException(nameof(anatomyEffects));
-    }
-
-    public CharacterPhysicalCapacitySnapshot GetSnapshot(CharacterActor actor)
-    {
-        CharacterBodyHealthSnapshot snapshot = bodyHealthQuery.GetSnapshot(actor);
-        return new CharacterPhysicalCapacitySnapshot(
-            snapshot.Consciousness,
-            snapshot.Manipulation,
-            snapshot.Mobility);
-    }
-
-    public float GetMoveMultiplier(CharacterActor actor)
-    {
-        return anatomyEffects
-            .GetActivityFactor(actor, AnatomyActivityId.Movement)
-            .AppliedFactor;
-    }
-
-    public float GetWorkMultiplier(CharacterActor actor, WorkTypeId workTypeId)
-    {
-        AnatomyActivityId activity = workTypeId == BuiltInWorkTypeIds.Haul
-            || workTypeId == BuiltInWorkTypeIds.Rescue
-                ? AnatomyActivityId.Carry
-                : workTypeId == BuiltInWorkTypeIds.Treat
-                    || workTypeId == BuiltInWorkTypeIds.Surgery
-                        ? AnatomyActivityId.Treatment
-                        : AnatomyActivityId.Work;
-        return anatomyEffects.GetActivityFactor(actor, activity).AppliedFactor;
-    }
 }
 
 public sealed class DownedCharacterGridOccupant : IGridOccupant

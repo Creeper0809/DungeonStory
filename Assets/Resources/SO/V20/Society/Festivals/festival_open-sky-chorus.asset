@@ -24,7 +24,7 @@ MonoBehaviour:
   cultureId: culture:harpy-aerie
   requiredBuildingDefinitionId: building:weather-observation-tower
   requiredItems:
-  - itemDefinitionId: food:dried-fruit
+  - itemDefinitionId: resource:night-grape
     amount: 10
   minimumParticipants: 6
   successOutcome:

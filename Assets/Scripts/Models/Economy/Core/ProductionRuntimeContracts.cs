@@ -64,6 +64,11 @@ public interface IProductionBillWorkExecution
         BuildableObject facility,
         ProductionBillId billId,
         float amount);
+    bool TrySetEmergencyProduction(
+        CharacterActor worker,
+        ProductionBillId billId,
+        bool enabled,
+        out string failureReason);
 }
 
 public readonly struct ProductionOutputContext

@@ -49,6 +49,39 @@ internal static class OffenseEditorTestDependencies
             itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
     }
 
+    public static IEnemyEncounterFactory CreateEnemyEncounterFactory(
+        ICombatEquipmentRuntime equipmentRuntime)
+    {
+        ResourceGameContentCatalog content = new(
+            new UnityGameContentRootLoader());
+        EnemyCombatContentCatalog combat = new(content);
+        DungeonRuntimeAggregateRootStore rootStore = new();
+        CharacterNarrativeCatalog narrativeCatalog = new(content);
+        CharacterNarrativeRuntime narrative = new(rootStore, narrativeCatalog);
+        ResourceCharacterSpeciesCatalog species = new(content);
+        CharacterLifeRuntime life = new(
+            rootStore,
+            species,
+            new RandomStreamProvider(rootStore));
+        EnemyIndividualFactory individuals = new(
+            combat,
+            narrativeCatalog,
+            narrative,
+            narrative,
+            life,
+            life,
+            species,
+            content,
+            equipmentRuntime);
+        return new EnemyEncounterFactory(
+            combat,
+            combat,
+            combat,
+            combat,
+            individuals,
+            combatEquipment: equipmentRuntime);
+    }
+
     private sealed class DeterministicCombatResolutionService : ICombatResolutionService
     {
         public CombatAttackResult Resolve(CombatAttackRequest request)

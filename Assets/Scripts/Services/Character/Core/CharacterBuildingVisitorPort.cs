@@ -117,13 +117,11 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
                 Stats?.GetStayDurationMultiplier() ?? 1f,
                 CharacterSkillRuntimeEffects.GetRevenueMultiplier(actor),
                 personality?.patience ?? 1f,
-                Identity?.Profile?.GetWaitPatienceMultiplier() ?? 1f,
+                Stats?.GetWaitPatienceMultiplier() ?? 1f,
                 GetCrimeRiskMultiplier(),
                 CharacterSkillRuntimeEffects.GetProductionOutputMultiplier(actor),
                 CharacterSkillRuntimeEffects.GetStockProductionBonus(actor),
                 Lifecycle?.ExpeditionRecovery.stress ?? 0f,
-                Mathf.RoundToInt(Stats?.GetCharacterStat(CharacterStatType.Dexterity) ?? 5f),
-                Mathf.RoundToInt(Stats?.GetCharacterStat(CharacterStatType.Research) ?? 5f),
                 GetNeed(CharacterCondition.MOOD, 50f),
                 GetNeed(CharacterCondition.HUNGER, 50f),
                 GetNeed(CharacterCondition.FUN, 50f),
@@ -262,7 +260,8 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
                 recovery.Fun,
                 recovery.Hunger,
                 recovery.Excretion,
-                recovery.Hygiene);
+                recovery.Hygiene,
+                recovery.ActiveConditionIds);
             return;
         }
 
@@ -271,7 +270,8 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
             Stats?.RecoverNeed(
                 CharacterCondition.SLEEP,
                 recovery.Sleep,
-                CharacterNeedRecoverySource.Rest);
+                CharacterNeedRecoverySource.Rest,
+                recovery.ActiveConditionIds);
         }
         if (recovery.Fun != 0f)
         {
@@ -316,7 +316,9 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
                 consumed,
                 consumed ? string.Empty : meal.FailureCode.ToString(),
                 meal.DisplayName,
-                meal.UnitPrice);
+                meal.UnitPrice,
+                meal.IsAcceptedPending,
+                meal.OperationId.Value);
             return consumed;
         }
 
@@ -324,6 +326,63 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
             ? CharacterConsumablesFailureCode.InvalidCommand.ToString()
             : "meal-consumption-failed";
         result = new BuildingMealUseSnapshot(false, failureCode, string.Empty, 0);
+        return false;
+    }
+
+    bool IBuildingVisitorPort.TryGetMealConsumptionResult(
+        object mealRuntime,
+        string operationId,
+        out BuildingMealUseSnapshot result)
+    {
+        if (mealRuntime is IMealConsumptionRuntime runtime
+            && runtime.TryGetMealOperationResult(
+                new ConsumableOperationId(operationId),
+                out MealConsumptionResult meal))
+        {
+            result = new BuildingMealUseSnapshot(
+                meal.Success,
+                meal.Success ? string.Empty : meal.FailureCode.ToString(),
+                meal.DisplayName,
+                meal.UnitPrice,
+                meal.IsAcceptedPending,
+                meal.OperationId.Value);
+            return true;
+        }
+
+        result = new BuildingMealUseSnapshot(
+            false,
+            CharacterConsumablesFailureCode.PhysicalConsumptionFailed.ToString(),
+            string.Empty,
+            0);
+        return false;
+    }
+
+    bool IBuildingVisitorPort.TryConsumeRecreationalSubstance(
+        IBuildingWorldEntryPort facility,
+        out BuildingRecreationalSubstanceUseSnapshot result)
+    {
+        ICharacterSubstanceRuntime runtime = actor.SubstanceRuntime;
+        if (runtime != null && facility is BuildableObject building)
+        {
+            bool consumed = runtime.TryConsumeAtFacility(
+                actor,
+                building,
+                out SubstanceUseResult substance);
+            result = new BuildingRecreationalSubstanceUseSnapshot(
+                consumed,
+                consumed ? string.Empty : substance.FailureCode.ToString(),
+                substance.DisplayName,
+                substance.BecameAddicted,
+                substance.Overdosed);
+            return consumed;
+        }
+
+        result = new BuildingRecreationalSubstanceUseSnapshot(
+            false,
+            CharacterConsumablesFailureCode.InvalidCommand.ToString(),
+            string.Empty,
+            false,
+            false);
         return false;
     }
 
@@ -353,6 +412,11 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
         if (facility is BuildableObject building)
         {
             ModularFacilityRuntimeEffects.ApplyUseCompleted(this, building);
+            if (actor.TryGetAbility(out AbilityWork work))
+            {
+                work.AwardCompletedCombatTraining(building);
+                work.NotifyRoutineNeedServiceCompleted();
+            }
         }
     }
 

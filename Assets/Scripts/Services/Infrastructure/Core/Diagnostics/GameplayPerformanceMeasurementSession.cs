@@ -133,22 +133,24 @@ public sealed class GameplayPerformanceMeasurementSession : IDisposable
     {
         if (report == null) throw new ArgumentNullException(nameof(report));
 
-        const int BaselineWarmupFrames = 120;
-        const int BaselineSampleFrames = 240;
-        for (int frame = 0; frame < BaselineWarmupFrames; frame++)
+        for (int frame = 0;
+            frame < GameplayGcAcceptancePolicy.EditorBaselineWarmupFrames;
+            frame++)
         {
             yield return null;
         }
 
+        int baselineSampleFrames =
+            GameplayGcAcceptancePolicy.EditorBaselineSampleFrames;
         ProfilerRecorder recorder = ProfilerRecorder.StartNew(
             ProfilerCategory.Memory,
             "GC Allocated In Frame",
             1);
-        long totalBytes = 0;
+        long[] baselineSamples = new long[baselineSampleFrames];
         int recordedFrames = 0;
         try
         {
-            for (int frame = 0; frame < BaselineSampleFrames; frame++)
+            for (int frame = 0; frame < baselineSampleFrames; frame++)
             {
                 yield return new WaitForEndOfFrame();
                 if (!recorder.Valid)
@@ -156,8 +158,8 @@ public sealed class GameplayPerformanceMeasurementSession : IDisposable
                     continue;
                 }
 
-                totalBytes += Math.Max(0L, recorder.LastValue);
-                recordedFrames++;
+                baselineSamples[recordedFrames++] =
+                    Math.Max(0L, recorder.LastValue);
             }
         }
         finally
@@ -165,9 +167,13 @@ public sealed class GameplayPerformanceMeasurementSession : IDisposable
             recorder.Dispose();
         }
 
-        report.editorBaselineGcAverageBytes = recordedFrames > 0
-            ? totalBytes / (double)recordedFrames
-            : 0d;
+        AllocationMetric baseline = AllocationMetric.From(
+            baselineSamples,
+            recordedFrames);
+        report.editorBaselineGcSampleCount = recordedFrames;
+        report.editorBaselineGcAverageBytes = baseline.averageBytes;
+        report.editorBaselineGcP95Bytes = baseline.p95Bytes;
+        report.editorBaselineGcMaximumBytes = baseline.maximumBytes;
     }
 #endif
 

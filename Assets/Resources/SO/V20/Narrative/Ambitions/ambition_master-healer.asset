@@ -46,7 +46,7 @@ MonoBehaviour:
     excludedFlags: []
   completionRewards:
   - kind: 3
-    targetId: medicine
+    targetId: proficiency:medicine
     amount: 100
     durationDays: 0
   relatedEventWeights:

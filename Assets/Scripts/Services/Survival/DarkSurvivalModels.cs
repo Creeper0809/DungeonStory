@@ -42,6 +42,26 @@ public readonly struct CharacterMentalInstabilityBurdenRequestedEvent
     public float Amount { get; }
 }
 
+public readonly struct CharacterPrimitiveSurvivalCompletedEvent
+{
+    public CharacterPrimitiveSurvivalCompletedEvent(
+        CharacterId characterId,
+        string actionId,
+        float needRecovery,
+        int physicalItemCount)
+    {
+        CharacterId = characterId;
+        ActionId = actionId?.Trim() ?? string.Empty;
+        NeedRecovery = Mathf.Max(0f, needRecovery);
+        PhysicalItemCount = Mathf.Max(0, physicalItemCount);
+    }
+
+    public CharacterId CharacterId { get; }
+    public string ActionId { get; }
+    public float NeedRecovery { get; }
+    public int PhysicalItemCount { get; }
+}
+
 public interface ICharacterDeprivationQuery
 {
     bool HasActiveBreakdown(CharacterActor actor);
@@ -51,6 +71,10 @@ public interface ICharacterDeprivationQuery
         out CharacterDeprivationDisplayState displayState);
     bool TryGetSnapshot(CharacterActor actor, out CharacterDeprivationSnapshot snapshot);
     bool NeedsRoutineDrink(CharacterActor actor, out string reason);
+    bool NeedsPrimitiveMeal(CharacterActor actor, out string reason);
+    bool NeedsPrimitiveRest(CharacterActor actor, out string reason);
+    bool NeedsPrimitiveRelief(CharacterActor actor, out string reason);
+    bool NeedsPrimitiveWash(CharacterActor actor, out string reason);
     bool NeedsSafeEmergencyRelief(CharacterActor actor, out string reason);
     CharacterDeprivationDiagnosticsSnapshot GetDiagnostics();
     bool IsSuppressible(CharacterActor actor);
@@ -62,6 +86,10 @@ public interface ICharacterDeprivationCommand
 {
     bool TryRunActiveBreakdown(CharacterActor actor, out string status);
     bool TryRunRoutineDrink(CharacterActor actor, out string status);
+    bool TryRunPrimitiveMeal(CharacterActor actor, out string status);
+    bool TryRunPrimitiveRest(CharacterActor actor, out string status);
+    bool TryRunPrimitiveRelief(CharacterActor actor, out string status);
+    bool TryRunPrimitiveWash(CharacterActor actor, out string status);
     bool TryRunSafeEmergencyRelief(CharacterActor actor, out string status);
     void ResetDiagnostics();
     void BeginBreakdownAction(CharacterActor actor, CharacterBreakdownKind kind);
@@ -131,6 +159,26 @@ public sealed class NoCharacterDeprivationBoundary :
         reason = string.Empty;
         return false;
     }
+    public bool NeedsPrimitiveMeal(CharacterActor actor, out string reason)
+    {
+        reason = string.Empty;
+        return false;
+    }
+    public bool NeedsPrimitiveRest(CharacterActor actor, out string reason)
+    {
+        reason = string.Empty;
+        return false;
+    }
+    public bool NeedsPrimitiveRelief(CharacterActor actor, out string reason)
+    {
+        reason = string.Empty;
+        return false;
+    }
+    public bool NeedsPrimitiveWash(CharacterActor actor, out string reason)
+    {
+        reason = string.Empty;
+        return false;
+    }
     public bool NeedsSafeEmergencyRelief(
         CharacterActor actor,
         out string reason)
@@ -148,6 +196,26 @@ public sealed class NoCharacterDeprivationBoundary :
         return false;
     }
     public bool TryRunRoutineDrink(CharacterActor actor, out string status)
+    {
+        status = string.Empty;
+        return false;
+    }
+    public bool TryRunPrimitiveMeal(CharacterActor actor, out string status)
+    {
+        status = string.Empty;
+        return false;
+    }
+    public bool TryRunPrimitiveRest(CharacterActor actor, out string status)
+    {
+        status = string.Empty;
+        return false;
+    }
+    public bool TryRunPrimitiveRelief(CharacterActor actor, out string status)
+    {
+        status = string.Empty;
+        return false;
+    }
+    public bool TryRunPrimitiveWash(CharacterActor actor, out string status)
     {
         status = string.Empty;
         return false;

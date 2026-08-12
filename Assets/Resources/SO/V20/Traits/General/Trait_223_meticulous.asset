@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uAF3C\uAF3C\uD568"
   description: "\uAC80\uC0AC\uD45C\uB97C \uB05D\uAE4C\uC9C0 \uD655\uC778\uD574 \uB290\uB9AC\uC9C0\uB9CC
     \uC7AC\uC791\uC5C5\uACFC \uC0AC\uACE0\uB97C \uC904\uC778\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 0.88
-    workSpeedMultiplier: 0.97
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,51 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 2
+  polarity: 1
+  selectionFamilyId: work-method
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: work:inspect
-    utilityDelta: 0.5
-  moodReactions:
-  - triggerTag: product:defect
-    moodDelta: -3
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: craft
-    multiplier: 1.35
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:223:effect:0
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 0.97
+    condition: {fileID: 0}
+  - bindingId: trait:223:effect:1
+    definition: {fileID: 11400000, guid: ab46736f68b07c442bc3c27bbc87e7cc, type: 2}
+    value: 0.88
+    condition: {fileID: 0}
+  identityRules:
+  - rid: 7737211921986486524
+  - rid: 7737211921986486525
+  - rid: 7737211921986486526
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486524
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:inspect-before-release
+        priority: 0
+        behaviorTag: work:inspect
+        utilityDelta: 0.75
+    - rid: 7737211921986486525
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:defect-found
+        priority: 0
+        eventId: product:defect-found
+        moodDelta: -3
+        durationDays: 1
+    - rid: 7737211921986486526
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:defect-caught
+        priority: 0
+        eventId: product:defect-caught-before-release
+        moodDelta: 3
+        durationDays: 1

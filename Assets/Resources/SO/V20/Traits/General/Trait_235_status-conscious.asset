@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uCCB4\uBA74 \uC911\uC2DC"
   description: "\uC9C1\uC704\uC640 \uACF5\uC2DD \uC608\uC808\uC744 \uC911\uC2DC\uD558\uBA70
     \uACF5\uAC1C\uC801\uC778 \uBB34\uC2DC\uB97C \uCC38\uC9C0 \uBABB\uD55C\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,47 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 0
+  polarity: 1
+  selectionFamilyId: status
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: career:seek-position
-    utilityDelta: 0.45
-  moodReactions:
-  - triggerTag: social:public-slight
-    moodDelta: -4
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: career
-    multiplier: 1.4
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:235:effect:0
+    definition: {fileID: 11400000, guid: a6a5232c248956b44ba6f7050d535b20, type: 2}
+    value: 1.08
+    condition: {fileID: 11400000, guid: 2456cee879a118c4bb19601c29fd01de, type: 2}
+  identityRules:
+  - rid: 7737211921986486481
+  - rid: 7737211921986486482
+  - rid: 7737211921986486483
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486481
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:formal-etiquette
+        priority: 0
+        behaviorTag: social:formal-etiquette
+        utilityDelta: 0.7
+    - rid: 7737211921986486482
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:publicly-ignored
+        priority: 0
+        eventId: status:publicly-ignored
+        moodDelta: -4
+        durationDays: 2
+    - rid: 7737211921986486483
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:formal-recognition
+        priority: 0
+        eventId: status:recognized
+        moodDelta: 3
+        durationDays: 2

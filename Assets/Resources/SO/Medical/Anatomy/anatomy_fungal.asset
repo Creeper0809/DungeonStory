@@ -30,7 +30,6 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 1
-    axisContributions: []
   - nodeId: spore-sac
     displayName: "\uD3EC\uC790\uB0AD"
     parentNodeId: head
@@ -43,12 +42,11 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
-    axisContributions: []
   - nodeId: torso
     displayName: "\uADE0\uC0AC \uBAB8\uD1B5"
     parentNodeId: 
     kind: 4
-    functions: 19
+    functions: 9235
     maxHealth: 48
     capacityWeight: 1
     vital: 1
@@ -56,7 +54,6 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 1
     mapsToLegacyBodyPart: 1
-    axisContributions: []
   - nodeId: hypha-core
     displayName: "\uC911\uC2EC \uADE0\uD575"
     parentNodeId: torso
@@ -69,7 +66,6 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
-    axisContributions: []
   - nodeId: arm:left
     displayName: "\uC67C\uCABD \uADE0\uC0AC\uD314"
     parentNodeId: torso
@@ -82,7 +78,6 @@ MonoBehaviour:
     pairedGroupId: arms
     legacyBodyPart: 2
     mapsToLegacyBodyPart: 1
-    axisContributions: []
   - nodeId: arm:right
     displayName: "\uC624\uB978\uCABD \uADE0\uC0AC\uD314"
     parentNodeId: torso
@@ -95,7 +90,6 @@ MonoBehaviour:
     pairedGroupId: arms
     legacyBodyPart: 3
     mapsToLegacyBodyPart: 1
-    axisContributions: []
   - nodeId: leg:left
     displayName: "\uC67C\uCABD \uADE0\uC0AC\uB2E4\uB9AC"
     parentNodeId: torso
@@ -108,7 +102,6 @@ MonoBehaviour:
     pairedGroupId: legs
     legacyBodyPart: 4
     mapsToLegacyBodyPart: 1
-    axisContributions: []
   - nodeId: leg:right
     displayName: "\uC624\uB978\uCABD \uADE0\uC0AC\uB2E4\uB9AC"
     parentNodeId: torso
@@ -121,4 +114,4 @@ MonoBehaviour:
     pairedGroupId: legs
     legacyBodyPart: 5
     mapsToLegacyBodyPart: 1
-    axisContributions: []
+  notApplicableCapacities: []

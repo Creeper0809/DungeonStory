@@ -471,14 +471,14 @@ namespace DungeonStory.Tests.Architecture
         }
 
         [Test]
-        public void SaveRootDefaultsToV19()
+        public void SaveRootDefaultsToCurrentV24()
         {
             SourceFile saveService = SourceBySuffix(
                 "Infrastructure/Core/InfrastructureSavePrimitives.cs");
 
             Assert.That(
                 saveService.Text,
-                Does.Match(@"CurrentVersion\s*=\s*19\s*;"));
+                Does.Match(@"CurrentVersion\s*=\s*24\s*;"));
             Assert.That(saveService.Text, Does.Contain("DungeonSaveSectionEnvelope"));
         }
 
@@ -494,7 +494,7 @@ namespace DungeonStory.Tests.Architecture
 
             Assert.That(root.Success, Is.True, "DungeonGameSaveData root was not found.");
             string body = root.Groups["body"].Value;
-            Assert.That(body, Does.Contain("CurrentVersion = 19"));
+            Assert.That(body, Does.Contain("CurrentVersion = 24"));
             Assert.That(body, Does.Contain("savedAtUtc"));
             Assert.That(body, Does.Contain("sceneName"));
             Assert.That(body, Does.Contain("sections"));
@@ -1280,12 +1280,15 @@ namespace DungeonStory.Tests.Architecture
         }
 
         [Test]
-        public void CharacterAssemblyOwnsSharedCharacterPrimitives()
+        public void CharacterAssemblyOwnsIdentityPrimitivesAndPerformanceHasSingleAuthority()
         {
+            const string legacyStatTypeToken = "Character" + "StatType";
             SourceFile primitives = SourceBySuffix(
                 "Characters/CharacterPrimitives.cs");
-            SourceFile statCatalog = SourceBySuffix(
-                "Characters/CharacterStatCatalog.cs");
+            SourceFile performanceContracts = SourceBySuffix(
+                "Foundation/CharacterPerformanceContracts.cs");
+            SourceFile performanceQuery = SourceBySuffix(
+                "Character/Core/CharacterPerformanceQuery.cs");
             SourceFile modelData = SourceBySuffix(
                 "Character/SO/CharacterModelData.cs");
             SourceFile characterData = SourceBySuffix(
@@ -1298,17 +1301,24 @@ namespace DungeonStory.Tests.Architecture
                 Is.True);
             Assert.That(primitives.Text, Does.Contain("public enum CharacterType"));
             Assert.That(primitives.Text, Does.Contain("public enum CharacterRole"));
-            Assert.That(primitives.Text, Does.Contain("public enum CharacterStatType"));
             Assert.That(primitives.Text, Does.Contain("public enum CharacterCondition"));
             Assert.That(primitives.Text, Does.Contain("public enum CharacterLifecycleState"));
             Assert.That(
-                statCatalog.Text,
-                Does.Contain("public static class CharacterStatCatalog"));
+                performanceContracts.Text,
+                Does.Contain("public enum CharacterFunctionalCapacityId"));
             Assert.That(
-                statCatalog.Text,
-                Does.Contain("public static class CharacterStatIds"));
-            Assert.That(statCatalog.Text, Does.Not.Contain("CharacterActor"));
-            Assert.That(modelData.Text, Does.Not.Contain("public enum CharacterStatType"));
+                performanceContracts.Text,
+                Does.Contain("public sealed class CharacterPerformanceSnapshot"));
+            Assert.That(
+                performanceQuery.Text,
+                Does.Contain("public interface ICharacterPerformanceQuery"));
+            Assert.That(
+                File.Exists(Path.Combine(
+                    Application.dataPath,
+                    "Scripts/Models/Characters/Character" + "StatCatalog.cs")),
+                Is.False);
+            Assert.That(primitives.Text, Does.Not.Contain(legacyStatTypeToken));
+            Assert.That(modelData.Text, Does.Not.Contain(legacyStatTypeToken));
             Assert.That(characterData.Text, Does.Not.Contain("public enum CharacterType"));
             Assert.That(characterData.Text, Does.Not.Contain("public enum CharacterRole"));
         }
@@ -1607,7 +1617,10 @@ namespace DungeonStory.Tests.Architecture
                 Does.Contain("policies.GetStatMultiplier(definition.WorkTypeId"));
             Assert.That(
                 executionRegistry.Text,
-                Does.Contain("actor.GetWorkSpeedMultiplier(definition.WorkTypeId"));
+                Does.Contain("performance.EvaluateWork("));
+            Assert.That(
+                executionRegistry.Text,
+                Does.Contain("CharacterPerformanceResultChannel.Speed"));
             Assert.That(
                 executionRegistry.Text,
                 Does.Not.Contain("actor.GetWorkSpeedMultiplier(definition.Type"));
@@ -1632,7 +1645,7 @@ namespace DungeonStory.Tests.Architecture
             Assert.That(
                 executor.Text,
                 Does.Match(
-                    @"WorkExecutionRules\.CalculateWorkPerSecond\s*\(\s*workAmountCalculator\s*,\s*actor\s*,\s*target\s*,\s*workTypeId\b"));
+                    @"WorkExecutionRules\.CalculateWorkPerSecond\s*\(\s*calculator\s*,\s*actor\s*,\s*target\s*,\s*workTypeId\b"));
             Assert.That(
                 workAmount.Text,
                 Does.Match(
@@ -2280,10 +2293,10 @@ namespace DungeonStory.Tests.Architecture
                 Does.Not.Contain("GetWorkSpeedMultiplier(definition.Type"));
             Assert.That(
                 characterModelData.Text,
-                Does.Contain("GetWorkModifierOnly(WorkTypeId workTypeId)"));
+                Does.Not.Contain("GetWorkModifierOnly(WorkTypeId workTypeId)"));
             Assert.That(
                 characterModelData.Text,
-                Does.Contain("GetWorkSpeedMultiplier(WorkTypeId workTypeId)"));
+                Does.Not.Contain("GetWorkSpeedMultiplier(WorkTypeId workTypeId)"));
             Assert.That(
                 characterModelData.Text,
                 Does.Contain("GetWorkPreferenceScore(WorkTypeId workTypeId)"));
@@ -2371,7 +2384,7 @@ namespace DungeonStory.Tests.Architecture
                 Does.Contain("actor.GetWorkPreferenceScore(workTypeId)"));
             Assert.That(
                 workTargetSelector.Text,
-                Does.Contain("actor.GetWorkSpeedMultiplier(workTypeId)"));
+                Does.Contain("actor.GetWorkSpeedMultiplier(workTypeId, target)"));
             Assert.That(
                 workTargetSelector.Text,
                 Does.Contain("actor.AiMemory.GetRepeatedWorkFatigue(workTypeId)"));
@@ -4251,7 +4264,7 @@ namespace DungeonStory.Tests.Architecture
 
             Assert.That(
                 architectureRunner.Text,
-                Does.Contain("public const int ExpectedTestCount = 154"));
+                Does.Contain("public const int ExpectedTestCount = 160"));
             Assert.That(
                 architectureRunner.Text,
                 Does.Match(
@@ -4408,9 +4421,9 @@ namespace DungeonStory.Tests.Architecture
             Assert.That(facade.Text, Does.Contain("wrongDimensions="));
             foreach (string fullWorldMarker in new[]
                      {
-                         "registeredSections=63",
-                         "capturedSections=63",
-                         "postRoundTripSections=63",
+                        "registeredSections=68",
+                        "capturedSections=68",
+                        "postRoundTripSections=68",
                          "baselineRestored=True",
                          "canonicalBaselineMatched=True"
                      })

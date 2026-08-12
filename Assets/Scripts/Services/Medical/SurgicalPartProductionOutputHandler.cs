@@ -12,14 +12,18 @@ public sealed class SurgicalPartProductionOutputHandler :
 
     private readonly ISurgicalPartRuntime parts;
     private readonly IItemDefinitionCatalog itemCatalog;
+    private readonly ICharacterPerformanceQuery performance;
 
     public SurgicalPartProductionOutputHandler(
         ISurgicalPartRuntime parts,
-        IItemDefinitionCatalog itemCatalog)
+        IItemDefinitionCatalog itemCatalog,
+        ICharacterPerformanceQuery performance)
     {
         this.parts = parts ?? throw new ArgumentNullException(nameof(parts));
         this.itemCatalog = itemCatalog
             ?? throw new ArgumentNullException(nameof(itemCatalog));
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
     }
 
     public bool CanHandle(string itemId)
@@ -94,20 +98,17 @@ public sealed class SurgicalPartProductionOutputHandler :
         nodeId = "arm:left";
     }
 
-    private static float ResolveQuality(CharacterActor worker)
+    private float ResolveQuality(CharacterActor worker)
     {
-        CharacterStats stats = worker != null
-            ? worker.GetComponent<CharacterStats>()
-            : null;
-        float medical = stats != null
-            ? stats.GetCharacterStat(CharacterStatType.Medical)
-            : 0f;
-        float dexterity = stats != null
-            ? stats.GetCharacterStat(CharacterStatType.Dexterity)
-            : 0f;
-        return UnityEngine.Mathf.Clamp(
-            0.7f + medical * 0.012f + dexterity * 0.008f,
-            0.7f,
-            1.25f);
+        if (worker == null) return .7f;
+        CharacterPerformanceSnapshot snapshot = performance.Evaluate(
+            worker,
+            "performance:work:craft:quality",
+            new CharacterPerformanceEvaluationContext
+            {
+                PrimaryProficiencyOverride = BuiltInCharacterProficiencyIds.Crafting.Value,
+                SecondaryProficiencyOverride = BuiltInCharacterProficiencyIds.Crafting.Value
+            });
+        return UnityEngine.Mathf.Clamp(snapshot.Value, .7f, 1.25f);
     }
 }

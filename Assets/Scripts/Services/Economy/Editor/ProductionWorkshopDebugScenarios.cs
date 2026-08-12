@@ -216,7 +216,7 @@ public static class ProductionWorkshopDebugScenarios
             JsonUtility.FromJson<DungeonProductionBillSaveData>(
                 JsonUtility.ToJson(envelope));
         ProductionBillSaveData restoredBill = restored?.bills?.FirstOrDefault();
-        if (DungeonProductionBillSaveData.CurrentVersion != 6
+        if (DungeonProductionBillSaveData.CurrentVersion != 7
             || restoredBill == null
             || restoredBill.batchStage != ProductionBatchStage.Processing
             || !Mathf.Approximately(
@@ -235,7 +235,7 @@ public static class ProductionWorkshopDebugScenarios
             || restoredBill.logistics.parameters.Single()
                 != "validation-prefetch")
         {
-            failures.Add("Production bill V6 save round-trip failed.");
+            failures.Add("Production bill V7 save round-trip failed.");
         }
 
         ValidateDeterministicRoomLinks(failures);

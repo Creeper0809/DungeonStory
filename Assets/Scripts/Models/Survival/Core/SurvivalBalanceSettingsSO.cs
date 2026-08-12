@@ -211,7 +211,7 @@ public sealed class SurvivalBalanceSettingsSO : ScriptableObject
             CharacterCondition.HUNGER,
             50f,
             0f,
-            new CharacterNeedResponseProfile(65f, 35f, 75f)),
+            new CharacterNeedResponseProfile(50f, 20f, 75f)),
         new CharacterNeedBalanceEntry(
             CharacterCondition.THIRST,
             60f,
@@ -223,13 +223,18 @@ public sealed class SurvivalBalanceSettingsSO : ScriptableObject
             0.35f,
             new CharacterNeedResponseProfile(60f, 30f, 70f)),
         new CharacterNeedBalanceEntry(
+            CharacterCondition.FUN,
+            8f,
+            0f,
+            new CharacterNeedResponseProfile(80f, 25f, 88f)),
+        new CharacterNeedBalanceEntry(
             CharacterCondition.EXCRETION,
-            24f,
+            55f,
             0.05f,
             new CharacterNeedResponseProfile(45f, 25f, 70f)),
         new CharacterNeedBalanceEntry(
             CharacterCondition.HYGIENE,
-            18f,
+            54f,
             0.06f,
             new CharacterNeedResponseProfile(40f, 20f, 65f))
     };

@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d73e94ec113318588b25eed8f9f9ee0, type: 3}
+  m_Name: Trait_304_golden-harvest
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterTraitSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 304
+  traitName: "\uD669\uAE08 \uC218\uD655"
+  description: "\uC218\uD655\uC744 \uBBF8\uB904 \uB300\uC218\uD655\uC774\uB098 \uD070
+    \uC190\uC2E4\uC744 \uB178\uB9B0\uB2E4."
+  modifiers:
+    preferredFacilityRoles: 0
+    dislikedFacilityRoles: 0
+    preferredWorkTypes: 0
+    dislikedWorkTypes: 0
+  combatAbilities:
+    abilities: []
+  environmentalProtection:
+    comfortMinimumOffset: 0
+    comfortMaximumOffset: 0
+    safeMinimumOffset: 0
+    safeMaximumOffset: 0
+    coldExposureMultiplier: 1
+    heatExposureMultiplier: 1
+  selectionRarity: 3
+  polarity: 4
+  selectionFamilyId: extreme:harvest
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
+  incompatibilityGroups: []
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:304:effect:0
+    definition: {fileID: 11400000, guid: c740919488a757a40ad1986ce94700b3, type: 2}
+    value: 2.5
+    condition: {fileID: 11400000, guid: 59933c8efe0d10b44894433bf5882e02, type: 2}
+  - bindingId: trait:304:effect:1
+    definition: {fileID: 11400000, guid: 509b84b928b384d4289864f0d66db37c, type: 2}
+    value: 1.5
+    condition: {fileID: 11400000, guid: 59933c8efe0d10b44894433bf5882e02, type: 2}
+  identityRules:
+  - rid: 7737211921986486516
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211921986486516
+      type: {class: GoldenHarvestRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: extreme:golden-harvest
+        priority: 100
+        delayHours: 24
+        jackpotChance: 0.12
+        lossChance: 0.18
+        failureYieldMultiplier: 0.5

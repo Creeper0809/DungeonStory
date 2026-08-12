@@ -22,7 +22,7 @@ MonoBehaviour:
   deadlineDays: 5
   serviceRequirements:
     items:
-    - itemDefinitionId: item:field-repair-kit
+    - itemDefinitionId: tool:field-repair-kit
       amount: 6
       consume: 1
     facilities:
@@ -39,7 +39,7 @@ MonoBehaviour:
   successEffects:
   - kind: 9
     targetId: guest-service
-    amount: 120
+    amount: 512
     durationDays: 0
   - kind: 6
     targetId: requesting-faction

@@ -215,22 +215,37 @@ public static class ServiceRoomContentAssetBuilder
             unlockPhase = spec.RequiresPower ? 3 : 2,
             demolitionRefundRate = 0.5f
         });
+        int cells = Mathf.Max(1, building.width) * Mathf.Max(1, building.height);
+        float footprint = Mathf.Clamp(
+            1f + 0.30f * (cells - 1),
+            1f,
+            2.5f);
+        float baseWork = spec.RequiresPower ? 160f : 130f;
+        float constructionWork = RoundTo(baseWork * footprint, 4f);
         BuildingWorkAmountAbility workAmount = new BuildingWorkAmountAbility
         {
-            constructionWorkRequired = spec.RequiresPower ? 24.8f : 18.48f,
-            repairWorkRequired = 10f,
-            cleanWorkRequired = 6.25f,
+            constructionWorkRequired = constructionWork,
+            repairWorkRequired = RoundTo(constructionWork * 0.25f, 2f),
+            cleanWorkRequired = RoundTo(
+                Mathf.Clamp(constructionWork * 0.06f, 6f, 24f),
+                2f),
             researchWorkRequired = 6f,
             operateWorkRequired = 10f
         };
-        workAmount.SetConstructionMaterials(new[]
-        {
-            new ItemAmountDefinition(
-                spec.RequiresPower
-                    ? "component:machine-parts"
-                    : "material:lumber",
-                2)
-        });
+        workAmount.SetConstructionMaterials(
+            spec.RequiresPower
+                ? new[]
+                {
+                    new ItemAmountDefinition("material:treated-lumber", 4),
+                    new ItemAmountDefinition("material:steel-ingot", 3),
+                    new ItemAmountDefinition("component:machine-parts", 2),
+                    new ItemAmountDefinition("component:precision-parts", 1)
+                }
+                : new[]
+                {
+                    new ItemAmountDefinition("material:lumber", 4),
+                    new ItemAmountDefinition("material:iron-ingot", 1)
+                });
         abilities.Add(workAmount);
         abilities.Add(new BuildingFacilityPartAbility { code = spec.Code });
         abilities.Add(new BuildingRoomRequirementAbility());
@@ -552,6 +567,9 @@ public static class ServiceRoomContentAssetBuilder
         building.ValidateAbilitiesOrThrow();
         EditorUtility.SetDirty(building);
     }
+
+    private static float RoundTo(float value, float step) =>
+        Mathf.Max(step, Mathf.Round(value / step) * step);
 
     private static void EnsureFolder(string path)
     {

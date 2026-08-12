@@ -6,17 +6,20 @@ public readonly struct CharacterNeedDecayBatch
     public CharacterNeedDecayBatch(
         float hunger,
         float thirst,
+        float fun,
         float excretion,
         float hygiene)
     {
         Hunger = hunger;
         Thirst = thirst;
+        Fun = fun;
         Excretion = excretion;
         Hygiene = hygiene;
     }
 
     public float Hunger { get; }
     public float Thirst { get; }
+    public float Fun { get; }
     public float Excretion { get; }
     public float Hygiene { get; }
 }
@@ -62,14 +65,21 @@ public sealed class CharacterNeedStateService
     {
         SpeciesNeedProfile speciesNeeds =
             actor?.profile?.GetNeedProfile() ?? new SpeciesNeedProfile();
+        float consumptionMultiplier = actor != null
+            ? Mathf.Max(0f, actor.GetConsumptionMultiplier())
+            : 1f;
         float hungerMultiplier = GetPersonaMultiplier(
             actor,
             CharacterCondition.HUNGER)
-            * Mathf.Max(0f, speciesNeeds.hungerRateMultiplier);
+            * Mathf.Max(0f, speciesNeeds.hungerRateMultiplier)
+            * consumptionMultiplier;
         float thirstMultiplier = GetPersonaMultiplier(
             actor,
             CharacterCondition.THIRST)
             * Mathf.Max(0f, speciesNeeds.thirstRateMultiplier);
+        float funMultiplier = GetPersonaMultiplier(
+            actor,
+            CharacterCondition.FUN);
         float excretionMultiplier = GetPersonaMultiplier(
             actor,
             CharacterCondition.EXCRETION)
@@ -77,7 +87,8 @@ public sealed class CharacterNeedStateService
                 0f,
                 Mathf.Max(
                     speciesNeeds.hungerRateMultiplier,
-                    speciesNeeds.thirstRateMultiplier));
+                    speciesNeeds.thirstRateMultiplier))
+            * consumptionMultiplier;
         float hygieneMultiplier = GetPersonaMultiplier(
             actor,
             CharacterCondition.HYGIENE)
@@ -94,6 +105,11 @@ public sealed class CharacterNeedStateService
                 elapsedSeconds,
                 speciesMultiplier: 1f,
                 personaMultiplier: thirstMultiplier),
+            balance.GetTimedDepletion(
+                CharacterCondition.FUN,
+                elapsedSeconds,
+                speciesMultiplier: 1f,
+                personaMultiplier: funMultiplier),
             balance.GetTimedDepletion(
                 CharacterCondition.EXCRETION,
                 elapsedSeconds,

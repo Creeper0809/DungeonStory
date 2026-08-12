@@ -157,7 +157,12 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
     private float GetPriceMultiplier()
     {
         PruneInvalidWorker();
-        return worker == null ? 1.0f : 1.2f;
+        return worker == null
+            ? 1f
+            : Mathf.Clamp(
+                worker.VisitorSnapshot.RevenueMultiplier,
+                1f,
+                GoldEconomyBalanceRules.MaximumWorkerRevenuePremium);
     }
 
     public List<Stock> GetStock()

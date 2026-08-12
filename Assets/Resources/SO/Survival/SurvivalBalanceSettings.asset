@@ -18,8 +18,8 @@ MonoBehaviour:
     dailyDepletion: 50
     workDepletionPerSecond: 0
     response:
-      routineStart: 65
-      emergencyStart: 35
+      routineStart: 50
+      emergencyStart: 20
       resumeTarget: 75
   - condition: 1
     dailyDepletion: 60
@@ -35,15 +35,22 @@ MonoBehaviour:
       routineStart: 60
       emergencyStart: 30
       resumeTarget: 70
+  - condition: 3
+    dailyDepletion: 8
+    workDepletionPerSecond: 0
+    response:
+      routineStart: 80
+      emergencyStart: 25
+      resumeTarget: 88
   - condition: 5
-    dailyDepletion: 24
+    dailyDepletion: 55
     workDepletionPerSecond: 0.05
     response:
       routineStart: 45
       emergencyStart: 25
       resumeTarget: 70
   - condition: 6
-    dailyDepletion: 18
+    dailyDepletion: 54
     workDepletionPerSecond: 0.06
     response:
       routineStart: 40

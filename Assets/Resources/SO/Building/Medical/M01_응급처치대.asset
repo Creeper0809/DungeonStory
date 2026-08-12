@@ -34,23 +34,38 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730889015673
-    - rid: 7737211730889015674
-    - rid: 7737211730889015675
-    - rid: 7737211730889015676
-    - rid: 7737211730889015677
-    - rid: 7737211730889015678
-    - rid: 7737211730889015679
-    - rid: 7737211730889015680
-    - rid: 7737211730889015681
-    - rid: 7737211730889015682
-    - rid: 7737211838074978534
-    - rid: 7737211838074978535
-    - rid: 7737211838074978856
+    - rid: 7737211857806557895
+    - rid: 7737211857806557896
+    - rid: 7737211857806557897
+    - rid: 7737211857806557899
+    - rid: 7737211857806557900
+    - rid: 7737211857806557901
+    - rid: 7737211857806557902
+    - rid: 7737211857806557903
+    - rid: 7737211857806557904
+    - rid: 7737211905655963770
+    - rid: 7737211905655963771
+    - rid: 7737211905666711788
+    - rid: 7737211921440178721
   width: 2
   height: 1
   layer: 1
@@ -66,12 +81,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730889015673
+    - rid: 7737211857806557895
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: M01
-    - rid: 7737211730889015674
+    - rid: 7737211857806557896
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -79,7 +94,7 @@ MonoBehaviour:
         - medical
         - surgery
         - m01
-    - rid: 7737211730889015675
+    - rid: 7737211857806557897
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -88,40 +103,41 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211730889015676
-      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingFacilityAbility
-        settings:
-          roles: 4096
-          capacity: 1
-          useDuration: 1.5
-          requiredWorkers: 1
-          supportedWorkTypes: 671121408
-          disabledWhenDamaged: 1
-    - rid: 7737211730889015677
+    - rid: 7737211857806557899
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211730889015678
+    - rid: 7737211857806557900
       type: {class: BuildingInternalStockAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 12
         restockRequestThreshold: 3
-    - rid: 7737211730889015679
+    - rid: 7737211857806557901
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
         constructionWorkRequired: 36
         repairWorkRequired: 8
         cleanWorkRequired: 8
         researchWorkRequired: 6
         operateWorkRequired: 12
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
         - itemId: material:lumber
           amount: 3
-    - rid: 7737211730889015680
+    - rid: 7737211857806557902
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -133,14 +149,14 @@ MonoBehaviour:
           - m01
           scores: []
           metrics: []
-    - rid: 7737211730889015681
+    - rid: 7737211857806557903
       type: {class: BuildingMedicalAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingMedicalAbility
         workSeconds: 1.8
         severityReduction: 0.4
         requiresMedicine: 1
-    - rid: 7737211730889015682
+    - rid: 7737211857806557904
       type: {class: BuildingSurgeryTableAbility, ns: , asm: DungeonStory.Medical}
       data:
         abilityId: BuildingSurgeryTableAbility
@@ -149,14 +165,14 @@ MonoBehaviour:
         workSpeedMultiplier: 1.3
         baseSterility: 0.12
         patientSlots: 1
-    - rid: 7737211838074978534
+    - rid: 7737211905655963770
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737211838074978535
+    - rid: 7737211905655963771
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility
@@ -166,7 +182,18 @@ MonoBehaviour:
         wastewaterPerCycle: 0.2
         minimumQuality: 0
         allowsManualWaterFallback: 1
-    - rid: 7737211838074978856
+    - rid: 7737211905666711788
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 4096
+          capacity: 1
+          useDuration: 1.5
+          requiredWorkers: 1
+          supportedWorkTypes: 671121408
+          disabledWhenDamaged: 1
+    - rid: 7737211921440178721
       type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceHubAbility

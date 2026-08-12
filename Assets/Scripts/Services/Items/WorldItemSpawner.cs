@@ -331,7 +331,7 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
                 stack.sourceStorageDestinationId ?? string.Empty,
                 sourceStorageDestinationId ?? string.Empty,
                 StringComparison.Ordinal)
-            && string.IsNullOrWhiteSpace(stack.reservedByPersistentId)
+            && stack.reservedQuantity <= 0
             && stack.hasDestinationPosition == hasDestinationPosition
             && (!hasDestinationPosition
                 || stack.destinationPosition == destinationPosition)

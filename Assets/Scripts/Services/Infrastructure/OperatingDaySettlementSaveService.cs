@@ -56,6 +56,7 @@ public sealed class DungeonStockSupplyResultSaveData
 public sealed class DungeonStockDeliveryOfferSaveData
 {
     public StockCategory category;
+    public string itemId = string.Empty;
     public int amount;
     public int cost;
     public string sourceLabel = string.Empty;
@@ -418,6 +419,7 @@ internal static class OperatingDaySettlementSaveValidation
             DungeonStockDeliveryOfferSaveData offer = offers[index];
             if (offer == null
                 || !Enum.IsDefined(typeof(StockCategory), offer.category)
+                || string.IsNullOrWhiteSpace(offer.itemId)
                 || offer.amount < 0
                 || offer.cost < 0
                 || offer.sourceLabel == null)
@@ -643,6 +645,7 @@ public sealed class OperatingDaySettlementSaveService : IOperatingDaySettlementS
                 new DungeonStockDeliveryOfferSaveData
                 {
                     category = offer.category,
+                    itemId = offer.itemId,
                     amount = offer.amount,
                     cost = offer.cost,
                     sourceLabel = offer.sourceLabel
@@ -701,6 +704,7 @@ public sealed class OperatingDaySettlementSaveService : IOperatingDaySettlementS
             refreshedDailyShopOffers: source.refreshedDailyShopOffers
                 .Select(offer => new StockDeliveryOffer(
                     offer.category,
+                    offer.itemId,
                     offer.amount,
                     offer.cost,
                     offer.sourceLabel)).ToList(),

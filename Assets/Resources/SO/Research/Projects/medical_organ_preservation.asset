@@ -41,17 +41,18 @@ MonoBehaviour:
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211838079697131
+    - rid: 7737211905666711585
   facilityRequirements:
   - capability: 0
     requiredCount: 1
   - capability: 2
     requiredCount: 1
   icon: {fileID: 0}
+  effects: []
   references:
     version: 2
     RefIds:
-    - rid: 7737211838079697131
+    - rid: 7737211905666711585
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 9508

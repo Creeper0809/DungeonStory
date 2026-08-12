@@ -34,17 +34,32 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211838074978329
-    - rid: 7737211838074978330
-    - rid: 7737211838074978331
-    - rid: 7737211838074978332
-    - rid: 7737211838074978333
-    - rid: 7737211838074978334
-    - rid: 7737211838074978335
+    - rid: 7737211905652294628
+    - rid: 7737211905652294629
+    - rid: 7737211905652294630
+    - rid: 7737211905652294631
+    - rid: 7737211905652294632
+    - rid: 7737211905652294633
+    - rid: 7737211905652294634
   width: 2
   height: 1
   layer: 1
@@ -60,12 +75,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074978329
+    - rid: 7737211905652294628
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I18
-    - rid: 7737211838074978330
+    - rid: 7737211905652294629
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -74,19 +89,34 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211838074978331
+    - rid: 7737211905652294630
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 48
-        repairWorkRequired: 12
-        cleanWorkRequired: 8
+        constructionWorkRequired: 472
+        repairWorkRequired: 142
+        cleanWorkRequired: 24
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
+        - itemId: material:stone-block
+          amount: 8
+        - itemId: material:steel-ingot
+          amount: 6
         - itemId: component:machine-parts
-          amount: 4
-    - rid: 7737211838074978332
+          amount: 3
+    - rid: 7737211905652294631
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -94,13 +124,13 @@ MonoBehaviour:
         - industrial-infrastructure
         - research:equipment:lineage-binding
         - workstation:v3:lineage-archive
-    - rid: 7737211838074978333
+    - rid: 7737211905652294632
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v3:lineage-archive
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211838074978334
+    - rid: 7737211905652294633
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -108,7 +138,7 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211838074978335
+    - rid: 7737211905652294634
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using VContainer;
 using VContainer.Unity;
 
 public interface IOffenseBattleRuntime
@@ -78,7 +79,10 @@ public sealed class OffenseBattleRuntime :
     private readonly IEnemyEncounterFactory enemyEncounterFactory;
     private readonly IEnemyTacticalDecisionService enemyTactics;
     private readonly IOffenseReturnArrivalRuntime returnArrivals;
+    private readonly ICharacterPerformanceQuery performance;
     private readonly IGameEventBus gameEventBus;
+    private ICharacterProficiencyCommand proficiencyCommands;
+    private IGameCalendar proficiencyCalendar;
     private Dictionary<string, CharacterActor> actorsById =
         new Dictionary<string, CharacterActor>(StringComparer.Ordinal);
     private bool started;
@@ -98,7 +102,8 @@ public sealed class OffenseBattleRuntime :
         IOffenseRegionRuntime offenseRegionRuntime,
         IEnemyEncounterFactory enemyEncounterFactory,
         IEnemyTacticalDecisionService enemyTactics,
-        IOffenseReturnArrivalRuntime returnArrivals)
+        IOffenseReturnArrivalRuntime returnArrivals,
+        ICharacterPerformanceQuery performance = null)
     {
         this.characterSaveService = characterSaveService
             ?? throw new ArgumentNullException(nameof(characterSaveService));
@@ -119,6 +124,17 @@ public sealed class OffenseBattleRuntime :
             ?? throw new ArgumentNullException(nameof(enemyTactics));
         this.returnArrivals = returnArrivals
             ?? throw new ArgumentNullException(nameof(returnArrivals));
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
+    }
+
+    [Inject]
+    public void ConstructProficiencyProgression(
+        ICharacterProficiencyCommand commands,
+        IGameCalendar calendar)
+    {
+        proficiencyCommands = commands;
+        proficiencyCalendar = calendar;
     }
 
     public OffenseBattleSession Session { get; private set; }
@@ -169,6 +185,7 @@ public sealed class OffenseBattleRuntime :
             OffenseBattleCombatant combatant = OffenseEncounterCatalog.CreateAlly(
                 actor,
                 persistentId,
+                performance,
                 member.Formation,
                 member.Stress);
             ConfigureCombatEquipment(combatant);
@@ -280,12 +297,23 @@ public sealed class OffenseBattleRuntime :
             actionType,
             targetId,
             actionType == OffenseBattleActionType.Ability ? abilityId : string.Empty);
+        OffenseBattleCombatant actingBefore = Session.FindCombatant(actorId);
+        OffenseBattleCombatant targetBefore = Session.FindCombatant(targetId);
+        float targetHealthBefore = targetBefore?.CurrentHealth ?? 0f;
+        bool targetWasDead = targetBefore?.IsDead ?? false;
         bool accepted = Session.TryExecutePlannedCommand(command, out result);
         if (!accepted)
         {
             return false;
         }
 
+        AwardCombatCommand(
+            command,
+            actingBefore,
+            result,
+            Session.FindCombatant(targetId),
+            targetHealthBefore,
+            targetWasDead);
         StateChanged?.Invoke();
         return true;
     }
@@ -356,6 +384,7 @@ public sealed class OffenseBattleRuntime :
             OffenseBattleCombatant combatant = OffenseEncounterCatalog.CreateAlly(
                 actor,
                 persistentId,
+                performance,
                 member.Formation,
                 member.Stress);
             ConfigureCombatEquipment(combatant);
@@ -435,6 +464,7 @@ public sealed class OffenseBattleRuntime :
             OffenseBattleCombatant combatant = OffenseEncounterCatalog.CreateAlly(
                 actor,
                 persistentId,
+                performance,
                 member.Formation,
                 member.Stress);
             ConfigureCombatEquipment(combatant);
@@ -587,6 +617,7 @@ public sealed class OffenseBattleRuntime :
             EnemyTacticalIntentKind.UseAbility => OffenseBattleActionType.Ability,
             EnemyTacticalIntentKind.Retreat => OffenseBattleActionType.Retreat,
             EnemyTacticalIntentKind.Protect => OffenseBattleActionType.Guard,
+            EnemyTacticalIntentKind.Move => OffenseBattleActionType.Advance,
             _ => OffenseBattleActionType.BasicAttack
         };
         return new OffenseBattleCommand(
@@ -610,6 +641,34 @@ public sealed class OffenseBattleRuntime :
         {
             returnArrivals.DiscardBattlePrisonerCandidates(
                 Session.ExpeditionId);
+        }
+        if (proficiencyCommands != null && proficiencyCalendar != null)
+        {
+            foreach (OffenseBattleCombatant combatant in Session.Combatants)
+            {
+                if (combatant == null || combatant.IsDead
+                    || combatant.Team != OffenseBattleTeam.Allies
+                    || !TryGetActor(combatant.PersistentId, out CharacterActor actor)
+                    || !CharacterPersistentIdentity.TryGet(
+                        actor,
+                        out CharacterId characterId))
+                {
+                    continue;
+                }
+
+                CharacterProficiencyId proficiencyId =
+                    combatant.Weapon?.IsRanged == true
+                        ? BuiltInCharacterProficiencyIds.RangedCombat
+                        : BuiltInCharacterProficiencyIds.MeleeCombat;
+                proficiencyCommands.AddCombatExperience(
+                    characterId,
+                    proficiencyId,
+                    0.50f,
+                    training: false,
+                    stableAwardKey:
+                        $"{Session.BattleId}:{combatant.PersistentId}:complete",
+                    absoluteHour: proficiencyCalendar.AbsoluteHour);
+            }
         }
         completionRaised = true;
         SynchronizeAlliedBodyHealth();
@@ -648,6 +707,23 @@ public sealed class OffenseBattleRuntime :
         {
             return false;
         }
+
+        AwardCombatCommand(
+            command,
+            actingCombatant,
+            result,
+            targetAfter: command != null
+                ? Session.FindCombatant(command.TargetId)
+                : targetBefore,
+            targetHealthBefore,
+            targetWasDead);
+        AwardDefensiveCombat(
+            command,
+            actingCombatant,
+            targetAfter: command != null
+                ? Session.FindCombatant(command.TargetId)
+                : targetBefore,
+            result);
 
         if (offenseUltimateCommand)
         {
@@ -691,6 +767,85 @@ public sealed class OffenseBattleRuntime :
         }
 
         return true;
+    }
+
+    private void AwardCombatCommand(
+        OffenseBattleCommand command,
+        OffenseBattleCombatant actingCombatant,
+        OffenseBattleCommandResult commandResult,
+        OffenseBattleCombatant targetAfter,
+        float targetHealthBefore,
+        bool targetWasDead)
+    {
+        if (proficiencyCommands == null || proficiencyCalendar == null
+            || command == null || actingCombatant == null
+            || actingCombatant.Team != OffenseBattleTeam.Allies
+            || targetAfter == null
+            || targetAfter.Team != OffenseBattleTeam.Enemies
+            || targetWasDead
+            || (command.ActionType != OffenseBattleActionType.BasicAttack
+                && command.ActionType != OffenseBattleActionType.Ability)
+            || !TryGetActor(actingCombatant.PersistentId, out CharacterActor actor)
+            || !CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId))
+        {
+            return;
+        }
+
+        float damage = Math.Max(0f, targetHealthBefore - targetAfter.CurrentHealth);
+        if (commandResult?.Hit == true && damage <= 0f)
+        {
+            return;
+        }
+        float experience = 0.20f;
+        if (damage > 0f)
+        {
+            experience += 0.15f;
+            experience += Math.Min(0.35f, damage * 0.01f);
+        }
+        CharacterProficiencyId proficiencyId =
+            actingCombatant.Weapon?.IsRanged == true
+                ? BuiltInCharacterProficiencyIds.RangedCombat
+                : BuiltInCharacterProficiencyIds.MeleeCombat;
+        proficiencyCommands.AddCombatExperience(
+            characterId,
+            proficiencyId,
+            experience,
+            training: false,
+            stableAwardKey: $"{Session.BattleId}:{command.CommandId}:attack",
+            absoluteHour: proficiencyCalendar.AbsoluteHour);
+    }
+
+    private void AwardDefensiveCombat(
+        OffenseBattleCommand command,
+        OffenseBattleCombatant actingCombatant,
+        OffenseBattleCombatant targetAfter,
+        OffenseBattleCommandResult commandResult)
+    {
+        if (proficiencyCommands == null || proficiencyCalendar == null
+            || command == null || commandResult == null
+            || (!commandResult.ShieldBlocked && !commandResult.CoverBlocked)
+            || actingCombatant == null
+            || actingCombatant.Team != OffenseBattleTeam.Enemies
+            || targetAfter == null
+            || targetAfter.Team != OffenseBattleTeam.Allies
+            || !TryGetActor(targetAfter.PersistentId, out CharacterActor defender)
+            || !CharacterPersistentIdentity.TryGet(
+                defender,
+                out CharacterId characterId))
+        {
+            return;
+        }
+        CharacterProficiencyId proficiencyId =
+            targetAfter.Weapon?.IsRanged == true
+                ? BuiltInCharacterProficiencyIds.RangedCombat
+                : BuiltInCharacterProficiencyIds.MeleeCombat;
+        proficiencyCommands.AddCombatExperience(
+            characterId,
+            proficiencyId,
+            0.25f,
+            training: false,
+            stableAwardKey: $"{Session.BattleId}:{command.CommandId}:block:{targetAfter.PersistentId}",
+            absoluteHour: proficiencyCalendar.AbsoluteHour);
     }
 
     private void ConfigureCombatEquipment(OffenseBattleCombatant combatant)

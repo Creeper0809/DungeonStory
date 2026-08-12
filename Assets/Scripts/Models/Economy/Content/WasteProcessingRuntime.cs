@@ -179,7 +179,7 @@ public sealed class WasteProcessingRuntime :
                 && stack.State is WorldItemStackState.Loose
                     or WorldItemStackState.Stored
                 && !stack.Forbidden
-                && !stack.IsReserved
+                && stack.AvailableQuantity > 0
                 && (stack.State == WorldItemStackState.Stored
                     || string.IsNullOrWhiteSpace(stack.DestinationId)))
             .OrderBy(stack => Manhattan(stack.Position, destinationPosition))
@@ -396,7 +396,7 @@ public sealed class WasteProcessingRuntime :
     private bool HasAvailableWaste(WasteOriginKind origin) =>
         GetWasteStacks().Any(stack => stack.WasteOrigin == origin
             && !stack.Forbidden
-            && !stack.IsReserved
+            && stack.AvailableQuantity > 0
             && stack.State is WorldItemStackState.Loose
                 or WorldItemStackState.Stored);
 

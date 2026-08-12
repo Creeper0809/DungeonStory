@@ -34,20 +34,21 @@ MonoBehaviour:
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211838079696973
-    - rid: 7737211838079696974
+    - rid: 7737211905660420995
+    - rid: 7737211905660420996
   facilityRequirements:
   - capability: 0
     requiredCount: 1
   icon: {fileID: 0}
+  effects: []
   references:
     version: 2
     RefIds:
-    - rid: 7737211838079696973
+    - rid: 7737211905660420995
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 8806
-    - rid: 7737211838079696974
+    - rid: 7737211905660420996
       type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         recipeId: recipe:v22:apparel:hauling-harness

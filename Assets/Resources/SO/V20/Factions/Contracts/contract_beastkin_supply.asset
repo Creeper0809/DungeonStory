@@ -26,7 +26,7 @@ MonoBehaviour:
   completionRequirements:
     items:
     - itemDefinitionId: food:salted-meat-stew
-      amount: 12
+      amount: 8
       consume: 1
     facilities: []
     research: []

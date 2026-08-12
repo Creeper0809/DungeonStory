@@ -5,8 +5,6 @@ using static GameplayPerformanceReportEvaluator;
 internal sealed class GameplayPerformanceReportAssembler
 {
     private const float MixedPopulationSchedulerP95TargetMilliseconds = 4f;
-    private const long MixedPopulationAverageGcTargetBytes = 64L * 1024L;
-    private const long MixedPopulationMemoryGrowthTargetBytes = 16L * 1024L * 1024L;
 
     internal void Apply(
         GameplayPerformanceReport report,
@@ -68,17 +66,37 @@ internal sealed class GameplayPerformanceReportAssembler
         report.gameplayIncrementalGcAverageBytes = Math.Max(
             0d,
             report.gc.averageBytes - report.editorBaselineGcAverageBytes);
-#if UNITY_EDITOR
-        report.usesEditorBaselineAdjustedGcTarget = options.IsEditorProfile;
-#endif
-        double evaluatedGcAverage = report.usesEditorBaselineAdjustedGcTarget
-            ? report.gameplayIncrementalGcAverageBytes
-            : report.gc.averageBytes;
-        report.meetsAverageGcTarget =
-            evaluatedGcAverage <= MixedPopulationAverageGcTargetBytes;
+        report.gameplayIncrementalGcP95Bytes = Math.Max(
+            0d,
+            report.gc.p95Bytes - report.editorBaselineGcP95Bytes);
+        bool isEditorMeasurement = Application.isEditor;
+        report.usesEditorBaselineAdjustedGcTarget =
+            isEditorMeasurement && options.IsEditorProfile;
+        report.isFinalGcAuthority = !isEditorMeasurement;
+        report.gcAcceptanceAuthority = isEditorMeasurement
+            ? report.usesEditorBaselineAdjustedGcTarget
+                ? "EditorBaselineRegression"
+                : "EditorUnqualified"
+            : "PlayerSteadyState";
+        report.meetsGcDistributionTarget =
+            isEditorMeasurement
+                ? report.usesEditorBaselineAdjustedGcTarget
+                    && report.editorBaselineGcSampleCount
+                    == GameplayGcAcceptancePolicy.EditorBaselineSampleFrames
+                    && GameplayGcAcceptancePolicy.PassesEditorIncremental(
+                        report.gameplayIncrementalGcAverageBytes,
+                        report.gameplayIncrementalGcP95Bytes)
+                    && GameplayGcAcceptancePolicy.PassesEditorRunawayGuard(
+                        report.gc.averageBytes,
+                        report.gc.maximumBytes)
+                : GameplayGcAcceptancePolicy.PassesPlayerSteadyState(
+                    report.gc.averageBytes,
+                    report.gc.p95Bytes,
+                    report.gc.maximumBytes);
+        report.meetsAverageGcTarget = report.meetsGcDistributionTarget;
         report.meetsMemoryGrowthTarget =
             report.retainedMonoGrowthBytes
-                <= MixedPopulationMemoryGrowthTargetBytes;
+                <= GameplayGcAcceptancePolicy.RetainedMonoGrowthBytes;
 #if UNITY_EDITOR
         report.slowFrames = slowFrameProfiles ?? Array.Empty<SlowFrameProfile>();
 #endif
@@ -102,7 +120,7 @@ internal sealed class GameplayPerformanceReportAssembler
         report.meetsMixedPopulationTarget =
             report.meets60FpsP95
             && report.meetsSchedulerP95Target
-            && report.meetsAverageGcTarget
+            && report.meetsGcDistributionTarget
             && report.meetsMemoryGrowthTarget;
     }
 }

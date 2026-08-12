@@ -353,6 +353,7 @@ public sealed class SurgeryRiskBreakdown
     public float bleedingChance;
     public float organDamageChance;
     public float deathChance;
+    public float complicationRiskMultiplier = 1f;
     public float medicalContribution;
     public float dexterityContribution;
     public float researchContribution;

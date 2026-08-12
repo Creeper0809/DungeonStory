@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uC815\uBE44 \uD0A4\uD2B8"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC815\uBE44 \uD0A4\uD2B8."
   stockCategory: 1
-  unitWeight: 0.96999997
+  unitWeight: 2.35
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 60
+  unitPrice: 64
   features:
-  - rid: 7737211838078124110
-  - rid: 7737211838078124111
+  - rid: 7737211905655964627
+  - rid: 7737211905655964628
+  - rid: 7737211905660420424
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124110
+    - rid: 7737211905655964627
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:industry:breakers
-    - rid: 7737211838078124111
+    - rid: 7737211905655964628
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 512
         sharedIntermediate: 0
+    - rid: 7737211905660420424
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.60224783

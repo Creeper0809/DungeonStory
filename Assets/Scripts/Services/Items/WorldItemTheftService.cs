@@ -63,7 +63,7 @@ public sealed class WorldItemTheftService
                 || stack.quantity <= 0
                 || stack.state != WorldItemStackState.Loose
                 || stack.forbidden
-                || !string.IsNullOrWhiteSpace(stack.reservedByPersistentId))
+                || stack.quantity - stack.reservedQuantity <= 0)
             {
                 continue;
             }

@@ -17,6 +17,12 @@ public sealed class ItemPileInfoPanel : UIPopUp
     private ITmpKoreanFontService fontService;
     private ISurgeryPlanningWindowService surgeryWindowService;
     private ISurgicalCorpseFreshnessRuntime corpseFreshness;
+    private ICombatEquipmentRuntime equipmentRuntime;
+    private IPlayerStaffCommandSource playerStaffCommands;
+    private ICharacterWorldQuery characterWorld;
+    private CharacterMoodPolicyService identityMoods;
+    private IItemQuantityReservationService quantityReservations;
+    private IBufferStackAggregationService bufferAggregation;
 
     private GameObject uiRoot;
     private RectTransform contentRoot;
@@ -55,6 +61,34 @@ public sealed class ItemPileInfoPanel : UIPopUp
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         SubscribeToInfoFeed();
+    }
+
+    [Inject]
+    public void ConstructItemPileEquipmentActions(
+        ICombatEquipmentRuntime equipmentRuntime,
+        IPlayerStaffCommandSource playerStaffCommands,
+        ICharacterWorldQuery characterWorld,
+        CharacterMoodPolicyService identityMoods)
+    {
+        this.equipmentRuntime = equipmentRuntime
+            ?? throw new ArgumentNullException(nameof(equipmentRuntime));
+        this.playerStaffCommands = playerStaffCommands
+            ?? throw new ArgumentNullException(nameof(playerStaffCommands));
+        this.characterWorld = characterWorld
+            ?? throw new ArgumentNullException(nameof(characterWorld));
+        this.identityMoods = identityMoods
+            ?? throw new ArgumentNullException(nameof(identityMoods));
+    }
+
+    [Inject]
+    public void ConstructItemQuantityDiagnostics(
+        IItemQuantityReservationService quantityReservations,
+        IBufferStackAggregationService bufferAggregation)
+    {
+        this.quantityReservations = quantityReservations
+            ?? throw new ArgumentNullException(nameof(quantityReservations));
+        this.bufferAggregation = bufferAggregation
+            ?? throw new ArgumentNullException(nameof(bufferAggregation));
     }
 
     private void Start()
@@ -254,14 +288,71 @@ public sealed class ItemPileInfoPanel : UIPopUp
             + FormatWasteMetadata(stack)
             + FormatCorpseFreshnessLine(stack)
             + FormatCorpseMetadata(stack)
+            + FormatQuantityLeaseDiagnostics(stack)
             + $"위치 ({stack.Position.x}, {stack.Position.y})\n"
-            + $"예약자 {FormatEmpty(stack.ReservedByPersistentId)}\n"
+            + $"사용 가능 {stack.AvailableQuantity} / 예약 {stack.ReservedQuantity}\n"
             + $"목적지 {FormatEmpty(stack.DestinationId)}\n"
             + $"운반 {(!stack.Forbidden && stack.State is WorldItemStackState.Loose or WorldItemStackState.FacilityOutputBuffer ? "가능" : "불가")}";
 
         CreateDetailActionRow(stack);
         CreateEmergencyButcheryAction(stack);
         CreateCorpseSurgeryAction(stack);
+    }
+
+    private string FormatQuantityLeaseDiagnostics(WorldItemStackSnapshot stack)
+    {
+        if (stack == null || quantityReservations == null)
+            return string.Empty;
+        IReadOnlyList<ItemQuantityLease> leases = quantityReservations
+            .GetLeasesForStack(new ItemStackId(stack.StackId));
+        int sliceCount = leases.Sum(lease => lease.slices?.Count(slice =>
+            slice != null
+            && string.Equals(slice.stackId, stack.StackId, StringComparison.Ordinal)) ?? 0);
+        int leasedQuantity = leases.Sum(lease => lease.slices?.Where(slice =>
+                slice != null
+                && string.Equals(slice.stackId, stack.StackId, StringComparison.Ordinal))
+            .Sum(slice => slice.quantity) ?? 0);
+        string result = $"Lease {leases.Count}개 / Slice {sliceCount}개 / 점유 {leasedQuantity}\n";
+        ItemReservationRestoreDiagnostics restore =
+            quantityReservations.LastRestoreDiagnostics;
+        if (restore != null && restore.GrandfatherOperationCount > 0)
+        {
+            result += $"최근 복원 작업 {restore.GrandfatherOperationCount} / Lease {restore.RestoredLeaseCount} / 스택 {restore.ClaimedStackCount} / 수량 {restore.RestoredQuantity} / 재계획 {restore.PriorityReplanCount} / 탈취 차단 {restore.BlockedReservationAttempts}\n";
+        }
+        if (!string.IsNullOrWhiteSpace(stack.AggregationCohortId))
+        {
+            WorldItemStackSnapshot[] cohort = itemStackRuntime.GetAllStacks()
+                .Where(candidate => candidate != null
+                    && string.Equals(candidate.DestinationId, stack.DestinationId, StringComparison.Ordinal)
+                    && string.Equals(candidate.AggregationCohortId, stack.AggregationCohortId, StringComparison.Ordinal)
+                    && string.Equals(candidate.ItemId, stack.ItemId, StringComparison.Ordinal)
+                    && string.Equals(candidate.StackSignature, stack.StackSignature, StringComparison.Ordinal))
+                .ToArray();
+            int total = cohort.Sum(candidate => candidate.Quantity);
+            int maxStack = Math.Max(
+                1,
+                itemStackRuntime.CatalogProvider.GetDefinition(stack.ItemId).MaxStack);
+            int theoreticalMinimum = Mathf.CeilToInt(total / (float)maxStack);
+            result += $"버퍼 물리 {cohort.Length}개 / 이론 최소 {theoreticalMinimum}개 / 집약 대기 {bufferAggregation?.PendingAggregationCount ?? 0}\n";
+            result += $"Cohort {stack.AggregationCohortId}\n";
+        }
+        foreach (ItemQuantityLease lease in leases.Take(4))
+        {
+            int quantity = lease.slices?.Where(slice => slice != null
+                    && string.Equals(slice.stackId, stack.StackId, StringComparison.Ordinal))
+                .Sum(slice => slice.quantity) ?? 0;
+            result += $"- {lease.ownerOperationId} / {lease.purpose} / {quantity}\n";
+        }
+        if (leases.Count > 4)
+            result += $"- 외 {leases.Count - 4}개\n";
+        return result;
+    }
+
+    private void RenderDetail(string stackId, string status)
+    {
+        RenderDetail(stackId);
+        if (!string.IsNullOrWhiteSpace(status))
+            statusText.text = status.Trim();
     }
 
     private string FormatCorpseMetadata(WorldItemStackSnapshot stack)
@@ -415,9 +506,9 @@ public sealed class ItemPileInfoPanel : UIPopUp
 
         TMP_Text meta = CreateText("Meta", rect, 15f, FontStyles.Normal, TextAlignmentOptions.MidlineRight);
         Stretch(meta.rectTransform, new Vector2(265f, 2f), new Vector2(-12f, -2f));
-        string reservation = string.IsNullOrWhiteSpace(stack.ReservedByPersistentId)
+        string reservation = stack.ReservedQuantity <= 0
             ? "예약 없음"
-            : "예약 " + stack.ReservedByPersistentId;
+            : $"사용 가능 {stack.AvailableQuantity} / 예약 {stack.ReservedQuantity}";
         string destination = string.IsNullOrWhiteSpace(stack.DestinationId)
             ? "목적지 -"
             : "목적지 " + stack.DestinationId;
@@ -426,14 +517,13 @@ public sealed class ItemPileInfoPanel : UIPopUp
 
     private void CreateDetailActionRow(WorldItemStackSnapshot stack)
     {
-        string[] labels =
+        List<string> labels = new()
         {
             "운반 우선",
             "예약 해제",
-            stack.Forbidden ? "허용" : "금지",
-            "버리기"
+            stack.Forbidden ? "허용" : "금지"
         };
-        Action[] actions =
+        List<Action> actions = new()
         {
             () =>
             {
@@ -449,24 +539,90 @@ public sealed class ItemPileInfoPanel : UIPopUp
             {
                 itemStackRuntime.SetForbidden(stack.StackId, !stack.Forbidden);
                 RenderDetail(stack.StackId);
-            },
-            () =>
-            {
-                itemStackRuntime.DeleteStack(stack.StackId);
-                selectedStackId = string.Empty;
-                RenderList("스택을 버렸습니다.");
             }
         };
 
-        for (int i = 0; i < labels.Length; i++)
+        CombatEquipmentInstance equipment = null;
+        bool isEquipment = equipmentRuntime != null
+            && equipmentRuntime.TryGetInstanceBySourceStack(stack.StackId, out equipment);
+        if (isEquipment)
+        {
+            labels.Add("회수");
+            actions.Add(() =>
+            {
+                CharacterActor worker = playerStaffCommands?.SelectedActor;
+                if (worker == null)
+                {
+                    RenderDetail(stack.StackId, "직원 관리에서 회수 작업자를 먼저 선택해야 합니다.");
+                    return;
+                }
+                bool success = equipmentRuntime.TrySalvage(
+                    equipment.instanceId,
+                    worker,
+                    currentPosition,
+                    out string recoveredItemId,
+                    out int recoveredAmount,
+                    out string failureReason);
+                if (!success)
+                {
+                    RenderDetail(stack.StackId, failureReason);
+                    return;
+                }
+                selectedStackId = string.Empty;
+                RenderList($"{recoveredItemId} x{recoveredAmount}을 회수했습니다.");
+            });
+        }
+
+        labels.Add("버리기");
+        actions.Add(() =>
+        {
+            bool salvageable = false;
+            bool deleted = isEquipment
+                ? equipmentRuntime.TryDiscardBySourceStack(
+                    stack.StackId,
+                    out salvageable,
+                    out _)
+                : itemStackRuntime.DeleteStack(stack.StackId);
+            if (!deleted)
+            {
+                RenderDetail(stack.StackId, "선택한 물품을 버리지 못했습니다.");
+                return;
+            }
+            foreach (CharacterActor actor in characterWorld.Characters
+                         .Where(value => value != null && !value.IsDead)
+                         .OrderBy(value => value.Identity?.PersistentId,
+                             StringComparer.Ordinal))
+            {
+                identityMoods.Apply(
+                    actor,
+                    "resource:wasted",
+                    0f,
+                    2,
+                    "물품 폐기");
+                if (salvageable)
+                {
+                    identityMoods.Apply(
+                        actor,
+                        "resource:salvageable-discarded",
+                        0f,
+                        1,
+                        "회수 가능한 장비 폐기");
+                }
+            }
+            selectedStackId = string.Empty;
+            RenderList("스택을 버렸습니다.");
+        });
+
+        float width = 1f / labels.Count;
+        for (int i = 0; i < labels.Count; i++)
         {
             Button button = CreateButton("DetailAction_" + i, contentRoot, labels[i], actions[i].Invoke);
             RectTransform rect = button.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(i * 0.25f, 0f);
-            rect.anchorMax = new Vector2((i + 1) * 0.25f, 0f);
+            rect.anchorMin = new Vector2(i * width, 0f);
+            rect.anchorMax = new Vector2((i + 1) * width, 0f);
             rect.pivot = new Vector2(0.5f, 0f);
             rect.offsetMin = new Vector2(i == 0 ? 0f : 4f, 0f);
-            rect.offsetMax = new Vector2(i == labels.Length - 1 ? 0f : -4f, 44f);
+            rect.offsetMax = new Vector2(i == labels.Count - 1 ? 0f : -4f, 44f);
         }
     }
 
@@ -563,7 +719,7 @@ public sealed class ItemPileInfoPanel : UIPopUp
 
         return stack.State switch
         {
-            WorldItemStackState.Loose => stack.IsReserved ? "바닥/예약" : "바닥",
+            WorldItemStackState.Loose => stack.HasReservations ? "바닥/예약" : "바닥",
             WorldItemStackState.Stored => "저장됨",
             WorldItemStackState.FacilityBuffer => "시설 버퍼",
             WorldItemStackState.FacilityOutputBuffer => "시설 출력 버퍼",

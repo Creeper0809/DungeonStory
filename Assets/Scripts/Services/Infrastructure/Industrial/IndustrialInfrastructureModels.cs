@@ -142,7 +142,7 @@ public sealed class ConveyorFilterCriteria
     public CombatEquipmentQuality minimumQuality =
         CombatEquipmentQuality.Awful;
     public CombatEquipmentQuality maximumQuality =
-        CombatEquipmentQuality.Legendary;
+        CombatEquipmentQuality.Mythic;
     public bool filterFreshness;
     [Range(0f, 1f)] public float minimumFreshness01;
     [Range(0f, 1f)] public float maximumFreshness01 = 1f;
@@ -158,7 +158,7 @@ public sealed class ConveyorFilterSaveData
     public bool allowForbidden;
     public bool filterQuality;
     public int minimumQuality = (int)CombatEquipmentQuality.Awful;
-    public int maximumQuality = (int)CombatEquipmentQuality.Legendary;
+    public int maximumQuality = (int)CombatEquipmentQuality.Mythic;
     public bool filterFreshness;
     public float minimumFreshness01;
     public float maximumFreshness01 = 1f;

@@ -72,6 +72,11 @@ public static class ResourceStockPolicySaveValidation
                 report.AddError(
                     $"Stock-policy '{policy.itemId}' has invalid thresholds.");
             }
+            if (policy.isEmergencyReserve && !policy.enabled)
+            {
+                report.AddError(
+                    $"Emergency stock-policy '{policy.itemId}' is disabled.");
+            }
             if (policy.lastStatus == null
                 || !string.Equals(
                     policy.lastStatus,

@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uC548\uC815\uB41C \uBC1C\uB180\uB9BC"
   description: "\uC794\uD574\uC640 \uBE44\uD0C8\uC5D0\uC11C \uC18D\uB3C4\uB97C \uC720\uC9C0\uD558\uBA70
     \uCD94\uB77D \uC704\uD5D8\uC744 \uC2EB\uC5B4\uD558\uC9C0 \uC54A\uB294\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1.04
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,42 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 1
+  polarity: 0
+  selectionFamilyId: mobility
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: travel:rough-ground
-    utilityDelta: 0.3
-  moodReactions:
-  - triggerTag: event:safe-crossing
-    moodDelta: 2
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: expedition
-    multiplier: 1.2
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:202:effect:0
+    definition: {fileID: 11400000, guid: 5efe462ac434ee74498e829584182490, type: 2}
+    value: 1.04
+    condition: {fileID: 11400000, guid: 443a18978786400409c747edaeec4bd2, type: 2}
+  - bindingId: trait:202:effect:1
+    definition: {fileID: 11400000, guid: ab46736f68b07c442bc3c27bbc87e7cc, type: 2}
+    value: 0.8
+    condition: {fileID: 11400000, guid: ce4b47015247cd243b782a063851f081, type: 2}
+  identityRules:
+  - rid: 7737211921986486437
+  - rid: 7737211921986486438
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486437
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:rough-rescue
+        priority: 0
+        behaviorTag: work:rough-terrain-rescue
+        utilityDelta: 0.55
+    - rid: 7737211921986486438
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:rough-crossing
+        priority: 0
+        eventId: terrain:rough-crossed-safely
+        moodDelta: 2
+        durationDays: 1

@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uACC4\uBCF4 \uC778\uC7A5"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uACC4\uBCF4 \uC778\uC7A5."
   stockCategory: 1
-  unitWeight: 4.33
+  unitWeight: 1.1
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 284
+  unitPrice: 42
   features:
-  - rid: 7737211838078124734
-  - rid: 7737211838078124735
+  - rid: 7737211905660420153
+  - rid: 7737211905660420154
+  - rid: 7737211905660420846
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124734
+    - rid: 7737211905660420153
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:lineage-binding
-    - rid: 7737211838078124735
+    - rid: 7737211905660420154
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1024
         sharedIntermediate: 0
+    - rid: 7737211905660420846
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0

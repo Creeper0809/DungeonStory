@@ -369,17 +369,29 @@ public sealed class CareerRuntime : ICareerService, ICareerPersistence
     public void AssignMentorship(
         CharacterId mentorCharacterId,
         CharacterId studentCharacterId,
-        BuildingInstanceId academyBuildingId) =>
+        BuildingInstanceId academyBuildingId,
+        CharacterProficiencyId proficiencyId) =>
         Writable.AssignMentorship(
             mentorCharacterId,
             studentCharacterId,
-            academyBuildingId);
+            academyBuildingId,
+            proficiencyId);
     public void ClearMentorship(CharacterId studentCharacterId) =>
         Writable.ClearMentorship(studentCharacterId);
     public bool TryMarkMentoringAwarded(
         CharacterId studentCharacterId,
         int absoluteDay) =>
         Writable.TryMarkMentoringAwarded(studentCharacterId, absoluteDay);
+    public CareerMentorshipSnapshot RecordMentorshipWork(
+        CharacterId studentCharacterId,
+        int absoluteDay,
+        bool mentorContribution,
+        float approvedWork) =>
+        Writable.RecordMentorshipWork(
+            studentCharacterId,
+            absoluteDay,
+            mentorContribution,
+            approvedWork);
     public int ResolveMentoringXp(int requestedXp) => Math.Clamp(
         requestedXp,
         0,

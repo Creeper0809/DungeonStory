@@ -184,45 +184,12 @@ public sealed class CharacterSummaryGrowthPresenter
         CharacterProgression progression,
         string traits)
     {
-        StringBuilder builder = new StringBuilder(768);
+        StringBuilder builder = new StringBuilder(384);
         builder.AppendLine(
-            $"Lv.{progression.Level}  ·  잠재력 {CharacterSkillDisplay.Potential(progression.PotentialGrade)}  ·  성장 +{progression.GrowthState.allocatedGrowthPoints}");
+            $"Lv.{progression.Level}  ·  잠재력 {CharacterSkillDisplay.Potential(progression.PotentialGrade)}");
         builder.AppendLine($"특성  {(string.IsNullOrWhiteSpace(traits) ? "없음" : traits)}");
-        builder.AppendLine("능력치  기본 | 종족·특성 | 레벨 | 장비 | 조건부 | 최종");
-
-        CombatEquipmentUiStatBlock equipment = combatPresenter.GetCurrentEquipmentBonuses(actor);
-        foreach (CharacterStatDefinition definition in CharacterStatCatalog.All
-                     .Where(item => item.LegacyType.HasValue))
-        {
-            CharacterStatType statType = definition.LegacyType.Value;
-            CharacterStatBreakdown breakdown = progression.GetStatBreakdown(statType);
-            int equipmentBonus = GetEquipmentBonus(equipment, statType);
-            int finalValue = Mathf.Max(0, breakdown.FinalValue + equipmentBonus);
-            builder.AppendLine(
-                $"{definition.DisplayName}  {breakdown.BaseValue} | {CharacterSummaryTextFormatter.FormatSigned(breakdown.SpeciesTraitValue)}"
-                + $" | {CharacterSummaryTextFormatter.FormatSigned(breakdown.LevelGrowthValue)}"
-                + $" | {CharacterSummaryTextFormatter.FormatSigned(equipmentBonus)}"
-                + $" | {CharacterSummaryTextFormatter.FormatSigned(breakdown.ConditionalPassiveValue)} | {finalValue}");
-        }
-
-        builder.AppendLine(equipment != null && equipment.maxHealth != 0
-            ? $"장비 체력 {CharacterSummaryTextFormatter.FormatSigned(equipment.maxHealth)} · 장비 보정은 출정 전투에만 적용"
-            : "장비 보정은 출정 전투에만 적용");
-
-        IReadOnlyList<CharacterGrowthAllocationRecord> records = progression.GrowthState.allocationRecords;
-        if (records == null || records.Count == 0)
-        {
-            builder.Append("최근 성장  아직 레벨 성장 기록 없음");
-        }
-        else
-        {
-            builder.Append("최근 성장  ");
-            builder.Append(string.Join(" / ", records
-                .Where(record => record != null)
-                .OrderByDescending(record => record.level)
-                .Take(4)
-                .Select(FormatGrowthAllocationRecord)));
-        }
+        builder.AppendLine("레벨은 서사 기술과 선택지를 열며 능력치를 직접 올리지 않습니다.");
+        builder.Append("실제 작업·전투 성장은 숙련 탭의 9종 XP와 속도·품질·사고 위험 효과를 확인하세요.");
         return builder.ToString();
     }
 
@@ -235,35 +202,6 @@ public sealed class CharacterSummaryGrowthPresenter
                 && !draft.permanentlyChosen)
             .OrderBy(draft => draft.unlockLevel)
             .FirstOrDefault();
-    }
-
-    private static string FormatGrowthAllocationRecord(CharacterGrowthAllocationRecord record)
-    {
-        string statName = CharacterStatCatalog.TryGet(record.statType, out CharacterStatDefinition definition)
-            ? definition.DisplayName
-            : record.statType.ToString();
-        string reason = string.IsNullOrWhiteSpace(record.reason) ? "성장 기록" : record.reason;
-        return $"Lv.{record.level} {statName}+1({reason})";
-    }
-
-    private static int GetEquipmentBonus(
-        CombatEquipmentUiStatBlock equipment,
-        CharacterStatType statType)
-    {
-        if (equipment == null)
-        {
-            return 0;
-        }
-
-        return statType switch
-        {
-            CharacterStatType.Attack => equipment.attack,
-            CharacterStatType.Strength => equipment.strength,
-            CharacterStatType.Toughness => equipment.toughness,
-            CharacterStatType.Dexterity => equipment.dexterity,
-            CharacterStatType.MoveSpeed => equipment.moveSpeed,
-            _ => 0
-        };
     }
 
     private static void SetMeter(Slider slider, float normalizedValue, string valueText)

@@ -494,7 +494,7 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
             carcass.SourceSpeciesTag,
             StringComparison.OrdinalIgnoreCase);
         butcher.ApplyMoodFactor(
-            "survival:emergency-butchery",
+            "mood:butchery-guilt",
             sameSpecies ? "동족의 사체를 손질함" : "인간형 사체를 손질함",
             sameSpecies ? -16f : -9f,
             900f,
@@ -529,7 +529,7 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
         cachedBestButcherCarcass = itemStackRuntime.GetAllStacks()
             .Where(stack => stack != null
                 && !stack.Forbidden
-                && !stack.IsReserved
+                && stack.AvailableQuantity > 0
                 && (WildlifeItemDefinitions.TryGetSpeciesIdFromCarcass(stack.ItemId, out _)
                     || (string.Equals(
                             stack.ItemId,

@@ -24,7 +24,7 @@ MonoBehaviour:
   cultureId: culture:myconid-grove
   requiredBuildingDefinitionId: building:cave-growing-rack
   requiredItems:
-  - itemDefinitionId: food:cultured-mushroom
+  - itemDefinitionId: resource:cave-mushroom
     amount: 14
   minimumParticipants: 6
   successOutcome:

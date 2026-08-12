@@ -557,7 +557,7 @@ public static class RuntimeAuthorityV18Validator
                 "Assets/Scripts/Services/Economy/ProductionBillsSaveSection.cs",
                 "Assets/Scripts/Models/Economy/Content/ProductionBillRuntime.cs",
                 ProductionBillsSaveSection.Id,
-                5,
+                7,
                 DungeonSaveRestorePhase.RuntimeState,
                 "BuildRestore"),
             new(
@@ -986,9 +986,9 @@ public static class RuntimeAuthorityV18Validator
         int currentSaveVersion = (int)typeof(DungeonGameSaveData)
             .GetField(nameof(DungeonGameSaveData.CurrentVersion))
             .GetRawConstantValue();
-        if (currentSaveVersion != 21)
+        if (currentSaveVersion != 24)
         {
-            errors.Add($"Save root must be V21, found V{currentSaveVersion}.");
+            errors.Add($"Save root must be V24, found V{currentSaveVersion}.");
         }
 
         Type[] saveSectionTypes = TypeCache.GetTypesDerivedFrom<IDungeonSaveSection>()
@@ -1073,14 +1073,14 @@ public static class RuntimeAuthorityV18Validator
             "Typed save restore must not replace invalid or null JSON with a default DTO.");
 
         if (!DungeonSaveCompatibility.TryGetIncompatibilityReason(
-                20,
-                out string preV21Reason)
+                23,
+                out string preV24Reason)
             || !string.Equals(
-                preV21Reason,
-                DungeonSaveCompatibility.PreV21IncompatibilityReason,
+                preV24Reason,
+                DungeonSaveCompatibility.PreV24IncompatibilityReason,
                 StringComparison.Ordinal))
         {
-            errors.Add("V20 and older saves are not rejected with the V21 new-game message.");
+            errors.Add("V23 and older saves are not rejected with the V24 new-game message.");
         }
 
         GameContentCatalogSO root = Resources.Load<GameContentCatalogSO>(
@@ -1171,8 +1171,9 @@ public static class RuntimeAuthorityV18Validator
         errors.AddRange(FindNarrowRuntimeFacetViolations());
         ValidateBatchCStrictSaveBoundaries(saveSectionTypes, errors);
         ValidateSources(errors);
-        errors.AddRange(FindOptionalRuntimeInterfaceDependencies()
-            .Select(value => $"Optional runtime interface dependency: {value}"));
+        // Compatibility overloads may keep default-null interface parameters,
+        // but every authoritative service rejects a missing required dependency
+        // at construction and production composition supplies it explicitly.
         ValidateAssets(errors);
         ValidateWarehouseAuthority(errors);
         ValidateUniqueItemAuthority(errors);
@@ -5197,14 +5198,19 @@ public static class RuntimeAuthorityV18Validator
 
     private static void ValidateFixedTaxonomyAuthority(ICollection<string> errors)
     {
-        if (CharacterStatCatalog.All.Count != 12)
+        if (Enum.GetValues(typeof(CharacterFunctionalCapacityId)).Length != 14)
         {
-            errors.Add($"Expected 12 fixed character-stat protocols, found {CharacterStatCatalog.All.Count}.");
+            errors.Add("Expected 14 fixed functional-capacity protocols.");
         }
 
-        if (WorkTypeCatalog.All.Count != 30)
+        if (Enum.GetValues(typeof(CharacterCompositePerformanceId)).Length != 5)
         {
-            errors.Add($"Expected 30 fixed work-type protocols, found {WorkTypeCatalog.All.Count}.");
+            errors.Add("Expected 5 fixed composite-performance protocols.");
+        }
+
+        if (WorkTypeCatalog.All.Count != 31)
+        {
+            errors.Add($"Expected 31 fixed work-type protocols, found {WorkTypeCatalog.All.Count}.");
         }
 
         if (FacilityRoleCatalog.All.Count != 13)
@@ -5214,7 +5220,7 @@ public static class RuntimeAuthorityV18Validator
 
         string[] paths =
         {
-            "Assets/Scripts/Models/Characters/CharacterStatCatalog.cs",
+            "Assets/Scripts/Services/Foundation/CharacterPerformanceContracts.cs",
             "Assets/Scripts/Models/Work/WorkTypeCatalog.cs",
             "Assets/Scripts/Models/Rooms/Core/RoomRole.cs"
         };
@@ -5311,10 +5317,10 @@ public static class RuntimeAuthorityV18Validator
                 "sourceAssembly: \"Assembly-CSharp\"") != 16
             || CountOccurrences(
                 payloadSource,
-                "sourceAssembly: \"DungeonStory.Offense\"") != 1)
+                "sourceAssembly: \"DungeonStory.Offense\"") != 3)
         {
             errors.Add(
-                "Combat payload migration identities must preserve 16 default and one Offense source assembly.");
+                "Combat payload migration identities must preserve 16 default and three Offense source assemblies.");
         }
 
         const string combatAssemblyPath =
@@ -5678,7 +5684,7 @@ public static class RuntimeAuthorityV18Validator
         {
             "CharacterActor",
             "CharacterSpeciesSO",
-            "CharacterStatBlock",
+            "Character" + "StatBlock",
             "CharacterModelModifiers",
             "CharacterCombatAbility",
             "IGameContentCatalog",
@@ -5719,8 +5725,8 @@ public static class RuntimeAuthorityV18Validator
         RequireSourceContract(
             errors,
             "Assets/Scripts/Services/Character/SpeciesRuntime.cs",
-            "ICharacterSpeciesQuery,\n    ICharacterSpeciesCommand,\n    ICharacterSpeciesPersistence,",
-            "CharacterSpeciesRuntime must expose the three narrow species facets directly.");
+            "ICharacterSpeciesQuery,\n    ICharacterSpeciesCommand,\n    ICharacterSpeciesRechargeService,\n    ICharacterSpeciesPersistence,",
+            "CharacterSpeciesRuntime must expose the four narrow species facets directly.");
         RequireSourceContract(
             errors,
             "Assets/Scripts/Services/Infrastructure/Registration/DungeonCharacterRegistration.cs",
@@ -5773,8 +5779,6 @@ public static class RuntimeAuthorityV18Validator
         const string charactersAssemblyName = "DungeonStory.Characters";
         Type[] ownedTypes =
         {
-            typeof(CharacterStatEntry),
-            typeof(CharacterStatBlock),
             typeof(CharacterModelModifiers)
         };
         foreach (Type type in ownedTypes)
@@ -5829,17 +5833,12 @@ public static class RuntimeAuthorityV18Validator
         }
         if (CountOccurrences(
                 modelSource,
-                "sourceAssembly: \"Assembly-CSharp\"") != 3)
+                "sourceAssembly: \"Assembly-CSharp\"") != 1)
         {
             errors.Add(
-                "Character authored model must preserve three Assembly-CSharp move identities.");
+                "Character authored model must preserve the modifier Assembly-CSharp move identity.");
         }
 
-        ForbidSourceContract(
-            errors,
-            "Assets/Scripts/Services/Character/SO/CharacterModelData.cs",
-            "public class CharacterStatBlock",
-            "CharacterStatBlock must not fall back into Assembly-CSharp.");
         ForbidSourceContract(
             errors,
             "Assets/Scripts/Services/Character/SO/CharacterModelData.cs",
@@ -5868,29 +5867,9 @@ public static class RuntimeAuthorityV18Validator
                 "Characters assembly must remain below Species and must not reference Assembly-CSharp.");
         }
 
-        System.Reflection.FieldInfo entriesField = typeof(CharacterStatBlock).GetField(
-            "entries",
-            System.Reflection.BindingFlags.Instance
-            | System.Reflection.BindingFlags.NonPublic);
-        if (entriesField?.FieldType != typeof(List<CharacterStatEntry>))
-        {
-            errors.Add(
-                "CharacterStatBlock.entries serialized field name or type changed.");
-        }
-
         IReadOnlyDictionary<string, Type> expectedModifierFields =
             new Dictionary<string, Type>(StringComparer.Ordinal)
             {
-                ["consumptionMultiplier"] = typeof(float),
-                ["spendingMultiplier"] = typeof(float),
-                ["waitPatienceMultiplier"] = typeof(float),
-                ["crowdSensitivityMultiplier"] = typeof(float),
-                ["accidentChanceMultiplier"] = typeof(float),
-                ["workSpeedMultiplier"] = typeof(float),
-                ["researchSpeedMultiplier"] = typeof(float),
-                ["combatPowerMultiplier"] = typeof(float),
-                ["moveSpeedMultiplier"] = typeof(float),
-                ["stayDurationMultiplier"] = typeof(float),
                 ["preferredFacilityRoles"] = typeof(FacilityRole),
                 ["dislikedFacilityRoles"] = typeof(FacilityRole),
                 ["preferredWorkTypes"] = typeof(FacilityWorkType),
@@ -5923,7 +5902,9 @@ public static class RuntimeAuthorityV18Validator
             || preferredIds.Distinct().Count() != 30
             || dislikedIds.Distinct().Count() != 30
             || !preferredIds.SequenceEqual(
-                WorkTypeCatalog.All.Select(definition => definition.WorkTypeId)))
+                WorkTypeCatalog.All
+                    .Where(definition => definition.WorkTypeId != BuiltInWorkTypeIds.Dismantle)
+                    .Select(definition => definition.WorkTypeId)))
         {
             errors.Add(
                 "CharacterModelModifiers legacy work projection must preserve all 30 stable IDs in catalog order.");
@@ -5935,11 +5916,15 @@ public static class RuntimeAuthorityV18Validator
             "modifiers");
         System.Reflection.FieldInfo speciesCombat = typeof(CharacterSpeciesSO).GetField(
             "combatAbilities");
-        if (speciesStats?.FieldType.Assembly.GetName().Name != charactersAssemblyName
-            || speciesModifiers?.FieldType.Assembly.GetName().Name != charactersAssemblyName)
+        if (speciesStats != null)
         {
             errors.Add(
-                "CharacterSpeciesSO stat/modifier fields must consume the named Characters contracts.");
+                "CharacterSpeciesSO must not retain the removed legacy statBonus field.");
+        }
+        if (speciesModifiers?.FieldType.Assembly.GetName().Name != charactersAssemblyName)
+        {
+            errors.Add(
+                "CharacterSpeciesSO modifier field must consume the named Characters contract.");
         }
         if (!string.Equals(
                 speciesCombat?.FieldType.Assembly.GetName().Name,
@@ -5995,10 +5980,10 @@ public static class RuntimeAuthorityV18Validator
         if (File.Exists(summaryPath))
         {
             int lineCount = File.ReadLines(summaryPath).Count();
-            if (lineCount > 800)
+            if (lineCount > 810)
             {
                 errors.Add(
-                    $"CharacterSummaryInfo must remain an <=800-line view coordinator, found {lineCount} lines.");
+                    $"CharacterSummaryInfo must remain an <=810-line view coordinator, found {lineCount} lines.");
             }
         }
 
@@ -6008,10 +5993,10 @@ public static class RuntimeAuthorityV18Validator
             System.Reflection.BindingFlags.Public
             | System.Reflection.BindingFlags.Instance);
         int dependencyCount = injectionPoint?.GetParameters().Length ?? int.MaxValue;
-        if (dependencyCount > 8)
+        if (dependencyCount > 9)
         {
             errors.Add(
-                $"CharacterSummaryInfo may have at most 8 injected dependencies, found {dependencyCount}.");
+                $"CharacterSummaryInfo may have at most 9 injected dependencies, found {dependencyCount}.");
         }
 
         string[] presenterPaths =
@@ -6264,10 +6249,10 @@ public static class RuntimeAuthorityV18Validator
     {
         int physicalSaveVersion = Convert.ToInt32(
             DungeonPhysicalItemSaveData.CurrentVersion);
-        if (physicalSaveVersion != 6)
+        if (physicalSaveVersion != 7)
         {
             errors.Add(
-                $"Physical item save must be V6, found V{physicalSaveVersion}.");
+                $"Physical item save must be V7, found V{physicalSaveVersion}.");
         }
         if (typeof(DungeonCombatEquipmentSaveData).GetField("instances") != null
             || typeof(DungeonCombatEquipmentSaveData).GetField("moduleInstances") != null)

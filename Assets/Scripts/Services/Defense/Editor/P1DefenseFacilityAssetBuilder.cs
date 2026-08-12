@@ -234,34 +234,114 @@ public static class P1DefenseFacilityAssetBuilder
         }
 
         int constructionCells = Mathf.Max(1, spec.width);
-        workAmount.constructionWorkRequired = Mathf.Clamp(
-            12f + constructionCells * 6f + spec.constructionCost * 0.02f,
-            12f,
-            120f);
-        workAmount.repairWorkRequired = Mathf.Clamp(
-            8f + constructionCells * 2f,
-            6f,
-            35f);
-        workAmount.cleanWorkRequired = Mathf.Clamp(
-            5f + constructionCells * 1.25f,
-            4f,
-            24f);
+        float footprint = Mathf.Clamp(
+            1f + 0.30f * (constructionCells - 1),
+            1f,
+            2.5f);
+        float capability = Mathf.Clamp(
+            1f + 0.10f * (spec.effectSpecs.Length + (spec.treasuryPowered ? 1 : 0)),
+            1f,
+            1.5f);
+        float constructionWork = RoundTo(180f * footprint * capability, 4f);
+        workAmount.constructionWorkRequired = constructionWork;
+        workAmount.repairWorkRequired = RoundTo(constructionWork * 0.25f, 2f);
+        workAmount.cleanWorkRequired = RoundTo(
+            Mathf.Clamp(constructionWork * 0.06f, 6f, 30f),
+            2f);
         workAmount.researchWorkRequired = 6f;
         workAmount.operateWorkRequired = 10f;
-        workAmount.SetConstructionMaterials(new[]
-        {
-            new ItemAmountDefinition(
-                "material:steel-ingot",
-                Mathf.Max(
-                    1,
-                    Mathf.CeilToInt(spec.constructionCost * 0.05f)))
-        });
+        workAmount.SetConstructionMaterials(ResolveConstructionMaterials(spec));
 
-        building.unlocked = true;
+        building.unlocked = !building.IsDeprecatedCompatibilityAsset;
         building.AbilityModules.EnsureStableIds();
         building.ValidateAbilitiesOrThrow();
         EditorUtility.SetDirty(building);
     }
+
+    private static IReadOnlyList<ItemAmountDefinition> ResolveConstructionMaterials(
+        DefenseAssetSpec spec) => ResolveConstructionMaterials(
+        spec.concept,
+        spec.width,
+        spec.effectSpecs.Length,
+        spec.treasuryPowered);
+
+    private static IReadOnlyList<ItemAmountDefinition> ResolveConstructionMaterials(
+        DefenseAttackConcept concept,
+        int authoredWidth,
+        int effectCount,
+        bool treasuryPowered)
+    {
+        List<ItemAmountDefinition> result = new();
+        void Add(string itemId, int amount)
+        {
+            if (amount <= 0)
+                return;
+            int index = result.FindIndex(value =>
+                string.Equals(value.ItemId, itemId, StringComparison.Ordinal));
+            if (index >= 0)
+            {
+                ItemAmountDefinition existing = result[index];
+                result[index] = new ItemAmountDefinition(
+                    itemId,
+                    existing.Amount + amount);
+            }
+            else
+            {
+                result.Add(new ItemAmountDefinition(itemId, amount));
+            }
+        }
+
+        int width = Mathf.Max(1, authoredWidth);
+        switch (concept)
+        {
+            case DefenseAttackConcept.Physical:
+                Add("material:stone-block", 4 + width);
+                Add("material:steel-ingot", 3 + width * 2);
+                Add("component:machine-parts", Mathf.Max(1, effectCount));
+                break;
+            case DefenseAttackConcept.Poison:
+                Add("material:stone-block", 6 + width);
+                Add("material:steel-ingot", 3 + width);
+                Add("component:machine-parts", 2);
+                Add("material:treated-lumber", 2);
+                break;
+            case DefenseAttackConcept.Fire:
+                Add("material:stone-block", 7 + width);
+                Add("material:steel-ingot", 4 + width);
+                Add("component:machine-parts", 2);
+                break;
+            case DefenseAttackConcept.Lightning:
+                Add("material:stone-block", 5 + width);
+                Add("material:steel-ingot", 3 + width);
+                Add("component:machine-parts", 2);
+                Add("component:rune-conductor", 2);
+                break;
+            case DefenseAttackConcept.Ice:
+                Add("material:stone-block", 5 + width);
+                Add("material:steel-ingot", 3 + width);
+                Add("component:machine-parts", 2);
+                Add("material:treated-lumber", 2);
+                break;
+            case DefenseAttackConcept.Guard:
+                Add("material:treated-lumber", 5 + width);
+                Add("material:stone-block", 3 + width);
+                Add("material:iron-ingot", 3);
+                if (effectCount > 0)
+                    Add("component:machine-parts", 1);
+                break;
+            default:
+                Add("material:treated-lumber", 4 + width);
+                Add("material:steel-ingot", 3);
+                Add("component:machine-parts", 2);
+                break;
+        }
+        if (treasuryPowered)
+            Add("component:precision-parts", 1);
+        return result;
+    }
+
+    private static float RoundTo(float value, float step) =>
+        Mathf.Max(step, Mathf.Round(value / step) * step);
 
     private static void EnhanceAllDefenseAssets()
     {
@@ -294,10 +374,51 @@ public static class P1DefenseFacilityAssetBuilder
             }
 
             ConfigureOperationalContract(building);
+            NormalizeExistingDefenseConstruction(building);
             building.AbilityModules.EnsureStableIds();
             building.ValidateAbilitiesOrThrow();
             EditorUtility.SetDirty(building);
         }
+    }
+
+    private static void NormalizeExistingDefenseConstruction(BuildingSO building)
+    {
+        BuildingWorkAmountAbility workAmount =
+            building.GetAbility<BuildingWorkAmountAbility>();
+        if (workAmount == null)
+        {
+            workAmount = new BuildingWorkAmountAbility();
+            building.AbilityModules.Add(workAmount);
+        }
+        int distinctMaterials = workAmount.GetConstructionMaterials()
+            .Select(value => value.ItemId)
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+        if (distinctMaterials >= 2)
+            return;
+
+        DefenseFacilityData defense = building.Defense;
+        bool advancedPower = defense.requiresPower
+            || defense.supplyKind == DefenseSupplyKind.Treasury
+            || building.GetAbility<BuildingTreasuryPoweredDefenseAbility>() != null;
+        workAmount.SetConstructionMaterials(ResolveConstructionMaterials(
+            defense.concept,
+            Mathf.Max(1, building.width),
+            defense.effectAssets?.Length ?? 0,
+            advancedPower));
+
+        int cells = Mathf.Max(1, building.width) * Mathf.Max(1, building.height);
+        float footprint = Mathf.Clamp(1f + 0.30f * (cells - 1), 1f, 2.5f);
+        float capability = Mathf.Clamp(
+            1f + 0.10f * ((defense.effectAssets?.Length ?? 0) + (advancedPower ? 1 : 0)),
+            1f,
+            1.5f);
+        float constructionWork = RoundTo(180f * footprint * capability, 4f);
+        workAmount.constructionWorkRequired = constructionWork;
+        workAmount.repairWorkRequired = RoundTo(constructionWork * 0.25f, 2f);
+        workAmount.cleanWorkRequired = RoundTo(
+            Mathf.Clamp(constructionWork * 0.06f, 6f, 30f),
+            2f);
     }
 
     private static void ConfigureOperationalContract(BuildingSO building)

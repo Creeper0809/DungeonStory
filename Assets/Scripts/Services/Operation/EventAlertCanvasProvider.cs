@@ -1,7 +1,11 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-public sealed class EventAlertCanvasProvider : IEventAlertCanvasProvider, IDungeonUiCanvasProvider
+public sealed class EventAlertCanvasProvider :
+    IEventAlertCanvasProvider,
+    IDungeonUiCanvasProvider,
+    IDisposable
 {
     private readonly DungeonSceneRuntimeReferences sceneReferences;
     private Canvas runtimeCanvas;
@@ -30,5 +34,20 @@ public sealed class EventAlertCanvasProvider : IEventAlertCanvasProvider, IDunge
         canvasObject.AddComponent<CanvasScaler>();
         canvasObject.AddComponent<GraphicRaycaster>();
         return runtimeCanvas;
+    }
+
+    public void Dispose()
+    {
+        if (runtimeCanvas == null)
+        {
+            return;
+        }
+
+        GameObject ownedCanvas = runtimeCanvas.gameObject;
+        runtimeCanvas = null;
+        if (ownedCanvas != null)
+        {
+            UnityEngine.Object.DestroyImmediate(ownedCanvas);
+        }
     }
 }

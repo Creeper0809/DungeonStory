@@ -97,3 +97,22 @@ public interface IWorkableFacility
     IEnumerator AllocateWorker(IBuildingVisitorPort actor);
     void DeallocateWorker(IBuildingVisitorPort actor);
 }
+
+/// <summary>
+/// Optional capacity-aware worker reservation boundary for facilities that
+/// intentionally accept more than one simultaneous worker. Ordinary facilities
+/// continue to use BuildingAssignment's single-worker reservation.
+/// </summary>
+public interface IParallelWorkerReservationFacility
+{
+    IBuildingCharacterPort PrimaryWorkerReservation { get; }
+    bool TryReserveParallelWorker(
+        IBuildingCharacterPort worker,
+        out FacilityAssignmentStatus status,
+        float seconds);
+    void RefreshParallelWorkerReservation(
+        IBuildingCharacterPort worker,
+        float seconds);
+    bool HasParallelWorkerReservationForOther(IBuildingCharacterPort worker);
+    void ReleaseParallelWorkerReservation(IBuildingCharacterPort worker);
+}

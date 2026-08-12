@@ -53,9 +53,13 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
     private readonly List<string> failures = new List<string>();
     private readonly List<string> errors = new List<string>();
     private readonly List<string> warnings = new List<string>();
-    private readonly List<float> frameTimesMs = new List<float>();
-    private readonly List<double> schedulerTimesMs = new List<double>();
-    private readonly List<long> gcAllocations = new List<long>();
+    private readonly List<float> frameTimesMs = new List<float>(16384);
+    private readonly List<double> schedulerTimesMs = new List<double>(16384);
+    private readonly List<long> editorBaselineGcAllocations = new List<long>(
+        GameplayGcAcceptancePolicy.EditorBaselineSampleFrames);
+    private readonly List<long> editorSteadyGcAllocations = new List<long>(
+        GameplayGcAcceptancePolicy.EditorBaselineSampleFrames);
+    private readonly List<long> gcAllocations = new List<long>(16384);
     private readonly List<long> saveSizes = new List<long>();
     private readonly Dictionary<int, ActorObservation> actorObservations = new Dictionary<int, ActorObservation>();
     private readonly HashSet<string> observedFlowSummaries = new HashSet<string>(StringComparer.Ordinal);
@@ -138,13 +142,19 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
         int targetDay = startDay + RequiredOperatingDayAdvances;
         float startGameTime = gameData.curTime.Value;
 
+        gcAllocationRecorder = ProfilerRecorder.StartNew(
+            ProfilerCategory.Memory,
+            "GC Allocated In Frame",
+            1);
+        yield return CaptureEditorGcBaseline();
+        yield return CaptureEditorSteadyStateGc();
+
         gameManager.isPause = false;
         gameData.gameSpeed.Value = SoakGameSpeed;
         Time.timeScale = SoakGameSpeed;
 
         startMonoBytes = UnityEngine.Profiling.Profiler.GetMonoUsedSizeLong();
         mainThreadRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Internal, "Main Thread", 1);
-        gcAllocationRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "GC Allocated In Frame", 1);
 
         SaveSnapshot("START_SAVE");
         float startedAt = Time.realtimeSinceStartup;
@@ -300,7 +310,8 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
             "SOAK_SAVE_RELOAD",
             restoreReport == null
                 ? "missing restore report"
-                : $"loaded={loaded}; buildings={restoreReport.RestoredBuildingCount}; characters={restoreReport.RestoredCharacterCount}; warnings={restoreReport.Warnings.Count}; errors={restoreReport.Errors.Count}");
+                : $"loaded={loaded}; buildings={restoreReport.RestoredBuildingCount}; characters={restoreReport.RestoredCharacterCount}; warnings={restoreReport.Warnings.Count}; errors={restoreReport.Errors.Count}; "
+                    + $"details={string.Join(" | ", restoreReport.Errors)}");
 
         FinishAndExit();
     }
@@ -550,8 +561,30 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
     {
         double p95FrameMs = Percentile(frameTimesMs.Select(value => (double)value), 0.95);
         double p95SchedulerMs = Percentile(schedulerTimesMs, 0.95);
-        double avgGcKb = gcAllocations.Count > 0 ? gcAllocations.Average() / 1024.0 : 0.0;
-        double maxGcKb = gcAllocations.Count > 0 ? gcAllocations.Max() / 1024.0 : 0.0;
+        double baselineAverageBytes = editorBaselineGcAllocations.Count > 0
+            ? editorBaselineGcAllocations.Average()
+            : 0d;
+        double baselineP95Bytes = Percentile(
+            editorBaselineGcAllocations.Select(value => (double)value),
+            0.95);
+        double steadyAverageBytes = editorSteadyGcAllocations.Count > 0
+            ? editorSteadyGcAllocations.Average()
+            : 0d;
+        double steadyP95Bytes = Percentile(
+            editorSteadyGcAllocations.Select(value => (double)value),
+            0.95);
+        double burstAverageBytes = gcAllocations.Count > 0
+            ? gcAllocations.Average()
+            : 0d;
+        double burstMaximumBytes = gcAllocations.Count > 0
+            ? gcAllocations.Max()
+            : 0d;
+        double incrementalAverageBytes = GameplayGcAcceptancePolicy.IncrementalBytes(
+            steadyAverageBytes,
+            baselineAverageBytes);
+        double incrementalP95Bytes = GameplayGcAcceptancePolicy.IncrementalBytes(
+            steadyP95Bytes,
+            baselineP95Bytes);
         double monoGrowthMb = (endMonoBytes - startMonoBytes) / 1024.0 / 1024.0;
 
         Check(frameTimesMs.Count > 100 && p95FrameMs <= 100.0,
@@ -560,12 +593,94 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
         Check(schedulerTimesMs.Count > 100 && p95SchedulerMs <= 8.0,
             "AI_PROCESSING_TIME",
             $"samples={schedulerTimesMs.Count}; p95={p95SchedulerMs:0.000}ms");
-        Check(monoGrowthMb <= 128.0,
+        Check(endMonoBytes - startMonoBytes <= GameplayGcAcceptancePolicy.RetainedMonoGrowthBytes,
             "MONO_MEMORY_GROWTH",
             $"start={startMonoBytes}; end={endMonoBytes}; delta={monoGrowthMb:0.00}MB");
-        Check(avgGcKb <= 2048.0,
-            "GC_ALLOCATION",
-            $"samples={gcAllocations.Count}; avg={avgGcKb:0.0}KB; max={maxGcKb:0.0}KB");
+        Check(editorBaselineGcAllocations.Count
+                == GameplayGcAcceptancePolicy.EditorBaselineSampleFrames,
+            "EDITOR_GC_BASELINE_COVERAGE",
+            $"samples={editorBaselineGcAllocations.Count}; "
+            + $"average={baselineAverageBytes / 1024d:0.0}KB; "
+            + $"p95={baselineP95Bytes / 1024d:0.0}KB");
+        Check(editorSteadyGcAllocations.Count
+                == GameplayGcAcceptancePolicy.EditorBaselineSampleFrames,
+            "EDITOR_GC_STEADY_COVERAGE",
+            $"samples={editorSteadyGcAllocations.Count}; "
+            + $"average={steadyAverageBytes / 1024d:0.0}KB; "
+            + $"p95={steadyP95Bytes / 1024d:0.0}KB");
+        Check(GameplayGcAcceptancePolicy.PassesEditorIncremental(
+                incrementalAverageBytes,
+                incrementalP95Bytes),
+            "EDITOR_GC_INCREMENT",
+            $"steadySamples={editorSteadyGcAllocations.Count}; "
+            + $"baselineAverage={baselineAverageBytes / 1024d:0.0}KB; "
+            + $"steadyAverage={steadyAverageBytes / 1024d:0.0}KB; "
+            + $"incrementAverage={incrementalAverageBytes / 1024d:0.0}KB; "
+            + $"baselineP95={baselineP95Bytes / 1024d:0.0}KB; "
+            + $"steadyP95={steadyP95Bytes / 1024d:0.0}KB; "
+            + $"incrementP95={incrementalP95Bytes / 1024d:0.0}KB; "
+            + $"budgets={GameplayGcAcceptancePolicy.EditorIncrementalAverageBytesPerFrame / 1024L}KB/"
+            + $"{GameplayGcAcceptancePolicy.EditorIncrementalP95BytesPerFrame / 1024L}KB");
+        Check(GameplayGcAcceptancePolicy.PassesEditorRunawayGuard(
+                burstAverageBytes,
+                burstMaximumBytes),
+            "EDITOR_GC_RUNAWAY_GUARD",
+            $"burstSamples={gcAllocations.Count}; "
+            + $"average={burstAverageBytes / 1024d:0.0}KB; "
+            + $"maximum={burstMaximumBytes / 1024d:0.0}KB; "
+            + $"guards={GameplayGcAcceptancePolicy.EditorAbsoluteAverageRunawayBytesPerFrame / 1024L}KB/"
+            + $"{GameplayGcAcceptancePolicy.EditorAbsoluteMaximumRunawayBytesPerFrame / 1024L}KB");
+    }
+
+    private IEnumerator CaptureEditorGcBaseline()
+    {
+        gameManager.isPause = true;
+        Time.timeScale = 0f;
+        for (int frame = 0;
+            frame < GameplayGcAcceptancePolicy.EditorBaselineWarmupFrames;
+            frame++)
+        {
+            yield return new WaitForEndOfFrame();
+        }
+
+        editorBaselineGcAllocations.Clear();
+        for (int frame = 0;
+            frame < GameplayGcAcceptancePolicy.EditorBaselineSampleFrames;
+            frame++)
+        {
+            yield return new WaitForEndOfFrame();
+            if (gcAllocationRecorder.Valid)
+            {
+                editorBaselineGcAllocations.Add(
+                    Math.Max(0L, gcAllocationRecorder.LastValue));
+            }
+        }
+    }
+
+    private IEnumerator CaptureEditorSteadyStateGc()
+    {
+        gameManager.isPause = false;
+        gameData.gameSpeed.Value = 1;
+        Time.timeScale = 1f;
+        for (int frame = 0;
+            frame < GameplayGcAcceptancePolicy.EditorBaselineWarmupFrames;
+            frame++)
+        {
+            yield return new WaitForEndOfFrame();
+        }
+
+        editorSteadyGcAllocations.Clear();
+        for (int frame = 0;
+            frame < GameplayGcAcceptancePolicy.EditorBaselineSampleFrames;
+            frame++)
+        {
+            yield return new WaitForEndOfFrame();
+            if (gcAllocationRecorder.Valid)
+            {
+                editorSteadyGcAllocations.Add(
+                    Math.Max(0L, gcAllocationRecorder.LastValue));
+            }
+        }
     }
 
     private IEnumerator CaptureScreen()

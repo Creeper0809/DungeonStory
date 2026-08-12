@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uAC80\uC0AC \uAC8C\uC774\uC9C0"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uAC80\uC0AC \uAC8C\uC774\uC9C0."
   stockCategory: 1
-  unitWeight: 3.52
+  unitWeight: 2.35
   maxStack: 1
   sprite: {fileID: 0}
-  unitPrice: 230
+  unitPrice: 289
   features:
-  - rid: 7737211838078124336
-  - rid: 7737211838078124337
+  - rid: 7737211905658585906
+  - rid: 7737211905658585907
+  - rid: 7737211905660420756
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124336
+    - rid: 7737211905658585906
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:precision-fitting
-    - rid: 7737211838078124337
+    - rid: 7737211905658585907
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 512
         sharedIntermediate: 0
+    - rid: 7737211905660420756
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6001815

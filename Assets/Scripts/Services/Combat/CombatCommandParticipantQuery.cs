@@ -6,15 +6,19 @@ public sealed class CombatCommandParticipantQuery
 {
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly ICharacterBodyHealthQuery bodyHealth;
+    private readonly ICharacterPerformanceQuery performance;
 
     public CombatCommandParticipantQuery(
         ICharacterAiWorldRegistry worldRegistry,
-        ICharacterBodyHealthQuery bodyHealth)
+        ICharacterBodyHealthQuery bodyHealth,
+        ICharacterPerformanceQuery performance)
     {
         this.worldRegistry = worldRegistry
             ?? throw new ArgumentNullException(nameof(worldRegistry));
         this.bodyHealth = bodyHealth
             ?? throw new ArgumentNullException(nameof(bodyHealth));
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
     }
 
     public CombatParticipantRef Find(string id)
@@ -65,7 +69,8 @@ public sealed class CombatCommandParticipantQuery
         return participant.IsCharacter
             ? CombatRuntimeStatFactory.Create(
                 participant.Character,
-                bodyHealth.GetSnapshot(participant.Character))
+                bodyHealth.GetSnapshot(participant.Character),
+                performance)
             : CombatRuntimeStatFactory.Create(participant.Wildlife);
     }
 }

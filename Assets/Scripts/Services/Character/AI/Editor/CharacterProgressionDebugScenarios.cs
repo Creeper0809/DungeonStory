@@ -21,6 +21,7 @@ public static class CharacterProgressionDebugScenarios
 
     public static bool RunAll(bool logSuccess)
     {
+        CleanupLeakedActorFixtures();
         CharacterSkillRuntimeEffects.ResetTransientExecutionStateForDebug();
         List<string> errors = new List<string>();
         Run("level 50 experience curve", VerifyExperienceCurve, errors);
@@ -45,7 +46,23 @@ public static class CharacterProgressionDebugScenarios
             Debug.Log("Character progression scenarios passed.");
         }
 
+        CleanupLeakedActorFixtures();
         return errors.Count == 0;
+    }
+
+    private static void CleanupLeakedActorFixtures()
+    {
+        foreach (CharacterActor actor in UnityEngine.Object
+            .FindObjectsByType<CharacterActor>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None)
+            .Where(value => value != null
+                && value.name.StartsWith(
+                    "ProgressionActor_",
+                    StringComparison.Ordinal)))
+        {
+            UnityEngine.Object.DestroyImmediate(actor.gameObject);
+        }
     }
 
     private static bool VerifyPotentialAndRarityRules()
@@ -221,47 +238,27 @@ public static class CharacterProgressionDebugScenarios
     {
         using ActorFixture fixture = new ActorFixture(81001, "Growth", "Orc");
         CharacterProgression progression = fixture.Actor.Progression;
-        CharacterStatBlock initial = progression.GrowthState.initialBaseStats;
-        int initialTotal = Enum.GetValues(typeof(CharacterStatType))
-            .Cast<CharacterStatType>()
-            .Sum(initial.Get);
-        Require(initialTotal == 60, $"Initial stat total was {initialTotal}, not 60.");
-        Require(Enum.GetValues(typeof(CharacterStatType))
-                .Cast<CharacterStatType>()
-                .All(stat => initial.Get(stat) >= 1 && initial.Get(stat) <= 10),
-            "An initial stat was outside 1-10.");
+        IReadOnlyList<CharacterStartingProficiencyExperience> starts =
+            progression.GrowthState.startingProficiencies;
+        CharacterStartingProficiencyRules.Validate(starts);
+        string initialProjection = string.Join(
+            "|",
+            starts.OrderBy(value => value.proficiencyId, StringComparer.Ordinal)
+                .Select(value => $"{value.proficiencyId}:{value.experience}"));
 
         progression.AddExperience(GetExperienceToReach(50));
         Require(progression.Level == 50, $"Expected level 50, got {progression.Level}.");
-        Require(progression.GrowthState.allocatedGrowthPoints == 59,
-            $"Expected 59 level-growth points, got {progression.GrowthState.allocatedGrowthPoints}.");
-        Require(progression.GrowthState.allocationRecords.Count == 59
-                && progression.GrowthState.allocationRecords.All(record => record != null
-                    && record.level >= 2
-                    && record.level <= 50
-                    && !string.IsNullOrWhiteSpace(record.reason)),
-            "Level growth allocation records were not captured with level and reason.");
         Require(progression.CurrentExperience == 0 && progression.ExperienceToNextLevel == 0,
             "Level 50 retained experience or a next-level requirement.");
-        Require(Enum.GetValues(typeof(CharacterStatType))
-                .Cast<CharacterStatType>()
-                .All(stat => progression.GrowthState.levelGrowthStats.Get(stat) <= 30),
-            "A stat exceeded the configured level-growth cap.");
-        Require(Enum.GetValues(typeof(CharacterStatType))
-                .Cast<CharacterStatType>()
-                .All(stat => progression.GrowthState.allocationRecords.Count(record => record.statType == stat)
-                    == progression.GrowthState.levelGrowthStats.Get(stat)),
-            "Level growth allocation records did not match levelGrowthStats.");
-        Require(Enum.GetValues(typeof(CharacterStatType))
-                .Cast<CharacterStatType>()
-                .All(stat =>
-                {
-                    CharacterStatBreakdown breakdown = progression.GetStatBreakdown(stat);
-                    return breakdown.BaseValue == initial.Get(stat)
-                        && breakdown.LevelGrowthValue == progression.GrowthState.levelGrowthStats.Get(stat)
-                        && breakdown.FinalValue == progression.GetFinalStat(stat);
-                }),
-            "Character stat breakdown no longer matches final stat calculation.");
+        Require(string.Equals(
+                initialProjection,
+                string.Join(
+                    "|",
+                    progression.GrowthState.startingProficiencies
+                        .OrderBy(value => value.proficiencyId, StringComparer.Ordinal)
+                        .Select(value => $"{value.proficiencyId}:{value.experience}")),
+                StringComparison.Ordinal),
+            "Generic character levels changed proficiency-derived performance.");
         return true;
     }
 
@@ -686,7 +683,7 @@ public static class CharacterProgressionDebugScenarios
         Require(restoredDraft.candidates.Select(skill => skill.id)
                 .SequenceEqual(sourceDraft.candidates.Select(skill => skill.id)),
             "Reloading regenerated prepared candidates.");
-        Require(restored.Actor.Progression.GrowthState.traitIds.Count == 3
+        Require(restored.Actor.Progression.GrowthState.traitIds.Count == 0
             && restored.Actor.Progression.PassiveSkills.Count == 1,
             "Traits and learned passives were not persisted as separate concepts.");
         return true;
@@ -717,7 +714,6 @@ public static class CharacterProgressionDebugScenarios
                 "검증자",
                 "테스트",
                 Array.Empty<int>(),
-                CharacterStatBlock.CreateDefault(),
                 CharacterPotentialGrade.Ordinary,
                 7717,
                 autoChooseDrafts: false);
@@ -875,7 +871,6 @@ public static class CharacterProgressionDebugScenarios
                 "재시도 원본",
                 "테스트",
                 Array.Empty<int>(),
-                CharacterStatBlock.CreateDefault(),
                 CharacterPotentialGrade.Promising,
                 991,
                 autoChooseDrafts: false);
@@ -1071,25 +1066,15 @@ public static class CharacterProgressionDebugScenarios
     private sealed class ActorFixture : IDisposable
     {
         private readonly CharacterSO data;
-        private readonly CharacterSpeciesSO species;
         private readonly CharacterSkillSystemSettingsSO settings;
 
         public ActorFixture(int id, string displayName, string speciesTag)
         {
             settings = EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
-            species = ScriptableObject.CreateInstance<CharacterSpeciesSO>();
-            species.speciesTag = speciesTag;
-            species.displayName = speciesTag;
-
-            data = ScriptableObject.CreateInstance<CharacterSO>();
-            data.id = id;
-            data.characterName = displayName;
-            data.characterType = CharacterType.NPC;
-            data.role = CharacterRole.Regular;
-            data.speciesTag = speciesTag;
-            data.species = species;
-            data.traits = Array.Empty<CharacterTraitSO>();
-            data.baseStats = CharacterStatBlock.CreateDefault();
+            data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+                CharacterType.NPC,
+                displayName,
+                speciesTag);
             data.defaultWorkPriorities = WorkPriorityProfile.CreateDefault();
 
             GameObject actorObject = new GameObject($"ProgressionActor_{id}");
@@ -1116,8 +1101,7 @@ public static class CharacterProgressionDebugScenarios
             Actor.Progression.ApplyPreparedIdentity(
                 displayName,
                 $"{speciesTag} test origin",
-                new[] { 1, 2, 3 },
-                CharacterGrowthRules.RollInitialStats(settings, random),
+                Array.Empty<int>(),
                 CharacterGrowthRules.RollPotential(settings, random),
                 id,
                 autoChooseDrafts: false);
@@ -1128,9 +1112,21 @@ public static class CharacterProgressionDebugScenarios
 
         public void Dispose()
         {
+            if (Application.isPlaying
+                && Actor != null
+                && Actor.Identity != null)
+            {
+                CharacterId characterId = new(Actor.Identity.PersistentId);
+                if (characterId.IsValid)
+                {
+                    DungeonRuntimeLifetimeScope scope = UnityEngine.Object
+                        .FindFirstObjectByType<DungeonRuntimeLifetimeScope>();
+                    scope?.Container?.Resolve<IPopulationHealthService>()
+                        ?.RemovePendingExposures(characterId);
+                }
+            }
             if (Actor != null) UnityEngine.Object.DestroyImmediate(Actor.gameObject);
             if (data != null) UnityEngine.Object.DestroyImmediate(data);
-            if (species != null) UnityEngine.Object.DestroyImmediate(species);
             if (settings != null) UnityEngine.Object.DestroyImmediate(settings);
         }
     }
@@ -1362,12 +1358,19 @@ public static class CharacterPopulationDebugScenarios
             "World-character persistent IDs were duplicated.");
         Require(acquired.All(profile => profile.growth != null
                 && profile.growth.initialized
-                && profile.growth.traitIds.Count == 3),
-            "A visitor profile was missing initialized growth or three traits.");
-        Require(acquired.All(profile => Enum.GetValues(typeof(CharacterStatType))
-                .Cast<CharacterStatType>()
-                .Sum(profile.growth.initialBaseStats.Get) == 60),
-            "A visitor profile did not receive exactly 55 initial stat points.");
+                && profile.growth.traitIds.Count >= 1
+                && profile.growth.traitIds.Count <= 4),
+            "A visitor profile was missing initialized growth or a valid 1-4 trait roll.");
+        Require(acquired.All(profile =>
+                profile.growth.startingProficiencies != null
+                && profile.growth.startingProficiencies.Count == 9
+                && profile.growth.startingProficiencies.All(value =>
+                    value != null
+                    && value.experience
+                        >= CharacterStartingProficiencyRules.MinimumStartingExperience
+                    && value.experience
+                        <= CharacterStartingProficiencyRules.MaximumStartingExperience)),
+            "A visitor profile did not receive the nine initial proficiencies.");
 
         WorldCharacterProfile returning = first;
         returning.isVisiting = false;

@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uAC00\uB974\uCE58\uB294 \uBC84\uB987"
   description: "\uD63C\uC790 \uBE68\uB9AC \uB05D\uB0B4\uAE30\uBCF4\uB2E4 \uC606 \uC0AC\uB78C\uC5D0\uAC8C
     \uACFC\uC815\uC744 \uC124\uBA85\uD558\uB824 \uD55C\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 0.98
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,42 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 0
+  polarity: 1
+  selectionFamilyId: mentorship
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: work:mentor
-    utilityDelta: 0.5
-  moodReactions:
-  - triggerTag: event:student-progress
-    moodDelta: 3
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: apprenticeship
-    multiplier: 1.45
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:226:effect:0
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 0.98
+    condition: {fileID: 0}
+  - bindingId: trait:226:effect:1
+    definition: {fileID: 11400000, guid: 91236b7225ff18640bfbae3381da97bc, type: 2}
+    value: 1.2
+    condition: {fileID: 11400000, guid: 06e55bbb41655d342a9c6af2c791918b, type: 2}
+  identityRules:
+  - rid: 7737211921986486475
+  - rid: 7737211921986486476
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486475
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:mentor-novice
+        priority: 0
+        behaviorTag: work:mentoring
+        utilityDelta: 0.75
+    - rid: 7737211921986486476
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:mentee-ranked-up
+        priority: 0
+        eventId: mentee:rank-up
+        moodDelta: 3
+        durationDays: 2

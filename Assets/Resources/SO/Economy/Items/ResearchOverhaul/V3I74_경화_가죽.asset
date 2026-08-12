@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uACBD\uD654 \uAC00\uC8FD"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uACBD\uD654 \uAC00\uC8FD."
   stockCategory: 1
-  unitWeight: 2.44
+  unitWeight: 0.95
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 158
+  unitPrice: 14
   features:
-  - rid: 7737211838078124172
-  - rid: 7737211838078124173
+  - rid: 7737211905658585827
+  - rid: 7737211905658585828
+  - rid: 7737211905660420730
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124172
+    - rid: 7737211905658585827
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:armor-tailoring
-    - rid: 7737211838078124173
+    - rid: 7737211905658585828
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 128
         sharedIntermediate: 1
+    - rid: 7737211905660420730
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.60139215

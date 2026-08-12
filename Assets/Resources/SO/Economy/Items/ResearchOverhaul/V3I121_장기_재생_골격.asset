@@ -27,23 +27,28 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC7A5\uAE30 \uC7AC\uC0DD
     \uACE8\uACA9."
   stockCategory: 5
-  unitWeight: 3.85
+  unitWeight: 0.5
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 252
+  unitPrice: 69
   features:
-  - rid: 7737211838078125034
-  - rid: 7737211838078125035
+  - rid: 7737211905658585615
+  - rid: 7737211905658585616
+  - rid: 7737211905660420673
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078125034
+    - rid: 7737211905658585615
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:organ-regeneration
-    - rid: 7737211838078125035
+    - rid: 7737211905658585616
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 128
         sharedIntermediate: 0
+    - rid: 7737211905660420673
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.5998332

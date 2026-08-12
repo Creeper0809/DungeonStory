@@ -7,6 +7,16 @@ public interface IDungeonSavePreflightValidator
     void Validate(DungeonGameSaveData saveData, DungeonGameRestoreReport report);
 }
 
+public interface IDungeonSaveCaptureGuard
+{
+    void ValidateBeforeCapture();
+}
+
+public interface IDungeonSaveRestoreCompletedHook
+{
+    void OnRestoreCompleted();
+}
+
 /// <summary>
 /// Validates identities and authored-content references across aggregate payloads before
 /// any save section is allowed to mutate the live world.

@@ -24,8 +24,8 @@ MonoBehaviour:
   cultureId: culture:golem-core
   requiredBuildingDefinitionId: building:rune-tuning-room
   requiredItems:
-  - itemDefinitionId: component:maintenance-parts
-    amount: 10
+  - itemDefinitionId: tool:maintenance-kit
+    amount: 2
   minimumParticipants: 5
   successOutcome:
     moodDelta: 6

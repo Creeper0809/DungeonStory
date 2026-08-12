@@ -163,6 +163,15 @@ public class AIFacilityRoleAction : AIActionSet
                     FacilityRole.Toilet));
         }
 
+        if ((role & FacilityRole.Entertainment) != 0)
+        {
+            need = Mathf.Max(
+                need,
+                CharacterNeedAiThresholds.GetRoutineUtility(
+                    actor,
+                    CharacterCondition.FUN));
+        }
+
         return need;
     }
 }

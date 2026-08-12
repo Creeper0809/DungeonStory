@@ -11,10 +11,12 @@ public static class OffenseEncounterCatalog
     public static OffenseBattleCombatant CreateAlly(
         CharacterActor actor,
         string persistentId,
+        ICharacterPerformanceQuery performance,
         OffenseFormationSlot formation = OffenseFormationSlot.Front,
         float stress = 0f)
     {
         if (actor == null) throw new ArgumentNullException(nameof(actor));
+        if (performance == null) throw new ArgumentNullException(nameof(performance));
         actor.EnsureRuntimeState();
         CharacterIdentity identity = actor.Identity;
         float stressMultiplier = Mathf.Lerp(
@@ -29,19 +31,19 @@ public static class OffenseEncounterCatalog
             OffenseBattleTeam.Allies,
             new OffenseBattleStats(
                 maxHealth,
-                actor.GetCharacterStat(CharacterStatType.Attack)
+                5f * performance.Evaluate(actor, "performance:combat:melee-hit").Value
                     * stressMultiplier,
-                actor.GetCharacterStat(CharacterStatType.Strength)
+                5f * performance.Evaluate(actor, "performance:combat:melee-power").Value
                     * stressMultiplier,
-                actor.GetCharacterStat(CharacterStatType.Toughness)
+                5f * performance.Evaluate(actor, "performance:combat:defense-reaction").Value
                     * stressMultiplier,
-                actor.GetCharacterStat(CharacterStatType.Dexterity)
+                5f * performance.Evaluate(actor, CharacterCompositePerformanceIds.PrecisionExecution).Value
                     * stressMultiplier,
-                actor.GetCharacterStat(CharacterStatType.MoveSpeed)
+                5f * performance.Evaluate(actor, "performance:combat:movement").Value
                     * stressMultiplier,
-                actor.GetCharacterStat(CharacterStatType.Shooting)
+                5f * performance.Evaluate(actor, "performance:combat:ranged-hit").Value
                     * stressMultiplier,
-                actor.GetCharacterStat(CharacterStatType.Evasion)
+                5f * performance.Evaluate(actor, "performance:combat:evasion").Value
                     * stressMultiplier),
             Mathf.Clamp(actor.CurrentHealth, 0f, maxHealth),
             CharacterCombatAbilityCatalog.GetAbilities(actor),

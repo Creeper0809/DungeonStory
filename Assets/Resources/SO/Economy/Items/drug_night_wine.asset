@@ -32,28 +32,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 14
   features:
-  - rid: 7737211838068949514
-  - rid: 7737211838068949515
-  - rid: 7737211838068949516
-  - rid: 7737211838068949517
+  - rid: 7737211905666711894
+  - rid: 7737211905666711895
+  - rid: 7737211905666711896
+  - rid: 7737211905666711897
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949514
+    - rid: 7737211905666711894
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:fermentation
-    - rid: 7737211838068949515
+    - rid: 7737211905666711895
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 4
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211838068949516
+    - rid: 7737211905666711896
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6
-    - rid: 7737211838068949517
+    - rid: 7737211905666711897
       type: {class: SubstanceItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         substanceId: substance:night-wine

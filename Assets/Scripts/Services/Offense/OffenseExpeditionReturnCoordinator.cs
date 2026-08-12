@@ -225,17 +225,21 @@ public sealed class OffenseExpeditionReturnCoordinator :
     private readonly IOffenseExpeditionReturnPort returnPort;
     private readonly IOffenseExpeditionResultFinalizer resultFinalizer;
     private readonly IGameEventBus events;
+    private readonly ICharacterPerformanceQuery performance;
 
     public OffenseExpeditionReturnCoordinator(
         IOffenseExpeditionReturnPort returnPort,
         IOffenseExpeditionResultFinalizer resultFinalizer,
-        IGameEventBus events)
+        IGameEventBus events,
+        ICharacterPerformanceQuery performance = null)
     {
         this.returnPort = returnPort
             ?? throw new ArgumentNullException(nameof(returnPort));
         this.resultFinalizer = resultFinalizer
             ?? throw new ArgumentNullException(nameof(resultFinalizer));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
     }
 
     public void Complete(
@@ -347,7 +351,7 @@ public sealed class OffenseExpeditionReturnCoordinator :
             members.Add(new OffenseExpeditionMemberSnapshot(
                 actor.Identity?.DisplayName ?? actor.name,
                 actor.Identity?.SpeciesTag ?? string.Empty,
-                OffenseExpeditionService.CalculateMemberPower(actor),
+                OffenseExpeditionService.CalculateMemberPower(actor, performance),
                 survived,
                 damageTaken));
         }

@@ -10,13 +10,17 @@ public readonly struct OffenseExpeditionLaunchDomain
         IOffenseStrategicTargetService targets,
         IOffenseFieldMedicalRuntime fieldMedical,
         IOffenseBattleRuntime battleRuntime,
-        IOffensePreparationService preparationService)
+        IOffensePreparationService preparationService,
+        ICombatEquipmentRuntime equipment,
+        ICharacterPerformanceQuery performance)
     {
         WorldMap = worldMap;
         Targets = targets;
         FieldMedical = fieldMedical;
         BattleRuntime = battleRuntime;
         PreparationService = preparationService;
+        Equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
+        Performance = performance ?? throw new ArgumentNullException(nameof(performance));
     }
 
     public OffenseWorldMapRuntime WorldMap { get; }
@@ -24,6 +28,8 @@ public readonly struct OffenseExpeditionLaunchDomain
     public IOffenseFieldMedicalRuntime FieldMedical { get; }
     public IOffenseBattleRuntime BattleRuntime { get; }
     public IOffensePreparationService PreparationService { get; }
+    public ICombatEquipmentRuntime Equipment { get; }
+    public ICharacterPerformanceQuery Performance { get; }
 }
 
 public readonly struct OffenseExpeditionLaunchInfrastructure
@@ -180,7 +186,10 @@ public sealed class OffenseExpeditionLaunchService
             }
         }
 
-        float totalPower = OffenseExpeditionService.CalculatePartyPower(party);
+        float totalPower = OffenseExpeditionService.CalculatePartyPower(
+            party,
+            domain.Equipment,
+            domain.Performance);
         expedition = new OffenseExpeditionRun(
             expeditionId,
             target,

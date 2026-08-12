@@ -57,6 +57,7 @@ public sealed class RegularCustomerRecord
             false,
             false,
             false,
+            0,
             recruitCapabilities);
     }
 
@@ -70,6 +71,7 @@ public sealed class RegularCustomerRecord
         bool isRegular,
         bool isRecruitCandidate,
         bool isRecruited,
+        int recruitedAbsoluteDay,
         RecruitCapability recruitCapabilities)
     {
         SourceData = sourceData;
@@ -82,6 +84,7 @@ public sealed class RegularCustomerRecord
             isRegular,
             isRecruitCandidate,
             isRecruited,
+            recruitedAbsoluteDay,
             recruitCapabilities);
     }
 
@@ -95,10 +98,20 @@ public sealed class RegularCustomerRecord
     public bool IsRegular => progress.IsRegular;
     public bool IsRecruitCandidate => progress.IsRecruitCandidate;
     public bool IsRecruited => progress.IsRecruited;
+    public int RecruitedAbsoluteDay => progress.RecruitedAbsoluteDay;
     public RecruitCapability RecruitCapabilities => progress.RecruitCapabilities;
     public RegularCustomerStatus Status => progress.Status;
 
     public void RecordVisit(CharacterActor customer, float satisfaction, RegularCustomerRules rules)
+    {
+        RecordVisit(customer, satisfaction, rules, allowRecruitCandidate: true);
+    }
+
+    public void RecordVisit(
+        CharacterActor customer,
+        float satisfaction,
+        RegularCustomerRules rules,
+        bool allowRecruitCandidate)
     {
         customer = CharacterActorCollection.GetCanonical(customer);
         if (customer != null)
@@ -109,12 +122,12 @@ public sealed class RegularCustomerRecord
                 RegularCustomerService.GetCustomerSpeciesTag(customer));
             SourceData = RegularCustomerService.GetCustomerData(customer) ?? SourceData;
         }
-        progress.RecordVisit(satisfaction, rules);
+        progress.RecordVisit(satisfaction, rules, allowRecruitCandidate);
     }
 
-    public bool MarkRecruited()
+    public bool MarkRecruited(int absoluteDay)
     {
-        return progress.MarkRecruited();
+        return progress.MarkRecruited(absoluteDay);
     }
 
     public bool MarkRecruitCandidate()
@@ -146,6 +159,7 @@ public sealed class RegularCustomerRecord
             IsRegular,
             IsRecruitCandidate,
             IsRecruited,
+            RecruitedAbsoluteDay,
             RecruitCapabilities)
         {
             ActiveActor = ActiveActor
@@ -261,6 +275,14 @@ public sealed class RegularCustomerState
 
     public RegularCustomerVisitResult RecordVisit(CharacterActor customer, RegularCustomerRules rules)
     {
+        return RecordVisit(customer, rules, allowRecruitCandidate: true);
+    }
+
+    public RegularCustomerVisitResult RecordVisit(
+        CharacterActor customer,
+        RegularCustomerRules rules,
+        bool allowRecruitCandidate)
+    {
         Dictionary<string, RegularCustomerRecord> records = Writable.Records;
         rules ??= RegularCustomerRules.CreateDefault();
         if (!RegularCustomerService.IsTrackableCustomer(customer))
@@ -277,7 +299,11 @@ public sealed class RegularCustomerState
 
         bool wasRegular = record.IsRegular;
         bool wasRecruitCandidate = record.IsRecruitCandidate;
-        record.RecordVisit(customer, RegularCustomerService.GetSatisfaction(customer), rules);
+        record.RecordVisit(
+            customer,
+            RegularCustomerService.GetSatisfaction(customer),
+            rules,
+            allowRecruitCandidate);
 
         bool becameRegular = !wasRegular && record.IsRegular;
         bool becameRecruitCandidate = !wasRecruitCandidate && record.IsRecruitCandidate;
@@ -316,6 +342,7 @@ public sealed class RegularCustomerState
             true,
             true,
             false,
+            0,
             capabilities);
         records.Add(record.CustomerId, record);
         return record;
@@ -329,9 +356,14 @@ public sealed class RegularCustomerState
             && record.IsRecruited;
     }
 
-    public bool TryRecruit(string customerId, out RegularCustomerRecruitResult result)
+    public bool TryRecruit(
+        string customerId,
+        int absoluteDay,
+        RegularCustomerRules rules,
+        out RegularCustomerRecruitResult result)
     {
         Dictionary<string, RegularCustomerRecord> records = Writable.Records;
+        rules ??= RegularCustomerRules.CreateDefault();
         if (!records.TryGetValue(customerId, out RegularCustomerRecord record))
         {
             result = new RegularCustomerRecruitResult(false, null, "단골 기록이 없습니다");
@@ -350,7 +382,19 @@ public sealed class RegularCustomerState
             return false;
         }
 
-        if (!record.MarkRecruited())
+        if (!CanRecruitOnDay(
+                absoluteDay,
+                rules,
+                out int nextAllowedAbsoluteDay))
+        {
+            result = new RegularCustomerRecruitResult(
+                false,
+                record,
+                $"다음 일반 영입은 {nextAllowedAbsoluteDay}일부터 가능합니다.");
+            return false;
+        }
+
+        if (!record.MarkRecruited(absoluteDay))
         {
             result = new RegularCustomerRecruitResult(false, record, "영입할 수 없습니다");
             return false;
@@ -359,6 +403,34 @@ public sealed class RegularCustomerState
         result = new RegularCustomerRecruitResult(true, record, "영입 완료");
         return true;
     }
+
+    public bool CanRecruitOnDay(
+        int absoluteDay,
+        RegularCustomerRules rules,
+        out int nextAllowedAbsoluteDay)
+    {
+        rules ??= RegularCustomerRules.CreateDefault();
+        int currentDay = Math.Max(1, absoluteDay);
+        int lastRecruitmentDay = Current.Records.Values
+            .Where(candidate => candidate != null && candidate.IsRecruited)
+            .Select(candidate => candidate.RecruitedAbsoluteDay)
+            .DefaultIfEmpty(0)
+            .Max();
+        int cooldown = Math.Max(1, rules.recruitmentCooldownDays);
+        nextAllowedAbsoluteDay = lastRecruitmentDay <= 0
+            ? currentDay
+            : lastRecruitmentDay + cooldown;
+        return currentDay >= nextAllowedAbsoluteDay;
+    }
+
+    public bool TryRecruit(
+        string customerId,
+        out RegularCustomerRecruitResult result) =>
+        TryRecruit(
+            customerId,
+            1,
+            RegularCustomerRules.CreateDefault(),
+            out result);
 
     public IReadOnlyList<RegularCustomerRecord> PromoteBestVisitorsToRecruitCandidates(int amount)
     {

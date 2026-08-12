@@ -38,7 +38,12 @@ public sealed class SurgeryRuntime :
     private readonly IProcessFluidUseRuntime processFluids;
     private readonly ISurgeryEnvironmentRiskEvaluator
         environmentRiskEvaluator;
+    private readonly ExtremeTraitRuntime extremeTraits;
+    private readonly IRunSeedProvider runSeedProvider;
+    private readonly CharacterIdentityEventPublisher identityEvents;
     private readonly ICharacterSpeciesCatalog speciesCatalog;
+    private readonly ICharacterSpeciesQuery speciesRuntime;
+    private readonly ICharacterPerformanceQuery performance;
     private readonly Dictionary<Type, ISurgicalProcedureEffectHandler> effectHandlers;
     private readonly SurgeryOrderPlanningService planning;
     private readonly SurgeryPersistence persistence;
@@ -75,6 +80,8 @@ public sealed class SurgeryRuntime :
         policies = requiredContent.Policies;
         anatomyProfiles = requiredContent.AnatomyProfiles;
         speciesCatalog = requiredContent.Species;
+        speciesRuntime = requiredContent.SpeciesRuntime;
+        performance = requiredContent.Performance;
         effectHandlers = SurgeryRuntimeSupport.BuildEffectIndex(
             requiredContent.Effects);
         corpseFreshness = requiredWorld.CorpseFreshness;
@@ -92,6 +99,9 @@ public sealed class SurgeryRuntime :
         clock = requiredExecution.Clock;
         outcomeRandom = requiredExecution.OutcomeRandom;
         environmentRiskEvaluator = requiredExecution.EnvironmentRisk;
+        extremeTraits = requiredExecution.ExtremeTraits;
+        runSeedProvider = requiredExecution.RunSeedProvider;
+        identityEvents = requiredExecution.IdentityEvents;
         planning = new SurgeryOrderPlanningService(
             requiredContent,
             requiredWorld,
@@ -300,6 +310,21 @@ public sealed class SurgeryRuntime :
                 procedureId = "procedure:amputation";
             }
 
+            if (target == null
+                && TryGetAutomaticMaintenanceSuggestion(
+                    actor,
+                    out string maintenanceProcedureId,
+                    out string maintenanceTargetNodeId))
+            {
+                target = snapshot.Nodes
+                    .FirstOrDefault(node => node != null
+                        && string.Equals(
+                            node.nodeId,
+                            maintenanceTargetNodeId,
+                            StringComparison.Ordinal));
+                procedureId = maintenanceProcedureId;
+            }
+
             if (target == null)
             {
                 continue;
@@ -315,6 +340,36 @@ public sealed class SurgeryRuntime :
                 out _,
                 out _);
         }
+    }
+
+    public bool TryGetAutomaticMaintenanceSuggestion(
+        CharacterActor actor,
+        out string procedureId,
+        out string targetNodeId)
+    {
+        procedureId = string.Empty;
+        targetNodeId = string.Empty;
+        if (actor == null
+            || actor.IsDead
+            || !CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId)
+            || !speciesRuntime.TryGet(
+                characterId,
+                out CharacterSpeciesRuntimeState speciesState)
+            || !speciesState.SpeciesId.Equals(new CharacterSpeciesId("Golem"))
+            || speciesState.Integrity > 50f)
+            return false;
+
+        AnatomyNodeHealthState target = anatomy.GetAnatomySnapshot(actor).Nodes
+            .Where(node => node != null && !node.missing)
+            .OrderByDescending(node => node.rejectionBurden)
+            .ThenBy(node => node.ConditionFactor)
+            .ThenBy(node => node.nodeId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (target == null)
+            return false;
+        procedureId = "procedure:golem-power-core";
+        targetNodeId = target.nodeId;
+        return true;
     }
 
     public bool TryGetOrder(string orderId, out SurgeryOrder order)
@@ -382,6 +437,7 @@ public sealed class SurgeryRuntime :
         return procedure.OperatorRequirement.IsQualified(
             doctor,
             procedure.Family,
+            performance,
             out _,
             out failure);
     }
@@ -731,6 +787,7 @@ public sealed class SurgeryRuntime :
                 && !procedure.OperatorRequirement.IsQualified(
                     preferredDoctor,
                     procedure.Family,
+                    performance,
                     out _,
                     out failure))
             {
@@ -958,7 +1015,30 @@ public sealed class SurgeryRuntime :
         out DomainFailure failure)
     {
         failure = DomainFailure.None;
-        bool success = outcomeRandom.NextFloat() <= order.risk.successChance;
+        CharacterActor doctor = SurgicalSubjectResolver.FindCharacter(
+            characters,
+            order.doctorId);
+        bool critical = procedure.Urgency == MedicalProcedureUrgency.Emergency
+            || order.risk.deathChance >= .15f
+            || order.risk.successChance <= .50f;
+        ExtremeRiskResolution extremeResolution = default;
+        bool extremeResolved = extremeTraits != null
+            && runSeedProvider != null
+            && doctor != null
+            && extremeTraits.TryResolveMiracleSurgery(
+                doctor,
+                order.orderId,
+                critical,
+                unchecked((ulong)(uint)runSeedProvider.RunSeed),
+                clock.Time,
+                out extremeResolution);
+        bool forcedMiracle = extremeResolved
+            && extremeResolution.Outcome == ExtremeRiskOutcome.Miracle;
+        bool forcedComplication = extremeResolved
+            && extremeResolution.Outcome == ExtremeRiskOutcome.Complication;
+        bool success = forcedMiracle
+            || (!forcedComplication
+                && outcomeRandom.NextFloat() <= order.risk.successChance);
         if (success)
         {
             foreach (SurgicalProcedureEffect effect in procedure.Effects)
@@ -991,17 +1071,36 @@ public sealed class SurgeryRuntime :
             order.failureSeverity = SurgeryFailureSeverity.None;
             order.incisionOpen = false;
             order.state = SurgeryOrderState.Recovering;
-            order.recoveryUntil = clock.Time + RecoverySeconds;
+            CharacterActor recoveringPatient =
+                SurgicalSubjectResolver.FindCharacter(
+                    characters,
+                    order.subject?.subjectId);
+            float recoveryDurationMultiplier = recoveringPatient?.Stats != null
+                ? recoveringPatient.Stats.GetDetailedStatMultiplier(
+                    "medical:aftermath-duration")
+                : 1f;
+            order.recoveryUntil = clock.Time
+                + RecoverySeconds * Mathf.Max(0f, recoveryDurationMultiplier);
             order.statusData.Set(SurgeryStatusCode.RecoveryObservation);
+            PublishSurgeryWorkCompleted(doctor, order, procedure, forcedMiracle
+                ? "miracle"
+                : "success");
             return true;
         }
 
-        float severityRoll = outcomeRandom.NextFloat();
-        order.failureSeverity = severityRoll < 0.6f
-            ? SurgeryFailureSeverity.Minor
-            : severityRoll < 0.9f
-                ? SurgeryFailureSeverity.Major
-                : SurgeryFailureSeverity.Fatal;
+        if (forcedComplication)
+        {
+            order.failureSeverity = SurgeryFailureSeverity.Major;
+        }
+        else
+        {
+            float severityRoll = outcomeRandom.NextFloat();
+            order.failureSeverity = severityRoll < 0.6f
+                ? SurgeryFailureSeverity.Minor
+                : severityRoll < 0.9f
+                    ? SurgeryFailureSeverity.Major
+                    : SurgeryFailureSeverity.Fatal;
+        }
         ApplyFailureConsequences(order);
         order.incisionOpen = false;
         order.state = SurgeryOrderState.Failed;
@@ -1018,7 +1117,30 @@ public sealed class SurgeryRuntime :
         failure = new DomainFailure(
             FailureCode.SurgeryOutcomeFailed,
             order.failureSeverity.ToString());
+        PublishSurgeryWorkCompleted(
+            doctor,
+            order,
+            procedure,
+            forcedComplication ? "severe-complication" : "failure");
         return false;
+    }
+
+    private void PublishSurgeryWorkCompleted(
+        CharacterActor doctor,
+        SurgeryOrder order,
+        SurgicalProcedureSO procedure,
+        string outcomeId)
+    {
+        if (identityEvents == null
+            || doctor == null
+            || !CharacterPersistentIdentity.TryGet(doctor, out CharacterId id))
+            return;
+        identityEvents.Publish(new WorkCompletedIdentityEvent(
+            id,
+            $"surgery:{procedure?.ProcedureId ?? order.procedureId}",
+            outcomeId,
+            CharacterCommandOrigin.Autonomous,
+            Mathf.Max(0, Mathf.FloorToInt(clock.Time / GameCalendarRules.SecondsPerDay))));
     }
 
     private void ApplyFailureConsequences(SurgeryOrder order)

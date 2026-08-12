@@ -19,6 +19,7 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
     private readonly IWorkforceReplanService workforce;
     private readonly IReadOnlyList<IProductionOutputHandler> outputHandlers;
     private readonly IWorkerNarrativeQualificationQuery narrativeQualification;
+    private readonly ICharacterPerformanceQuery performance;
 
     public ProductionAssemblyBridgeAdapter(
         IProductionItemGateway items,
@@ -30,7 +31,8 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
         IWarehouseWorldQuery warehouses,
         IWorkforceReplanService workforce,
         IReadOnlyList<IProductionOutputHandler> outputHandlers,
-        IWorkerNarrativeQualificationQuery narrativeQualification = null)
+        IWorkerNarrativeQualificationQuery narrativeQualification = null,
+        ICharacterPerformanceQuery performance = null)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.outputBuffer = outputBuffer
@@ -50,6 +52,8 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
         this.outputHandlers = outputHandlers
             ?? throw new ArgumentNullException(nameof(outputHandlers));
         this.narrativeQualification = narrativeQualification;
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
     }
 
     public IReadOnlyList<ProductionFacilityHandle> Facilities =>
@@ -120,18 +124,22 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
         {
             return 0f;
         }
-        ProductionProcessClass process =
-            V23BalanceWorkCalculator.ResolveProductionProcessClass(recipe);
-        CharacterStatType primary = process switch
-        {
-            ProductionProcessClass.Medical => CharacterStatType.Medical,
-            ProductionProcessClass.Precision or ProductionProcessClass.Rune =>
-                CharacterStatType.Research,
-            ProductionProcessClass.ForgingHeavyAssembly
-                or ProductionProcessClass.HeavyIndustrial => CharacterStatType.Strength,
-            _ => CharacterStatType.Dexterity
-        };
-        return actor.GetCharacterStat(primary);
+        if (performance == null)
+            throw new InvalidOperationException(
+                "Production craft quality requires the authoritative character performance query.");
+        ProficiencyWorkProfileAuthoring profile = recipe?.Proficiency;
+        if (profile == null || !profile.IsValid)
+            throw new InvalidOperationException(
+                $"Production recipe '{recipe?.RecipeId}' has no authored proficiency profile.");
+        CharacterPerformanceSnapshot result = performance.Evaluate(
+            actor,
+            "performance:work:craft:quality",
+            new CharacterPerformanceEvaluationContext
+            {
+                PrimaryProficiencyOverride = profile.Primary.Value,
+                SecondaryProficiencyOverride = profile.Secondary.Value
+            });
+        return Mathf.Max(0f, result.Value * 58f);
     }
 
     public int CountDelivered(string itemId, string destinationId) =>

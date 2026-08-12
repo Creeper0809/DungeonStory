@@ -646,18 +646,30 @@ public sealed class V20CampaignApplicationAdapter : IStartable, IDisposable
         IReadOnlyCollection<SpeciesCultureId> culturesPresent)
     {
         Dictionary<string, float> result = new(StringComparer.Ordinal);
-        CharacterRuntimeProfile profile = actor?.Identity?.Profile;
-        foreach (CharacterTraitSO trait in actor?.Identity?.Data?.traits
+        foreach (CharacterTraitSO trait in actor?.Progression?.ResolveSelectedTraits()
                      ?? Array.Empty<CharacterTraitSO>())
         {
-            foreach (CharacterTraitEventWeight weight in trait?.eventWeights
-                         ?? new List<CharacterTraitEventWeight>())
+            IEnumerable<KeyValuePair<string, float>> shared =
+                (trait?.identityRules ?? new List<CharacterIdentityRule>())
+                .OfType<IncidentWeightRule>()
+                .Where(rule => !string.IsNullOrWhiteSpace(rule.incidentId)
+                    && !Mathf.Approximately(rule.multiplier, 1f))
+                .Select(rule => new KeyValuePair<string, float>(
+                    rule.incidentId.Trim(),
+                    rule.multiplier));
+            IEnumerable<KeyValuePair<string, float>> legacy =
+                (trait?.eventWeights ?? new List<CharacterTraitEventWeight>())
+                .Where(weight => weight != null && weight.IsValid)
+                .Select(weight => new KeyValuePair<string, float>(
+                    weight.eventCategoryId.Trim(),
+                    weight.multiplier));
+            foreach (KeyValuePair<string, float> weight in
+                     shared.Any() ? shared : legacy)
             {
-                if (weight == null || !weight.IsValid) continue;
-                result[weight.eventCategoryId] = Mathf.Clamp(
-                    (result.TryGetValue(weight.eventCategoryId, out float current)
+                result[weight.Key] = Mathf.Clamp(
+                    (result.TryGetValue(weight.Key, out float current)
                         ? current
-                        : 1f) * weight.multiplier,
+                        : 1f) * weight.Value,
                     0.1f,
                     10f);
             }

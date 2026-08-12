@@ -368,10 +368,13 @@ public class BuildingSO : DataScriptableObject, IGridBuildAreaCapability
     [SerializeField] private string contentDefinitionId = string.Empty;
     [SerializeField, Min(1)] private int authoringRevision = 1;
     [SerializeField, TextArea] private string sourceNote = string.Empty;
+    [SerializeField] private bool deprecatedCompatibilityAsset;
 
     [Header("Gameplay Execution")]
     [SerializeField] private FacilityUseClassification useClassification;
     [SerializeField] private ResearchFacilityCommandKind researchFacilityCommand;
+    [SerializeField] private ProficiencyWorkProfileAuthoring constructionProficiency = new();
+    [SerializeField] private ProficiencyWorkProfileAuthoring operationProficiency = new();
 
     [Header("Facility Abilities")]
     [InspectorName("능력 목록")]
@@ -424,6 +427,7 @@ public class BuildingSO : DataScriptableObject, IGridBuildAreaCapability
     public string ContentDefinitionId => contentDefinitionId?.Trim() ?? string.Empty;
     public int AuthoringRevision => authoringRevision;
     public string SourceNote => sourceNote?.Trim() ?? string.Empty;
+    public bool IsDeprecatedCompatibilityAsset => deprecatedCompatibilityAsset;
     public FacilityUseClassification UseClassification => useClassification;
     public FacilityUseClassification EffectiveUseClassification =>
         useClassification != FacilityUseClassification.None
@@ -431,6 +435,10 @@ public class BuildingSO : DataScriptableObject, IGridBuildAreaCapability
             : InferUseClassification();
     public ResearchFacilityCommandKind ResearchFacilityCommand =>
         researchFacilityCommand;
+    public ProficiencyWorkProfileAuthoring ConstructionProficiency =>
+        constructionProficiency ??= new ProficiencyWorkProfileAuthoring();
+    public ProficiencyWorkProfileAuthoring OperationProficiency =>
+        operationProficiency ??= new ProficiencyWorkProfileAuthoring();
 
 #if UNITY_EDITOR
     public void ConfigureGameplayExecution(
@@ -439,6 +447,33 @@ public class BuildingSO : DataScriptableObject, IGridBuildAreaCapability
     {
         useClassification = classification;
         researchFacilityCommand = command;
+    }
+
+    public void ConfigureProficiencies(
+        CharacterProficiencyId constructionPrimary,
+        CharacterProficiencyRank constructionRecommendedRank,
+        CharacterProficiencyRank constructionMinimumRiskRank,
+        CharacterProficiencyId operationPrimary = default,
+        CharacterProficiencyId operationSecondary = default,
+        float operationPrimaryWeight = 1f,
+        CharacterProficiencyRank operationRecommendedRank = CharacterProficiencyRank.Apprentice,
+        CharacterProficiencyRank operationMinimumRiskRank = CharacterProficiencyRank.Apprentice,
+        ProficiencyCombinationMode operationCombinationMode =
+            ProficiencyCombinationMode.Weighted)
+    {
+        (constructionProficiency ??= new ProficiencyWorkProfileAuthoring()).Configure(
+            constructionPrimary,
+            default,
+            1f,
+            constructionRecommendedRank,
+            constructionMinimumRiskRank);
+        (operationProficiency ??= new ProficiencyWorkProfileAuthoring()).Configure(
+            operationPrimary,
+            operationSecondary,
+            operationPrimaryWeight,
+            operationRecommendedRank,
+            operationMinimumRiskRank,
+            operationCombinationMode);
     }
 #endif
 
@@ -568,6 +603,11 @@ public class BuildingSO : DataScriptableObject, IGridBuildAreaCapability
         contentDefinitionId = definitionId?.Trim() ?? string.Empty;
         authoringRevision = Mathf.Max(1, revision);
         sourceNote = note?.Trim() ?? string.Empty;
+    }
+
+    public void ConfigureCompatibilityStatus(bool deprecated)
+    {
+        deprecatedCompatibilityAsset = deprecated;
     }
 #endif
 

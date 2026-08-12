@@ -24,8 +24,8 @@ MonoBehaviour:
   deadlineDays: 7
   completionRequirements:
     items:
-    - itemDefinitionId: component:maintenance-parts
-      amount: 6
+    - itemDefinitionId: tool:maintenance-kit
+      amount: 1
       consume: 1
     facilities: []
     research: []

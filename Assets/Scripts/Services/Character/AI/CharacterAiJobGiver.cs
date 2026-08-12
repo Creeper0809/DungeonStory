@@ -163,7 +163,7 @@ public abstract class CharacterAiJobGiver
         return Mathf.Clamp01(domainScore);
     }
 
-    internal static FacilityRole ResolveAvailableFacilityRoles(
+    public static FacilityRole ResolveAvailableFacilityRoles(
         CharacterActor actor)
     {
         AIBrain brain = actor != null ? actor.Brain : null;
@@ -225,7 +225,7 @@ public abstract class CharacterAiJobGiver
             return false;
         }
 
-        if (!brain.IsActionScoringPending)
+        if (!brain.IsActionScoringPendingFor(actionMatcher))
         {
             brain.InvalidateActionEvaluations(actionMatcher);
         }
@@ -618,7 +618,7 @@ public static class CharacterAiRoutinePriority
 
         if (context.IsWorker)
         {
-            return context.IsOffDuty;
+            return context.IsOffDuty || context.FunUrgency > 0f;
         }
 
         return context.HasShoppingAbility;
@@ -655,7 +655,6 @@ public sealed class GetFoodJobGiver : CharacterAiJobGiver
 {
     public override CharacterAiBranch Branch => CharacterAiBranch.Eat;
     public override string Name => "GetFoodJobGiver";
-    public override FacilityRole RequiredFacilityRoles => FacilityRole.Meal;
 
     protected override float GetDomainScore(CharacterActor actor, out string reason)
     {
@@ -714,7 +713,6 @@ public sealed class RestJobGiver : CharacterAiJobGiver
 {
     public override CharacterAiBranch Branch => CharacterAiBranch.Rest;
     public override string Name => "RestJobGiver";
-    public override FacilityRole RequiredFacilityRoles => FacilityRole.Rest;
 
     protected override float GetDomainScore(CharacterActor actor, out string reason)
     {
@@ -752,7 +750,6 @@ public sealed class ToiletJobGiver : CharacterAiJobGiver
 {
     public override CharacterAiBranch Branch => CharacterAiBranch.Toilet;
     public override string Name => "ToiletJobGiver";
-    public override FacilityRole RequiredFacilityRoles => FacilityRole.Toilet;
 
     protected override float GetDomainScore(CharacterActor actor, out string reason)
     {
@@ -784,7 +781,6 @@ public sealed class HygieneJobGiver : CharacterAiJobGiver
 {
     public override CharacterAiBranch Branch => CharacterAiBranch.Hygiene;
     public override string Name => "HygieneJobGiver";
-    public override FacilityRole RequiredFacilityRoles => FacilityRole.Hygiene;
 
     protected override float GetDomainScore(CharacterActor actor, out string reason)
     {
@@ -809,6 +805,41 @@ public sealed class HygieneJobGiver : CharacterAiJobGiver
             ? $"hygieneNeed={hygieneNeed:0.###}"
             : "위생";
         return hygieneNeed;
+    }
+}
+
+public sealed class RecreationJobGiver : CharacterAiJobGiver
+{
+    public override CharacterAiBranch Branch => CharacterAiBranch.LeisureVisit;
+    public override string Name => "RecreationJobGiver";
+    public override FacilityRole RequiredFacilityRoles =>
+        FacilityRole.Entertainment;
+
+    protected override float GetDomainScore(
+        CharacterActor actor,
+        out string reason)
+    {
+        float funNeed = CharacterNeedAiThresholds.GetRoutineUtility(
+            actor,
+            CharacterCondition.FUN);
+        reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
+            ? $"funNeed={funNeed:0.###}"
+            : "여가";
+        return funNeed;
+    }
+
+    protected override float GetDomainScore(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        out string reason)
+    {
+        float funNeed = CharacterNeedAiThresholds.GetRoutineUtility(
+            actor,
+            CharacterCondition.FUN);
+        reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
+            ? $"funNeed={funNeed:0.###} context={context.FunUrgency:0.###}"
+            : "여가";
+        return funNeed;
     }
 }
 
@@ -1027,6 +1058,7 @@ public interface ICharacterAiJobGiverCatalog
     CharacterAiJobGiver Rest { get; }
     CharacterAiJobGiver Toilet { get; }
     CharacterAiJobGiver Hygiene { get; }
+    CharacterAiJobGiver Recreation { get; }
     CharacterAiJobGiver Work { get; }
     CharacterAiJobGiver Shopping { get; }
     CharacterAiJobGiver LookAround { get; }
@@ -1047,6 +1079,7 @@ public sealed class CharacterAiJobGiverCatalog : ICharacterAiJobGiverCatalog
         Register(new RestJobGiver());
         Register(new ToiletJobGiver());
         Register(new HygieneJobGiver());
+        Register(new RecreationJobGiver());
         Register(new WorkJobGiver());
         Register(new ShoppingJobGiver());
         Register(new LookAroundJobGiver());
@@ -1059,6 +1092,7 @@ public sealed class CharacterAiJobGiverCatalog : ICharacterAiJobGiverCatalog
     public CharacterAiJobGiver Rest => Get(CharacterAiBranch.Rest);
     public CharacterAiJobGiver Toilet => Get(CharacterAiBranch.Toilet);
     public CharacterAiJobGiver Hygiene => Get(CharacterAiBranch.Hygiene);
+    public CharacterAiJobGiver Recreation => Get(CharacterAiBranch.LeisureVisit);
     public CharacterAiJobGiver Work => Get(CharacterAiBranch.Work);
     public CharacterAiJobGiver Shopping => Get(CharacterAiBranch.Shopping);
     public CharacterAiJobGiver LookAround => Get(CharacterAiBranch.LookAround);

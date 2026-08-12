@@ -27,23 +27,28 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uD615\uC9C8 \uAC80\uC0AC
     \uD0A4\uD2B8."
   stockCategory: 5
-  unitWeight: 3.6699998
+  unitWeight: 0.35
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 240
+  unitPrice: 45
   features:
-  - rid: 7737211838078124260
-  - rid: 7737211838078124261
+  - rid: 7737211905658585182
+  - rid: 7737211905658585183
+  - rid: 7737211905660420473
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124260
+    - rid: 7737211905658585182
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:genetics:hereditary-records
-    - rid: 7737211838078124261
+    - rid: 7737211905658585183
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 0
         sharedIntermediate: 0
+    - rid: 7737211905660420473
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.5938076

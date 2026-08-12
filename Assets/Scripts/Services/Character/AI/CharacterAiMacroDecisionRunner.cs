@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 internal sealed class CharacterAiMacroDecisionRunner
 {
@@ -7,13 +8,22 @@ internal sealed class CharacterAiMacroDecisionRunner
         string,
         CharacterAiBranch,
         CharacterAiDecisionTickResult> runSelectedAction;
+    private readonly ICharacterWorldQuery characterWorld;
+    private readonly CharacterIdentityEventPublisher identityEvents;
+    private readonly IGameCalendar calendar;
 
     public CharacterAiMacroDecisionRunner(
         Func<CharacterActor, string, CharacterAiBranch,
-            CharacterAiDecisionTickResult> runSelectedAction)
+            CharacterAiDecisionTickResult> runSelectedAction,
+        ICharacterWorldQuery characterWorld = null,
+        CharacterIdentityEventPublisher identityEvents = null,
+        IGameCalendar calendar = null)
     {
         this.runSelectedAction = runSelectedAction
             ?? throw new ArgumentNullException(nameof(runSelectedAction));
+        this.characterWorld = characterWorld;
+        this.identityEvents = identityEvents;
+        this.calendar = calendar;
     }
 
     public CharacterAiDecisionTickResult RunGoal(CharacterActor actor)
@@ -106,8 +116,49 @@ internal sealed class CharacterAiMacroDecisionRunner
             reasonCode: goal.reason,
             sentiment: -0.65f,
             bubbleEligible: true));
+        PublishComplaintInteraction(actor);
         blackboard.ClearMacroGoal("Complain emitted.");
         return Result(true, "Complain", "Complain.", blackboard);
+    }
+
+    private void PublishComplaintInteraction(CharacterActor instigator)
+    {
+        if (identityEvents == null
+            || characterWorld == null
+            || !CharacterPersistentIdentity.TryGet(
+                instigator,
+                out CharacterId instigatorId))
+        {
+            return;
+        }
+
+        CharacterActor target = characterWorld.Characters
+            .Where(candidate => candidate != null
+                && candidate != instigator
+                && !candidate.IsDead
+                && candidate.CurrentLifecycleState
+                    != CharacterLifecycleState.Despawned
+                && CharacterPersistentIdentity.TryGet(candidate, out _))
+            .OrderByDescending(candidate => candidate.Identity?.IsOwner == true)
+            .ThenBy(candidate => candidate.Identity?.PersistentId,
+                StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (target == null
+            || !CharacterPersistentIdentity.TryGet(target, out CharacterId targetId))
+        {
+            return;
+        }
+
+        float relationship = instigator.SocialMemory?
+            .GetRelationshipSentiment(target) ?? 0f;
+        bool hostile = relationship < -0.2f;
+        identityEvents.Publish(new SocialConflictEvent(
+            instigatorId,
+            targetId,
+            hostile ? "insulted" : "public-question",
+            hostile ? 4f : 1f,
+            CharacterCommandOrigin.Autonomous,
+            Math.Max(0, calendar?.Day ?? 0)));
     }
 
     public CharacterAiDecisionTickResult ApplyAvoidFacility(

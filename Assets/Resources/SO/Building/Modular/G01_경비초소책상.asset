@@ -31,15 +31,35 @@ MonoBehaviour:
   objectName: "\uACBD\uBE44\uCD08\uC18C\uCC45\uC0C1"
   sprite: {fileID: 21300000, guid: a08eef823274ef74689992b7735b3ea4, type: 3}
   icon: {fileID: 21300000, guid: a08eef823274ef74689992b7735b3ea4, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  deprecatedCompatibilityAsset: 0
+  useClassification: 0
+  researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: proficiency:melee-combat
+    secondaryProficiencyId: proficiency:ranged-combat
+    primaryWeight: 0.5
+    combinationMode: 2
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730538791788
-    - rid: 7737211730538791789
-    - rid: 7737211730538791790
-    - rid: 7737211730538791791
-    - rid: 7737211730538791792
-    - rid: 7737211730538791793
-    - rid: 7737211730538791794
+    - rid: 7737211921440178441
+    - rid: 7737211921440178442
+    - rid: 7737211921440178443
+    - rid: 7737211921440178444
+    - rid: 7737211921440178445
+    - rid: 7737211921440178446
+    - rid: 7737211921440178447
   width: 2
   height: 1
   layer: 1
@@ -55,13 +75,13 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730538791788
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440178441
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: G01
-    - rid: 7737211730538791789
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440178442
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 110
@@ -69,19 +89,33 @@ MonoBehaviour:
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211730538791790
+    - rid: 7737211921440178443
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 26.2
-        repairWorkRequired: 12
-        cleanWorkRequired: 7.5
+        constructionProjectScale: 0
+        constructionWorkRequired: 232
+        repairWorkRequired: 58
+        cleanWorkRequired: 10
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: material:lumber
-          amount: 6
-    - rid: 7737211730538791791
+        - itemId: material:treated-lumber
+          amount: 5
+        - itemId: material:iron-ingot
+          amount: 2
+    - rid: 7737211921440178444
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -92,11 +126,11 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 37
           disabledWhenDamaged: 1
-    - rid: 7737211730538791792
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440178445
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211730538791793
+    - rid: 7737211921440178446
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -114,7 +148,7 @@ MonoBehaviour:
           - key: Security
             value: 2.5
           metrics: []
-    - rid: 7737211730538791794
+    - rid: 7737211921440178447
       type: {class: BuildingSecurityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingSecurityAbility

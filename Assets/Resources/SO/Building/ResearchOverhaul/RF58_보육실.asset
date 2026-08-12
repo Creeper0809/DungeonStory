@@ -34,18 +34,33 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 4
   researchFacilityCommand: 15
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: proficiency:social
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211838078124476
-    - rid: 7737211838078124477
-    - rid: 7737211838078124478
-    - rid: 7737211838078124479
-    - rid: 7737211838078124480
-    - rid: 7737211838078124481
-    - rid: 7737211838078124482
-    - rid: 7737211838078124483
+    - rid: 7737211905658585305
+    - rid: 7737211905658585306
+    - rid: 7737211905658585307
+    - rid: 7737211905658585308
+    - rid: 7737211905658585309
+    - rid: 7737211905658585310
+    - rid: 7737211905658585311
+    - rid: 7737211905658585312
   width: 1
   height: 1
   layer: 1
@@ -61,12 +76,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124476
+    - rid: 7737211905658585305
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF58
-    - rid: 7737211838078124477
+    - rid: 7737211905658585306
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -74,13 +89,13 @@ MonoBehaviour:
         - research-overhaul
         - research:life:infant-care
         - workstation:v19:nursery
-    - rid: 7737211838078124478
+    - rid: 7737211905658585307
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v19:nursery
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211838078124479
+    - rid: 7737211905658585308
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -88,16 +103,16 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211838078124480
+    - rid: 7737211905658585309
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
-        constructionCost: 308
-        maintenance: 5
+        constructionCost: 160
+        maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211838078124481
+    - rid: 7737211905658585310
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -108,19 +123,30 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 129
           disabledWhenDamaged: 1
-    - rid: 7737211838078124482
+    - rid: 7737211905658585311
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211838078124483
+    - rid: 7737211905658585312
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 261
-        repairWorkRequired: 24
+        constructionWorkRequired: 148
+        repairWorkRequired: 13
         cleanWorkRequired: 8
         researchWorkRequired: 6
         operateWorkRequired: 12
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
         - itemId: material:lumber
           amount: 10

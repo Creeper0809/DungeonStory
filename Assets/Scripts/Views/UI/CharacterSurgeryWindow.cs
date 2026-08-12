@@ -28,7 +28,8 @@ public sealed class SurgeryClinicalContext
         ISurgicalPartRuntime parts,
         ISurgicalAugmentationQuery augmentations,
         ISurgicalFacilityQuery facilities,
-        ISurgeryRiskEvaluator risk)
+        ISurgeryRiskEvaluator risk,
+        ICharacterPerformanceQuery performance)
     {
         Anatomy = anatomy ?? throw new ArgumentNullException(nameof(anatomy));
         WildlifeAnatomy = wildlifeAnatomy
@@ -42,6 +43,7 @@ public sealed class SurgeryClinicalContext
         Facilities = facilities
             ?? throw new ArgumentNullException(nameof(facilities));
         Risk = risk ?? throw new ArgumentNullException(nameof(risk));
+        Performance = performance ?? throw new ArgumentNullException(nameof(performance));
     }
 
     public IAnatomyHealthRuntime Anatomy { get; }
@@ -52,6 +54,7 @@ public sealed class SurgeryClinicalContext
     public ISurgicalAugmentationQuery Augmentations { get; }
     public ISurgicalFacilityQuery Facilities { get; }
     public ISurgeryRiskEvaluator Risk { get; }
+    public ICharacterPerformanceQuery Performance { get; }
 }
 
 public sealed class SurgeryExecutionContext
@@ -142,6 +145,7 @@ public sealed class CharacterSurgeryWindowService :
     private readonly ITmpKoreanFontService fonts;
     private readonly ICharacterSurgeryWindowViewFactory viewFactory;
     private readonly ISurgeryEnvironmentRiskEvaluator environmentRisk;
+    private readonly ICharacterPerformanceQuery performance;
     private GameObject currentWindow;
 
     public CharacterSurgeryWindowService(
@@ -162,6 +166,7 @@ public sealed class CharacterSurgeryWindowService :
         augmentations = clinical.Augmentations;
         facilities = clinical.Facilities;
         risk = clinical.Risk;
+        performance = clinical.Performance;
         commands = execution.Commands;
         surgery = execution.Surgery;
         policies = execution.Policies;
@@ -302,13 +307,13 @@ public sealed class CharacterSurgeryWindowService :
         return new CharacterSurgeryHealthProjection
         {
             ProfileDisplayName = profile.DisplayName,
-            Consciousness = snapshot.Consciousness,
-            Sight = snapshot.Sight,
-            Breathing = snapshot.Breathing,
-            Digestion = snapshot.Digestion,
-            Filtration = snapshot.Filtration,
-            Manipulation = snapshot.Manipulation,
-            Mobility = snapshot.Mobility,
+            Consciousness = snapshot.MentalMaintenance,
+            Sight = snapshot.VisualDiscernment,
+            Breathing = snapshot.RespiratoryExchange,
+            Digestion = snapshot.IntakeProcessing,
+            Filtration = snapshot.PurificationProcessing,
+            Manipulation = snapshot.PrecisionManipulation,
+            Mobility = snapshot.PhysicalMobility,
             Nodes = nodes,
             ActiveOrder = CreateOrderProjection(order)
         };
@@ -955,7 +960,7 @@ public sealed class CharacterSurgeryWindowService :
                 candidate.Identity?.PersistentId,
                 order.doctorId,
                 StringComparison.Ordinal));
-        string doctorName = doctor?.Identity?.DisplayName ?? doctor?.name ?? string.Empty;
+        string doctorName = doctor?.Identity?.DisplayName ?? string.Empty;
         return new SurgeryOrderUiProjection
         {
             OrderId = order.orderId,
@@ -973,13 +978,13 @@ public sealed class CharacterSurgeryWindowService :
         };
     }
 
-    private static float GetMedicalScore(CharacterActor actor)
+    private float GetMedicalScore(CharacterActor actor)
     {
         return actor == null
             ? 0f
-            : actor.GetCharacterStat(CharacterStatType.Medical) * 0.65f
-                + actor.GetCharacterStat(CharacterStatType.Dexterity) * 0.25f
-                + actor.GetCharacterStat(CharacterStatType.Research) * 0.1f;
+            : performance.Evaluate(
+                actor,
+                "performance:medical:surgery-success").Value;
     }
 
     private static bool RequiresPart(SurgicalProcedureKind kind)

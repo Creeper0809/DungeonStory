@@ -44,6 +44,11 @@ internal static class PhysicalItemSaveValidation
             report.AddError("Physical item payload has no unique-item list.");
             return;
         }
+        if (snapshot.reservationIntents == null)
+        {
+            report.AddError("Physical item payload has no reservation-intent list.");
+            return;
+        }
         if (snapshot.stacks.Count > MaxSavedStacks)
         {
             report.AddError(
@@ -58,6 +63,76 @@ internal static class PhysicalItemSaveValidation
         Dictionary<string, UniqueItemInstanceSaveData> uniqueById =
             ValidateUniqueItems(snapshot.uniqueItems, report);
         ValidateStacks(snapshot.stacks, uniqueById, report, catalog);
+        ValidateReservationIntents(snapshot, report);
+    }
+
+    private static void ValidateReservationIntents(
+        DungeonPhysicalItemSaveData snapshot,
+        DungeonGameRestoreReport report)
+    {
+        Dictionary<string, WorldItemStackSaveData> stacks = snapshot.stacks
+            .Where(stack => stack != null && !string.IsNullOrWhiteSpace(stack.stackId))
+            .ToDictionary(stack => stack.stackId, StringComparer.Ordinal);
+        Dictionary<string, int> totalsByStack = new(StringComparer.Ordinal);
+        HashSet<string> owners = new(StringComparer.Ordinal);
+        HashSet<string> claimIds = new(StringComparer.Ordinal);
+        string previousOwner = string.Empty;
+        foreach (ItemReservationIntentSaveData intent in snapshot.reservationIntents)
+        {
+            string owner = intent?.ownerOperationId ?? string.Empty;
+            if (intent == null
+                || !intent.hadActiveItemReservation
+                || !IsCanonicalNonEmpty(owner)
+                || !owners.Add(owner)
+                || intent.reservationHints == null
+                || intent.reservationHints.Count == 0)
+            {
+                report.AddError($"Invalid reservation intent '{owner}'.");
+                continue;
+            }
+            if (previousOwner.Length > 0
+                && string.CompareOrdinal(previousOwner, owner) >= 0)
+            {
+                report.AddError("Reservation intents are not in canonical owner order.");
+            }
+            previousOwner = owner;
+            int expectedOrdinal = 0;
+            foreach (ItemReservationClaimHintSaveData hint in intent.reservationHints)
+            {
+                string stackId = hint?.preferredPhysicalStackId ?? string.Empty;
+                if (hint == null
+                    || hint.claimOrdinal != expectedOrdinal++
+                    || hint.quantity <= 0
+                    || !IsCanonicalNonEmpty(hint.claimHintId)
+                    || !IsCanonicalNonEmpty(hint.originStackId)
+                    || !claimIds.Add(hint.claimHintId)
+                    || !stacks.TryGetValue(stackId, out WorldItemStackSaveData stack)
+                    || !string.Equals(stack.itemId, hint.itemId, StringComparison.Ordinal)
+                    || !string.Equals(
+                        stack.GetStackSignature(),
+                        hint.expectedStackSignature,
+                        StringComparison.Ordinal)
+                    || !Enum.IsDefined(typeof(ItemReservationPurpose), hint.purpose))
+                {
+                    report.AddError(
+                        $"Invalid reservation claim '{hint?.claimHintId}' for owner '{owner}'.");
+                    continue;
+                }
+                totalsByStack[stackId] = totalsByStack.TryGetValue(
+                    stackId,
+                    out int total)
+                    ? checked(total + hint.quantity)
+                    : hint.quantity;
+            }
+        }
+        foreach (KeyValuePair<string, int> total in totalsByStack)
+        {
+            if (stacks[total.Key].quantity < total.Value)
+            {
+                report.AddError(
+                    $"Reservation hints exceed physical stack '{total.Key}': {total.Value}/{stacks[total.Key].quantity}.");
+            }
+        }
     }
 
     private static void ValidateHaulingSettings(
@@ -296,6 +371,7 @@ internal static class PhysicalItemSaveValidation
                     $"Physical stack '{stackId}' contains transient reservation state.");
             }
             if (!IsCanonicalText(stack.destinationId)
+                || !IsCanonicalText(stack.aggregationCohortId)
                 || !IsCanonicalText(stack.sourceStorageDestinationId)
                 || !IsCanonicalText(stack.sourceCharacterId)
                 || !IsCanonicalText(stack.sourceDisplayName)

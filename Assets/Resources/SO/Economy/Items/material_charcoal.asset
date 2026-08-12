@@ -32,30 +32,30 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 5
   features:
-  - rid: 7737211838068949734
-  - rid: 7737211838068949735
-  - rid: 7737211838068949736
-  - rid: 7737211838068949737
+  - rid: 7737211905666712323
+  - rid: 7737211905666712324
+  - rid: 7737211905666712325
+  - rid: 7737211905666712326
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949734
+    - rid: 7737211905666712323
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:forestry:charcoal
-    - rid: 7737211838068949735
+    - rid: 7737211905666712324
       type: {class: FacilitySupplyItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         fuelValue: 24
         nutritionValue: 0
         feedEligible: 0
-    - rid: 7737211838068949736
+    - rid: 7737211905666712325
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 8192
         sharedIntermediate: 1
-    - rid: 7737211838068949737
+    - rid: 7737211905666712326
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

@@ -536,7 +536,6 @@ public static class P0FeatureSurfacePlayModeVerifier
             data.characterType = CharacterType.Customer;
             data.role = CharacterRole.Regular;
             data.speciesTag = "QA";
-            data.baseStats = CharacterStatBlock.CreateDefault(90);
             data.defaultWorkPriorities = WorkPriorityProfile.CreateDefault();
 
             GameObject obj = new GameObject(name);

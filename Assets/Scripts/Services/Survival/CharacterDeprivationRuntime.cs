@@ -42,6 +42,7 @@ public sealed class CharacterDeprivationRuntime :
     private readonly CharacterSafeDrinkPlanner safeDrinkPlanner;
     private readonly CharacterEmergencyMovement emergencyMovement;
     private readonly CharacterSafeReliefRunner safeReliefRunner;
+    private readonly CharacterPrimitiveSurvivalRunner primitiveSurvivalRunner;
     private readonly CharacterDeprivationConsequences consequences;
     private readonly CharacterBreakdownActionRunner breakdownActionRunner;
     private readonly CharacterDeprivationPersistenceCoordinator persistence;
@@ -84,9 +85,6 @@ public sealed class CharacterDeprivationRuntime :
         IWorldWaterQuery waterQuery = world.WaterQuery;
         IRoomLayoutCache roomLayoutCache = world.RoomLayoutCache;
         ICharacterAiWorldRegistry worldRegistry = world.WorldRegistry;
-        IFacilityCandidateCache facilityCandidateCache =
-            world.FacilityCandidateCache;
-        ISurvivalFoodQuery survivalFoodRuntime = world.SurvivalFoodRuntime;
         IGameEventBus gameEventBus = system.GameEventBus;
         IGameClock gameClock = system.GameClock;
         IDynamicFrameWorkBudget frameWorkBudget = system.FrameWorkBudget;
@@ -128,8 +126,6 @@ public sealed class CharacterDeprivationRuntime :
             gridSystemProvider,
             itemStackRuntime,
             waterQuery,
-            facilityCandidateCache,
-            survivalFoodRuntime,
             doorAccessQuery,
             diagnostics);
         emergencyMovement = new CharacterEmergencyMovement(
@@ -155,6 +151,12 @@ public sealed class CharacterDeprivationRuntime :
             waterQuery,
             roomLayoutCache,
             worldRegistry);
+        primitiveSurvivalRunner = new CharacterPrimitiveSurvivalRunner(
+            breakdownWorld,
+            emergencyMovement,
+            gameClock,
+            gameEventBus,
+            authority.PrimitiveSurvival);
         breakdownActionRunner = authority.CreateBreakdownActionRunner(
             breakdownWorld,
             breakdownRandom,
@@ -494,6 +496,109 @@ public sealed class CharacterDeprivationRuntime :
         return TryStartSafeDrink(actor, false, out status);
     }
 
+    public bool NeedsPrimitiveMeal(CharacterActor actor, out string reason)
+    {
+        reason = string.Empty;
+        if (!NeedsRoutineAction(actor, CharacterCondition.HUNGER, biologicalOnly: true)
+            || !primitiveSurvivalRunner.HasFieldMeal(actor, out reason))
+        {
+            return false;
+        }
+        reason = $"허기 {GetNeed(actor, CharacterCondition.HUNGER):0}: {reason}";
+        return true;
+    }
+
+    public bool NeedsPrimitiveRest(CharacterActor actor, out string reason)
+    {
+        reason = string.Empty;
+        if (!NeedsRoutineAction(actor, CharacterCondition.SLEEP, biologicalOnly: false))
+        {
+            return false;
+        }
+        reason = $"수면 {GetNeed(actor, CharacterCondition.SLEEP):0}: 침대 없는 바닥 취침 필요";
+        return true;
+    }
+
+    public bool NeedsPrimitiveRelief(CharacterActor actor, out string reason)
+    {
+        reason = string.Empty;
+        if (!NeedsRoutineAction(actor, CharacterCondition.EXCRETION, biologicalOnly: true))
+        {
+            return false;
+        }
+        reason = $"배변 {GetNeed(actor, CharacterCondition.EXCRETION):0}: 임시 변소 필요";
+        return true;
+    }
+
+    public bool NeedsPrimitiveWash(CharacterActor actor, out string reason)
+    {
+        reason = string.Empty;
+        if (!NeedsRoutineAction(actor, CharacterCondition.HYGIENE, biologicalOnly: false)
+            || !primitiveSurvivalRunner.HasWashWater(actor, out reason))
+        {
+            return false;
+        }
+        reason = $"위생 {GetNeed(actor, CharacterCondition.HYGIENE):0}: {reason}";
+        return true;
+    }
+
+    public bool TryRunPrimitiveMeal(CharacterActor actor, out string status)
+    {
+        status = string.Empty;
+        return NeedsPrimitiveMeal(actor, out _)
+            && primitiveSurvivalRunner.TryStart(
+                actor,
+                CharacterPrimitiveSurvivalActionKind.FieldMeal,
+                out status);
+    }
+
+    public bool TryRunPrimitiveRest(CharacterActor actor, out string status)
+    {
+        status = string.Empty;
+        return NeedsPrimitiveRest(actor, out _)
+            && primitiveSurvivalRunner.TryStart(
+                actor,
+                CharacterPrimitiveSurvivalActionKind.FloorRest,
+                out status);
+    }
+
+    public bool TryRunPrimitiveRelief(CharacterActor actor, out string status)
+    {
+        status = string.Empty;
+        return NeedsPrimitiveRelief(actor, out _)
+            && primitiveSurvivalRunner.TryStart(
+                actor,
+                CharacterPrimitiveSurvivalActionKind.Latrine,
+                out status);
+    }
+
+    public bool TryRunPrimitiveWash(CharacterActor actor, out string status)
+    {
+        status = string.Empty;
+        return NeedsPrimitiveWash(actor, out _)
+            && primitiveSurvivalRunner.TryStart(
+                actor,
+                CharacterPrimitiveSurvivalActionKind.BucketWash,
+                out status);
+    }
+
+    private bool NeedsRoutineAction(
+        CharacterActor actor,
+        CharacterCondition condition,
+        bool biologicalOnly)
+    {
+        if (!IsEligibleHumanoid(actor)
+            || biologicalOnly && !UsesBiologicalFoodAndWater(actor)
+            || actor.Stats == null
+            || GetNeed(actor, condition) > GetResponse(condition).routineStart
+            || HasActiveBreakdown(actor))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     private bool TryStartSafeDrink(
         CharacterActor actor,
         bool emergency,
@@ -517,7 +622,7 @@ public sealed class CharacterDeprivationRuntime :
     public void BeginBreakdownAction(CharacterActor actor, CharacterBreakdownKind kind)
     {
         EnsureDerivedCachesCurrent();
-        breakdownActionRunner.Begin(actor, kind);
+        breakdownActionRunner.TryBegin(actor, kind);
     }
 
     public bool IsSuppressible(CharacterActor actor)
@@ -700,6 +805,7 @@ public sealed class CharacterDeprivationRuntime :
 
         CharacterId sourceId = eventType.CharacterId;
         safeReliefRunner.ReleaseActor(sourceId);
+        primitiveSurvivalRunner.ReleaseActor(sourceId);
         breakdownActionRunner.ReleaseActor(sourceId);
         bool alreadyExists = itemStackRuntime.GetAllStacks().Any(stack => stack != null
             && stack.ItemId == DarkSurvivalItemDefinitions.HumanoidCorpseItemId
@@ -848,7 +954,8 @@ public sealed class CharacterDeprivationRuntime :
             return;
         }
 
-        if (safeReliefRunner.IsRunning((CharacterId)state.characterId))
+        if (safeReliefRunner.IsRunning((CharacterId)state.characterId)
+            || primitiveSurvivalRunner.IsRunning((CharacterId)state.characterId))
         {
             return;
         }
@@ -1226,6 +1333,7 @@ public sealed class CharacterDeprivationRuntime :
     {
         alertLevels.Clear();
         safeReliefRunner.Reset();
+        primitiveSurvivalRunner.Reset();
         safeDrinkPlanner.Reset();
         breakdownActionRunner.Reset();
         tickActors.Clear();

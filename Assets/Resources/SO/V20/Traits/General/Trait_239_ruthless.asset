@@ -22,23 +22,11 @@ MonoBehaviour:
     PrefabModifications: []
     SerializationNodes: []
   id: 239
-  traitName: "\uB0C9\uD639\uD568"
-  description: "\uC704\uD611\uC744 \uBE60\uB974\uAC8C \uC81C\uAC70\uD558\uB824 \uD558\uC9C0\uB9CC
-    \uBB34\uACE0\uD55C \uD53C\uD574\uC5D0\uB294 \uACF5\uB3D9\uCCB4 \uBC18\uBC1C\uC744
-    \uC0B0\uB2E4."
-  statBonus:
-    entries: []
+  traitName: "\uC591\uC2EC \uACB0\uC5EC"
+  description: "\uC801\uB300\uC790 \uC0B4\uD574\uC640 \uCC98\uD615\uC5D0 \uC8C4\uCC45\uAC10\uC744
+    \uB290\uB07C\uC9C0 \uC54A\uC9C0\uB9CC \uBAA9\uACA9\uC790\uC640 \uACF5\uB3D9\uCCB4\uC758
+    \uBC18\uBC1C\uC740 \uADF8\uB300\uB85C \uB0A8\uB294\uB2E4."
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1.03
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -52,17 +40,46 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 0
+  polarity: 1
+  selectionFamilyId: mercy
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: combat:finish-threat
-    utilityDelta: 0.55
-  moodReactions:
-  - triggerTag: event:enemy-escaped
-    moodDelta: -3
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: combat
-    multiplier: 1.35
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:239:effect:0
+    definition: {fileID: 11400000, guid: 137c7667173fc054eb6777aec0aa16f2, type: 2}
+    value: 1.03
+    condition: {fileID: 0}
+  - bindingId: trait:239:effect:1
+    definition: {fileID: 11400000, guid: cb552d9648646504ab3b1ac07d03efa6, type: 2}
+    value: 0
+    condition: {fileID: 11400000, guid: b4104cfd80c28a241afb3d296b54a481, type: 2}
+  identityRules:
+  - rid: 7737211921986486471
+  - rid: 7737211921986486472
+  - rid: 7737211921986486473
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486471
+      type: {class: MoodImmunityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: immunity:hostile-kill-guilt
+        priority: 0
+        eventId: mood:hostile-kill-guilt
+    - rid: 7737211921986486472
+      type: {class: MoodImmunityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: immunity:hostile-execution-guilt
+        priority: 0
+        eventId: mood:hostile-execution-guilt
+    - rid: 7737211921986486473
+      type: {class: MoodImmunityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: immunity:butchery-guilt
+        priority: 0
+        eventId: mood:butchery-guilt

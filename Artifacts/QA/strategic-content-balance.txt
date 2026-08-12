@@ -1,0 +1,129 @@
+STRATEGIC_CONTENT_BALANCE_V1
+contracts=18; chapters=36; milestones=9
+CONTRACTS
+id | faction | kind | deadline | item EWU | reference EWU | burden | target band
+faction-contract:beastkin:supply | faction:dungeon:beastkin | Supply | 20 | 313.54 | 10098.00 | 3.10 % | 1 %-3 %
+faction-contract:beastkin:crisis | faction:dungeon:beastkin | CrisisResponse | 7 | 253.98 | 3534.30 | 7.19 % | 3 %-8 %
+faction-contract:beastkin:strategic | faction:dungeon:beastkin | Strategic | 45 | 2843.33 | 22720.50 | 12.51 % | 5 %-15 %
+faction-contract:demon:supply | faction:dungeon:demon | Supply | 20 | 228.02 | 10098.00 | 2.26 % | 1 %-3 %
+faction-contract:demon:crisis | faction:dungeon:demon | CrisisResponse | 7 | 146.79 | 3534.30 | 4.15 % | 3 %-8 %
+faction-contract:demon:strategic | faction:dungeon:demon | Strategic | 45 | 2388.47 | 22720.50 | 10.51 % | 5 %-15 %
+faction-contract:golem:supply | faction:dungeon:golem | Supply | 20 | 292.63 | 10098.00 | 2.90 % | 1 %-3 %
+faction-contract:golem:crisis | faction:dungeon:golem | CrisisResponse | 7 | 198.79 | 3534.30 | 5.62 % | 3 %-8 %
+faction-contract:golem:strategic | faction:dungeon:golem | Strategic | 45 | 1174.34 | 22720.50 | 5.17 % | 5 %-15 %
+faction-contract:harpy:supply | faction:dungeon:harpy | Supply | 20 | 208.12 | 10098.00 | 2.06 % | 1 %-3 %
+faction-contract:harpy:crisis | faction:dungeon:harpy | CrisisResponse | 7 | 251.51 | 3534.30 | 7.12 % | 3 %-8 %
+faction-contract:harpy:strategic | faction:dungeon:harpy | Strategic | 45 | 1163.72 | 22720.50 | 5.12 % | 5 %-15 %
+faction-contract:kobold:supply | faction:dungeon:kobold | Supply | 20 | 292.63 | 10098.00 | 2.90 % | 1 %-3 %
+faction-contract:kobold:crisis | faction:dungeon:kobold | CrisisResponse | 7 | 198.81 | 3534.30 | 5.63 % | 3 %-8 %
+faction-contract:kobold:strategic | faction:dungeon:kobold | Strategic | 45 | 1274.33 | 22720.50 | 5.61 % | 5 %-15 %
+faction-contract:myconid:supply | faction:dungeon:myconid | Supply | 20 | 144.00 | 10098.00 | 1.43 % | 1 %-3 %
+faction-contract:myconid:crisis | faction:dungeon:myconid | CrisisResponse | 7 | 262.51 | 3534.30 | 7.43 % | 3 %-8 %
+faction-contract:myconid:strategic | faction:dungeon:myconid | Strategic | 45 | 1163.72 | 22720.50 | 5.12 % | 5 %-15 %
+CHAPTER_CHOICES
+id | chapter | support EWU | bargain EWU | bargain/support
+faction-chapter:beastkin:1 | 1 | 156.77 | 78.38 | 50.0 %
+faction-chapter:beastkin:2 | 2 | 423.31 | 253.98 | 60.0 %
+faction-chapter:beastkin:3 | 3 | 4265.00 | 2132.50 | 50.0 %
+faction-chapter:beastkin:4 | 4 | 274.34 | 156.77 | 57.1 %
+faction-chapter:beastkin:5 | 5 | 677.29 | 338.65 | 50.0 %
+faction-chapter:beastkin:6 | 6 | 6397.50 | 3554.17 | 55.6 %
+faction-chapter:demon:1 | 1 | 114.01 | 57.00 | 50.0 %
+faction-chapter:demon:2 | 2 | 733.96 | 440.38 | 60.0 %
+faction-chapter:demon:3 | 3 | 880.76 | 440.38 | 50.0 %
+faction-chapter:demon:4 | 4 | 199.52 | 114.01 | 57.1 %
+faction-chapter:demon:5 | 5 | 1174.34 | 587.17 | 50.0 %
+faction-chapter:demon:6 | 6 | 1194.23 | 663.46 | 55.6 %
+faction-chapter:golem:1 | 1 | 585.26 | 292.63 | 50.0 %
+faction-chapter:golem:2 | 2 | 993.94 | 596.36 | 60.0 %
+faction-chapter:golem:3 | 3 | 880.76 | 440.38 | 50.0 %
+faction-chapter:golem:4 | 4 | 1024.21 | 585.26 | 57.1 %
+faction-chapter:golem:5 | 5 | 1590.30 | 795.15 | 50.0 %
+faction-chapter:golem:6 | 6 | 1321.13 | 733.96 | 55.6 %
+faction-chapter:harpy:1 | 1 | 104.06 | 52.03 | 50.0 %
+faction-chapter:harpy:2 | 2 | 209.59 | 125.76 | 60.0 %
+faction-chapter:harpy:3 | 3 | 1163.72 | 581.86 | 50.0 %
+faction-chapter:harpy:4 | 4 | 182.11 | 104.06 | 57.1 %
+faction-chapter:harpy:5 | 5 | 335.35 | 167.67 | 50.0 %
+faction-chapter:harpy:6 | 6 | 1745.58 | 969.77 | 55.6 %
+faction-chapter:kobold:1 | 1 | 585.26 | 292.63 | 50.0 %
+faction-chapter:kobold:2 | 2 | 994.04 | 596.43 | 60.0 %
+faction-chapter:kobold:3 | 3 | 424.78 | 212.39 | 50.0 %
+faction-chapter:kobold:4 | 4 | 1024.21 | 585.26 | 57.1 %
+faction-chapter:kobold:5 | 5 | 1590.47 | 795.24 | 50.0 %
+faction-chapter:kobold:6 | 6 | 637.16 | 353.98 | 55.6 %
+faction-chapter:myconid:1 | 1 | 36.00 | 18.00 | 50.0 %
+faction-chapter:myconid:2 | 2 | 328.13 | 196.88 | 60.0 %
+faction-chapter:myconid:3 | 3 | 1163.72 | 581.86 | 50.0 %
+faction-chapter:myconid:4 | 4 | 63.00 | 36.00 | 57.1 %
+faction-chapter:myconid:5 | 5 | 525.01 | 262.51 | 50.0 %
+faction-chapter:myconid:6 | 6 | 1745.58 | 969.77 | 55.6 %
+MILESTONES
+id | tier | requirements | landmark | reward | pressure
+ending:dungeon-sovereignty | Legacy | 2 | building:landmark:sovereign-citadel | WorldFlag:reward:ending:dungeon-sovereignty:1 | MilestonePressure:pressure:ending:dungeon-sovereignty:1
+ending:monster-accord | Legacy | 2 | building:landmark:accord-hall | WorldFlag:reward:ending:monster-accord:1 | MilestonePressure:pressure:ending:monster-accord:1
+ending:sealed-paradise | Legacy | 3 | building:landmark:sealed-garden | WorldFlag:reward:ending:sealed-paradise:1 | MilestonePressure:pressure:ending:sealed-paradise:1
+ending:surface-hegemony | Legacy | 2 | building:landmark:surface-gate | WorldFlag:reward:ending:surface-hegemony:1 | MilestonePressure:pressure:ending:surface-hegemony:1
+ending:truth-revealed | Legacy | 2 | building:landmark:truth-observatory | WorldFlag:reward:ending:truth-revealed:1 | MilestonePressure:pressure:ending:truth-revealed:1
+ending:arcane-ascension | Grand | 3 | building:landmark:arcane-spire | WorldFlag:reward:ending:arcane-ascension:1 | MilestonePressure:pressure:ending:arcane-ascension:2
+ending:eternal-lineage | Grand | 3 | building:landmark:lineage-vault | WorldFlag:reward:ending:eternal-lineage:1 | MilestonePressure:pressure:ending:eternal-lineage:2
+ending:steel-apotheosis | Grand | 3 | building:landmark:steel-colossus | WorldFlag:reward:ending:steel-apotheosis:1 | MilestonePressure:pressure:ending:steel-apotheosis:2
+ending:timeless-sanctuary | Grand | 3 | building:landmark:temporal-sanctum | WorldFlag:reward:ending:timeless-sanctuary:1 | MilestonePressure:pressure:ending:timeless-sanctuary:2
+SEASONAL_EVENTS
+id | season | duration | domains | total severity
+seasonal:spring-fever-camp | Spring | 2-4 | 2 | 5.00
+seasonal:spring-migrant-herd | Spring | 2-4 | 2 | 3.00
+seasonal:spring-nesting-season | Spring | 3-5 | 2 | 2.00
+seasonal:spring-seed-exchange | Spring | 2-2 | 2 | 3.00
+seasonal:spring-spore-rain | Spring | 2-4 | 2 | 4.00
+seasonal:spring-thaw-flood | Spring | 2-3 | 2 | 2.00
+seasonal:spring-washed-road | Spring | 1-3 | 2 | 4.00
+seasonal:summer-dry-well | Summer | 3-5 | 2 | 6.00
+seasonal:summer-festival-scarcity | Summer | 2-3 | 2 | 2.40
+seasonal:summer-heat-grid | Summer | 2-5 | 2 | 4.00
+seasonal:summer-mana-lightning | Summer | 1-3 | 2 | 5.00
+seasonal:summer-smoke-valley | Summer | 2-4 | 2 | 3.50
+seasonal:summer-vermin-bloom | Summer | 3-5 | 2 | 5.00
+seasonal:summer-wounded-mercenaries | Summer | 2-3 | 2 | 3.75
+seasonal:autumn-caravan-rush | Autumn | 2-4 | 2 | 3.60
+seasonal:autumn-early-frost | Autumn | 2-4 | 2 | 4.00
+seasonal:autumn-harvest-dispute | Autumn | 2-3 | 2 | 3.75
+seasonal:autumn-migration-window | Autumn | 2-3 | 2 | 0.00
+seasonal:autumn-predator-descent | Autumn | 3-5 | 2 | 5.00
+seasonal:autumn-rot-cart | Autumn | 1-2 | 2 | 4.50
+seasonal:autumn-spoiled-silage | Autumn | 1-3 | 2 | 4.00
+seasonal:winter-cave-flu-wave | Winter | 3-6 | 2 | 6.00
+seasonal:winter-deep-echo | Winter | 1-2 | 2 | 5.00
+seasonal:winter-frozen-pipes | Winter | 2-4 | 2 | 4.00
+seasonal:winter-fuel-demand | Winter | 2-4 | 2 | 8.00
+seasonal:winter-hungry-pack | Winter | 3-5 | 2 | 6.00
+seasonal:winter-memorial-envoys | Winter | 1-2 | 2 | 3.75
+seasonal:winter-whiteout | Winter | 1-3 | 2 | 6.00
+FESTIVALS
+id | season/day | participants | input EWU | EWU/participant | success mood-days
+festival:open-sky-chorus | Spring/10 | 6 | 90.00 | 15.00 | 60.0
+festival:sprout | Spring/15 | 8 | 165.30 | 20.66 | 60.0
+festival:frontier-map-night | Spring/22 | 6 | 228.02 | 38.00 | 60.0
+festival:spore-bloom | Spring/25 | 6 | 126.00 | 21.00 | 60.0
+festival:core-resonance | Summer/6 | 5 | 397.58 | 79.52 | 60.0
+festival:high-sun | Summer/15 | 8 | 570.39 | 71.30 | 60.0
+festival:clear-confluence | Summer/20 | 8 | 89.98 | 11.25 | 60.0
+festival:many-tables | Summer/28 | 20 | 729.50 | 36.48 | 60.0
+festival:pack-first-hunt | Autumn/8 | 8 | 68.19 | 8.52 | 60.0
+festival:dungeon-accord-day | Autumn/12 | 12 | 169.58 | 14.13 | 60.0
+festival:tool-clan-fair | Autumn/18 | 6 | 292.63 | 48.77 | 60.0
+festival:storage | Autumn/25 | 10 | 744.48 | 74.45 | 60.0
+festival:blood-lantern | Autumn/30 | 6 | 423.41 | 70.57 | 60.0
+festival:ash-oath | Winter/12 | 6 | 342.03 | 57.00 | 60.0
+festival:weapon-vigil | Winter/20 | 8 | 244.84 | 30.60 | 60.0
+festival:long-night-memorial | Winter/30 | 10 | 635.12 | 63.51 | 60.0
+SERVICE_INCIDENTS
+id | responses | distinct mechanical outcomes | max severity
+service-incident:brawl | 3 | 3 | 3.00
+service-incident:theft | 3 | 3 | 2.00
+service-incident:contamination | 3 | 3 | 6.00
+service-incident:culturalinsult | 3 | 3 | 6.00
+service-incident:forbiddenmeal | 3 | 3 | 3.75
+service-incident:medicalcollapse | 3 | 3 | 7.50
+service-incident:envoyconflict | 3 | 3 | 6.00
+service-incident:sabotage | 3 | 3 | 4.00

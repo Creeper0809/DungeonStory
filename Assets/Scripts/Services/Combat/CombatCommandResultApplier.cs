@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using DungeonStory.Foundation;
 
 public sealed class CombatCommandResultApplier
@@ -8,13 +9,21 @@ public sealed class CombatCommandResultApplier
     private readonly ICombatCoverDurabilityRegistry coverDurability;
     private readonly IGameClock gameClock;
     private readonly IWorldUiHierarchy worldUiHierarchy;
+    private readonly IGameEventBus gameEvents;
+    private readonly ICharacterWorldQuery characterWorld;
+    private readonly IGameCalendar calendar;
+    private readonly CharacterIdentityEventPublisher identityEvents;
 
     public CombatCommandResultApplier(
         ICombatEquipmentRuntime equipment,
         ICharacterBodyHealthCommand bodyHealth,
         ICombatCoverDurabilityRegistry coverDurability,
         IGameClock gameClock,
-        IWorldUiHierarchy worldUiHierarchy)
+        IWorldUiHierarchy worldUiHierarchy,
+        IGameEventBus gameEvents,
+        ICharacterWorldQuery characterWorld,
+        IGameCalendar calendar,
+        CharacterIdentityEventPublisher identityEvents = null)
     {
         this.equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
         this.bodyHealth = bodyHealth ?? throw new ArgumentNullException(nameof(bodyHealth));
@@ -23,6 +32,10 @@ public sealed class CombatCommandResultApplier
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         this.worldUiHierarchy = worldUiHierarchy
             ?? throw new ArgumentNullException(nameof(worldUiHierarchy));
+        this.gameEvents = gameEvents ?? throw new ArgumentNullException(nameof(gameEvents));
+        this.characterWorld = characterWorld ?? throw new ArgumentNullException(nameof(characterWorld));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.identityEvents = identityEvents;
     }
 
     public void Apply(
@@ -59,16 +72,44 @@ public sealed class CombatCommandResultApplier
 
         if (target.IsCharacter)
         {
-            if (result.Hit)
+            CombatAttackResult appliedResult = damageType == CombatDamageType.Blunt
+                ? result.WithAppliedDamageMultiplier(
+                    target.Character.GetDetailedStatMultiplier(
+                        "damage:blunt-taken"))
+                : result;
+            bool wasAlive = !target.Character.IsDead;
+            if (appliedResult.Hit)
             {
                 bodyHealth.ApplyCombatResult(
                     target.Character,
-                    result,
+                    appliedResult,
                     $"직접 전투 명령: {attackerName}");
+                if (appliedResult.AppliedDamage > 0f
+                    && CharacterPersistentIdentity.TryGet(
+                        target.Character,
+                        out CharacterId injuredId))
+                {
+                    CharacterId attackerId = attacker != null
+                        && CharacterPersistentIdentity.TryGet(
+                            attacker,
+                            out CharacterId resolvedAttackerId)
+                            ? resolvedAttackerId
+                            : default;
+                    identityEvents?.Publish(new CharacterInjuredIdentityEvent(
+                        injuredId,
+                        attackerId,
+                        damageType,
+                        appliedResult.AppliedDamage,
+                        calendar.Day));
+                }
                 DefenseCombatPresentation.Ensure(target.Character)?.PlayHit(
-                    result.AppliedDamage,
+                    appliedResult.AppliedDamage,
                     damageType,
                     worldUiHierarchy);
+                if (wasAlive && target.Character.IsDead)
+                {
+                    PublishKilledEvent(attacker, target.Character);
+                }
             }
             else
             {
@@ -79,6 +120,38 @@ public sealed class CombatCommandResultApplier
         {
             target.Wildlife.ApplyCombatDamage(result, attacker);
         }
+    }
+
+    private void PublishKilledEvent(CharacterActor killer, CharacterActor victim)
+    {
+        if (killer == null || victim == null
+            || !CharacterPersistentIdentity.TryGet(killer, out CharacterId killerId)
+            || !CharacterPersistentIdentity.TryGet(victim, out CharacterId victimId))
+        {
+            return;
+        }
+
+        const float witnessRadius = 12f;
+        float radiusSquared = witnessRadius * witnessRadius;
+        CharacterId[] witnesses = characterWorld.Characters
+            .Where(actor => actor != null && !actor.IsDead && actor != killer && actor != victim)
+            .Where(actor => (actor.transform.position - victim.transform.position).sqrMagnitude <= radiusSquared)
+            .Select(actor => CharacterPersistentIdentity.TryGet(actor, out CharacterId id)
+                ? id
+                : default)
+            .Where(id => id.IsValid)
+            .OrderBy(id => id.Value, StringComparer.Ordinal)
+            .ToArray();
+
+        gameEvents.Publish(new CharacterKilledEvent(
+            killerId,
+            victimId,
+            witnesses,
+            wasHostile: true,
+            wasPrisoner: false,
+            wasInnocent: false,
+            CharacterCommandOrigin.DirectPlayerOrder,
+            calendar.Day));
     }
 
     public void ApplyArmorDurabilityDamage(CombatAttackResult result)

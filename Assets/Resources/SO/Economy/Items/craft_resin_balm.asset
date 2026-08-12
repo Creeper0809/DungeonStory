@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 10
   features:
-  - rid: 7737211838068949579
-  - rid: 7737211838068949580
-  - rid: 7737211838068949581
+  - rid: 7737211905666712257
+  - rid: 7737211905666712258
+  - rid: 7737211905666712259
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949579
+    - rid: 7737211905666712257
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:antiseptic
-    - rid: 7737211838068949580
+    - rid: 7737211905666712258
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 65
         sharedIntermediate: 0
-    - rid: 7737211838068949581
+    - rid: 7737211905666712259
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

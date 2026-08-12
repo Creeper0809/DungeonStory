@@ -3,13 +3,13 @@
 [PASS] GRID_READY GridSystemManager grid resolved
 [PASS] CAMERA_READY main camera resolved
 [PASS] ITEM_PANEL_READY ItemPileInfoPanel resolved
-[PASS] CHARACTER_PANEL_READY CharacterSummeryInfo resolved
-[INFO] FAST_PARTY_COMMIT committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; staff=2; actors=Miru:-8387454:staff:338958781:01:active=True,Cain:-8387564:staff:338958781:02:active=True; diagnostics=prepared-1:name=Miru;go=-8387426;id=staff:338958781:01;active=False || prepared-2:name=Cain;go=-8387536;id=staff:338958781:02;active=False || scan:name=Miru;go=-8387426;id=staff:338958781:01;active=False;retained=True || scan:name=Cain;go=-8387536;id=staff:338958781:02;active=False;retained=True || scan:name=Miru;go=-8387426;id=staff:338958781:01;active=True;retained=True || scan:name=Cain;go=-8387536;id=staff:338958781:02;active=True;retained=True || retained:name=Miru;go=-8387426;id=staff:338958781:01;active=True || retained:name=Cain;go=-8387536;id=staff:338958781:02;active=True
-[PASS] RUN_READY owner=Arin
-SPAWN_ITEM; item=stock-item:0; requested=12; spawned=12; position=(30, 1)
-SPAWN_ITEM; item=stock-item:2; requested=4; spawned=4; position=(30, 1)
-SPAWN_ITEM; item=stock-item:3; requested=2; spawned=2; position=(30, 1)
-[PASS] PILE_CREATED position=(30, 1); stacks=3; qty=18; kinds=3
+[PASS] CHARACTER_PANEL_READY CharacterSummaryInfo resolved
+[INFO] FAST_PARTY_COMMIT committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; staff=2; actors=Arin:-11048552:character:staff:1:02:active=True,Roma:-11048484:character:staff:1:01:active=True; diagnostics=prepared-1:name=Roma;go=-11048456;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-11048524;id=character:staff:1:02;active=False || scan:name=Roma;go=-11048456;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-11048524;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-11048456;id=character:staff:1:01;active=True || retained:name=Arin;go=-11048524;id=character:staff:1:02;active=True
+[PASS] RUN_READY owner=Leon
+SPAWN_ITEM; item=food:preserved-ration; requested=12; spawned=12; position=(30, 1)
+SPAWN_ITEM; item=equipment-item:weapon:dagger; requested=4; spawned=4; position=(30, 1)
+SPAWN_ITEM; item=resource:mana-crystal; requested=2; spawned=2; position=(30, 1)
+[PASS] PILE_CREATED position=(30, 1); stacks=6; qty=18; kinds=3
 [PASS] PILE_MARKER_CREATED marker=ItemPile_30_1
 [PASS] STORED_ITEM_SPAWNED position=(29, 1); spawned=7
 [PASS] STORED_ITEM_HIDDEN_BY_DEFAULT position=(29, 1); marker=<none>
@@ -18,23 +18,23 @@ SPAWN_ITEM; item=stock-item:3; requested=2; spawned=2; position=(30, 1)
 [PASS] STORED_ITEM_MARKER_CREATED marker=ItemPile_29_1
 [PASS] UI_POINTER_TARGET item view toggle off
 [PASS] STORED_ITEM_HIDES_AGAIN toggle=False
-[PASS] PILE_HOVER_TOOLTIP 식량 x12 외 2종 · 16.3kg
-[PASS] PILE_CLICK_OPENS_LIST itemPanel=True; rows=3; text=0.7kg · 바닥 · 예약 없음 · 목적지 - || 마나 x2 || 9kg · 바닥 · 예약 없음 · 목적지 - || 무기 x4 || 6.6kg · 바닥 · 예약 없음 · 목적지 - || 식량 x12 || 식량 x12 외 2종 · 16.3kg || 3종 || 18 || Arin 사장으로 시작 || 연료가 부족합니다 || 식량이 부족합니다
-[PASS] PILE_LIST_ROWS rows=3; text=0.7kg · 바닥 · 예약 없음 · 목적지 - || 마나 x2 || 9kg · 바닥 · 예약 없음 · 목적지 - || 무기 x4 || 6.6kg · 바닥 · 예약 없음 · 목적지 - || 식량 x12 || 식량 x12 외 2종 · 16.3kg || 3종 || 18 || Arin 사장으로 시작 || 연료가 부족합니다 || 식량이 부족합니다
-[PASS] PILE_LIST_TEXT 0.7kg · 바닥 · 예약 없음 · 목적지 - || 마나 x2 || 9kg · 바닥 · 예약 없음 · 목적지 - || 무기 x4 || 6.6kg · 바닥 · 예약 없음 · 목적지 - || 식량 x12 || 식량 x12 외 2종 · 16.3kg || 3종 || 18 || Arin 사장으로 시작 || 연료가 부족합니다 || 식량이 부족합니다
-[PASS] SCREEN_CAPTURE_NONBLANK Artifacts/QA/physical-item-pile-list.png; bytes=547552
+[PASS] PILE_HOVER_TOOLTIP 보존 배급식 x12 외 2종 · 9.5kg
+[PASS] PILE_CLICK_OPENS_LIST itemPanel=True; rows=6; text=0.7kg · 바닥 · 예약 없음 · 목적지 - || 단검 x1 || 0.7kg · 바닥 · 예약 없음 · 목적지 - || 단검 x1 || 0.7kg · 바닥 · 예약 없음 · 목적지 - || 단검 x1 || 0.7kg · 바닥 · 예약 없음 · 목적지 - || 단검 x1 || 0.7kg · 바닥 · 예약 없음 · 목적지 - || 마나 결정 x2 || 6kg · 바닥 · 예약 없음 · 목적지 - || 보존 배급식 x12
+[PASS] PILE_LIST_ROWS rows=6; text=0.7kg · 바닥 · 예약 없음 · 목적지 - || 단검 x1 || 0.7kg · 바닥 · 예약 없음 · 목적지 - || 단검 x1 || 0.7kg · 바닥 · 예약 없음 · 목적지 - || 단검 x1 || 0.7kg · 바닥 · 예약 없음 · 목적지 - || 단검 x1 || 0.7kg · 바닥 · 예약 없음 · 목적지 - || 마나 결정 x2 || 6kg · 바닥 · 예약 없음 · 목적지 - || 보존 배급식 x12
+[PASS] PILE_LIST_TEXT 0.7kg · 바닥 · 예약 없음 · 목적지 - || 단검 x1 || 0.7kg · 바닥 · 예약 없음 · 목적지 - || 단검 x1 || 0.7kg · 바닥 · 예약 없음 · 목적지 - || 단검 x1 || 0.7kg · 바닥 · 예약 없음 · 목적지 - || 단검 x1 || 0.7kg · 바닥 · 예약 없음 · 목적지 - || 마나 결정 x2 || 6kg · 바닥 · 예약 없음 · 목적지 - || 보존 배급식 x12
+[PASS] SCREEN_CAPTURE_NONBLANK Artifacts/QA/physical-item-pile-list.png; bytes=744049
 [PASS] UI_POINTER_TARGET first stack row
-[PASS] PILE_DETAIL_BACK_BUTTON clicked=StackRow_stack:00000006; itemPanel=True; rows=0; text=버리기 || 금지 || 예약 해제 || 운반 우선 || 식량 식량 재고  수량 12 단위 무게 0.55kg 총 무게 6.6kg 단가 4 총 가치 48 상태 바닥 위치 (30, 1) 예약자 - 목적지 - 운반 가능 || 뒤로 || 3종 || 18 || Arin 사장으로 시작 || 연료가 부족합니다 || 식량이 부족합니다 || :/
-[PASS] PILE_DETAIL_TEXT 버리기 || 금지 || 예약 해제 || 운반 우선 || 식량 식량 재고  수량 12 단위 무게 0.55kg 총 무게 6.6kg 단가 4 총 가치 48 상태 바닥 위치 (30, 1) 예약자 - 목적지 - 운반 가능 || 뒤로 || 3종 || 18 || Arin 사장으로 시작 || 연료가 부족합니다 || 식량이 부족합니다 || :/
-[PASS] SCREEN_CAPTURE_NONBLANK Artifacts/QA/physical-item-pile-detail.png; bytes=580157
+[PASS] PILE_DETAIL_BACK_BUTTON clicked=StackRow_stack:9610105e40284fdea35918ba12685fa7; itemPanel=True; rows=0; text=버리기 || 금지 || 예약 해제 || 운반 우선 || 보존 배급식 전분과 소금으로 수명을 늘린 원정 식량.  수량 12 단위 무게 0.5kg 총 무게 6kg 단가 13 총 가치 156 상태 바닥 식단 비건 · 보존식 · 영양 36 · 기분 +1 신선도 100% · freshness-preserved · 보존됨 · 오염 없음 Lease 0개 / Slice 0개 / 점유 0 위치 (30, 1) 사용 가능 12 / 예약 0 목적지 - 운반 가능 || 뒤로 || 3종 || 18 || Leon 사장으로 시작 || 맑은물 합류 || 낯선 향의 사절 || 한 톱니 모자란 상자
+[PASS] PILE_DETAIL_TEXT 버리기 || 금지 || 예약 해제 || 운반 우선 || 보존 배급식 전분과 소금으로 수명을 늘린 원정 식량.  수량 12 단위 무게 0.5kg 총 무게 6kg 단가 13 총 가치 156 상태 바닥 식단 비건 · 보존식 · 영양 36 · 기분 +1 신선도 100% · freshness-preserved · 보존됨 · 오염 없음 Lease 0개 / Slice 0개 / 점유 0 위치 (30, 1) 사용 가능 12 / 예약 0 목적지 - 운반 가능 || 뒤로 || 3종 || 18 || Leon 사장으로 시작 || 맑은물 합류 || 낯선 향의 사절 || 한 톱니 모자란 상자
+[PASS] SCREEN_CAPTURE_NONBLANK Artifacts/QA/physical-item-pile-detail.png; bytes=769120
 [PASS] UI_POINTER_TARGET detail back
-[PASS] PILE_BACK_RETURNS_TO_LIST rows=3
+[PASS] PILE_BACK_RETURNS_TO_LIST rows=6
 [PASS] CHARACTER_FOR_PRIORITY Arin
 [PASS] CHARACTER_COLLIDER Arin
 [PASS] CHARACTER_BEATS_ITEM characterPanel=True; itemPanel=False
-[PASS] SCREEN_CAPTURE_NONBLANK Artifacts/QA/physical-item-character-priority.png; bytes=667330
-[PASS] ALT_CLICK_FORCES_ITEM itemPanel=True; rows=3
-[PASS] SCREEN_CAPTURE_NONBLANK Artifacts/QA/physical-item-alt-select.png; bytes=599536
+[PASS] SCREEN_CAPTURE_NONBLANK Artifacts/QA/physical-item-character-priority.png; bytes=787243
+[PASS] ALT_CLICK_FORCES_ITEM itemPanel=True; rows=6
+[PASS] SCREEN_CAPTURE_NONBLANK Artifacts/QA/physical-item-alt-select.png; bytes=799744
 capturedErrors=0; <none>
 capturedWarnings=0; <none>
 RESULT=PASS; failures=0; <none>

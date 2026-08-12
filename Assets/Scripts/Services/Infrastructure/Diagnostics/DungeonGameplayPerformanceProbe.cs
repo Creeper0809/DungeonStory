@@ -255,9 +255,10 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
 #if UNITY_EDITOR
         if (options.IsEditorProfile)
         {
-            UnpauseGameplay();
+            SetGameplayPaused(true);
             LogProfileStage("editor-gc-baseline");
             yield return measurementSession.CaptureEditorGcBaseline(report);
+            UnpauseGameplay();
         }
 #endif
 
@@ -569,6 +570,11 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
 
     private void UnpauseGameplay()
     {
+        SetGameplayPaused(false);
+    }
+
+    private void SetGameplayPaused(bool paused)
+    {
         Scene scene = SceneManager.GetActiveScene();
         DungeonRuntimeLifetimeScope scope = FindSceneComponent<DungeonRuntimeLifetimeScope>(scene);
         if (scope?.Container != null)
@@ -579,7 +585,7 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
                 Mathf.RoundToInt(options.SimulationSpeed),
                 1,
                 5));
-            speedController.SetPaused(false);
+            speedController.SetPaused(paused);
         }
 
     }

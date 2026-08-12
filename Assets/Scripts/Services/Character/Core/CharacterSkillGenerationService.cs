@@ -760,61 +760,6 @@ public sealed class CharacterSkillGenerationService :
         return true;
     }
 
-    private void ApplyRuleAuthorityToCandidate(
-        CharacterSkillDraft draft,
-        CharacterSkillCandidateRule rule,
-        CharacterSkillCandidateResponseDto candidate)
-    {
-        // V25: the model supplies presentation only. A deterministic rule-owned
-        // combination fixes every mechanical field before response validation.
-        List<CharacterSkillAllowedCombination> combinations = CharacterSkillCombinationCatalog
-            .Build(rule, settingsProvider.Settings, draft.kind);
-        if (combinations.Count == 0)
-        {
-            candidate.combinationId = string.Empty;
-            candidate.modules = new List<CharacterSkillModuleResponseDto>();
-            return;
-        }
-
-        int stable = CharacterGrowthRules.StableHash(
-            $"{draft.requestKey}|mechanics");
-        int offset = stable == int.MinValue ? 0 : Math.Abs(stable);
-        CharacterSkillAllowedCombination selected = combinations[
-            (offset + Mathf.Max(0, candidate.index)) % combinations.Count];
-
-        candidate.combinationId = selected.Id;
-        candidate.modules = new List<CharacterSkillModuleResponseDto>();
-        candidate.trigger = rule.trigger.ToString();
-        candidate.target = rule.target.ToString();
-        candidate.cooldownTurns = draft.kind switch
-        {
-            CharacterSkillKind.Passive => 0,
-            CharacterSkillKind.Ultimate => 5,
-            _ => 2 + (offset % 3)
-        };
-        candidate.ultimateDomain = CharacterUltimateDomain.None.ToString();
-
-        if (draft.kind != CharacterSkillKind.Ultimate)
-        {
-            return;
-        }
-
-        bool management = selected.Modules.All(selection =>
-            settingsProvider.Settings.FindModule(selection.moduleId)
-            is CharacterManagementSkillModuleRule);
-        if (management)
-        {
-            candidate.ultimateDomain = CharacterUltimateDomain.Management.ToString();
-            candidate.trigger = CharacterSkillTrigger.OperatingDayStarted.ToString();
-            candidate.target = CharacterSkillTarget.Dungeon.ToString();
-            return;
-        }
-
-        candidate.ultimateDomain = CharacterUltimateDomain.Offense.ToString();
-        candidate.trigger = CharacterSkillTrigger.ManualCombat.ToString();
-        candidate.target = CharacterSkillTarget.Enemy.ToString();
-    }
-
     private bool TryBuildSkill(
         CharacterSkillDraft draft,
         CharacterSkillCandidateResponseDto candidate,
@@ -824,7 +769,6 @@ public sealed class CharacterSkillGenerationService :
         skill = null;
         error = string.Empty;
         CharacterSkillCandidateRule rule = draft.rules[candidate.index];
-        ApplyRuleAuthorityToCandidate(draft, rule, candidate);
         if (string.IsNullOrWhiteSpace(candidate.name)
             || candidate.name.Trim().Length > 14
             || string.IsNullOrWhiteSpace(candidate.description)

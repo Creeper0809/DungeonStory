@@ -32,8 +32,17 @@ MonoBehaviour:
   lineageKind: 0
   growthEquipment: 0
   growthBaseStatMultiplier: 1
+  proficiency:
+    primaryProficiencyId: proficiency:crafting
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  effects: []
+  allowMythicInspiration: 1
   verbs:
-  - rid: 7737211838079696905
+  - rid: 7737211905660420927
   rangeProfiles:
   - band: 0
     accuracyMultiplier: 0.9
@@ -54,7 +63,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211838079696905
+    - rid: 7737211905660420927
       type: {class: RecoverableThrowVerb, ns: , asm: DungeonStory.Combat}
       data:
         attackTime: 0.9

@@ -27,23 +27,28 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC7A5\uAE30 \uBCF4\uC874
     \uC6A9\uAE30."
   stockCategory: 1
-  unitWeight: 3.82
+  unitWeight: 2.35
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 250
+  unitPrice: 84
   features:
-  - rid: 7737211838078124598
-  - rid: 7737211838078124599
+  - rid: 7737211905658585374
+  - rid: 7737211905658585375
+  - rid: 7737211905660420572
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124598
+    - rid: 7737211905658585374
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:organ-preservation
-    - rid: 7737211838078124599
+    - rid: 7737211905658585375
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 512
         sharedIntermediate: 0
+    - rid: 7737211905660420572
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.59984887

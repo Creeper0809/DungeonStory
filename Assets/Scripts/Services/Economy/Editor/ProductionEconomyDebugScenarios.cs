@@ -149,7 +149,9 @@ public static class ProductionEconomyDebugScenarios
                 new FixedBuildingWorldQuery(facility),
                 EmptyWarehouseWorldQuery.Instance,
                 workforce,
-                Array.Empty<IProductionOutputHandler>());
+                Array.Empty<IProductionOutputHandler>(),
+                narrativeQualification: null,
+                performance: CharacterAiEditorTestDependencies.NeutralPerformance);
             ProductionFacilityHandle facilityHandle =
                 bridge.CaptureFacility(facility);
             ProductionStockSensorRuntime runtime = new(
@@ -308,8 +310,13 @@ public static class ProductionEconomyDebugScenarios
             ScriptableObject.CreateInstance<ResourceItemDefinitionSO>();
         BuildingSO building = ScriptableObject.CreateInstance<BuildingSO>();
         GameObject facilityObject = new GameObject("Production Bill Contract Facility");
+        GameObject workerObject = new GameObject("Production Bill Contract Worker");
         try
         {
+            CharacterActor worker = workerObject.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(workerObject);
+            worker.EnsureRuntimeState();
+            worker.Identity.SetPersistentId("character:test-production-worker");
             recipe.Configure(
                 "test:recipe:flour",
                 "시험 제분",
@@ -320,10 +327,14 @@ public static class ProductionEconomyDebugScenarios
                 10f,
                 new[] { new ItemAmountDefinition("resource:test-grain", 3) },
                 new[] { new ProductionOutputDefinition("material:test-flour", 2) });
+            recipe.ConfigureProficiency(
+                BuiltInCharacterProficiencyIds.Crafting);
             recipe.ConfigureWorkshop(
                 "workstation:mill",
                 Array.Empty<string>(),
                 ProductionProcessKind.WorkOnly);
+            recipe.ConfigureProcessClass(
+                ProductionProcessClass.CuttingGrindingWashing);
             grain.Configure(
                 "resource:test-grain",
                 "시험 곡물",
@@ -418,7 +429,7 @@ public static class ProductionEconomyDebugScenarios
             Require(availability.Available,
                 $"delivered production did not become runnable: {availability.Failure.Code}");
             ProductionWorkBeginResult begin = runtime.BeginWork(
-                null,
+                worker,
                 facility,
                 BuiltInWorkTypeIds.Craft);
             Require(begin.Succeeded,
@@ -428,7 +439,7 @@ public static class ProductionEconomyDebugScenarios
                 "delivered materials were not consumed at work start");
 
             ProductionWorkExecutionResult partialWork = runtime.ExecuteWork(
-                null,
+                worker,
                 facility,
                 started.BillId,
                 4f);
@@ -487,7 +498,7 @@ public static class ProductionEconomyDebugScenarios
                 "invalid production restore mutated live aggregate state");
 
             ProductionWorkExecutionResult restoredWork = restored.ExecuteWork(
-                null,
+                worker,
                 facility,
                 restoredBill.BillId,
                 6f);
@@ -506,6 +517,7 @@ public static class ProductionEconomyDebugScenarios
         finally
         {
             UnityEngine.Object.DestroyImmediate(facilityObject);
+            UnityEngine.Object.DestroyImmediate(workerObject);
             UnityEngine.Object.DestroyImmediate(building);
             UnityEngine.Object.DestroyImmediate(grain);
             UnityEngine.Object.DestroyImmediate(flour);
@@ -544,8 +556,14 @@ public static class ProductionEconomyDebugScenarios
             "Passive Batch Contract Workstation");
         GameObject supportObject = new GameObject(
             "Passive Batch Contract Support");
+        GameObject workerObject = new GameObject(
+            "Passive Batch Contract Worker");
         try
         {
+            CharacterActor worker = workerObject.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(workerObject);
+            worker.EnsureRuntimeState();
+            worker.Identity.SetPersistentId("character:test-passive-production-worker");
             recipe.Configure(
                 "test:recipe:fermentation",
                 "시험 발효",
@@ -556,6 +574,8 @@ public static class ProductionEconomyDebugScenarios
                 2f,
                 new[] { new ItemAmountDefinition("test:wort", 2) },
                 new[] { new ProductionOutputDefinition("test:beer", 2) });
+            recipe.ConfigureProficiency(
+                BuiltInCharacterProficiencyIds.FoodProduction);
             recipe.ConfigureWorkshop(
                 "workstation:test-brewery",
                 new[] { "support:test-fermenter" },
@@ -565,6 +585,8 @@ public static class ProductionEconomyDebugScenarios
                 finishWork: 1f,
                 processGameHours: 12f,
                 failedBatchItemId: "test:rot");
+            recipe.ConfigureProcessClass(
+                ProductionProcessClass.CookingSimpleMixing);
             ResourceEconomyContentCatalog catalog =
                 new ResourceEconomyContentCatalog(
                     fixtureItems,
@@ -650,14 +672,14 @@ public static class ProductionEconomyDebugScenarios
             items.Deliver("test:wort", 2, destination);
             items.Deliver("test:fuel", 1, destination);
             ProductionWorkBeginResult passiveBegin = runtime.BeginWork(
-                null,
+                worker,
                 workstation,
                 BuiltInWorkTypeIds.Craft);
             Require(passiveBegin.Succeeded,
                 $"passive batch did not begin: {passiveBegin.Failure.Code}");
             ProductionBillSnapshot prepared = passiveBegin.Bill;
             ProductionWorkExecutionResult preparation = runtime.ExecuteWork(
-                null,
+                worker,
                 workstation,
                 prepared.BillId,
                 2f);
@@ -733,14 +755,14 @@ public static class ProductionEconomyDebugScenarios
                 && items.GetAvailable("test:beer") == 0,
                 "processing completion did not wait for finishing work");
             ProductionWorkBeginResult finishBegin = restored.BeginWork(
-                null,
+                worker,
                 workstation,
                 BuiltInWorkTypeIds.Craft);
             Require(finishBegin.Succeeded,
                 $"finishing work did not become runnable: {finishBegin.Failure.Code}");
             ProductionBillSnapshot finishingWork = finishBegin.Bill;
             ProductionWorkExecutionResult finishWork = restored.ExecuteWork(
-                null,
+                worker,
                 workstation,
                 finishingWork.BillId,
                 1f);
@@ -763,14 +785,14 @@ public static class ProductionEconomyDebugScenarios
             items.Deliver("test:wort", 2, degradedDestination);
             items.Deliver("test:fuel", 1, degradedDestination);
             ProductionWorkBeginResult degradedBegin = restored.BeginWork(
-                null,
+                worker,
                 workstation,
                 BuiltInWorkTypeIds.Craft);
             Require(degradedBegin.Succeeded,
                 $"degraded batch did not begin: {degradedBegin.Failure.Code}");
             ProductionBillSnapshot degradedPreparation = degradedBegin.Bill;
             Require(restored.ExecuteWork(
-                    null,
+                    worker,
                     workstation,
                     degradedPreparation.BillId,
                     2f).Succeeded,
@@ -789,7 +811,7 @@ public static class ProductionEconomyDebugScenarios
             clock.DeltaTimeValue = 7.5f * 12f;
             restored.Tick();
             ProductionWorkBeginResult degradedFinish = restored.BeginWork(
-                null,
+                worker,
                 workstation,
                 BuiltInWorkTypeIds.Craft);
             Require(degradedFinish.Succeeded,
@@ -797,7 +819,7 @@ public static class ProductionEconomyDebugScenarios
             ProductionBillSnapshot degradedFinishing = degradedFinish.Bill;
             ProductionWorkExecutionResult degradedFinishWork =
                 restored.ExecuteWork(
-                    null,
+                    worker,
                     workstation,
                     degradedFinishing.BillId,
                     1f);
@@ -817,14 +839,14 @@ public static class ProductionEconomyDebugScenarios
             items.Deliver("test:wort", 2, ruinedDestination);
             items.Deliver("test:fuel", 1, ruinedDestination);
             ProductionWorkBeginResult ruinedBegin = restored.BeginWork(
-                null,
+                worker,
                 workstation,
                 BuiltInWorkTypeIds.Craft);
             Require(ruinedBegin.Succeeded,
                 $"ruined batch did not begin: {ruinedBegin.Failure.Code}");
             ProductionBillSnapshot ruinedPreparation = ruinedBegin.Bill;
             Require(restored.ExecuteWork(
-                    null,
+                    worker,
                     workstation,
                     ruinedPreparation.BillId,
                     2f).Succeeded,
@@ -844,6 +866,7 @@ public static class ProductionEconomyDebugScenarios
         {
             UnityEngine.Object.DestroyImmediate(workstationObject);
             UnityEngine.Object.DestroyImmediate(supportObject);
+            UnityEngine.Object.DestroyImmediate(workerObject);
             UnityEngine.Object.DestroyImmediate(workstationData);
             UnityEngine.Object.DestroyImmediate(supportData);
             foreach (ResourceItemDefinitionSO fixtureItem in fixtureItems)
@@ -1479,7 +1502,9 @@ public static class ProductionEconomyDebugScenarios
             buildingWorld,
             EmptyWarehouseWorldQuery.Instance,
             workforce,
-            Array.Empty<IProductionOutputHandler>());
+            Array.Empty<IProductionOutputHandler>(),
+            narrativeQualification: null,
+            performance: CharacterAiEditorTestDependencies.NeutralPerformance);
         IProductionOutputPlanningService outputPlanning =
             new ProductionOutputPlanningService(catalog, bridge);
         IProductionOutputExecutionService outputExecution =
@@ -1514,7 +1539,14 @@ public static class ProductionEconomyDebugScenarios
             bridge,
             clock);
         ProductionBillRuntime core = new(order, execution);
-        ProductionBillSceneFacade scene = new(core, core, core, bridge);
+        ProductionBillSceneFacade scene = new(
+            core,
+            core,
+            core,
+            bridge,
+            new ExtremeTraitRuntime(new CharacterIdentityStateStore()),
+            clock,
+            new CharacterIdentityEventPublisher(new GameEventBus()));
         return new ProductionRuntimeFixture(core, scene);
     }
 

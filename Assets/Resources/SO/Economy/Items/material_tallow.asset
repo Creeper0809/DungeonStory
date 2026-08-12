@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 6
   features:
-  - rid: 7737211838068949685
-  - rid: 7737211838068949686
-  - rid: 7737211838068949687
+  - rid: 7737211905666711981
+  - rid: 7737211905666711982
+  - rid: 7737211905666711983
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949685
+    - rid: 7737211905666711981
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:livestock
-    - rid: 7737211838068949686
+    - rid: 7737211905666711982
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 64
         sharedIntermediate: 1
-    - rid: 7737211838068949687
+    - rid: 7737211905666711983
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

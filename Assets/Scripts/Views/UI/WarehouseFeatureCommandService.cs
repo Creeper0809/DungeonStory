@@ -182,6 +182,22 @@ public sealed class WarehouseFeatureCommandService : IWarehouseFeatureCommandSer
                 : failureReason);
     }
 
+    public WarehouseFeatureCommandResult ToggleEmergencyReserve(string itemId)
+    {
+        ResourceStockPolicyData policy = stockPolicies.GetOrCreate(itemId);
+        policy.isEmergencyReserve = !policy.isEmergencyReserve;
+        if (policy.isEmergencyReserve)
+            policy.enabled = true;
+        bool succeeded = stockPolicies.SetPolicy(policy, out string failureReason);
+        return new WarehouseFeatureCommandResult(
+            succeeded,
+            succeeded
+                ? policy.isEmergencyReserve
+                    ? $"비상 비축으로 지정했습니다. 충족 기준: 최소 {policy.minimumStock}개"
+                    : "비상 비축 지정을 해제했습니다."
+                : failureReason);
+    }
+
     public WarehouseFeatureCommandResult AdjustStockPolicy(
         string itemId,
         ResourceStockThreshold threshold,

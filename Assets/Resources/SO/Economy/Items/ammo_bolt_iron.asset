@@ -31,28 +31,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 4
   features:
-  - rid: 7737211838068949468
-  - rid: 7737211838068949469
-  - rid: 7737211838068949470
-  - rid: 7737211838068949471
+  - rid: 7737211905666712207
+  - rid: 7737211905666712208
+  - rid: 7737211905666712209
+  - rid: 7737211905666712210
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949468
+    - rid: 7737211905666712207
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:bolt-iron
-    - rid: 7737211838068949469
+    - rid: 7737211905666712208
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:metallurgy:iron
-    - rid: 7737211838068949470
+    - rid: 7737211905666712209
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 768
         sharedIntermediate: 0
-    - rid: 7737211838068949471
+    - rid: 7737211905666712210
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

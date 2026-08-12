@@ -4,6 +4,7 @@ using System.Linq;
 
 internal sealed class CombatEquipmentRuntimeState
 {
+    internal int NextCraftSequence;
     internal Dictionary<string, CharacterCombatLoadoutState> Loadouts { get; } =
         new(StringComparer.Ordinal);
     internal List<CombatEquipmentCraftOrderSaveData> CraftOrders { get; } = new();

@@ -16,19 +16,26 @@ public class StockInfo : DataScriptableObject
 public struct StockDeliveryOffer
 {
     public StockCategory category;
+    public string itemId;
     public int amount;
     public int cost;
     public string sourceLabel;
 
-    public StockDeliveryOffer(StockCategory category, int amount, int cost, string sourceLabel)
+    public StockDeliveryOffer(
+        StockCategory category,
+        string itemId,
+        int amount,
+        int cost,
+        string sourceLabel)
     {
         this.category = category;
+        this.itemId = itemId?.Trim() ?? string.Empty;
         this.amount = Mathf.Max(0, amount);
         this.cost = Mathf.Max(0, cost);
         this.sourceLabel = sourceLabel;
     }
 
-    public bool IsValid => amount > 0 && cost >= 0;
+    public bool IsValid => !string.IsNullOrWhiteSpace(itemId) && amount > 0 && cost >= 0;
 }
 
 [Serializable]
@@ -138,6 +145,7 @@ public static class StockSupplyService
             .Where((definition) => definition.DailyBaseAmount > 0)
             .Select((definition) => StockSupplyService.CreateOffer(
                 definition.Category,
+                definition.DeliveryItemId,
                 definition.GetDailyAmount(smallGrowth),
                 definition.DailyUnitCost,
                 "운영일 납품",
@@ -168,7 +176,9 @@ public static class StockSupplyService
             return false;
         }
 
-        if (!(debugRules ?? throw new ArgumentNullException(nameof(debugRules))).ShouldSkipCosts()
+        bool skipCosts = (debugRules
+            ?? throw new ArgumentNullException(nameof(debugRules))).ShouldSkipCosts();
+        if (!skipCosts
             && !money.CanSpend(offer.cost))
         {
             result = Fail(offer.category, offer.amount, offer.cost, offer.sourceLabel, "자금 부족");
@@ -188,41 +198,97 @@ public static class StockSupplyService
             return false;
         }
 
-        if (itemStackRuntime.SpawnStockAtDropoff(
-                offer.category,
-                offer.amount,
-                offer.sourceLabel,
-                out int spawned))
+        if (!skipCosts && !TryPayDelivery(money, offer, out result))
         {
-            if (!debugRules.ShouldSkipCosts())
-            {
-                if (!TryPayDelivery(money, offer, out result))
-                {
-                    resultCallback?.Invoke(result);
-                    return false;
-                }
-            }
-            bool stackSuccess = spawned == offer.amount;
-            result = new StockSupplyResult(
-                stackSuccess,
-                offer.category,
-                offer.amount,
-                spawned,
-                offer.cost,
-                offer.sourceLabel,
-                stackSuccess ? string.Empty : "physical delivery interrupted");
             resultCallback?.Invoke(result);
-            return stackSuccess;
+            return false;
         }
 
-        result = Fail(
+        bool spawnCompleted;
+        int spawned;
+        try
+        {
+            spawnCompleted = itemStackRuntime.SpawnItemAtDropoff(
+                offer.itemId,
+                offer.amount,
+                offer.sourceLabel,
+                out spawned);
+        }
+        catch
+        {
+            if (!skipCosts)
+            {
+                RefundDelivery(money, offer, offer.cost, 0);
+            }
+            throw;
+        }
+
+        int delivered = Mathf.Clamp(spawned, 0, offer.amount);
+        int settledCost = skipCosts
+            ? 0
+            : CalculateSettledDeliveryCost(
+                offer.cost,
+                offer.amount,
+                delivered);
+        int refund = skipCosts ? 0 : Mathf.Max(0, offer.cost - settledCost);
+        if (refund > 0)
+        {
+            RefundDelivery(money, offer, refund, delivered);
+        }
+
+        bool stackSuccess = spawnCompleted && delivered == offer.amount;
+        result = new StockSupplyResult(
+            stackSuccess,
             offer.category,
             offer.amount,
-            offer.cost,
+            delivered,
+            settledCost,
             offer.sourceLabel,
-            "물리 납품 생성 실패");
+            stackSuccess
+                ? string.Empty
+                : delivered > 0
+                    ? "physical delivery interrupted"
+                    : "물리 납품 생성 실패");
         resultCallback?.Invoke(result);
-        return false;
+        return stackSuccess;
+    }
+
+    public static int CalculateSettledDeliveryCost(
+        int totalCost,
+        int requestedAmount,
+        int deliveredAmount)
+    {
+        int safeCost = Mathf.Max(0, totalCost);
+        int safeRequested = Mathf.Max(0, requestedAmount);
+        int safeDelivered = Mathf.Clamp(deliveredAmount, 0, safeRequested);
+        if (safeCost == 0 || safeRequested == 0 || safeDelivered == 0)
+        {
+            return 0;
+        }
+
+        int proportional = (int)Math.Ceiling(
+            (double)safeCost * safeDelivered / safeRequested);
+        return Mathf.Clamp(proportional, 0, safeCost);
+    }
+
+    private static void RefundDelivery(
+        IGameMoneyAccount money,
+        StockDeliveryOffer offer,
+        int refund,
+        int deliveredAmount)
+    {
+        if (refund <= 0)
+        {
+            return;
+        }
+
+        money.Add(
+            refund,
+            new EconomyTransactionContext(
+                EconomyTransactionKind.ShopPurchaseRefund,
+                "stock-delivery",
+                offer.category.ToString(),
+                $"{offer.sourceLabel}: {deliveredAmount}/{offer.amount} delivered"));
     }
 
     private static bool TryPayDelivery(
@@ -337,15 +403,17 @@ public static class StockSupplyService
 
     private static StockDeliveryOffer CreateOffer(
         StockCategory category,
+        string itemId,
         int amount,
-        int unitCost,
+        float unitCost,
         string sourceLabel,
         Func<StockCategory, float> stockCostMultiplier)
     {
         int safeAmount = Mathf.Max(0, amount);
         float costMultiplier = stockCostMultiplier(category);
-        int cost = Mathf.RoundToInt(safeAmount * Mathf.Max(0, unitCost) * Mathf.Max(0.05f, costMultiplier));
-        return new StockDeliveryOffer(category, safeAmount, cost, sourceLabel);
+        int cost = Mathf.RoundToInt(
+            safeAmount * Mathf.Max(0f, unitCost) * Mathf.Max(0.05f, costMultiplier));
+        return new StockDeliveryOffer(category, itemId, safeAmount, cost, sourceLabel);
     }
 
     private static StockSupplyResult Fail(

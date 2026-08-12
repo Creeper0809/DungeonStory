@@ -41,8 +41,8 @@ namespace DungeonStory.Tests.Architecture
                 "The untyped invasion runtime ID must never be assigned as a CharacterId.");
             Assert.That(
                 invasionRestore,
-                Does.Contain("CharacterId.FromStableSuffix(source.RuntimeId)"),
-                "Restored invasion actors must rebuild the same character-scoped identity.");
+                Does.Contain("individualBlueprint.CharacterId"),
+                "Restored invasion actors must reuse the persisted individual blueprint identity.");
             Assert.That(
                 invasionRestore,
                 Does.Not.Contain("SetPersistentId(source.RuntimeId)"),
@@ -59,7 +59,10 @@ namespace DungeonStory.Tests.Architecture
                 Does.Contain("CharacterId characterId = CharacterId.FromStableSuffix("));
             Assert.That(
                 offense,
-                Does.Contain("$\"{arrival.arrivalId}:prisoner:{arrival.materializedIds.Count + 1}\""));
+                Does.Contain("$\"{state.arrivalId}:prisoner:{index + 1}\""));
+            Assert.That(
+                offense,
+                Does.Contain("CharacterId characterId = blueprint.CharacterId;"));
             Assert.That(offense, Does.Contain("actorId = characterId.Value"));
 
             Assert.That(

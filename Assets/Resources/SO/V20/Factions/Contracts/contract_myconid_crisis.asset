@@ -23,8 +23,8 @@ MonoBehaviour:
   deadlineDays: 7
   completionRequirements:
     items:
-    - itemDefinitionId: medicine:fungicide
-      amount: 6
+    - itemDefinitionId: supply:fungicide
+      amount: 4
       consume: 1
     facilities: []
     research: []

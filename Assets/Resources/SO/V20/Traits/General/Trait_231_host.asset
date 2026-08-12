@@ -51,6 +51,10 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 1
+  selectionFamilyId: hospitality
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
   behaviorPreferences:
   - behaviorTag: service:greet

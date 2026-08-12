@@ -57,6 +57,21 @@ public sealed class ResourceGatheringWorkExecutionHandler :
                 workTypeId,
                 out CropPlotWorkSnapshot cropWork))
         {
+            if (workTypeId == BuiltInWorkTypeIds.Harvest
+                && !cropPlots.IsGoldenHarvestWorkerEligible(
+                    target,
+                    actor,
+                    out reason))
+                return false;
+            if (workTypeId == BuiltInWorkTypeIds.Harvest
+                && cropPlots.TryGetGoldenHarvestDelay(
+                    target,
+                    actor,
+                    out float remainingSeconds))
+            {
+                reason = $"황금 수확 숙성 대기 {remainingSeconds:F1}초";
+                return false;
+            }
             reason = cropWork.UnavailableReason;
             return cropWork.Available;
         }
@@ -172,6 +187,7 @@ public sealed class ResourceGatheringWorkExecutionHandler :
                         context.Target,
                         context.WorkTypeId,
                         delta,
+                        context.Actor,
                         out bool cycleCompleted);
                     progressApplied &= succeeded;
                     completed |= cycleCompleted;

@@ -25,41 +25,11 @@ MonoBehaviour:
   traitName: "\uC2F8\uC6C0\uAFBC"
   description: "\uC804\uD22C\uC640 \uD6C8\uB828 \uC120\uD638\uAC00 \uAC15\uD558\uC9C0\uB9CC
     \uC0AC\uACE0 \uC704\uD5D8\uB3C4 \uC624\uB978\uB2E4."
-  statBonus:
-    entries:
-    - statId: stat:attack
-      value: 2
-    - statId: stat:sales
-      value: 0
-    - statId: stat:research
-      value: 0
-    - statId: stat:move-speed
-      value: 0
-    - statId: stat:strength
-      value: 1
-    - statId: stat:toughness
-      value: 0
-    - statId: stat:dexterity
-      value: 0
-    - statId: stat:cleaning
-      value: -1
-    - statId: stat:endurance
-      value: 0
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 0.9
-    crowdSensitivityMultiplier: 0.8
-    accidentChanceMultiplier: 1.2
-    workSpeedMultiplier: 1.1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1.25
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
-    preferredFacilityRoles: 8
-    dislikedFacilityRoles: 4
-    preferredWorkTypes: 32
-    dislikedWorkTypes: 24
+    preferredFacilityRoles: 0
+    dislikedFacilityRoles: 0
+    preferredWorkTypes: 0
+    dislikedWorkTypes: 0
   combatAbilities:
     abilities: []
   environmentalProtection:
@@ -69,17 +39,46 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 1
+  polarity: 1
+  selectionFamilyId: combat-temperament
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: combat:engage
-    utilityDelta: 0.5
-  moodReactions:
-  - triggerTag: event:combat-victory
-    moodDelta: 3
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: combat
-    multiplier: 1.3
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:106:effect:0
+    definition: {fileID: 11400000, guid: 137c7667173fc054eb6777aec0aa16f2, type: 2}
+    value: 1.18
+    condition: {fileID: 0}
+  - bindingId: trait:106:effect:1
+    definition: {fileID: 11400000, guid: ab46736f68b07c442bc3c27bbc87e7cc, type: 2}
+    value: 1.12
+    condition: {fileID: 0}
+  identityRules:
+  - rid: 7737211921986486522
+  - rid: 7737211921986486523
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486522
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:seek-combat
+        priority: 0
+        behaviorTag: work:combat-training
+        utilityDelta: 0.65
+    - rid: 7737211921986486523
+      type: {class: PersistentNeedRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: need:combat-action
+        priority: 0
+        needId: need:combat-action
+        satisfiedEventId: combat:victory
+        deprivedEventId: combat:inactive-five-days
+        deprivationDays: 5
+        deprivedMoodDelta: -2
+        satisfiedMoodDelta: 3
+        moodDurationDays: 2

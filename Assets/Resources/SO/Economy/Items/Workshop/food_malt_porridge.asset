@@ -32,17 +32,22 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 6
   features:
-  - rid: 7737211838074978873
-  - rid: 7737211838074978874
-  - rid: 7737211838074978875
+  - rid: 7737211905660420419
+  - rid: 7737211905666712496
+  - rid: 7737211905666712497
+  - rid: 7737211905666712498
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074978873
+    - rid: 7737211905660420419
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.61304224
+    - rid: 7737211905666712496
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:crops
-    - rid: 7737211838074978874
+    - rid: 7737211905666712497
       type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         quality: 3
@@ -50,7 +55,7 @@ MonoBehaviour:
         mood: 2
         freshnessSeconds: 1440
         preserved: 1
-    - rid: 7737211838074978875
+    - rid: 7737211905666712498
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2

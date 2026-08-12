@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d73e94ec113318588b25eed8f9f9ee0, type: 3}
+  m_Name: Trait_516_slow-study
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterTraitSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 516
+  traitName: "\uB290\uB9B0 \uC2B5\uB4DD"
+  description: "\uC2B9\uC778\uB41C \uC791\uC5C5 \uACBD\uD5D8\uC744 \uB354 \uCC9C\uCC9C\uD788
+    \uC5BB\uB294\uB2E4."
+  modifiers:
+    preferredFacilityRoles: 0
+    dislikedFacilityRoles: 0
+    preferredWorkTypes: 0
+    dislikedWorkTypes: 0
+  combatAbilities:
+    abilities: []
+  environmentalProtection:
+    comfortMinimumOffset: 0
+    comfortMaximumOffset: 0
+    safeMinimumOffset: 0
+    safeMaximumOffset: 0
+    coldExposureMultiplier: 1
+    heatExposureMultiplier: 1
+  selectionRarity: 0
+  polarity: 2
+  selectionFamilyId: simple:learning
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
+  incompatibilityGroups: []
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:516:effect:0
+    definition: {fileID: 11400000, guid: 7b6cd223d9a9eda43964e6cfee0c6b8e, type: 2}
+    value: 0.9
+    condition: {fileID: 0}
+  identityRules: []
+  references:
+    version: 2
+    RefIds: []

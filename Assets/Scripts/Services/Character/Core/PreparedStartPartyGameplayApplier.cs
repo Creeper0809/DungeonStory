@@ -109,7 +109,7 @@ public sealed class PreparedStartPartyWorldContext
 {
     public PreparedStartPartyWorldContext(
         IWorldItemStackRuntime itemStackRuntime,
-        IWarehouseWorldQuery warehouseWorldQuery,
+        IWorldDropZoneQuery worldDropZoneQuery,
         IGridSystemProvider gridSystemProvider,
         IDungeonGridBuildingControllerProvider gridBuildingControllerProvider,
         DungeonSceneRuntimeReferences sceneRuntimes,
@@ -119,8 +119,8 @@ public sealed class PreparedStartPartyWorldContext
     {
         ItemStackRuntime = itemStackRuntime
             ?? throw new ArgumentNullException(nameof(itemStackRuntime));
-        WarehouseWorldQuery = warehouseWorldQuery
-            ?? throw new ArgumentNullException(nameof(warehouseWorldQuery));
+        WorldDropZoneQuery = worldDropZoneQuery
+            ?? throw new ArgumentNullException(nameof(worldDropZoneQuery));
         GridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         GridBuildingControllerProvider = gridBuildingControllerProvider
@@ -139,7 +139,7 @@ public sealed class PreparedStartPartyWorldContext
     }
 
     public IWorldItemStackRuntime ItemStackRuntime { get; }
-    public IWarehouseWorldQuery WarehouseWorldQuery { get; }
+    public IWorldDropZoneQuery WorldDropZoneQuery { get; }
     public IGridSystemProvider GridSystemProvider { get; }
     public IDungeonGridBuildingControllerProvider GridBuildingControllerProvider { get; }
     public RunVariableRuntime RunVariables { get; }
@@ -152,13 +152,14 @@ public sealed class PreparedStartPartyGameplayApplier :
     IPreparedStartPartyGameplayApplier,
     IPreparedStartPartyDiagnosticsQuery
 {
-    private static readonly (StockCategory Category, int Amount)[] StarterSupplies =
+    private static readonly (string ItemId, int Amount)[] StarterSupplies =
     {
-        (StockCategory.Food, 15),
-        (StockCategory.Water, 15),
-        (StockCategory.General, 40),
-        (StockCategory.Fuel, 10),
-        (StockCategory.Medicine, 5)
+        ("food:preserved-ration", 24),
+        ("resource:clean-water", 30),
+        ("material:lumber", 15),
+        ("material:cloth", 9),
+        ("craft:candle", 10),
+        ("craft:resin-balm", 5)
     };
 
     private readonly IRunCharacterCatalog characterCatalog;
@@ -166,7 +167,7 @@ public sealed class PreparedStartPartyGameplayApplier :
     private readonly ICharacterSpawnerProvider characterSpawnerProvider;
     private readonly ICharacterSpawnObjectFactory characterObjectFactory;
     private readonly IWorldItemStackRuntime itemStackRuntime;
-    private readonly IWarehouseWorldQuery warehouseWorldQuery;
+    private readonly IWorldDropZoneQuery worldDropZoneQuery;
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IDungeonGridBuildingControllerProvider gridBuildingControllerProvider;
     private readonly RunVariableRuntime runVariables;
@@ -190,7 +191,7 @@ public sealed class PreparedStartPartyGameplayApplier :
         characterObjectFactory = characters.CharacterObjectFactory;
         characterLifetimeQuery = characters.CharacterLifetimeQuery;
         itemStackRuntime = world.ItemStackRuntime;
-        warehouseWorldQuery = world.WarehouseWorldQuery;
+        worldDropZoneQuery = world.WorldDropZoneQuery;
         gridSystemProvider = world.GridSystemProvider;
         gridBuildingControllerProvider = world.GridBuildingControllerProvider;
         runVariables = world.RunVariables;
@@ -308,12 +309,20 @@ public sealed class PreparedStartPartyGameplayApplier :
     private bool TrySpawnStarterSupplies(out string failureReason)
     {
         DungeonPhysicalItemSaveData beforeSpawn = itemStackRuntime.Capture();
-        foreach ((StockCategory category, int amount) in StarterSupplies)
+        if (!worldDropZoneQuery.TryGetDeliveryDropoff(out Vector2Int dropoff))
         {
-            if (itemStackRuntime.SpawnStockAtDropoff(
-                    category,
+            failureReason = "시작 보급품을 놓을 배송 지점을 찾지 못했습니다.";
+            return false;
+        }
+
+        foreach ((string itemId, int amount) in StarterSupplies)
+        {
+            if (itemStackRuntime.SpawnItemAt(
+                    itemId,
                     amount,
-                    "시작 보급품",
+                    dropoff,
+                    WorldItemStackState.Loose,
+                    string.Empty,
                     out int spawned)
                 && spawned == amount)
             {
@@ -321,25 +330,20 @@ public sealed class PreparedStartPartyGameplayApplier :
             }
 
             itemStackRuntime.Restore(beforeSpawn);
-            failureReason = $"시작 보급품을 하차장에 놓지 못했습니다. 항목: {category}";
+            failureReason = $"시작 보급품을 지급하지 못했습니다. item={itemId}; requested={amount}; spawned={spawned}";
             return false;
         }
 
-        WorldItemStackSnapshot dropoffStack = itemStackRuntime.GetAllStacks()
-            .Where(value => value != null)
-            .OrderBy(value => value.StackId, StringComparer.Ordinal)
-            .FirstOrDefault();
-        if (dropoffStack == null
-            || !itemStackRuntime.SpawnUniqueItemAt(
+        if (!itemStackRuntime.SpawnUniqueItemAt(
                 "tool:sewing-kit",
-                dropoffStack.Position,
+                dropoff,
                 WorldItemStackState.Loose,
                 string.Empty,
                 out _)
             || !itemStackRuntime.SpawnItemAt(
                 "material:sewing-thread",
                 12,
-                dropoffStack.Position,
+                dropoff,
                 WorldItemStackState.Loose,
                 string.Empty,
                 out int threadSpawned)
@@ -347,7 +351,7 @@ public sealed class PreparedStartPartyGameplayApplier :
             || !itemStackRuntime.SpawnItemAt(
                 "material:mending-scrap",
                 6,
-                dropoffStack.Position,
+                dropoff,
                 WorldItemStackState.Loose,
                 string.Empty,
                 out int scrapSpawned)
@@ -732,30 +736,38 @@ public sealed class PreparedStartPartyGameplayApplier :
             return;
         }
 
-        Vector2Int ownerPosition = grid.GetXY(owner.transform.position);
-        HashSet<Vector2Int> used = new HashSet<Vector2Int> { ownerPosition };
+        Vector2Int entryPosition = grid.GetXY(spawner.GetEntryDoorWorldPosition());
         List<Vector2Int> walkable = grid.GetCells()
-            .Where(cell => cell != null && grid.IsWalkable(cell.Position))
+            .Where(cell => cell != null
+                && cell.AreaType == GridCellAreaType.DungeonInterior
+                && grid.IsWalkable(cell.Position))
             .Select(cell => cell.Position)
-            .OrderBy(position => position.y == ownerPosition.y ? 0 : 1)
-            .ThenBy(position => Mathf.Abs(position.x - ownerPosition.x) + Mathf.Abs(position.y - ownerPosition.y))
+            .OrderBy(position => position.y == entryPosition.y ? 0 : 1)
+            .ThenBy(position => Mathf.Abs(position.x - entryPosition.x)
+                + Mathf.Abs(position.y - entryPosition.y))
             .ThenBy(position => position.x)
             .ToList();
-        foreach (CharacterActor actor in staff)
+        if (walkable.Count < staff.Count + 1)
         {
-            Vector2Int? available = walkable
-                .Where(candidate => !used.Contains(candidate))
-                .Select(candidate => (Vector2Int?)candidate)
-                .FirstOrDefault();
-            if (!available.HasValue)
-            {
-                actor.transform.position = spawner.GetEntryDoorWorldPosition();
-                continue;
-            }
+            walkable = grid.GetCells()
+                .Where(cell => cell != null && grid.IsWalkable(cell.Position))
+                .Select(cell => cell.Position)
+                .OrderBy(position => Mathf.Abs(position.x - entryPosition.x)
+                    + Mathf.Abs(position.y - entryPosition.y))
+                .ThenBy(position => position.y)
+                .ThenBy(position => position.x)
+                .ToList();
+        }
 
-            Vector2Int position = available.Value;
-            used.Add(position);
-            actor.transform.position = grid.GetWorldPos(position);
+        CharacterActor[] party = new[] { owner }
+            .Concat(staff.Where(actor => actor != null))
+            .ToArray();
+        for (int index = 0; index < party.Length; index++)
+        {
+            Vector2Int position = index < walkable.Count
+                ? walkable[index]
+                : entryPosition;
+            party[index].transform.position = grid.GetWorldPos(position);
         }
     }
 

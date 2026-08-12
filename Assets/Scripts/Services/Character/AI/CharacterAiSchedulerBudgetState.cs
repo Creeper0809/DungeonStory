@@ -348,15 +348,25 @@ internal sealed class CharacterAiSchedulerBudgetState
         pathSearchesThisFrame = 0;
     }
 
-    private int GetPathSearchBudgetForFrame(
+    public int GetPathSearchBudgetForFrame(
         CharacterAiSchedulerBudgetSettings settings,
         int actorCount)
     {
         EnsureInitialized(settings, actorCount);
+        int authoredMaximum = Mathf.Clamp(
+            settings.MaxPathSearchesPerFrame,
+            1,
+            4096);
+        int forwardProgressFloor = Mathf.Min(
+            Mathf.Max(0, actorCount),
+            authoredMaximum);
+        int minimum = Mathf.Max(
+            Mathf.Max(0, settings.MinPathSearchesPerFrame),
+            forwardProgressFloor);
         return Mathf.Clamp(
             currentPathSearchBudget,
-            Mathf.Max(0, settings.MinPathSearchesPerFrame),
-            ResolvePathSearchSafetyLimit(settings, actorCount));
+            minimum,
+            authoredMaximum);
     }
 
     private static int ResolveDecisionSafetyLimit(
@@ -373,10 +383,7 @@ internal sealed class CharacterAiSchedulerBudgetState
         CharacterAiSchedulerBudgetSettings settings,
         int actorCount)
     {
-        return Mathf.Clamp(
-            Mathf.Max(settings.MaxPathSearchesPerFrame, actorCount),
-            32,
-            4096);
+        return Mathf.Clamp(settings.MaxPathSearchesPerFrame, 1, 4096);
     }
 
     private void UpdateFrameTimeBudget(

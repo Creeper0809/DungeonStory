@@ -84,11 +84,11 @@ public class AbilityMove : CharacterAbility
     public override void Initializtion(CharacterSO data)
     {
         base.Initializtion(data);
-        moveSpeed = actor != null
-            ? actor.GetMoveSpeed()
-            : data != null
-                ? data.moveSpeed
-                : 1f;
+        // Initialization runs before life/narrative publication has registered
+        // the authoritative nine proficiencies. The live actor performance is
+        // queried by CharacterMovementKinematics for every movement segment;
+        // this value is only the actor-less fallback.
+        moveSpeed = data != null ? data.moveSpeed : 1f;
         moveSpeed = Mathf.Max(0.1f, moveSpeed);
     }
 

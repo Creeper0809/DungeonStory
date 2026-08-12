@@ -23,15 +23,14 @@ MonoBehaviour:
     SerializationNodes: []
   id: 8029
   encounterId: encounter:29
-  displayName: "\uACBD\uC7C1 \uB358\uC804 \uD3ED\uD48D\uBD80\uB984\uAFBC \uC804\uC220
-    \uC870\uC6B0"
+  displayName: "\uACBD\uC7C1 \uB358\uC804 \uD3ED\uD48D\uBD80\uB984\uAFBC"
   minimumSiteStrength: 8
   maximumSiteStrength: 11
   elite: 0
   boss: 0
   objective: 4
   objectiveRoundLimit: 7
-  objectiveTargetId:
+  objectiveTargetId: 
   battlefieldModifierIds:
   - battlefield:civilian-corridor
   counterTags:

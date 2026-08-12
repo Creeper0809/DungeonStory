@@ -5,7 +5,10 @@ public sealed class AIHunt : AIActionSet
     private static readonly CharacterAiActionDescriptor ActionDescriptor = new CharacterAiActionDescriptor(
         CharacterAiBranch.Work,
         "사냥",
-        CharacterAiActionTags.Work);
+        CharacterAiActionTags.Work,
+        "work:hunt",
+        "work:dangerous",
+        "work:inspect-scout");
 
     public override CharacterAiActionDescriptor Descriptor => ActionDescriptor;
     public override bool RequiresDestination => false;

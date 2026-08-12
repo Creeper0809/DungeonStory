@@ -17,6 +17,7 @@ public sealed class WorldItemWarehouseService
     private readonly IGridSystemProvider gridProvider;
     private readonly ICharacterIdRegistry characterIds;
     private readonly IItemReservationService reservations;
+    private readonly IItemQuantityReservationService quantityReservations;
 
     public WorldItemWarehouseService(
         IDungeonItemCatalogProvider catalog,
@@ -26,7 +27,8 @@ public sealed class WorldItemWarehouseService
         IItemMarkerPresenter markers,
         IGridSystemProvider gridProvider,
         ICharacterIdRegistry characterIds,
-        IItemReservationService reservations)
+        IItemReservationService reservations,
+        IItemQuantityReservationService quantityReservations = null)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.repository = repository
@@ -41,6 +43,7 @@ public sealed class WorldItemWarehouseService
             ?? throw new ArgumentNullException(nameof(characterIds));
         this.reservations = reservations
             ?? throw new ArgumentNullException(nameof(reservations));
+        this.quantityReservations = quantityReservations;
     }
 
     public bool SpawnStock(
@@ -164,7 +167,7 @@ public sealed class WorldItemWarehouseService
             .Where(record => record != null
                 && record.quantity > 0
                 && !record.forbidden
-                && string.IsNullOrWhiteSpace(record.reservedByPersistentId)
+                && GetAvailableQuantity(record) > 0
                 && string.IsNullOrWhiteSpace(record.sourceStorageDestinationId)
                 && (record.state == WorldItemStackState.Loose
                     && string.IsNullOrWhiteSpace(record.destinationId)
@@ -248,7 +251,7 @@ public sealed class WorldItemWarehouseService
                 && record.quantity > 0
                 && record.state == WorldItemStackState.Stored
                 && !record.forbidden
-                && string.IsNullOrWhiteSpace(record.reservedByPersistentId)
+                && GetAvailableQuantity(record) > 0
                 && string.Equals(record.itemId, itemId, StringComparison.Ordinal))
             .Select(record => new
             {
@@ -272,7 +275,24 @@ public sealed class WorldItemWarehouseService
             failureReason = "items.pickup.stored_item_unavailable";
             return false;
         }
-        if (!reservations.TryReserve(new[] { selected.stackId }, actorId))
+        string ownerOperationId = $"equipment-pickup:{actorId}:{itemId}";
+        ItemQuantityLease quantityLease = null;
+        bool reserved = quantityReservations != null
+            ? quantityReservations.TryReserve(
+                ownerOperationId,
+                actorId,
+                ItemReservationPurpose.Equipment,
+                $"equipment:{actorId}",
+                new ItemQuantityReservationRequest(
+                    new ItemStackId(selected.stackId),
+                    Mathf.Min(
+                        GetAvailableQuantity(selected),
+                        Mathf.Max(1, quantity)),
+                    ItemStackSignature.Create(selected.itemId, selected.components)),
+                out quantityLease,
+                out _)
+            : reservations.TryReserve(new[] { selected.stackId }, actorId);
+        if (!reserved)
         {
             failureReason = "items.pickup.reservation_changed";
             return false;
@@ -289,10 +309,14 @@ public sealed class WorldItemWarehouseService
         reservation = new WorldItemReservedStackQuantity(
             selected.stackId,
             selected.itemId,
-            Mathf.Min(selected.quantity, Mathf.Max(1, quantity)),
+            Mathf.Min(
+                GetAvailableQuantity(selected) + (quantityLease?.originalQuantity ?? 0),
+                Mathf.Max(1, quantity)),
             selected.position,
             WorldItemHaulDestinationKind.Warehouse,
-            selected.destinationId);
+            selected.destinationId,
+            quantityLease?.leaseId,
+            quantityLease != null ? ownerOperationId : string.Empty);
         repository.MarkChanged();
         markers.RefreshAt(selected.position);
         return true;
@@ -319,26 +343,45 @@ public sealed class WorldItemWarehouseService
             || source == null
             || source.quantity <= 0
             || source.forbidden
-            || !string.IsNullOrWhiteSpace(source.reservedByPersistentId)
+            || GetAvailableQuantity(source) <= 0
             || !string.IsNullOrWhiteSpace(source.sourceStorageDestinationId)
             || !string.IsNullOrWhiteSpace(source.destinationId)
-                && source.state != WorldItemStackState.Stored)
+                && source.state is not (WorldItemStackState.Stored
+                    or WorldItemStackState.FacilityOutputBuffer))
         {
             failureReason = "items.delivery.stack_unavailable";
             return false;
         }
         if (source.state is not (WorldItemStackState.Loose
-                or WorldItemStackState.Stored))
+                or WorldItemStackState.Stored
+                or WorldItemStackState.FacilityOutputBuffer))
         {
             failureReason = "items.delivery.stack_state_invalid";
             return false;
         }
 
-        int moved = Mathf.Min(amount, source.quantity);
+        int available = GetAvailableQuantity(source);
+        int moved = Mathf.Min(amount, available);
         Vector2Int sourcePosition = source.position;
         string storageDestination = source.state == WorldItemStackState.Stored
             ? source.destinationId
             : string.Empty;
+        if (moved == source.quantity)
+        {
+            source.state = source.state == WorldItemStackState.FacilityOutputBuffer
+                ? WorldItemStackState.Loose
+                : source.state;
+            source.destinationId = destination;
+            source.sourceStorageDestinationId = storageDestination;
+            source.hasDestinationPosition = true;
+            source.destinationPosition = destinationPosition;
+            repository.MarkChanged();
+            markers.RefreshAt(sourcePosition);
+            requested = moved;
+            reservations.PrioritizeHaul(source.stackId);
+            return true;
+        }
+
         source.quantity -= moved;
         repository.MarkChanged();
         if (source.quantity <= 0)
@@ -349,7 +392,9 @@ public sealed class WorldItemWarehouseService
             source.itemId,
             moved,
             sourcePosition,
-            source.state,
+            source.state == WorldItemStackState.FacilityOutputBuffer
+                ? WorldItemStackState.Loose
+                : source.state,
             destination,
             true,
             destinationPosition,
@@ -425,13 +470,13 @@ public sealed class WorldItemWarehouseService
                     && stack.quantity > 0
                     && stack.state == WorldItemStackState.Loose
                     && !stack.forbidden
-                    && string.IsNullOrWhiteSpace(stack.reservedByPersistentId)
+                    && GetAvailableQuantity(stack) > 0
                     && string.IsNullOrWhiteSpace(stack.destinationId)
                     && string.Equals(
                         stack.itemId,
                         itemId,
                         StringComparison.Ordinal))
-                .Sum(stack => stack.quantity);
+                .Sum(GetAvailableQuantity);
     }
 
     private int RequestLoose(
@@ -447,8 +492,7 @@ public sealed class WorldItemWarehouseService
                          && stack.quantity > 0
                          && stack.state == WorldItemStackState.Loose
                          && !stack.forbidden
-                         && string.IsNullOrWhiteSpace(
-                             stack.reservedByPersistentId)
+                         && GetAvailableQuantity(stack) > 0
                          && string.IsNullOrWhiteSpace(stack.destinationId)
                          && string.Equals(
                              stack.itemId,
@@ -463,7 +507,7 @@ public sealed class WorldItemWarehouseService
             {
                 break;
             }
-            int moved = Mathf.Min(remaining, stack.quantity);
+            int moved = Mathf.Min(remaining, GetAvailableQuantity(stack));
             Vector2Int sourcePosition = stack.position;
             stack.quantity -= moved;
             repository.MarkChanged();
@@ -514,8 +558,7 @@ public sealed class WorldItemWarehouseService
                              && stack.quantity > 0
                              && stack.state == WorldItemStackState.Stored
                              && !stack.forbidden
-                             && string.IsNullOrWhiteSpace(
-                                 stack.reservedByPersistentId)
+                             && GetAvailableQuantity(stack) > 0
                              && string.IsNullOrWhiteSpace(
                                  stack.sourceStorageDestinationId)
                              && string.Equals(
@@ -532,7 +575,7 @@ public sealed class WorldItemWarehouseService
                 {
                     break;
                 }
-                int assigned = Mathf.Min(remaining, stack.quantity);
+                int assigned = Mathf.Min(remaining, GetAvailableQuantity(stack));
                 Vector2Int sourcePosition = stack.position;
                 stack.quantity -= assigned;
                 repository.MarkChanged();
@@ -584,14 +627,14 @@ public sealed class WorldItemWarehouseService
                 && stack.quantity > 0
                 && stack.state == WorldItemStackState.Stored
                 && !stack.forbidden
-                && string.IsNullOrWhiteSpace(stack.reservedByPersistentId)
+                && GetAvailableQuantity(stack) > 0
                 && string.IsNullOrWhiteSpace(stack.sourceStorageDestinationId)
                 && string.Equals(stack.itemId, itemId, StringComparison.Ordinal)
                 && string.Equals(
                     stack.destinationId ?? string.Empty,
                     storageId,
                     StringComparison.Ordinal))
-            .Sum(stack => stack.quantity);
+            .Sum(GetAvailableQuantity);
     }
 
     private int AddStoredItems(
@@ -620,6 +663,19 @@ public sealed class WorldItemWarehouseService
             wasteOrigin: wasteOrigin,
             contamination: contamination,
             components: components);
+    }
+
+    private int GetAvailableQuantity(WorldItemStackRecord stack)
+    {
+        if (stack == null || stack.quantity <= 0)
+            return 0;
+        return quantityReservations != null
+            ? Mathf.Clamp(
+                quantityReservations.GetAvailableQuantity(
+                    new ItemStackId(stack.stackId)),
+                0,
+                stack.quantity)
+            : Mathf.Max(0, stack.quantity - stack.reservedQuantity);
     }
 
     private IEnumerable<IWarehouseFacility> GetWarehouses()

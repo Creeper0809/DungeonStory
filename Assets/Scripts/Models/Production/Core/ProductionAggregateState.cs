@@ -60,6 +60,7 @@ public sealed class ProductionBillRecord
     public IReadOnlyCollection<string> allowedWorkerIds => mutableAllowedWorkerIds;
     public WorkerSelectionPolicySaveData workerPolicy { get; internal set; } =
         WorkerSelectionPolicySaveData.Anyone(WorkerCandidateSortMode.Fastest);
+    public string emergencyWorkerId { get; internal set; } = string.Empty;
     internal readonly List<CraftContributionSaveData> mutableWorkerContributions = new();
     public IReadOnlyList<CraftContributionSaveData> workerContributions =>
         mutableWorkerContributions;
@@ -124,6 +125,8 @@ public sealed class ProductionBillRecord
     public void SetWorkerPolicy(WorkerSelectionPolicySaveData value) =>
         workerPolicy = value?.CloneNormalized()
             ?? WorkerSelectionPolicySaveData.Anyone();
+    public void SetEmergencyWorker(string id) =>
+        emergencyWorkerId = id?.Trim() ?? string.Empty;
     public void ReplaceWorkerContributions(
         IEnumerable<CraftContributionSaveData> values)
     {
@@ -321,6 +324,8 @@ public sealed class ProductionAggregateStateSession
                 reservedWorkerId = string.Empty,
                 workerPolicy = saved.workerPolicy?.CloneNormalized()
                     ?? WorkerSelectionPolicySaveData.Anyone(),
+                emergencyWorkerId = saved.emergencyWorkerId?.Trim()
+                    ?? string.Empty,
                 materialDestinationId = saved.materialDestinationId,
                 prefetchBatchCount = saved.prefetchBatchCount,
                 estimatedDeliverySeconds = saved.estimatedDeliverySeconds,

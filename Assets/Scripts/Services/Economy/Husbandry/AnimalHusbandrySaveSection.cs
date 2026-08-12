@@ -118,8 +118,8 @@ public static class BatchBSpeciesHusbandryDebugScenarios
 
     private static void VerifySaveContracts()
     {
-        Require(CharacterSpeciesRuntimeSaveData.CurrentVersion == 2,
-            "Character-species payload must be exact V2.");
+        Require(CharacterSpeciesRuntimeSaveData.CurrentVersion == 3,
+            "Character-species payload must be exact V3.");
         Require(DungeonAnimalHusbandrySaveData.CurrentVersion == 2,
             "Animal-husbandry payload must be exact V2.");
         Require(typeof(IDungeonSaveSectionPreflight)
@@ -150,7 +150,11 @@ public static class BatchBSpeciesHusbandryDebugScenarios
             && typeof(IAnimalHusbandryPersistence)
                 .IsAssignableFrom(typeof(AnimalHusbandryRuntime)),
             "Species and husbandry runtimes must expose split query/command contracts.");
-        foreach (string methodName in new[] { "Recharge", "RepairIntegrity" })
+        // Arbitrary charge mutation is intentionally not part of the public
+        // species command contract. Recharge is performed only through the
+        // reserved facility-work service; the command surface exposes the two
+        // typed mutations consumed by work and maintenance systems only.
+        foreach (string methodName in new[] { "RepairIntegrity", "RecordCompletedWork" })
         {
             System.Reflection.MethodInfo method =
                 typeof(ICharacterSpeciesCommand).GetMethod(methodName);

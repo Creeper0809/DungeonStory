@@ -9,6 +9,7 @@ public class AbilityWork : CharacterAbility
 {
     private static readonly IFloatingIconFeedbackService FallbackFloatingIconFeedbackService =
         new AbilityWorkNoopFloatingIconFeedbackService();
+    private const string WorkAccidentRandomStreamId = "character:work-accident";
 
     public enum DutyState
     {
@@ -43,6 +44,7 @@ public class AbilityWork : CharacterAbility
     private WorkTaskExecutor taskExecutor;
     private WorkDutyController dutyController;
     private WorkCommandHandler commandHandler;
+    private IRandomStream workAccidentRandom;
     private IBlueprintResearchWorkService blueprintResearchWorkService;
     private IStaffDiscontentRuntimeService staffDiscontentRuntimeService;
     private IFloatingIconFeedbackService floatingIconFeedbackService;
@@ -62,13 +64,28 @@ public class AbilityWork : CharacterAbility
     private IWorkAmountCalculator workAmountCalculator;
     private ICaptiveLaborQuery captiveLaborQuery;
     private IGameClock gameClock;
+    private IGameCalendar gameCalendar;
+    private ICharacterProficiencyCommand proficiencyCommands;
+    private ICharacterProficiencyQuery proficiencyQuery;
+    private ICombatEquipmentRuntime combatEquipmentRuntime;
+    private IResourceStockPolicyQuery resourceStockPolicies;
     private IDefenseEngagementRuntime defenseEngagementRuntime;
     private IRoomEnvironmentExperienceService roomEnvironmentExperienceService;
+    private CharacterIdentityEventPublisher identityEvents;
+    private ICharacterPerformanceQuery performance;
+    private CharacterWorkPerformanceContextResolver performanceContext;
+    private IAnatomyHealthRuntime anatomyHealth;
+    private ICharacterSpeciesCommand speciesCommands;
+    private IEmergencyWorkAccountingService emergencyWorkAccounting;
+    private ISettlementLaborAccountingService settlementLaborAccounting;
     private bool isScheduleBound;
     private float routineOperateCooldownUntil;
     private Coroutine activeWorkRoutine;
     private Coroutine activeWorkCheckRoutine;
     private int activeWorkRunId;
+    private float activeWorkStartedAt = -1f;
+    private WorkTypeId lastFailedWorkTypeId;
+    private float lastFailedWorkAt = -1f;
 
     public BuildableObject PriorityWorkTarget => CommandHandler.PriorityWorkTarget;
     public CharacterActor PrioritySuppressActor => CommandHandler.PrioritySuppressActor;
@@ -88,6 +105,126 @@ public class AbilityWork : CharacterAbility
     public bool IsOffDuty => DutyController.IsOffDuty;
     public WorkTargetCandidate LastRejectedWorkCandidate => TargetSelector.LastRejectedCandidate;
     public bool HasExteriorZoneQuery => exteriorZoneQuery != null;
+
+    public IReadOnlyList<string> GetActiveGameplayEffectConditionIds()
+    {
+        List<string> conditions = new(4);
+        if (schedule?.nowSheduleData != null
+            && schedule.nowSheduleData.Value == Schedule.WORK)
+        {
+            conditions.Add("work:on-schedule");
+        }
+
+        float now = gameClock?.Time ?? -1f;
+        if (isWorking
+            && activeWorkStartedAt >= 0f
+            && now >= activeWorkStartedAt
+            && now - activeWorkStartedAt >= GameCalendarRules.SecondsPerDay / 6f)
+        {
+            conditions.Add("work:long-shift");
+        }
+
+        WorkTypeId current = AssignedWorkTypeId;
+        if (current.IsValid
+            && current == lastFailedWorkTypeId
+            && lastFailedWorkAt >= 0f
+            && now >= lastFailedWorkAt
+            && now - lastFailedWorkAt <= GameCalendarRules.SecondsPerDay * 3f)
+        {
+            conditions.Add("work:retry-after-failure");
+        }
+
+        if (isWorking
+            && current == BuiltInWorkTypeIds.Craft
+            && assignedShop?.BuildingData?
+                .GetAbility<BuildingEquipmentCraftingAbility>()
+                is BuildingEquipmentCraftingAbility equipmentCrafting
+            && combatEquipmentRuntime?.TryGetNextCraftMaterialContext(
+                equipmentCrafting.CraftableEquipmentIds,
+                actor,
+                out _,
+                out _,
+                out bool usesSubstituteMaterial) == true
+            && usesSubstituteMaterial)
+        {
+            conditions.Add("work:substitute-material");
+        }
+
+        return conditions;
+    }
+
+    internal void RecordFailedWorkAttempt(WorkTypeId workTypeId)
+    {
+        if (!workTypeId.IsValid) return;
+        lastFailedWorkTypeId = workTypeId;
+        lastFailedWorkAt = gameClock?.Time ?? 0f;
+    }
+
+    internal void RecordSuccessfulWorkAttempt(WorkTypeId workTypeId)
+    {
+        if (workTypeId.IsValid && workTypeId == lastFailedWorkTypeId)
+        {
+            lastFailedWorkTypeId = default;
+            lastFailedWorkAt = -1f;
+        }
+    }
+
+    internal bool IsRecentRetryCandidate(WorkTypeId workTypeId)
+    {
+        float now = gameClock?.Time ?? -1f;
+        return workTypeId.IsValid
+            && workTypeId == lastFailedWorkTypeId
+            && lastFailedWorkAt >= 0f
+            && now >= lastFailedWorkAt
+            && now - lastFailedWorkAt <= GameCalendarRules.SecondsPerDay * 3f;
+    }
+
+    internal bool CandidateUsesSubstituteMaterial(BuildableObject building)
+    {
+        return building?.BuildingData?
+                .GetAbility<BuildingEquipmentCraftingAbility>()
+                is BuildingEquipmentCraftingAbility equipmentCrafting
+            && combatEquipmentRuntime?.TryGetNextCraftMaterialContext(
+                equipmentCrafting.CraftableEquipmentIds,
+                actor,
+                out _,
+                out _,
+                out bool usesSubstituteMaterial) == true
+            && usesSubstituteMaterial;
+    }
+
+    public void AwardCompletedCombatTraining(BuildableObject building)
+    {
+        if (building?.BuildingData == null
+            || proficiencyCommands == null
+            || gameCalendar == null
+            || !CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId))
+        {
+            return;
+        }
+
+        CharacterProficiencyId proficiencyId =
+            building.BuildingData.OperationProficiency.Primary;
+        if (proficiencyId != BuiltInCharacterProficiencyIds.MeleeCombat
+            && proficiencyId != BuiltInCharacterProficiencyIds.RangedCombat)
+        {
+            return;
+        }
+
+        proficiencyCommands.AddCombatExperience(
+            characterId,
+            proficiencyId,
+            0.50f,
+            training: true,
+            stableAwardKey: string.Empty,
+            absoluteHour: gameCalendar.AbsoluteHour);
+        identityEvents?.Publish(new WorkCompletedIdentityEvent(
+            characterId,
+            "work:combat-training",
+            building.BuildingData.ContentDefinitionId,
+            CharacterCommandOrigin.Autonomous,
+            gameCalendar.Current.AbsoluteDay));
+    }
 
     public CharacterActor WorkerActor => actor;
     public AbilityMove WorkerMove => move;
@@ -112,6 +249,7 @@ public class AbilityWork : CharacterAbility
     internal IWorkPolicyRegistry WorkPolicyRegistry => workPolicyRegistry;
     internal IWorkOrderRuntime WorkOrderRuntime => workOrderRuntime;
     internal IGameClock GameClock => gameClock;
+    internal IResourceStockPolicyQuery ResourceStockPolicies => resourceStockPolicies;
 
     private InvalidOperationException MissingDependency(string dependencyName)
     {
@@ -169,7 +307,7 @@ public class AbilityWork : CharacterAbility
     internal float HungerWorkInterruptThreshold =>
         ResolveNeedResponse(
             CharacterCondition.HUNGER,
-            hungerWorkInterruptThreshold).emergencyStart;
+            hungerWorkInterruptThreshold).routineStart;
     internal float OffDutyMoodThreshold => offDutyMoodThreshold;
     internal float ReturnToWorkMoodThreshold => returnToWorkMoodThreshold;
     internal float MinimumOffDutySeconds => minimumOffDutySeconds;
@@ -179,6 +317,12 @@ public class AbilityWork : CharacterAbility
     internal float SuppressAttackInterval => suppressAttackInterval;
     internal float RoutineOperateShiftSeconds => routineOperateShiftSeconds;
     internal bool LastWorkRunCompleted => DutyController.LastWorkRunCompleted;
+    internal bool LastWorkRunInterruptedForRoutineNeed =>
+        DutyController.LastWorkRunInterruptedForRoutineNeed;
+    internal BuildableObject RoutineNeedResumeTarget =>
+        DutyController.RoutineNeedResumeTarget;
+    internal WorkTypeId RoutineNeedResumeWorkTypeId =>
+        DutyController.RoutineNeedResumeWorkTypeId;
 
     private CharacterNeedResponseProfile ResolveNeedResponse(
         CharacterCondition condition,
@@ -297,6 +441,80 @@ public class AbilityWork : CharacterAbility
         commandHandler = null;
     }
 
+    [Inject]
+    public void ConstructIdentityEvents(
+        CharacterIdentityEventPublisher identityEvents)
+    {
+        this.identityEvents = identityEvents
+            ?? throw new ArgumentNullException(nameof(identityEvents));
+        taskExecutor = null;
+    }
+
+    [Inject]
+    public void ConstructPerformance(
+        ICharacterPerformanceQuery performance,
+        CharacterWorkPerformanceContextResolver performanceContext,
+        IAnatomyHealthRuntime anatomyHealth,
+        ICharacterSpeciesCommand speciesCommands)
+    {
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
+        this.performanceContext = performanceContext
+            ?? throw new ArgumentNullException(nameof(performanceContext));
+        this.anatomyHealth = anatomyHealth
+            ?? throw new ArgumentNullException(nameof(anatomyHealth));
+        this.speciesCommands = speciesCommands
+            ?? throw new ArgumentNullException(nameof(speciesCommands));
+        taskExecutor = null;
+    }
+
+    [Inject]
+    public void ConstructEmergencyWorkAccounting(
+        IEmergencyWorkAccountingService emergencyWorkAccounting,
+        ISettlementLaborAccountingService settlementLaborAccounting)
+    {
+        this.emergencyWorkAccounting = emergencyWorkAccounting
+            ?? throw new ArgumentNullException(nameof(emergencyWorkAccounting));
+        this.settlementLaborAccounting = settlementLaborAccounting
+            ?? throw new ArgumentNullException(nameof(settlementLaborAccounting));
+        taskExecutor = null;
+    }
+
+    [Inject]
+    public void ConstructProficiencyProgression(
+        ICharacterProficiencyCommand proficiencyCommands,
+        ICharacterProficiencyQuery proficiencyQuery,
+        IGameCalendar gameCalendar,
+        ICombatEquipmentRuntime combatEquipmentRuntime)
+    {
+        this.proficiencyCommands = proficiencyCommands
+            ?? throw new ArgumentNullException(nameof(proficiencyCommands));
+        this.proficiencyQuery = proficiencyQuery
+            ?? throw new ArgumentNullException(nameof(proficiencyQuery));
+        this.gameCalendar = gameCalendar
+            ?? throw new ArgumentNullException(nameof(gameCalendar));
+        this.combatEquipmentRuntime = combatEquipmentRuntime;
+        taskExecutor = null;
+    }
+
+    [Inject]
+    public void ConstructIdentityWorkQueries(
+        IResourceStockPolicyQuery resourceStockPolicies)
+    {
+        this.resourceStockPolicies = resourceStockPolicies;
+        targetSelector = null;
+    }
+
+    [Inject]
+    public void ConstructWorkAccidentRandom(
+        IRandomStreamProvider randomStreamProvider)
+    {
+        workAccidentRandom = (randomStreamProvider
+                ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
+            .Get(WorkAccidentRandomStreamId);
+        taskExecutor = null;
+    }
+
     public override void Initializtion(CharacterSO data)
     {
         base.Initializtion(data);
@@ -311,7 +529,18 @@ public class AbilityWork : CharacterAbility
         }
 
         DutyController.InitializeWorkerCondition(data);
-        TryAssignShop();
+        // Detached restores and unpublished compositions do not yet have their
+        // final identity, proficiency authority, body state, or world
+        // publication. Starting an AI search here would evaluate the
+        // performance Query against a deliberately incomplete candidate. The
+        // publication path registers those authorities before the AI scheduler
+        // is allowed to request work.
+        if (actor == null
+            || (!actor.IsDetachedRestoreCandidate
+                && !actor.IsUnpublishedComposition))
+        {
+            TryAssignShop();
+        }
     }
 
     public void EnsureWorkReferences()
@@ -635,12 +864,22 @@ public class AbilityWork : CharacterAbility
 
     public bool CanStartAnyWorkAction(GridPathSearchResult searchResult)
     {
+        if (DutyController.HasRoutinePhysiologicalNeed())
+        {
+            return false;
+        }
+
         return CanStartWorkAction()
             || TargetSelector.HasUrgentAnyAvailableWork(searchResult);
     }
 
     public bool CanStartWorkAction(WorkTypeId requestedWorkTypeId, GridPathSearchResult searchResult)
     {
+        if (DutyController.HasRoutinePhysiologicalNeed())
+        {
+            return false;
+        }
+
         return CanStartWorkAction()
             || TargetSelector.HasUrgentAvailableWork(searchResult, requestedWorkTypeId);
     }
@@ -724,14 +963,54 @@ public class AbilityWork : CharacterAbility
         float fun = 0f,
         float hunger = 0f,
         float excretion = 0f,
-        float hygiene = 0f)
+        float hygiene = 0f,
+        IReadOnlyList<string> activeConditionIds = null)
     {
-        DutyController.RecoverOffDuty(sleep, mood, fun, hunger, excretion, hygiene);
+        DutyController.RecoverOffDuty(
+            sleep,
+            mood,
+            fun,
+            hunger,
+            excretion,
+            hygiene,
+            activeConditionIds);
+        DutyController.NotifyRoutineNeedServiceCompleted();
+    }
+
+    public bool NotifyRoutineNeedServiceCompleted()
+    {
+        return DutyController.NotifyRoutineNeedServiceCompleted();
+    }
+
+    internal void BeginDutyWorkRun()
+    {
+        DutyController.BeginWorkRun();
     }
 
     public void ApplyWorkFatigueTick()
     {
         DutyController.ApplyWorkFatigueTick();
+    }
+
+    internal bool ApplyWorkNeedDepletion(float elapsedGameSeconds)
+    {
+        return DutyController.ApplyWorkNeedDepletion(elapsedGameSeconds);
+    }
+
+    public bool RequestEmergencySuspension(long alertEpochId)
+    {
+        return TaskExecutor.RequestEmergencySuspension(alertEpochId);
+    }
+
+    public bool CancelEmergencySuspensionRequest(long alertEpochId)
+    {
+        return TaskExecutor.CancelEmergencySuspensionRequest(alertEpochId);
+    }
+
+    public bool TryConsumeEmergencySuspension(
+        out EmergencyWorkSuspensionReceipt receipt)
+    {
+        return TaskExecutor.TryConsumeEmergencySuspension(out receipt);
     }
 
     public IEnumerator CheckActionWork()
@@ -751,6 +1030,8 @@ public class AbilityWork : CharacterAbility
     {
         assignedShop = building;
         assignedWorkType = workType;
+        if (building == null)
+            activeWorkStartedAt = -1f;
     }
 
     internal void AssignWork(BuildableObject building, WorkTypeId workTypeId)
@@ -950,7 +1231,19 @@ public class AbilityWork : CharacterAbility
                 roomEnvironmentExperienceService,
                 characterEnvironment,
                 environmentalWorkwearCommands,
-                environmentWorkPolicy));
+                environmentWorkPolicy),
+            proficiencyCommands,
+            gameCalendar,
+            proficiencyQuery,
+            combatEquipmentRuntime,
+            workAccidentRandom,
+            identityEvents,
+            performance,
+            performanceContext,
+            anatomyHealth,
+            speciesCommands,
+            emergencyWorkAccounting,
+            settlementLaborAccounting);
         dutyController ??= new WorkDutyController(
             this,
             needDefinitionCatalog);
@@ -961,12 +1254,14 @@ public class AbilityWork : CharacterAbility
     {
         StopActiveWorkRoutines();
         activeWorkRunId++;
+        activeWorkStartedAt = gameClock?.Time ?? 0f;
         return activeWorkRunId;
     }
 
     private void InvalidateActiveWorkRun()
     {
         activeWorkRunId++;
+        activeWorkStartedAt = -1f;
         StopActiveWorkRoutines();
     }
 
@@ -983,6 +1278,7 @@ public class AbilityWork : CharacterAbility
             return;
         }
 
+        taskExecutor?.CancelActiveRun(WorkerActor, "coroutine-stopped");
         StopCoroutine(activeWorkRoutine);
         activeWorkRoutine = null;
     }

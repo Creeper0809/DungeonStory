@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uBC27\uC904"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uBC27\uC904."
   stockCategory: 1
-  unitWeight: 0.46
+  unitWeight: 0.9
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 26
+  unitPrice: 8
   features:
-  - rid: 7737211838074979205
-  - rid: 7737211838074979206
+  - rid: 7737211905655964514
+  - rid: 7737211905655964515
+  - rid: 7737211905660420376
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074979205
+    - rid: 7737211905655964514
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:textile:fiber
-    - rid: 7737211838074979206
+    - rid: 7737211905655964515
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 128
         sharedIntermediate: 1
+    - rid: 7737211905660420376
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6223311

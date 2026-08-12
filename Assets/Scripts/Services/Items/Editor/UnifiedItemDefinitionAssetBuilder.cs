@@ -20,6 +20,26 @@ public static class UnifiedItemDefinitionAssetBuilder
         CombatEquipmentAssetBuilder.BuildAll();
         ResearchProjectAssetBuilder.Rebuild();
 
+        int generated = RebuildEquipmentItemsOnly();
+
+        ItemDefinitionSO[] all = Resources.LoadAll<ItemDefinitionSO>(
+            ItemDefinitionSO.UnifiedResourcePath);
+        ResourceItemDefinitionCatalog catalog = new(all);
+        if (catalog.Validate().Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Unified item validation failed:\n" + string.Join("\n", catalog.Validate()));
+        }
+
+        Debug.Log(
+            $"Unified item definitions rebuilt: {catalog.All.Count} SO assets, "
+            + $"{generated} generated legacy/equipment definitions, duplicate IDs 0.");
+    }
+
+    public static int RebuildEquipmentItemsOnly()
+    {
+        EnsureFolder("Assets/Resources/SO/Items", "Definitions");
+
         HashSet<string> authoredIds = Resources
             .LoadAll<ItemDefinitionSO>(ItemDefinitionSO.UnifiedResourcePath)
             .Where(definition => definition != null && definition.StableId.IsValid)
@@ -74,21 +94,10 @@ public static class UnifiedItemDefinitionAssetBuilder
             generated++;
         }
 
+        GameContentCatalogAssetBuilder.ReindexItemDefinitions();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
-
-        ItemDefinitionSO[] all = Resources.LoadAll<ItemDefinitionSO>(
-            ItemDefinitionSO.UnifiedResourcePath);
-        ResourceItemDefinitionCatalog catalog = new(all);
-        if (catalog.Validate().Count > 0)
-        {
-            throw new InvalidOperationException(
-                "Unified item validation failed:\n" + string.Join("\n", catalog.Validate()));
-        }
-
-        Debug.Log(
-            $"Unified item definitions rebuilt: {catalog.All.Count} SO assets, "
-            + $"{generated} generated legacy/equipment definitions, duplicate IDs 0.");
+        return generated;
     }
 
     public static string ValidateAll()
@@ -109,10 +118,10 @@ public static class UnifiedItemDefinitionAssetBuilder
 
         int equipmentItems = catalog.All.Count(definition =>
             definition.TryGetFeature(out EquipmentItemFeature _));
-        if (equipmentItems != 43)
+        if (equipmentItems != 61)
         {
             throw new InvalidOperationException(
-                $"Expected exactly 43 equipment item features, found {equipmentItems}.");
+                $"Expected exactly 61 equipment item features, found {equipmentItems}.");
         }
 
         if (!catalog.TryGet((ItemDefinitionId)"ammo:paper-cartridge", out ItemDefinitionSO cartridge)

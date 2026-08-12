@@ -34,23 +34,38 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730889015603
-    - rid: 7737211730889015604
-    - rid: 7737211730889015605
-    - rid: 7737211730889015606
-    - rid: 7737211730889015607
-    - rid: 7737211730889015608
-    - rid: 7737211730889015609
-    - rid: 7737211730889015610
-    - rid: 7737211730889015611
-    - rid: 7737211838074978482
-    - rid: 7737211838074978483
-    - rid: 7737211838074978484
-    - rid: 7737211838074978485
+    - rid: 7737211857806557798
+    - rid: 7737211857806557799
+    - rid: 7737211857806557800
+    - rid: 7737211857806557801
+    - rid: 7737211857806557802
+    - rid: 7737211857806557803
+    - rid: 7737211857806557804
+    - rid: 7737211857806557805
+    - rid: 7737211857806557806
+    - rid: 7737211905655963702
+    - rid: 7737211905655963703
+    - rid: 7737211905655963704
+    - rid: 7737211905655963705
   width: 2
   height: 1
   layer: 1
@@ -66,12 +81,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730889015603
+    - rid: 7737211857806557798
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: M06
-    - rid: 7737211730889015604
+    - rid: 7737211857806557799
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -79,7 +94,7 @@ MonoBehaviour:
         - medical
         - surgery
         - m06
-    - rid: 7737211730889015605
+    - rid: 7737211857806557800
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -88,7 +103,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211730889015606
+    - rid: 7737211857806557801
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -99,17 +114,17 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 256
           disabledWhenDamaged: 1
-    - rid: 7737211730889015607
+    - rid: 7737211857806557802
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211730889015608
+    - rid: 7737211857806557803
       type: {class: BuildingInternalStockAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 12
         restockRequestThreshold: 3
-    - rid: 7737211730889015609
+    - rid: 7737211857806557804
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -118,10 +133,21 @@ MonoBehaviour:
         cleanWorkRequired: 8
         researchWorkRequired: 6
         operateWorkRequired: 12
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
         - itemId: material:steel-ingot
           amount: 6
-    - rid: 7737211730889015610
+    - rid: 7737211857806557805
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -133,28 +159,28 @@ MonoBehaviour:
           - m06
           scores: []
           metrics: []
-    - rid: 7737211730889015611
+    - rid: 7737211857806557806
       type: {class: BuildingProstheticAssemblyAbility, ns: , asm: DungeonStory.Medical}
       data:
         abilityId: BuildingProstheticAssemblyAbility
         assemblySpeedMultiplier: 1.1
         qualityBonus: 0.06
         outputCapacity: 3
-    - rid: 7737211838074978482
+    - rid: 7737211905655963702
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7737211838074978483
+    - rid: 7737211905655963703
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7737211838074978484
+    - rid: 7737211905655963704
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -165,7 +191,7 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7737211838074978485
+    - rid: 7737211905655963705
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility

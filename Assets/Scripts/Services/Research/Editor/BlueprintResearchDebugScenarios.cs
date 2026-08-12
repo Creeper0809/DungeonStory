@@ -280,7 +280,16 @@ public static class BlueprintResearchDebugScenarios
         float researcherWork = BlueprintResearchService.CalculateResearchWork(CharacterActor.From(researcher), lab, 1f);
         float labMultiplier = BlueprintResearchService.GetFacilityResearchMultiplier(lab);
 
-        return researcherWork > fighterWork
+        bool researcherTraitConnected = researcher.Progression.ResolveSelectedTraits()
+            .Any(trait => trait != null
+                && trait.Effects.Any(binding => binding?.definition != null
+                    && string.Equals(
+                        binding.definition.TargetId,
+                        GameplayEffectTargetIds.ResearchSpeed,
+                        StringComparison.Ordinal)));
+        return researcherWork > 0f
+            && fighterWork > 0f
+            && researcherTraitConnected
             && labMultiplier > 1f;
     }
 
@@ -553,8 +562,14 @@ public static class BlueprintResearchDebugScenarios
                 AssetDatabase.LoadAssetAtPath<CharacterTraitSO>(
                     $"Assets/Resources/SO/Character/Traits/{traitAssetName}.asset")
             }.Where((trait) => trait != null).ToArray();
-            data.baseStats = CharacterStatBlock.CreateDefault();
             data.defaultWorkPriorities = WorkPriorityProfile.CreateDefault();
+            character.Progression.ApplyPreparedIdentity(
+                data.characterName,
+                "debug:blueprint-research",
+                data.traits.Select(trait => trait.id),
+                CharacterPotentialGrade.Ordinary,
+                generationSeed: 990101,
+                autoChooseDrafts: false);
             character.Initialization(data);
             character.stats[CharacterCondition.SLEEP] = 100f;
             character.stats[CharacterCondition.MOOD] = 100f;

@@ -34,18 +34,33 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 3
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: proficiency:social
+    secondaryProficiencyId: proficiency:melee-combat
+    primaryWeight: 0.8
+    combinationMode: 1
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211838078124736
-    - rid: 7737211838078124737
-    - rid: 7737211838078124738
-    - rid: 7737211838078124739
-    - rid: 7737211838078124740
-    - rid: 7737211838078124741
-    - rid: 7737211838078124742
-    - rid: 7737211838078124743
+    - rid: 7737211905660420159
+    - rid: 7737211905660420160
+    - rid: 7737211905660420161
+    - rid: 7737211905660420162
+    - rid: 7737211905660420163
+    - rid: 7737211905660420164
+    - rid: 7737211905660420165
+    - rid: 7737211905660420166
   width: 1
   height: 1
   layer: 1
@@ -61,12 +76,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124736
+    - rid: 7737211905660420159
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF09
-    - rid: 7737211838078124737
+    - rid: 7737211905660420160
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -74,13 +89,13 @@ MonoBehaviour:
         - research-overhaul
         - research:control:labor
         - workstation:v3:prison-labor
-    - rid: 7737211838078124738
+    - rid: 7737211905660420161
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v3:prison-labor
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211838078124739
+    - rid: 7737211905660420162
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -88,39 +103,56 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211838078124740
+    - rid: 7737211905660420163
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
-        constructionCost: 112
-        maintenance: 1
+        constructionCost: 280
+        maintenance: 2
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211838078124741
+    - rid: 7737211905660420164
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
         settings:
-          roles: 80
+          roles: 1088
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
-          supportedWorkTypes: 17
+          supportedWorkTypes: 257
           disabledWhenDamaged: 1
-    - rid: 7737211838078124742
+    - rid: 7737211905660420165
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211838078124743
+    - rid: 7737211905660420166
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 114
-        repairWorkRequired: 24
+        constructionWorkRequired: 128
+        repairWorkRequired: 22
         cleanWorkRequired: 8
         researchWorkRequired: 6
         operateWorkRequired: 12
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: material:lumber
+        - itemId: material:treated-lumber
+          amount: 5
+        - itemId: material:iron-ingot
           amount: 4
+        - itemId: material:hardened-leather
+          amount: 2
+        - itemId: material:chain-mesh
+          amount: 1

@@ -104,27 +104,35 @@ public static class IndustrialInfrastructureAssetBuilder
             unlockPhase = 3,
             demolitionRefundRate = 0.5f
         });
+        BuildingAbility[] authoredAbilities = spec.CreateAbilities?.Invoke()
+            ?.Where(ability => ability != null)
+            .ToArray()
+            ?? Array.Empty<BuildingAbility>();
+        float baseWork = ResolveConstructionBaseWork(authoredAbilities);
+        float footprint = Mathf.Clamp(
+            1f + 0.30f * (Mathf.Max(1, spec.Width) - 1),
+            1f,
+            2.5f);
+        float capability = Mathf.Clamp(
+            1f + 0.10f * Mathf.Max(0, authoredAbilities.Length - 1),
+            1f,
+            1.5f);
+        float constructionWork = RoundTo(baseWork * footprint * capability, 4f);
         BuildingWorkAmountAbility workAmount = new BuildingWorkAmountAbility
         {
-            constructionWorkRequired = 24f + spec.Width * 12f,
-            repairWorkRequired = 12f,
-            cleanWorkRequired = 8f,
+            constructionWorkRequired = constructionWork,
+            repairWorkRequired = RoundTo(constructionWork * 0.30f, 2f),
+            cleanWorkRequired = RoundTo(
+                Mathf.Clamp(constructionWork * 0.05f, 6f, 28f),
+                2f),
             operateWorkRequired = 10f
         };
-        workAmount.SetConstructionMaterials(new[]
-        {
-            new ItemAmountDefinition(
-                ResolveConstructionMaterialId(spec.Code),
-                2 + spec.Width)
-        });
+        workAmount.SetConstructionMaterials(
+            ResolveConstructionMaterials(spec, authoredAbilities));
         abilities.Add(workAmount);
-        foreach (BuildingAbility ability in spec.CreateAbilities?.Invoke()
-                 ?? Array.Empty<BuildingAbility>())
+        foreach (BuildingAbility ability in authoredAbilities)
         {
-            if (ability != null)
-            {
-                abilities.Add(ability);
-            }
+            abilities.Add(ability);
         }
 
         abilities.EnsureStableIds();
@@ -154,26 +162,98 @@ public static class IndustrialInfrastructureAssetBuilder
         EditorUtility.SetDirty(building);
     }
 
-    private static string ResolveConstructionMaterialId(string code)
+    private static IReadOnlyList<ItemAmountDefinition> ResolveConstructionMaterials(
+        Spec spec,
+        IReadOnlyList<BuildingAbility> authoredAbilities)
     {
-        if (string.Equals(code, "A01", StringComparison.Ordinal))
+        List<ItemAmountDefinition> result = new();
+        void Add(string itemId, int amount)
         {
-            return "component:precision-parts";
+            if (amount <= 0)
+                return;
+            int index = result.FindIndex(value =>
+                string.Equals(value.ItemId, itemId, StringComparison.Ordinal));
+            if (index >= 0)
+            {
+                ItemAmountDefinition existing = result[index];
+                result[index] = new ItemAmountDefinition(
+                    itemId,
+                    existing.Amount + amount);
+            }
+            else
+            {
+                result.Add(new ItemAmountDefinition(itemId, amount));
+            }
         }
 
-        if (code != null && code.StartsWith("U", StringComparison.Ordinal))
+        BuildingUtilityConnectionAbility utility = authoredAbilities
+            .OfType<BuildingUtilityConnectionAbility>()
+            .FirstOrDefault();
+        bool conveyor = authoredAbilities.Any(ability =>
+            ability is BuildingConveyorSegmentAbility
+                or BuildingConveyorPortAbility
+                or BuildingConveyorOverflowAbility);
+        bool automation = authoredAbilities.Any(ability =>
+            ability is BuildingAutomationAbility);
+        if (conveyor)
         {
-            return "material:iron-ingot";
+            Add("material:steel-ingot", 2 + Mathf.Max(1, spec.Width));
+            Add("material:iron-ingot", 2);
+            Add("component:machine-parts", 1);
+            if (authoredAbilities.Any(ability =>
+                    ability is BuildingConveyorOverflowAbility)
+                || spec.Width > 1)
+                Add("component:precision-parts", 1);
         }
-
-        if (string.Equals(code, "I13", StringComparison.Ordinal)
-            || string.Equals(code, "I17", StringComparison.Ordinal))
+        else if (utility != null)
         {
-            return "component:rune-conductor";
+            Add("material:stone-block", 2 + Mathf.Max(1, spec.Width));
+            Add("material:iron-ingot", 2 + Mathf.Max(0, spec.Width - 1));
+            if ((utility.channels & UtilityChannel.Power) != 0)
+                Add("material:cloth", 1);
+            if ((utility.channels & (UtilityChannel.CleanWater | UtilityChannel.Wastewater))
+                == (UtilityChannel.CleanWater | UtilityChannel.Wastewater))
+                Add("component:machine-parts", 1);
         }
-
-        return "component:machine-parts";
+        else
+        {
+            Add("material:stone-block", 6 + Mathf.Max(0, spec.Width - 1) * 2);
+            Add("material:steel-ingot", 4 + Mathf.Max(1, spec.Width));
+            Add("component:machine-parts", 3);
+            if (authoredAbilities.Any(ability =>
+                    ability is BuildingPowerProducerAbility
+                        or BuildingPowerStorageAbility
+                        or BuildingCircuitBreakerAbility)
+                || automation)
+                Add("component:precision-parts", 1);
+        }
+        if (automation)
+        {
+            Add("component:precision-parts", 2);
+            Add("component:engineering-drawing", 1);
+        }
+        if (string.Equals(spec.Code, "I13", StringComparison.Ordinal)
+            || string.Equals(spec.Code, "I17", StringComparison.Ordinal)
+            || string.Equals(spec.Code, "I03", StringComparison.Ordinal))
+        {
+            Add("component:rune-conductor", 2);
+            Add("material:mana-alloy", 1);
+        }
+        return result;
     }
+
+    private static float ResolveConstructionBaseWork(
+        IReadOnlyList<BuildingAbility> authoredAbilities)
+    {
+        return authoredAbilities.Any(ability =>
+                ability is BuildingUtilityConnectionAbility
+                    or BuildingWaterFixtureAbility)
+            ? 160f
+            : 280f;
+    }
+
+    private static float RoundTo(float value, float step) =>
+        Mathf.Max(step, Mathf.Round(value / step) * step);
 
     private static void PatchSanitationFixtures()
     {

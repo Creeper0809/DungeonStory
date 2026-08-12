@@ -4,6 +4,7 @@
     "references": [
     "DungeonStory.Automation",
     "DungeonStory.Captivity",
+    "DungeonStory.Characters",
     "DungeonStory.CoreSession",
     "DungeonStory.Economy",
     "DungeonStory.Foundation",
@@ -11,7 +12,8 @@
     "DungeonStory.Items",
     "DungeonStory.Production",
     "DungeonStory.Species",
-    "DungeonStory.Wildlife"
+    "DungeonStory.Wildlife",
+    "DungeonStory.Work"
   ],
   "includePlatforms": [
     "Editor"

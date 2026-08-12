@@ -25,38 +25,8 @@ MonoBehaviour:
   traitName: "\uB300\uC2DD\uAC00"
   description: "\uC74C\uC2DD \uC18C\uBE44\uAC00 \uB298\uACE0 \uC2DD\uC0AC \uC2DC\uC124
     \uC120\uD638\uAC00 \uAC15\uD574\uC9C4\uB2E4."
-  statBonus:
-    entries:
-    - statId: stat:attack
-      value: 0
-    - statId: stat:sales
-      value: 0
-    - statId: stat:research
-      value: 0
-    - statId: stat:move-speed
-      value: 0
-    - statId: stat:strength
-      value: 0
-    - statId: stat:toughness
-      value: 1
-    - statId: stat:dexterity
-      value: 0
-    - statId: stat:cleaning
-      value: 0
-    - statId: stat:endurance
-      value: 0
   modifiers:
-    consumptionMultiplier: 1.5
-    spendingMultiplier: 1.1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1.05
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
-    preferredFacilityRoles: 1
+    preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
     dislikedWorkTypes: 0
@@ -69,17 +39,46 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 0
+  polarity: 1
+  selectionFamilyId: appetite
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: food:seek-meal
-    utilityDelta: 0.4
-  moodReactions:
-  - triggerTag: food:sated
-    moodDelta: 2
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: survival
-    multiplier: 1.2
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:101:effect:0
+    definition: {fileID: 11400000, guid: 4c10a3b16899e31478c3820a16829879, type: 2}
+    value: 1.25
+    condition: {fileID: 0}
+  - bindingId: trait:101:effect:1
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 1.08
+    condition: {fileID: 11400000, guid: 46688b8b8c35b8048a10233b78a61df0, type: 2}
+  identityRules:
+  - rid: 7737211921986486444
+  - rid: 7737211921986486445
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486444
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:meal-priority
+        priority: 0
+        behaviorTag: work:eat
+        utilityDelta: 0.8
+    - rid: 7737211921986486445
+      type: {class: PersistentNeedRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: need:large-meal
+        priority: 0
+        needId: need:large-meal
+        satisfiedEventId: food:sated
+        deprivedEventId: food:meal-missed
+        deprivationDays: 1
+        deprivedMoodDelta: -5
+        satisfiedMoodDelta: 3
+        moodDurationDays: 1

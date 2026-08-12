@@ -29,7 +29,7 @@ MonoBehaviour:
   unitWeight: 3.8
   maxStack: 1
   sprite: {fileID: 0}
-  unitPrice: 68
+  unitPrice: 92
   features:
   - rid: 7737211673752633435
   - rid: 7737211673752633436
@@ -38,16 +38,16 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211673752633435
-      type: {class: EquipmentItemFeature, ns: , asm: Assembly-CSharp}
+      type: {class: EquipmentItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         equipmentDefinitionId: armor:closed-plate-helm
     - rid: 7737211673752633436
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 0
         sharedIntermediate: 0
     - rid: 7737211673752633437
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:articulated-plate

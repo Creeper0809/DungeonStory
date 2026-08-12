@@ -13,10 +13,15 @@ public sealed class GrandProjectWorkExecutionHandler :
     };
 
     private readonly IGrandProjectRuntime runtime;
+    private readonly IProjectWorkforceRuntime projectWorkforce;
 
-    public GrandProjectWorkExecutionHandler(IGrandProjectRuntime runtime)
+    public GrandProjectWorkExecutionHandler(
+        IGrandProjectRuntime runtime,
+        IProjectWorkforceRuntime projectWorkforce)
     {
         this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+        this.projectWorkforce = projectWorkforce
+            ?? throw new ArgumentNullException(nameof(projectWorkforce));
     }
 
     public IReadOnlyCollection<WorkTypeId> WorkTypeIds => Supported;
@@ -30,8 +35,17 @@ public sealed class GrandProjectWorkExecutionHandler :
         GrandProjectWorkSnapshot work = default;
         bool available = workTypeId == BuiltInWorkTypeIds.GrandProject
             && runtime.TryGetWork(GetFacilityId(target), out work)
-            && work.Available;
-        reason = available ? string.Empty : work.UnavailableReason;
+            && work.Available
+            && CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId)
+            && projectWorkforce.CanJoin(
+                work.ProjectId,
+                characterId.Value,
+                SettlementLaborBalanceRules.GetMaximumWorkers(ProjectScale.GrandProject));
+        reason = available
+            ? string.Empty
+            : !work.Available
+                ? work.UnavailableReason
+                : "대형 사업의 동시 작업자 슬롯이 가득 찼습니다.";
         return available;
     }
 
@@ -62,6 +76,23 @@ public sealed class GrandProjectWorkExecutionHandler :
             yield break;
         }
 
+        if (!CharacterPersistentIdentity.TryGet(
+                context.Actor,
+                out CharacterId characterId)
+            || !projectWorkforce.TryJoin(
+                work.ProjectId,
+                characterId.Value,
+                ProjectScale.GrandProject,
+                SettlementLaborBalanceRules.GetMaximumWorkers(ProjectScale.GrandProject),
+                out ProjectWorkerLease workforceLease,
+                out _))
+        {
+            result.CompletedSuccessfully = false;
+            yield break;
+        }
+
+        using (workforceLease)
+        {
         bool progressApplied = true;
         bool completed = false;
         yield return context.ExecutePersistentWorkAmount(
@@ -72,7 +103,9 @@ public sealed class GrandProjectWorkExecutionHandler :
             {
                 bool succeeded = runtime.ApplyWork(
                     GetFacilityId(context.Target),
-                    delta,
+                    delta * projectWorkforce.GetContributionMultiplier(
+                        work.ProjectId,
+                        characterId.Value),
                     out bool projectCompleted);
                 progressApplied &= succeeded;
                 completed |= projectCompleted;
@@ -81,6 +114,7 @@ public sealed class GrandProjectWorkExecutionHandler :
 
         result.CompletedSuccessfully = progressApplied && completed;
         result.CompletionEffectsAlreadyApplied = completed;
+        }
     }
 
     private static BuildingInstanceId GetFacilityId(BuildableObject target) =>

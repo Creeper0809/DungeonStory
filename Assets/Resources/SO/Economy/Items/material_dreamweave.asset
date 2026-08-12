@@ -28,27 +28,27 @@ MonoBehaviour:
     \uBE44\uC804 \uC9C1\uBB3C."
   stockCategory: 1
   unitWeight: 0.12
-  maxStack: 100
+  maxStack: 40
   sprite: {fileID: 0}
   unitPrice: 34
   features:
-  - rid: 7737211838068949545
-  - rid: 7737211838068949546
-  - rid: 7737211838068949547
+  - rid: 7737211905666711920
+  - rid: 7737211905666711921
+  - rid: 7737211905666711922
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949545
+    - rid: 7737211905666711920
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:textile:dreamweave
-    - rid: 7737211838068949546
+    - rid: 7737211905666711921
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 1152
         sharedIntermediate: 1
-    - rid: 7737211838068949547
+    - rid: 7737211905666711922
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

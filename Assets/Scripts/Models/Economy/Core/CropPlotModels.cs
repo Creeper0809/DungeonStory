@@ -67,6 +67,8 @@ public sealed class CropPlotSnapshot
     public IReadOnlyDictionary<string, int> DeliveredMaterials { get; set; } =
         new Dictionary<string, int>();
     public string BlockedReason { get; set; } = string.Empty;
+    public string GoldenHarvestHarvesterId { get; set; } = string.Empty;
+    public int GoldenHarvestAttemptSequence { get; set; }
 }
 
 public readonly struct CropPlotVisualState
@@ -102,12 +104,14 @@ public sealed class CropPlotSaveData
     public float growthHours;
     public float harvestWork;
     public bool materialsConsumed;
+    public string goldenHarvestHarvesterId = string.Empty;
+    public int goldenHarvestAttemptSequence;
 }
 
 [Serializable]
 public sealed class DungeonCropPlotSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     public int version = CurrentVersion;
     public List<CropPlotSaveData> plots = new List<CropPlotSaveData>();
@@ -131,6 +135,24 @@ public interface ICropPlotRuntime
         WorkTypeId workTypeId,
         float amount,
         out bool cycleCompleted);
+    bool ApplyWork(
+        BuildableObject plot,
+        WorkTypeId workTypeId,
+        float amount,
+        CharacterActor worker,
+        out bool cycleCompleted);
+    bool TryScheduleGoldenHarvest(
+        BuildableObject plot,
+        CharacterActor harvester,
+        out string failureReason);
+    bool IsGoldenHarvestWorkerEligible(
+        BuildableObject plot,
+        CharacterActor harvester,
+        out string failureReason);
+    bool TryGetGoldenHarvestDelay(
+        BuildableObject plot,
+        CharacterActor harvester,
+        out float remainingSeconds);
 }
 
 public sealed class CropPlotRestoreCandidate

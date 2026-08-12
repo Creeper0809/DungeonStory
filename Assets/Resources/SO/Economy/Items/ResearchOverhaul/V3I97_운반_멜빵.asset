@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uC6B4\uBC18 \uBA5C\uBE75"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC6B4\uBC18 \uBA5C\uBE75."
   stockCategory: 1
-  unitWeight: 3.1299999
+  unitWeight: 1.15
   maxStack: 1
   sprite: {fileID: 0}
-  unitPrice: 204
+  unitPrice: 18
   features:
-  - rid: 7737211838078124512
-  - rid: 7737211838078124513
+  - rid: 7737211905660420785
+  - rid: 7737211905660420786
+  - rid: 7737211905660420787
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124512
-      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        requiredResearchId: research:commerce:logistics
-    - rid: 7737211838078124513
+    - rid: 7737211905660420785
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 128
         sharedIntermediate: 0
+    - rid: 7737211905660420786
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        requiredResearchId: research:commerce:logistics
+    - rid: 7737211905660420787
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.61328864

@@ -27,28 +27,33 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uD608\uC561\uC18C\uBAA8\uBCD1
     \uD56D\uC6D0 \uD45C\uBCF8."
   stockCategory: 1
-  unitWeight: 2.1399999
+  unitWeight: 0.9
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 138
+  unitPrice: 9
   features:
-  - rid: 7737211838078124379
-  - rid: 7737211838078124380
-  - rid: 7737211838078124381
+  - rid: 7737211905658585923
+  - rid: 7737211905658585924
+  - rid: 7737211905658585925
+  - rid: 7737211905660420769
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124379
+    - rid: 7737211905658585923
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:pathogen-observation
-    - rid: 7737211838078124380
+    - rid: 7737211905658585924
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211838078124381
+    - rid: 7737211905658585925
       type: {class: PathogenSampleItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         diseaseId: disease:blood-wasting
+    - rid: 7737211905660420769
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.57549703

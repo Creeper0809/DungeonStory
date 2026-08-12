@@ -34,18 +34,33 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 3
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: proficiency:crafting
+    secondaryProficiencyId: proficiency:construction-engineering
+    primaryWeight: 0.8
+    combinationMode: 1
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211838078124672
-    - rid: 7737211838078124673
-    - rid: 7737211838078124674
-    - rid: 7737211838078124675
-    - rid: 7737211838078124676
-    - rid: 7737211838078124677
-    - rid: 7737211838078124678
-    - rid: 7737211838078124679
+    - rid: 7737211905658585409
+    - rid: 7737211905658585410
+    - rid: 7737211905658585411
+    - rid: 7737211905658585412
+    - rid: 7737211905658585413
+    - rid: 7737211905658585414
+    - rid: 7737211905658585415
+    - rid: 7737211905658585416
   width: 1
   height: 1
   layer: 1
@@ -61,12 +76,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124672
+    - rid: 7737211905658585409
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF21
-    - rid: 7737211838078124673
+    - rid: 7737211905658585410
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -74,13 +89,13 @@ MonoBehaviour:
         - research-overhaul
         - research:industry:assisted-processing
         - workstation:v3:machine-parts
-    - rid: 7737211838078124674
+    - rid: 7737211905658585411
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v3:machine-parts
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211838078124675
+    - rid: 7737211905658585412
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -88,39 +103,58 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211838078124676
+    - rid: 7737211905658585413
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
-        constructionCost: 160
-        maintenance: 2
+        constructionCost: 440
+        maintenance: 4
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211838078124677
+    - rid: 7737211905658585414
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
         settings:
-          roles: 80
+          roles: 64
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
-          supportedWorkTypes: 17
+          supportedWorkTypes: 261
           disabledWhenDamaged: 1
-    - rid: 7737211838078124678
+    - rid: 7737211905658585415
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211838078124679
+    - rid: 7737211905658585416
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 150
-        repairWorkRequired: 24
+        constructionWorkRequired: 132
+        repairWorkRequired: 35
         cleanWorkRequired: 8
         researchWorkRequired: 6
         operateWorkRequired: 12
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: component:machine-parts
+        - itemId: material:stone-block
+          amount: 10
+        - itemId: material:steel-ingot
           amount: 6
+        - itemId: component:machine-parts
+          amount: 4
+        - itemId: component:precision-parts
+          amount: 1
+        - itemId: component:engineering-drawing
+          amount: 1

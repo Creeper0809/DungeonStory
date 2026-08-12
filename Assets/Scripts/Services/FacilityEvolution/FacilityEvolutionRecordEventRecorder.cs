@@ -470,7 +470,7 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
         }
 
         string species = actor.SpeciesTag ?? string.Empty;
-        return actor.profile != null && actor.profile.GetSpendingMultiplier() >= 1.2f
+        return actor.Stats != null && actor.Stats.GetSpendingMultiplier() >= 1.2f
             || species.IndexOf("Vampire", StringComparison.OrdinalIgnoreCase) >= 0
             || species.IndexOf("Noble", StringComparison.OrdinalIgnoreCase) >= 0;
     }

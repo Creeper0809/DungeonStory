@@ -7531,7 +7531,9 @@ MonoBehaviour:
     regularAverageSatisfactionThreshold: 65
     recruitCandidateVisitThreshold: 2
     recruitCandidateAverageSatisfactionThreshold: 65
+    recruitmentCooldownDays: 10
     defaultRecruitCapabilities: 7
+  immigrationPolicy: 1
 --- !u!114 &613357412
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7796,70 +7798,37 @@ MonoBehaviour:
   maxPromptCharacters: 2400
   appliedRumorCount: 0
   heardRumorCount: 0
-  lastRequestDebug: 'Interpret a DungeonStory NPC event as social rumor/reputation
-    data.
-
-    Return exactly one JSON object with rumorType, targetType, targetFacilityId,
+  lastRequestDebug: "Interpret a DungeonStory NPC event as social rumor/reputation
+    data.\r\nReturn exactly one JSON object with rumorType, targetType, targetFacilityId,
     targetFacilityTag, targetCharacterId, targetCharacterName, sentiment, summary,
-    spreadChance, trustImpact, validSeconds.
-
-    Allowed rumorType values: None,
-    Complaint, Recommendation, Warning, Praise.
-
-    Allowed targetType values: None,
-    Facility, Character.
-
-    All numeric fields must be raw JSON numbers, never
-    strings, words, or null.
-
-    targetFacilityId must be an integer. targetCharacterId
-    must be a persistent-ID string. Use -1 and an empty string when not used. Never
-    output null.
-
-    sentiment and trustImpact must be numbers between -1 and 1.
-    spreadChance must be a number between 0 and 1.
-
-    validSeconds must be a number
-    between 0 and 1800. Use 600 for normal rumors. Never output 3600 or higher.
-
-    Actionable
+    spreadChance, trustImpact, validSeconds.\r\nAllowed rumorType values: None, Complaint,
+    Recommendation, Warning, Praise.\r\nAllowed targetType values: None, Facility,
+    Character.\r\nAll numeric fields must be raw JSON numbers, never strings, words,
+    or null.\r\ntargetFacilityId must be an integer. targetCharacterId must be a
+    persistent-ID string. Use -1 and an empty string when not used. Never output
+    null.\r\nsentiment and trustImpact must be numbers between -1 and 1. spreadChance
+    must be a number between 0 and 1.\r\nvalidSeconds must be a number between 0
+    and 1800. Use 600 for normal rumors. Never output 3600 or higher.\r\nActionable
     Complaint, Recommendation, Warning, and Praise rumors must use spreadChance between
-    0.35 and 1.0.
-
-    For blocked path, no destination, or occupied destination
-    warnings, use spreadChance 1.0.
-
-    Use rumorType None only when no NPC should
-    share this event.
-
-    Use rumorType None and targetType None when this event
-    should not become a rumor. Do not invent targets outside candidateFacilities.
-
-    Speaker:
-
-    name:
-    Social Retry Customer
-
-    species: Slime
-
-    role: Regular
-
-    Event:
-
-    tag:
-    activity:social
-
-    count: 1
-
-    message: A tense encounter ended badly.
-
-    candidateFacilities:
-
-    Example:
-    {"rumorType":"Recommendation","targetType":"Facility","targetFacilityId":12,"targetFacilityTag":"Rest","targetCharacterId":"","targetCharacterName":"","sentiment":0.6,"summary":"rest
-    facility visit was good","spreadChance":0.55,"trustImpact":0.05,"validSeconds":600}
-
-'
+    0.35 and 1.0.\r\nFor blocked path, no destination, or occupied destination warnings,
+    use spreadChance 1.0.\r\nUse rumorType None only when no NPC should share this
+    event.\r\nUse rumorType None and targetType None when this event should not become
+    a rumor. Do not invent targets outside candidateFacilities.\r\nSpeaker:\r\nname:
+    Social Retry Customer\r\nspecies: Slime\r\nrole: Regular\r\nEvent:\r\ntag: activity:social\r\ncount:
+    1\r\nmessage: A tense encounter ended badly.\r\ncandidateFacilities:\r\nExample:
+    {\"rumorType\":\"Recommendation\",\"targetType\":\"Facility\",\"targetFacilityId\":12,\"targetFacilityTag\":\"Rest\",\"targetCharacterId\":\"\",\"targetCharacterName\":\"\",\"sentiment\":0.6,\"summary\":\"rest
+    facility visit was good\",\"spreadChance\":0.55,\"trustImpact\":0.05,\"validSeconds\":600}\r\n\r\n\r\n[[V24-NARRATIVE-CONTEXT
+    profile=SocialRumor requireFact=0 requireMotif=0 culture=slime-confluence]]\r\nUse
+    only the request-local Fxx and Mxx references below. Return only references concretely
+    reflected in the Korean prose. Copy exact tokens such as F01 and M01 into usedCharacterFactIds
+    and usedMotifIds. Never replace those tokens with labels or internal ids. Never
+    invent a person, event, relationship, trait, or reference.\r\nF01|fact:identity:name|Name:
+    Social Retry Customer\r\nF02|fact:identity:species|Species: Slime\r\nF03|fact:trait:character-trait:102|Expressed
+    trait: \uC808\uC57D\uAC00\r\nF04|fact:origin:\uB300\uB7C9\uBC29\uBB38\uC800\uC18C\uBE44\uCCAD\uC18C\uC624\uC5FC\uAD00\uB9AC|Origin:
+    \uB300\uB7C9 \uBC29\uBB38/\uC800\uC18C\uBE44/\uCCAD\uC18C/\uC624\uC5FC \uAD00\uB9AC\r\nF05|fact:identity:role|Role:
+    Regular\r\nF06|fact:potential:Excellent|Potential: \uC6B0\uC218\r\nM01|motif:slime-confluence:1|ripple\r\nM02|motif:slime-confluence:2|confluence\r\nM03|motif:slime-confluence:3|clear
+    water\r\nM04|motif:slime-confluence:4|core rhythm\r\nM05|motif:slime-confluence:5|fluid
+    memory\r\n[[/V24-NARRATIVE-CONTEXT]]\r\n"
   lastRumorDebug: 
   lastError: 
   actorLogEventCountForDebug: 0
@@ -7935,7 +7904,6 @@ MonoBehaviour:
     SerializationNodes: []
   endpointUrl: http://localhost:11434/v1/chat/completions
   modelName: llama3.1
-  enableJsonMode: 1
   maxQueueSize: 64
   maxConcurrentRequests: 2
   personaTimeoutSeconds: 20
@@ -7951,6 +7919,11 @@ MonoBehaviour:
   timeoutCount: 0
   lastError: 
   lastCompletionDiagnostic: 
+  structuredOutputCapability: 0
+  lastSchemaId: 
+  lastSchemaVersion: 0
+  lastSchemaHash: 
+  lastNarrativeQualityVerdict: 0
   suppressWarningLogsForDebug: 0
 --- !u!114 &613357430
 MonoBehaviour:

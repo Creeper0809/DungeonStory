@@ -859,19 +859,21 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
                 continue;
             }
 
-            int unitPrice = Mathf.CeilToInt(
-                marketOffer.cost / (float)Mathf.Max(1, marketOffer.amount));
+            float unitPrice =
+                marketOffer.cost / (float)Mathf.Max(1, marketOffer.amount);
             if (rule.maximumUnitPrice > 0 && unitPrice > rule.maximumUnitPrice)
             {
                 AddSkipped(day, rule.ruleId, rule.category.ToString(), "최대 단가를 초과했습니다.");
                 continue;
             }
 
-            int cost = unitPrice * quantity;
+            int cost = Mathf.CeilToInt(unitPrice * quantity);
             if (cost > availableBudget)
             {
-                quantity = Mathf.Min(quantity, availableBudget / Mathf.Max(1, unitPrice));
-                cost = unitPrice * quantity;
+                quantity = Mathf.Min(
+                    quantity,
+                    Mathf.FloorToInt(availableBudget / Mathf.Max(0.01f, unitPrice)));
+                cost = Mathf.CeilToInt(unitPrice * quantity);
             }
 
             if (quantity <= 0)
@@ -900,8 +902,8 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
                 continue;
             }
 
-            if (!stock.ItemStacks.SpawnStockAtDropoff(
-                    rule.category,
+            if (!stock.ItemStacks.SpawnItemAtDropoff(
+                    marketOffer.itemId,
                     quantity,
                     "자동 구매",
                     out int spawned)
@@ -923,7 +925,7 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
             {
                 day = day,
                 ruleId = rule.ruleId,
-                itemLabel = stock.StockCategoryCatalog.GetDisplayName(rule.category),
+                itemLabel = marketOffer.itemId,
                 quantity = quantity,
                 cost = cost,
                 purchased = true,

@@ -6,7 +6,11 @@ public sealed class AIRescue : AIActionSet
         new CharacterAiActionDescriptor(
             CharacterAiBranch.Work,
             "구조",
-            CharacterAiActionTags.Work);
+            CharacterAiActionTags.Work,
+            "work:rescue",
+            "work:dangerous",
+            "work:crisis-rescue",
+            "work:immediate");
 
     public override CharacterAiActionDescriptor Descriptor => ActionDescriptor;
     public override bool RequiresDestination => false;

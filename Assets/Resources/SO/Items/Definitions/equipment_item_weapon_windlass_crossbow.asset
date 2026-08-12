@@ -29,7 +29,7 @@ MonoBehaviour:
   unitWeight: 5.2
   maxStack: 1
   sprite: {fileID: 0}
-  unitPrice: 94
+  unitPrice: 698
   features:
   - rid: 7737211673752633442
   - rid: 7737211673752633443
@@ -38,16 +38,16 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211673752633442
-      type: {class: EquipmentItemFeature, ns: , asm: Assembly-CSharp}
+      type: {class: EquipmentItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         equipmentDefinitionId: weapon:windlass-crossbow
     - rid: 7737211673752633443
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 0
         sharedIntermediate: 0
     - rid: 7737211673752633444
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:mechanical-projectiles

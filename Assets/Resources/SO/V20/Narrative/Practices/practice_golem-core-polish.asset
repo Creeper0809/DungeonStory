@@ -23,7 +23,7 @@ MonoBehaviour:
   kind: 0
   requirements:
     items:
-    - itemDefinitionId: component:maintenance-parts
+    - itemDefinitionId: tool:maintenance-kit
       amount: 1
       consume: 1
     facilities: []

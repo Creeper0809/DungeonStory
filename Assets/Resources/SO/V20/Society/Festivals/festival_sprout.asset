@@ -24,7 +24,7 @@ MonoBehaviour:
   cultureId: 
   requiredBuildingDefinitionId: building:festival-common-hall
   requiredItems:
-  - itemDefinitionId: item:seed-lot-grain
+  - itemDefinitionId: seed-lot:twilight-grain
     amount: 12
   minimumParticipants: 8
   successOutcome:

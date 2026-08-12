@@ -304,6 +304,27 @@ public sealed class BuildPlacementUxPlayModeVerificationRunner : MonoBehaviour
                         StringComparison.Ordinal)),
                 "CONSTRUCTION_DOES_NOT_DROP_WAREHOUSE_STOCK",
                 $"destination={order.MaterialDestinationId}; target={order.Position}");
+            Vector2Int supplyPosition = ResolveConstructionSupplyPosition(
+                grid,
+                order.Position);
+            foreach (KeyValuePair<string, int> requirement in
+                     order.ItemMaterialRequirements.OrderBy(
+                         pair => pair.Key,
+                         StringComparer.Ordinal))
+            {
+                bool spawned = itemRuntime.SpawnItemAt(
+                    requirement.Key,
+                    requirement.Value,
+                    supplyPosition,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out int spawnedAmount);
+                Check(
+                    spawned && spawnedAmount == requirement.Value,
+                    "CONSTRUCTION_TEST_BOM_PROVISIONED",
+                    $"item={requirement.Key}; requested={requirement.Value};"
+                        + $" spawned={spawnedAmount}; position={supplyPosition}");
+            }
         }
 
         SetNaturalFlowTestSpeed();
@@ -508,7 +529,24 @@ public sealed class BuildPlacementUxPlayModeVerificationRunner : MonoBehaviour
             actor.stats[CharacterCondition.EXCRETION] = 100f;
             actor.stats[CharacterCondition.HYGIENE] = 100f;
             actor.stats[CharacterCondition.MOOD] = 80f;
+            actor.Heal(actor.MaxHealth);
         }
+    }
+
+    private static Vector2Int ResolveConstructionSupplyPosition(
+        Grid grid,
+        Vector2Int fallback)
+    {
+        CharacterActor worker = UnityEngine.Object
+            .FindObjectsByType<CharacterActor>(
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None)
+            .FirstOrDefault(actor => actor != null
+                && !actor.IsDead
+                && CharacterWorkRoleUtility.TryGetWork(actor, out _));
+        return worker != null && grid != null
+            ? grid.GetXY(worker.transform.position)
+            : fallback;
     }
 
     private static int GetDeliveredMaterialCount(WorkOrderProgressState order)
@@ -568,7 +606,7 @@ public sealed class BuildPlacementUxPlayModeVerificationRunner : MonoBehaviour
             report.Add(
                 $"[FLOW STACK] id={stack.StackId}; item={stack.ItemId}; state={stack.State};"
                 + $" pos={stack.Position}; qty={stack.Quantity}; dest={stack.DestinationId};"
-                + $" reserved={stack.ReservedByPersistentId}; source={stack.SourceStorageDestinationId};"
+                + $" reserved={stack.ReservedQuantity}; available={stack.AvailableQuantity}; source={stack.SourceStorageDestinationId};"
                 + $" matchesConstruction={string.Equals(stack.DestinationId, materialDestinationId, StringComparison.Ordinal)}");
         }
 

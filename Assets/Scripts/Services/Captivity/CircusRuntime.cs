@@ -35,6 +35,7 @@ public sealed class CircusRuntime :
     private readonly ICombatEquipmentRuntime equipment;
     private readonly ICharacterMedicalQuery medicalQuery;
     private readonly ICharacterMedicalCommand medicalCommands;
+    private readonly ICharacterPerformanceQuery performance;
     private readonly IWorldFilthQuery filth;
     private readonly IGameClock clock;
     private readonly IRandomStream random;
@@ -83,6 +84,7 @@ public sealed class CircusRuntime :
         equipment = combatContext.Equipment;
         medicalQuery = combatContext.MedicalQuery;
         medicalCommands = combatContext.MedicalCommands;
+        performance = combatContext.Performance;
         money = session.Money;
         clock = session.Clock;
         random = session.RandomStreamProvider
@@ -887,10 +889,10 @@ public sealed class CircusRuntime :
             attacker.Id,
             defender.Id,
             attackerCharacter != null
-                ? CombatRuntimeStatFactory.Create(attackerCharacter, attackerBody)
+                ? CombatRuntimeStatFactory.Create(attackerCharacter, attackerBody, performance)
                 : CombatRuntimeStatFactory.Create(attackerWildlife),
             defenderCharacter != null
-                ? CombatRuntimeStatFactory.Create(defenderCharacter, defenderBody)
+                ? CombatRuntimeStatFactory.Create(defenderCharacter, defenderBody, performance)
                 : CombatRuntimeStatFactory.Create(defenderWildlife),
             weapon,
             1,

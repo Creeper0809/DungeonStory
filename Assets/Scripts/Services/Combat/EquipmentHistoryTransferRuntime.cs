@@ -148,7 +148,7 @@ public sealed class EquipmentHistoryTransferRuntime
                     StringComparison.Ordinal)
                 && stack.Quantity > 0
                 && !stack.Forbidden
-                && !stack.IsReserved
+                && stack.AvailableQuantity > 0
                 && stack.State == WorldItemStackState.FacilityBuffer
                 && string.Equals(
                     stack.DestinationId,
@@ -247,7 +247,7 @@ public sealed class EquipmentHistoryTransferRuntime
             stack != null
             && stack.Quantity > 0
             && !stack.Forbidden
-            && !stack.IsReserved
+            && stack.AvailableQuantity > 0
             && stack.State == WorldItemStackState.FacilityBuffer
             && string.Equals(
                 stack.StackId,
@@ -358,7 +358,7 @@ public sealed class EquipmentHistoryTransferRuntime
                 stack != null
                 && stack.Quantity > 0
                 && !stack.Forbidden
-                && !stack.IsReserved
+                && stack.AvailableQuantity > 0
                 && stack.State == WorldItemStackState.FacilityBuffer
                 && string.Equals(
                     stack.StackId,

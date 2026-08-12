@@ -46,6 +46,7 @@ public static class FacilityDebugScenarios
         RunScenario("운영일 납품 제안", VerifyDailyDeliveryOffers, errors);
         RunScenario("물리 런타임 없는 납품 차단", VerifyDeliveryRequiresPhysicalRuntime, errors);
         RunScenario("재고 구매 실패 조건", VerifyPurchaseDeliveryFailureConditions, errors);
+        RunScenario("납품 부분 비용 정산", VerifyDeliveryPartialCostSettlement, errors);
         RunScenario("물리 런타임 없는 보상 차단", VerifyDefenseRewardRequiresPhysicalRuntime, errors);
         RunScenario("물리 런타임 없는 내부 생산 차단", VerifyInternalProductionRequiresPhysicalRuntime, errors);
 
@@ -203,15 +204,12 @@ public static class FacilityDebugScenarios
 
     private static bool VerifyDailyDeliveryOffers()
     {
-        IReadOnlyList<StockDeliveryOffer> offers = StockSupplyService.CreateDailyDeliveryOffers(
-            1,
-            DefaultStockCostMultiplier,
-            CharacterAiEditorTestDependencies.AuthoredGameplay);
+        IReadOnlyList<StockDeliveryOffer> offers = CreateDailyDeliveryOffersForScenario();
 
         return offers.Count >= 7
             && offers.Any((offer) => offer.category == StockCategory.Food && offer.amount > 0 && offer.cost > 0)
             && offers.Any((offer) => offer.category == StockCategory.General && offer.amount > 0 && offer.cost > 0)
-            && offers.Any((offer) => offer.category == StockCategory.Weapon && offer.amount > 0 && offer.cost > 0)
+            && offers.Any((offer) => offer.category == StockCategory.Ammunition && offer.amount > 0 && offer.cost > 0)
             && offers.Any((offer) => offer.category == StockCategory.Mana && offer.amount > 0 && offer.cost > 0)
             && offers.Any((offer) => offer.category == StockCategory.Water && offer.amount > 0 && offer.cost > 0)
             && offers.Any((offer) => offer.category == StockCategory.Medicine && offer.amount > 0 && offer.cost > 0)
@@ -228,7 +226,12 @@ public static class FacilityDebugScenarios
 
         int beforeMoney = gameData.holdingMoney.Value;
         int beforeFood = warehouse.Inventory.GetStock(StockCategory.Food);
-        StockDeliveryOffer offer = new StockDeliveryOffer(StockCategory.Food, 5, 40, "테스트 납품");
+        StockDeliveryOffer offer = new StockDeliveryOffer(
+            StockCategory.Food,
+            "food:preserved-ration",
+            5,
+            40,
+            "테스트 납품");
         bool success = StockSupplyService.TryPurchaseDelivery(
             new EditorGameMoneyAccount(gameData),
             new[] { warehouse },
@@ -253,7 +256,12 @@ public static class FacilityDebugScenarios
         IWarehouseFacility warehouse = warehouseBuilding as IWarehouseFacility;
         GameSessionState poorData = CreateGameData(1);
         GameSessionState richData = CreateGameData(500);
-        StockDeliveryOffer offer = new StockDeliveryOffer(StockCategory.Food, 5, 40, "테스트 납품");
+        StockDeliveryOffer offer = new StockDeliveryOffer(
+            StockCategory.Food,
+            "food:preserved-ration",
+            5,
+            40,
+            "테스트 납품");
 
         bool noMoney = !StockSupplyService.TryPurchaseDelivery(
             new EditorGameMoneyAccount(poorData),
@@ -274,6 +282,35 @@ public static class FacilityDebugScenarios
             && noPhysicalRuntimeResult.reason == "물리 아이템 런타임 없음";
 
         return noMoney && noPhysicalRuntime;
+    }
+
+    public static string DescribeDailyDeliveryOffersForDiagnostics()
+    {
+        IReadOnlyList<StockDeliveryOffer> offers = CreateDailyDeliveryOffersForScenario();
+        return $"count={offers.Count}; " + string.Join(
+            " | ",
+            offers.Select(offer =>
+                $"{offer.category}:{offer.itemId}:amount={offer.amount}:cost={offer.cost}"));
+    }
+
+    private static IReadOnlyList<StockDeliveryOffer> CreateDailyDeliveryOffersForScenario()
+    {
+        return StockSupplyService.CreateDailyDeliveryOffers(
+            1,
+            DefaultStockCostMultiplier,
+            CharacterAiEditorTestDependencies.AuthoredGameplay);
+    }
+
+    private static bool VerifyDeliveryPartialCostSettlement()
+    {
+        return StockSupplyService.CalculateSettledDeliveryCost(40, 5, 0) == 0
+            && StockSupplyService.CalculateSettledDeliveryCost(40, 5, 1) == 8
+            && StockSupplyService.CalculateSettledDeliveryCost(40, 5, 2) == 16
+            && StockSupplyService.CalculateSettledDeliveryCost(40, 5, 5) == 40
+            && StockSupplyService.CalculateSettledDeliveryCost(1, 5, 1) == 1
+            && StockSupplyService.CalculateSettledDeliveryCost(1, 5, 5) == 1
+            && StockSupplyService.CalculateSettledDeliveryCost(40, 0, 5) == 0
+            && StockSupplyService.CalculateSettledDeliveryCost(-1, 5, 5) == 0;
     }
 
     private static bool VerifyDefenseRewardRequiresPhysicalRuntime()

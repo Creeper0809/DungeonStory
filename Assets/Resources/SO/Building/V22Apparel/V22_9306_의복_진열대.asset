@@ -34,15 +34,30 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 2
   researchFacilityCommand: 44
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: proficiency:fieldwork
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211838078124963
-    - rid: 7737211838078124964
-    - rid: 7737211838078124965
-    - rid: 7737211838078124966
-    - rid: 7737211838078124967
+    - rid: 7737211905660420894
+    - rid: 7737211905660420895
+    - rid: 7737211905660420896
+    - rid: 7737211905660420897
+    - rid: 7737211905660420898
   width: 1
   height: 1
   layer: 1
@@ -58,7 +73,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124963
+    - rid: 7737211905660420894
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -67,17 +82,28 @@ MonoBehaviour:
         cleanWorkRequired: 8
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
         - itemId: material:lumber
           amount: 4
         - itemId: material:iron-ingot
           amount: 2
-    - rid: 7737211838078124964
+    - rid: 7737211905660420895
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: V22A06
-    - rid: 7737211838078124965
+    - rid: 7737211905660420896
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -85,13 +111,13 @@ MonoBehaviour:
         - v22-apparel
         - research:textile:tailoring
         - workstation:v22:apparel-display
-    - rid: 7737211838078124966
+    - rid: 7737211905660420897
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v22:apparel-display
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211838078124967
+    - rid: 7737211905660420898
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility

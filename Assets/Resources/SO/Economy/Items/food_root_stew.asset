@@ -31,28 +31,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 7
   features:
-  - rid: 7737211838068949482
-  - rid: 7737211838068949483
-  - rid: 7737211838068949484
-  - rid: 7737211838068949485
+  - rid: 7737211905666712214
+  - rid: 7737211905666712215
+  - rid: 7737211905666712216
+  - rid: 7737211905666712217
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949482
+    - rid: 7737211905666712214
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:crops
-    - rid: 7737211838068949483
+    - rid: 7737211905666712215
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211838068949484
+    - rid: 7737211905666712216
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6
-    - rid: 7737211838068949485
+    - rid: 7737211905666712217
       type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         quality: 0

@@ -776,6 +776,16 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
         Vector2Int actorPosition)
     {
         float radius = CharacterAiNaturalnessSettingsResolver.Require(actor).WildlifeThreatRadius;
+        CharacterPerformanceSnapshot detection = actor.Stats?.EvaluatePerformance(
+            CharacterPerformanceFormulaIds.RiskDetection);
+        float baseRadius = radius;
+        radius *= detection?.IsApplicable == true ? detection.Value : 0f;
+        CharacterPerformanceExecutionTrace.Record(
+            CharacterPerformanceFormulaIds.RiskDetection,
+            "CharacterAiNaturalness.ResolveWildlifeThreat",
+            baseRadius,
+            radius,
+            actor.Identity?.PersistentId);
         int maxDistance = Mathf.CeilToInt(radius);
         float threat = 0f;
         RefreshSpatialBucketsIfNeeded(null);

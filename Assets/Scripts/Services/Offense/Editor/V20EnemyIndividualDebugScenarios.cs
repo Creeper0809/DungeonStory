@@ -273,6 +273,25 @@ public static class V20EnemyIndividualDebugScenarios
             Rules(OffenseEncounterObjective.CaptureLeader, 3, "enemy:leader", leader.PersistentId));
         Require(capture.Outcome == OffenseBattleOutcome.Victory,
             "Capture-leader objective did not distinguish a living downed leader.");
+
+        OffenseBattleCombatant sedated = Combatant(
+            "enemy:sedated-capture", OffenseBattleTeam.Enemies, 20f);
+        sedated.AddStatus(new OffenseBattleStatus(
+            "ammo:tranquilized",
+            OffenseBattleStatusType.Sedated,
+            0.35f,
+            3,
+            "ally:captor"));
+        Require(!sedated.IsDowned,
+            "A single tranquilizer dose should impair rather than instantly incapacitate.");
+        sedated.AddStatus(new OffenseBattleStatus(
+            "ammo:tranquilized",
+            OffenseBattleStatusType.Sedated,
+            0.35f,
+            3,
+            "ally:captor"));
+        Require(sedated.IsDowned && !sedated.IsDead,
+            "Two tranquilizer doses did not create a living capture state.");
     }
 
     private static OffenseBattleEncounterRules Rules(

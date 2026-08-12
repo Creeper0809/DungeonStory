@@ -1436,6 +1436,149 @@ MonoBehaviour:
       {1}, reason: {2}'
     m_Metadata:
       m_Items: []
+  - m_Id: 3501337194352640
+    m_Localized: The required apparel attachment is missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337240489984
+    m_Localized: The apparel is incompatible with this body form.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337240489985
+    m_Localized: The apparel character is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684288
+    m_Localized: The apparel definition is missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684289
+    m_Localized: The required apparel facility is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684290
+    m_Localized: The apparel item is already reserved.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684291
+    m_Localized: The apparel layer is already occupied.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684292
+    m_Localized: The required apparel material is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684293
+    m_Localized: The apparel requires modification before use.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684294
+    m_Localized: The physical apparel item is missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684295
+    m_Localized: The apparel work plan is stale.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684296
+    m_Localized: Apparel recovery has been deferred.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684297
+    m_Localized: The apparel is locked by research.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684298
+    m_Localized: The apparel reservation has expired.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684299
+    m_Localized: The apparel size is incompatible.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684300
+    m_Localized: The apparel state is invalid.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684301
+    m_Localized: The apparel transfer failed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684302
+    m_Localized: The apparel work order is invalid.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337248878592
+    m_Localized: The quality pipeline is blocked.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337248878593
+    m_Localized: The requested quality target cannot be reached.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337248878594
+    m_Localized: The work order is invalid.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337248878595
+    m_Localized: The work order is missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337248878596
+    m_Localized: The selected worker is not eligible for this work order.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626472966541312
+    m_Localized: 'The buffer aggregation destination is missing. Destination: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473075593216
+    m_Localized: 'The carried stack is incompatible with this buffer aggregation
+      cohort. Item: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473075593217
+    m_Localized: 'The item quantity lease expired. Lease: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473075593218
+    m_Localized: 'The item quantity lease is missing. Lease: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473079787520
+    m_Localized: 'The reservation operation conflicts with an existing claim. Operation:
+      {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473079787521
+    m_Localized: 'The requested item quantity is unavailable. Target: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473079787522
+    m_Localized: 'The item quantity reservation request is invalid. Operation: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473079787523
+    m_Localized: 'Saved item ownership cannot be restored. Owner or stack: {0}, detail:
+      {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473079787524
+    m_Localized: 'The item stack signature changed. Stack: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473079787525
+    m_Localized: 'The reserved item slice is invalid. Lease: {0}, stack: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473079787526
+    m_Localized: 'The item stack is forbidden. Stack: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473079787527
+    m_Localized: 'The reserved item stack is missing. Stack: {0}'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

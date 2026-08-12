@@ -29,7 +29,7 @@ MonoBehaviour:
   unitWeight: 15
   maxStack: 1
   sprite: {fileID: 0}
-  unitPrice: 270
+  unitPrice: 1192
   features:
   - rid: 7737211673752633431
   - rid: 7737211673752633432
@@ -38,16 +38,16 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211673752633431
-      type: {class: EquipmentItemFeature, ns: , asm: Assembly-CSharp}
+      type: {class: EquipmentItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         equipmentDefinitionId: armor:blacksteel-carapace
     - rid: 7737211673752633432
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 0
         sharedIntermediate: 0
     - rid: 7737211673752633433
-      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:industry:dark-foundry

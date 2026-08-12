@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 8
   features:
-  - rid: 7737211838068949973
-  - rid: 7737211838068949974
-  - rid: 7737211838068949975
+  - rid: 7737211905666712454
+  - rid: 7737211905666712455
+  - rid: 7737211905666712456
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949973
+    - rid: 7737211905666712454
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:textile:fiber
-    - rid: 7737211838068949974
+    - rid: 7737211905666712455
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 128
         sharedIntermediate: 1
-    - rid: 7737211838068949975
+    - rid: 7737211905666712456
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

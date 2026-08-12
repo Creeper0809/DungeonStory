@@ -29,6 +29,7 @@ public sealed class RegularCustomerPersistenceAdapter :
 
     public DungeonRegularCustomerSaveData CaptureState() => new()
     {
+        immigrationPolicy = runtime.ImmigrationPolicy,
         records = runtime.State.Records
             .OrderBy(record => record.CustomerId, StringComparer.Ordinal)
             .Select(record => new DungeonRegularCustomerRecordSaveData
@@ -42,6 +43,7 @@ public sealed class RegularCustomerPersistenceAdapter :
                 isRegular = record.IsRegular,
                 isRecruitCandidate = record.IsRecruitCandidate,
                 isRecruited = record.IsRecruited,
+                recruitedAbsoluteDay = record.RecruitedAbsoluteDay,
                 recruitCapabilities = record.RecruitCapabilities
             })
             .ToList()
@@ -54,11 +56,19 @@ public sealed class RegularCustomerPersistenceAdapter :
         {
             throw new ArgumentNullException(nameof(snapshot));
         }
+        if (!Enum.IsDefined(
+                typeof(SettlementImmigrationPolicy),
+                snapshot.immigrationPolicy))
+        {
+            throw new InvalidOperationException(
+                $"Invalid immigration policy {(int)snapshot.immigrationPolicy}.");
+        }
         Dictionary<int, CharacterSO> characters = characterCatalog.Characters
             .Where(character => character != null)
             .GroupBy(character => character.id)
             .ToDictionary(group => group.Key, group => group.First());
-        return runtime.PrepareRestoreCandidate(snapshot.records.Select(saved =>
+        RegularCustomerRestoreCandidate records = runtime.PrepareRestoreCandidate(
+            snapshot.records.Select(saved =>
         {
             characters.TryGetValue(saved.sourceDataId, out CharacterSO sourceData);
             return new RegularCustomerRecord(
@@ -71,13 +81,38 @@ public sealed class RegularCustomerPersistenceAdapter :
                 saved.isRegular,
                 saved.isRecruitCandidate,
                 saved.isRecruited,
+                saved.recruitedAbsoluteDay,
                 saved.recruitCapabilities);
         }));
+        return new PreparedRestoreCandidate(
+            records,
+            snapshot.immigrationPolicy);
     }
 
     public void PublishRestore(RegularCustomerRestoreCandidate candidate)
     {
-        runtime.PublishRestoreCandidate(candidate
-            ?? throw new ArgumentNullException(nameof(candidate)));
+        if (candidate is not PreparedRestoreCandidate prepared)
+        {
+            throw new InvalidOperationException(
+                "Regular-customer restore candidate has the wrong persistence owner.");
+        }
+        runtime.PublishRestoreCandidate(prepared.Records);
+        runtime.RestoreImmigrationPolicy(prepared.Policy);
+    }
+
+    private sealed class PreparedRestoreCandidate :
+        RegularCustomerRestoreCandidate
+    {
+        public PreparedRestoreCandidate(
+            RegularCustomerRestoreCandidate records,
+            SettlementImmigrationPolicy policy)
+        {
+            Records = records
+                ?? throw new ArgumentNullException(nameof(records));
+            Policy = policy;
+        }
+
+        public RegularCustomerRestoreCandidate Records { get; }
+        public SettlementImmigrationPolicy Policy { get; }
     }
 }

@@ -84,9 +84,13 @@ public static class CharacterAiPersonalityUtility
         float runtimeMultiplier = actor != null && actor.PersonaRuntime != null
             ? actor.PersonaRuntime.GetActionMultiplier(actionSet)
             : 1f;
-        float traitMultiplier = identity?.Profile != null && actionSet?.Descriptor != null
-            ? identity.Profile.GetBehaviorUtilityMultiplier(
-                actionSet.Descriptor.SemanticTags)
+        CharacterRuntimeProfile effectiveProfile = actor?.Progression != null
+            ? actor.Progression.GetEffectiveRuntimeProfile()
+            : identity?.Profile;
+        float traitMultiplier = effectiveProfile != null
+            && actionSet?.Descriptor != null
+            ? effectiveProfile.GetBehaviorUtilityMultiplier(
+                actionSet.GetSemanticTags(actor))
             : 1f;
         float configuredMultiplier = Mathf.Clamp(
             baseMultiplier * runtimeMultiplier * traitMultiplier,

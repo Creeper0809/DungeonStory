@@ -31,18 +31,38 @@ MonoBehaviour:
   objectName: "\uB8EC \uBD09\uD569\uAE30"
   sprite: {fileID: 21300000, guid: 565ae4d201d044a47a6b201d8aecd402, type: 3}
   icon: {fileID: 21300000, guid: 565ae4d201d044a47a6b201d8aecd402, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  deprecatedCompatibilityAsset: 0
+  useClassification: 0
+  researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730889015553
-    - rid: 7737211730889015554
-    - rid: 7737211730889015555
-    - rid: 7737211730889015556
-    - rid: 7737211730889015557
-    - rid: 7737211730889015558
-    - rid: 7737211730889015559
-    - rid: 7737211730889015560
-    - rid: 7737211730889015561
-    - rid: 7737211730889015562
+    - rid: 7737211857806557853
+    - rid: 7737211857806557854
+    - rid: 7737211857806557855
+    - rid: 7737211857806557857
+    - rid: 7737211857806557858
+    - rid: 7737211857806557859
+    - rid: 7737211857806557860
+    - rid: 7737211857806557861
+    - rid: 7737211857806557862
+    - rid: 7737211905666711791
   width: 1
   height: 1
   layer: 1
@@ -58,21 +78,21 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730889015553
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211857806557853
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: M13
-    - rid: 7737211730889015554
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211857806557854
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - medical
         - surgery
         - m13
-    - rid: 7737211730889015555
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211857806557855
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
@@ -80,28 +100,17 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211730889015556
-      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingFacilityAbility
-        settings:
-          roles: 4096
-          capacity: 1
-          useDuration: 1.5
-          requiredWorkers: 1
-          supportedWorkTypes: 65536
-          disabledWhenDamaged: 1
-    - rid: 7737211730889015557
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211857806557857
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211730889015558
-      type: {class: BuildingInternalStockAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211857806557858
+      type: {class: BuildingInternalStockAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 12
         restockRequestThreshold: 3
-    - rid: 7737211730889015559
+    - rid: 7737211857806557859
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -110,10 +119,21 @@ MonoBehaviour:
         cleanWorkRequired: 8
         researchWorkRequired: 6
         operateWorkRequired: 12
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
         - itemId: component:rune-conductor
           amount: 11
-    - rid: 7737211730889015560
+    - rid: 7737211857806557860
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -125,16 +145,16 @@ MonoBehaviour:
           - m13
           scores: []
           metrics: []
-    - rid: 7737211730889015561
-      type: {class: BuildingFuelConsumerAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211857806557861
+      type: {class: BuildingFuelConsumerAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingFuelConsumerAbility
         fuelPerRefuel: 1
         workSeconds: 1
         warmth: 0
         lightSafety: 2
-    - rid: 7737211730889015562
-      type: {class: BuildingRehabilitationAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211857806557862
+      type: {class: BuildingRehabilitationAbility, ns: , asm: DungeonStory.Medical}
       data:
         abilityId: BuildingRehabilitationAbility
         adaptationSpeedMultiplier: 1.35
@@ -142,3 +162,14 @@ MonoBehaviour:
         primaryOperatingFacility: 0
         runeSuture: 1
         manaCrystalCost: 1
+    - rid: 7737211905666711791
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 4096
+          capacity: 1
+          useDuration: 1.5
+          requiredWorkers: 1
+          supportedWorkTypes: 65536
+          disabledWhenDamaged: 1

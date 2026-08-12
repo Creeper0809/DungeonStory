@@ -81,7 +81,7 @@ public sealed class InvasionIntruderContext : IInvasionIntruderContext
             {
                 continue;
             }
-            if (building != null)
+            if (building != null && !ReferenceEquals(building, candidate))
             {
                 building = null;
                 return false;

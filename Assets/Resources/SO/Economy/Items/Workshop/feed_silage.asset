@@ -32,23 +32,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 5
   features:
-  - rid: 7737211838074979127
-  - rid: 7737211838074979128
-  - rid: 7737211838074979129
+  - rid: 7737211905660420546
+  - rid: 7737211905666712575
+  - rid: 7737211907793485824
+  - rid: 7737211907793485825
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074979127
+    - rid: 7737211905660420546
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6272731
+    - rid: 7737211905666712575
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:husbandry:feed
-    - rid: 7737211838074979128
+    - rid: 7737211907793485824
       type: {class: FacilitySupplyItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         fuelValue: 4
         nutritionValue: 14
         feedEligible: 1
-    - rid: 7737211838074979129
+    - rid: 7737211907793485825
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8

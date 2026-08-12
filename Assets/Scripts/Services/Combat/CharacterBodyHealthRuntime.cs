@@ -9,11 +9,14 @@ public sealed class CharacterBodyHealthRuntime :
     ICharacterBodyHealthQuery,
     ICharacterBodyHealthCommand,
     ICharacterCombatSpecialStatusQuery,
+    ICharacterManaQuery,
+    ICharacterManaCommand,
     ICharacterBodyHealthPersistence,
     IAnatomyHealthRuntime,
-    IAnatomyEffectRuntime,
     ITickable
 {
+    private const float PanicSuppressionThreshold = 80f;
+    private const float BaseManaRecoveryPerGameHour = 8f;
     private static readonly ProfilerMarker TickProfilerMarker =
         new ProfilerMarker("CharacterBodyHealthRuntime.Tick");
 
@@ -22,7 +25,6 @@ public sealed class CharacterBodyHealthRuntime :
     private readonly IGameEventBus gameEventBus;
     private readonly IDynamicFrameWorkBudget frameWorkBudget;
     private readonly CharacterBodyHealthStateRules stateRules;
-    private readonly IAnatomyActivityProfileCatalog anatomyActivities;
     private readonly CharacterVitalsAuthority vitalsAuthority;
     private readonly Dictionary<CharacterId, CharacterActor> trackedActors =
         new Dictionary<CharacterId, CharacterActor>();
@@ -39,7 +41,6 @@ public sealed class CharacterBodyHealthRuntime :
         IGameEventBus gameEventBus,
         IDynamicFrameWorkBudget frameWorkBudget,
         IAnatomyProfileCatalog anatomyProfiles,
-        IAnatomyActivityProfileCatalog anatomyActivities,
         DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         this.worldRegistry = worldRegistry ?? throw new ArgumentNullException(nameof(worldRegistry));
@@ -48,8 +49,6 @@ public sealed class CharacterBodyHealthRuntime :
         this.frameWorkBudget = frameWorkBudget
             ?? throw new ArgumentNullException(nameof(frameWorkBudget));
         stateRules = new CharacterBodyHealthStateRules(anatomyProfiles);
-        this.anatomyActivities = anatomyActivities
-            ?? throw new ArgumentNullException(nameof(anatomyActivities));
         vitalsAuthority = new CharacterVitalsAuthority(
             aggregateRootStore ?? throw new ArgumentNullException(nameof(aggregateRootStore)),
             stateRules);
@@ -168,9 +167,44 @@ public sealed class CharacterBodyHealthRuntime :
                 state.sedationRemainingSeconds - delta);
             if (state.sedationRemainingSeconds <= 0f)
                 state.sedationRatio = 0f;
-            state.manaBlockedRemainingSeconds = Mathf.Max(
-                0f,
-                state.manaBlockedRemainingSeconds - delta);
+            bool requiresManaRecovery =
+                state.manaBlockedRemainingSeconds > 0f
+                || state.currentMana < state.maxMana;
+            if (requiresManaRecovery)
+            {
+                CharacterPerformanceSnapshot manaRecovery = actor.Stats != null
+                    ? actor.Stats.EvaluatePerformance(
+                        CharacterPerformanceFormulaIds.ManaRecovery)
+                    : null;
+                float manaRecoveryMultiplier = manaRecovery?.IsApplicable == true
+                    ? manaRecovery.Value
+                    : 0f;
+                state.manaBlockedRemainingSeconds = Mathf.Max(
+                    0f,
+                    state.manaBlockedRemainingSeconds
+                        - delta * Mathf.Max(0f, manaRecoveryMultiplier));
+                if (state.manaBlockedRemainingSeconds <= 0f
+                    && state.currentMana < state.maxMana)
+                {
+                    float manaBeforeRecovery = state.currentMana;
+                    float secondsPerGameHour =
+                        GameCalendarRules.SecondsPerDay
+                        / GameCalendarRules.HoursPerDay;
+                    state.currentMana = Mathf.Min(
+                        state.maxMana,
+                        state.currentMana
+                            + delta
+                            * BaseManaRecoveryPerGameHour
+                            / secondsPerGameHour
+                            * Mathf.Max(0f, manaRecoveryMultiplier));
+                    CharacterPerformanceExecutionTrace.Record(
+                        CharacterPerformanceFormulaIds.ManaRecovery,
+                        "CharacterBodyHealthRuntime.Tick",
+                        delta,
+                        state.currentMana - manaBeforeRecovery,
+                        id.Value);
+                }
+            }
 
             TickAnatomyComplications(actor, state, delta);
             state.suppression = Mathf.Max(0f, state.suppression - 5f * delta);
@@ -218,6 +252,66 @@ public sealed class CharacterBodyHealthRuntime :
 
     public CharacterVitalsSnapshot GetVitals(string characterId) =>
         vitalsAuthority.GetVitals((CharacterId)characterId);
+
+    public CharacterManaSnapshot GetMana(CharacterActor actor)
+    {
+        CharacterBodyHealthState state = GetForQuery(actor);
+        return state == null
+            ? new CharacterManaSnapshot(0f, 100f, recoveryBlocked: false)
+            : new CharacterManaSnapshot(
+                state.currentMana,
+                state.maxMana,
+                state.manaBlockedRemainingSeconds > 0f);
+    }
+
+    public bool CanSpendMana(
+        CharacterActor actor,
+        float amount,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (actor == null || amount <= 0f
+            || float.IsNaN(amount) || float.IsInfinity(amount))
+        {
+            failureReason = "유효한 시전자와 양의 마나 비용이 필요합니다.";
+            return false;
+        }
+        CharacterBodyHealthState state = GetForQuery(actor);
+        if (state == null || state.currentMana + 0.0001f < amount)
+        {
+            failureReason = $"마나 부족: {state?.currentMana ?? 0f:0.#}/{amount:0.#}";
+            return false;
+        }
+        return true;
+    }
+
+    [GameplayInternalOnly(
+        "Combat and arcane commands spend mana before resolving their atomic action.",
+        "CharacterCombatCommandRuntime|ArcaneOverchargeCommandRuntime")]
+    public bool TrySpendMana(
+        CharacterActor actor,
+        float amount,
+        out string failureReason)
+    {
+        if (!CanSpendMana(actor, amount, out failureReason))
+            return false;
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        state.currentMana = Mathf.Max(0f, state.currentMana - amount);
+        return true;
+    }
+
+    [GameplayInternalOnly(
+        "Only an unexecuted combat action may compensate its immediately preceding mana spend.",
+        "CharacterCombatCommandRuntime")]
+    public void RefundFailedManaSpend(CharacterActor actor, float amount)
+    {
+        if (actor == null || !float.IsFinite(amount) || amount <= 0f)
+            return;
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        state.currentMana = Mathf.Min(
+            Mathf.Max(1f, state.maxMana),
+            state.currentMana + amount);
+    }
 
     public void ConfigureVitals(
         CharacterActor actor,
@@ -354,7 +448,9 @@ public sealed class CharacterBodyHealthRuntime :
         }
 
         CharacterBodyHealthState state = GetOrCreate(target);
+        float previousSuppression = state.suppression;
         state.suppression = Mathf.Clamp(state.suppression + result.Suppression, 0f, 100f);
+        ApplyPanicMoodOnThresholdCrossing(target, previousSuppression, state.suppression);
         ApplySpecialStatus(state, result);
         if (!result.Hit || result.AppliedDamage <= 0f)
         {
@@ -479,7 +575,9 @@ public sealed class CharacterBodyHealthRuntime :
         }
 
         CharacterBodyHealthState state = GetOrCreate(target);
+        float previousSuppression = state.suppression;
         state.suppression = Mathf.Clamp(state.suppression + amount, 0f, 100f);
+        ApplyPanicMoodOnThresholdCrossing(target, previousSuppression, state.suppression);
         bool wasDowned = state.downed;
         stateRules.UpdateDowned(state);
         SyncLifecycle(target, state, wasDowned);
@@ -493,6 +591,24 @@ public sealed class CharacterBodyHealthRuntime :
         bool wasDowned = state.downed;
         stateRules.UpdateDowned(state);
         SyncLifecycle(target, state, wasDowned);
+    }
+
+    private static void ApplyPanicMoodOnThresholdCrossing(
+        CharacterActor target,
+        float previousSuppression,
+        float currentSuppression)
+    {
+        if (target == null
+            || previousSuppression >= PanicSuppressionThreshold
+            || currentSuppression < PanicSuppressionThreshold)
+            return;
+
+        target.ApplyMoodFactor(
+            "event:panic",
+            "전투 패닉",
+            -8f,
+            GameCalendarRules.SecondsPerDay,
+            1);
     }
 
     public void Heal(CharacterActor target, float amount, bool stopBleeding)
@@ -754,51 +870,6 @@ public sealed class CharacterBodyHealthRuntime :
             state,
             stateRules.ResolveProfile(state.anatomyProfileId));
         return stateRules.BuildAnatomySnapshot(state);
-    }
-
-    public AnatomyActionAxisSnapshot GetActionAxes(CharacterActor actor)
-    {
-        CharacterBodyHealthState state = GetForQuery(actor);
-        return state == null
-            ? stateRules.DefaultActionAxes()
-            : stateRules.BuildActionAxes(state);
-    }
-
-    public AnatomyActionAxisSnapshot GetActionAxes(string characterId)
-    {
-        CharacterId id = (CharacterId)characterId;
-        if (!id.IsValid
-            || !ReadState.TryGet(id, out CharacterBodyHealthState state))
-        {
-            return stateRules.DefaultActionAxes();
-        }
-
-        return stateRules.BuildActionAxes(state);
-    }
-
-    public AnatomyActivityFactorSnapshot GetActivityFactor(
-        CharacterActor actor,
-        AnatomyActivityId activity)
-    {
-        AnatomyActionAxisSnapshot axes = GetActionAxes(actor);
-        AnatomyActivityProfile profile = anatomyActivities.Get(activity);
-        float raw = 1f;
-        foreach (AnatomyNodeAxisContribution weight in profile.AxisWeights)
-        {
-            if (weight == null || weight.Weight <= 0f)
-            {
-                continue;
-            }
-
-            raw += (axes.Get(weight.Axis) - 1f) * weight.Weight;
-        }
-
-        raw = Mathf.Max(0f, raw);
-        return new AnatomyActivityFactorSnapshot(
-            activity,
-            raw,
-            Mathf.Min(raw, profile.MaximumFactor),
-            profile.MaximumFactor);
     }
 
     public bool TryDamageNode(
@@ -1267,6 +1338,7 @@ public sealed class CharacterBodyHealthRuntime :
         string reasonCode,
         bool allowDeath)
     {
+        float previousRatio = HealthRatio(state);
         vitalsAuthority.Damage(
             actor,
             state,
@@ -1274,6 +1346,12 @@ public sealed class CharacterBodyHealthRuntime :
             deathCause,
             reasonCode,
             allowDeath);
+        PublishHealthTransition(
+            actor,
+            previousRatio,
+            HealthRatio(state),
+            deathCause,
+            reasonCode);
     }
 
     private void ApplyAggregateHealing(
@@ -1281,7 +1359,52 @@ public sealed class CharacterBodyHealthRuntime :
         CharacterBodyHealthState state,
         float amount)
     {
+        float previousRatio = HealthRatio(state);
         vitalsAuthority.Heal(actor, state, amount);
+        PublishHealthTransition(
+            actor,
+            previousRatio,
+            HealthRatio(state),
+            CharacterDeathCauseCode.Unknown,
+            "healing");
+    }
+
+    private static float HealthRatio(CharacterBodyHealthState state) =>
+        state == null
+            ? 0f
+            : Mathf.Clamp01(
+                state.currentHealth / Mathf.Max(1f, state.maxHealth));
+
+    private void PublishHealthTransition(
+        CharacterActor actor,
+        float previousRatio,
+        float currentRatio,
+        CharacterDeathCauseCode deathCause,
+        string reasonCode)
+    {
+        if (!CharacterPersistentIdentity.TryGet(actor, out CharacterId id))
+            return;
+        int day = Mathf.FloorToInt(
+            gameClock.Time / GameCalendarRules.SecondsPerDay);
+        bool crossedCritical = previousRatio > 0.20f && currentRatio <= 0.20f;
+        bool recoveredFromCritical = previousRatio <= 0.20f
+            && currentRatio > 0.20f;
+        if (crossedCritical || recoveredFromCritical)
+        {
+            gameEventBus.Publish(new HealthThresholdCrossedEvent(
+                id,
+                previousRatio,
+                currentRatio,
+                coreOrganCritical: false,
+                day));
+        }
+        if (previousRatio > 0f && currentRatio <= 0f)
+        {
+            string causeId = !string.IsNullOrWhiteSpace(reasonCode)
+                ? reasonCode.Trim()
+                : deathCause.ToString();
+            gameEventBus.Publish(new CharacterDiedEvent(id, causeId, day));
+        }
     }
 
     private void EnsureAggregateRevision()

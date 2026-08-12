@@ -3,6 +3,7 @@
   "rootNamespace": "DungeonStory.Characters",
   "references": [
     "DungeonStory.Buildings",
+    "DungeonStory.CoreSession",
     "DungeonStory.Foundation",
     "DungeonStory.Work"
   ],

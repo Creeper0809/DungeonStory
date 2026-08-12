@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 [CreateAssetMenu(menuName = "DungeonStory/AI/Action/Wait", order = 0)]
@@ -15,6 +18,27 @@ public class AIWait : AIActionSet
     [SerializeField, Range(0f, 1f)] private float offDutyVisitAvailableScore = 0.1f;
 
     public override bool RequiresDestination => false;
+
+    public override IReadOnlyCollection<string> GetSemanticTags(
+        CharacterActor actor)
+    {
+        HashSet<string> tags = new(
+            base.GetSemanticTags(actor),
+            StringComparer.Ordinal);
+        if (actor?.InjurySeverity > 0.001f)
+            tags.Add("medical:rest-treatment");
+        if (actor != null
+            && actor.WorldRegistry != null
+            && !actor.WorldRegistry.Characters.Any(other =>
+                other != null
+                && other != actor
+                && !other.IsDead
+                && Vector2Int.Distance(
+                    actor.GetNowXY(),
+                    other.GetNowXY()) <= 2f))
+            tags.Add("rest:private");
+        return tags;
+    }
 
     public override void PrepareScoreContext(
         CharacterActor actor,

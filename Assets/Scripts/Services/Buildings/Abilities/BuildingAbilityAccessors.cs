@@ -340,6 +340,15 @@ public static class BuildingAbilityAccessors
             constructionValue);
     }
 
+    public static ProjectScale GetConstructionProjectScale(this BuildingSO building)
+    {
+        BuildingWorkAmountAbility ability = building?
+            .GetAbility<BuildingWorkAmountAbility>()
+            ?? throw new InvalidOperationException(
+                $"Building '{building?.ContentDefinitionId ?? "<null>"}' has no authored work-amount ability.");
+        return ability.ConstructionProjectScale;
+    }
+
     private static float GetDefaultRequiredWork(FacilityWorkType workType, int cells, int cost)
     {
         return workType switch

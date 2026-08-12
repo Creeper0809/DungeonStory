@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uB728\uAC70\uC6B4 \uD53C"
   description: "\uCD94\uC704\uC5D0 \uB300\uB2F4\uD558\uACE0 \uBAA8\uC695\uC5D0 \uC989\uAC01
     \uBC18\uC751\uD55C\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1.03
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,51 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 0
+  polarity: 1
+  selectionFamilyId: temperature-temperament
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: conflict:confront
-    utilityDelta: 0.4
-  moodReactions:
-  - triggerTag: social:insult
-    moodDelta: -4
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: service-incident
-    multiplier: 1.4
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:209:effect:0
+    definition: {fileID: 11400000, guid: 426f03603ba79a7459d9214b87e09318, type: 2}
+    value: 0.9
+    condition: {fileID: 0}
+  - bindingId: trait:209:effect:1
+    definition: {fileID: 11400000, guid: 137c7667173fc054eb6777aec0aa16f2, type: 2}
+    value: 1.08
+    condition: {fileID: 11400000, guid: 7dd19874e807ff84b88077ccc79782f2, type: 2}
+  identityRules:
+  - rid: 7737211921986486441
+  - rid: 7737211921986486442
+  - rid: 7737211921986486443
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486441
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:answer-insult
+        priority: 0
+        behaviorTag: social:answer-insult
+        utilityDelta: 0.8
+    - rid: 7737211921986486442
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:insulted
+        priority: 0
+        eventId: social:insulted
+        moodDelta: -4
+        durationDays: 1
+    - rid: 7737211921986486443
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:answered-insult
+        priority: 0
+        eventId: social:insult-answered
+        moodDelta: 3
+        durationDays: 1

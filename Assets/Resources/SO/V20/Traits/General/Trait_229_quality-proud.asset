@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uD488\uC9C8 \uC790\uBD80\uC2EC"
   description: "\uBD88\uB7C9\uD488\uC744 \uB118\uAE30\uB290\uB2C8 \uB0A9\uAE30\uB97C
     \uB2A6\uCD94\uB294 \uD3B8\uC744 \uD0DD\uD55C\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 0.98
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,51 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 0
+  polarity: 1
+  selectionFamilyId: quality
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: work:quality
-    utilityDelta: 0.55
-  moodReactions:
-  - triggerTag: product:poor-quality
-    moodDelta: -4
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: guest-request
-    multiplier: 1.35
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:229:effect:0
+    definition: {fileID: 11400000, guid: 8c26059caa737df4cb1c0d3159b1d8ec, type: 2}
+    value: 4
+    condition: {fileID: 0}
+  - bindingId: trait:229:effect:1
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 0.98
+    condition: {fileID: 11400000, guid: 8d094183e2bc1e942ad839608e534b4d, type: 2}
+  identityRules:
+  - rid: 7737211921986486517
+  - rid: 7737211921986486518
+  - rid: 7737211921986486519
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486517
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:quality-policy
+        priority: 0
+        behaviorTag: work:quality-first
+        utilityDelta: 0.75
+    - rid: 7737211921986486518
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:low-quality-product
+        priority: 0
+        eventId: product:quality-low
+        moodDelta: -4
+        durationDays: 2
+    - rid: 7737211921986486519
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:masterwork-product
+        priority: 0
+        eventId: product:quality-masterwork
+        moodDelta: 3
+        durationDays: 2

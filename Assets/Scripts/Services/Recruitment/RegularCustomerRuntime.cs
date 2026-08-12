@@ -8,6 +8,8 @@ using VContainer;
 public class RegularCustomerRuntime : MonoBehaviour
 {
     [SerializeField] private RegularCustomerRules rules = RegularCustomerRules.CreateDefault();
+    [SerializeField] private SettlementImmigrationPolicy immigrationPolicy =
+        SettlementImmigrationPolicy.Balanced;
 
     private RegularCustomerState state = new RegularCustomerState();
     private DungeonRuntimeAggregateRootStore aggregateRootStore;
@@ -19,6 +21,7 @@ public class RegularCustomerRuntime : MonoBehaviour
     private IGameSessionStateProvider gameDataProvider;
     private IGameMoneyAccount money;
     private IOffenseQuery offense;
+    private ISettlementPopulationCapacityQuery populationCapacity;
     private IDisposable offenseRewardSubscription;
     private IDisposable facilityVisitSubscription;
 
@@ -29,6 +32,39 @@ public class RegularCustomerRuntime : MonoBehaviour
 
     public RegularCustomerState State => state;
     public RegularCustomerRules Rules => rules;
+    public SettlementImmigrationPolicy ImmigrationPolicy => immigrationPolicy;
+
+    public SettlementPopulationCapacitySnapshot CapturePopulationCapacity() =>
+        populationCapacity?.CapturePopulationCapacity() ?? default;
+
+    public SettlementPopulationAcceptance EvaluateImmigration() =>
+        populationCapacity?.EvaluateImmigration(immigrationPolicy)
+        ?? new SettlementPopulationAcceptance(
+            true,
+            string.Empty,
+            "Population capacity is not available in this debug fixture.");
+
+    public SettlementImmigrationPolicy CycleImmigrationPolicy()
+    {
+        immigrationPolicy = immigrationPolicy switch
+        {
+            SettlementImmigrationPolicy.Conservative =>
+                SettlementImmigrationPolicy.Balanced,
+            SettlementImmigrationPolicy.Balanced =>
+                SettlementImmigrationPolicy.Open,
+            _ => SettlementImmigrationPolicy.Conservative
+        };
+        return immigrationPolicy;
+    }
+
+    internal void RestoreImmigrationPolicy(SettlementImmigrationPolicy policy)
+    {
+        if (!Enum.IsDefined(typeof(SettlementImmigrationPolicy), policy))
+        {
+            throw new ArgumentOutOfRangeException(nameof(policy), policy, null);
+        }
+        immigrationPolicy = policy;
+    }
 
     [Inject]
     public void ConstructRecruitmentRuntime(
@@ -39,6 +75,7 @@ public class RegularCustomerRuntime : MonoBehaviour
         IGameSessionStateProvider gameDataProvider,
         IGameMoneyAccount money,
         IOffenseQuery offense,
+        ISettlementPopulationCapacityQuery populationCapacity,
         DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         characterServices = characterServices
@@ -55,6 +92,8 @@ public class RegularCustomerRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
         this.money = money ?? throw new ArgumentNullException(nameof(money));
         this.offense = offense ?? throw new ArgumentNullException(nameof(offense));
+        this.populationCapacity = populationCapacity
+            ?? throw new ArgumentNullException(nameof(populationCapacity));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
         state = new RegularCustomerState(this.aggregateRootStore);
@@ -115,7 +154,11 @@ public class RegularCustomerRuntime : MonoBehaviour
 
     public void OnTriggerEvent(FacilityVisitEvent eventType)
     {
-        RegularCustomerVisitResult result = state.RecordVisit(eventType.visitorActor, rules);
+        SettlementPopulationAcceptance capacity = EvaluateImmigration();
+        RegularCustomerVisitResult result = state.RecordVisit(
+            eventType.visitorActor,
+            rules,
+            allowRecruitCandidate: capacity.Accepted);
         if (!result.Success)
         {
             return;
@@ -148,10 +191,33 @@ public class RegularCustomerRuntime : MonoBehaviour
 
     public bool TryRecruit(string customerId, out RegularCustomerRecruitResult result)
     {
+        int day = ResolveCurrentAbsoluteDay();
         if (state.TryGetRecord(customerId, out RegularCustomerRecord candidate)
             && candidate.IsRecruitCandidate
             && !candidate.IsRecruited)
         {
+            SettlementPopulationAcceptance capacity = EvaluateImmigration();
+            if (!capacity.Accepted)
+            {
+                result = new RegularCustomerRecruitResult(
+                    false,
+                    candidate,
+                    $"정착 수용 불가 [{capacity.FailureCode}]: {capacity.Message}");
+                return false;
+            }
+
+            if (!state.CanRecruitOnDay(
+                    day,
+                    rules,
+                    out int nextAllowedAbsoluteDay))
+            {
+                result = new RegularCustomerRecruitResult(
+                    false,
+                    candidate,
+                    $"다음 일반 영입은 {nextAllowedAbsoluteDay}일부터 가능합니다.");
+                return false;
+            }
+
             IRecruitedCharacterActivationService activationService = ResolveCharacterActivationService();
             if (activationService == null)
             {
@@ -169,7 +235,7 @@ public class RegularCustomerRuntime : MonoBehaviour
             }
         }
 
-        bool recruited = state.TryRecruit(customerId, out result);
+        bool recruited = state.TryRecruit(customerId, day, rules, out result);
         if (!recruited)
         {
             return false;
@@ -261,6 +327,19 @@ public class RegularCustomerRuntime : MonoBehaviour
             return false;
         }
 
+        int day = ResolveCurrentAbsoluteDay();
+        if (!state.CanRecruitOnDay(
+                day,
+                rules,
+                out int nextAllowedAbsoluteDay))
+        {
+            result = new RegularCustomerRecruitResult(
+                false,
+                candidate,
+                $"다음 영입 계약은 {nextAllowedAbsoluteDay}일부터 가능합니다.");
+            return false;
+        }
+
         IRecruitedCharacterActivationService activationService =
             ResolveCharacterActivationService();
         string activationMessage =
@@ -278,10 +357,6 @@ public class RegularCustomerRuntime : MonoBehaviour
             return false;
         }
 
-        int day = gameDataProvider.TryGetSessionState(out GameSessionState gameData)
-            && gameData?.day != null
-            ? Mathf.Max(1, gameData.day.Value)
-            : 1;
         if (!employmentContracts.TryHireMercenary(
                 actor,
                 ability.rolePremium,
@@ -295,7 +370,7 @@ public class RegularCustomerRuntime : MonoBehaviour
             return false;
         }
 
-        if (!state.TryRecruit(customerId, out result))
+        if (!state.TryRecruit(customerId, day, rules, out result))
         {
             return false;
         }
@@ -330,6 +405,15 @@ public class RegularCustomerRuntime : MonoBehaviour
     private IRecruitedCharacterActivationService ResolveCharacterActivationService()
     {
         return characterActivationService;
+    }
+
+    private int ResolveCurrentAbsoluteDay()
+    {
+        return gameDataProvider != null
+            && gameDataProvider.TryGetSessionState(out GameSessionState gameData)
+            && gameData?.day != null
+            ? Mathf.Max(1, gameData.day.Value)
+            : 1;
     }
 
     public void OnTriggerEvent(OffenseRewardGrantedEvent eventType)

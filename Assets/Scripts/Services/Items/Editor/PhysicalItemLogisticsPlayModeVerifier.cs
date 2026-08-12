@@ -21,6 +21,8 @@ public static class PhysicalItemLogisticsPlayModeVerifier
 {
     public const string RequestPath = "Temp/physical-item-logistics-playmode.request";
     public const string ReportPath = "Artifacts/QA/physical-item-logistics-playmode-report.txt";
+    public const string ConstructionRequestPath = "Temp/construction-project-playmode.request";
+    public const string ConstructionReportPath = "Artifacts/QA/construction-project-playmode-report.txt";
     public const string CarryCapturePath = "Artifacts/QA/physical-item-carry-ui.png";
     private const string GameplayScenePath = "Assets/Scenes/GameplayScene.unity";
     private static bool runnerCreated;
@@ -43,9 +45,20 @@ public static class PhysicalItemLogisticsPlayModeVerifier
         File.WriteAllText(RequestPath, DateTime.UtcNow.ToString("O"));
     }
 
+    [MenuItem("DungeonStory/Debug/QA/Request Construction Project Verification")]
+    public static void RequestConstructionRunFromMenu()
+    {
+        PlayModeVerificationInputCleanup.CleanupStaleVerificationMice();
+        Directory.CreateDirectory("Temp");
+        Directory.CreateDirectory("Artifacts/QA");
+        File.Delete(ConstructionReportPath);
+        File.WriteAllText(ConstructionRequestPath, DateTime.UtcNow.ToString("O"));
+    }
+
     private static void OnEditorUpdate()
     {
-        if (!File.Exists(RequestPath) || EditorApplication.isPlayingOrWillChangePlaymode)
+        if ((!File.Exists(RequestPath) && !File.Exists(ConstructionRequestPath))
+            || EditorApplication.isPlayingOrWillChangePlaymode)
         {
             return;
         }
@@ -70,7 +83,9 @@ public static class PhysicalItemLogisticsPlayModeVerifier
             return;
         }
 
-        if (change != PlayModeStateChange.EnteredPlayMode || runnerCreated || !File.Exists(RequestPath))
+        if (change != PlayModeStateChange.EnteredPlayMode
+            || runnerCreated
+            || !File.Exists(RequestPath) && !File.Exists(ConstructionRequestPath))
         {
             return;
         }
@@ -86,7 +101,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
     private const string PreservedRationItemId = "food:preserved-ration";
     private const string DaggerItemId = "equipment-item:weapon:dagger";
     private const string DaggerId = "weapon:dagger";
-    private const string BreastplateId = "armor:breastplate";
+    private const string RepairEquipmentId = "shield:wood";
     private const float HaulTimeoutSeconds = 18f;
 
     private readonly List<string> report = new List<string>();
@@ -102,14 +117,20 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
     private Mouse originalMouse;
     private Mouse verificationMouse;
     private int verificationMouseSerial;
-    private bool originalBrainEnabled;
-    private AIBrain disabledBrain;
+    private readonly Dictionary<AIBrain, bool> disabledBrains =
+        new Dictionary<AIBrain, bool>();
+    private readonly List<CharacterActor> verificationActors = new List<CharacterActor>();
     private float originalTimeScale;
     private IWorldItemStackRuntime itemRuntime;
+    private bool constructionOnly;
+    private IDungeonDebugModeService debugMode;
+    private bool originalFreezeNeeds;
+    private bool originalFriendlyInvincible;
 
     private IEnumerator Start()
     {
         Directory.CreateDirectory("Artifacts/QA");
+        constructionOnly = File.Exists(PhysicalItemLogisticsPlayModeVerifier.ConstructionRequestPath);
         Application.logMessageReceived += OnLogMessageReceived;
         EnsureEventSystem();
         SetupInput();
@@ -128,6 +149,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         IResourceEconomyContentCatalog economyCatalog =
             Resolve<IResourceEconomyContentCatalog>(scope);
         IOffensePreparationService preparation = Resolve<IOffensePreparationService>(scope);
+        debugMode = Resolve<IDungeonDebugModeService>(scope);
         GridSystemManager gridSystem = UnityEngine.Object.FindFirstObjectByType<GridSystemManager>();
         Grid grid = gridSystem != null ? gridSystem.grid : null;
 
@@ -140,6 +162,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
             "equipment maintenance runtime resolved");
         Check(economyCatalog != null, "ECONOMY_CATALOG_READY", "resource economy catalog resolved");
         Check(preparation != null, "PREPARATION_RUNTIME_READY", "offense preparation service resolved");
+        Check(debugMode != null, "DEBUG_MODE_READY", "debug mode service resolved");
         Check(grid != null, "GRID_READY", "grid resolved");
         if (scope == null
             || itemRuntime == null
@@ -148,6 +171,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
             || equipmentMaintenance == null
             || economyCatalog == null
             || preparation == null
+            || debugMode == null
             || grid == null)
         {
             Finish();
@@ -164,6 +188,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         }
 
         CaptureRuntimeState(itemRuntime, equipment);
+        ConfigureVerificationDebugMode();
         DisableBrainForDeterministicHauling(hauler);
 
         try
@@ -198,6 +223,28 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
             }
 
             ClearInventory(warehouse.Inventory);
+            if (constructionOnly)
+            {
+                Check(SeedStoredCraftMaterial(
+                        itemRuntime,
+                        economyCatalog,
+                        warehouse,
+                        "material:wood",
+                        4,
+                        out string woodSeedDetails),
+                    "CONSTRUCTION_WOOD_SEEDED",
+                    woodSeedDetails);
+                yield return VerifyConstructionMaterialDelivery(
+                    itemRuntime,
+                    workOrderRuntime,
+                    scope,
+                    grid,
+                    hauler,
+                    warehouse,
+                    positions[2]);
+            }
+            else
+            {
             Check(warehouse.Inventory.SeedPhysicalStockForTest(StockCategory.General, 20) == 20
                     && warehouse.Inventory.SeedPhysicalStockForTest(StockCategory.Weapon, 20) == 20
                     && warehouse.Inventory.SeedPhysicalStockForTest(StockCategory.Food, 5) == 5,
@@ -237,6 +284,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                 warehouse.centerPos);
             VerifyExpeditionPacking(preparation, itemRuntime, warehouse);
             yield return VerifyCarryUi(itemRuntime, hauler);
+            }
         }
         finally
         {
@@ -375,6 +423,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
             cleanWorkRequired = 2f,
             researchWorkRequired = 6f
         };
+        workAmount.SetConstructionProjectScale(ProjectScale.IndustrialFacility);
         workAmount.SetConstructionMaterials(new[]
         {
             new ItemAmountDefinition("material:lumber", materialAmount)
@@ -396,9 +445,14 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         Check(registered, "CONSTRUCTION_SITE_REGISTERED", $"pos={sitePosition}");
 
         string orderId = string.Empty;
+        List<ProjectWorkerLease> projectWorkerLeases = new List<ProjectWorkerLease>();
         try
         {
-            int generalBefore = warehouse.Inventory.GetStock(StockCategory.General);
+            const string materialItemId = "material:lumber";
+            int materialBefore = GetStoredItemQuantity(
+                itemRuntime,
+                materialItemId,
+                warehouse.centerPos);
             string failureReason = string.Empty;
             bool created = registered
                 && workOrderRuntime.TryCreateConstructionOrder(
@@ -423,9 +477,9 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
             Check(order.Status == WorkOrderStatus.WaitingForMaterials,
                 "CONSTRUCTION_WAITS_FOR_MATERIALS",
                 $"status={order.Status}; destination={destinationId}");
-            Check(warehouse.Inventory.GetStock(StockCategory.General) == generalBefore,
+            Check(GetStoredItemQuantity(itemRuntime, materialItemId, warehouse.centerPos) == materialBefore,
                 "CONSTRUCTION_STOCK_HELD_UNTIL_PICKUP",
-                $"general={generalBefore}->{warehouse.Inventory.GetStock(StockCategory.General)}");
+                $"item={materialItemId}; quantity={materialBefore}->{GetStoredItemQuantity(itemRuntime, materialItemId, warehouse.centerPos)}");
             Check(!itemRuntime.GetAllStacks().Any(stack =>
                     stack.State == WorldItemStackState.Loose
                     && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal)),
@@ -433,6 +487,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                 DescribeStacks(itemRuntime));
             Check(itemRuntime.GetAllStacks().Any(stack =>
                     stack.State == WorldItemStackState.Stored
+                    && string.Equals(stack.ItemId, materialItemId, StringComparison.Ordinal)
                     && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal)
                     && !string.IsNullOrWhiteSpace(stack.SourceStorageDestinationId)
                     && stack.Quantity >= materialAmount),
@@ -465,9 +520,10 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                 Destroy(action);
             }
 
-            Check(warehouse.Inventory.GetStock(StockCategory.General) == generalBefore - materialAmount,
+            Check(GetStoredItemQuantity(itemRuntime, materialItemId, warehouse.centerPos)
+                    == materialBefore - materialAmount,
                 "CONSTRUCTION_STOCK_WITHDRAWN_ON_PICKUP",
-                $"general={generalBefore}->{warehouse.Inventory.GetStock(StockCategory.General)}");
+                $"item={materialItemId}; quantity={materialBefore}->{GetStoredItemQuantity(itemRuntime, materialItemId, warehouse.centerPos)}");
             Check(workOrderRuntime.RefreshMaterialsReady(site)
                     && workOrderRuntime.TryGetOrderFor(
                         site,
@@ -480,9 +536,20 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                 order != null
                     ? $"status={order.Status}; delivered={order.DeliveredItemMaterials.GetValueOrDefault("material:lumber")}"
                     : "order missing");
+
+            VerifyLiveConstructionProjectContribution(
+                workOrderRuntime,
+                site,
+                hauler,
+                projectWorkerLeases);
         }
         finally
         {
+            for (int index = projectWorkerLeases.Count - 1; index >= 0; index--)
+            {
+                projectWorkerLeases[index]?.Dispose();
+            }
+
             if (!string.IsNullOrWhiteSpace(orderId))
             {
                 workOrderRuntime.CancelOrder(orderId, refundDeliveredMaterials: false);
@@ -499,6 +566,131 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
 
             Destroy(building);
         }
+    }
+
+    private void VerifyLiveConstructionProjectContribution(
+        IWorkOrderRuntime workOrderRuntime,
+        ConstructionSite site,
+        CharacterActor preferredWorker,
+        List<ProjectWorkerLease> leases)
+    {
+        IConstructionProjectWorkforceRuntime workforce =
+            workOrderRuntime as IConstructionProjectWorkforceRuntime;
+        Check(workforce != null,
+            "CONSTRUCTION_PROJECT_WORKFORCE_READY",
+            workforce != null ? "runtime resolved" : "runtime missing");
+        Check(site != null && site.MaximumWorkers == 4,
+            "CONSTRUCTION_INDUSTRIAL_WORKER_CAP",
+            site != null ? $"maximum={site.MaximumWorkers}" : "site missing");
+        if (workforce == null || site == null)
+        {
+            return;
+        }
+
+        CharacterActor[] candidates = verificationActors
+            .Where(actor => actor != null
+                && !actor.IsDead
+                && CharacterPersistentIdentity.TryGet(actor, out _)
+                && (actor.TryGetAbility(out AbilityWork _)
+                    || actor.Identity != null && actor.Identity.Role == CharacterRole.Owner))
+            .OrderBy(actor => ReferenceEquals(actor, preferredWorker) ? 0 : 1)
+            .ThenBy(actor => actor.Identity?.PersistentId, StringComparer.Ordinal)
+            .Take(site.MaximumWorkers)
+            .ToArray();
+        Check(candidates.Length >= 3,
+            "CONSTRUCTION_LIVE_WORKER_SAMPLE",
+            $"workers={candidates.Length}; required>=3; maximum={site.MaximumWorkers}");
+        if (candidates.Length == 0)
+        {
+            return;
+        }
+
+        for (int index = 0; index < candidates.Length; index++)
+        {
+            bool joined = workforce.TryJoinConstructionProject(
+                site,
+                candidates[index],
+                out ProjectWorkerLease lease,
+                out string failureReason);
+            Check(joined,
+                $"CONSTRUCTION_PROJECT_WORKER_{index + 1}_JOINED",
+                joined
+                    ? $"worker={candidates[index].Identity?.PersistentId}"
+                    : failureReason);
+            if (!joined)
+            {
+                continue;
+            }
+
+            leases.Add(lease);
+            Check(workforce.UpdateConstructionWorkerRate(site, candidates[index], 1f),
+                $"CONSTRUCTION_PROJECT_WORKER_{index + 1}_RATE",
+                "authored=1.00 WU/s");
+        }
+
+        int joinedCount = leases.Count;
+        float expectedEffectiveWorkers = 0f;
+        for (int index = 0; index < joinedCount; index++)
+        {
+            expectedEffectiveWorkers += SettlementLaborBalanceRules.GetWorkerContribution(
+                ProjectScale.IndustrialFacility,
+                index);
+        }
+
+        bool captured = workforce.TryCaptureConstructionProject(site, out ProjectWorkforceSnapshot snapshot);
+        Check(captured
+                && snapshot.ActiveWorkers == joinedCount
+                && snapshot.MaximumWorkers == 4
+                && snapshot.DefaultAutomaticWorkerLimit == 4
+                && Mathf.Abs(snapshot.EffectiveWorkerCount - expectedEffectiveWorkers) <= 0.0001f
+                && Mathf.Abs(snapshot.EffectiveWuPerSecond - expectedEffectiveWorkers) <= 0.0001f,
+            "CONSTRUCTION_PROJECT_LIVE_SNAPSHOT",
+            captured
+                ? $"active={snapshot.ActiveWorkers}; maximum={snapshot.MaximumWorkers}; automatic={snapshot.DefaultAutomaticWorkerLimit}; effectiveWorkers={snapshot.EffectiveWorkerCount:0.00}; effectiveRate={snapshot.EffectiveWuPerSecond:0.00}"
+                : "snapshot unavailable");
+
+        if (!workOrderRuntime.TryGetOrderFor(
+                site,
+                BuiltInWorkTypeIds.Construct,
+                out WorkOrderProgressState before))
+        {
+            Check(false, "CONSTRUCTION_PROJECT_PROGRESS_BASELINE", "order missing");
+            return;
+        }
+
+        float expectedAcceptedWork = 0f;
+        for (int index = 0; index < joinedCount; index++)
+        {
+            float multiplier = workforce.GetConstructionContributionMultiplier(
+                site,
+                candidates[index]);
+            expectedAcceptedWork += multiplier;
+            bool applied = workOrderRuntime.ApplyWork(
+                candidates[index],
+                site,
+                BuiltInWorkTypeIds.Construct,
+                multiplier,
+                out bool completed,
+                out _,
+                out string message);
+            Check(applied && !completed,
+                $"CONSTRUCTION_PROJECT_WORKER_{index + 1}_PROGRESS",
+                $"multiplier={multiplier:0.00}; completed={completed}; message={message}");
+        }
+
+        bool progressCaptured = workOrderRuntime.TryGetOrderFor(
+            site,
+            BuiltInWorkTypeIds.Construct,
+            out WorkOrderProgressState after);
+        float actualAcceptedWork = progressCaptured
+            ? after.CompletedWork - before.CompletedWork
+            : float.NaN;
+        Check(progressCaptured
+                && Mathf.Abs(actualAcceptedWork - expectedAcceptedWork) <= 0.001f,
+            "CONSTRUCTION_PROJECT_DIMINISHING_PROGRESS_APPLIED",
+            progressCaptured
+                ? $"rawWorkers={joinedCount}; accepted={actualAcceptedWork:0.00}; expected={expectedAcceptedWork:0.00}"
+                : "order missing after progress");
     }
 
     private IEnumerator VerifyCraftMaterialsOutputAndEquipmentDeposit(
@@ -638,15 +830,14 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                 seedDetails);
 
             CombatEquipmentInstance armor = equipment.CreateInstance(
-                BreastplateId,
+                RepairEquipmentId,
                 CombatEquipmentQuality.Normal,
                 CombatEquipmentWorldState.Stored,
                 "material:blacksteel");
             string warehouseDestinationId =
-                $"{WorldItemStackRuntime.WarehouseStorageDestinationPrefix}"
-                + $"{warehouse.GridId}:{warehouse.centerPos.x}:{warehouse.centerPos.y}";
+                WarehouseStorageIdentity.RequireDestinationId(warehouse);
             bool stackSpawned = itemRuntime.SpawnUniqueItemAt(
-                PhysicalItemIds.ForEquipment(BreastplateId),
+                PhysicalItemIds.ForEquipment(RepairEquipmentId),
                 warehouse.centerPos,
                 WorldItemStackState.Stored,
                 warehouseDestinationId,
@@ -806,7 +997,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                                 .First(definition =>
                                     string.Equals(
                                         definition.EquipmentId,
-                                        BreastplateId,
+                                        RepairEquipmentId,
                                         StringComparison.Ordinal))
                                 .PrimaryMaterialAmount
                             * 0.5f)
@@ -1058,22 +1249,62 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
 
     private void DisableBrainForDeterministicHauling(CharacterActor hauler)
     {
-        disabledBrain = hauler != null ? hauler.Brain : null;
-        if (disabledBrain == null)
+        disabledBrains.Clear();
+        verificationActors.Clear();
+        foreach (CharacterActor actor in CharacterActorCollection.DistinctByGameObject(
+                     UnityEngine.Object.FindObjectsByType<CharacterActor>(
+                         FindObjectsInactive.Exclude,
+                         FindObjectsSortMode.None)))
         {
-            return;
-        }
+            if (actor == null
+                || actor.IsDead
+                || !CharacterWorkRoleUtility.TryGetWork(actor, out _))
+            {
+                continue;
+            }
 
-        originalBrainEnabled = disabledBrain.enabled;
-        disabledBrain.enabled = false;
+            verificationActors.Add(actor);
+            AIBrain brain = actor != null ? actor.Brain : null;
+            if (brain == null || disabledBrains.ContainsKey(brain))
+            {
+                continue;
+            }
+
+            disabledBrains.Add(brain, brain.enabled);
+            brain.enabled = false;
+        }
     }
 
     private void RestoreBrain()
     {
-        if (disabledBrain != null)
+        foreach (KeyValuePair<AIBrain, bool> pair in disabledBrains)
         {
-            disabledBrain.enabled = originalBrainEnabled;
+            if (pair.Key != null)
+            {
+                pair.Key.enabled = pair.Value;
+            }
         }
+        disabledBrains.Clear();
+        verificationActors.Clear();
+    }
+
+    private void ConfigureVerificationDebugMode()
+    {
+        originalFreezeNeeds = debugMode.IsCheatEnabled(DungeonDebugCheat.FreezeNeeds);
+        originalFriendlyInvincible = debugMode.IsCheatEnabled(DungeonDebugCheat.FriendlyInvincible);
+        debugMode.SetCheat(DungeonDebugCheat.FreezeNeeds, true);
+        debugMode.SetCheat(DungeonDebugCheat.FriendlyInvincible, true);
+    }
+
+    private void RestoreVerificationDebugMode()
+    {
+        if (debugMode == null)
+        {
+            return;
+        }
+
+        debugMode.SetCheat(DungeonDebugCheat.FreezeNeeds, originalFreezeNeeds);
+        debugMode.SetCheat(DungeonDebugCheat.FriendlyInvincible, originalFriendlyInvincible);
     }
 
     private Facility CreateInjectedFacility(
@@ -1152,9 +1383,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
             return false;
         }
 
-        string destinationId =
-            $"{WorldItemStackRuntime.WarehouseStorageDestinationPrefix}"
-            + $"{warehouse.GridId}:{warehouse.centerPos.x}:{warehouse.centerPos.y}";
+        string destinationId = WarehouseStorageIdentity.RequireDestinationId(warehouse);
         bool spawned = itemRuntime.SpawnItemAt(
             material.ItemId,
             amount,
@@ -1232,6 +1461,19 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
             .Select(facility => facility.Inventory)
             .Distinct()
             .Sum(inventory => inventory.GetStock(category));
+    }
+
+    private static int GetStoredItemQuantity(
+        IWorldItemStackRuntime itemRuntime,
+        string itemId,
+        Vector2Int warehousePosition)
+    {
+        return itemRuntime?.GetAllStacks()
+            .Where(stack => stack != null
+                && stack.State == WorldItemStackState.Stored
+                && stack.Position == warehousePosition
+                && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal))
+            .Sum(stack => Mathf.Max(0, stack.Quantity)) ?? 0;
     }
 
     private static string DescribeHaulState(IWorldItemStackRuntime itemRuntime, CharacterActor hauler)
@@ -1398,18 +1640,22 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         report.Add($"capturedWarnings={capturedWarnings.Count}; {Compact(capturedWarnings)}");
         bool passed = failures.Count == 0 && capturedErrors.Count == 0 && capturedWarnings.Count == 0;
         report.Add($"RESULT={(passed ? "PASS" : "FAIL")}; failures={failures.Count}; {Compact(failures)}");
-        File.WriteAllText(PhysicalItemLogisticsPlayModeVerifier.ReportPath, string.Join("\n", report));
+        string reportPath = constructionOnly
+            ? PhysicalItemLogisticsPlayModeVerifier.ConstructionReportPath
+            : PhysicalItemLogisticsPlayModeVerifier.ReportPath;
+        File.WriteAllText(reportPath, string.Join("\n", report));
         File.Delete(PhysicalItemLogisticsPlayModeVerifier.RequestPath);
+        File.Delete(PhysicalItemLogisticsPlayModeVerifier.ConstructionRequestPath);
 
         if (passed)
         {
             Debug.Log("Physical item logistics PlayMode verification passed. "
-                + PhysicalItemLogisticsPlayModeVerifier.ReportPath);
+                + reportPath);
         }
         else
         {
             Debug.LogError("Physical item logistics PlayMode verification failed. "
-                + PhysicalItemLogisticsPlayModeVerifier.ReportPath);
+                + reportPath);
         }
 
         EditorApplication.ExitPlaymode();
@@ -1418,6 +1664,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
 
     private void Cleanup()
     {
+        RestoreVerificationDebugMode();
         RestoreBrain();
         foreach (GameObject obj in temporaryObjects)
         {

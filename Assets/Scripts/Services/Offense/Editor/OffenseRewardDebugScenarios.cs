@@ -202,13 +202,21 @@ public static class OffenseRewardDebugScenarios
         using CountingRewardGrantedListener rewardEvents =
             new CountingRewardGrantedListener(scenario.GameEvents);
         CharacterActor worker = scenario.CreateCharacter("RewardWorker", CharacterType.NPC, CharacterRole.Regular, 100);
+        CharacterActor[] party =
+        {
+            worker,
+            scenario.CreateCharacter("RewardEscortA", CharacterType.NPC, CharacterRole.Regular, 100),
+            scenario.CreateCharacter("RewardEscortB", CharacterType.NPC, CharacterRole.Regular, 100),
+            scenario.CreateCharacter("RewardEscortC", CharacterType.NPC, CharacterRole.Regular, 100),
+            scenario.CreateCharacter("RewardEscortD", CharacterType.NPC, CharacterRole.Regular, 100)
+        };
         worker.ApplyDamage(20f, "원정 전 부상");
 
         int warehouseFoodBefore = scenario.Context.Warehouse.Inventory.GetStock(StockCategory.Food);
 
         bool started = scenario.Expedition.Runtime.TryStartExpedition(
             "food_farm",
-            new[] { CharacterActor.From(worker) },
+            party.Select(CharacterActor.From).ToArray(),
             out OffenseExpeditionRun expedition,
             out _);
         bool journeyCompleted = started && CompleteJourney(scenario, expedition);
@@ -250,11 +258,15 @@ public static class OffenseRewardDebugScenarios
                 $"Expedition reward diagnostic: started={started}, journeyCompleted={journeyCompleted}, " +
                 $"active={scenario.Expedition.Runtime.ActiveExpeditions.Count}, battle={scenario.Battle.HasActiveBattle}, " +
                 $"result={(result == null ? "null" : result.success.ToString())}, grants={result?.grantedRewards.Count ?? -1}, " +
+                $"members={result?.members.Count ?? -1}, power={result?.totalPower ?? -1:0.##}/" +
+                $"{result?.requiredPower ?? -1:0.##}, danger={result?.danger ?? -1:0.##}, " +
                 $"eventCount={rewardEvents.Count}, money={scenario.Context.GameSessionState.holdingMoney.Value}, " +
                 $"foodWarehouseDelta={warehouseFoodDelta}, foodPhysicalDelta={physicalFoodDelta}, " +
                 $"physicalLootDelta={physicalLootDelta}, " +
                 $"logisticsPressure={pressure.Logistics:0.##}, " +
-                $"health={worker.CurrentHealth:0.##}/{worker.MaxHealth:0.##}");
+                $"health={worker.CurrentHealth:0.##}/{worker.MaxHealth:0.##}, " +
+                $"battleOutcome={scenario.LastBattleOutcome}, " +
+                $"battleSummary={scenario.LastBattleSummary}");
         }
 
         return valid;
@@ -304,26 +316,115 @@ public static class OffenseRewardDebugScenarios
     private static bool CompleteCurrentBattle(OffenseBattleRuntime battle)
     {
         int safety = 0;
-        while (battle.HasActiveBattle && safety++ < 40)
+        while (battle.HasActiveBattle && safety++ < 500)
         {
-            OffenseBattleCombatant enemy = battle.Session.Combatants
-                .FirstOrDefault(combatant => combatant.Team == OffenseBattleTeam.Enemies && !combatant.IsDead);
-            if (enemy == null || battle.Session.CurrentActor?.Team != OffenseBattleTeam.Allies)
+            if (battle.Session.CurrentActor?.Team == OffenseBattleTeam.Enemies)
             {
-                return false;
+                battle.AdvanceToPlayerDecision();
+                int enemySafety = 0;
+                while (battle.HasActiveBattle
+                    && battle.Session.CurrentActor?.Team == OffenseBattleTeam.Enemies
+                    && enemySafety++ < 20)
+                {
+                    OffenseBattleCombatant stuckEnemy = battle.Session.CurrentActor;
+                    OffenseBattleCommand forcedGuard = new(
+                        battle.Session.LastProcessedCommandId + 1,
+                        stuckEnemy.PersistentId,
+                        OffenseBattleActionType.Guard,
+                        stuckEnemy.PersistentId,
+                        string.Empty);
+                    if (!battle.TryExecuteCommand(
+                            forcedGuard,
+                            out OffenseBattleCommandResult enemyResult))
+                    {
+                        throw new InvalidOperationException(
+                            "Reward fixture could not advance an enemy turn: "
+                            + enemyResult.Message);
+                    }
+                }
+                if (!battle.HasActiveBattle)
+                {
+                    break;
+                }
+            }
+            OffenseBattleCombatant currentActor = battle.Session.CurrentActor;
+            OffenseBattleCombatant[] livingEnemies = battle.Session.Combatants
+                .Where(combatant => combatant.Team == OffenseBattleTeam.Enemies
+                    && !combatant.IsDead
+                    && !combatant.IsDowned)
+                .ToArray();
+            if (livingEnemies.Length == 0
+                || currentActor?.Team != OffenseBattleTeam.Allies)
+            {
+                throw new InvalidOperationException(
+                    "Reward battle did not reach an allied decision. "
+                    + $"current={battle.Session.CurrentActor?.PersistentId ?? "none"}, "
+                    + $"team={battle.Session.CurrentActor?.Team.ToString() ?? "none"}, "
+                    + $"enemyAlive={livingEnemies.Length > 0}.");
             }
 
-            if (!battle.TryIssuePlayerCommand(
-                OffenseBattleActionType.BasicAttack,
-                enemy.PersistentId,
-                string.Empty,
-                out _))
+            CombatWeaponSnapshot weapon = currentActor.Weapon
+                ?? CombatWeaponSnapshot.CreateUnarmed();
+            bool hasForwardEnemy = livingEnemies.Any(candidate =>
+                candidate.Formation != OffenseFormationSlot.Rear);
+            OffenseBattleCombatant target = livingEnemies
+                .Where(candidate =>
+                {
+                    int distance = OffenseBattleSessionRules.GetFormationDistance(
+                        currentActor,
+                        candidate);
+                    return distance <= weapon.MaximumRange
+                        && weapon.GetAccuracyMultiplier(
+                            CombatRangeRules.GetBand(distance)) > 0f
+                        && (weapon.IsRanged
+                            || !hasForwardEnemy
+                            || candidate.Formation != OffenseFormationSlot.Rear);
+                })
+                .OrderBy(candidate => candidate.HealthRatio)
+                .ThenBy(candidate => candidate.PersistentId, StringComparer.Ordinal)
+                .FirstOrDefault();
+            OffenseBattleActionType actionType;
+            string targetId;
+            if (target != null)
             {
-                return false;
+                actionType = OffenseBattleActionType.BasicAttack;
+                targetId = target.PersistentId;
+            }
+            else if (currentActor.Formation != OffenseFormationSlot.Front)
+            {
+                actionType = OffenseBattleActionType.Advance;
+                targetId = currentActor.PersistentId;
+            }
+            else
+            {
+                actionType = OffenseBattleActionType.Guard;
+                targetId = currentActor.PersistentId;
+            }
+            OffenseBattleCommand playerCommand = new(
+                battle.Session.LastProcessedCommandId + 1,
+                currentActor.PersistentId,
+                actionType,
+                targetId,
+                string.Empty);
+            if (!battle.TryExecuteCommand(
+                    playerCommand,
+                    out OffenseBattleCommandResult commandResult))
+            {
+                throw new InvalidOperationException(
+                    "Reward battle could not execute its deterministic command: "
+                    + commandResult?.Message);
             }
         }
 
-        return !battle.HasActiveBattle;
+        if (battle.HasActiveBattle)
+        {
+            throw new InvalidOperationException(
+                "Reward battle exceeded its deterministic safety limit. "
+                + $"current={battle.Session?.CurrentActor?.PersistentId ?? "none"}, "
+                + $"allies={battle.Session?.Combatants.Count(value => value.Team == OffenseBattleTeam.Allies && !value.IsDead) ?? 0}, "
+                + $"enemies={battle.Session?.Combatants.Count(value => value.Team == OffenseBattleTeam.Enemies && !value.IsDead) ?? 0}.");
+        }
+        return true;
     }
 
     private static OffenseRewardPreview Reward(
@@ -608,12 +709,17 @@ public static class OffenseRewardDebugScenarios
     private sealed class ExpeditionRewardScenario : IDisposable
     {
         private readonly List<Object> objects = new List<Object>();
+        private readonly TestCharacterSaveService characterSaveService;
+        private readonly ICombatEquipmentRuntime battleEquipment;
 
         public ScenarioContext Context { get; }
         public WorldMapFixture WorldMap { get; }
         public ExpeditionFixture Expedition { get; }
         public RewardFixture Reward { get; }
         public OffenseBattleRuntime Battle { get; }
+        public OffenseBattleOutcome LastBattleOutcome { get; private set; } =
+            OffenseBattleOutcome.InProgress;
+        public string LastBattleSummary { get; private set; } = string.Empty;
         public DungeonStory.Foundation.IGameEventBus GameEvents { get; }
 
         public ExpeditionRewardScenario()
@@ -622,18 +728,46 @@ public static class OffenseRewardDebugScenarios
             Context = new ScenarioContext(0);
             WorldMap = new WorldMapFixture(GameEvents);
             Reward = new RewardFixture(Context);
+            DungeonSceneRuntimeReferences dungeonRuntimes =
+                EditorRuntimeReferenceFixtures.DungeonWithRunVariables;
+            DungeonRuntimeAggregateRootStore runRoot = new();
+            dungeonRuntimes.RunVariables.Construct(
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IOwnerRunDataProvider>(),
+                EditorRuntimeReferenceFixtures.Invasion,
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IRunStartVariableSelector>(),
+                new DungeonStory.Foundation.RandomStreamProvider(runRoot),
+                GameEvents,
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IRunVariableDefinitionCatalog>(),
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IOwnerDoctrineDefinitionCatalog>(),
+                runRoot);
+            characterSaveService = new TestCharacterSaveService();
+            battleEquipment = OffenseEditorTestDependencies.CreateCombatEquipmentRuntime();
+            ICharacterPerformanceQuery rewardPerformance =
+                new RewardCombatPerformanceQuery(
+                    CharacterAiEditorTestDependencies.NeutralPerformance);
             Battle = new OffenseBattleRuntime(
-                new TestCharacterSaveService(),
-                EditorRuntimeReferenceFixtures.DungeonWithRunVariables,
+                characterSaveService,
+                dungeonRuntimes,
                 GameEvents,
                 OffenseEditorTestDependencies.CreateCombatResolution(),
-                OffenseEditorTestDependencies.CreateCombatEquipmentRuntime(),
+                battleEquipment,
                 bodyHealthQuery: null,
                 bodyHealthCommands: null,
                 offenseRegionRuntime: null,
-                enemyEncounterFactory: UnusedEnemyEncounterFactory.Instance,
-                enemyTactics: UnusedEnemyTactics.Instance,
-                returnArrivals: Context.ReturnArrivals);
+                enemyEncounterFactory:
+                    OffenseEditorTestDependencies.CreateEnemyEncounterFactory(
+                        battleEquipment),
+                enemyTactics: new EnemyTacticalDecisionService(
+                    new EnemyCombatContentCatalog(
+                        new ResourceGameContentCatalog(
+                            new UnityGameContentRootLoader()))),
+                returnArrivals: Context.ReturnArrivals,
+                performance: rewardPerformance);
+            Battle.BattleCompleted += OnBattleCompleted;
             Expedition = new ExpeditionFixture(
                 WorldMap.Runtime,
                 Reward.Runtime,
@@ -671,11 +805,32 @@ public static class OffenseRewardDebugScenarios
             character.SetLifecycleState(CharacterLifecycleState.Active);
             character.stats[CharacterCondition.SLEEP] = 100f;
             character.stats[CharacterCondition.MOOD] = 100f;
+            string persistentId = characterSaveService.GetOrAssignPersistentId(character);
+            CombatEquipmentInstance weapon = battleEquipment.CreateExternalInstance(
+                "weapon:javelin",
+                CombatEquipmentQuality.Normal);
+            string activeFailure = string.Empty;
+            if (!battleEquipment.TryAssignToCharacter(
+                    persistentId,
+                    weapon.instanceId,
+                    out string assignFailure)
+                || !battleEquipment.TrySetActiveWeapon(
+                    persistentId,
+                    weapon.instanceId,
+                    out activeFailure))
+            {
+                throw new InvalidOperationException(
+                    "Reward fixture could not equip its expedition member: "
+                    + (string.IsNullOrWhiteSpace(assignFailure)
+                        ? activeFailure
+                        : assignFailure));
+            }
             return character;
         }
 
         public void Dispose()
         {
+            Battle.BattleCompleted -= OnBattleCompleted;
             Expedition.Dispose();
             Reward.Dispose();
             WorldMap.Dispose();
@@ -684,6 +839,22 @@ public static class OffenseRewardDebugScenarios
             {
                 Object.DestroyImmediate(obj);
             }
+        }
+
+        private void OnBattleCompleted(OffenseBattleSession session)
+        {
+            LastBattleOutcome = session?.Outcome
+                ?? OffenseBattleOutcome.InProgress;
+            LastBattleSummary = session == null
+                ? string.Empty
+                : string.Join(
+                    " | ",
+                    session.Combatants.Select(combatant =>
+                        $"{combatant.PersistentId}:{combatant.Team}:" +
+                        $"{combatant.CurrentHealth:0.##}/{combatant.Stats.MaxHealth:0.##}:" +
+                        $"{combatant.Formation}"))
+                    + " || "
+                    + string.Join(" | ", session.Log);
         }
     }
 
@@ -737,6 +908,11 @@ public static class OffenseRewardDebugScenarios
             Runtime = obj.AddComponent<OffenseExpeditionRuntime>();
             MetaProgressionRuntime metaProgression =
                 obj.AddComponent<MetaProgressionRuntime>();
+            BlueprintResearchRuntime expeditionResearch =
+                obj.AddComponent<BlueprintResearchRuntime>();
+            expeditionResearch.State.Projects.Complete(
+                new ResearchProjectId(
+                    OffenseExpeditionAccessRules.RequiredResearchId));
             metaProgression.Construct(
                 new EmptyMetaRunResultBuilder(),
                 new EmptyMetaRuntimeApplicationPort(),
@@ -795,7 +971,8 @@ public static class OffenseRewardDebugScenarios
                 new OffenseExpeditionReturnCoordinator(
                     NoOpOffenseExpeditionReturnPort.Instance,
                     finalizer,
-                    gameEventBus),
+                    gameEventBus,
+                    CharacterAiEditorTestDependencies.NeutralPerformance),
                 BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                     .Create<IOffensePreparationService>(),
                 OffenseEditorTestDependencies.CreateCombatEquipmentRuntime(),
@@ -816,10 +993,15 @@ public static class OffenseRewardDebugScenarios
                 battleCompletion,
                 BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                     .Create<IGameMoneyAccount>(),
+                new ProgressionSceneRuntimeReferences(
+                    null,
+                    expeditionResearch,
+                    metaProgression),
                 departureService: null,
                 equipmentPickupRuntime: null,
                 fieldMedical,
-                fieldMobility);
+                fieldMobility,
+                CharacterAiEditorTestDependencies.NeutralPerformance);
         }
 
         public void Dispose()
@@ -880,6 +1062,65 @@ public static class OffenseRewardDebugScenarios
         }
     }
 
+    private sealed class RewardCombatPerformanceQuery : ICharacterPerformanceQuery
+    {
+        private readonly ICharacterPerformanceQuery inner;
+
+        public RewardCombatPerformanceQuery(ICharacterPerformanceQuery inner)
+        {
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        }
+
+        public CharacterFunctionalCapacitySnapshot GetFunctionalCapacities(
+            CharacterActor actor) => inner.GetFunctionalCapacities(actor);
+
+        public CharacterPerformanceSnapshot Evaluate(
+            CharacterActor actor,
+            string formulaId,
+            float contextFactor = 1f,
+            GameplayEffectContext effectContext = null) => Boost(
+            inner.Evaluate(actor, formulaId, contextFactor, effectContext),
+            formulaId);
+
+        public CharacterPerformanceSnapshot Evaluate(
+            CharacterActor actor,
+            string formulaId,
+            CharacterPerformanceEvaluationContext context) => Boost(
+            inner.Evaluate(actor, formulaId, context),
+            formulaId);
+
+        public CharacterPerformanceSnapshot EvaluateWork(
+            CharacterActor actor,
+            WorkTypeId workTypeId,
+            CharacterPerformanceResultChannel resultChannel,
+            CharacterPerformanceEvaluationContext context) =>
+            inner.EvaluateWork(actor, workTypeId, resultChannel, context);
+
+        public IReadOnlyList<CharacterPerformanceSnapshot> EvaluateDomain(
+            CharacterActor actor,
+            CharacterPerformanceFormulaDomain domain) =>
+            inner.EvaluateDomain(actor, domain);
+
+        private static CharacterPerformanceSnapshot Boost(
+            CharacterPerformanceSnapshot snapshot,
+            string formulaId)
+        {
+            if (snapshot != null
+                && (formulaId?.StartsWith(
+                        "performance:combat:",
+                        StringComparison.Ordinal) == true
+                    || string.Equals(
+                        formulaId,
+                        CharacterCompositePerformanceIds.PrecisionExecution,
+                        StringComparison.Ordinal)))
+            {
+                snapshot.GameplayEffectFactor *= 10f;
+                snapshot.Value *= 10f;
+            }
+            return snapshot;
+        }
+    }
+
     private sealed class EmptyRunResultPanelService : IRunResultPanelService
     {
         public RunResultPanel Show(RunResultSnapshot result) => null;
@@ -919,7 +1160,7 @@ public static class OffenseRewardDebugScenarios
 
         public RewardFixture(ScenarioContext context)
         {
-            obj = new GameObject("Offense Reward Runtime Fixture");
+            obj = new GameObject("Offense Reward Runtime Fixture Ranged Party");
             Runtime = obj.AddComponent<OffenseRewardRuntime>();
             Regions = new OffenseRegionRuntime();
             EmptyRewardContextDependencies dependencies = new EmptyRewardContextDependencies();

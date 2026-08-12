@@ -27,23 +27,28 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uACF5\uC131 \uBCF4\uAC15
     \uD0A4\uD2B8."
   stockCategory: 1
-  unitWeight: 3.4299998
+  unitWeight: 2.35
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 224
+  unitPrice: 222
   features:
-  - rid: 7737211838078124526
-  - rid: 7737211838078124527
+  - rid: 7737211905658586038
+  - rid: 7737211905658586039
+  - rid: 7737211905660420790
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124526
+    - rid: 7737211905658586038
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:defense:siege-fortification
-    - rid: 7737211838078124527
+    - rid: 7737211905658586039
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 512
         sharedIntermediate: 0
+    - rid: 7737211905660420790
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6010239

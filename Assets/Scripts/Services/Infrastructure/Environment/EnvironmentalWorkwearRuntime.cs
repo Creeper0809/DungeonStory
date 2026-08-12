@@ -446,7 +446,7 @@ public sealed class EnvironmentalWorkwearRuntime :
             && stack.Quantity == 1
             && ((ItemInstanceId)stack.ItemInstanceId).IsValid
             && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal)
-            && !stack.IsReserved
+            && stack.AvailableQuantity > 0
             && !stack.Forbidden
             && stack.State is WorldItemStackState.Loose
                 or WorldItemStackState.Stored

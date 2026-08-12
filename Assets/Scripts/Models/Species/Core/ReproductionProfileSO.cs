@@ -34,6 +34,17 @@ public sealed class ReproductionProfileSO : ScriptableObject
             errors.Add("At least one complete reproduction phase is required.");
         else if (phases.Select(value => value.phase).Distinct().Count() != phases.Count)
             errors.Add("Reproduction phases must be unique and ordered once.");
+        else if (mode != ReproductionMode.GolemAssembly
+                 && phases[0].phase != ReproductionPhaseKind.Attempt)
+        {
+            errors.Add(
+                "Biological reproduction must begin with an Attempt phase so base success chance is applied.");
+        }
+        else if (mode == ReproductionMode.GolemAssembly
+                 && phases.Any(value => value.phase == ReproductionPhaseKind.Attempt))
+        {
+            errors.Add("Golem assembly cannot contain a biological Attempt phase.");
+        }
         return errors;
     }
 }

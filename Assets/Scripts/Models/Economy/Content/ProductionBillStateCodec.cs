@@ -94,7 +94,7 @@ internal static class ProductionBillStateCodec
         {
             throw new ArgumentNullException(nameof(catalog));
         }
-        if (snapshot.version != DungeonProductionBillSaveData.CurrentVersion)
+        if (snapshot.version is not (6 or DungeonProductionBillSaveData.CurrentVersion))
         {
             throw new InvalidOperationException(
                 $"Production-bill payload version {snapshot.version} is unsupported.");
@@ -174,6 +174,7 @@ internal static class ProductionBillStateCodec
                 .ToList(),
             workerPolicy = record.workerPolicy?.CloneNormalized()
                 ?? WorkerSelectionPolicySaveData.Anyone(),
+            emergencyWorkerId = record.emergencyWorkerId,
             workerContributions = record.workerContributions
                 .Where(value => value != null)
                 .Select(value => value.Clone())
@@ -279,6 +280,20 @@ internal static class ProductionBillStateCodec
         ValidateCanonicalStrings(saved.allowedMaterialIds, "allowed material IDs");
         ValidateCanonicalStrings(saved.allowedWorkerIds, "allowed worker IDs");
         ValidateWorkerPolicy(saved.workerPolicy, billId);
+        if (!string.IsNullOrEmpty(saved.emergencyWorkerId)
+            && (!IsCanonical(saved.emergencyWorkerId)
+                || saved.workerPolicy == null
+                || saved.workerPolicy.mode != WorkerSelectionMode.SpecificCharacters
+                || saved.workerPolicy.specificCharacterIds == null
+                || saved.workerPolicy.specificCharacterIds.Count != 1
+                || !string.Equals(
+                    saved.workerPolicy.specificCharacterIds[0],
+                    saved.emergencyWorkerId,
+                    StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException(
+                $"Production bill '{billId}' has an invalid emergency worker authority.");
+        }
         ValidateWorkerContributions(saved.workerContributions, billId);
         ValidateReservations(saved.outputReservations, catalog, billId);
         ValidateRoutes(saved.routePolicies, billId);

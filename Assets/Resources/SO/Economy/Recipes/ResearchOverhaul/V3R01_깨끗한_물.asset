@@ -31,9 +31,19 @@ MonoBehaviour:
   requiredSupportTags: []
   batchSupportTag: 
   processKind: 0
+  flowRole: 1
+  processClass: 0
+  processClassAuthored: 1
   workTypeId: work:craft
+  proficiency:
+    primaryProficiencyId: proficiency:fieldwork
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   requiredResearchId: research:agriculture:irrigation
-  requiredWork: 8
+  requiredWork: 10
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

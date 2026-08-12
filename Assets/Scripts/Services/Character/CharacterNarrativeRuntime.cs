@@ -8,16 +8,26 @@ using VContainer.Unity;
 public sealed class CharacterNarrativeRuntime :
     ICharacterNarrativeQuery,
     ICharacterNarrativeCommand,
-    ICharacterNarrativePersistence
+    ICharacterNarrativePersistence,
+    ICharacterProficiencyQuery,
+    ICharacterProficiencyCommand
 {
     private readonly DungeonRuntimeAggregateRootStore rootStore;
     private readonly ICharacterNarrativeCatalog catalog;
+    private readonly CharacterIdentityStateStore identityStates;
+    private readonly IGameContentDefinitionSource content;
     private int version = 1;
 
-    public CharacterNarrativeRuntime(DungeonRuntimeAggregateRootStore rootStore, ICharacterNarrativeCatalog catalog)
+    public CharacterNarrativeRuntime(
+        DungeonRuntimeAggregateRootStore rootStore,
+        ICharacterNarrativeCatalog catalog,
+        CharacterIdentityStateStore identityStates = null,
+        IGameContentDefinitionSource content = null)
     {
         this.rootStore = rootStore ?? throw new ArgumentNullException(nameof(rootStore));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        this.identityStates = identityStates ?? new CharacterIdentityStateStore();
+        this.content = content;
     }
 
     public int Version => version;
@@ -31,6 +41,111 @@ public sealed class CharacterNarrativeRuntime :
         }
         snapshot = null;
         return false;
+    }
+
+    public bool TryGetProficiency(
+        CharacterId characterId,
+        CharacterProficiencyId proficiencyId,
+        long absoluteHour,
+        out CharacterProficiencySnapshot snapshot)
+    {
+        catalog.Require(proficiencyId);
+        if (!Current.Characters.ContainsKey(characterId))
+        {
+            snapshot = default;
+            return false;
+        }
+        CharacterNarrativeRecord record = RequireWritable(characterId);
+        bool found = record.TryGetProficiency(
+            proficiencyId,
+            absoluteHour,
+            out snapshot);
+        if (found) version = unchecked(version + 1);
+        return found;
+    }
+
+    public IReadOnlyList<CharacterProficiencySnapshot> GetAllProficiencies(
+        CharacterId characterId,
+        long absoluteHour)
+    {
+        IReadOnlyList<CharacterProficiencySnapshot> snapshots =
+            RequireWritable(characterId).GetAllProficiencies(
+                catalog.Proficiencies,
+                absoluteHour);
+        version = unchecked(version + 1);
+        return snapshots;
+    }
+
+    public long AddApprovedWork(
+        CharacterId characterId,
+        ProficiencyWorkProfile profile,
+        float approvedWork,
+        float difficultyMultiplier,
+        ProficiencyWorkOutcome outcome,
+        float learningMultiplier,
+        float repetitionMultiplier,
+        long absoluteHour)
+    {
+        catalog.Require(profile.Primary);
+        if (profile.Secondary.IsValid) catalog.Require(profile.Secondary);
+        long awarded = RequireWritable(characterId).AddApprovedWork(
+            profile,
+            approvedWork,
+            difficultyMultiplier,
+            outcome,
+            learningMultiplier,
+            repetitionMultiplier,
+            absoluteHour);
+        if (awarded > 0L) version = unchecked(version + 1);
+        return awarded;
+    }
+
+    public long AddDirectExperience(
+        CharacterId characterId,
+        CharacterProficiencyId proficiencyId,
+        float experience,
+        long absoluteHour,
+        bool applyLearningMultiplier = true)
+    {
+        catalog.Require(proficiencyId);
+        long awarded = RequireWritable(characterId).AddDirectExperience(
+            proficiencyId,
+            experience,
+            absoluteHour,
+            applyLearningMultiplier);
+        if (awarded > 0L) version = unchecked(version + 1);
+        return awarded;
+    }
+
+    public long AddCombatExperience(
+        CharacterId characterId,
+        CharacterProficiencyId proficiencyId,
+        float experience,
+        bool training,
+        string stableAwardKey,
+        long absoluteHour)
+    {
+        catalog.Require(proficiencyId);
+        long awarded = RequireWritable(characterId).AddCombatExperience(
+            proficiencyId,
+            experience,
+            training,
+            stableAwardKey,
+            absoluteHour);
+        if (awarded > 0L) version = unchecked(version + 1);
+        return awarded;
+    }
+
+    public void RecordPractice(
+        CharacterId characterId,
+        CharacterProficiencyId proficiencyId,
+        long absoluteHour)
+    {
+        catalog.Require(proficiencyId);
+        RequireWritable(characterId).RecordPractice(
+            proficiencyId,
+            absoluteHour);
+        version = unchecked(version + 1);
     }
 
     public bool CanPerformPractice(
@@ -79,7 +194,13 @@ public sealed class CharacterNarrativeRuntime :
         return true;
     }
 
-    public CharacterNarrativeSnapshot Register(CharacterId characterId, CharacterSpeciesId phenotypeSpeciesId, IReadOnlyList<string> expressed, IReadOnlyList<string> latent)
+    public CharacterNarrativeSnapshot Register(
+        CharacterId characterId,
+        CharacterSpeciesId phenotypeSpeciesId,
+        IReadOnlyList<string> expressed,
+        IReadOnlyList<string> latent,
+        IReadOnlyList<CharacterStartingProficiencyExperience>
+            startingProficiencies = null)
     {
         if (Writable.Characters.ContainsKey(characterId)) throw new InvalidOperationException($"Narrative '{characterId.Value}' is already registered.");
         int index = (int)(PersistentEntityId.GetStableHash32(characterId) % (uint)catalog.Backgrounds.Count);
@@ -98,7 +219,8 @@ public sealed class CharacterNarrativeRuntime :
             background,
             culture,
             resolvedExpressed,
-            resolvedLatent);
+            resolvedLatent,
+            startingProficiencies: startingProficiencies);
         Writable.Characters.Add(characterId, record);
         version = unchecked(version + 1);
         return record.Snapshot();
@@ -114,7 +236,9 @@ public sealed class CharacterNarrativeRuntime :
         string enemyArchetypeId,
         string originFactionId,
         string militaryTrainingId,
-        float loyalty)
+        float loyalty,
+        IReadOnlyList<CharacterStartingProficiencyExperience>
+            startingProficiencies = null)
     {
         if (Writable.Characters.ContainsKey(characterId))
             throw new InvalidOperationException($"Narrative '{characterId.Value}' is already registered.");
@@ -130,7 +254,8 @@ public sealed class CharacterNarrativeRuntime :
             enemyArchetypeId,
             originFactionId,
             militaryTrainingId,
-            loyalty);
+            loyalty,
+            startingProficiencies);
         Writable.Characters.Add(characterId, record);
         version = unchecked(version + 1);
         return record.Snapshot();
@@ -230,9 +355,35 @@ public sealed class CharacterNarrativeRuntime :
         version = unchecked(version + 1);
     }
 
-    public CharacterNarrativeWorldSaveData Capture() => Current.Capture();
+    public CharacterNarrativeWorldSaveData Capture()
+    {
+        CharacterNarrativeWorldSaveData data = Current.Capture();
+        data.identityStates = identityStates.Capture()
+            .Select(value => value.Clone()).ToList();
+        return data;
+    }
     public CharacterNarrativeAggregateState PrepareRestore(CharacterNarrativeWorldSaveData data) => CharacterNarrativeAggregateState.Restore(data, catalog);
-    public void PublishRestore(CharacterNarrativeAggregateState candidate) { rootStore.Replace(candidate ?? throw new ArgumentNullException(nameof(candidate))); version = unchecked(version + 1); }
+    public void PublishRestore(CharacterNarrativeAggregateState candidate)
+    {
+        if (candidate == null) throw new ArgumentNullException(nameof(candidate));
+        if (candidate.IdentityStates.Count > 0)
+        {
+            if (content == null)
+                throw new InvalidOperationException(
+                    "Identity rule state restore requires the content definition source.");
+            identityStates.Restore(
+                candidate.IdentityStates,
+                content.GetAll<CharacterTraitSO>());
+        }
+        else
+        {
+            identityStates.Restore(
+                Array.Empty<CharacterIdentityRuntimeStateSaveData>(),
+                Array.Empty<CharacterTraitSO>());
+        }
+        rootStore.Replace(candidate);
+        version = unchecked(version + 1);
+    }
 
     private void ResolveHeritableTraits(
         CharacterId characterId,
@@ -362,7 +513,7 @@ public sealed class TraitAnalysisCommandRuntime : ITraitAnalysisCommand
             .Where(value => value != null
                 && value.Quantity > 0
                 && !value.Forbidden
-                && !value.IsReserved
+                && value.AvailableQuantity > 0
                 && string.Equals(
                     value.ItemId,
                     TraitAnalysisKitId,
@@ -376,7 +527,11 @@ public sealed class TraitAnalysisCommandRuntime : ITraitAnalysisCommand
         }
 
         string owner = $"trait-analysis:{characterId.Value}";
-        if (!reservations.TryReserve(new[] { kit.StackId }, owner))
+        if (!reservations.TryReserveQuantities(
+                new[] { new ReservedItemConsumption(kit.StackId, 1) },
+                owner,
+                ItemReservationPurpose.Medical,
+                $"medical:{TraitAnalyzerBuildingId}:trait-analysis-kit"))
         {
             failure = new DomainFailure(FailureCode.ItemTransferStackUnavailable);
             return false;
@@ -540,8 +695,6 @@ public sealed class CharacterNarrativeApplicationAdapter : IStartable, IDisposab
             return;
         }
 
-        int startingExperience = outcome.SkillExperienceById.Values.Sum();
-        actor.Progression?.AddExperience(Math.Max(0, startingExperience));
         if (!string.IsNullOrWhiteSpace(outcome.InitialMemoryCode))
         {
             actor.AiMemory?.RecordDecision(
@@ -562,9 +715,8 @@ public sealed class CharacterNarrativeApplicationAdapter : IStartable, IDisposab
                         Math.Max(1, effect.durationDays) * 180f);
                     break;
                 case V20ContentEffectKind.SkillExperience:
-                    actor.Progression?.AddExperience(
-                        Math.Max(0, (int)Math.Round(effect.amount)));
-                    break;
+                    throw new InvalidOperationException(
+                        $"Background '{outcome.BackgroundId.Value}' must author starting proficiency XP through startingSkills, not a generic SkillExperience effect.");
                 default:
                     throw new InvalidOperationException(
                         $"Background '{outcome.BackgroundId.Value}' has unsupported starting effect '{effect.kind}'.");

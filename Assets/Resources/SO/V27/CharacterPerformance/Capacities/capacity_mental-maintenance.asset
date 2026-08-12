@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c83e41a225cee9145bd7206b5861a543, type: 3}
+  m_Name: capacity_mental-maintenance
+  m_EditorClassIdentifier: DungeonStory.Foundation::CharacterFunctionalCapacityDefinitionSO
+  capacityId: 0
+  stableId: capacity:mental-maintenance
+  displayName: "\uC815\uC2E0 \uC720\uC9C0"
+  description: "\uAC01\uC131\xB7\uC9D1\uC911\xB7\uD589\uB3D9 \uC9C0\uC18D"

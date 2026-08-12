@@ -8,33 +8,52 @@ using VContainer.Unity;
 public sealed class CharacterConsumablesApplicationPorts :
     ICharacterConsumablesWorldPort,
     ICharacterConsumablesInventoryPort,
-    ICharacterConsumablesEventPort
+    ICharacterConsumablesEventPort,
+    ICharacterRitualFastingMealPort
 {
     private readonly IItemDefinitionCatalog catalog;
     private readonly IWorldItemStackRuntime items;
     private readonly ICharacterAiWorldRegistry world;
     private readonly IGameEventBus events;
-    private readonly ICharacterCombatCommandRuntime combatCommands;
+    private readonly ICharacterCombatStanceQuery combatStance;
+    private readonly ICharacterPerformanceQuery performance;
     private readonly ICharacterNarrativeQuery narratives;
     private readonly ICharacterNarrativeCatalog narrativeCatalog;
+    private readonly ICharacterRitualFastingQuery ritualFastingQuery;
+    private readonly ICharacterRitualFastingCommand ritualFastingCommand;
+    private readonly IItemQuantityReservationService quantityReservations;
+    private readonly IReservedItemTransferService reservedTransfers;
+    private readonly Dictionary<string, HashSet<string>> mealFacilitySlotOwners =
+        new(StringComparer.Ordinal);
 
     public CharacterConsumablesApplicationPorts(
         IItemDefinitionCatalog catalog,
         IWorldItemStackRuntime items,
         ICharacterAiWorldRegistry world,
         IGameEventBus events,
-        ICharacterCombatCommandRuntime combatCommands,
+        ICharacterCombatStanceQuery combatStance,
+        ICharacterPerformanceQuery performance,
         ICharacterNarrativeQuery narratives = null,
-        ICharacterNarrativeCatalog narrativeCatalog = null)
+        ICharacterNarrativeCatalog narrativeCatalog = null,
+        ICharacterRitualFastingQuery ritualFastingQuery = null,
+        ICharacterRitualFastingCommand ritualFastingCommand = null,
+        IItemQuantityReservationService quantityReservations = null,
+        IReservedItemTransferService reservedTransfers = null)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
-        this.combatCommands = combatCommands
-            ?? throw new ArgumentNullException(nameof(combatCommands));
+        this.combatStance = combatStance
+            ?? throw new ArgumentNullException(nameof(combatStance));
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
         this.narratives = narratives;
         this.narrativeCatalog = narrativeCatalog;
+        this.ritualFastingQuery = ritualFastingQuery;
+        this.ritualFastingCommand = ritualFastingCommand;
+        this.quantityReservations = quantityReservations;
+        this.reservedTransfers = reservedTransfers;
     }
 
     public IReadOnlyList<CharacterId> CharacterIds => world.AllCharacters
@@ -66,7 +85,8 @@ public sealed class CharacterConsumablesApplicationPorts :
             actor.MaxHealth,
             actor.Mood.Value,
             GetNeed(actor, CharacterCondition.HUNGER),
-            combatCommands.IsInCombatStance(actor));
+            combatStance.IsInCombatStance(actor),
+            actor.GetNowXY());
         return true;
     }
 
@@ -83,6 +103,10 @@ public sealed class CharacterConsumablesApplicationPorts :
         snapshot = new CharacterConsumablesFacilitySnapshot(
             id,
             !facility.isDestroy && facility.SupportsFacilityRole(FacilityRole.Meal),
+            !facility.isDestroy
+                && facility.BuildingData?
+                    .GetAbility<BuildingRecreationalSubstanceServiceAbility>()?
+                    .IsValid == true,
             facility.centerPos);
         return true;
     }
@@ -116,13 +140,182 @@ public sealed class CharacterConsumablesApplicationPorts :
             : CharacterCultureMealPreference.Neutral;
     }
 
+    public CharacterMealRouteStatus GetMealRouteStatus(
+        CharacterId characterId,
+        Vector2Int from,
+        Vector2Int to,
+        out float travelSeconds)
+    {
+        travelSeconds = 0f;
+        CharacterActor actor = FindActor(characterId);
+        IGridPathSearchBroker broker = actor?.PathSearchBroker;
+        if (actor == null
+            || broker == null
+            || !world.TryGetGrid(out Grid grid)
+            || grid == null)
+        {
+            return CharacterMealRouteStatus.Unreachable;
+        }
+
+        GridPathRequestStatus status = broker.RequestMovePathTo(
+            grid,
+            from,
+            to,
+            out Queue<GridMoveStep> path,
+            GridPathSearchPriority.Normal);
+        if (status == GridPathRequestStatus.Reachable)
+            travelSeconds = path?.Count ?? 0f;
+        return status switch
+        {
+            GridPathRequestStatus.Pending => CharacterMealRouteStatus.Pending,
+            GridPathRequestStatus.Reachable => CharacterMealRouteStatus.Reachable,
+            _ => CharacterMealRouteStatus.Unreachable
+        };
+    }
+
+    public float ProjectGameplayEffect(
+        CharacterId characterId,
+        string targetId,
+        float baseValue)
+    {
+        CharacterActor actor = FindActor(characterId);
+        if (actor != null
+            && string.Equals(
+                targetId,
+                GameplayEffectTargetIds.FoodPoisoningChance,
+                StringComparison.Ordinal))
+        {
+            return baseValue * performance.Evaluate(
+                actor,
+                "performance:survival:food-poisoning").Value;
+        }
+        return actor != null
+            ? actor.ProjectDetailedStat(targetId, baseValue).Value
+            : baseValue;
+    }
+
+    public float GetBehaviorUtilityMultiplier(
+        CharacterId characterId,
+        IReadOnlyCollection<string> semanticTags)
+    {
+        CharacterActor actor = FindActor(characterId);
+        CharacterRuntimeProfile profile = actor?.Progression != null
+            ? actor.Progression.GetEffectiveRuntimeProfile()
+            : actor?.Identity?.Profile;
+        return profile?.GetBehaviorUtilityMultiplier(semanticTags) ?? 1f;
+    }
+
+    public float GetBaseMoodForMealChoice(CharacterId characterId)
+    {
+        CharacterMoodSnapshot mood = RequireActor(characterId).Stats.GetMoodSnapshot();
+        float mealOffset = mood.Factors
+            .Where(factor => factor != null
+                && string.Equals(
+                    factor.Id,
+                    "meal:best-active",
+                    StringComparison.Ordinal))
+            .Sum(factor => factor.Value);
+        return Mathf.Clamp(mood.Value - mealOffset, 0f, 100f);
+    }
+
+    public bool TryReserveMealFacilitySlot(
+        ConsumableOperationId operationId,
+        CharacterId characterId,
+        BuildingInstanceId facilityId)
+    {
+        if (!operationId.IsValid || !characterId.IsValid || !facilityId.IsValid)
+            return false;
+        string facility = facilityId.Value;
+        if (!mealFacilitySlotOwners.TryGetValue(
+                facility,
+                out HashSet<string> owners))
+        {
+            owners = new HashSet<string>(StringComparer.Ordinal);
+            mealFacilitySlotOwners.Add(facility, owners);
+        }
+
+        if (owners.Contains(operationId.Value))
+            return true;
+
+        BuildableObject building = FindFacility(facilityId);
+        int capacity = Mathf.Max(1, building?.EffectiveCapacity ?? 1);
+        return owners.Count < capacity && owners.Add(operationId.Value);
+    }
+
+    public void ReleaseMealFacilitySlot(
+        ConsumableOperationId operationId,
+        BuildingInstanceId facilityId)
+    {
+        if (facilityId.IsValid
+            && mealFacilitySlotOwners.TryGetValue(
+                facilityId.Value,
+                out HashSet<string> owners)
+            && owners.Remove(operationId.Value)
+            && owners.Count == 0)
+        {
+            mealFacilitySlotOwners.Remove(facilityId.Value);
+        }
+    }
+
+    public void ApplyBestMealMood(
+        CharacterId characterId,
+        string label,
+        float value,
+        float durationSeconds)
+    {
+        CharacterActor actor = RequireActor(characterId);
+        CharacterMoodFactorSnapshot active = actor.Stats.GetMoodSnapshot().Factors
+            .FirstOrDefault(factor => factor != null
+                && string.Equals(
+                    factor.Id,
+                    "meal:best-active",
+                    StringComparison.Ordinal));
+        if (active != null && active.Value > value)
+            return;
+        actor.ApplyMoodFactor(
+            "meal:best-active",
+            label,
+            value,
+            durationSeconds,
+            1);
+    }
+
+    public bool IsRitualFasting(CharacterId characterId)
+    {
+        CharacterActor actor = FindActor(characterId);
+        return actor != null
+            && ritualFastingQuery?.GetStatus(actor).Phase
+                == CharacterRitualFastPhase.Fasting;
+    }
+
+    public void RecordMealConsumed(
+        CharacterId characterId,
+        bool directPlayerOrder)
+    {
+        CharacterActor actor = RequireActor(characterId);
+        ritualFastingCommand?.RecordMealConsumed(actor, directPlayerOrder);
+    }
+
     public void RecoverHunger(CharacterId id, float amount)
     {
         CharacterActor actor = RequireActor(id);
+        CharacterPerformanceSnapshot nutrition = performance.Evaluate(
+            actor,
+            CharacterPerformanceFormulaIds.NutritionEfficiency);
+        if (!nutrition.IsApplicable)
+            throw new InvalidOperationException(
+                nutrition.Failure?.Message ?? "Nutrition efficiency is unavailable.");
+        float recovered = amount * nutrition.Value;
         actor.Stats?.RecoverNeed(
             CharacterCondition.HUNGER,
-            amount,
+            recovered,
             CharacterNeedRecoverySource.Meal);
+        CharacterPerformanceExecutionTrace.Record(
+            CharacterPerformanceFormulaIds.NutritionEfficiency,
+            "CharacterConsumablesApplicationPorts.RecoverHunger",
+            amount,
+            recovered,
+            id.Value);
     }
 
     public void ApplyMood(
@@ -232,6 +425,131 @@ public sealed class CharacterConsumablesApplicationPorts :
         && items.TryConsumeStackQuantity(stackId.Value, quantity, out WorldItemStackSnapshot consumed)
         && consumed != null;
 
+    public bool TryReserveMealQuantity(
+        ConsumableOperationId operationId,
+        CharacterId characterId,
+        BuildingInstanceId facilityId,
+        ItemStackId stackId,
+        out string leaseId)
+    {
+        leaseId = string.Empty;
+        if (quantityReservations == null)
+            return true;
+        WorldItemStackSnapshot stack = items.GetAllStacks().FirstOrDefault(value =>
+            value != null && string.Equals(
+                value.StackId,
+                stackId.Value,
+                StringComparison.Ordinal));
+        if (stack == null)
+            return false;
+        if (!quantityReservations.TryReserve(
+                operationId.Value,
+                characterId.Value,
+                ItemReservationPurpose.Meal,
+                $"meal:{facilityId.Value}:{stack.ItemId}",
+                new ItemQuantityReservationRequest(
+                    stackId,
+                    1,
+                    stack.StackSignature),
+                out ItemQuantityLease lease,
+                out _))
+        {
+            return false;
+        }
+        leaseId = lease.leaseId;
+        return true;
+    }
+
+    public bool RevalidateMealQuantity(string leaseId, ItemStackId stackId)
+    {
+        if (quantityReservations == null)
+            return string.IsNullOrWhiteSpace(leaseId);
+        return quantityReservations.Revalidate(
+                leaseId,
+                out ItemQuantityLease lease,
+                out _)
+            && lease.slices.Any(slice => slice != null
+                && slice.quantity >= 1);
+    }
+
+    public bool TryResolveMealQuantityStack(
+        string leaseId,
+        out ItemStackId stackId)
+    {
+        stackId = default;
+        if (quantityReservations == null
+            || !quantityReservations.Revalidate(
+                leaseId,
+                out ItemQuantityLease lease,
+                out _))
+        {
+            return false;
+        }
+        ItemLeaseSlice slice = lease.slices
+            .Where(value => value != null && value.quantity > 0)
+            .OrderBy(value => value.stackId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (slice == null)
+            return false;
+        stackId = new ItemStackId(slice.stackId);
+        return stackId.IsValid;
+    }
+
+    public bool TryRebindMealQuantityLease(
+        ConsumableOperationId operationId,
+        out string leaseId,
+        out ItemStackId stackId)
+    {
+        leaseId = string.Empty;
+        stackId = default;
+        if (quantityReservations == null
+            || !operationId.IsValid
+            || !quantityReservations.TryGetLeasesByOwner(
+                operationId.Value,
+                out IReadOnlyList<ItemQuantityLease> leases))
+        {
+            return false;
+        }
+        ItemQuantityLease lease = leases
+            .Where(value => value != null
+                && value.purpose == ItemReservationPurpose.Meal
+                && value.remainingQuantity >= 1)
+            .OrderBy(value => value.leaseId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        ItemLeaseSlice slice = lease?.slices
+            .Where(value => value != null && value.quantity > 0)
+            .OrderBy(value => value.stackId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (lease == null || slice == null)
+            return false;
+        leaseId = lease.leaseId;
+        stackId = new ItemStackId(slice.stackId);
+        return stackId.IsValid;
+    }
+
+    public bool TryConsumeReservedMealQuantity(
+        string leaseId,
+        ItemStackId stackId,
+        int quantity)
+    {
+        if (quantityReservations == null || reservedTransfers == null)
+            return string.IsNullOrWhiteSpace(leaseId) && TryConsume(stackId, quantity);
+        return reservedTransfers.TryConsumeReservedQuantity(
+            leaseId,
+            quantity,
+            out _);
+    }
+
+    public void ReleaseMealQuantity(string leaseId)
+    {
+        if (quantityReservations != null && !string.IsNullOrWhiteSpace(leaseId))
+        {
+            quantityReservations.Release(
+                leaseId,
+                ItemReservationReleaseReason.Cancelled);
+        }
+    }
+
     public bool TryRequestDelivery(
         ConsumableItemDefinitionId itemId,
         int quantity,
@@ -249,9 +567,14 @@ public sealed class CharacterConsumablesApplicationPorts :
     public void Publish(CharacterConsumablesMealConsumedEvent consumedEvent)
     {
         CharacterActor actor = RequireActor(consumedEvent.CharacterId);
-        BuildableObject facility = FindFacility(consumedEvent.FacilityId)
-            ?? throw new InvalidOperationException(
-                $"Consumables facility '{consumedEvent.FacilityId.Value}' vanished before event publication.");
+        BuildableObject facility = string.Equals(
+                consumedEvent.FacilityId.Value,
+                CharacterConsumablesRuntime.FieldMealFacilityId,
+                StringComparison.Ordinal)
+            ? null
+            : FindFacility(consumedEvent.FacilityId)
+                ?? throw new InvalidOperationException(
+                    $"Consumables facility '{consumedEvent.FacilityId.Value}' vanished before event publication.");
         events.Publish(new PhysicalMealConsumedEvent(
             consumedEvent.OperationId,
             actor,
@@ -280,7 +603,11 @@ public sealed class CharacterConsumablesApplicationPorts :
             food.nutrition,
             food.mood,
             resource.UnitPrice,
-            (resource.IngredientTags & ResourceIngredientTag.Forbidden) != 0);
+            (resource.IngredientTags & ResourceIngredientTag.Forbidden) != 0,
+            (resource.IngredientTags & ResourceIngredientTag.Sweet) != 0,
+            (resource.IngredientTags & ResourceIngredientTag.Salted) != 0,
+            food.qualityBand,
+            food.servingRole);
 
     private CharacterActor FindActor(CharacterId id) =>
         id.IsValid
@@ -339,11 +666,12 @@ public sealed class CharacterConsumablesApplicationPorts :
             ToStackState(stack.State),
             stack.DestinationId,
             stack.Forbidden,
-            stack.IsReserved,
+            stack.ReservedQuantity,
             stack.Contamination,
             remaining / Mathf.Max(1f, lifetime),
             remaining,
-            preserved);
+            preserved,
+            stack.Position);
     }
 
     private CharacterConsumablesSubstanceDefinitionSnapshot ToSubstanceSnapshot(
@@ -398,6 +726,7 @@ public sealed class CharacterConsumablesApplicationPorts :
 public sealed class CharacterConsumablesCompatibilityAdapter :
     ICharacterConsumablesQuery,
     ICharacterConsumablesCommand,
+    IFieldMealConsumptionCommand,
     ICharacterDietPolicyRuntime,
     IMealConsumptionRuntime,
     ICharacterSubstanceRuntime,
@@ -441,6 +770,41 @@ public sealed class CharacterConsumablesCompatibilityAdapter :
             out CharacterConsumablesMealResult coreResult);
         result = MealConsumptionResult.FromCore(coreResult);
         return success;
+    }
+
+    public bool TryFindFieldMeal(
+        CharacterActor actor,
+        out ItemStackId stackId,
+        out Vector2Int position,
+        out CharacterConsumablesFailure failure) =>
+        runtime.TryFindFieldMeal(
+            GetCharacterId(actor),
+            out stackId,
+            out position,
+            out failure);
+
+    public bool TryConsumeFieldMeal(
+        CharacterActor actor,
+        ItemStackId stackId,
+        out MealConsumptionResult result)
+    {
+        bool success = runtime.TryConsumeFieldMeal(
+            GetCharacterId(actor),
+            stackId,
+            out CharacterConsumablesMealResult coreResult);
+        result = MealConsumptionResult.FromCore(coreResult);
+        return success;
+    }
+
+    public bool TryGetMealOperationResult(
+        ConsumableOperationId operationId,
+        out MealConsumptionResult result)
+    {
+        bool found = runtime.TryGetMealOperationResult(
+            operationId,
+            out CharacterConsumablesMealResult coreResult);
+        result = MealConsumptionResult.FromCore(coreResult);
+        return found;
     }
 
     public bool TryConsumeMeal(
@@ -492,6 +856,19 @@ public sealed class CharacterConsumablesCompatibilityAdapter :
         return success;
     }
 
+    public bool TryConsumeAtFacility(
+        CharacterActor actor,
+        BuildableObject facility,
+        out SubstanceUseResult result)
+    {
+        bool success = runtime.TryConsumeRecreationalSubstance(
+            GetCharacterId(actor),
+            GetFacilityId(facility),
+            out CharacterConsumablesSubstanceResult coreResult);
+        result = SubstanceUseResult.FromCore(coreResult);
+        return success;
+    }
+
     public bool TryConsume(
         ConsumeSubstanceCommand command,
         out SubstanceUseResult result)
@@ -524,6 +901,7 @@ public sealed class CharacterConsumablesCompatibilityAdapter :
             coreRequest.Substance.Definition.SubstanceId,
             (ItemDefinitionId)coreRequest.Substance.Id.Value,
             coreRequest.Substance.Definition.DisplayName,
+            coreRequest.Substance.Definition.UseClass,
             coreRequest.Urgency,
             coreRequest.MedicalContext,
             coreRequest.CombatContext,

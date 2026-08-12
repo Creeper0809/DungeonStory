@@ -25,37 +25,7 @@ MonoBehaviour:
   traitName: "\uC808\uC57D\uAC00"
   description: "\uC18C\uBE44\uAC00 \uC904\uACE0 \uBD88\uB9CC \uC0AC\uACE0 \uD655\uB960\uC774
     \uB0AE\uC544\uC9C4\uB2E4."
-  statBonus:
-    entries:
-    - statId: stat:attack
-      value: 0
-    - statId: stat:sales
-      value: 0
-    - statId: stat:research
-      value: 0
-    - statId: stat:move-speed
-      value: 0
-    - statId: stat:strength
-      value: 0
-    - statId: stat:toughness
-      value: 0
-    - statId: stat:dexterity
-      value: 0
-    - statId: stat:cleaning
-      value: 0
-    - statId: stat:endurance
-      value: 1
   modifiers:
-    consumptionMultiplier: 0.75
-    spendingMultiplier: 0.75
-    waitPatienceMultiplier: 1.2
-    crowdSensitivityMultiplier: 0.9
-    accidentChanceMultiplier: 0.9
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -69,17 +39,55 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 2
+  polarity: 1
+  selectionFamilyId: resource-use
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: choice:conserve
-    utilityDelta: 0.35
-  moodReactions:
-  - triggerTag: stock:surplus
-    moodDelta: 2
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: contract
-    multiplier: 0.85
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:102:effect:0
+    definition: {fileID: 11400000, guid: 4c10a3b16899e31478c3820a16829879, type: 2}
+    value: 0.88
+    condition: {fileID: 0}
+  - bindingId: trait:102:effect:1
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 0.97
+    condition: {fileID: 0}
+  - bindingId: trait:102:effect:2
+    definition: {fileID: 11400000, guid: ab46736f68b07c442bc3c27bbc87e7cc, type: 2}
+    value: 0.95
+    condition: {fileID: 0}
+  identityRules:
+  - rid: 7737211921986486507
+  - rid: 7737211921986486508
+  - rid: 7737211921986486509
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486507
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:avoid-luxury
+        priority: 0
+        behaviorTag: consume:luxury
+        utilityDelta: -0.7
+    - rid: 7737211921986486508
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:stockpile-met
+        priority: 0
+        eventId: stockpile:target-met
+        moodDelta: 2
+        durationDays: 1
+    - rid: 7737211921986486509
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:resource-wasted
+        priority: 0
+        eventId: resource:wasted
+        moodDelta: -3
+        durationDays: 2

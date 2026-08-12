@@ -58,13 +58,13 @@ MonoBehaviour:
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211838079697176
-    - rid: 7737211838079697177
-    - rid: 7737211838079697178
-    - rid: 7737211838079697179
-    - rid: 7737211838079697180
-    - rid: 7737211838079697181
-    - rid: 7737211838079697182
+    - rid: 7737211905666711630
+    - rid: 7737211905666711631
+    - rid: 7737211905666711632
+    - rid: 7737211905666711633
+    - rid: 7737211905666711634
+    - rid: 7737211905666711635
+    - rid: 7737211905666711636
   facilityRequirements:
   - capability: 0
     requiredCount: 2
@@ -73,34 +73,35 @@ MonoBehaviour:
   - capability: 6
     requiredCount: 1
   icon: {fileID: 0}
+  effects: []
   references:
     version: 2
     RefIds:
-    - rid: 7737211838079697176
+    - rid: 7737211905666711630
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1704
-    - rid: 7737211838079697177
+    - rid: 7737211905666711631
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1705
-    - rid: 7737211838079697178
+    - rid: 7737211905666711632
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1706
-    - rid: 7737211838079697179
+    - rid: 7737211905666711633
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1707
-    - rid: 7737211838079697180
+    - rid: 7737211905666711634
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1708
-    - rid: 7737211838079697181
+    - rid: 7737211905666711635
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1714
-    - rid: 7737211838079697182
+    - rid: 7737211905666711636
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1715

@@ -25,40 +25,10 @@ MonoBehaviour:
   traitName: "\uAE54\uB054\uD568"
   description: "\uCCAD\uC18C\uC640 \uC720\uC9C0\uBCF4\uC218\uC5D0 \uAC15\uD558\uACE0
     \uC624\uC5FC \uC0AC\uACE0\uC5D0 \uB35C \uD754\uB4E4\uB9B0\uB2E4."
-  statBonus:
-    entries:
-    - statId: stat:attack
-      value: 0
-    - statId: stat:sales
-      value: 0
-    - statId: stat:research
-      value: 0
-    - statId: stat:move-speed
-      value: 0
-    - statId: stat:strength
-      value: 0
-    - statId: stat:toughness
-      value: 0
-    - statId: stat:dexterity
-      value: 1
-    - statId: stat:cleaning
-      value: 3
-    - statId: stat:endurance
-      value: 0
   modifiers:
-    consumptionMultiplier: 0.95
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 0.8
-    workSpeedMultiplier: 1.15
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
-    preferredFacilityRoles: 4
+    preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
-    preferredWorkTypes: 12
+    preferredWorkTypes: 0
     dislikedWorkTypes: 0
   combatAbilities:
     abilities: []
@@ -69,17 +39,51 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 2
+  polarity: 0
+  selectionFamilyId: hygiene
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: work:clean
-    utilityDelta: 0.4
-  moodReactions:
-  - triggerTag: room:dirty
-    moodDelta: -3
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: disease
-    multiplier: 0.8
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:107:effect:0
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 1.15
+    condition: {fileID: 11400000, guid: a7aad8d785967e547a3dae750c65f635, type: 2}
+  - bindingId: trait:107:effect:1
+    definition: {fileID: 11400000, guid: ab46736f68b07c442bc3c27bbc87e7cc, type: 2}
+    value: 0.85
+    condition: {fileID: 11400000, guid: a2cfc95bd9cb6a149bedcab4a4114181, type: 2}
+  identityRules:
+  - rid: 7737211921986486485
+  - rid: 7737211921986486486
+  - rid: 7737211921986486487
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486485
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:clean-dirt
+        priority: 0
+        behaviorTag: work:clean
+        utilityDelta: 0.65
+    - rid: 7737211921986486486
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:clean-complete
+        priority: 0
+        eventId: room:cleaned
+        moodDelta: 2
+        durationDays: 1
+    - rid: 7737211921986486487
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:severe-filth
+        priority: 0
+        eventId: room:dirty
+        moodDelta: -3
+        durationDays: 1

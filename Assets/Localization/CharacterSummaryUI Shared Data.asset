@@ -1215,6 +1215,14 @@ MonoBehaviour:
     m_Key: CharacterSummary.Weight.Kilograms
     m_Metadata:
       m_Items: []
+  - m_Id: 1792687631323136
+    m_Key: CharacterSummary.Detailed.Tab.Proficiencies
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2107312281309184
+    m_Key: CharacterSummary.Combat.Quality.Mythic
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

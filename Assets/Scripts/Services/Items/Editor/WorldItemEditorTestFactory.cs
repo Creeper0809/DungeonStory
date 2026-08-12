@@ -21,13 +21,16 @@ public static class WorldItemEditorTestFactory
         IWorldItemHaulPlanningService haulPlanning,
         IItemMarkerPresenter itemMarkerPresenter,
         IItemTransferService itemTransferService,
-        ICharacterAiPerformanceRecorder performanceRecorder)
+        ICharacterAiPerformanceRecorder performanceRecorder,
+        IItemQuantityReservationPersistence reservationPersistence = null)
     {
         _ = pathSearch ?? throw new ArgumentNullException(nameof(pathSearch));
         WorldItemPersistenceService persistence = new WorldItemPersistenceService(
             catalog,
             haulingSettings,
-            repository);
+            repository,
+            reservationPersistence,
+            reservationPersistence as IItemReservationMutationGate);
         WorldItemWarehouseService warehouses = new WorldItemWarehouseService(
             catalog,
             repository,

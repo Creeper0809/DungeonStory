@@ -448,12 +448,9 @@ public sealed class RegionalSupplyContractRuntime :
                 out RegionalSupplyContractItemSnapshot item)
                 ? item.UnitPrice * requirement.amount
                 : requirement.amount);
-        int reward = Mathf.Max(
-            25,
-            Mathf.RoundToInt(
-                baseValue
-                * 1.35f
-                * projectBenefits.ContractRewardMultiplier));
+        int reward = GoldEconomyBalanceRules.CalculateRegionalContractReward(
+            baseValue,
+            projectBenefits.ContractRewardMultiplier);
         string region = RegionNames[index % RegionNames.Length];
         return new RegionalSupplyContractState
         {
@@ -566,6 +563,8 @@ public sealed class RegionalSupplyContractRuntime :
     {
         return item != null
             && item.UnitPrice > 0
+            && item.UnitPrice >= RegionalSupplyContractSizing.MinimumViableUnitPrice(
+                item.Kind)
             && item.Kind is ResourceItemKind.Raw
                 or ResourceItemKind.Intermediate
                 or ResourceItemKind.FinishedGood

@@ -324,6 +324,16 @@ public class CharacterLifecycle : SerializedMonoBehaviour
             100f);
     }
 
+    public void ApplyStressDelta(float stressDelta)
+    {
+        if (float.IsNaN(stressDelta) || float.IsInfinity(stressDelta))
+            throw new ArgumentOutOfRangeException(nameof(stressDelta));
+        ExpeditionRecovery.stress = Mathf.Clamp(
+            ExpeditionRecovery.stress + stressDelta,
+            0f,
+            100f);
+    }
+
     public void RestoreExpeditionRecovery(CharacterExpeditionRecoveryState source)
     {
         ExpeditionRecovery.CopyFrom(source);

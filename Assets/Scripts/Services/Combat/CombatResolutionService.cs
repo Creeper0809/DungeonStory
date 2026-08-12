@@ -44,6 +44,8 @@ public sealed class CombatResolutionService : ICombatResolutionService
     private readonly IEnvironmentalFieldQuery environmentalField;
     private readonly ICharacterWorldQuery characters;
     private readonly ICharacterEnvironmentExposureCommand environmentExposure;
+    private readonly IGameEventBus gameEventBus;
+    private readonly IGameClock gameClock;
 
     public CombatResolutionService(
         ICombatRandomSource random,
@@ -52,7 +54,9 @@ public sealed class CombatResolutionService : ICombatResolutionService
         ICharacterEnvironmentStatusQuery environmentStatus,
         IEnvironmentalFieldQuery environmentalField,
         ICharacterWorldQuery characters,
-        ICharacterEnvironmentExposureCommand environmentExposure)
+        ICharacterEnvironmentExposureCommand environmentExposure,
+        IGameEventBus gameEventBus = null,
+        IGameClock gameClock = null)
     {
         this.random = random ?? throw new ArgumentNullException(nameof(random));
         this.evolution = evolution;
@@ -63,6 +67,8 @@ public sealed class CombatResolutionService : ICombatResolutionService
         this.characters = characters;
         this.environmentExposure = environmentExposure
             ?? throw new ArgumentNullException(nameof(environmentExposure));
+        this.gameEventBus = gameEventBus;
+        this.gameClock = gameClock;
     }
 
     public CombatAttackResult Resolve(CombatAttackRequest request)
@@ -210,6 +216,7 @@ public sealed class CombatResolutionService : ICombatResolutionService
             verb,
             rangeDamage,
             quality)
+            * ResolveArcanePowerMultiplier(request.AttackerId, weapon)
             * ammunition.DamageMultiplierFor(band, request.DefenderConstruct)
             * ResolveRoleDamageMultiplier(
                 weaponRoles,
@@ -315,6 +322,7 @@ public sealed class CombatResolutionService : ICombatResolutionService
                 new CharacterId(request.DefenderId),
                 result.TargetAirborneExposure);
         }
+        PublishFriendlyAssault(request, result);
 
         if (evolution == null)
         {
@@ -379,6 +387,42 @@ public sealed class CombatResolutionService : ICombatResolutionService
         }
 
         return result;
+    }
+
+    private void PublishFriendlyAssault(
+        CombatAttackRequest request,
+        CombatAttackResult result)
+    {
+        if (gameEventBus == null
+            || !result.Hit
+            || result.AppliedDamage <= 0f)
+            return;
+        CharacterActor attacker = characters?.Characters?.FirstOrDefault(value =>
+            value != null
+            && string.Equals(value.Identity?.PersistentId, request.AttackerId,
+                StringComparison.Ordinal));
+        CharacterActor defender = characters?.Characters?.FirstOrDefault(value =>
+            value != null
+            && string.Equals(value.Identity?.PersistentId, request.DefenderId,
+                StringComparison.Ordinal));
+        if (attacker == null
+            || defender == null
+            || attacker.characterType == CharacterType.Intruder
+            || defender.characterType == CharacterType.Intruder
+            || !CharacterPersistentIdentity.TryGet(attacker, out CharacterId attackerId)
+            || !CharacterPersistentIdentity.TryGet(defender, out CharacterId defenderId))
+            return;
+        int day = gameClock == null
+            ? 0
+            : Mathf.Max(0, Mathf.FloorToInt(
+                gameClock.Time / GameCalendarRules.SecondsPerDay));
+        gameEventBus.Publish(new SocialConflictEvent(
+            attackerId,
+            defenderId,
+            "betrayal-or-assault",
+            Mathf.Clamp(result.AppliedDamage / 10f, 1f, 10f),
+            CharacterCommandOrigin.DirectPlayerOrder,
+            day));
     }
 
     private static CombatAttackResult WithAmmunition(
@@ -563,6 +607,7 @@ public sealed class CombatResolutionService : ICombatResolutionService
             verb,
             rangeDamage,
             quality)
+            * ResolveArcanePowerMultiplier(request.AttackerId, weapon)
             * ammunition.DamageMultiplierFor(band, request.DefenderConstruct)
             * ResolveRoleDamageMultiplier(
                 weapon.RoleFlags,
@@ -911,6 +956,35 @@ public sealed class CombatResolutionService : ICombatResolutionService
             }
         }
         return false;
+    }
+
+    private float ResolveArcanePowerMultiplier(
+        string attackerId,
+        CombatWeaponSnapshot weapon)
+    {
+        if (!CharacterArcaneWeaponRules.IsArcane(weapon?.DefinitionId))
+            return 1f;
+        CharacterActor actor = characters?.Characters?.FirstOrDefault(value =>
+            value != null
+            && string.Equals(
+                value.Identity?.PersistentId,
+                attackerId?.Trim(),
+                StringComparison.Ordinal));
+        if (actor?.Stats == null)
+            throw new InvalidOperationException(
+                $"Arcane attacker '{attackerId}' is not an active character.");
+        CharacterPerformanceSnapshot snapshot = actor.Stats.EvaluatePerformance(
+            CharacterPerformanceFormulaIds.ArcanePower);
+        if (!snapshot.IsApplicable)
+            throw new InvalidOperationException(
+                snapshot.Failure?.Message ?? "Arcane power is unavailable.");
+        CharacterPerformanceExecutionTrace.Record(
+            CharacterPerformanceFormulaIds.ArcanePower,
+            "CombatResolutionService.ResolveArcanePowerMultiplier",
+            1f,
+            snapshot.Value,
+            attackerId);
+        return snapshot.Value;
     }
 
     private static float ResolveRoleDamageMultiplier(

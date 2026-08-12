@@ -17,6 +17,7 @@ public static class GameplayUiPresentationText
         CraftsmanshipQualityTier.Excellent => "우수",
         CraftsmanshipQualityTier.Masterwork => "명품",
         CraftsmanshipQualityTier.Legendary => "전설",
+        CraftsmanshipQualityTier.Mythic => "신화",
         _ => "알 수 없음"
     };
 
@@ -117,19 +118,10 @@ public static class GameplayUiPresentationText
     private static string FormatRequirements(WorkerSelectionPolicySaveData policy)
     {
         List<string> requirements = new();
-        foreach (WorkerStatRequirementSaveData requirement in
-                 policy.statRequirements ?? Enumerable.Empty<WorkerStatRequirementSaveData>())
-        {
-            if (requirement == null)
-            {
-                continue;
-            }
-            string stat = StatName(requirement.statType);
-            requirements.Add($"{stat} {requirement.minimumValue}+" );
-        }
         if (!string.IsNullOrWhiteSpace(policy.minimumSkillId))
         {
-            requirements.Add($"관련 숙련 {policy.minimumSkillExperience}+" );
+            requirements.Add(
+                $"{ProficiencyName(policy.minimumSkillId)} {policy.minimumSkillExperience}+ XP");
         }
         if (policy.minimumCareerRank > 0)
         {
@@ -145,20 +137,19 @@ public static class GameplayUiPresentationText
         return string.Join(joiner, requirements);
     }
 
-    private static string StatName(int value) => value switch
+    private static string ProficiencyName(string value)
     {
-        0 => "전투",
-        1 => "접객",
-        2 => "연구",
-        3 => "이동",
-        4 => "힘",
-        5 => "강인함",
-        6 => "민첩",
-        7 => "청소",
-        8 => "지구력",
-        9 => "사격",
-        10 => "회피",
-        11 => "의료",
-        _ => "능력치"
-    };
+        CharacterProficiencyId id = new(value);
+        if (id == BuiltInCharacterProficiencyIds.Fieldwork) return "현장 작업";
+        if (id == BuiltInCharacterProficiencyIds.ConstructionEngineering) return "건설·공학";
+        if (id == BuiltInCharacterProficiencyIds.Crafting) return "제작";
+        if (id == BuiltInCharacterProficiencyIds.FoodProduction) return "식량 생산";
+        if (id == BuiltInCharacterProficiencyIds.Scholarship) return "학술";
+        if (id == BuiltInCharacterProficiencyIds.Medicine) return "의료";
+        if (id == BuiltInCharacterProficiencyIds.Social) return "사교";
+        if (id == BuiltInCharacterProficiencyIds.MeleeCombat) return "근접 전투";
+        if (id == BuiltInCharacterProficiencyIds.RangedCombat) return "원거리 전투";
+        return "관련 숙련";
+    }
+
 }

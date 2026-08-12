@@ -191,6 +191,15 @@ public sealed class OwnerCharacterFactory : IOwnerCharacterFactory
             ownerObject.AddComponent<AbilityWork>();
         }
 
+        // Eating, drinking-adjacent facility use, sleep, toilet, hygiene and
+        // recreation all share the visitor-action bridge owned by
+        // AbilityShopping. Runtime-composed owners must have the same survival
+        // interaction contract as prefab-backed founders.
+        if (!ownerObject.TryGetComponent(out AbilityShopping _))
+        {
+            ownerObject.AddComponent<AbilityShopping>();
+        }
+
         return actor;
     }
 

@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cb4b1f490bee1344a1002cabb362d7a, type: 3}
+  m_Name: equipment_item_weapon_heavy_matchlock
+  m_EditorClassIdentifier: DungeonStory.Economy::GenericItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 0
+  itemId: equipment-item:weapon:heavy-matchlock
+  displayName: "\uC911\uD654\uC2B9\uCD1D"
+  description: "\uC911\uD654\uC2B9\uCD1D \uC804\uD22C \uC7A5\uBE44"
+  stockCategory: 2
+  unitWeight: 8.4
+  maxStack: 1
+  sprite: {fileID: 0}
+  unitPrice: 1045
+  features:
+  - rid: 7737211866096074850
+  - rid: 7737211866096074851
+  - rid: 7737211866096074852
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211866096074850
+      type: {class: EquipmentItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        equipmentDefinitionId: weapon:heavy-matchlock
+    - rid: 7737211866096074851
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        kind: 8
+        ingredientTags: 0
+        sharedIntermediate: 0
+    - rid: 7737211866096074852
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        requiredResearchId: research:equipment:pressure-barrels

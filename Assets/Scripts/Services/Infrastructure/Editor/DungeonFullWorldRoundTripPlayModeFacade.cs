@@ -334,6 +334,15 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
                 throw new InvalidOperationException(
                     "Full-world baseline requires an initialized owner actor.");
             }
+            int removedOrphanExposures = DungeonGameSaveDebugScenarios
+                .RemoveDanglingPopulationHealthExposuresForDebug();
+            if (removedOrphanExposures > 0)
+            {
+                Debug.Log(
+                    "Full-world QA removed "
+                    + $"{removedOrphanExposures} orphan disease-exposure records "
+                    + "left by prior editor fixtures before capturing its baseline.");
+            }
             // Body-health currently materializes its aggregate entry lazily on
             // the first actor query. Establish that canonical state before the
             // outer baseline so the nested progression contract cannot change

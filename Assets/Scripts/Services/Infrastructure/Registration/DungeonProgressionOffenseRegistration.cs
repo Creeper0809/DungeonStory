@@ -56,7 +56,8 @@ public static class DungeonProgressionOffenseRegistration
         builder.Register<ResearchQueueCommandService>(Lifetime.Singleton)
             .As<IResearchQueueCommandService>();
         builder.Register<BlueprintResearchWorkService>(Lifetime.Singleton)
-            .As<IBlueprintResearchWorkService>();
+            .As<IBlueprintResearchWorkService>()
+            .As<IBlueprintResearchWorkforcePolicyQuery>();
         builder.Register<BuildingResearchWorkPortAdapter>(Lifetime.Singleton)
             .As<IBuildingResearchWorkPort>();
         builder.Register<BlueprintResearchStateService>(Lifetime.Singleton)

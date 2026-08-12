@@ -21,3 +21,8 @@ MonoBehaviour:
   queueWaitThreshold: 0.35
   shelterWeatherThreshold: 0.55
   stepAsideFailureThreshold: 0.35
+  freeFacilityTravelCells: 4
+  facilityTravelUtilityCostPerCell: 0.015
+  maximumFacilityTravelUtilityPenalty: 0.35
+  equivalentFacilityUtilityTolerance: 0.06
+  equivalentFacilityMinimumTravelSavingsCells: 4

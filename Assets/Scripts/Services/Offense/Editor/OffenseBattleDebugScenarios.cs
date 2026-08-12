@@ -29,6 +29,7 @@ public static class OffenseBattleDebugScenarios
         Run("formation constraints", VerifyFormationConstraints, errors);
         Run("body injury and persistence", VerifyBodyInjuryAndPersistence, errors);
         Run("heavy suppression skips turn", VerifyHeavySuppressionSkipsTurn, errors);
+        Run("empty ranged weapon recovery", VerifyEmptyRangedWeaponRecovery, errors);
         Run("combat equipment ownership", VerifyEquipmentReservation, errors);
         Run("combat equipment craft queue persistence", VerifyEquipmentCraftQueuePersistence, errors);
         Run("building equipment crafting work", VerifyBuildingEquipmentCraftingWork, errors);
@@ -850,6 +851,146 @@ public static class OffenseBattleDebugScenarios
             OffenseEditorTestDependencies.CreateCombatEquipmentRuntime());
     }
 
+    private static bool VerifyEmptyRangedWeaponRecovery()
+    {
+        ICombatEquipmentRuntime runtime =
+            OffenseEditorTestDependencies.CreateCombatEquipmentRuntime();
+        OffenseBattleCombatant enemy = Combatant(
+            "enemy:empty-ranged",
+            "Empty Ranged",
+            OffenseBattleTeam.Enemies,
+            100f,
+            8f,
+            6f,
+            5f,
+            20f,
+            5f);
+        OffenseBattleCombatant ally = Combatant(
+            "ally:empty-ranged",
+            "Ally",
+            OffenseBattleTeam.Allies,
+            100f,
+            5f,
+            5f,
+            5f,
+            1f,
+            1f);
+        CombatEquipmentInstance crossbow = runtime.CreateExternalInstance(
+            "weapon:crossbow",
+            CombatEquipmentQuality.Normal);
+        CombatWeaponSnapshot emptyCrossbow = null;
+        Require(runtime.TryAssignToCharacter(
+                enemy.PersistentId,
+                crossbow.instanceId,
+                out _)
+            && runtime.TrySetActiveWeapon(
+                enemy.PersistentId,
+                crossbow.instanceId,
+                out _)
+            && runtime.TryGetActiveWeapon(
+                enemy.PersistentId,
+                out emptyCrossbow),
+            "Could not prepare the empty ranged weapon.");
+        enemy.SetCombatEquipment(
+            emptyCrossbow,
+            runtime.GetArmor(enemy.PersistentId),
+            runtime.GetShield(enemy.PersistentId));
+        OffenseBattleSession unarmedSession = new(
+            "battle:empty-ranged",
+            "expedition:empty-ranged",
+            "target:empty-ranged",
+            "Empty Ranged",
+            DungeonDifficulty.Normal,
+            new[] { enemy, ally },
+            OffenseEditorTestDependencies.CreateCombatResolution(),
+            runtime);
+        OffenseBattleCommand unarmed = unarmedSession.CreateEnemyCommand(1);
+        Require(unarmed?.ActionType == OffenseBattleActionType.SwitchWeapon
+                && string.Equals(
+                    unarmed.AbilityId,
+                    "combat:unarmed",
+                    StringComparison.Ordinal)
+                && unarmedSession.TryExecuteCommand(unarmed, out _)
+                && string.Equals(
+                    enemy.Weapon.DefinitionId,
+                    "combat:unarmed",
+                    StringComparison.Ordinal),
+            "An empty ranged-only enemy did not spend a turn switching to unarmed combat.");
+
+        ICombatEquipmentRuntime fallbackRuntime =
+            OffenseEditorTestDependencies.CreateCombatEquipmentRuntime();
+        OffenseBattleCombatant armedEnemy = Combatant(
+            "enemy:melee-fallback",
+            "Melee Fallback",
+            OffenseBattleTeam.Enemies,
+            100f,
+            8f,
+            6f,
+            5f,
+            20f,
+            5f);
+        OffenseBattleCombatant secondAlly = Combatant(
+            "ally:melee-fallback",
+            "Second Ally",
+            OffenseBattleTeam.Allies,
+            100f,
+            5f,
+            5f,
+            5f,
+            1f,
+            1f);
+        CombatEquipmentInstance emptyWeapon =
+            fallbackRuntime.CreateExternalInstance(
+                "weapon:crossbow",
+                CombatEquipmentQuality.Normal);
+        CombatEquipmentInstance dagger = fallbackRuntime.CreateExternalInstance(
+            "weapon:dagger",
+            CombatEquipmentQuality.Normal);
+        CombatWeaponSnapshot secondEmptyCrossbow = null;
+        Require(fallbackRuntime.TryAssignToCharacter(
+                armedEnemy.PersistentId,
+                emptyWeapon.instanceId,
+                out _)
+            && fallbackRuntime.TryAssignToCharacter(
+                armedEnemy.PersistentId,
+                dagger.instanceId,
+                out _)
+            && fallbackRuntime.TrySetActiveWeapon(
+                armedEnemy.PersistentId,
+                emptyWeapon.instanceId,
+                out _)
+            && fallbackRuntime.TryGetActiveWeapon(
+                armedEnemy.PersistentId,
+                out secondEmptyCrossbow),
+            "Could not prepare the owned melee fallback.");
+        armedEnemy.SetCombatEquipment(
+            secondEmptyCrossbow,
+            fallbackRuntime.GetArmor(armedEnemy.PersistentId),
+            fallbackRuntime.GetShield(armedEnemy.PersistentId));
+        OffenseBattleSession fallbackSession = new(
+            "battle:melee-fallback",
+            "expedition:melee-fallback",
+            "target:melee-fallback",
+            "Melee Fallback",
+            DungeonDifficulty.Normal,
+            new[] { armedEnemy, secondAlly },
+            OffenseEditorTestDependencies.CreateCombatResolution(),
+            fallbackRuntime);
+        OffenseBattleCommand switchCommand = fallbackSession.CreateEnemyCommand(1);
+        Require(switchCommand?.ActionType == OffenseBattleActionType.SwitchWeapon
+                && string.Equals(
+                    switchCommand.AbilityId,
+                    dagger.instanceId,
+                    StringComparison.Ordinal)
+                && fallbackSession.TryExecuteCommand(switchCommand, out _)
+                && string.Equals(
+                    armedEnemy.Weapon.DefinitionId,
+                    "weapon:dagger",
+                    StringComparison.Ordinal),
+            "An empty ranged weapon did not switch to an owned usable melee weapon.");
+        return true;
+    }
+
     private static bool VerifyEquipmentReservation()
     {
         ResourceCombatEquipmentCatalog catalog = new ResourceCombatEquipmentCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
@@ -901,6 +1042,11 @@ public static class OffenseBattleDebugScenarios
     private static bool VerifyEquipmentCraftQueuePersistence()
     {
         ResourceCombatEquipmentCatalog catalog = new ResourceCombatEquipmentCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+        Require(catalog.TryGet("weapon:dagger", out CombatEquipmentDefinitionSO dagger),
+            "Dagger definition is missing from the combat equipment catalog.");
+        float requiredWork = dagger.RequiredCraftWork;
+        float completedWork = Mathf.Min(2f, requiredWork * 0.25f);
+        float remainingWork = requiredWork - completedWork;
         CombatEquipmentRuntime runtime = CombatEquipmentEditorTestFactory.Create(
             catalog,
             new WorldItemRepository(
@@ -917,11 +1063,20 @@ public static class OffenseBattleDebugScenarios
                 {
                     orderId = "qa:combat-craft",
                     definitionId = "weapon:dagger",
-                    requiredWork = 6f,
-                    completedWork = 2f,
+                    requiredWork = requiredWork,
+                    completedWork = completedWork,
                     materialsReady = true,
                     materialDestinationId =
-                        "facility-input:qa:combat-craft"
+                        "facility-input:qa:combat-craft",
+                    qualityRoll = new CraftQualityRollSaveData
+                    {
+                        attemptIndex = 0,
+                        randomA = -3,
+                        randomB = 1,
+                        randomC = 4
+                    },
+                    qualityStage = QualityTargetPipelineStage.Working,
+                    craftWorkPerAttempt = requiredWork
                 }
             }
         }));
@@ -937,11 +1092,11 @@ public static class OffenseBattleDebugScenarios
         restored.PublishRestoreCandidate(restored.BuildRestoreCandidate(
             JsonUtility.FromJson<DungeonCombatEquipmentSaveData>(json)));
         Require(restored.CraftQueue.Count == 1
-                && Mathf.Approximately(restored.CraftQueue[0].RemainingWork, 4f),
+                && Mathf.Approximately(restored.CraftQueue[0].RemainingWork, remainingWork),
             "Craft queue remaining work did not survive save/restore.");
         Require(restored.ApplyCraftWork(
                 new[] { "weapon:dagger" },
-                4.1f,
+                remainingWork + 0.1f,
                 out string completedEquipmentId) == 1
             && completedEquipmentId == "weapon:dagger"
             && restored.CraftQueue.Count == 0,
@@ -953,10 +1108,14 @@ public static class OffenseBattleDebugScenarios
     {
         BuildingSO data = ScriptableObject.CreateInstance<BuildingSO>();
         GameObject gameObject = new GameObject("Crafting Work Fixture");
+        GameObject workerObject = new GameObject("Crafting Worker Fixture");
         try
         {
             ResourceCombatEquipmentCatalog combatCatalog =
                 new ResourceCombatEquipmentCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+            Require(combatCatalog.TryGet("weapon:dagger", out CombatEquipmentDefinitionSO dagger),
+                "Dagger definition is missing from the combat equipment catalog.");
+            float requiredWork = dagger.RequiredCraftWork;
             CombatEquipmentRuntime runtime = CombatEquipmentEditorTestFactory.Create(
                 combatCatalog,
                 new WorldItemRepository(
@@ -973,11 +1132,20 @@ public static class OffenseBattleDebugScenarios
                     {
                         orderId = "qa:building-craft",
                         definitionId = "weapon:dagger",
-                        requiredWork = 6f,
+                        requiredWork = requiredWork,
                         completedWork = 0f,
                         materialsReady = true,
                         materialDestinationId =
-                            "facility-input:qa:building-craft"
+                            "facility-input:qa:building-craft",
+                        qualityRoll = new CraftQualityRollSaveData
+                        {
+                            attemptIndex = 0,
+                            randomA = -3,
+                            randomB = 1,
+                            randomC = 4
+                        },
+                        qualityStage = QualityTargetPipelineStage.Working,
+                        craftWorkPerAttempt = requiredWork
                     }
                 }
             }));
@@ -1000,7 +1168,7 @@ public static class OffenseBattleDebugScenarios
             data.AbilityModules.Add(new BuildingEquipmentCraftingAbility
             {
                 craftableEquipmentIds = new[] { "weapon:dagger" },
-                workUnitsPerCycle = 6f
+                workUnitsPerCycle = requiredWork
             });
 
             BuildableObject building = gameObject.AddComponent<BuildableObject>();
@@ -1012,7 +1180,8 @@ public static class OffenseBattleDebugScenarios
                         new EquipmentCraftingBuildingAbilityHandler(
                             runtime,
                             combatCatalog,
-                            NeutralCharacterEnvironmentStatusQuery.Instance)
+                            NeutralCharacterEnvironmentStatusQuery.Instance,
+                            performance: CharacterAiEditorTestDependencies.NeutralPerformance)
                     },
                     Array.Empty<IBuildingWorkCompletionFallbackHandler>());
             building.ConstructBuildableObject(
@@ -1025,21 +1194,36 @@ public static class OffenseBattleDebugScenarios
             building.SetGrid(new Grid(4, 1));
             building.Initialization(data, new Vector2Int(1, 0));
 
+            CharacterAiEditorTestDependencies.EnsureCharacterProgression(workerObject);
+            workerObject.AddComponent<SpriteRenderer>();
+            CharacterActor worker = workerObject.AddComponent<CharacterActor>();
+            workerObject.AddComponent<AbilityMove>();
+            workerObject.AddComponent<AbilityWork>();
+            CharacterAiEditorTestDependencies.Inject(workerObject);
+            worker.Identity.SetPersistentId(
+                new GuidPersistentIdGenerator().NewCharacterId());
+            worker.RefreshAbilityCache();
+            worker.Initialization(
+                OffenseEditorTestDependencies.RequireCharacterArchetype("Orc"));
+            worker.characterType = CharacterType.NPC;
+            worker.SetLifecycleState(CharacterLifecycleState.Active);
+
             Require(building.HasPendingEquipmentCraftWork(),
                 "BuildableObject did not detect pending equipment craft work.");
             Require(building.GetWorkUrgency(BuiltInWorkTypeIds.Craft) > 0f,
                 "Craft work did not contribute work urgency.");
             Require(ModularFacilityRuntimeEffects.ApplyWorkCompleted(
-                    null,
+                    worker.BuildingVisitor,
                     building,
                     BuiltInWorkTypeIds.Craft) == 1
                 && runtime.CraftQueue.Count == 0
                 && !building.HasPendingEquipmentCraftWork(),
-                "Craft work completion did not consume the common work-unit order.");
+                "Craft work completion did not consume the authoritative work-unit order.");
             return true;
         }
         finally
         {
+            UnityEngine.Object.DestroyImmediate(workerObject);
             UnityEngine.Object.DestroyImmediate(gameObject);
             UnityEngine.Object.DestroyImmediate(data);
         }

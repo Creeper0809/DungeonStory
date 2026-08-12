@@ -12,6 +12,26 @@ public enum MealQualityTier
     Preserved = 3
 }
 
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum MealQualityBand
+{
+    Poor = 0,
+    Simple = 1,
+    Decent = 2,
+    Fine = 3,
+    Lavish = 4
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum MealServingRole
+{
+    FullMeal = 0,
+    LightMeal = 1,
+    Snack = 2,
+    FieldRation = 3,
+    EmergencyOnly = 4
+}
+
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonSurvivalSaveData

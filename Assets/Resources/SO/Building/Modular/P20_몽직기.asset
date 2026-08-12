@@ -34,23 +34,33 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730834227600
-    - rid: 7737211730834227601
-    - rid: 7737211730834227603
-    - rid: 7737211730834227604
-    - rid: 7737211730834227605
-    - rid: 7737211730834227606
-    - rid: 7737211730834227607
-    - rid: 7737211838074978675
-    - rid: 7737211838074978676
-    - rid: 7737211838074978677
-    - rid: 7737211838074978678
-    - rid: 7737211838074978929
-    - rid: 7737211838074978930
+    - rid: 7737211921440178990
+    - rid: 7737211921440178991
+    - rid: 7737211921440178992
+    - rid: 7737211921440178993
+    - rid: 7737211921440178994
+    - rid: 7737211921440178995
+    - rid: 7737211921440178996
+    - rid: 7737211921440178997
   width: 2
   height: 1
   layer: 1
@@ -66,18 +76,24 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730834227600
+    - rid: 7737211921440178990
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: P20
-    - rid: 7737211730834227601
+    - rid: 7737211921440178991
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - arcane-loom
-    - rid: 7737211730834227603
+    - rid: 7737211921440178992
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:arcane-loom
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211921440178993
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -86,19 +102,41 @@ MonoBehaviour:
         maintenance: 5
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211730834227604
+    - rid: 7737211921440178994
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 27.2
-        repairWorkRequired: 12
-        cleanWorkRequired: 7.5
+        constructionProjectScale: 2
+        constructionWorkRequired: 468
+        repairWorkRequired: 116
+        cleanWorkRequired: 22
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
+        - itemId: material:stone-block
+          amount: 6
+        - itemId: component:rune-conductor
+          amount: 3
+        - itemId: material:iron-ingot
+          amount: 2
         - itemId: component:machine-parts
-          amount: 8
-    - rid: 7737211730834227605
+          amount: 2
+        - itemId: component:precision-parts
+          amount: 1
+        - itemId: material:mana-alloy
+          amount: 1
+    - rid: 7737211921440178995
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -109,11 +147,11 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 260
           disabledWhenDamaged: 1
-    - rid: 7737211730834227606
+    - rid: 7737211921440178996
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211730834227607
+    - rid: 7737211921440178997
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -131,63 +169,3 @@ MonoBehaviour:
           - key: Mana
             value: 2
           metrics: []
-    - rid: 7737211838074978675
-      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingUtilityConnectionAbility
-        channels: 1
-        maxThroughput: 25
-        normallyOpen: 1
-    - rid: 7737211838074978676
-      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingPowerConsumerAbility
-        demandPerSecond: 5
-        priority: 4
-        minimumSupplyFraction: 0.75
-    - rid: 7737211838074978677
-      type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingAutomationAbility
-        maximumMode: 2
-        assistedPowerDemand: 2
-        automaticPowerDemand: 5
-        assistedWorkMultiplier: 1.35
-        automaticWorkPerSecond: 1
-        automaticQualityCap: 0.75
-        maintenancePerGameHour: 1
-    - rid: 7737211838074978678
-      type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingConveyorPortAbility
-        mode: 2
-        destinationId: 
-        capacity: 4
-    - rid: 7737211838074978929
-      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionWorkstationAbility
-        workstationTag: workstation:arcane-loom
-        stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211838074978930
-      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionBufferAbility
-        defaultBatchCapacity: 4
-        outputCapacities:
-        - itemId: material:lead-ingot
-          capacity: 24
-        - itemId: material:lead-shot
-          capacity: 96
-        - itemId: material:black-powder
-          capacity: 48
-        - itemId: material:paper
-          capacity: 64
-        - itemId: ammo:paper-cartridge
-          capacity: 120
-        - itemId: component:machine-parts
-          capacity: 16
-        - itemId: component:precision-parts
-          capacity: 16
-        allowOverflowDump: 1
-        overflowOffset: {x: 1, y: 0}

@@ -7,7 +7,9 @@ using UnityEngine.Scripting.APIUpdating;
 [CreateAssetMenu(menuName = "DungeonStory/Research/Project", order = 0)]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 // Authored Unity content adapter; immutable rule contracts live in DungeonStory.Research.
-public sealed class ResearchProjectSO : DataScriptableObject, IResearchProjectDefinition
+public sealed class ResearchProjectSO : DataScriptableObject,
+    IResearchProjectDefinition,
+    IGameplayEffectSource
 {
     public const string ResourcePath = "SO/Research/Projects";
 
@@ -16,6 +18,7 @@ public sealed class ResearchProjectSO : DataScriptableObject, IResearchProjectDe
     [TextArea, SerializeField] private string description = string.Empty;
     [SerializeField] private ResearchField field;
     [Min(1f), SerializeField] private float requiredWork = 40f;
+    [Range(1, 4), SerializeField] private int maximumResearchers = 1;
     [SerializeField] private List<ResearchProjectSO> prerequisites = new List<ResearchProjectSO>();
     [SerializeField] private List<ResearchPrerequisiteLink> prerequisiteLinks =
         new List<ResearchPrerequisiteLink>();
@@ -25,12 +28,14 @@ public sealed class ResearchProjectSO : DataScriptableObject, IResearchProjectDe
     [SerializeField] private List<ResearchFacilityRequirement> facilityRequirements =
         new List<ResearchFacilityRequirement>();
     [SerializeField] private Sprite icon;
+    [SerializeField] private List<GameplayEffectBinding> effects = new();
 
     public ResearchProjectId ProjectId => new ResearchProjectId(projectId);
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? name : displayName.Trim();
     public string Description => description?.Trim() ?? string.Empty;
     public ResearchField Field => field;
     public float RequiredWork => Mathf.Max(1f, requiredWork);
+    public int MaximumResearchers => Mathf.Clamp(maximumResearchers, 1, 4);
     public IReadOnlyList<ResearchProjectSO> Prerequisites =>
         (prerequisiteLinks ??= new List<ResearchPrerequisiteLink>()).Count > 0
             ? prerequisiteLinks
@@ -55,6 +60,10 @@ public sealed class ResearchProjectSO : DataScriptableObject, IResearchProjectDe
     public IReadOnlyList<ResearchFacilityRequirement> FacilityRequirements =>
         facilityRequirements ??= new List<ResearchFacilityRequirement>();
     public Sprite Icon => icon;
+    public GameplayEffectSourceRef SourceRef =>
+        new(GameplayEffectSourceKind.Research, ProjectId.Value);
+    public IReadOnlyList<GameplayEffectBinding> Effects =>
+        effects ??= new List<GameplayEffectBinding>();
 
     public void Configure(
         string stableId,
@@ -68,13 +77,15 @@ public sealed class ResearchProjectSO : DataScriptableObject, IResearchProjectDe
         BlueprintUnlockCollection projectUnlocks = null,
         Sprite projectIcon = null,
         IEnumerable<ResearchFacilityRequirement> requiredFacilityCapacity = null,
-        IEnumerable<ResearchPrerequisiteLink> causalPrerequisites = null)
+        IEnumerable<ResearchPrerequisiteLink> causalPrerequisites = null,
+        int projectMaximumResearchers = 1)
     {
         projectId = ResearchProjectId.Normalize(stableId);
         displayName = name?.Trim() ?? string.Empty;
         description = projectDescription?.Trim() ?? string.Empty;
         field = researchField;
         requiredWork = Mathf.Max(1f, work);
+        maximumResearchers = Mathf.Clamp(projectMaximumResearchers, 1, 4);
         blueprintRule = rule;
         blueprint = requiredBlueprint;
         prerequisites = requiredProjects?
@@ -146,6 +157,12 @@ public sealed class ResearchProjectSO : DataScriptableObject, IResearchProjectDe
         if (Prerequisites.Count > 4)
         {
             errors.Add($"{ProjectId}: 직접 선행 연구는 최대 4개여야 합니다.");
+        }
+        if (maximumResearchers != 1
+            && maximumResearchers != 2
+            && maximumResearchers != 4)
+        {
+            errors.Add($"{ProjectId}: 동시 연구자는 1명, 2명 또는 4명이어야 합니다.");
         }
         if (Prerequisites.Count > 0 && PrerequisiteLinks.Count != Prerequisites.Count)
         {

@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uCD1D\uC5F4\uAC15"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uCD1D\uC5F4\uAC15."
   stockCategory: 1
-  unitWeight: 2.56
+  unitWeight: 2.15
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 166
+  unitPrice: 129
   features:
-  - rid: 7737211838078124112
-  - rid: 7737211838078124113
+  - rid: 7737211905655964641
+  - rid: 7737211905655964642
+  - rid: 7737211905660420425
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124112
+    - rid: 7737211905655964641
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:pressure-barrels
-    - rid: 7737211838078124113
+    - rid: 7737211905655964642
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 512
         sharedIntermediate: 1
+    - rid: 7737211905660420425
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6000054

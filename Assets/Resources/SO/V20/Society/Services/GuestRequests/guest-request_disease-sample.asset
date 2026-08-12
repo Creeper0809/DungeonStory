@@ -22,7 +22,7 @@ MonoBehaviour:
   deadlineDays: 6
   serviceRequirements:
     items:
-    - itemDefinitionId: item:pathogen-sample
+    - itemDefinitionId: sample:antigen:cave-flu
       amount: 3
       consume: 1
     facilities:
@@ -39,7 +39,7 @@ MonoBehaviour:
   successEffects:
   - kind: 9
     targetId: guest-service
-    amount: 60
+    amount: 36
     durationDays: 0
   - kind: 6
     targetId: requesting-faction

@@ -19,7 +19,7 @@ MonoBehaviour:
   weight: 5.4
   occupiedHands: 0
   maxDurability: 120
-  requiredCraftWork: 120
+  requiredCraftWork: 168
   defaultMaterialId: material:iron
   primaryMaterialAmount: 5
   allowedMaterialFamilies: 03000000
@@ -38,6 +38,15 @@ MonoBehaviour:
   lineageKind: 1
   growthEquipment: 0
   growthBaseStatMultiplier: 1
+  proficiency:
+    primaryProficiencyId: proficiency:crafting
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  effects: []
+  allowMythicInspiration: 1
   layer: 4
   collisionTag: torso-jack-of-plates
   bodyPartDefense:

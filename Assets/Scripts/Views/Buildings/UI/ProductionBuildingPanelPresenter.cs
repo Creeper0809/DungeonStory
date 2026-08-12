@@ -23,7 +23,9 @@ public sealed class ProductionPanelOrderContext
         IProductionBillQuery billQuery,
         IProductionBillOrderCommand billCommands,
         IResourceEconomyContentCatalog catalog,
-        IProductionDependencyCatalog dependencies)
+        IProductionDependencyCatalog dependencies,
+        IProductionBillWorkExecution workExecution,
+        ICharacterWorldQuery characterWorld)
     {
         BillQuery = billQuery ?? throw new ArgumentNullException(nameof(billQuery));
         BillCommands = billCommands
@@ -31,12 +33,18 @@ public sealed class ProductionPanelOrderContext
         Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         Dependencies = dependencies
             ?? throw new ArgumentNullException(nameof(dependencies));
+        WorkExecution = workExecution
+            ?? throw new ArgumentNullException(nameof(workExecution));
+        CharacterWorld = characterWorld
+            ?? throw new ArgumentNullException(nameof(characterWorld));
     }
 
     public IProductionBillQuery BillQuery { get; }
     public IProductionBillOrderCommand BillCommands { get; }
     public IResourceEconomyContentCatalog Catalog { get; }
     public IProductionDependencyCatalog Dependencies { get; }
+    public IProductionBillWorkExecution WorkExecution { get; }
+    public ICharacterWorldQuery CharacterWorld { get; }
 }
 
 public sealed class ProductionPanelFacilityContext
@@ -95,6 +103,8 @@ public sealed class ProductionBuildingPanelPresenter :
     private readonly IProductionBillOrderCommand billCommands;
     private readonly IResourceEconomyContentCatalog catalog;
     private readonly IProductionDependencyCatalog dependencies;
+    private readonly IProductionBillWorkExecution workExecution;
+    private readonly ICharacterWorldQuery characterWorld;
     private readonly IProductionWorkshopRuntime workshops;
     private readonly BlueprintResearchRuntime research;
     private readonly IPowerInfrastructureQuery power;
@@ -121,6 +131,8 @@ public sealed class ProductionBuildingPanelPresenter :
         billCommands = orders.BillCommands;
         catalog = orders.Catalog;
         dependencies = orders.Dependencies;
+        workExecution = orders.WorkExecution;
+        characterWorld = orders.CharacterWorld;
         workshops = facility.Workshops;
         research = facility.Research;
         power = facility.Power;
@@ -282,6 +294,15 @@ public sealed class ProductionBuildingPanelPresenter :
                     refresh),
                 $"ProductionWorkerPolicy_{index}");
 
+            RenderProductionLimitBreakControls(
+                actions.transform,
+                bill,
+                font,
+                facilityKey,
+                showFeedback,
+                refresh,
+                index);
+
             GameObject modes = ProductionBuildingViewFactory.CreateRow(
                 parent,
                 $"ProductionBillModes_{index}",
@@ -411,6 +432,94 @@ public sealed class ProductionBuildingPanelPresenter :
         return created;
     }
 
+    private void RenderProductionLimitBreakControls(
+        Transform parent,
+        ProductionBillSnapshot bill,
+        TMP_FontAsset font,
+        string facilityKey,
+        Action<string> showFeedback,
+        Action refresh,
+        int index)
+    {
+        CharacterActor[] candidates = characterWorld.Characters
+            .Where(actor => actor != null
+                && !actor.IsDead
+                && actor.Progression.ResolveSelectedTraits()
+                    .Any(trait => trait != null && trait.id == 305))
+            .OrderBy(
+                actor => actor.Identity?.PersistentId ?? string.Empty,
+                StringComparer.Ordinal)
+            .ToArray();
+        if (candidates.Length == 0)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(bill.EmergencyWorkerId))
+        {
+            CharacterActor selected = candidates.FirstOrDefault(actor =>
+                string.Equals(
+                    actor.Identity?.PersistentId,
+                    bill.EmergencyWorkerId,
+                    StringComparison.Ordinal));
+            if (selected == null)
+                return;
+            ProductionBuildingViewFactory.AddButton(
+                parent,
+                $"한계 돌파 해제 · {selected.Identity.DisplayName}",
+                font,
+                true,
+                () => ApplyExtremeResult(
+                    workExecution.TrySetEmergencyProduction(
+                        selected,
+                        bill.BillId,
+                        enabled: false,
+                        out string reason),
+                    reason,
+                    facilityKey,
+                    showFeedback,
+                    refresh),
+                $"ProductionLimitBreakDisable_{index}");
+            return;
+        }
+
+        foreach (CharacterActor candidate in candidates)
+        {
+            CharacterActor captured = candidate;
+            ProductionBuildingViewFactory.AddButton(
+                parent,
+                $"한계 돌파 · {captured.Identity.DisplayName}",
+                font,
+                false,
+                () => ApplyExtremeResult(
+                    workExecution.TrySetEmergencyProduction(
+                        captured,
+                        bill.BillId,
+                        enabled: true,
+                        out string reason),
+                    reason,
+                    facilityKey,
+                    showFeedback,
+                    refresh),
+                $"ProductionLimitBreak_{index}_{captured.Identity.PersistentId}");
+        }
+    }
+
+    private void ApplyExtremeResult(
+        bool succeeded,
+        string failureReason,
+        string facilityKey,
+        Action<string> showFeedback,
+        Action refresh)
+    {
+        string message = succeeded
+            ? "생산 주문의 한계 돌파 작업자를 갱신했습니다."
+            : string.IsNullOrWhiteSpace(failureReason)
+                ? "한계 돌파 명령이 거부되었습니다."
+                : failureReason;
+        feedbackByFacility[facilityKey] = message;
+        showFeedback?.Invoke(message);
+        refresh?.Invoke();
+    }
+
     private static string FormatWorkerPolicy(
         WorkerSelectionPolicySaveData policy)
     {
@@ -441,14 +550,8 @@ public sealed class ProductionBuildingPanelPresenter :
                 mode = WorkerSelectionMode.RuleSet,
                 matchMode = WorkerRequirementMatchMode.All,
                 sortMode = WorkerCandidateSortMode.BestExpectedQuality,
-                statRequirements = new List<WorkerStatRequirementSaveData>
-                {
-                    new()
-                    {
-                        statType = (int)CharacterStatType.Dexterity,
-                        minimumValue = 7
-                    }
-                }
+                minimumSkillId = BuiltInCharacterProficiencyIds.Crafting.Value,
+                minimumSkillExperience = 400
             };
         }
         return WorkerSelectionPolicySaveData.Anyone(

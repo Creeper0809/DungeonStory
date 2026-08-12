@@ -11,7 +11,7 @@ namespace DungeonStory.Tests.Architecture
 {
     internal static class ArchitectureTestBatchRunner
     {
-        public const int ExpectedTestCount = 154;
+        public const int ExpectedTestCount = 160;
         public const string SynchronousReportPath =
             "Artifacts/QA/architecture-editmode-report.txt";
 

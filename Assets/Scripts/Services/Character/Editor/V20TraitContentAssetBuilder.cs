@@ -143,17 +143,12 @@ public static class V20TraitContentAssetBuilder
     {
         CharacterTraitSO value = LoadOrCreate<CharacterTraitSO>($"{GeneralRoot}/Trait_{spec.Id}_{spec.Key}.asset");
         value.id = spec.Id; value.traitName = spec.Name; value.description = spec.Description;
-        value.statBonus ??= new CharacterStatBlock(); value.modifiers ??= new CharacterModelModifiers();
-        value.modifiers.workSpeedMultiplier = spec.Work == 0 ? 1f : spec.Work;
-        value.modifiers.researchSpeedMultiplier = spec.Research == 0 ? 1f : spec.Research;
-        value.modifiers.combatPowerMultiplier = spec.Combat == 0 ? 1f : spec.Combat;
-        value.modifiers.moveSpeedMultiplier = spec.Move == 0 ? 1f : spec.Move;
-        value.modifiers.consumptionMultiplier = spec.Consumption == 0 ? 1f : spec.Consumption;
-        value.modifiers.accidentChanceMultiplier = spec.Accident == 0 ? 1f : spec.Accident;
+        value.modifiers ??= new CharacterModelModifiers();
         value.incompatibilityGroups = string.IsNullOrWhiteSpace(spec.Conflict) ? new List<string>() : new List<string> { spec.Conflict };
         value.behaviorPreferences = new List<CharacterTraitBehaviorPreference> { new() { behaviorTag = spec.Behavior, utilityDelta = spec.Utility } };
         value.moodReactions = new List<CharacterTraitMoodReaction> { new() { triggerTag = spec.Trigger, moodDelta = spec.Mood, durationDays = 3 } };
         value.eventWeights = new List<CharacterTraitEventWeight> { new() { eventCategoryId = spec.EventCategory, multiplier = spec.EventWeight } };
+        ConfigureSelectionProfile(value);
         EditorUtility.SetDirty(value); return value;
     }
 
@@ -254,7 +249,74 @@ public static class V20TraitContentAssetBuilder
             new() { eventCategoryId = eventCategory, multiplier = eventWeight }
         };
         if (value.incompatibilityGroups == null) value.incompatibilityGroups = new List<string>();
+        ConfigureSelectionProfile(value);
         EditorUtility.SetDirty(value);
+    }
+
+    private static void ConfigureSelectionProfile(CharacterTraitSO value)
+    {
+        value.selectionFamilyId = value.id switch
+        {
+            101 or 210 or 214 => "appetite",
+            102 => "resource-use",
+            103 => "wealth",
+            104 => "pace",
+            105 or 106 => "combat-temperament",
+            107 or 245 => "hygiene",
+            108 => "research",
+            109 => "species-adaptation",
+            200 => "stamina",
+            201 => "sleep",
+            202 => "mobility",
+            203 or 206 => "physique",
+            204 => "pain",
+            205 => "senses",
+            207 => "recovery",
+            208 or 211 => "metabolism",
+            209 => "temperature-temperament",
+            212 => "temperature",
+            213 => "ritual-food",
+            215 => "crisis-temperament",
+            216 or 217 => "outlook",
+            218 or 219 => "grievance",
+            220 => "planning",
+            221 or 240 or 241 => "risk",
+            222 => "sociability",
+            223 or 224 => "work-method",
+            225 => "routine",
+            226 => "mentorship",
+            227 => "salvage",
+            228 => "schedule",
+            229 => "quality",
+            230 => "learning",
+            231 => "hospitality",
+            232 or 233 => "communication",
+            234 => "loyalty",
+            235 => "status",
+            236 or 237 => "culture",
+            238 or 239 => "mercy",
+            242 => "inquiry",
+            243 => "decision",
+            244 => "collecting",
+            246 => "storytelling",
+            _ => throw new InvalidOperationException(
+                $"Trait {value.id} has no authored selection family.")
+        };
+        value.selectionRarity = value.id switch
+        {
+            230 => CharacterTraitSelectionRarity.Exceptional,
+            102 or 107 or 108 or 109 or 207 or 208 or 215 or 217 or 223
+                or 233 or 240 or 242 => CharacterTraitSelectionRarity.Rare,
+            103 or 106 or 200 or 202 or 204 or 205 or 211 or 219 or 220
+                or 225 or 227 or 231 or 236 or 238 or 243 or 246 =>
+                CharacterTraitSelectionRarity.Uncommon,
+            _ => CharacterTraitSelectionRarity.Common
+        };
+        value.eligibleSpeciesTags = value.id == 109
+            ? new List<string> { "Slime" }
+            : new List<string>();
+        value.earnedWorkExperienceMultiplier = value.id == 230 ? 1.30f : 1f;
+
     }
 
     public static float ResolveCappedModifier(IEnumerable<HeritableTraitDefinitionSO> traits, HeritableTraitConsequenceKind kind, string targetId)

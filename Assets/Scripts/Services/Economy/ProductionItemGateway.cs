@@ -106,7 +106,7 @@ public sealed class ProductionItemGateway :
         return stock.GetAllStacks()
             .Where(stack => stack != null
                 && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal)
-                && !stack.IsReserved
+                && stack.AvailableQuantity > 0
                 && !stack.Forbidden
                 && stack.Quantity > 0
                 && stack.State is WorldItemStackState.Loose

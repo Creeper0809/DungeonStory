@@ -42,6 +42,19 @@ MonoBehaviour:
   lineageKind: 1
   growthEquipment: 1
   growthBaseStatMultiplier: 0.88
+  proficiency:
+    primaryProficiencyId: proficiency:crafting
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 3
+    minimumRiskRank: 2
+  effects:
+  - bindingId: equipment:powered-harness:work-speed
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 1.05
+    condition: {fileID: 0}
+  allowMythicInspiration: 1
   layer: 3
   collisionTag: torso-powered
   bodyPartDefense:

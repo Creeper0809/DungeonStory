@@ -262,8 +262,8 @@ public sealed class EnemyIndividualFactory : IEnemyIndividualFactory
             .OrderBy(value => value.traitId, StringComparer.Ordinal).ToArray();
         generalTraitIds = generalTraits.Select(value => value.DefinitionId.Value)
             .ToHashSet(StringComparer.Ordinal);
-        if (generalTraits.Count != 56 || heritableTraits.Count != 24)
-            throw new InvalidOperationException($"V20 enemy generation requires 56 general and 24 heritable traits; found {generalTraits.Count}/{heritableTraits.Count}.");
+        if (generalTraits.Count != 100 || heritableTraits.Count != 24)
+            throw new InvalidOperationException($"V26 enemy generation requires 100 general and 24 heritable traits; found {generalTraits.Count}/{heritableTraits.Count}.");
     }
 
     public EnemyIndividualSaveData Create(

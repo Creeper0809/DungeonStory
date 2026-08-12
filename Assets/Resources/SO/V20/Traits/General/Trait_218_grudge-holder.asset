@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uC6D0\uD55C\uC744 \uD488\uC74C"
   description: "\uBC30\uC2E0\uC744 \uC624\uB798 \uAE30\uC5B5\uD558\uACE0 \uAC19\uC740
     \uC0C1\uB300\uC640\uC758 \uD0C0\uD611\uC744 \uAEBC\uB9B0\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,18 +39,33 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 0
+  polarity: 2
+  selectionFamilyId: grievance
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups:
   - temper:forgiving
-  behaviorPreferences:
-  - behaviorTag: faction:retaliate
-    utilityDelta: 0.4
-  moodReactions:
-  - triggerTag: event:betrayal
-    moodDelta: -5
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: faction
-    multiplier: 1.5
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:218:effect:0
+    definition: {fileID: 11400000, guid: 32f31fef8eb6d494ca08d45179a5d427, type: 2}
+    value: 0.25
+    condition: {fileID: 11400000, guid: 0a80fc9486704a44eb27acc240b8a667, type: 2}
+  identityRules:
+  - rid: 7737211921986486492
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486492
+      type: {class: RelationshipMemoryRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: memory:grudge
+        priority: 0
+        eventId: social:betrayal-or-assault
+        relationshipDelta: -5
+        dailyDecay: 0.25
+        apologyCanClear: 1
+        restitutionRequired: 1

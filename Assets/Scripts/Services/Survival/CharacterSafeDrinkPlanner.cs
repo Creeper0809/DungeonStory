@@ -55,8 +55,6 @@ internal sealed class CharacterSafeDrinkPlanner
         new ProfilerMarker("SafeRelief.Plan");
     private static readonly ProfilerMarker SafeReliefStackProfilerMarker =
         new ProfilerMarker("SafeRelief.StackCandidates");
-    private static readonly ProfilerMarker SafeReliefFacilityProfilerMarker =
-        new ProfilerMarker("SafeRelief.FacilityCandidates");
     private static readonly ProfilerMarker SafeReliefApproachProfilerMarker =
         new ProfilerMarker("SafeRelief.Approach");
     private static readonly ProfilerMarker SafeReliefDirectPathProfilerMarker =
@@ -67,8 +65,6 @@ internal sealed class CharacterSafeDrinkPlanner
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IWorldItemStackRuntime itemStackRuntime;
     private readonly IWorldWaterQuery waterQuery;
-    private readonly IFacilityCandidateCache facilityCandidateCache;
-    private readonly ISurvivalFoodQuery survivalFoodRuntime;
     private readonly IDoorAccessQuery doorAccessQuery;
     private readonly CharacterDeprivationDiagnostics diagnostics;
     private readonly Dictionary<Vector2Int, string> approachOwners = new(128);
@@ -80,8 +76,6 @@ internal sealed class CharacterSafeDrinkPlanner
         IGridSystemProvider gridSystemProvider,
         IWorldItemStackRuntime itemStackRuntime,
         IWorldWaterQuery waterQuery,
-        IFacilityCandidateCache facilityCandidateCache,
-        ISurvivalFoodQuery survivalFoodRuntime,
         IDoorAccessQuery doorAccessQuery,
         CharacterDeprivationDiagnostics diagnostics)
     {
@@ -91,10 +85,6 @@ internal sealed class CharacterSafeDrinkPlanner
             ?? throw new ArgumentNullException(nameof(itemStackRuntime));
         this.waterQuery = waterQuery
             ?? throw new ArgumentNullException(nameof(waterQuery));
-        this.facilityCandidateCache = facilityCandidateCache
-            ?? throw new ArgumentNullException(nameof(facilityCandidateCache));
-        this.survivalFoodRuntime = survivalFoodRuntime
-            ?? throw new ArgumentNullException(nameof(survivalFoodRuntime));
         this.doorAccessQuery = doorAccessQuery
             ?? throw new ArgumentNullException(nameof(doorAccessQuery));
         this.diagnostics = diagnostics
@@ -135,28 +125,6 @@ internal sealed class CharacterSafeDrinkPlanner
             return false;
         }
 
-        if (TryFindReservableWaterFacility(
-                grid,
-                actor,
-                actorId,
-                out BuildableObject facility,
-                out Vector2Int facilityApproach,
-                out Queue<GridMoveStep> facilityPath,
-                out bool facilitySearchPending))
-        {
-            plan = new CharacterSafeDrinkPlan(
-                CharacterSafeDrinkTargetKind.Facility,
-                facility.centerPos,
-                facilityApproach,
-                facilityPath,
-                facility: facility);
-            return true;
-        }
-        if (facilitySearchPending)
-        {
-            return false;
-        }
-
         if (TryFindReservableWaterStack(
                 grid,
                 actor,
@@ -173,10 +141,6 @@ internal sealed class CharacterSafeDrinkPlanner
                 stackPath,
                 stack.StackId);
             return true;
-        }
-        if (stackSearchPending)
-        {
-            return false;
         }
 
         if (waterQuery.TryFindDrinkSource(
@@ -401,6 +365,8 @@ internal sealed class CharacterSafeDrinkPlanner
         return false;
     }
 
+    // Compatibility endpoint for the breakdown runner. Production facilities
+    // create inventory; they never grant hydration directly.
     internal bool TryFindReservableWaterFacility(
         Grid grid,
         CharacterActor actor,
@@ -410,151 +376,11 @@ internal sealed class CharacterSafeDrinkPlanner
         out Queue<GridMoveStep> selectedPath,
         out bool searchPending)
     {
-        using ProfilerMarker.AutoScope profile =
-            SafeReliefFacilityProfilerMarker.Auto();
         selected = null;
         selectedApproach = default;
         selectedPath = null;
         searchPending = false;
-        Vector2Int origin = actor.GetNowXY();
-        IReadOnlyList<BuildableObject> buildings =
-            facilityCandidateCache.GetWorkCandidates(
-                grid,
-                FacilityWorkType.DrawWater);
-        if (buildings.Count == 0
-            && facilityCandidateCache.HasPendingIndexBuild)
-        {
-            searchPending = true;
-            return false;
-        }
-
-        bool hasSameFloorCandidate = false;
-        for (int index = 0; index < buildings.Count; index++)
-        {
-            BuildableObject candidate = buildings[index];
-            if (IsUsableWaterFacility(candidate)
-                && candidate.centerPos.y == origin.y)
-            {
-                hasSameFloorCandidate = true;
-                break;
-            }
-        }
-
-        for (int searchPass = 0;
-             searchPass < 2 && selected == null;
-             searchPass++)
-        {
-            bool allowPathSearch = searchPass > 0;
-            bool sameFloorHasAvailableApproach = false;
-            int previousDistance = -1;
-            int previousIndex = -1;
-            for (int rank = 0; rank < buildings.Count; rank++)
-            {
-                int nextIndex = -1;
-                int nextDistance = int.MaxValue;
-                for (int index = 0; index < buildings.Count; index++)
-                {
-                    BuildableObject candidateEntry = buildings[index];
-                    if (!IsUsableWaterFacility(candidateEntry))
-                    {
-                        continue;
-                    }
-
-                    int distance = GetSafeReliefDistance(
-                        origin,
-                        candidateEntry.centerPos,
-                        grid.width);
-                    if (distance < previousDistance
-                        || distance == previousDistance
-                            && index <= previousIndex
-                        || distance > nextDistance
-                        || distance == nextDistance
-                            && nextIndex >= 0
-                            && index >= nextIndex)
-                    {
-                        continue;
-                    }
-
-                    nextIndex = index;
-                    nextDistance = distance;
-                }
-
-                if (nextIndex < 0)
-                {
-                    break;
-                }
-
-                previousDistance = nextDistance;
-                previousIndex = nextIndex;
-                BuildableObject selectedCandidate = buildings[nextIndex];
-                bool isSameFloor =
-                    selectedCandidate.centerPos.y == origin.y;
-                if (!isSameFloor
-                    && hasSameFloorCandidate
-                    && !sameFloorHasAvailableApproach)
-                {
-                    break;
-                }
-
-                if (isSameFloor
-                    && HasAvailableSafeReliefApproach(
-                        grid,
-                        actorId,
-                        origin,
-                        selectedCandidate.centerPos,
-                        includeTarget: false))
-                {
-                    sameFloorHasAvailableApproach = true;
-                }
-
-                CharacterSafeReliefApproachSearchStatus approachStatus =
-                    TryFindReachableSafeReliefApproach(
-                        grid,
-                        actor,
-                        actorId,
-                        selectedCandidate.centerPos,
-                        includeTarget: false,
-                        allowPathSearch: allowPathSearch,
-                        out Vector2Int approach,
-                        out Queue<GridMoveStep> path);
-                if (approachStatus ==
-                    CharacterSafeReliefApproachSearchStatus.Pending)
-                {
-                    searchPending = true;
-                    return false;
-                }
-
-                if (approachStatus !=
-                    CharacterSafeReliefApproachSearchStatus.Reachable)
-                {
-                    continue;
-                }
-
-                selected = selectedCandidate;
-                selectedApproach = approach;
-                selectedPath = path;
-                break;
-            }
-        }
-
-        if (selected == null)
-        {
-            return false;
-        }
-
-        ReserveSafeReliefApproach(actorId, selectedApproach);
-        return true;
-    }
-
-    private bool IsUsableWaterFacility(BuildableObject candidate)
-    {
-        return candidate != null
-            && candidate.gameObject.activeInHierarchy
-            && !candidate.IsGridDestroyed
-            && candidate.BuildingData?.GetAbility<BuildingWaterSourceAbility>() != null
-            && survivalFoodRuntime.HasSurvivalWorkAvailable(
-                candidate,
-                BuiltInWorkTypeIds.DrawWater);
+        return false;
     }
 
     private CharacterSafeReliefApproachSearchStatus TryFindReachableSafeReliefApproach(

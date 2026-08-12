@@ -8,6 +8,7 @@ public static class ProcedureOperatorRequirementRuntimeExtensions
         this ProcedureOperatorRequirement requirement,
         CharacterActor actor,
         MedicalProcedureFamily family,
+        ICharacterPerformanceQuery performance,
         out float weightedScore,
         out DomainFailure failure)
     {
@@ -18,39 +19,18 @@ public static class ProcedureOperatorRequirementRuntimeExtensions
             failure = new DomainFailure(FailureCode.SurgeryOperatorMissing);
             return false;
         }
-
-        IReadOnlyList<ProcedureOperatorStatRequirement> requirements =
-            requirement != null && requirement.IsConfigured
-                ? requirement.Stats
-                : BuildDefaults(family);
-        float totalWeight = 0f;
-        foreach (ProcedureOperatorStatRequirement statRequirement in requirements)
+        if (performance == null) throw new ArgumentNullException(nameof(performance));
+        CharacterPerformanceSnapshot snapshot = performance.Evaluate(
+            actor,
+            CharacterPerformanceFormulaIds.SurgerySuccess);
+        if (!snapshot.IsApplicable)
         {
-            if (statRequirement == null
-                || string.IsNullOrWhiteSpace(statRequirement.statId)
-                || statRequirement.weight <= 0f)
-            {
-                continue;
-            }
-
-            int value = actor.Stats != null
-                ? actor.Stats.GetCharacterStat(statRequirement.statId)
-                : 0;
-            if (value < statRequirement.minimumValue)
-            {
-                failure = new DomainFailure(
-                    FailureCode.SurgeryOperatorStatInsufficient,
-                    statRequirement.statId,
-                    statRequirement.minimumValue.ToString(),
-                    value.ToString());
-                return false;
-            }
-
-            weightedScore += value * statRequirement.weight;
-            totalWeight += statRequirement.weight;
+            failure = new DomainFailure(
+                FailureCode.SurgeryOperatorSkillInsufficient,
+                snapshot.Failure?.Message ?? "required functional capacity unavailable");
+            return false;
         }
-
-        weightedScore = totalWeight > 0f ? weightedScore / totalWeight : 0f;
+        weightedScore = snapshot.Value * 5f;
         float required = requirement != null && requirement.IsConfigured
             ? requirement.MinimumWeightedScore
             : 3f;
@@ -71,84 +51,21 @@ public static class ProcedureOperatorRequirementRuntimeExtensions
     public static float GetWorkSpeedMultiplier(
         this ProcedureOperatorRequirement requirement,
         CharacterActor actor,
-        MedicalProcedureFamily family)
+        MedicalProcedureFamily family,
+        ICharacterPerformanceQuery performance)
     {
-        requirement.IsQualified(actor, family, out float score, out _);
-        return Mathf.Clamp(0.55f + score * 0.09f, 0.45f, 2.5f);
+        if (performance == null) throw new ArgumentNullException(nameof(performance));
+        CharacterPerformanceSnapshot snapshot = performance.Evaluate(
+            actor,
+            CharacterPerformanceFormulaIds.SurgerySpeed);
+        return snapshot.IsApplicable ? snapshot.Value : 0f;
     }
 
     public static IReadOnlyList<string> Validate(
         this ProcedureOperatorRequirement requirement,
         string procedureId)
     {
-        List<string> errors = new();
-        if (requirement == null || !requirement.IsConfigured)
-        {
-            return errors;
-        }
-
-        foreach (ProcedureOperatorStatRequirement statRequirement in requirement.Stats)
-        {
-            if (statRequirement == null
-                || string.IsNullOrWhiteSpace(statRequirement.statId)
-                || statRequirement.weight <= 0f)
-            {
-                errors.Add($"{procedureId}: invalid operator stat requirement.");
-                continue;
-            }
-
-            if (!CharacterStatCatalog.TryGet(statRequirement.statId, out _))
-            {
-                errors.Add(
-                    $"{procedureId}: unknown operator stat '{statRequirement.statId}'.");
-            }
-        }
-
-        return errors;
-    }
-
-    private static IReadOnlyList<ProcedureOperatorStatRequirement> BuildDefaults(
-        MedicalProcedureFamily family)
-    {
-        return family switch
-        {
-            MedicalProcedureFamily.Construct => new[]
-            {
-                Stat(CharacterStatIds.Dexterity, 0.45f),
-                Stat(CharacterStatIds.Strength, 0.25f),
-                Stat(CharacterStatIds.Research, 0.30f)
-            },
-            MedicalProcedureFamily.Slime or MedicalProcedureFamily.Myconid => new[]
-            {
-                Stat(CharacterStatIds.Medical, 0.45f),
-                Stat(CharacterStatIds.Dexterity, 0.35f),
-                Stat(CharacterStatIds.Research, 0.20f)
-            },
-            MedicalProcedureFamily.Demonic or MedicalProcedureFamily.Arcane => new[]
-            {
-                Stat(CharacterStatIds.Medical, 0.35f),
-                Stat(CharacterStatIds.Dexterity, 0.25f),
-                Stat(CharacterStatIds.Research, 0.40f)
-            },
-            _ => new[]
-            {
-                Stat(CharacterStatIds.Medical, 0.65f),
-                Stat(CharacterStatIds.Dexterity, 0.25f),
-                Stat(CharacterStatIds.Research, 0.10f)
-            }
-        };
-    }
-
-    private static ProcedureOperatorStatRequirement Stat(string id, float weight)
-    {
-        return new ProcedureOperatorStatRequirement { statId = id, weight = weight };
-    }
-
-    private static string ResolveStatLabel(string statId)
-    {
-        return CharacterStatCatalog.TryGet(statId, out CharacterStatDefinition definition)
-            ? definition.DisplayName
-            : statId;
+        return Array.Empty<string>();
     }
 }
 
@@ -298,13 +215,16 @@ public interface ISurgicalPartRuntime
 
 public interface ISurgicalAugmentationQuery
 {
-    int GetStatBonus(string subjectId, CharacterStatType statType);
     string GetSpecialEffectLabel(SurgicalPartInstance part);
 }
 
 public interface ISurgeryQuery
 {
     IReadOnlyList<SurgeryOrder> ActiveOrders { get; }
+    bool TryGetAutomaticMaintenanceSuggestion(
+        CharacterActor actor,
+        out string procedureId,
+        out string targetNodeId);
     bool TryGetOrder(string orderId, out SurgeryOrder order);
     bool HasWorkFor(BuildableObject facility);
     bool TryGetWorkFor(

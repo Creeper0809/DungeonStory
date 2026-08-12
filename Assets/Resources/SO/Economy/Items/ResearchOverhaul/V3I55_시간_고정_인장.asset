@@ -27,28 +27,33 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC2DC\uAC04 \uACE0\uC815
     \uC778\uC7A5."
   stockCategory: 1
-  unitWeight: 1.87
+  unitWeight: 2.65
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 120
+  unitPrice: 541
   features:
-  - rid: 7737211838078124413
-  - rid: 7737211838078124414
-  - rid: 7737211838078124415
+  - rid: 7737211905658585298
+  - rid: 7737211905658585299
+  - rid: 7737211905658585300
+  - rid: 7737211905660420531
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124413
+    - rid: 7737211905658585298
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:temporal-stasis
-    - rid: 7737211838078124414
+    - rid: 7737211905658585299
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1536
         sharedIntermediate: 0
-    - rid: 7737211838078124415
+    - rid: 7737211905658585300
       type: {class: MedicalProcedureSupplyItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         procedureId: procedure:temporal-stasis
+    - rid: 7737211905660420531
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.60011244

@@ -26,28 +26,29 @@ MonoBehaviour:
   displayName: "\uC7AC\uC0DD \uBC30\uC591\uC561"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC7AC\uC0DD \uBC30\uC591\uC561."
   stockCategory: 5
-  unitWeight: 3.8799999
+  unitWeight: 0.55
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 254
+  unitPrice: 41
   features:
-  - rid: 7737211838078124427
-  - rid: 7737211838078124428
-  - rid: 7737211838078124429
+  - rid: 7737211905658585959
+  - rid: 7737211905658585960
+  - rid: 7737211905658585961
+  - rid: 7737211905660420778
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124427
+    - rid: 7737211905658585959
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:regenerative-culture
-    - rid: 7737211838078124428
+    - rid: 7737211905658585960
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737211838078124429
+    - rid: 7737211905658585961
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 1
@@ -55,3 +56,7 @@ MonoBehaviour:
         infectionReduction: 6
         detoxReduction: 0
         painReduction: 4
+    - rid: 7737211905660420778
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6018123

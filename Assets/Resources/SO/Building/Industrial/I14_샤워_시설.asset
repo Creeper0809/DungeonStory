@@ -34,17 +34,32 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211838074978704
-    - rid: 7737211838074978705
-    - rid: 7737211838074978706
-    - rid: 7737211838074978707
-    - rid: 7737211838074978708
-    - rid: 7737211838074978709
-    - rid: 7737211838074978710
+    - rid: 7737211905655964012
+    - rid: 7737211905655964013
+    - rid: 7737211905655964014
+    - rid: 7737211905655964015
+    - rid: 7737211905655964016
+    - rid: 7737211905655964017
+    - rid: 7737211905655964018
   width: 1
   height: 1
   layer: 1
@@ -60,12 +75,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074978704
+    - rid: 7737211905655964012
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I14
-    - rid: 7737211838074978705
+    - rid: 7737211905655964013
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -74,26 +89,41 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211838074978706
+    - rid: 7737211905655964014
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 36
-        repairWorkRequired: 12
-        cleanWorkRequired: 8
+        constructionWorkRequired: 208
+        repairWorkRequired: 62
+        cleanWorkRequired: 10
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: component:machine-parts
+        - itemId: material:stone-block
           amount: 3
-    - rid: 7737211838074978707
+        - itemId: material:iron-ingot
+          amount: 2
+        - itemId: component:machine-parts
+          amount: 1
+    - rid: 7737211905655964015
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 10
         normallyOpen: 1
-    - rid: 7737211838074978708
+    - rid: 7737211905655964016
       type: {class: BuildingWaterFixtureAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWaterFixtureAbility
@@ -103,7 +133,7 @@ MonoBehaviour:
         allowsManualWaterFallback: 0
         allowsDryFallback: 0
         manualWasteItemId: 
-    - rid: 7737211838074978709
+    - rid: 7737211905655964017
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -114,7 +144,7 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 536870924
           disabledWhenDamaged: 1
-    - rid: 7737211838074978710
+    - rid: 7737211905655964018
       type: {class: BuildingNeedRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingNeedRecoveryAbility

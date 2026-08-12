@@ -2,6 +2,21 @@
 command = 'C:\Users\vulpo\.unity\relay\relay_win.exe'
 args = ['--mcp']
 
+[mcp_servers.unity-mcp.tools.Unity_ReadConsole]
+approval_mode = "approve"
+
+[mcp_servers.unity-mcp.tools.Unity_GetProjectData]
+approval_mode = "approve"
+
+[mcp_servers.unity-mcp.tools.Unity_ManageEditor]
+approval_mode = "approve"
+
+[mcp_servers.unity-mcp.tools.Unity_ManageAsset]
+approval_mode = "approve"
+
+[mcp_servers.unity-mcp.tools.Unity_GetConsoleLogs]
+approval_mode = "approve"
+
 [mcp_servers.dungeon-player]
 command = "python"
 args = ["F:/01_Programming/01_Project/02_Unity/DungeonStory/tools/player-automation/dungeon_player_mcp.py"]

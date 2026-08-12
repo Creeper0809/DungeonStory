@@ -1,0 +1,12 @@
+POPULATION_HEALTH_BALANCE=PASS
+definitions=16
+contagious=15
+samplesPerDisease=100000
+fullDayBaseInfectionRange=0.070-0.250
+severityRange=25.0-70.0
+mitigatedExposure=8h@0.50_environment
+vaccineInitialImmunity=70.0
+vaccineDay30Immunity=68.5
+detailedStats=disease_resistance,disease_recovery,immunity_gain,immunity_retention
+epidemicDeclare=3_diagnoses_within_10_days
+epidemicClose=14_days_without_new_case

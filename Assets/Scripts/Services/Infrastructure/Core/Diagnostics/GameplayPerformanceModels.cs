@@ -153,8 +153,12 @@ public sealed class GameplayPerformanceReport
     public long monoUsedLastQuarterAverageBytes;
     public long sustainedMonoGrowthBytes;
     public long retainedMonoGrowthBytes;
+    public int editorBaselineGcSampleCount;
     public double editorBaselineGcAverageBytes;
+    public long editorBaselineGcP95Bytes;
+    public long editorBaselineGcMaximumBytes;
     public double gameplayIncrementalGcAverageBytes;
+    public double gameplayIncrementalGcP95Bytes;
     public int warningCount;
     public int errorCount;
     public bool valid;
@@ -163,9 +167,12 @@ public sealed class GameplayPerformanceReport
     public bool meets60FpsEverySample;
     public bool meetsSchedulerP95Target;
     public bool meetsAverageGcTarget;
+    public bool meetsGcDistributionTarget;
     public bool meetsMemoryGrowthTarget;
     public bool meetsMixedPopulationTarget;
     public bool usesEditorBaselineAdjustedGcTarget;
+    public bool isFinalGcAuthority;
+    public string gcAcceptanceAuthority;
     public bool vSyncDisabled;
     public int targetFrameRate;
     public bool measurementIncludesRendering;

@@ -238,24 +238,6 @@ public interface IInvasionOwnerEvacuationService
 public static class DefenseCombatFormula
 {
     public static float CalculateDamage(
-        CharacterActor attacker,
-        CharacterActor defender,
-        float attackMultiplier = 1f)
-    {
-        if (attacker == null || defender == null)
-        {
-            return 0f;
-        }
-
-        return CalculateDamage(
-            attacker.GetCharacterStat(CharacterStatType.Attack),
-            attacker.GetCharacterStat(CharacterStatType.Strength),
-            attacker.GetCombatPowerMultiplier(),
-            defender.GetCharacterStat(CharacterStatType.Toughness),
-            attackMultiplier);
-    }
-
-    public static float CalculateDamage(
         float attack,
         float strength,
         float combatPowerMultiplier,
@@ -267,20 +249,6 @@ public static class DefenseCombatFormula
             combatPowerMultiplier,
             defenderToughness,
             attackMultiplier);
-
-    public static float CalculateAttackInterval(
-        CharacterActor attacker,
-        float attackSpeedMultiplier = 1f)
-    {
-        if (attacker == null)
-        {
-            return 1.2f;
-        }
-
-        return CalculateAttackInterval(
-            attacker.GetCharacterStat(CharacterStatType.Dexterity),
-            attackSpeedMultiplier);
-    }
 
     public static float CalculateAttackInterval(
         float dexterity,

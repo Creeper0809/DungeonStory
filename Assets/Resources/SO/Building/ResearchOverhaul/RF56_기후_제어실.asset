@@ -34,18 +34,33 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 5
   researchFacilityCommand: 13
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211838078124650
-    - rid: 7737211838078124651
-    - rid: 7737211838078124652
-    - rid: 7737211838078124653
-    - rid: 7737211838078124654
-    - rid: 7737211838078124655
-    - rid: 7737211838078124656
-    - rid: 7737211838078124657
+    - rid: 7737211905660420109
+    - rid: 7737211905660420110
+    - rid: 7737211905660420111
+    - rid: 7737211905660420112
+    - rid: 7737211905660420113
+    - rid: 7737211905660420114
+    - rid: 7737211905660420115
+    - rid: 7737211905660420116
   width: 1
   height: 1
   layer: 1
@@ -61,12 +76,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124650
+    - rid: 7737211905660420109
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF56
-    - rid: 7737211838078124651
+    - rid: 7737211905660420110
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -74,13 +89,13 @@ MonoBehaviour:
         - research-overhaul
         - research:climate:environment-control
         - workstation:v19:climate-control
-    - rid: 7737211838078124652
+    - rid: 7737211905660420111
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v19:climate-control
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211838078124653
+    - rid: 7737211905660420112
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -88,16 +103,16 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211838078124654
+    - rid: 7737211905660420113
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
-        constructionCost: 300
-        maintenance: 5
+        constructionCost: 420
+        maintenance: 4
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211838078124655
+    - rid: 7737211905660420114
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -108,19 +123,30 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 273
           disabledWhenDamaged: 1
-    - rid: 7737211838078124656
+    - rid: 7737211905660420115
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211838078124657
+    - rid: 7737211905660420116
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 255
-        repairWorkRequired: 24
+        constructionWorkRequired: 200
+        repairWorkRequired: 34
         cleanWorkRequired: 8
         researchWorkRequired: 6
         operateWorkRequired: 12
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
         - itemId: material:stone-block
           amount: 12

@@ -90,6 +90,13 @@ internal sealed class StaffManagementSurfacePanel
     private readonly IPlayerStaffCommandSource playerStaffCommands;
     private readonly ICharacterMoodImpulseQuery moodImpulseQuery;
     private readonly IGameEventBus gameEventBus;
+    private readonly ICharacterApologyCommand apologyCommands;
+    private readonly ICharacterRitualFastingQuery ritualFastingQuery;
+    private readonly ICharacterRitualFastingCommand ritualFastingCommands;
+    private readonly ICharacterManaQuery manaQuery;
+    private readonly IArcaneOverchargeCommand arcaneOverchargeCommands;
+    private readonly ICombatEquipmentRuntime combatEquipment;
+    private readonly ICharacterPerformanceQuery performance;
     private readonly Func<CharacterActor> getSelectedCharacter;
     private readonly Action<CharacterActor> setSelectedCharacter;
     private readonly List<GameObject> spawnedObjects = new List<GameObject>();
@@ -102,6 +109,13 @@ internal sealed class StaffManagementSurfacePanel
         IStaffManagementSurfaceCommand viewCommands,
         IStaffWorkPriorityPanelModelBuilder modelBuilder,
         StaffManagementDomainContext domain,
+        ICharacterApologyCommand apologyCommands,
+        ICharacterRitualFastingQuery ritualFastingQuery,
+        ICharacterRitualFastingCommand ritualFastingCommands,
+        ICharacterManaQuery manaQuery,
+        IArcaneOverchargeCommand arcaneOverchargeCommands,
+        ICombatEquipmentRuntime combatEquipment,
+        ICharacterPerformanceQuery performance,
         Func<CharacterActor> getSelectedCharacter,
         Action<CharacterActor> setSelectedCharacter)
     {
@@ -118,6 +132,14 @@ internal sealed class StaffManagementSurfacePanel
         playerStaffCommands = domain.PlayerCommands;
         moodImpulseQuery = domain.MoodImpulse;
         gameEventBus = domain.EventBus;
+        this.apologyCommands = apologyCommands;
+        this.ritualFastingQuery = ritualFastingQuery;
+        this.ritualFastingCommands = ritualFastingCommands;
+        this.manaQuery = manaQuery;
+        this.arcaneOverchargeCommands = arcaneOverchargeCommands;
+        this.combatEquipment = combatEquipment;
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
         this.getSelectedCharacter = getSelectedCharacter
             ?? throw new ArgumentNullException(nameof(getSelectedCharacter));
         this.setSelectedCharacter = setSelectedCharacter
@@ -272,6 +294,9 @@ internal sealed class StaffManagementSurfacePanel
         BuildDutyAndDiscontent(selectedWorker, workers);
         BuildOwnerCommands(selectedWorker, workers);
         BuildCharacterProfile(selectedWorker);
+        BuildRitualFastActions(selectedWorker);
+        BuildArcaneOverchargeActions(selectedWorker);
+        BuildApologyActions(selectedWorker, workers);
         BuildCharacterAi(selectedWorker);
     }
 
@@ -435,8 +460,7 @@ internal sealed class StaffManagementSurfacePanel
         string traits = profile != null && profile.TraitDisplayNames.Count > 0
             ? string.Join(", ", profile.TraitDisplayNames)
             : "특성 없음";
-        CharacterStats stats = worker.Character.Stats;
-        string abilitySummary = BuildCharacterStatSummary(stats);
+        string abilitySummary = "현재 능력은 9종 숙련 XP에서 계산됩니다. 상세 숙련 탭에서 작업 속도·품질·사고 위험 효과를 확인하세요.";
         AddManagementBanner("캐릭터 프로필/종족/특성", $"{identity?.SpeciesTag ?? UndeterminedText} · {traits}");
         CreateManagementCard(
             "P1Action_StaffProfile",
@@ -445,6 +469,179 @@ internal sealed class StaffManagementSurfacePanel
             "프로필 확인",
             () => gameEventBus.ShowNotice($"프로필 확인: {worker.Name}", NoticeFeedEvent.Grade.NONE),
             156f);
+    }
+
+    private void BuildApologyActions(
+        StaffWorkPriorityRowModel offender,
+        IReadOnlyList<StaffWorkPriorityRowModel> workers)
+    {
+        if (apologyCommands == null || offender.Character == null)
+            return;
+
+        StaffWorkPriorityRowModel[] recipients = workers
+            .Where(candidate => candidate.Character != null
+                && candidate.Character != offender.Character)
+            .Where(candidate => apologyCommands.CanApologize(
+                offender.Character,
+                candidate.Character,
+                restitutionProvided: false,
+                out _))
+            .OrderBy(candidate => candidate.Name, StringComparer.Ordinal)
+            .ToArray();
+        if (recipients.Length == 0)
+            return;
+
+        AddManagementBanner(
+            "관계 회복",
+            "실제 충돌 기억이 있고 보상 없이 받아들일 수 있는 상대에게 사과합니다.");
+        for (int index = 0; index < recipients.Length; index++)
+        {
+            StaffWorkPriorityRowModel recipient = recipients[index];
+            CreateManagementCard(
+                $"P1Action_StaffApology_{index}",
+                $"{recipient.Name}에게 사과",
+                "사과가 받아들여지면 관계 기억과 특성 기분 반응이 갱신됩니다.",
+                "사과",
+                () =>
+                {
+                    bool succeeded = apologyCommands.TryApologize(
+                        offender.Character,
+                        recipient.Character,
+                        restitutionProvided: false,
+                        out string reason);
+                    gameEventBus.ShowNotice(
+                        succeeded ? $"{recipient.Name}에게 사과했습니다." : reason,
+                        NoticeFeedEvent.Grade.NONE);
+                    Refresh();
+                },
+                76f);
+        }
+    }
+
+    private void BuildRitualFastActions(StaffWorkPriorityRowModel worker)
+    {
+        CharacterActor actor = worker.Character;
+        CharacterRitualFastStatus status = ritualFastingQuery?.GetStatus(actor)
+            ?? default;
+        if (!status.Available || ritualFastingCommands == null)
+            return;
+
+        AddManagementBanner(
+            "의식 단식",
+            "단식 상태는 저장되며 자동 식사를 막습니다. 직접 식사를 명령하면 단식이 파기됩니다.");
+        if (status.Phase == CharacterRitualFastPhase.Inactive)
+        {
+            CreateManagementCard(
+                "P1Action_RitualFastBegin",
+                "의식 단식 시작",
+                "오늘 단식을 시작합니다. 다음 날부터 완수할 수 있습니다.",
+                "시작",
+                () =>
+                {
+                    bool success = ritualFastingCommands.TryBegin(actor, out string reason);
+                    gameEventBus.ShowNotice(
+                        success ? "의식 단식을 시작했습니다." : reason,
+                        success ? NoticeFeedEvent.Grade.NONE : NoticeFeedEvent.Grade.WARNING);
+                    Refresh();
+                },
+                76f);
+            return;
+        }
+
+        if (status.Phase == CharacterRitualFastPhase.AwaitingPostFastMeal)
+        {
+            CreateManagementStatusCard(
+                "P1State_RitualFastEnded",
+                "의식 단식 완수",
+                "다음 식사 주기까지 음식 소비 배율이 1.15배이며, 실제 식사를 마치면 상태가 해제됩니다.",
+                76f);
+            return;
+        }
+
+        CreateManagementCard(
+            "P1Action_RitualFastComplete",
+            "의식 단식 진행 중",
+            status.CanComplete
+                ? "최소 하루를 채웠습니다. 지금 완수할 수 있습니다."
+                : "시작 당일에는 완수할 수 없습니다.",
+            "완수",
+            () =>
+            {
+                bool success = ritualFastingCommands.TryComplete(actor, out string reason);
+                gameEventBus.ShowNotice(
+                    success ? "의식 단식을 완수했습니다." : reason,
+                    success ? NoticeFeedEvent.Grade.NONE : NoticeFeedEvent.Grade.WARNING);
+                Refresh();
+            },
+            76f);
+        CreateManagementCard(
+            "P1Action_RitualFastBreak",
+            "의식 단식 중단",
+            "단식을 파기하고 특성의 기분 비용을 적용합니다.",
+            "중단",
+            () =>
+            {
+                bool success = ritualFastingCommands.TryBreak(actor, out string reason);
+                gameEventBus.ShowNotice(
+                    success ? "의식 단식을 중단했습니다." : reason,
+                    success ? NoticeFeedEvent.Grade.NONE : NoticeFeedEvent.Grade.WARNING);
+                Refresh();
+            },
+            76f);
+    }
+
+    private void BuildArcaneOverchargeActions(StaffWorkPriorityRowModel worker)
+    {
+        CharacterActor actor = worker.Character;
+        if (actor == null
+            || manaQuery == null
+            || arcaneOverchargeCommands == null
+            || combatEquipment == null
+            || !actor.Progression.ResolveSelectedTraits()
+                .Any(trait => trait != null && trait.id == 306))
+            return;
+
+        string characterId = actor.Identity?.PersistentId?.Trim()
+            ?? string.Empty;
+        if (characterId.Length == 0
+            || !combatEquipment.TryGetActiveProfileSnapshot(
+                characterId,
+                out CharacterCombatLoadoutProfile loadout))
+            return;
+        string instanceId = (loadout.weaponInstanceIds
+                ?? new List<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .FirstOrDefault(value =>
+                combatEquipment.TryGetDerivedStats(
+                    value,
+                    out CombatEquipmentDerivedStats stats)
+                && CharacterArcaneWeaponRules.IsArcane(stats.DefinitionId));
+        if (string.IsNullOrWhiteSpace(instanceId))
+            return;
+
+        CharacterManaSnapshot mana = manaQuery.GetMana(actor);
+        CreateManagementCard(
+            "P1Action_ArcaneOvercharge",
+            $"마력 과충전 · 마나 {mana.Current:0.#}/{mana.Maximum:0.#}",
+            "마나 30% 미만에서 20초간 비전 위력 +60%. 최대 체력 15%와 착용 룬 장비 내구도 25%를 소비하고 1일간 마나 회복이 절반이 됩니다.",
+            "과충전",
+            () =>
+            {
+                bool succeeded = arcaneOverchargeCommands.TryActivate(
+                    actor,
+                    instanceId,
+                    out _,
+                    out string reason);
+                gameEventBus.ShowNotice(
+                    succeeded ? "마력 과충전을 발동했습니다." : reason,
+                    succeeded
+                        ? NoticeFeedEvent.Grade.NONE
+                        : NoticeFeedEvent.Grade.WARNING);
+                Refresh();
+            },
+            96f);
     }
 
     private static string BuildCharacterStatSummary(CharacterStats stats)
@@ -456,9 +653,19 @@ internal sealed class StaffManagementSurfacePanel
 
         return string.Join(
             "\n",
-            CharacterStatCatalog.All
+            new[]
+            {
+                ("현장", "performance:work:haul:speed"),
+                ("건설", "performance:work:construct:speed"),
+                ("제작", "performance:work:craft:speed"),
+                ("연구", "performance:work:research:speed"),
+                ("수술", "performance:medical:surgery-success"),
+                ("협상", "performance:social:negotiation"),
+                ("근접", "performance:combat:melee-hit"),
+                ("원거리", "performance:combat:ranged-hit")
+            }
                 .Select(definition =>
-                    $"{definition.DisplayName} {stats.GetCharacterStat(definition.Id)}")
+                    $"{definition.Item1} {stats.EvaluatePerformance(definition.Item2).Value * 100f:0}%")
                 .Select((text, index) => new { text, row = index / 4 })
                 .GroupBy(item => item.row)
                 .Select(row => string.Join(" · ", row.Select(item => item.text))));

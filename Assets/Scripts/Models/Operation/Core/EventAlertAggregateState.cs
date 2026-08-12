@@ -30,13 +30,22 @@ public sealed class EventAlertAggregateState
 
 public sealed class EventAlertRestoreCandidate
 {
-    public EventAlertRestoreCandidate(EventAlertAggregateState state)
+    public EventAlertRestoreCandidate(
+        EventAlertAggregateState state,
+        DungeonStory.Infrastructure.SettlementThreatAlertSaveData threatAlert = null,
+        DungeonStory.Infrastructure.SettlementLaborSaveData labor = null)
     {
         State = state
             ?? throw new System.ArgumentNullException(nameof(state));
+        ThreatAlert = threatAlert
+            ?? new DungeonStory.Infrastructure.SettlementThreatAlertSaveData();
+        Labor = labor
+            ?? new DungeonStory.Infrastructure.SettlementLaborSaveData();
     }
 
     public EventAlertAggregateState State { get; }
+    public DungeonStory.Infrastructure.SettlementThreatAlertSaveData ThreatAlert { get; }
+    public DungeonStory.Infrastructure.SettlementLaborSaveData Labor { get; }
 }
 
 }

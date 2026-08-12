@@ -43,6 +43,9 @@ MonoBehaviour:
     amount: 12
   - itemId: resource:feather
     amount: 14
+  tradeCooldownDays: 16
+  supplyCooldownDays: 22
+  reinforcementCooldownDays: 10
 --- !u!213 &3228507006170723322
 Sprite:
   m_ObjectHideFlags: 0
@@ -64,7 +67,7 @@ Sprite:
   m_IsPolygon: 0
   m_PackingTag: 
   m_RenderDataKey:
-    00000000000000000000000000000000: 0
+    615a61544a675ac419b30da06c9782a3: 3228507006170723322
   m_AtlasTags: []
   m_SpriteAtlas: {fileID: 0}
   m_RD:

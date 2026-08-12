@@ -27,23 +27,28 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC885\uC871 \uC7A5\uB840
     \uC900\uBE44\uD488."
   stockCategory: 1
-  unitWeight: 3.1
+  unitWeight: 1.2
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 202
+  unitPrice: 41
   features:
-  - rid: 7737211838078124771
-  - rid: 7737211838078124772
+  - rid: 7737211905660420183
+  - rid: 7737211905660420184
+  - rid: 7737211905660420857
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124771
+    - rid: 7737211905660420183
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:society:corpse-care
-    - rid: 7737211838078124772
+    - rid: 7737211905660420184
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 128
         sharedIntermediate: 0
+    - rid: 7737211905660420857
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.60621715

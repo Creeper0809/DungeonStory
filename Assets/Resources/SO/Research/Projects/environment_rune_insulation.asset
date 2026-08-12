@@ -46,22 +46,23 @@ MonoBehaviour:
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211838079697022
-    - rid: 7737211838079697023
+    - rid: 7737211905660421044
+    - rid: 7737211905660421045
   facilityRequirements:
   - capability: 0
     requiredCount: 1
   - capability: 3
     requiredCount: 1
   icon: {fileID: 0}
+  effects: []
   references:
     version: 2
     RefIds:
-    - rid: 7737211838079697022
+    - rid: 7737211905660421044
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1502
-    - rid: 7737211838079697023
+    - rid: 7737211905660421045
       type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         recipeId: recipe:v22:apparel:rune-cold-suit

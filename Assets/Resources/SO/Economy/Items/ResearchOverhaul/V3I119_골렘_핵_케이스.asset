@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uACE8\uB818 \uD575 \uCF00\uC774\uC2A4"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uACE8\uB818 \uD575 \uCF00\uC774\uC2A4."
   stockCategory: 1
-  unitWeight: 3.79
+  unitWeight: 2.55
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 248
+  unitPrice: 86
   features:
-  - rid: 7737211838078124916
-  - rid: 7737211838078124917
+  - rid: 7737211905658585556
+  - rid: 7737211905658585557
+  - rid: 7737211905660420638
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124916
+    - rid: 7737211905658585556
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:construct-core-engineering
-    - rid: 7737211838078124917
+    - rid: 7737211905658585557
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1536
         sharedIntermediate: 0
+    - rid: 7737211905660420638
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6023905

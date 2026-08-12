@@ -242,7 +242,7 @@ internal static class V21FunctionalContentUiPlayModeScenario
     {
         public bool IsDetailVisible { get; private set; }
         public void EnsureRuntimeUI() { }
-        public void DestroyRuntimeUI() { }
+        public void DestroyRuntimeUI(bool immediate = false) { }
         public void CreateButton(EventAlertRecord record) { }
         public void UpdateButton(EventAlertRecord record) { }
         public void RemoveButton(EventAlertRecord record) { }

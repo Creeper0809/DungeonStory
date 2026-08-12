@@ -10,6 +10,14 @@ public enum ProductionProcessKind
     PassiveBatch = 1
 }
 
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum ProductionFlowRole
+{
+    Transform = 0,
+    Source = 1,
+    Sink = 2
+}
+
 [CreateAssetMenu(menuName = "DungeonStory/Economy/Production Recipe", order = 1)]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class ProductionRecipeSO : DataScriptableObject
@@ -25,7 +33,11 @@ public sealed class ProductionRecipeSO : DataScriptableObject
         new List<string>();
     [SerializeField] private string batchSupportTag = string.Empty;
     [SerializeField] private ProductionProcessKind processKind;
+    [SerializeField] private ProductionFlowRole flowRole;
+    [SerializeField] private ProductionProcessClass processClass;
+    [SerializeField] private bool processClassAuthored;
     [SerializeField] private string workTypeId = "work:craft";
+    [SerializeField] private ProficiencyWorkProfileAuthoring proficiency = new();
     [SerializeField] private string requiredResearchId = string.Empty;
     [Min(0.1f), SerializeField] private float requiredWork = 10f;
     [Min(0f), SerializeField] private float preparationWork;
@@ -52,8 +64,13 @@ public sealed class ProductionRecipeSO : DataScriptableObject
         requiredSupportTags ??= new List<string>();
     public string BatchSupportTag => batchSupportTag?.Trim() ?? string.Empty;
     public ProductionProcessKind ProcessKind => processKind;
+    public ProductionFlowRole FlowRole => flowRole;
+    public ProductionProcessClass ProcessClass => processClass;
+    public bool HasAuthoredProcessClass => processClassAuthored;
     public WorkTypeId WorkTypeId => new WorkTypeId(
         string.IsNullOrWhiteSpace(workTypeId) ? "work:craft" : workTypeId);
+    public ProficiencyWorkProfileAuthoring Proficiency =>
+        proficiency ??= new ProficiencyWorkProfileAuthoring();
     public string RequiredResearchId => requiredResearchId?.Trim() ?? string.Empty;
     public float RequiredWork => Mathf.Max(0.1f, requiredWork);
     public float PreparationWork => processKind == ProductionProcessKind.PassiveBatch
@@ -153,6 +170,35 @@ public sealed class ProductionRecipeSO : DataScriptableObject
         wastewaterPerCycle = Mathf.Max(0f, wastewater);
         allowsManualWaterFallback = allowManualWater;
         spoilageItemId = failedBatchItemId?.Trim() ?? "waste:mixed-rot";
+    }
+
+    public void ConfigureProficiency(
+        CharacterProficiencyId primary,
+        CharacterProficiencyId secondary = default,
+        float primaryWeight = 1f,
+        CharacterProficiencyRank recommendedRank = CharacterProficiencyRank.Apprentice,
+        CharacterProficiencyRank minimumRiskRank = CharacterProficiencyRank.Apprentice) =>
+        (proficiency ??= new ProficiencyWorkProfileAuthoring()).Configure(
+            primary,
+            secondary,
+            primaryWeight,
+            recommendedRank,
+            minimumRiskRank);
+
+    public void ConfigureBalanceWork(float work)
+    {
+        requiredWork = Mathf.Max(0.1f, work);
+    }
+
+    public void ConfigureFlowRole(ProductionFlowRole role)
+    {
+        flowRole = role;
+    }
+
+    public void ConfigureProcessClass(ProductionProcessClass value)
+    {
+        processClass = value;
+        processClassAuthored = true;
     }
 #endif
 }

@@ -174,6 +174,21 @@ public sealed class CombatEquipmentRuntime :
         Vector2Int outputPosition,
         out string recoveredItemId,
         out int recoveredAmount,
+        out string failureReason) =>
+        TrySalvage(
+            instanceId,
+            worker: null,
+            outputPosition,
+            out recoveredItemId,
+            out recoveredAmount,
+            out failureReason);
+
+    public bool TrySalvage(
+        string instanceId,
+        CharacterActor worker,
+        Vector2Int outputPosition,
+        out string recoveredItemId,
+        out int recoveredAmount,
         out string failureReason)
     {
         recoveredItemId = string.Empty;
@@ -210,7 +225,13 @@ public sealed class CombatEquipmentRuntime :
         recoveredAmount = Mathf.FloorToInt(
             definition.PrimaryMaterialAmount
             * 0.5f
-            * Mathf.Clamp01(instance.durabilityRatio));
+            * Mathf.Clamp01(instance.durabilityRatio)
+            * (worker != null
+                ? Mathf.Max(
+                    0f,
+                    worker.GetDetailedStatMultiplier(
+                        GameplayEffectTargetIds.SalvageYield))
+                : 1f));
         if (recoveredAmount <= 0)
         {
             failureReason = "회수할 수 있는 재료가 남아 있지 않습니다.";
@@ -242,6 +263,114 @@ public sealed class CombatEquipmentRuntime :
         return true;
     }
 
+    public bool TryDiscardBySourceStack(
+        string sourceStackId,
+        out bool wasSalvageable,
+        out string failureReason)
+    {
+        wasSalvageable = false;
+        failureReason = string.Empty;
+        if (!TryGetInstanceBySourceStack(sourceStackId, out CombatEquipmentInstance instance)
+            || !catalog.TryGet(
+                instance.definitionId,
+                out CombatEquipmentDefinitionSO definition))
+        {
+            failureReason = "폐기할 장비 인스턴스를 찾을 수 없습니다.";
+            return false;
+        }
+        if (instance.worldState is CombatEquipmentWorldState.Equipped
+            or CombatEquipmentWorldState.ExpeditionPacked
+            or CombatEquipmentWorldState.MaintenanceBuffer)
+        {
+            failureReason = "장착·출정·수리 중인 장비는 폐기할 수 없습니다.";
+            return false;
+        }
+        wasSalvageable = definition.PrimaryMaterialAmount > 0
+            && instance.durabilityRatio > 0f;
+        if (!itemStackRuntime.DeleteStack(sourceStackId))
+        {
+            failureReason = "장비의 물리 아이템을 폐기하지 못했습니다.";
+            return false;
+        }
+        loadoutRuntime.RemoveEquipment(instance.instanceId);
+        instances.Remove(instance.instanceId);
+        return true;
+    }
+
+    public bool TryConsumeForMarketSale(
+        string sourceStackId,
+        out CombatEquipmentInstance soldInstance,
+        out string failureReason)
+    {
+        soldInstance = null;
+        failureReason = string.Empty;
+        string normalizedStackId = sourceStackId?.Trim() ?? string.Empty;
+        WorldItemStackSnapshot saleStack = itemStackRuntime.GetAllStacks()
+            .FirstOrDefault(stack => stack != null
+                && string.Equals(
+                    stack.StackId,
+                    normalizedStackId,
+                    StringComparison.Ordinal));
+        if (saleStack == null
+            || saleStack.Quantity != 1
+            || saleStack.State != WorldItemStackState.FacilityBuffer
+            || !string.Equals(
+                saleStack.DestinationId,
+                QualityRejectedOutputRules.MarketDestinationId,
+                StringComparison.Ordinal))
+        {
+            failureReason = "판매 집결점에 도착한 품질 미달 장비만 판매할 수 있습니다.";
+            return false;
+        }
+        CombatEquipmentInstance instance = instances.Values.FirstOrDefault(candidate =>
+            candidate != null
+            && string.Equals(
+                candidate.sourceStackId,
+                normalizedStackId,
+                StringComparison.Ordinal));
+        if (instance == null)
+        {
+            failureReason = "판매할 전투 장비 인스턴스를 찾을 수 없습니다.";
+            return false;
+        }
+        if (!string.Equals(
+                saleStack.ItemInstanceId,
+                instance.instanceId,
+                StringComparison.Ordinal))
+        {
+            failureReason = "전투 장비의 물리 인스턴스 ID가 일치하지 않습니다.";
+            return false;
+        }
+        if (!string.IsNullOrWhiteSpace(instance.ownerCharacterId)
+            || instance.worldState is CombatEquipmentWorldState.Equipped
+                or CombatEquipmentWorldState.ExpeditionPacked
+                or CombatEquipmentWorldState.MaintenanceBuffer
+                or CombatEquipmentWorldState.Carried)
+        {
+            failureReason = "장착·운반·출정·수리 중인 장비는 판매할 수 없습니다.";
+            return false;
+        }
+        if ((instance.moduleSlots ?? new List<EquipmentModuleSlotState>())
+            .Any(slot => slot != null
+                && !string.IsNullOrWhiteSpace(slot.moduleInstanceId)))
+        {
+            failureReason = "부품이 장착된 장비는 자동 판매할 수 없습니다.";
+            return false;
+        }
+        if (!itemStackRuntime.TryAbsorbUniqueItemStack(
+                normalizedStackId,
+                new ItemInstanceId(instance.instanceId)))
+        {
+            failureReason = "판매할 전투 장비의 물리 스택을 소비하지 못했습니다.";
+            return false;
+        }
+
+        loadoutRuntime.RemoveEquipment(instance.instanceId);
+        instances.Remove(instance.instanceId);
+        soldInstance = instance.Clone();
+        return true;
+    }
+
     public bool TryQueueCraft(
         string definitionId,
         BuildableObject craftingFacility,
@@ -267,6 +396,19 @@ public sealed class CombatEquipmentRuntime :
     {
         return crafting.HasPendingWork(craftableDefinitionIds);
     }
+
+    public bool TryGetNextCraftMaterialContext(
+        IEnumerable<string> craftableDefinitionIds,
+        CharacterActor worker,
+        out string definitionId,
+        out string materialId,
+        out bool usesSubstituteMaterial) =>
+        crafting.TryGetNextCraftMaterialContext(
+            craftableDefinitionIds,
+            worker,
+            out definitionId,
+            out materialId,
+            out usesSubstituteMaterial);
 
     public int ApplyCraftWork(
         IEnumerable<string> craftableDefinitionIds,
@@ -312,6 +454,27 @@ public sealed class CombatEquipmentRuntime :
             out completedQuality);
     }
 
+    public int ApplyCraftWork(
+        IEnumerable<string> craftableDefinitionIds,
+        float workUnits,
+        CharacterActor worker,
+        float relevantSkill,
+        out string completedDefinitionId,
+        out string completedMaterialId,
+        out CombatEquipmentQuality completedQuality,
+        out MythicProvenanceSaveData completedMythicProvenance)
+    {
+        return crafting.ApplyWork(
+            craftableDefinitionIds,
+            workUnits,
+            worker,
+            relevantSkill,
+            out completedDefinitionId,
+            out completedMaterialId,
+            out completedQuality,
+            out completedMythicProvenance);
+    }
+
     public WorkerSelectionPolicySaveData GetCraftWorkerPolicy(string orderId) =>
         crafting.GetWorkerPolicy(orderId);
 
@@ -351,6 +514,21 @@ public sealed class CombatEquipmentRuntime :
             quality,
             worldState,
             materialId);
+    }
+
+    public CombatEquipmentInstance CreateInstance(
+        string definitionId,
+        CombatEquipmentQuality quality,
+        CombatEquipmentWorldState worldState,
+        string materialId,
+        MythicProvenanceSaveData mythicProvenance)
+    {
+        return crafting.CreateInstance(
+            definitionId,
+            quality,
+            worldState,
+            materialId,
+            mythicProvenance);
     }
 
     public CombatEquipmentInstance CreateExternalInstance(
@@ -567,6 +745,15 @@ public sealed class CombatEquipmentRuntime :
     public CharacterCombatLoadoutProfile GetActiveProfileSnapshot(string characterId)
     {
         return loadoutRuntime.GetActiveProfileSnapshot(characterId);
+    }
+
+    public bool TryGetActiveProfileSnapshot(
+        string characterId,
+        out CharacterCombatLoadoutProfile profile)
+    {
+        return loadoutRuntime.TryGetActiveProfileSnapshot(
+            characterId,
+            out profile);
     }
 
     public bool TryGetActiveWeapon(
@@ -1073,6 +1260,7 @@ public sealed class CombatEquipmentRuntime :
     {
         return new DungeonCombatEquipmentSaveData
         {
+            nextCraftSequence = stateStore.Current.NextCraftSequence,
             loadouts = loadoutRuntime.Capture().ToList(),
             craftOrders = crafting.CaptureOrders().ToList(),
             craftMaterialPolicies = crafting.CapturePolicies().ToList(),

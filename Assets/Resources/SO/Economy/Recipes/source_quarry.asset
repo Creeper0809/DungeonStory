@@ -30,9 +30,19 @@ MonoBehaviour:
   requiredSupportTags: []
   batchSupportTag: 
   processKind: 0
+  flowRole: 1
+  processClass: 0
+  processClassAuthored: 1
   workTypeId: work:quarry
+  proficiency:
+    primaryProficiencyId: proficiency:fieldwork
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
   requiredResearchId: research:mining:quarry
-  requiredWork: 10
+  requiredWork: 32
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

@@ -26,28 +26,33 @@ MonoBehaviour:
   displayName: "\uC18C\uC774 \uD654\uC0B4"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC18C\uC774 \uD654\uC0B4."
   stockCategory: 7
-  unitWeight: 4
+  unitWeight: 0.15
   maxStack: 120
   sprite: {fileID: 0}
-  unitPrice: 262
+  unitPrice: 21
   features:
-  - rid: 7737211838074979186
-  - rid: 7737211838074979187
-  - rid: 7737211838074979188
+  - rid: 7737211905658585642
+  - rid: 7737211905658585643
+  - rid: 7737211905658585644
+  - rid: 7737211905660420686
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074979186
+    - rid: 7737211905658585642
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:incendiary-arrow
-    - rid: 7737211838074979187
+    - rid: 7737211905658585643
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:black-powder
-    - rid: 7737211838074979188
+    - rid: 7737211905658585644
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 512
         sharedIntermediate: 0
+    - rid: 7737211905660420686
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.60997975

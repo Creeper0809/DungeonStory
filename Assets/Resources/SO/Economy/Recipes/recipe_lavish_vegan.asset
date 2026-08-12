@@ -34,9 +34,19 @@ MonoBehaviour:
   - support:hearth
   batchSupportTag: 
   processKind: 0
+  flowRole: 0
+  processClass: 2
+  processClassAuthored: 1
   workTypeId: work:cook
+  proficiency:
+    primaryProficiencyId: proficiency:food-production
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
   requiredResearchId: research:cuisine:lavish
-  requiredWork: 18
+  requiredWork: 58
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

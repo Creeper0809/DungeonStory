@@ -34,15 +34,30 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211838074978561
-    - rid: 7737211838074978562
-    - rid: 7737211838074978563
-    - rid: 7737211838074978564
-    - rid: 7737211838074978565
+    - rid: 7737211905655963825
+    - rid: 7737211905655963826
+    - rid: 7737211905655963827
+    - rid: 7737211905655963828
+    - rid: 7737211905655963829
   width: 2
   height: 1
   layer: 1
@@ -58,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074978561
+    - rid: 7737211905655963825
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I08
-    - rid: 7737211838074978562
+    - rid: 7737211905655963826
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -72,26 +87,41 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211838074978563
+    - rid: 7737211905655963827
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 48
-        repairWorkRequired: 12
-        cleanWorkRequired: 8
+        constructionWorkRequired: 364
+        repairWorkRequired: 110
+        cleanWorkRequired: 18
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
+        - itemId: material:stone-block
+          amount: 8
+        - itemId: material:steel-ingot
+          amount: 6
         - itemId: component:machine-parts
-          amount: 4
-    - rid: 7737211838074978564
+          amount: 3
+    - rid: 7737211905655963828
       type: {class: BuildingWaterStorageAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWaterStorageAbility
         channels: 2
         cleanWaterCapacity: 120
         wastewaterCapacity: 0
-    - rid: 7737211838074978565
+    - rid: 7737211905655963829
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

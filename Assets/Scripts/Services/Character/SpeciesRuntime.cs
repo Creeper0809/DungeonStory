@@ -41,6 +41,29 @@ public interface ICharacterSpeciesPersistence
     void Restore(CharacterSpeciesRestoreCandidate candidate);
 }
 
+public interface ICharacterSpeciesRechargeService
+{
+    bool IsRechargeAvailable(
+        CharacterActor actor,
+        BuildableObject facility,
+        out string reason);
+    float GetRechargeUrgency(
+        CharacterActor actor,
+        BuildableObject facility);
+    bool TryBeginRecharge(
+        CharacterActor actor,
+        BuildableObject facility,
+        out float completedWork,
+        out DomainFailure failure);
+    bool TryApplyRechargeWork(
+        CharacterActor actor,
+        BuildableObject facility,
+        float work,
+        out bool completed,
+        out DomainFailure failure);
+    void CancelRecharge(CharacterId characterId);
+}
+
 internal sealed class CharacterSpeciesAggregateState
 {
     internal Dictionary<CharacterId, CharacterSpeciesRuntimeState> Characters { get; } =
@@ -108,6 +131,13 @@ internal static class CharacterSpeciesStateCodec
             }
             if (!IsFiniteRange(source.charge, 0f, 100f)
                 || !IsFiniteRange(source.integrity, 0f, 100f)
+                || !IsFiniteRange(source.wearWorkRemainder, 0f, 100f)
+                || source.completedWorkIndex < 0
+                || !IsFiniteRange(source.rechargeProgressWork, 0f, 100f)
+                || source.rechargeWorkerId == null
+                || source.rechargeFacilityId == null
+                || source.rechargeMaterialStackId == null
+                || !IsValidRechargeOrder(source, characterId, speciesId)
                 || !IsFiniteRange(source.nextIncidentAt, 0f, float.MaxValue)
                 || source.incidentCount < 0
                 || source.lastIncidentId == null
@@ -125,7 +155,13 @@ internal static class CharacterSpeciesStateCodec
                 Integrity = source.integrity,
                 NextIncidentAt = source.nextIncidentAt,
                 LastIncidentId = source.lastIncidentId,
-                IncidentCount = source.incidentCount
+                IncidentCount = source.incidentCount,
+                WearWorkRemainder = source.wearWorkRemainder,
+                CompletedWorkIndex = source.completedWorkIndex,
+                RechargeWorkerId = source.rechargeWorkerId,
+                RechargeFacilityId = source.rechargeFacilityId,
+                RechargeMaterialStackId = source.rechargeMaterialStackId,
+                RechargeProgressWork = source.rechargeProgressWork
             };
             if (!restored.Characters.TryAdd(characterId, state))
             {
@@ -143,6 +179,28 @@ internal static class CharacterSpeciesStateCodec
         && !float.IsInfinity(value)
         && value >= minimum
         && value <= maximum;
+
+    private static bool IsValidRechargeOrder(
+        CharacterSpeciesRuntimeRecordSaveData source,
+        CharacterId characterId,
+        CharacterSpeciesId speciesId)
+    {
+        bool hasAny = source.rechargeProgressWork > 0f
+            || source.rechargeWorkerId.Length > 0
+            || source.rechargeFacilityId.Length > 0
+            || source.rechargeMaterialStackId.Length > 0;
+        if (!hasAny)
+            return true;
+        return speciesId.Equals(new CharacterSpeciesId("Golem"))
+            && source.rechargeProgressWork > 0f
+            && source.rechargeProgressWork < 100f
+            && string.Equals(
+                source.rechargeWorkerId,
+                characterId.Value,
+                StringComparison.Ordinal)
+            && new BuildingInstanceId(source.rechargeFacilityId).IsValid
+            && new ItemStackId(source.rechargeMaterialStackId).IsValid;
+    }
 }
 
 public sealed class SpeciesIncidentHandlerRegistry :
@@ -187,6 +245,7 @@ public sealed class SpeciesIncidentHandlerRegistry :
 public sealed class CharacterSpeciesRuntime :
     ICharacterSpeciesQuery,
     ICharacterSpeciesCommand,
+    ICharacterSpeciesRechargeService,
     ICharacterSpeciesPersistence,
     ITickable
 {
@@ -200,6 +259,13 @@ public sealed class CharacterSpeciesRuntime :
     private readonly IGameClock clock;
     private readonly IGameEventBus events;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly IAnatomyHealthRuntime anatomy;
+    private readonly IAnatomyProfileCatalog anatomyProfiles;
+    private readonly CharacterPerformanceFormulaCatalog performanceFormulas;
+    private readonly IRunSeedProvider runSeed;
+    private readonly IStockQuery stock;
+    private readonly IItemReservationService reservations;
+    private readonly IAtomicItemConsumptionService atomicItems;
 
     private CharacterSpeciesAggregateState aggregateState
     {
@@ -217,7 +283,14 @@ public sealed class CharacterSpeciesRuntime :
         ISpeciesIncidentHandlerRegistry incidents,
         IGameClock clock,
         IGameEventBus events,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IAnatomyHealthRuntime anatomy,
+        IAnatomyProfileCatalog anatomyProfiles,
+        CharacterPerformanceFormulaCatalog performanceFormulas,
+        IRunSeedProvider runSeed,
+        IStockQuery stock,
+        IItemReservationService reservations,
+        IAtomicItemConsumptionService atomicItems)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.speciesCatalog = speciesCatalog
@@ -228,6 +301,17 @@ public sealed class CharacterSpeciesRuntime :
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.anatomy = anatomy ?? throw new ArgumentNullException(nameof(anatomy));
+        this.anatomyProfiles = anatomyProfiles
+            ?? throw new ArgumentNullException(nameof(anatomyProfiles));
+        this.performanceFormulas = performanceFormulas
+            ?? throw new ArgumentNullException(nameof(performanceFormulas));
+        this.runSeed = runSeed ?? throw new ArgumentNullException(nameof(runSeed));
+        this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
+        this.reservations = reservations
+            ?? throw new ArgumentNullException(nameof(reservations));
+        this.atomicItems = atomicItems
+            ?? throw new ArgumentNullException(nameof(atomicItems));
     }
 
     public void Tick()
@@ -277,7 +361,7 @@ public sealed class CharacterSpeciesRuntime :
         return false;
     }
 
-    public bool Recharge(
+    private bool ApplyRechargeAmount(
         CharacterId characterId,
         float amount,
         out DomainFailure failure)
@@ -301,6 +385,174 @@ public sealed class CharacterSpeciesRuntime :
 
         state.Charge = Mathf.Clamp(state.Charge + amount, 0f, 100f);
         return true;
+    }
+
+    public bool IsRechargeAvailable(
+        CharacterActor actor,
+        BuildableObject facility,
+        out string reason)
+    {
+        reason = string.Empty;
+        if (!TryResolveGolemRecharge(
+                actor,
+                facility,
+                out CharacterSpeciesRuntimeState state,
+                out BuildingGolemRechargeAbility ability,
+                out reason))
+            return false;
+        if (state.RechargeProgressWork > 0f)
+            return true;
+        if (state.Charge > 35f)
+        {
+            reason = "charge-above-recharge-threshold";
+            return false;
+        }
+        bool materialAvailable = stock.GetAllStacks().Any(value => value != null
+            && value.AvailableQuantity >= ability.materialQuantity
+            && !value.Forbidden
+            && string.Equals(
+                value.ItemId,
+                ability.materialItemId,
+                StringComparison.Ordinal));
+        if (!materialAvailable)
+            reason = "golem-recharge-material-missing";
+        return materialAvailable;
+    }
+
+    public float GetRechargeUrgency(
+        CharacterActor actor,
+        BuildableObject facility)
+    {
+        if (!IsRechargeAvailable(actor, facility, out _)
+            || !CharacterPersistentIdentity.TryGet(actor, out CharacterId id)
+            || !states.TryGetValue(id, out CharacterSpeciesRuntimeState state))
+            return 0f;
+        return state.RechargeProgressWork > 0f
+            ? 95f
+            : Mathf.Clamp(100f - state.Charge, 65f, 95f);
+    }
+
+    public bool TryBeginRecharge(
+        CharacterActor actor,
+        BuildableObject facility,
+        out float completedWork,
+        out DomainFailure failure)
+    {
+        completedWork = 0f;
+        failure = DomainFailure.None;
+        if (!IsRechargeAvailable(actor, facility, out string reason)
+            || !CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId)
+            || !states.TryGetValue(characterId, out CharacterSpeciesRuntimeState state))
+        {
+            failure = new DomainFailure(
+                FailureCode.CharacterSpeciesRechargeUnsupported,
+                reason);
+            return false;
+        }
+        if (state.RechargeProgressWork > 0f)
+        {
+            completedWork = state.RechargeProgressWork;
+            return true;
+        }
+        BuildingGolemRechargeAbility ability = facility.BuildingData
+            .GetAbility<BuildingGolemRechargeAbility>();
+        WorldItemStackSnapshot material = stock.GetAllStacks()
+            .Where(value => value != null
+                && value.AvailableQuantity >= ability.materialQuantity
+                && !value.Forbidden
+                && string.Equals(
+                    value.ItemId,
+                    ability.materialItemId,
+                    StringComparison.Ordinal))
+            .OrderBy(value => value.StackId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        string owner = RechargeReservationOwner(characterId);
+        if (material == null
+            || !reservations.TryReserveQuantities(
+                new[]
+                {
+                    new ReservedItemConsumption(
+                        material.StackId,
+                        ability.materialQuantity)
+                },
+                owner,
+                ItemReservationPurpose.FacilityBuffer,
+                $"golem-recharge:{facility.PersistentInstanceId.Value}:material"))
+        {
+            failure = new DomainFailure(FailureCode.ItemTransferStackUnavailable);
+            return false;
+        }
+        state.RechargeWorkerId = characterId.Value;
+        state.RechargeFacilityId = facility.PersistentInstanceId.Value;
+        state.RechargeMaterialStackId = material.StackId;
+        state.RechargeProgressWork = 0.0001f;
+        completedWork = 0f;
+        return true;
+    }
+
+    public bool TryApplyRechargeWork(
+        CharacterActor actor,
+        BuildableObject facility,
+        float work,
+        out bool completed,
+        out DomainFailure failure)
+    {
+        completed = false;
+        failure = DomainFailure.None;
+        if (work <= 0f || float.IsNaN(work) || float.IsInfinity(work)
+            || !CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId)
+            || !states.TryGetValue(characterId, out CharacterSpeciesRuntimeState state)
+            || !TryResolveGolemRecharge(actor, facility, out _, out BuildingGolemRechargeAbility ability, out _)
+            || !string.Equals(state.RechargeWorkerId, characterId.Value, StringComparison.Ordinal)
+            || !string.Equals(
+                state.RechargeFacilityId,
+                facility.PersistentInstanceId.Value,
+                StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(state.RechargeMaterialStackId))
+        {
+            failure = new DomainFailure(FailureCode.CharacterSpeciesRechargeUnsupported);
+            return false;
+        }
+        state.RechargeProgressWork = Mathf.Min(
+            ability.requiredWork,
+            state.RechargeProgressWork + work);
+        if (state.RechargeProgressWork + .0001f < ability.requiredWork)
+            return true;
+        ReservedItemConsumption[] cost =
+        {
+            new(state.RechargeMaterialStackId, ability.materialQuantity)
+        };
+        if (!atomicItems.TryConsumeReserved(
+                cost,
+                RechargeReservationOwner(characterId),
+                out failure))
+        {
+            state.RechargeProgressWork = Mathf.Max(
+                0.0001f,
+                ability.requiredWork - 0.0001f);
+            return false;
+        }
+        if (!ApplyRechargeAmount(
+                characterId,
+                ability.restoredCharge,
+                out failure))
+            throw new InvalidOperationException(
+                "Committed Golem recharge material but charge projection failed.");
+        ClearRechargeOrder(state);
+        completed = true;
+        return true;
+    }
+
+    public void CancelRecharge(CharacterId characterId)
+    {
+        if (!characterId.IsValid
+            || !states.TryGetValue(characterId, out CharacterSpeciesRuntimeState state)
+            || string.IsNullOrWhiteSpace(state.RechargeMaterialStackId))
+            return;
+        reservations.Release(
+            state.RechargeMaterialStackId,
+            RechargeReservationOwner(characterId));
+        ClearRechargeOrder(state);
     }
 
     public bool RepairIntegrity(
@@ -329,6 +581,73 @@ public sealed class CharacterSpeciesRuntime :
         return true;
     }
 
+    public bool RecordCompletedWork(
+        CharacterId characterId,
+        string workTypeId,
+        float completedWork,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        WorkTypeId typedWorkTypeId = new(workTypeId);
+        CharacterActor actor = world.Characters.FirstOrDefault(value =>
+            value != null
+            && CharacterPersistentIdentity.TryGet(value, out CharacterId id)
+            && id.Equals(characterId));
+        if (actor == null
+            || !typedWorkTypeId.IsValid
+            || completedWork <= 0f
+            || float.IsNaN(completedWork)
+            || float.IsInfinity(completedWork))
+        {
+            failure = new DomainFailure(FailureCode.CharacterSpeciesStateUnavailable);
+            return false;
+        }
+        if (!speciesCatalog.TryGet(
+                new CharacterSpeciesId(actor.SpeciesTag),
+                out CharacterSpeciesSO species))
+        {
+            failure = new DomainFailure(
+                FailureCode.CharacterSpeciesStateUnavailable,
+                actor.SpeciesTag);
+            return false;
+        }
+        if (!string.Equals(species.speciesTag, "Golem", StringComparison.Ordinal))
+            return true;
+
+        CharacterSpeciesRuntimeState state = GetOrCreate(actor, species);
+        float wearMultiplier = Mathf.Max(
+            0f,
+            species.needs?.integrityWearMultiplier ?? 1f);
+        state.WearWorkRemainder += completedWork;
+        while (state.WearWorkRemainder + .0001f >= 100f)
+        {
+            state.WearWorkRemainder -= 100f;
+            state.CompletedWorkIndex++;
+            float burden = 2.5f * wearMultiplier;
+            if (!TrySelectWearNode(
+                    actor,
+                    typedWorkTypeId,
+                    state.CompletedWorkIndex,
+                    out string nodeId))
+            {
+                failure = new DomainFailure(
+                    FailureCode.CharacterSpeciesRepairUnsupported,
+                    typedWorkTypeId.Value);
+                return false;
+            }
+            if (!anatomy.TryAddNodeBurden(
+                    actor,
+                    nodeId,
+                    burden,
+                    0f,
+                    0f,
+                    out failure))
+                return false;
+            state.Integrity = Mathf.Clamp(state.Integrity - burden, 0f, 100f);
+        }
+        return true;
+    }
+
     public CharacterSpeciesRuntimeSaveData Capture()
     {
         return new CharacterSpeciesRuntimeSaveData
@@ -343,11 +662,120 @@ public sealed class CharacterSpeciesRuntime :
                     integrity = value.Integrity,
                     nextIncidentAt = value.NextIncidentAt,
                     lastIncidentId = value.LastIncidentId ?? string.Empty,
-                    incidentCount = value.IncidentCount
+                    incidentCount = value.IncidentCount,
+                    wearWorkRemainder = value.WearWorkRemainder,
+                    completedWorkIndex = value.CompletedWorkIndex,
+                    rechargeWorkerId = value.RechargeWorkerId ?? string.Empty,
+                    rechargeFacilityId = value.RechargeFacilityId ?? string.Empty,
+                    rechargeMaterialStackId = value.RechargeMaterialStackId ?? string.Empty,
+                    rechargeProgressWork = value.RechargeProgressWork
                 })
                 .ToList()
         };
     }
+
+    private bool TryResolveGolemRecharge(
+        CharacterActor actor,
+        BuildableObject facility,
+        out CharacterSpeciesRuntimeState state,
+        out BuildingGolemRechargeAbility ability,
+        out string reason)
+    {
+        state = null;
+        ability = null;
+        reason = string.Empty;
+        if (actor == null
+            || facility?.BuildingData == null
+            || facility.IsBuildingDestroyed
+            || !CharacterPersistentIdentity.TryGet(actor, out CharacterId id)
+            || !speciesCatalog.TryGet(
+                new CharacterSpeciesId(actor.SpeciesTag),
+                out CharacterSpeciesSO species)
+            || !string.Equals(species.speciesTag, "Golem", StringComparison.Ordinal))
+        {
+            reason = "golem-recharge-subject-or-facility-invalid";
+            return false;
+        }
+        ability = facility.BuildingData.GetAbility<BuildingGolemRechargeAbility>();
+        if (ability == null)
+        {
+            reason = "facility-lacks-golem-recharge-capability";
+            return false;
+        }
+        state = GetOrCreate(actor, species);
+        return true;
+    }
+
+    private static string RechargeReservationOwner(CharacterId characterId) =>
+        $"golem-recharge:{characterId.Value}";
+
+    private static void ClearRechargeOrder(CharacterSpeciesRuntimeState state)
+    {
+        state.RechargeWorkerId = string.Empty;
+        state.RechargeFacilityId = string.Empty;
+        state.RechargeMaterialStackId = string.Empty;
+        state.RechargeProgressWork = 0f;
+    }
+
+    private bool TrySelectWearNode(
+        CharacterActor actor,
+        WorkTypeId workTypeId,
+        int completedWorkIndex,
+        out string nodeId)
+    {
+        nodeId = string.Empty;
+        CharacterPerformanceFormulaDefinitionSO formula = performanceFormulas
+            .RequireWork(workTypeId, CharacterPerformanceResultChannel.Speed);
+        AnatomyHealthSnapshot snapshot = anatomy.GetAnatomySnapshot(actor);
+        if (!anatomyProfiles.TryGet(
+                snapshot.ProfileId,
+                out AnatomyProfileDefinition profile))
+            return false;
+        float maximumWeight = formula.CapacityInputs
+            .Where(value => value.Weight > 0f)
+            .Select(value => value.Weight)
+            .DefaultIfEmpty(0f)
+            .Max();
+        AnatomyFunction functions = formula.CapacityInputs
+            .Where(value => Mathf.Approximately(value.Weight, maximumWeight))
+            .Aggregate(
+                AnatomyFunction.None,
+                (current, value) => current | ToAnatomyFunction(value.CapacityId));
+        string[] candidates = profile.Nodes
+            .Where(value => (value.ExpandedFunctions & functions) != 0)
+            .Select(value => value.NodeId)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        if (candidates.Length == 0)
+            return false;
+        uint hash = PersistentEntityId.GetStableHash32(
+            $"{runSeed.RunSeed}:{actor.Identity.PersistentId}:"
+            + $"{workTypeId.Value}:{completedWorkIndex}");
+        nodeId = candidates[hash % (uint)candidates.Length];
+        return true;
+    }
+
+    private static AnatomyFunction ToAnatomyFunction(
+        CharacterFunctionalCapacityId capacityId) => capacityId switch
+        {
+            CharacterFunctionalCapacityId.MentalMaintenance => AnatomyFunction.MentalMaintenance,
+            CharacterFunctionalCapacityId.VisualDiscernment => AnatomyFunction.VisualDiscernment,
+            CharacterFunctionalCapacityId.AuditorySensing => AnatomyFunction.AuditorySensing,
+            CharacterFunctionalCapacityId.RespiratoryExchange => AnatomyFunction.RespiratoryExchange,
+            CharacterFunctionalCapacityId.PowerCirculation => AnatomyFunction.PowerCirculation,
+            CharacterFunctionalCapacityId.IntakeProcessing => AnatomyFunction.IntakeProcessing,
+            CharacterFunctionalCapacityId.PurificationProcessing => AnatomyFunction.PurificationProcessing,
+            CharacterFunctionalCapacityId.VitalityResponse => AnatomyFunction.VitalityResponse,
+            CharacterFunctionalCapacityId.PhysicalPower => AnatomyFunction.PhysicalPower,
+            CharacterFunctionalCapacityId.PrecisionManipulation => AnatomyFunction.PrecisionManipulation,
+            CharacterFunctionalCapacityId.PhysicalMobility => AnatomyFunction.PhysicalMobility,
+            CharacterFunctionalCapacityId.Communication => AnatomyFunction.Communication,
+            CharacterFunctionalCapacityId.ArcaneConduction => AnatomyFunction.ArcaneConduction,
+            CharacterFunctionalCapacityId.ImmuneDefense => AnatomyFunction.ImmuneDefense,
+            _ => AnatomyFunction.None
+        };
 
     public CharacterSpeciesRestoreCandidate BuildRestore(
         CharacterSpeciesRuntimeSaveData data)

@@ -172,7 +172,8 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
             .Where(actor => actor != null
                 && !actor.IsDead
                 && actor.characterType == CharacterType.NPC)
-            .OrderByDescending(actor => actor.GetCharacterStat(CharacterStatType.Medical))
+            .OrderByDescending(actor => actor.Stats.EvaluatePerformance(
+                "performance:medical:surgery-success").Value)
             .ToArray();
         doctor = workers.FirstOrDefault();
         patient = workers.Skip(1).FirstOrDefault() ?? workers.FirstOrDefault();
@@ -706,7 +707,7 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                     $"{stack.StackId}:{stack.ItemId}x{stack.Quantity}"
                     + $":state={stack.State}:pos={stack.Position}"
                     + $":destPos={stack.DestinationPosition}"
-                    + $":reserved={stack.ReservedByPersistentId}"
+                    + $":reserved={stack.ReservedQuantity}:available={stack.AvailableQuantity}"
                     + $":source={stack.SourceStorageDestinationId}"));
         return $"timeScale={Time.timeScale:0.##}; delta={Time.deltaTime:0.####}; "
             + $"actors=[{actors}]; stacks=[{stacks}]";

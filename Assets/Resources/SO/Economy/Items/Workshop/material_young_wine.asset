@@ -32,16 +32,21 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 10
   features:
-  - rid: 7737211838074979032
-  - rid: 7737211838074979033
+  - rid: 7737211905660420491
+  - rid: 7737211905666712554
+  - rid: 7737211905666712555
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074979032
+    - rid: 7737211905660420491
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.59625757
+    - rid: 7737211905666712554
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:fermentation
-    - rid: 7737211838074979033
+    - rid: 7737211905666712555
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1

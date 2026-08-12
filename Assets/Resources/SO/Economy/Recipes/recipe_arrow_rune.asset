@@ -30,9 +30,19 @@ MonoBehaviour:
   requiredSupportTags: []
   batchSupportTag: 
   processKind: 0
+  flowRole: 0
+  processClass: 8
+  processClassAuthored: 1
   workTypeId: work:craft
+  proficiency:
+    primaryProficiencyId: proficiency:crafting
+    secondaryProficiencyId: proficiency:scholarship
+    primaryWeight: 0.8
+    combinationMode: 1
+    recommendedRank: 3
+    minimumRiskRank: 0
   requiredResearchId: research:arcane:advanced
-  requiredWork: 16
+  requiredWork: 154
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

@@ -27,23 +27,28 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uADE0\uC0AC \uC7AC\uBC30
     \uBC30\uC9C0."
   stockCategory: 1
-  unitWeight: 1.81
+  unitWeight: 1.1
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 116
+  unitPrice: 11
   features:
-  - rid: 7737211838078124355
-  - rid: 7737211838078124356
+  - rid: 7737211905658585914
+  - rid: 7737211905658585915
+  - rid: 7737211905660420760
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124355
+    - rid: 7737211905658585914
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:agriculture:subterranean
-    - rid: 7737211838078124356
+    - rid: 7737211905658585915
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 3
         sharedIntermediate: 0
+    - rid: 7737211905660420760
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6153878

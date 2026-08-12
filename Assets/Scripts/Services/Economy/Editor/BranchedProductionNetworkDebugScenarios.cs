@@ -681,7 +681,7 @@ public static class BranchedProductionNetworkDebugScenarios
         DungeonProductionBillSaveData roundTrip =
             JsonUtility.FromJson<DungeonProductionBillSaveData>(
                 JsonUtility.ToJson(save));
-        if (DungeonProductionBillSaveData.CurrentVersion != 6
+        if (DungeonProductionBillSaveData.CurrentVersion != 7
             || roundTrip?.bills?.SingleOrDefault()?.mode
                 != ProductionOrderMode.RepeatForever
             || roundTrip.bills[0].outputReservations.Single().amount != 4
@@ -691,7 +691,7 @@ public static class BranchedProductionNetworkDebugScenarios
             || roundTrip.installedStockSensorFacilityIds.Single()
                 != "facility:test")
         {
-            failures.Add("production V6 save round trip lost network state");
+            failures.Add("production V7 save round trip lost network state");
         }
 
         return failures

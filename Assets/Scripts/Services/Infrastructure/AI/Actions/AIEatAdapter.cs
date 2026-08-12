@@ -8,7 +8,8 @@ public class AIEat : AIActionSet
     private static readonly CharacterAiActionDescriptor ActionDescriptor = new CharacterAiActionDescriptor(
         CharacterAiBranch.Eat,
         "식사",
-        CharacterAiActionTags.SelfCare);
+        CharacterAiActionTags.SelfCare,
+        "work:eat");
 
     public override CharacterAiActionDescriptor Descriptor => ActionDescriptor;
     public override bool CanStart(CharacterActor actor)

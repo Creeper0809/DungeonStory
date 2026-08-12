@@ -1,10 +1,10 @@
 ﻿OWNER_SELECTION_POINTER_TARGET=PASS; OwnerOption_1001
 OWNER_SELECTION_POINTER=PASS; target=OwnerOption_1001; point=(770.93, 1006.00); hits=4
 DESKTOP_RESOLUTION=PASS; actual=1600x900
-SCENARIO_CONTENT=recipe:recipe:advanced-medicine; building:1091:연금대; branches:11
-FACILITY=연금대; position=1,0; instance=building:12a7ed8447b64407bdf2c3f44f7bde6f
+SCENARIO_CONTENT=recipe:recipe:advanced-medicine; building:1091:연금대; branches:14
+FACILITY=연금대; position=1,0; instance=building:187b0026bad54e4386c7e047b343f3b2
 DESKTOP_ORDER_CREATED=PASS; recipe=recipe:advanced-medicine; outcome=BillAdded; failure=None
-DESKTOP_BEFORE_SENSOR_BRANCH_CONSUMERS=PASS; expected=11; rows=11; labels=전신 재생 배지 [recipe:medical:whole-body-regeneration-medium] | 막힘: inactive-consumer | 혈액소모병 백신 [recipe:medicine:vaccine:blood-wasting] | 막힘: inactive-consumer | 고급 약품 [market-sale:medicine:advanced] | 막힘: inactive-consumer | 동굴 독감 백신 [recipe:medicine:vaccine:cave-flu] | 막힘: inactive-consumer | 장부패증 백신 [recipe:medicine:vaccine:gut-rot] | 막힘: inactive-consumer | 마나두창 백신 [recipe:medicine:vaccine:mana-pox] | 막힘: inactive-consumer | 적열병 백신 [recipe:medicine:vaccine:red-fever] | 막힘: inactive-consumer | 점액역병 백신 [recipe:medicine:vaccine:slime-blight] | 막힘: inactive-consumer | 포자폐증 백신 [recipe:medicine:vaccine:spore-lung] | 막힘: inactive-consumer | 인공 안구 조립 [recipe:surgery:artificial-eye] | 막힘: inactive-consumer | 고급 약품 [item-treatment:medicine:advanced] | 막힘: inactive-consumer
+DESKTOP_BEFORE_SENSOR_BRANCH_CONSUMERS=PASS; expected=14; rows=14; labels=재생 배양액 [recipe:medical:regenerative-medium] | 막힘: inactive-consumer | 트라우마 치료 꾸러미 [recipe:medical:trauma-care-kit] | 막힘: inactive-consumer | 인공 안구 조립 [recipe:surgery:artificial-eye] | 막힘: inactive-consumer | 고급 약품 [item-treatment:medicine:advanced] | 막힘: inactive-consumer | 고급 약품 [market-sale:medicine:advanced] | 막힘: inactive-consumer | 사절의 응급 수술 [guest-request:emergency-surgery] | 막힘: consumer-provider-unavailable | 전신 재생 배지 [recipe:medical:whole-body-regeneration-medium] | 막힘: inactive-consumer | 혈액소모병 백신 [recipe:medicine:vaccine:blood-wasting] | 막힘: inactive-consumer | 동굴 독감 백신 [recipe:medicine:vaccine:cave-flu] | 막힘: inactive-consumer | 장부패증 백신 [recipe:medicine:vaccine:gut-rot] | 막힘: inactive-consumer | 마나두창 백신 [recipe:medicine:vaccine:mana-pox] | 막힘: inactive-consumer | 적열병 백신 [recipe:medicine:vaccine:red-fever] | 막힘: inactive-consumer | 점액역병 백신 [recipe:medicine:vaccine:slime-blight] | 막힘: inactive-consumer | 포자폐증 백신 [recipe:medicine:vaccine:spore-lung] | 막힘: inactive-consumer
 DESKTOP_BEFORE_SENSOR_RECIPE_BRANCH_SUMMARY=PASS; production recipe branch summary is visible
 DESKTOP_TARGET_STOCK_LOCKED=PASS; 감지반 설치
 DESKTOP_PRE_INSTALL_ORDER=PASS; id=production-bill:1; mode=RepeatForever; sensor=False
@@ -12,14 +12,14 @@ DESKTOP_SENSOR_PHYSICAL_ITEM=PASS; item=component:stock-sensor-panel; spawned=1
 DESKTOP_SENSOR_INSTALL_POINTER_TARGET=PASS; ProductionTargetStockTab_0
 DESKTOP_SENSOR_INSTALL_POINTER=PASS; target=ProductionTargetStockTab_0; point=(920.15, 270.02); hits=4
 DESKTOP_INSTALL_REQUEST_PRESERVES_ORDER=PASS; id=production-bill:1; mode=RepeatForever
-DESKTOP_SENSOR_DELIVERY_RESERVED=PASS; stack:39343ca531ba4db186dcf4ad4472e1a6
+DESKTOP_SENSOR_DELIVERY_RESERVED=PASS; stack:dd7a586b375442579db604ae17bae932
 DESKTOP_SENSOR_PHYSICAL_DELIVERY=PASS; None
 DESKTOP_INSTALL_PRESERVES_EXISTING_ORDER=PASS; id=production-bill:1; mode=RepeatForever; sensor=True
 DESKTOP_TARGET_STOCK_UNLOCKED=PASS; 목표 재고 해금됨
 DESKTOP_TARGET_STOCK_POINTER_TARGET=PASS; ProductionTargetStockTab_0
-DESKTOP_TARGET_STOCK_POINTER=PASS; target=ProductionTargetStockTab_0; point=(920.15, 270.02); hits=4
+DESKTOP_TARGET_STOCK_POINTER=PASS; target=ProductionTargetStockTab_0; point=(920.03, 270.19); hits=4
 DESKTOP_TARGET_STOCK_ENABLED=PASS; mode=MaintainStock; target=10
-DESKTOP_ROUTE_POLICY_COUNT=PASS; routes=11
+DESKTOP_ROUTE_POLICY_COUNT=PASS; routes=14
 DESKTOP_ROUTE_PRIORITY_POINTER_TARGET=PASS; ProductionRoutePriorityPlus_0_0
 DESKTOP_ROUTE_PRIORITY_POINTER=PASS; target=ProductionRoutePriorityPlus_0_0; point=(918.48, 264.19); hits=5
 DESKTOP_ROUTE_WEIGHT_POINTER_TARGET=PASS; ProductionRouteWeightPlus_0_0
@@ -28,57 +28,57 @@ DESKTOP_ROUTE_RESERVE_POINTER_TARGET=PASS; ProductionRouteReservePlus_0_0
 DESKTOP_ROUTE_RESERVE_POINTER=PASS; target=ProductionRouteReservePlus_0_0; point=(1091.81, 264.19); hits=5
 DESKTOP_ROUTE_VALUES_EDITED=PASS; priority=51; weight=2; minimum=1
 DESKTOP_PHYSICAL_OUTPUT_ROUTE=PASS; spawned=True; routed=True; moved=1; source=1; target=1; failure=None
-DESKTOP_OUTPUT_BUFFER_FILLED=PASS; item=medicine:advanced; quantity=30; destination=production-output:building:12a7ed8447b64407bdf2c3f44f7bde6f
-DESKTOP_OUTPUT_FULL_STATUS=PASS; status=WaitingForOutputSpace; label=1. 고급 약품 · 출력 버퍼 가득 참 · 0 % · 출력 30(+0)/30
+DESKTOP_OUTPUT_BUFFER_FILLED=PASS; item=medicine:advanced; quantity=30; destination=production-output:building:187b0026bad54e4386c7e047b343f3b2
+DESKTOP_OUTPUT_FULL_STATUS=PASS; status=WaitingForOutputSpace; label=1. 고급 약품 · 출력 공간 대기 · 0 % · 출력 30(+0)/30
 예약할 출력 공간이 없습니다.
-DESKTOP_AFTER_SENSOR_BRANCH_CONSUMERS=PASS; expected=11; rows=11; labels=전신 재생 배지 [recipe:medical:whole-body-regeneration-medium] | 막힘: inactive-consumer | 혈액소모병 백신 [recipe:medicine:vaccine:blood-wasting] | 막힘: inactive-consumer | 고급 약품 [market-sale:medicine:advanced] | 막힘: inactive-consumer | 동굴 독감 백신 [recipe:medicine:vaccine:cave-flu] | 막힘: inactive-consumer | 장부패증 백신 [recipe:medicine:vaccine:gut-rot] | 막힘: inactive-consumer | 마나두창 백신 [recipe:medicine:vaccine:mana-pox] | 막힘: inactive-consumer | 적열병 백신 [recipe:medicine:vaccine:red-fever] | 막힘: inactive-consumer | 점액역병 백신 [recipe:medicine:vaccine:slime-blight] | 막힘: inactive-consumer | 포자폐증 백신 [recipe:medicine:vaccine:spore-lung] | 막힘: inactive-consumer | 인공 안구 조립 [recipe:surgery:artificial-eye] | 막힘: inactive-consumer | 고급 약품 [item-treatment:medicine:advanced] | 막힘: inactive-consumer
+DESKTOP_AFTER_SENSOR_BRANCH_CONSUMERS=PASS; expected=14; rows=14; labels=재생 배양액 [recipe:medical:regenerative-medium] | 막힘: inactive-consumer | 트라우마 치료 꾸러미 [recipe:medical:trauma-care-kit] | 막힘: inactive-consumer | 인공 안구 조립 [recipe:surgery:artificial-eye] | 막힘: inactive-consumer | 고급 약품 [item-treatment:medicine:advanced] | 막힘: inactive-consumer | 고급 약품 [market-sale:medicine:advanced] | 막힘: inactive-consumer | 사절의 응급 수술 [guest-request:emergency-surgery] | 막힘: consumer-provider-unavailable | 전신 재생 배지 [recipe:medical:whole-body-regeneration-medium] | 막힘: inactive-consumer | 혈액소모병 백신 [recipe:medicine:vaccine:blood-wasting] | 막힘: inactive-consumer | 동굴 독감 백신 [recipe:medicine:vaccine:cave-flu] | 막힘: inactive-consumer | 장부패증 백신 [recipe:medicine:vaccine:gut-rot] | 막힘: inactive-consumer | 마나두창 백신 [recipe:medicine:vaccine:mana-pox] | 막힘: inactive-consumer | 적열병 백신 [recipe:medicine:vaccine:red-fever] | 막힘: inactive-consumer | 점액역병 백신 [recipe:medicine:vaccine:slime-blight] | 막힘: inactive-consumer | 포자폐증 백신 [recipe:medicine:vaccine:spore-lung] | 막힘: inactive-consumer
 DESKTOP_AFTER_SENSOR_RECIPE_BRANCH_SUMMARY=PASS; production recipe branch summary is visible
-DESKTOP_BUILDING_PANEL_SCREEN_BOUNDS=PASS; screen=1600x900; rect=335.3,211.9..1264.7,688.1
-DESKTOP_BUILDING_ACTIONS_SCREEN_BOUNDS=PASS; buttons=33; outOfBounds=
-DESKTOP_CONTEXT_PANEL_SCREEN_BOUNDS=PASS; screen=1600x900; rect=688.5,250.0..1246.1,554.8
-DESKTOP_ALL_ROUTE_ROWS_VISIBLE=PASS; expected=11; actual=11; ProductionRoute_0_0:row=-318.6,122.2..318.6,146.2; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_1:row=-318.6,92.2..318.6,116.2; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_10:row=-318.6,-177.8..318.6,-153.8; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_2:row=-318.6,62.2..318.6,86.2; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_3:row=-318.6,32.2..318.6,56.2; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_4:row=-318.6,2.2..318.6,26.2; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_5:row=-318.6,-27.8..318.6,-3.8; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_6:row=-318.6,-57.8..318.6,-33.8; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_7:row=-318.6,-87.8..318.6,-63.8; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_8:row=-318.6,-117.8..318.6,-93.8; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_9:row=-318.6,-147.8..318.6,-123.8; view=-326.6,-182.8..326.6,182.8
-DESKTOP_THIRD_ROUTE_VISIBLE=PASS; row=-318.6,-177.8..318.6,-153.8; view=-326.6,-182.8..326.6,182.8
-DESKTOP_CAPTURE=PASS; size=1600x900; visible=1415152
+DESKTOP_BUILDING_PANEL_SCREEN_BOUNDS=PASS; screen=1600x900; rect=335.6,212.1..1264.4,687.9
+DESKTOP_BUILDING_ACTIONS_SCREEN_BOUNDS=PASS; buttons=36; outOfBounds=
+DESKTOP_CONTEXT_PANEL_SCREEN_BOUNDS=PASS; screen=1600x900; rect=688.5,250.1..1245.8,554.7
+DESKTOP_ALL_ROUTE_ROWS_REACHABLE=PASS; expected=14; actual=14; ProductionRoute_0_0:row=-318.6,212.2..318.6,236.2; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_1:row=-318.6,182.2..318.6,206.2; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_10:row=-318.6,-87.8..318.6,-63.8; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_11:row=-318.6,-117.8..318.6,-93.8; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_12:row=-318.6,-147.8..318.6,-123.8; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_13:row=-318.6,-177.8..318.6,-153.8; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_2:row=-318.6,152.2..318.6,176.2; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_3:row=-318.6,122.2..318.6,146.2; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_4:row=-318.6,92.2..318.6,116.2; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_5:row=-318.6,62.2..318.6,86.2; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_6:row=-318.6,32.2..318.6,56.2; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_7:row=-318.6,2.2..318.6,26.2; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_8:row=-318.6,-27.8..318.6,-3.8; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_9:row=-318.6,-57.8..318.6,-33.8; view=-326.6,-182.8..326.6,182.8
+DESKTOP_LAST_ROUTE_VISIBLE_AFTER_SCROLL=PASS; row=-318.6,-177.8..318.6,-153.8; view=-326.6,-182.8..326.6,182.8
+DESKTOP_CAPTURE=PASS; size=1600x900; visible=1416223
 DESKTOP_ARTIFACT=Artifacts/QA/production-branches-1600x900.png
 PORTRAIT_RESOLUTION=PASS; actual=900x1600
-SCENARIO_CONTENT=recipe:recipe:advanced-medicine; building:1091:연금대; branches:11
-FACILITY=연금대; position=1,0; instance=building:683558f07e764be6a0d6942b592f388e
+SCENARIO_CONTENT=recipe:recipe:advanced-medicine; building:1091:연금대; branches:14
+FACILITY=연금대; position=1,0; instance=building:983b7328a5334e9997e0b513e63eedc0
 PORTRAIT_ORDER_CREATED=PASS; recipe=recipe:advanced-medicine; outcome=BillAdded; failure=None
-PORTRAIT_BEFORE_SENSOR_BRANCH_CONSUMERS=PASS; expected=11; rows=11; labels=전신 재생 배지 [recipe:medical:whole-body-regeneration-medium] | 막힘: inactive-consumer | 혈액소모병 백신 [recipe:medicine:vaccine:blood-wasting] | 막힘: inactive-consumer | 고급 약품 [market-sale:medicine:advanced] | 막힘: inactive-consumer | 동굴 독감 백신 [recipe:medicine:vaccine:cave-flu] | 막힘: inactive-consumer | 장부패증 백신 [recipe:medicine:vaccine:gut-rot] | 막힘: inactive-consumer | 마나두창 백신 [recipe:medicine:vaccine:mana-pox] | 막힘: inactive-consumer | 적열병 백신 [recipe:medicine:vaccine:red-fever] | 막힘: inactive-consumer | 점액역병 백신 [recipe:medicine:vaccine:slime-blight] | 막힘: inactive-consumer | 포자폐증 백신 [recipe:medicine:vaccine:spore-lung] | 막힘: inactive-consumer | 인공 안구 조립 [recipe:surgery:artificial-eye] | 막힘: inactive-consumer | 고급 약품 [item-treatment:medicine:advanced] | 막힘: inactive-consumer
+PORTRAIT_BEFORE_SENSOR_BRANCH_CONSUMERS=PASS; expected=14; rows=14; labels=재생 배양액 [recipe:medical:regenerative-medium] | 막힘: inactive-consumer | 트라우마 치료 꾸러미 [recipe:medical:trauma-care-kit] | 막힘: inactive-consumer | 인공 안구 조립 [recipe:surgery:artificial-eye] | 막힘: inactive-consumer | 고급 약품 [item-treatment:medicine:advanced] | 막힘: inactive-consumer | 고급 약품 [market-sale:medicine:advanced] | 막힘: inactive-consumer | 사절의 응급 수술 [guest-request:emergency-surgery] | 막힘: consumer-provider-unavailable | 전신 재생 배지 [recipe:medical:whole-body-regeneration-medium] | 막힘: inactive-consumer | 혈액소모병 백신 [recipe:medicine:vaccine:blood-wasting] | 막힘: inactive-consumer | 동굴 독감 백신 [recipe:medicine:vaccine:cave-flu] | 막힘: inactive-consumer | 장부패증 백신 [recipe:medicine:vaccine:gut-rot] | 막힘: inactive-consumer | 마나두창 백신 [recipe:medicine:vaccine:mana-pox] | 막힘: inactive-consumer | 적열병 백신 [recipe:medicine:vaccine:red-fever] | 막힘: inactive-consumer | 점액역병 백신 [recipe:medicine:vaccine:slime-blight] | 막힘: inactive-consumer | 포자폐증 백신 [recipe:medicine:vaccine:spore-lung] | 막힘: inactive-consumer
 PORTRAIT_BEFORE_SENSOR_RECIPE_BRANCH_SUMMARY=PASS; production recipe branch summary is visible
 PORTRAIT_TARGET_STOCK_LOCKED=PASS; 감지반 설치
 PORTRAIT_PRE_INSTALL_ORDER=PASS; id=production-bill:1; mode=RepeatForever; sensor=False
 PORTRAIT_SENSOR_PHYSICAL_ITEM=PASS; item=component:stock-sensor-panel; spawned=1
 PORTRAIT_SENSOR_INSTALL_POINTER_TARGET=PASS; ProductionTargetStockTab_0
-PORTRAIT_SENSOR_INSTALL_POINTER=PASS; target=ProductionTargetStockTab_0; point=(300.79, 884.75); hits=4
+PORTRAIT_SENSOR_INSTALL_POINTER=PASS; target=ProductionTargetStockTab_0; point=(300.98, 884.64); hits=4
 PORTRAIT_INSTALL_REQUEST_PRESERVES_ORDER=PASS; id=production-bill:1; mode=RepeatForever
-PORTRAIT_SENSOR_DELIVERY_RESERVED=PASS; stack:01ade8f1c5274a92922b986ea5d85392
+PORTRAIT_SENSOR_DELIVERY_RESERVED=PASS; stack:2264b1a4c797401cbeb5d161a94720d9
 PORTRAIT_SENSOR_PHYSICAL_DELIVERY=PASS; None
 PORTRAIT_INSTALL_PRESERVES_EXISTING_ORDER=PASS; id=production-bill:1; mode=RepeatForever; sensor=True
 PORTRAIT_TARGET_STOCK_UNLOCKED=PASS; 목표 재고 해금됨
 PORTRAIT_TARGET_STOCK_POINTER_TARGET=PASS; ProductionTargetStockTab_0
-PORTRAIT_TARGET_STOCK_POINTER=PASS; target=ProductionTargetStockTab_0; point=(300.79, 854.75); hits=4
+PORTRAIT_TARGET_STOCK_POINTER=PASS; target=ProductionTargetStockTab_0; point=(300.86, 811.41); hits=4
 PORTRAIT_TARGET_STOCK_ENABLED=PASS; mode=MaintainStock; target=10
-PORTRAIT_ROUTE_POLICY_COUNT=PASS; routes=11
+PORTRAIT_ROUTE_POLICY_COUNT=PASS; routes=14
 PORTRAIT_ROUTE_PRIORITY_POINTER_TARGET=PASS; ProductionRoutePriorityPlus_0_0
-PORTRAIT_ROUTE_PRIORITY_POINTER=PASS; target=ProductionRoutePriorityPlus_0_0; point=(299.12, 803.08); hits=5
+PORTRAIT_ROUTE_PRIORITY_POINTER=PASS; target=ProductionRoutePriorityPlus_0_0; point=(299.29, 759.80); hits=7
 PORTRAIT_ROUTE_WEIGHT_POINTER_TARGET=PASS; ProductionRouteWeightPlus_0_0
-PORTRAIT_ROUTE_WEIGHT_POINTER=PASS; target=ProductionRouteWeightPlus_0_0; point=(385.79, 803.08); hits=5
+PORTRAIT_ROUTE_WEIGHT_POINTER=PASS; target=ProductionRouteWeightPlus_0_0; point=(385.96, 759.86); hits=7
 PORTRAIT_ROUTE_RESERVE_POINTER_TARGET=PASS; ProductionRouteReservePlus_0_0
-PORTRAIT_ROUTE_RESERVE_POINTER=PASS; target=ProductionRouteReservePlus_0_0; point=(472.45, 803.08); hits=5
+PORTRAIT_ROUTE_RESERVE_POINTER=PASS; target=ProductionRouteReservePlus_0_0; point=(472.44, 759.78); hits=7
 PORTRAIT_ROUTE_VALUES_EDITED=PASS; priority=51; weight=2; minimum=1
 PORTRAIT_PHYSICAL_OUTPUT_ROUTE=PASS; spawned=True; routed=True; moved=1; source=1; target=1; failure=None
-PORTRAIT_OUTPUT_BUFFER_FILLED=PASS; item=medicine:advanced; quantity=30; destination=production-output:building:683558f07e764be6a0d6942b592f388e
-PORTRAIT_OUTPUT_FULL_STATUS=PASS; status=WaitingForOutputSpace; label=1. 고급 약품 · 출력 버퍼 가득 참 · 0 % · 출력 30(+0)/30
+PORTRAIT_OUTPUT_BUFFER_FILLED=PASS; item=medicine:advanced; quantity=30; destination=production-output:building:983b7328a5334e9997e0b513e63eedc0
+PORTRAIT_OUTPUT_FULL_STATUS=PASS; status=WaitingForOutputSpace; label=1. 고급 약품 · 출력 공간 대기 · 0 % · 출력 30(+0)/30
 예약할 출력 공간이 없습니다.
-PORTRAIT_AFTER_SENSOR_BRANCH_CONSUMERS=PASS; expected=11; rows=11; labels=전신 재생 배지 [recipe:medical:whole-body-regeneration-medium] | 막힘: inactive-consumer | 혈액소모병 백신 [recipe:medicine:vaccine:blood-wasting] | 막힘: inactive-consumer | 고급 약품 [market-sale:medicine:advanced] | 막힘: inactive-consumer | 동굴 독감 백신 [recipe:medicine:vaccine:cave-flu] | 막힘: inactive-consumer | 장부패증 백신 [recipe:medicine:vaccine:gut-rot] | 막힘: inactive-consumer | 마나두창 백신 [recipe:medicine:vaccine:mana-pox] | 막힘: inactive-consumer | 적열병 백신 [recipe:medicine:vaccine:red-fever] | 막힘: inactive-consumer | 점액역병 백신 [recipe:medicine:vaccine:slime-blight] | 막힘: inactive-consumer | 포자폐증 백신 [recipe:medicine:vaccine:spore-lung] | 막힘: inactive-consumer | 인공 안구 조립 [recipe:surgery:artificial-eye] | 막힘: inactive-consumer | 고급 약품 [item-treatment:medicine:advanced] | 막힘: inactive-consumer
+PORTRAIT_AFTER_SENSOR_BRANCH_CONSUMERS=PASS; expected=14; rows=14; labels=재생 배양액 [recipe:medical:regenerative-medium] | 막힘: inactive-consumer | 트라우마 치료 꾸러미 [recipe:medical:trauma-care-kit] | 막힘: inactive-consumer | 인공 안구 조립 [recipe:surgery:artificial-eye] | 막힘: inactive-consumer | 고급 약품 [item-treatment:medicine:advanced] | 막힘: inactive-consumer | 고급 약품 [market-sale:medicine:advanced] | 막힘: inactive-consumer | 사절의 응급 수술 [guest-request:emergency-surgery] | 막힘: consumer-provider-unavailable | 전신 재생 배지 [recipe:medical:whole-body-regeneration-medium] | 막힘: inactive-consumer | 혈액소모병 백신 [recipe:medicine:vaccine:blood-wasting] | 막힘: inactive-consumer | 동굴 독감 백신 [recipe:medicine:vaccine:cave-flu] | 막힘: inactive-consumer | 장부패증 백신 [recipe:medicine:vaccine:gut-rot] | 막힘: inactive-consumer | 마나두창 백신 [recipe:medicine:vaccine:mana-pox] | 막힘: inactive-consumer | 적열병 백신 [recipe:medicine:vaccine:red-fever] | 막힘: inactive-consumer | 점액역병 백신 [recipe:medicine:vaccine:slime-blight] | 막힘: inactive-consumer | 포자폐증 백신 [recipe:medicine:vaccine:spore-lung] | 막힘: inactive-consumer
 PORTRAIT_AFTER_SENSOR_RECIPE_BRANCH_SUMMARY=PASS; production recipe branch summary is visible
-PORTRAIT_BUILDING_PANEL_SCREEN_BOUNDS=PASS; screen=900x1600; rect=36.0,561.9..864.0,1038.1
-PORTRAIT_BUILDING_ACTIONS_SCREEN_BOUNDS=PASS; buttons=33; outOfBounds=
-PORTRAIT_CONTEXT_PANEL_SCREEN_BOUNDS=PASS; screen=900x1600; rect=69.1,585.7..830.9,904.8
-PORTRAIT_ALL_ROUTE_ROWS_VISIBLE=PASS; expected=11; actual=11; ProductionRoute_0_0:row=-441.1,113.6..441.1,137.6; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_1:row=-441.1,83.6..441.1,107.6; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_10:row=-441.1,-186.4..441.1,-162.4; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_2:row=-441.1,53.6..441.1,77.6; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_3:row=-441.1,23.6..441.1,47.6; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_4:row=-441.1,-6.4..441.1,17.6; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_5:row=-441.1,-36.4..441.1,-12.4; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_6:row=-441.1,-66.4..441.1,-42.4; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_7:row=-441.1,-96.4..441.1,-72.4; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_8:row=-441.1,-126.4..441.1,-102.4; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_9:row=-441.1,-156.4..441.1,-132.4; view=-449.1,-191.4..449.1,191.4
-PORTRAIT_THIRD_ROUTE_VISIBLE=PASS; row=-441.1,-186.4..441.1,-162.4; view=-449.1,-191.4..449.1,191.4
-PORTRAIT_CAPTURE=PASS; size=900x1600; visible=1439818
+PORTRAIT_BUILDING_PANEL_SCREEN_BOUNDS=PASS; screen=900x1600; rect=36.4,562.2..863.6,1037.8
+PORTRAIT_BUILDING_ACTIONS_SCREEN_BOUNDS=PASS; buttons=36; outOfBounds=
+PORTRAIT_CONTEXT_PANEL_SCREEN_BOUNDS=PASS; screen=900x1600; rect=69.5,586.0..830.5,904.6
+PORTRAIT_ALL_ROUTE_ROWS_REACHABLE=PASS; expected=14; actual=14; ProductionRoute_0_0:row=-441.1,203.6..441.1,227.6; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_1:row=-441.1,173.6..441.1,197.6; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_10:row=-441.1,-96.4..441.1,-72.4; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_11:row=-441.1,-126.4..441.1,-102.4; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_12:row=-441.1,-156.4..441.1,-132.4; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_13:row=-441.1,-186.4..441.1,-162.4; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_2:row=-441.1,143.6..441.1,167.6; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_3:row=-441.1,113.6..441.1,137.6; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_4:row=-441.1,83.6..441.1,107.6; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_5:row=-441.1,53.6..441.1,77.6; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_6:row=-441.1,23.6..441.1,47.6; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_7:row=-441.1,-6.4..441.1,17.6; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_8:row=-441.1,-36.4..441.1,-12.4; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_9:row=-441.1,-66.4..441.1,-42.4; view=-449.1,-191.4..449.1,191.4
+PORTRAIT_LAST_ROUTE_VISIBLE_AFTER_SCROLL=PASS; row=-441.1,-186.4..441.1,-162.4; view=-449.1,-191.4..449.1,191.4
+PORTRAIT_CAPTURE=PASS; size=900x1600; visible=1439984
 PORTRAIT_ARTIFACT=Artifacts/QA/production-branches-900x1600.png
 CONSOLE errors=0; warnings=0
 REPORT_UTF8_BOM=PASS; preambleBytes=3

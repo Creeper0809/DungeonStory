@@ -24,12 +24,12 @@ MonoBehaviour:
     SerializationNodes:
     - Name: tiles
       Entry: 7
-      Data: 1|System.Collections.Generic.Dictionary`2[[GridTexture+TilemapLayer,
+      Data: 0|System.Collections.Generic.Dictionary`2[[GridTexture+TilemapLayer,
         Assembly-CSharp],[UnityEngine.Tilemaps.Tile, UnityEngine.TilemapModule]],
         mscorlib
     - Name: comparer
       Entry: 7
-      Data: 2|System.Collections.Generic.EnumEqualityComparer`1[[GridTexture+TilemapLayer,
+      Data: 1|System.Collections.Generic.EnumEqualityComparer`1[[GridTexture+TilemapLayer,
         Assembly-CSharp]], mscorlib
     - Name: 
       Entry: 12
@@ -63,7 +63,7 @@ MonoBehaviour:
       Data: 
     - Name: OnBuildCondition
       Entry: 7
-      Data: 3|System.Collections.Generic.List`1[[IBuildingCondition, Assembly-CSharp]],
+      Data: 2|System.Collections.Generic.List`1[[IBuildingCondition, DungeonStory.Buildings]],
         mscorlib
     - Name: 
       Entry: 12
@@ -78,6 +78,26 @@ MonoBehaviour:
   objectName: "\uBCF5\uB3C4"
   sprite: {fileID: 1878171585, guid: 2fb3ab25e50d145418738cd340acb8a2, type: 3}
   icon: {fileID: 1878171585, guid: 2fb3ab25e50d145418738cd340acb8a2, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  deprecatedCompatibilityAsset: 0
+  useClassification: 0
+  researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
     - rid: 8800000000000000000
@@ -105,6 +125,17 @@ MonoBehaviour:
         cleanWorkRequired: 6.25
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
         - itemId: material:stone-block
           amount: 1

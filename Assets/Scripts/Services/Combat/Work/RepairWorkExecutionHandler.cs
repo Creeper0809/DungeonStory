@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
 
@@ -191,7 +192,20 @@ public sealed class RepairWorkExecutionHandler :
         while (context.CanContinue
                && NeedsStructuralRepair(context.Target))
         {
-            float deltaWork = CalculateRepairWork(context);
+            structuralIntegrity.TryGet(
+                context.Target,
+                out BuildingStructuralIntegritySnapshot before);
+            float repairPerWork = Mathf.Max(
+                0.01f,
+                context.Target.BuildingData
+                    .GetAbility<BuildingStructuralIntegrityAbility>()
+                    ?.repairHitPointsPerWork ?? 1f);
+            float remainingBefore = Mathf.Max(
+                0f,
+                (before.MaxHitPoints - before.CurrentHitPoints) / repairPerWork);
+            float deltaWork = Mathf.Min(
+                CalculateRepairWork(context),
+                remainingBefore);
             if (!structuralIntegrity.TryApplyRepairWork(
                     context.Target,
                     deltaWork,
@@ -201,6 +215,10 @@ public sealed class RepairWorkExecutionHandler :
                 result.CompletedSuccessfully = false;
                 yield break;
             }
+
+            context.RecordApprovedWork(
+                deltaWork,
+                Mathf.Max(0f, remainingBefore - deltaWork));
 
             if (gameClock.Time - lastReportAt >= 0.75f)
             {
@@ -220,6 +238,11 @@ public sealed class RepairWorkExecutionHandler :
                     context.Target,
                     reasonCode: "structural-repair-completed",
                     bubbleEligible: true));
+                yield break;
+            }
+
+            if (context.TrySuspendAtCheckpoint())
+            {
                 yield break;
             }
 
@@ -264,9 +287,12 @@ public sealed class RepairWorkExecutionHandler :
                 yield break;
             }
 
-            float repair = Mathf.Max(
+            float conditionBefore = snapshot.Condition;
+            float repair = Mathf.Min(
+                100f - conditionBefore,
+                Mathf.Max(
                 0.01f,
-                CalculateRepairWork(context) * 2f);
+                    CalculateRepairWork(context) * 2f));
             if (!defenseFacilities.TryRepair(
                     facility,
                     repair,
@@ -276,6 +302,17 @@ public sealed class RepairWorkExecutionHandler :
                     repairFailure.Code.ToString(),
                     context.Target);
                 result.CompletedSuccessfully = false;
+                yield break;
+            }
+
+
+            context.RecordApprovedWork(
+                repair * 0.5f,
+                Mathf.Max(0f, (100f - conditionBefore - repair) * 0.5f));
+
+            if (conditionBefore + repair < 100f
+                && context.TrySuspendAtCheckpoint())
+            {
                 yield break;
             }
 
@@ -312,7 +349,27 @@ public sealed class RepairWorkExecutionHandler :
         while (context.CanContinue
                && maintenanceRuntime.HasRepairWorkFor(context.Target))
         {
-            float deltaWork = CalculateRepairWork(context);
+            CombatEquipmentRepairOrder order = maintenanceRuntime.Orders
+                .Where(candidate => candidate != null
+                    && candidate.facilityBuildingId
+                        == context.Target.PersistentInstanceId.Value
+                    && candidate.state is CombatEquipmentRepairOrderState.Ready
+                        or CombatEquipmentRepairOrderState.InProgress)
+                .OrderBy(candidate => candidate.orderId, StringComparer.Ordinal)
+                .FirstOrDefault();
+            float multiplier = Mathf.Max(
+                0.1f,
+                context.Target.BuildingData
+                    .GetAbility<BuildingEquipmentMaintenanceAbility>()
+                    ?.workSpeedMultiplier ?? 1f);
+            float remainingBefore = order == null
+                ? 0f
+                : Mathf.Max(
+                    0f,
+                    (order.requiredWork - order.completedWork) / multiplier);
+            float deltaWork = Mathf.Min(
+                CalculateRepairWork(context),
+                remainingBefore);
             if (!maintenanceRuntime.TryApplyRepairWork(
                     context.Actor,
                     context.Target,
@@ -330,6 +387,11 @@ public sealed class RepairWorkExecutionHandler :
                     bubbleEligible: true));
                 yield break;
             }
+
+
+            context.RecordApprovedWork(
+                deltaWork,
+                Mathf.Max(0f, remainingBefore - deltaWork));
 
             if (gameClock.Time - lastReportAt >= 0.75f)
             {
@@ -351,6 +413,11 @@ public sealed class RepairWorkExecutionHandler :
                 yield break;
             }
 
+            if (context.TrySuspendAtCheckpoint())
+            {
+                yield break;
+            }
+
             yield return null;
         }
 
@@ -365,9 +432,18 @@ public sealed class RepairWorkExecutionHandler :
         while (context.CanContinue
                && NeedsAutomationMaintenance(context.Target))
         {
+            automationQuery.TryGetFacility(
+                context.Target,
+                out AutomationFacilitySnapshot before);
+            float remainingBefore = Mathf.Max(
+                Mathf.Max(0f, 85f - before.Maintenance),
+                Mathf.Max(0f, before.Fault * 2f));
+            float deltaWork = Mathf.Min(
+                CalculateRepairWork(context),
+                remainingBefore);
             InfrastructureCommandResult command = automationCommands.Maintain(
                 context.Target,
-                CalculateRepairWork(context));
+                deltaWork);
             if (!command.Succeeded)
             {
                 result.CompletedSuccessfully = false;
@@ -378,6 +454,17 @@ public sealed class RepairWorkExecutionHandler :
                     context.Target,
                     reasonCode: "automation-maintenance-blocked",
                     bubbleEligible: true));
+                yield break;
+            }
+
+
+            context.RecordApprovedWork(
+                deltaWork,
+                Mathf.Max(0f, remainingBefore - deltaWork));
+
+            if (NeedsAutomationMaintenance(context.Target)
+                && context.TrySuspendAtCheckpoint())
+            {
                 yield break;
             }
 

@@ -23,7 +23,7 @@ MonoBehaviour:
     SerializationNodes: []
   id: 8017
   encounterId: encounter:17
-  displayName: "\uAE08\uD654\uB3D9\uB9F9 \uACE0\uC6A9\uBC29\uBCBD \uC804\uC220 \uC870\uC6B0"
+  displayName: "\uAE08\uD654\uB3D9\uB9F9 \uD654\uBB3C \uBC29\uBCBD"
   minimumSiteStrength: 5
   maximumSiteStrength: 8
   elite: 0

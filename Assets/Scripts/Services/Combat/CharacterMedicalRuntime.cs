@@ -26,6 +26,7 @@ public sealed partial class CharacterMedicalRuntime :
     private readonly IResourceEconomyContentCatalog resourceCatalog;
     private readonly CharacterMedicalSupplyCoordinator supplyCoordinator;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly ICharacterPerformanceQuery performance;
     private readonly CharacterMedicalRestoreCoordinator restoreCoordinator;
     private readonly Dictionary<string, CharacterMedicalDownedRegistration>
         downedOccupants = new(StringComparer.Ordinal);
@@ -60,7 +61,8 @@ public sealed partial class CharacterMedicalRuntime :
         IGameEventBus gameEventBus,
         ICharacterCarePriorityQuery carePriorityQuery,
         IResourceEconomyContentCatalog resourceCatalog,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        ICharacterPerformanceQuery performance)
     {
         this.bodyHealthQuery = bodyHealthQuery
             ?? throw new ArgumentNullException(nameof(bodyHealthQuery));
@@ -77,6 +79,8 @@ public sealed partial class CharacterMedicalRuntime :
             this.resourceCatalog);
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
         CharacterMedicalRestoreServices restoreServices = new(
             this.bodyHealthQuery,
             this.world.WorldRegistry,
@@ -623,6 +627,13 @@ public sealed partial class CharacterMedicalRuntime :
         float treatmentEfficiency = usedExtractedBlood
             ? 0.55f
             : Mathf.Max(0.1f, order.treatmentPotency);
+        if (rescuer != null)
+        {
+            CharacterPerformanceSnapshot treatment = performance.Evaluate(
+                rescuer,
+                "performance:medical:treatment-efficiency");
+            treatmentEfficiency *= treatment.IsApplicable ? treatment.Value : 0f;
+        }
         bodyHealthCommands.ApplyTreatment(
             patient,
             severityReduction * 40f * treatmentEfficiency,

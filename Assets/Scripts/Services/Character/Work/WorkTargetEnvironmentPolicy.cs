@@ -36,6 +36,24 @@ internal sealed class WorkTargetEnvironmentPolicy
         return assessment.CanStart;
     }
 
+    public bool TryAssessEstimate(
+        BuildableObject building,
+        WorkTypeId workTypeId,
+        out WorkEnvironmentAssessment assessment)
+    {
+        assessment = default;
+        if (environment == null || building == null || !workTypeId.IsValid)
+            return false;
+
+        assessment = environment.Assess(
+            work.WorkerActor,
+            building.centerPos,
+            EstimateRemainingSeconds(building, workTypeId),
+            ResolveKind(workTypeId),
+            forced: false);
+        return true;
+    }
+
     public bool CanStartRoute(
         BuildableObject building,
         WorkTypeId workTypeId,
@@ -147,7 +165,9 @@ internal sealed class WorkTargetEnvironmentPolicy
         float speed = work.WorkerActor != null
             ? UnityEngine.Mathf.Max(
                 0.05f,
-                work.WorkerActor.GetWorkSpeedMultiplier(workTypeId))
+                work.WorkerActor.GetWorkSpeedMultiplier(
+                    workTypeId,
+                    building))
             : 1f;
         return UnityEngine.Mathf.Clamp(remainingWork / speed, 0.1f, 3600f);
     }

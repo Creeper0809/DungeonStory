@@ -25,41 +25,11 @@ MonoBehaviour:
   traitName: "\uC18C\uC2EC\uD568"
   description: "\uC804\uD22C\uC640 \uD63C\uC7A1\uC744 \uC2EB\uC5B4\uD558\uC9C0\uB9CC
     \uC0AC\uACE0 \uC704\uD5D8\uC740 \uB0AE\uB2E4."
-  statBonus:
-    entries:
-    - statId: stat:attack
-      value: -1
-    - statId: stat:sales
-      value: 0
-    - statId: stat:research
-      value: 0
-    - statId: stat:move-speed
-      value: 0
-    - statId: stat:strength
-      value: 0
-    - statId: stat:toughness
-      value: 0
-    - statId: stat:dexterity
-      value: 0
-    - statId: stat:cleaning
-      value: 0
-    - statId: stat:endurance
-      value: 1
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1.1
-    crowdSensitivityMultiplier: 1.4
-    accidentChanceMultiplier: 0.85
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 0.8
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
-    preferredFacilityRoles: 4
-    dislikedFacilityRoles: 8
+    preferredFacilityRoles: 0
+    dislikedFacilityRoles: 0
     preferredWorkTypes: 0
-    dislikedWorkTypes: 32
+    dislikedWorkTypes: 0
   combatAbilities:
     abilities: []
   environmentalProtection:
@@ -69,17 +39,65 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 0
+  polarity: 1
+  selectionFamilyId: combat-temperament
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: safety:avoid-danger
-    utilityDelta: 0.45
-  moodReactions:
-  - triggerTag: danger:exposed
-    moodDelta: -4
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: combat
-    multiplier: 0.7
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:105:effect:0
+    definition: {fileID: 11400000, guid: 137c7667173fc054eb6777aec0aa16f2, type: 2}
+    value: 0.82
+    condition: {fileID: 0}
+  - bindingId: trait:105:effect:1
+    definition: {fileID: 11400000, guid: ab46736f68b07c442bc3c27bbc87e7cc, type: 2}
+    value: 0.8
+    condition: {fileID: 0}
+  - bindingId: trait:105:effect:2
+    definition: {fileID: 11400000, guid: 8738886ff7b663646976ab00e31cb051, type: 2}
+    value: 1.2
+    condition: {fileID: 0}
+  identityRules:
+  - rid: 7737211921986486512
+  - rid: 7737211921986486513
+  - rid: 7737211921986486514
+  - rid: 7737211921986486515
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486512
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:avoid-danger
+        priority: 0
+        behaviorTag: work:dangerous
+        utilityDelta: -0.8
+    - rid: 7737211921986486513
+      type: {class: AutonomousWorkRestrictionRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: restriction:dangerous-work
+        priority: 0
+        actionTag: work:dangerous
+        requiredConditionId: condition:no-safe-alternative
+        failureReason: "\uC18C\uC2EC\uD568 \uB54C\uBB38\uC5D0 \uC790\uC728 \uC704\uD5D8
+          \uC791\uC5C5\uC744 \uD53C\uD568"
+    - rid: 7737211921986486514
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:forced-danger
+        priority: 0
+        eventId: danger:directly-assigned
+        moodDelta: -4
+        durationDays: 2
+    - rid: 7737211921986486515
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:safe-return
+        priority: 0
+        eventId: danger:safe-return
+        moodDelta: 2
+        durationDays: 1

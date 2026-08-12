@@ -32,7 +32,9 @@ public static class EquipmentProgressionFacilityContract
     }
 }
 
-public interface ICombatEquipmentRuntime : IBuildingEquipmentCraftingRuntimePort
+public interface ICombatEquipmentRuntime :
+    IBuildingEquipmentCraftingRuntimePort,
+    ICombatFallbackWeaponRuntimePort
 {
     IReadOnlyList<CombatEquipmentDefinitionSO> Definitions { get; }
     IReadOnlyCollection<CombatEquipmentInstance> Instances { get; }
@@ -49,6 +51,12 @@ public interface ICombatEquipmentRuntime : IBuildingEquipmentCraftingRuntimePort
         string materialId,
         BuildableObject craftingFacility,
         out string failureReason);
+    bool TryGetNextCraftMaterialContext(
+        IEnumerable<string> craftableDefinitionIds,
+        CharacterActor worker,
+        out string definitionId,
+        out string materialId,
+        out bool usesSubstituteMaterial);
     int ApplyCraftWork(
         IEnumerable<string> craftableDefinitionIds,
         float workUnits,
@@ -66,6 +74,15 @@ public interface ICombatEquipmentRuntime : IBuildingEquipmentCraftingRuntimePort
         out string completedDefinitionId,
         out string completedMaterialId,
         out CombatEquipmentQuality completedQuality);
+    int ApplyCraftWork(
+        IEnumerable<string> craftableDefinitionIds,
+        float workUnits,
+        CharacterActor worker,
+        float relevantSkill,
+        out string completedDefinitionId,
+        out string completedMaterialId,
+        out CombatEquipmentQuality completedQuality,
+        out MythicProvenanceSaveData completedMythicProvenance);
     WorkerSelectionPolicySaveData GetCraftWorkerPolicy(string orderId);
     bool SetCraftWorkerPolicy(
         string orderId,
@@ -85,6 +102,12 @@ public interface ICombatEquipmentRuntime : IBuildingEquipmentCraftingRuntimePort
         CombatEquipmentQuality quality,
         CombatEquipmentWorldState worldState = CombatEquipmentWorldState.Stored,
         string materialId = "");
+    CombatEquipmentInstance CreateInstance(
+        string definitionId,
+        CombatEquipmentQuality quality,
+        CombatEquipmentWorldState worldState,
+        string materialId,
+        MythicProvenanceSaveData mythicProvenance);
     CombatEquipmentInstance CreateExternalInstance(
         string definitionId,
         CombatEquipmentQuality quality,
@@ -119,6 +142,21 @@ public interface ICombatEquipmentRuntime : IBuildingEquipmentCraftingRuntimePort
         out string recoveredItemId,
         out int recoveredAmount,
         out string failureReason);
+    bool TrySalvage(
+        string instanceId,
+        CharacterActor worker,
+        Vector2Int outputPosition,
+        out string recoveredItemId,
+        out int recoveredAmount,
+        out string failureReason);
+    bool TryDiscardBySourceStack(
+        string sourceStackId,
+        out bool wasSalvageable,
+        out string failureReason);
+    bool TryConsumeForMarketSale(
+        string sourceStackId,
+        out CombatEquipmentInstance soldInstance,
+        out string failureReason);
     bool TryGetInstance(string instanceId, out CombatEquipmentInstance instance);
     bool TryUpdateEvolutionState(
         string instanceId,
@@ -135,13 +173,16 @@ public interface ICombatEquipmentRuntime : IBuildingEquipmentCraftingRuntimePort
         string characterId,
         CombatEquipmentLoadoutSlot slot,
         out string failureReason);
-    bool TrySetActiveWeapon(string characterId, string instanceId, out string failureReason);
+    new bool TrySetActiveWeapon(string characterId, string instanceId, out string failureReason);
     bool TrySetActiveProfile(string characterId, string profileId);
     bool TrySetFireMode(string characterId, CombatFireMode fireMode, out string failureReason);
     bool TrySetHoldFire(string characterId, bool holdFire);
     CharacterCombatLoadoutState GetOrCreateLoadout(string characterId);
-    CharacterCombatLoadoutProfile GetActiveProfileSnapshot(string characterId);
-    bool TryGetActiveWeapon(string characterId, out CombatWeaponSnapshot weapon);
+    new CharacterCombatLoadoutProfile GetActiveProfileSnapshot(string characterId);
+    bool TryGetActiveProfileSnapshot(
+        string characterId,
+        out CharacterCombatLoadoutProfile profile);
+    new bool TryGetActiveWeapon(string characterId, out CombatWeaponSnapshot weapon);
     IReadOnlyList<CombatArmorSnapshot> GetArmor(string characterId);
     CombatShieldSnapshot GetShield(string characterId, float incomingAngleDegrees = 0f);
     bool HasCompatibleAmmunition(

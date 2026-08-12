@@ -119,7 +119,10 @@ public class BuildableObject : MonoBehaviour,
 
     public int ActiveVisitReservationCount =>
         Occupancy.ActiveVisitReservationCount;
-    public IBuildingCharacterPort WorkerReservation => Assignment.WorkerReservation;
+    public IBuildingCharacterPort WorkerReservation =>
+        this is IParallelWorkerReservationFacility parallel
+            ? parallel.PrimaryWorkerReservation
+            : Assignment.WorkerReservation;
 
     public virtual void Start()
     {
@@ -651,6 +654,8 @@ public class BuildableObject : MonoBehaviour,
             BuildingData,
             combatEquipmentRuntime);
 
+    public bool CanApplyDamageRules => debugRules != null;
+
     public void SetDamaged(bool value)
     {
         if ((debugRules ?? throw new InvalidOperationException(
@@ -731,21 +736,37 @@ public class BuildableObject : MonoBehaviour,
         out FacilityAssignmentStatus status,
         float seconds = DefaultAiReservationSeconds)
     {
-        return Assignment.TryReserveWorker(worker, out status, seconds);
+        return this is IParallelWorkerReservationFacility parallel
+            ? parallel.TryReserveParallelWorker(worker, out status, seconds)
+            : Assignment.TryReserveWorker(worker, out status, seconds);
     }
 
     public void RefreshWorkerReservation(
         IBuildingCharacterPort worker,
         float seconds = DefaultAiReservationSeconds)
     {
+        if (this is IParallelWorkerReservationFacility parallel)
+        {
+            parallel.RefreshParallelWorkerReservation(worker, seconds);
+            return;
+        }
         Assignment.RefreshWorkerReservation(worker, seconds);
     }
 
     public bool HasWorkerReservationForOther(IBuildingCharacterPort worker) =>
-        Assignment.HasWorkerReservationForOther(worker);
+        this is IParallelWorkerReservationFacility parallel
+            ? parallel.HasParallelWorkerReservationForOther(worker)
+            : Assignment.HasWorkerReservationForOther(worker);
 
-    public void ReleaseWorkerReservation(IBuildingCharacterPort worker) =>
+    public void ReleaseWorkerReservation(IBuildingCharacterPort worker)
+    {
+        if (this is IParallelWorkerReservationFacility parallel)
+        {
+            parallel.ReleaseParallelWorkerReservation(worker);
+            return;
+        }
         Assignment.ReleaseWorkerReservation(worker);
+    }
 
     public bool CanAssignWork(
         WorkTypeId workTypeId,

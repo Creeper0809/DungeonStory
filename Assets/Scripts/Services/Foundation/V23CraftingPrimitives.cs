@@ -32,20 +32,6 @@ public enum WorkerCandidateSortMode
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public sealed class WorkerStatRequirementSaveData
-{
-    public int statType;
-    [Min(0)] public int minimumValue;
-
-    public WorkerStatRequirementSaveData Clone() => new()
-    {
-        statType = statType,
-        minimumValue = Mathf.Max(0, minimumValue)
-    };
-}
-
-[Serializable]
-[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class WorkerSelectionPolicySaveData
 {
     public WorkerSelectionMode mode = WorkerSelectionMode.Anyone;
@@ -53,7 +39,6 @@ public sealed class WorkerSelectionPolicySaveData
     public WorkerCandidateSortMode sortMode = WorkerCandidateSortMode.Fastest;
     public List<string> specificCharacterIds = new();
     public List<string> excludedCharacterIds = new();
-    public List<WorkerStatRequirementSaveData> statRequirements = new();
     public string minimumSkillId = string.Empty;
     [Min(0)] public int minimumSkillExperience;
     [Min(0)] public int minimumCareerRank;
@@ -74,13 +59,6 @@ public sealed class WorkerSelectionPolicySaveData
         sortMode = sortMode,
         specificCharacterIds = NormalizeIds(specificCharacterIds),
         excludedCharacterIds = NormalizeIds(excludedCharacterIds),
-        statRequirements = (statRequirements ?? new List<WorkerStatRequirementSaveData>())
-            .Where(value => value != null)
-            .Select(value => value.Clone())
-            .GroupBy(value => value.statType)
-            .Select(group => group.OrderByDescending(value => value.minimumValue).First())
-            .OrderBy(value => value.statType)
-            .ToList(),
         minimumSkillId = minimumSkillId?.Trim() ?? string.Empty,
         minimumSkillExperience = Mathf.Max(0, minimumSkillExperience),
         minimumCareerRank = Mathf.Max(0, minimumCareerRank),
@@ -176,7 +154,14 @@ public enum CraftsmanshipQualityTier
     Good = 3,
     Excellent = 4,
     Masterwork = 5,
-    Legendary = 6
+    Legendary = 6,
+    Mythic = 7
+}
+
+public static class QualityRejectedOutputRules
+{
+    public const string MarketDestinationId = "sale:quality-rejected";
+    public const int MaximumSettlementsPerEvaluation = 4;
 }
 
 public static class CraftsmanshipQualityRules
@@ -190,8 +175,81 @@ public static class CraftsmanshipQualityRules
         CraftsmanshipQualityTier.Excellent => 1.16f,
         CraftsmanshipQualityTier.Masterwork => 1.26f,
         CraftsmanshipQualityTier.Legendary => 1.40f,
+        CraftsmanshipQualityTier.Mythic => 1.60f,
         _ => 1f
     };
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class MythicProvenanceSaveData
+{
+    public string makerCharacterId = string.Empty;
+    public int sourceTraitId;
+    public CraftsmanshipQualityTier originalQuality;
+    public ulong fixedRollHash;
+    public int createdDay;
+    public string createdFacilityId = string.Empty;
+
+    public MythicProvenanceSaveData Clone() => new()
+    {
+        makerCharacterId = makerCharacterId?.Trim() ?? string.Empty,
+        sourceTraitId = sourceTraitId,
+        originalQuality = originalQuality,
+        fixedRollHash = fixedRollHash,
+        createdDay = Mathf.Max(0, createdDay),
+        createdFacilityId = createdFacilityId?.Trim() ?? string.Empty
+    };
+}
+
+public static class MythicCraftInspirationRules
+{
+    public const int SourceTraitId = 300;
+    public const ulong RollScale = 1_000_000UL;
+
+    public static ulong ResolveFixedRollHash(
+        ulong runSeed,
+        string pipelineId,
+        string definitionId,
+        int attemptIndex,
+        string makerCharacterId,
+        int traitId = SourceTraitId)
+    {
+        ulong hash = 14695981039346656037UL;
+        Append(ref hash, runSeed.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        Append(ref hash, pipelineId);
+        Append(ref hash, definitionId);
+        Append(ref hash, Mathf.Max(0, attemptIndex).ToString(
+            System.Globalization.CultureInfo.InvariantCulture));
+        Append(ref hash, makerCharacterId);
+        Append(ref hash, traitId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return hash;
+    }
+
+    public static bool IsMythic(ulong fixedRollHash, float authoredChance)
+    {
+        ulong threshold = (ulong)Math.Round(
+            Mathf.Clamp01(authoredChance) * RollScale,
+            MidpointRounding.AwayFromZero);
+        return fixedRollHash % RollScale < threshold;
+    }
+
+    private static void Append(ref ulong hash, string value)
+    {
+        foreach (char character in value?.Trim() ?? string.Empty)
+        {
+            unchecked
+            {
+                hash ^= character;
+                hash *= 1099511628211UL;
+            }
+        }
+        unchecked
+        {
+            hash ^= 0x1FUL;
+            hash *= 1099511628211UL;
+        }
+    }
 }
 
 [Serializable]

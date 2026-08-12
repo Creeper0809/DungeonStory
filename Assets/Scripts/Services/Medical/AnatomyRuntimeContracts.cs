@@ -4,15 +4,6 @@ using System.Collections.Generic;
 /// Application-facing anatomy ports. Actor components remain outside the
 /// immutable DungeonStory.Medical definition assembly.
 /// </summary>
-public interface IAnatomyEffectRuntime
-{
-    AnatomyActionAxisSnapshot GetActionAxes(CharacterActor actor);
-    AnatomyActionAxisSnapshot GetActionAxes(string characterId);
-    AnatomyActivityFactorSnapshot GetActivityFactor(
-        CharacterActor actor,
-        AnatomyActivityId activity);
-}
-
 public interface IAnatomyHealthRuntime
 {
     AnatomyHealthSnapshot GetAnatomySnapshot(CharacterActor actor);

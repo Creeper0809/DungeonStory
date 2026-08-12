@@ -21,7 +21,8 @@ public enum OffenseBattleActionType
     Reload,
     SwitchWeapon,
     SetFireMode,
-    DeployCover
+    DeployCover,
+    Advance
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -392,6 +393,8 @@ public sealed class OffenseBattleStatus
                 Mathf.Abs(value) > Mathf.Abs(Value) ? value : Value,
                 -0.9f,
                 2f)
+            : Type == OffenseBattleStatusType.Sedated
+                ? Mathf.Clamp01(Value + Mathf.Max(0f, value))
             : Mathf.Max(Value, Mathf.Max(0f, value));
         RemainingTurns = Mathf.Max(RemainingTurns, Mathf.Max(1, turns));
     }
@@ -720,10 +723,12 @@ public sealed class OffenseBattleCombatant
         if (existing != null)
         {
             existing.Refresh(status.Value, status.RemainingTurns);
+            UpdateDowned();
             return;
         }
 
         statuses.Add(status);
+        UpdateDowned();
     }
 
     public void RestoreStatuses(IEnumerable<OffenseBattleStatus> values)
@@ -735,6 +740,7 @@ public sealed class OffenseBattleCombatant
     public void RemoveStatus(OffenseBattleStatus status)
     {
         statuses.Remove(status);
+        UpdateDowned();
     }
 
     public int RemoveStatuses(Func<OffenseBattleStatus, bool> predicate, int maximum)
@@ -851,7 +857,15 @@ public sealed class OffenseBattleCombatant
 
     private void UpdateDowned()
     {
-        IsDowned = !IsDead && (Consciousness < 0.25f || Mobility < 0.2f);
+        float sedation = statuses
+            .Where(value => value.Type == OffenseBattleStatusType.Sedated)
+            .Select(value => value.Value)
+            .DefaultIfEmpty(0f)
+            .Max();
+        IsDowned = !IsDead
+            && (Consciousness < 0.25f
+                || Mobility < 0.2f
+                || sedation >= 0.7f);
     }
 
     private static CharacterBodyPartHealthState CreateBodyPart(
@@ -905,16 +919,28 @@ public sealed class OffenseBattleCommand
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class OffenseBattleCommandResult
 {
-    public OffenseBattleCommandResult(bool accepted, string message, float amount = 0f)
+    public OffenseBattleCommandResult(
+        bool accepted,
+        string message,
+        float amount = 0f,
+        bool hit = false,
+        bool shieldBlocked = false,
+        bool coverBlocked = false)
     {
         Accepted = accepted;
         Message = message ?? string.Empty;
         Amount = Mathf.Max(0f, amount);
+        Hit = hit;
+        ShieldBlocked = shieldBlocked;
+        CoverBlocked = coverBlocked;
     }
 
     public bool Accepted { get; }
     public string Message { get; }
     public float Amount { get; }
+    public bool Hit { get; }
+    public bool ShieldBlocked { get; }
+    public bool CoverBlocked { get; }
 }
 
 [Serializable]

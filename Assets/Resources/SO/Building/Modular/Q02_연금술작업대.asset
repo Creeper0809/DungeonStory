@@ -34,22 +34,35 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: proficiency:crafting
+    secondaryProficiencyId: proficiency:scholarship
+    primaryWeight: 0.8
+    combinationMode: 1
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730834227283
-    - rid: 7737211730834227284
-    - rid: 7737211730834227286
-    - rid: 7737211730834227287
-    - rid: 7737211730834227288
-    - rid: 7737211730834227289
-    - rid: 7737211730834227290
-    - rid: 7737211730834227291
-    - rid: 7737211730834227292
-    - rid: 7737211838074978840
-    - rid: 7737211838074978841
-    - rid: 7737211838079696931
+    - rid: 7737211921440178661
+    - rid: 7737211921440178662
+    - rid: 7737211921440178663
+    - rid: 7737211921440178664
+    - rid: 7737211921440178665
+    - rid: 7737211921440178666
+    - rid: 7737211921440178667
+    - rid: 7737211921440178668
+    - rid: 7737211921440178669
+    - rid: 7737211921440178670
   width: 2
   height: 1
   layer: 1
@@ -65,18 +78,24 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730834227283
+    - rid: 7737211921440178661
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: Q02
-    - rid: 7737211730834227284
+    - rid: 7737211921440178662
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - alchemy
-    - rid: 7737211730834227286
+    - rid: 7737211921440178663
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:alchemy-basic
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211921440178664
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -85,19 +104,39 @@ MonoBehaviour:
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211730834227287
+    - rid: 7737211921440178665
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 26.2
-        repairWorkRequired: 12
-        cleanWorkRequired: 7.5
+        constructionProjectScale: 0
+        constructionWorkRequired: 468
+        repairWorkRequired: 116
+        cleanWorkRequired: 22
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: material:lumber
+        - itemId: material:treated-lumber
           amount: 6
-    - rid: 7737211730834227288
+        - itemId: material:iron-ingot
+          amount: 2
+        - itemId: material:stone-block
+          amount: 2
+        - itemId: component:rune-conductor
+          amount: 1
+        - itemId: component:engineering-drawing
+          amount: 1
+    - rid: 7737211921440178666
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -108,11 +147,11 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 21
           disabledWhenDamaged: 1
-    - rid: 7737211730834227289
+    - rid: 7737211921440178667
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211730834227290
+    - rid: 7737211921440178668
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -130,7 +169,7 @@ MonoBehaviour:
           - key: Ritual
             value: 2
           metrics: []
-    - rid: 7737211730834227291
+    - rid: 7737211921440178669
       type: {class: BuildingNeedRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingNeedRecoveryAbility
@@ -141,46 +180,9 @@ MonoBehaviour:
           hunger: 0
           excretion: 0
           hygiene: 0
-    - rid: 7737211730834227292
+    - rid: 7737211921440178670
       type: {class: BuildingProductionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionAbility
         outputCategory: 3
         amount: 3
-    - rid: 7737211838074978840
-      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionWorkstationAbility
-        workstationTag: workstation:alchemy-basic
-        stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211838074978841
-      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionBufferAbility
-        defaultBatchCapacity: 4
-        outputCapacities:
-        - itemId: material:lead-ingot
-          capacity: 24
-        - itemId: material:lead-shot
-          capacity: 96
-        - itemId: material:black-powder
-          capacity: 48
-        - itemId: material:paper
-          capacity: 64
-        - itemId: ammo:paper-cartridge
-          capacity: 120
-        - itemId: component:machine-parts
-          capacity: 16
-        - itemId: component:precision-parts
-          capacity: 16
-        allowOverflowDump: 1
-        overflowOffset: {x: 1, y: 0}
-    - rid: 7737211838079696931
-      type: {class: BuildingResearchCapacityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingResearchCapacityAbility
-        contributions:
-        - capability: 0
-          capacity: 1
-        - capability: 5
-          capacity: 1

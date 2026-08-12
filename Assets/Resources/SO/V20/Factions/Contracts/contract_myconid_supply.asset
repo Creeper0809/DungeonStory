@@ -23,8 +23,8 @@ MonoBehaviour:
   deadlineDays: 20
   completionRequirements:
     items:
-    - itemDefinitionId: food:cultured-mushroom
-      amount: 12
+    - itemDefinitionId: resource:cave-mushroom
+      amount: 16
       consume: 1
     facilities: []
     research: []

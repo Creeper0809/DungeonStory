@@ -338,13 +338,20 @@ public sealed class WildlifeAnatomyHealthRuntime :
         return new AnatomyHealthSnapshot(
             state.profileId,
             state.nodes.Select(SurgeryStateCloner.CloneAnatomyNode).ToArray(),
-            Capacity(AnatomyFunction.Consciousness),
-            Capacity(AnatomyFunction.Sight),
-            Capacity(AnatomyFunction.Breathing),
-            Capacity(AnatomyFunction.Digestion),
-            Capacity(AnatomyFunction.Filtration),
-            Capacity(AnatomyFunction.Manipulation),
-            Capacity(AnatomyFunction.Mobility));
+            Capacity(AnatomyFunction.MentalMaintenance),
+            Capacity(AnatomyFunction.VisualDiscernment),
+            Capacity(AnatomyFunction.AuditorySensing),
+            Capacity(AnatomyFunction.RespiratoryExchange),
+            Capacity(AnatomyFunction.PowerCirculation),
+            Capacity(AnatomyFunction.IntakeProcessing),
+            Capacity(AnatomyFunction.PurificationProcessing),
+            Capacity(AnatomyFunction.VitalityResponse),
+            Capacity(AnatomyFunction.PhysicalPower),
+            Capacity(AnatomyFunction.PrecisionManipulation),
+            Capacity(AnatomyFunction.PhysicalMobility),
+            Capacity(AnatomyFunction.Communication),
+            Capacity(AnatomyFunction.ArcaneConduction),
+            Capacity(AnatomyFunction.ImmuneDefense));
     }
 
     private static AnatomyNodeHealthState Find(
@@ -361,6 +368,13 @@ public sealed class WildlifeAnatomyHealthRuntime :
         return new AnatomyHealthSnapshot(
             string.Empty,
             Array.Empty<AnatomyNodeHealthState>(),
+            1f,
+            1f,
+            1f,
+            1f,
+            1f,
+            1f,
+            1f,
             1f,
             1f,
             1f,

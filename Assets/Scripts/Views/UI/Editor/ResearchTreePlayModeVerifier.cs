@@ -185,9 +185,9 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
                 && (gameManager == null || !gameManager.isPause),
             "DEFAULT_NO_PAUSE",
             $"timeScale={Time.timeScale:0.##}; paused={gameManager != null && gameManager.isPause}");
-        Check(CountNodeButtons(window) == 180,
+        Check(CountNodeButtons(window) == catalog.Projects.Count,
             "ALL_NODES_VISIBLE",
-            $"nodes={CountNodeButtons(window)}");
+            $"nodes={CountNodeButtons(window)}; catalog={catalog.Projects.Count}");
         Check(FindChild(window.transform, "GraphViewport") != null
                 && FindChild(window.transform, "Inspector") != null,
             "SURFACE_STRUCTURE",
@@ -459,10 +459,11 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
                 StringComparison.Ordinal),
             $"{surface}_DETAIL_ESTIMATE",
             $"shifts={expectedShifts}; gameDays={expectedDays:0.0}");
-        Check(!string.IsNullOrWhiteSpace(expectedUnlockCards)
-                && actual.Contains(
-                    $"<b>해금</b>  {expectedUnlockCards}",
-                    StringComparison.Ordinal),
+        Check(rewards.Count > 0
+                && actual.Contains("<b>해금</b>", StringComparison.Ordinal)
+                && rewards.All(reward => actual.Contains(
+                    reward.DisplayName,
+                    StringComparison.Ordinal)),
             $"{surface}_DETAIL_REWARD_CARDS",
             $"cards={rewards.Count}; text={expectedUnlockCards}");
         Check(!string.IsNullOrWhiteSpace(blocker)
@@ -617,14 +618,28 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
         }
 
         string selectableName = selectable.name;
-        RectTransform rect = selectable.transform as RectTransform;
-        Vector2 point = ScreenCenter(rect);
+        Vector2 point = Vector2.zero;
         bool dispatched = false;
         for (int attempt = 0; attempt < 3 && !dispatched; attempt++)
         {
+            Selectable current = FindSelectable(selectableName) ?? selectable;
+            if (current == null || !current.gameObject.activeInHierarchy)
+            {
+                yield return null;
+                continue;
+            }
+
+            point = ScreenCenter(current.transform as RectTransform);
             QueueMouse(new MouseState { position = point });
             Canvas.ForceUpdateCanvases();
             yield return null;
+            current = FindSelectable(selectableName);
+            if (current == null || !current.gameObject.activeInHierarchy)
+            {
+                yield return null;
+                continue;
+            }
+            point = ScreenCenter(current.transform as RectTransform);
             dispatched = DispatchPointerClick(point);
             if (!dispatched)
             {
@@ -923,7 +938,8 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
     {
         return window != null
             ? window.GetComponentsInChildren<Button>(true)
-                .Count(button => button.name.StartsWith("Node_", StringComparison.Ordinal))
+                .Count(button => button.gameObject.activeInHierarchy
+                    && button.name.StartsWith("Node_", StringComparison.Ordinal))
             : 0;
     }
 
@@ -934,6 +950,15 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
                 && button.gameObject.scene.IsValid()
                 && button.gameObject.activeInHierarchy
                 && button.name == name);
+    }
+
+    private static Selectable FindSelectable(string name)
+    {
+        return Resources.FindObjectsOfTypeAll<Selectable>()
+            .FirstOrDefault(selectable => selectable != null
+                && selectable.gameObject.scene.IsValid()
+                && selectable.gameObject.activeInHierarchy
+                && selectable.name == name);
     }
 
     private static TMP_InputField FindInput(string name)

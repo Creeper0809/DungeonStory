@@ -7,6 +7,8 @@ internal sealed class WorldItemRestoreState
 {
     public ItemHaulingSettingsSnapshot HaulingSettings { get; set; }
     public WorldItemRepositoryState RepositoryState { get; set; }
+    public IReadOnlyList<ItemReservationIntentSaveData> ReservationIntents { get; set; } =
+        Array.Empty<ItemReservationIntentSaveData>();
 }
 
 /// <summary>
@@ -18,11 +20,15 @@ public sealed class WorldItemPersistenceService
     private readonly IDungeonItemCatalogProvider catalogProvider;
     private readonly IItemHaulingSettingsProvider haulingSettings;
     private readonly WorldItemRepository repository;
+    private readonly IItemQuantityReservationPersistence reservationPersistence;
+    private readonly IItemReservationMutationGate mutationGate;
 
     public WorldItemPersistenceService(
         IDungeonItemCatalogProvider catalogProvider,
         IItemHaulingSettingsProvider haulingSettings,
-        WorldItemRepository repository)
+        WorldItemRepository repository,
+        IItemQuantityReservationPersistence reservationPersistence = null,
+        IItemReservationMutationGate mutationGate = null)
     {
         this.catalogProvider = catalogProvider
             ?? throw new ArgumentNullException(nameof(catalogProvider));
@@ -30,10 +36,13 @@ public sealed class WorldItemPersistenceService
             ?? throw new ArgumentNullException(nameof(haulingSettings));
         this.repository = repository
             ?? throw new ArgumentNullException(nameof(repository));
+        this.reservationPersistence = reservationPersistence;
+        this.mutationGate = mutationGate;
     }
 
     public DungeonPhysicalItemSaveData Capture()
     {
+        using IDisposable captureBarrier = mutationGate?.EnterCaptureBarrier();
         DungeonPhysicalItemSaveData snapshot = new DungeonPhysicalItemSaveData
         {
             version = DungeonPhysicalItemSaveData.CurrentVersion,
@@ -81,7 +90,10 @@ public sealed class WorldItemPersistenceService
                         }
                     }))
                 .OrderBy(item => item.itemInstanceId, StringComparer.Ordinal)
-                .ToList()
+                .ToList(),
+            reservationIntents = CloneReservationIntents(
+                reservationPersistence?.CaptureReservationIntents()
+                    ?? Array.Empty<ItemReservationIntentSaveData>())
         };
 
         DungeonGameRestoreReport report = new DungeonGameRestoreReport();
@@ -184,6 +196,7 @@ public sealed class WorldItemPersistenceService
                 position = new Vector2Int(entry.gridX, entry.gridY),
                 reservedByPersistentId = string.Empty,
                 destinationId = entry.destinationId,
+                aggregationCohortId = entry.aggregationCohortId,
                 sourceStorageDestinationId = entry.sourceStorageDestinationId,
                 hasDestinationPosition = entry.hasDestinationPosition,
                 destinationPosition = new Vector2Int(
@@ -260,16 +273,35 @@ public sealed class WorldItemPersistenceService
             RepositoryState = repository.CreateDetachedState(
                 records,
                 equipment,
-                modules)
+                modules),
+            ReservationIntents = CloneReservationIntents(
+                snapshot.reservationIntents
+                    ?? new List<ItemReservationIntentSaveData>())
         };
     }
 
     internal void Commit(WorldItemRestoreState staged)
     {
+        using IDisposable restoreBarrier = mutationGate?.EnterRestoreBarrier();
         WorldItemRestoreState required = staged
             ?? throw new ArgumentNullException(nameof(staged));
         haulingSettings.Restore(required.HaulingSettings);
         repository.ReplaceState(required.RepositoryState);
+        if (reservationPersistence != null)
+        {
+            if (!reservationPersistence.TryRestoreGrandfathered(
+                    required.ReservationIntents,
+                    out DomainFailure failure))
+            {
+                throw new InvalidOperationException(
+                    $"Reservation grandfather restore failed: {failure}");
+            }
+        }
+        else if (required.ReservationIntents.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Reservation grandfather restore service is unavailable.");
+        }
     }
 
     private static void DecodeUniqueItems(
@@ -377,6 +409,7 @@ public sealed class WorldItemPersistenceService
             gridY = stack.position.y,
             reservedByPersistentId = string.Empty,
             destinationId = durableDestination,
+            aggregationCohortId = stack.aggregationCohortId?.Trim() ?? string.Empty,
             sourceStorageDestinationId = directPickup
                 ? string.Empty
                 : stack.sourceStorageDestinationId?.Trim() ?? string.Empty,
@@ -413,6 +446,41 @@ public sealed class WorldItemPersistenceService
                         integerValue = value.integerValue,
                         decimalValue = value.decimalValue,
                         booleanValue = value.booleanValue
+                    })
+                    .ToList()
+            })
+            .ToList();
+    }
+
+    private static List<ItemReservationIntentSaveData> CloneReservationIntents(
+        IEnumerable<ItemReservationIntentSaveData> intents)
+    {
+        return (intents ?? Array.Empty<ItemReservationIntentSaveData>())
+            .Where(intent => intent != null)
+            .OrderBy(intent => intent.ownerOperationId, StringComparer.Ordinal)
+            .Select(intent => new ItemReservationIntentSaveData
+            {
+                ownerOperationId = intent.ownerOperationId?.Trim() ?? string.Empty,
+                ownerCharacterId = intent.ownerCharacterId?.Trim() ?? string.Empty,
+                hadActiveItemReservation = intent.hadActiveItemReservation,
+                reservationHints = (intent.reservationHints
+                        ?? new List<ItemReservationClaimHintSaveData>())
+                    .Where(hint => hint != null)
+                    .OrderBy(hint => hint.claimOrdinal)
+                    .Select(hint => new ItemReservationClaimHintSaveData
+                    {
+                        claimHintId = hint.claimHintId?.Trim() ?? string.Empty,
+                        originStackId = hint.originStackId?.Trim() ?? string.Empty,
+                        preferredPhysicalStackId =
+                            hint.preferredPhysicalStackId?.Trim() ?? string.Empty,
+                        itemId = hint.itemId?.Trim() ?? string.Empty,
+                        expectedStackSignature =
+                            hint.expectedStackSignature?.Trim() ?? string.Empty,
+                        quantity = hint.quantity,
+                        purpose = hint.purpose,
+                        aggregationCohortId =
+                            hint.aggregationCohortId?.Trim() ?? string.Empty,
+                        claimOrdinal = hint.claimOrdinal
                     })
                     .ToList()
             })

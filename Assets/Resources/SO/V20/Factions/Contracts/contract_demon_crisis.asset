@@ -25,7 +25,7 @@ MonoBehaviour:
   completionRequirements:
     items:
     - itemDefinitionId: component:rune-conductor
-      amount: 6
+      amount: 1
       consume: 1
     facilities: []
     research: []

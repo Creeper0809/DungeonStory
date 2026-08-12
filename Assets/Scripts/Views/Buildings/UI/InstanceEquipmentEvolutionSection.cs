@@ -212,7 +212,7 @@ public sealed class InstanceEquipmentEvolutionSection
                 StringComparison.Ordinal)
             && stack.Quantity > 0
             && !stack.Forbidden
-            && !stack.IsReserved
+            && stack.AvailableQuantity > 0
             && stack.State is WorldItemStackState.Loose
                 or WorldItemStackState.Stored);
         bool stabilizerEnabled =

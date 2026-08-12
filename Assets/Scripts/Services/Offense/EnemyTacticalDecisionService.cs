@@ -171,6 +171,13 @@ public sealed class EnemyTacticalDecisionService : IEnemyTacticalDecisionService
                 bestAbilityTargetId,
                 bestAbility.Id);
         }
+        if (attackTarget == null
+            && actor.Formation != OffenseFormationSlot.Front)
+        {
+            return new EnemyTacticalDecision(
+                EnemyTacticalIntentKind.Move,
+                actor.PersistentId);
+        }
         if (protectUtility > bestAttackUtility || attackTarget == null)
         {
             return new EnemyTacticalDecision(

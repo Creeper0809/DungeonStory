@@ -76,6 +76,11 @@ public static class DungeonWorldSimulationRegistration
             .As<ICharacterRuntimeTransientStateRegistry>();
         builder.Register<PhysicalStockQuery>(Lifetime.Singleton)
             .As<IStockQuery>();
+        builder.Register<ItemQuantityReservationService>(Lifetime.Singleton)
+            .As<IItemQuantityReservationService>()
+            .As<IItemQuantityLeaseMutation>()
+            .As<IItemQuantityReservationPersistence>()
+            .As<IItemReservationMutationGate>();
         builder.Register<ItemReservationService>(Lifetime.Singleton)
             .As<IItemReservationService>();
         builder.Register<LeasedItemReservationService>(Lifetime.Singleton)
@@ -90,7 +95,10 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<WorldItemHaulPlanningService>(Lifetime.Singleton)
             .As<IWorldItemHaulPlanningService>();
         builder.Register<ItemTransferService>(Lifetime.Singleton)
-            .As<IItemTransferService>();
+            .As<IItemTransferService>()
+            .As<IReservedItemTransferService>();
+        builder.RegisterEntryPoint<BufferStackAggregationService>(Lifetime.Singleton)
+            .As<IBufferStackAggregationService>();
         builder.Register<WorldItemPersistenceService>(Lifetime.Singleton);
         builder.Register<WorldItemWarehouseService>(Lifetime.Singleton);
         builder.Register<WorldItemTheftService>(Lifetime.Singleton);
@@ -323,6 +331,7 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<CharacterNeedBalanceRuntime>(Lifetime.Singleton)
             .As<ICharacterNeedBalanceRuntime>();
         builder.Register<CharacterDeprivationStateStore>(Lifetime.Singleton);
+        builder.Register<CharacterPrimitiveSurvivalDependencies>(Lifetime.Singleton);
         builder.Register<CharacterDeprivationWorldDependencies>(Lifetime.Singleton);
         builder.Register<CharacterDeprivationSystemDependencies>(Lifetime.Singleton);
         builder.Register<CharacterDeprivationAuthorityDependencies>(Lifetime.Singleton);
@@ -445,6 +454,7 @@ public static class DungeonWorldSimulationRegistration
                 Lifetime.Singleton)
             .As<ICharacterConsumablesQuery>()
             .As<ICharacterConsumablesCommand>()
+            .As<IFieldMealConsumptionCommand>()
             .As<ICharacterDietPolicyRuntime>()
             .As<IMealConsumptionRuntime>()
             .As<ICharacterSubstanceRuntime>();

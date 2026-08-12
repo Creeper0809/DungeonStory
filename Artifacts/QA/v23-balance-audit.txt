@@ -1,0 +1,989 @@
+V23 BALANCE AUDIT
+player_buildings=342
+runtime_building_archetypes=42
+deprecated_compatibility_buildings=21
+recipes=354
+equipment=61
+apparel=56
+textiles=12
+faction_contracts=18
+dungeon_factions=6
+guest_requests=14
+
+CONSTRUCTION WORK BY CLASS
+Structure: count=6, work=min 20, p50 30, p90 40, max 48, bom_kinds=min 1, p50 1, p90 3, max 5, bom_units=min 1, p50 2.5, p90 14, max 25
+Decoration: count=58, work=min 28, p50 40, p90 52, max 52, bom_kinds=min 1, p50 1, p90 2, max 4, bom_units=min 1, p50 3, p90 6, max 18
+Storage: count=20, work=min 64, p50 68, p90 88, max 96, bom_kinds=min 1, p50 2, p90 2.1, max 3, bom_units=min 4, p50 5, p90 6.2, max 9
+Workstation: count=92, work=min 156, p50 164, p90 216, max 268, bom_kinds=min 2, p50 5, p90 6, max 8, bom_units=min 5, p50 18, p90 43, max 45
+Service: count=29, work=min 172, p50 192, p90 244, max 276, bom_kinds=min 1, p50 2, p90 4, max 6, bom_units=min 3, p50 6, p90 24, max 34
+Environment: count=41, work=min 212, p50 236, p90 352, max 384, bom_kinds=min 1, p50 4, p90 5, max 7, bom_units=min 2, p50 10, p90 21, max 44
+Defense: count=26, work=min 220, p50 300, p90 368, max 372, bom_kinds=min 1, p50 3, p90 5, max 5, bom_units=min 3, p50 15, p90 19, max 30
+Medical: count=27, work=min 284, p50 300, p90 380, max 468, bom_kinds=min 1, p50 2, p90 7, max 7, bom_units=min 3, p50 11, p90 44, max 44
+Precision: count=13, work=min 328, p50 328, p90 336, max 336, bom_kinds=min 4, p50 4, p90 5, max 6, bom_units=min 14, p50 21, p90 24, max 34
+Industrial: count=19, work=min 400, p50 412, p90 412, max 536, bom_kinds=min 3, p50 3, p90 5, max 5, bom_units=min 6, p50 6, p90 15, max 21
+Arcane: count=2, work=min 540, p50 744, p90 907.2, max 948, bom_kinds=min 1, p50 4, p90 6.4, max 7, bom_units=min 16, p50 30, p90 41.2, max 44
+Landmark: count=9, work=min 2316, p50 2456, p90 2469.6, max 2476, bom_kinds=min 4, p50 4, p90 5, max 5, bom_units=min 46, p50 66, p90 92.4, max 94
+
+FUNCTIONAL FACILITIES BELOW MINIMUM BOM DIVERSITY
+LOW_BOM id=1020, class=Medical, kinds=2/4, asset=Assets/Resources/SO/Building/Modular/R01_간이침대.asset, bom=material:lumber x 5, material:cloth x 3
+LOW_BOM id=1021, class=Medical, kinds=2/4, asset=Assets/Resources/SO/Building/Modular/R02_정식침대.asset, bom=material:lumber x 5, material:cloth x 3
+LOW_BOM id=1022, class=Medical, kinds=3/4, asset=Assets/Resources/SO/Building/Modular/R03_이층침대.asset, bom=material:lumber x 8, material:cloth x 5, material:iron-ingot x 2
+LOW_BOM id=1060, class=Medical, kinds=3/4, asset=Assets/Resources/SO/Building/Modular/H04_목욕통.asset, bom=material:treated-lumber x 6, material:iron-ingot x 3, material:stone-block x 2
+LOW_BOM id=9501, class=Medical, kinds=1/4, asset=Assets/Resources/SO/Building/Medical/M01_응급처치대.asset, bom=material:lumber x 3
+LOW_BOM id=9502, class=Medical, kinds=1/4, asset=Assets/Resources/SO/Building/Medical/M02_해부대.asset, bom=material:lumber x 4
+LOW_BOM id=9503, class=Medical, kinds=1/4, asset=Assets/Resources/SO/Building/Medical/M03_외과수술대.asset, bom=material:lumber x 7
+LOW_BOM id=9504, class=Medical, kinds=1/4, asset=Assets/Resources/SO/Building/Medical/M04_세정대.asset, bom=material:lumber x 3
+LOW_BOM id=9505, class=Medical, kinds=1/4, asset=Assets/Resources/SO/Building/Medical/M05_마취장치.asset, bom=material:steel-ingot x 5
+LOW_BOM id=9506, class=Medical, kinds=1/4, asset=Assets/Resources/SO/Building/Medical/M06_보철조립대.asset, bom=material:steel-ingot x 6
+LOW_BOM id=9507, class=Medical, kinds=1/4, asset=Assets/Resources/SO/Building/Medical/M07_재활보조대.asset, bom=material:steel-ingot x 5
+LOW_BOM id=9508, class=Medical, kinds=1/4, asset=Assets/Resources/SO/Building/Medical/M08_장기보관함.asset, bom=material:steel-ingot x 7
+LOW_BOM id=9509, class=Medical, kinds=1/4, asset=Assets/Resources/SO/Building/Medical/M09_순환이식대.asset, bom=material:steel-ingot x 11
+LOW_BOM id=9510, class=Medical, kinds=1/4, asset=Assets/Resources/SO/Building/Medical/M10_면역조절기.asset, bom=material:steel-ingot x 9
+LOW_BOM id=9511, class=Medical, kinds=1/4, asset=Assets/Resources/SO/Building/Medical/M11_격리회복침상.asset, bom=material:steel-ingot x 8
+LOW_BOM id=9512, class=Arcane, kinds=1/5, asset=Assets/Resources/SO/Building/Medical/M12_비전개조대.asset, bom=component:rune-conductor x 16
+LOW_BOM id=9513, class=Medical, kinds=1/4, asset=Assets/Resources/SO/Building/Medical/M13_룬봉합기.asset, bom=component:rune-conductor x 11
+
+RECIPE WORK BY FLOW
+Transform: count=327, work=min 8, p50 24, p90 68, max 168
+Source: count=23, work=min 4, p50 6, p90 11.6, max 32
+Sink: count=4, work=min 6, p50 6, p90 6, max 6
+
+LOW-WORK RECIPE REVIEW CANDIDATES
+LOW_WORK id=source:animal-fang, flow=Source, process=Gathering, authored=4, calculated=4, asset=Assets/Resources/SO/Economy/Recipes/source_animal_fang.asset, inputs=, outputs=resource:fang x 1 @ 1
+LOW_WORK id=source:animal-horn, flow=Source, process=Gathering, authored=4, calculated=4, asset=Assets/Resources/SO/Economy/Recipes/source_animal_horn.asset, inputs=, outputs=resource:horn x 1 @ 1
+LOW_WORK id=source:spoilage-animal, flow=Source, process=Gathering, authored=4, calculated=4, asset=Assets/Resources/SO/Economy/Recipes/source_spoilage_animal.asset, inputs=, outputs=waste:animal-rot x 1 @ 1
+LOW_WORK id=source:spoilage-forbidden, flow=Source, process=Gathering, authored=4, calculated=4, asset=Assets/Resources/SO/Economy/Recipes/source_spoilage_forbidden.asset, inputs=, outputs=waste:forbidden-rot x 1 @ 1
+LOW_WORK id=source:spoilage-mixed, flow=Source, process=Gathering, authored=4, calculated=4, asset=Assets/Resources/SO/Economy/Recipes/source_spoilage_mixed.asset, inputs=, outputs=waste:mixed-rot x 1 @ 1
+LOW_WORK id=source:spoilage-plant, flow=Source, process=Gathering, authored=4, calculated=4, asset=Assets/Resources/SO/Economy/Recipes/source_spoilage_plant.asset, inputs=, outputs=waste:plant-rot x 1 @ 1
+LOW_WORK id=recipe:incinerate-animal, flow=Sink, process=CuttingGrindingWashing, authored=6, calculated=6, asset=Assets/Resources/SO/Economy/Recipes/recipe_incinerate_animal.asset, inputs=waste:animal-rot x 1, outputs=
+LOW_WORK id=recipe:incinerate-forbidden, flow=Sink, process=CuttingGrindingWashing, authored=6, calculated=6, asset=Assets/Resources/SO/Economy/Recipes/recipe_incinerate_forbidden.asset, inputs=waste:forbidden-rot x 1, outputs=
+LOW_WORK id=recipe:incinerate-mixed, flow=Sink, process=CuttingGrindingWashing, authored=6, calculated=6, asset=Assets/Resources/SO/Economy/Recipes/recipe_incinerate_mixed.asset, inputs=waste:mixed-rot x 1, outputs=
+LOW_WORK id=recipe:incinerate-plant, flow=Sink, process=CuttingGrindingWashing, authored=6, calculated=6, asset=Assets/Resources/SO/Economy/Recipes/recipe_incinerate_plant.asset, inputs=waste:plant-rot x 1, outputs=
+LOW_WORK id=recipe:resource:lead-ore, flow=Source, process=Gathering, authored=6, calculated=6, asset=Assets/Resources/SO/Economy/Recipes/ResearchOverhaul/V3R03_납광석.asset, inputs=, outputs=resource:lead-ore x 2 @ 1
+LOW_WORK id=recipe:resource:sulfur, flow=Source, process=Gathering, authored=6, calculated=6, asset=Assets/Resources/SO/Economy/Recipes/ResearchOverhaul/V3R02_황.asset, inputs=, outputs=resource:sulfur x 2 @ 1
+LOW_WORK id=source:animal-blood, flow=Source, process=Gathering, authored=6, calculated=6, asset=Assets/Resources/SO/Economy/Recipes/source_animal_blood.asset, inputs=, outputs=resource:blood x 2 @ 1
+LOW_WORK id=source:animal-bone, flow=Source, process=Gathering, authored=6, calculated=6, asset=Assets/Resources/SO/Economy/Recipes/source_animal_bone.asset, inputs=, outputs=resource:bone x 2 @ 1
+LOW_WORK id=source:animal-fat, flow=Source, process=Gathering, authored=6, calculated=6, asset=Assets/Resources/SO/Economy/Recipes/source_animal_fat.asset, inputs=, outputs=resource:fat x 2 @ 1
+LOW_WORK id=source:animal-hide, flow=Source, process=Gathering, authored=6, calculated=6, asset=Assets/Resources/SO/Economy/Recipes/source_animal_hide.asset, inputs=, outputs=resource:hide x 2 @ 1
+LOW_WORK id=source:animal-manure, flow=Source, process=Gathering, authored=6, calculated=6, asset=Assets/Resources/SO/Economy/Recipes/source_animal_manure.asset, inputs=, outputs=resource:manure x 2 @ 1
+LOW_WORK id=recipe:compost-plant, flow=Transform, process=CookingSimpleMixing, authored=8, calculated=8, asset=Assets/Resources/SO/Economy/Recipes/recipe_compost_plant.asset, inputs=waste:plant-rot x 2, outputs=material:compost x 1 @ 1
+LOW_WORK id=recipe:tallow, flow=Transform, process=CookingSimpleMixing, authored=8, calculated=8, asset=Assets/Resources/SO/Economy/Recipes/recipe_tallow.asset, inputs=resource:fat x 2, outputs=material:tallow x 1 @ 1
+LOW_WORK id=source:animal-egg, flow=Source, process=Gathering, authored=8, calculated=8, asset=Assets/Resources/SO/Economy/Recipes/source_animal_egg.asset, inputs=, outputs=resource:egg x 3 @ 1
+LOW_WORK id=source:animal-milk, flow=Source, process=Gathering, authored=8, calculated=8, asset=Assets/Resources/SO/Economy/Recipes/source_animal_milk.asset, inputs=, outputs=resource:milk x 3 @ 1
+LOW_WORK id=source:animal-wool, flow=Source, process=Gathering, authored=8, calculated=8, asset=Assets/Resources/SO/Economy/Recipes/source_animal_wool.asset, inputs=, outputs=resource:wool x 3 @ 1
+
+EMBEDDED WORK VALUE (EWU)
+resolved_items=413, external_seed_items=25, unresolved_items=0, non_convergent_recipes=0
+item_ewu=min 3.6, p50 60.43, p90 737.1, max 5468.39
+authored_gold_per_ewu=min 0.02, p50 0.33, p90 0.35, max 3
+EXTERNAL_EWU item=fiber:cave-silk, ewu=8.57
+EXTERNAL_EWU item=fiber:deep-goat-wool, ewu=8.57
+EXTERNAL_EWU item=fiber:ember-cotton, ewu=8.57
+EXTERNAL_EWU item=fiber:frost-flax, ewu=8.57
+EXTERNAL_EWU item=fiber:frost-wool, ewu=8.57
+EXTERNAL_EWU item=fiber:mire-reed, ewu=8.57
+EXTERNAL_EWU item=fiber:spore-hemp, ewu=8.57
+EXTERNAL_EWU item=medicine:mycelial-culture-pack, ewu=31.41
+EXTERNAL_EWU item=offense:unappraised-loot, ewu=24.45
+EXTERNAL_EWU item=resource:bloodleaf, ewu=8.63
+EXTERNAL_EWU item=resource:cave-mushroom, ewu=9
+EXTERNAL_EWU item=resource:dreamleaf, ewu=8.57
+EXTERNAL_EWU item=resource:ember-root, ewu=9.34
+EXTERNAL_EWU item=resource:moonflower, ewu=14.57
+EXTERNAL_EWU item=resource:night-grape, ewu=9
+EXTERNAL_EWU item=resource:rune-dust, ewu=16.45
+EXTERNAL_EWU item=resource:shade-fiber, ewu=8.69
+EXTERNAL_EWU item=resource:twilight-grain, ewu=9.18
+EXTERNAL_EWU item=sample:antigen:blood-wasting, ewu=25.9
+EXTERNAL_EWU item=sample:antigen:cave-flu, ewu=25.9
+EXTERNAL_EWU item=sample:antigen:gut-rot, ewu=25.9
+EXTERNAL_EWU item=sample:antigen:mana-pox, ewu=32.1
+EXTERNAL_EWU item=sample:antigen:red-fever, ewu=25.9
+EXTERNAL_EWU item=sample:antigen:slime-blight, ewu=25.9
+EXTERNAL_EWU item=sample:antigen:spore-lung, ewu=25.9
+
+CONCRETE MARKET PROCUREMENT
+PROCUREMENT_EWU category=Food, item=food:preserved-ration, unit_cost=19.9, ewu=44.23, gold_per_ewu=0.45
+PROCUREMENT_EWU category=Water, item=resource:clean-water, unit_cost=1.69, ewu=3.75, gold_per_ewu=0.45
+PROCUREMENT_EWU category=General, item=material:lumber, unit_cost=6.07, ewu=13.5, gold_per_ewu=0.45
+PROCUREMENT_EWU category=Medicine, item=medicine:standard, unit_cost=35.89, ewu=79.76, gold_per_ewu=0.45
+PROCUREMENT_EWU category=Ammunition, item=ammo:arrow-iron, unit_cost=9.11, ewu=20.24, gold_per_ewu=0.45
+PROCUREMENT_EWU category=Fuel, item=material:charcoal, unit_cost=8.68, ewu=19.28, gold_per_ewu=0.45
+PROCUREMENT_EWU category=Mana, item=resource:mana-crystal, unit_cost=4.2, ewu=9.33, gold_per_ewu=0.45
+
+RETAIL SERVICE MARGINS
+RETAIL_EWU sale=0, item=equipment-item:weapon:longsword, ewu=1463.7, internal=488, base=586, ordinary_margin=16.7 %, premium_margin=34.2 %
+RETAIL_EWU sale=1, item=equipment-item:shield:wood, ewu=136.19, internal=45, base=55, ordinary_margin=18.2 %, premium_margin=35.3 %
+RETAIL_EWU sale=2, item=food:meat-pie, ewu=60.43, internal=17, base=24, ordinary_margin=29.2 %, premium_margin=44.0 %
+RETAIL_EWU sale=4000, item=tool:field-repair-kit, ewu=192.74, internal=64, base=77, ordinary_margin=16.9 %, premium_margin=34.3 %
+
+GUEST REQUEST PREMIUM MARGINS
+GUEST_REQUEST_EWU id=guest-request:allergen-banquet, kind=LuxuryMeal, deadline=4, cost_ewu=688.43, internal=192, reward=310, net_margin=38.1 %, items=food:lavish-vegan x 8 consume
+GUEST_REQUEST_EWU id=guest-request:bodyguard-kit, kind=Armament, deadline=5, cost_ewu=1156.44, internal=384, reward=512, net_margin=25.0 %, items=tool:field-repair-kit x 6 consume
+GUEST_REQUEST_EWU id=guest-request:coronation-feast, kind=LuxuryMeal, deadline=5, cost_ewu=302.29, internal=108, reward=134, net_margin=19.4 %, items=food:lavish-meat x 4 consume
+GUEST_REQUEST_EWU id=guest-request:disease-sample, kind=Research, deadline=6, cost_ewu=77.69, internal=27, reward=36, net_margin=25.0 %, items=sample:antigen:cave-flu x 3 consume
+GUEST_REQUEST_EWU id=guest-request:emergency-surgery, kind=Medical, deadline=2, cost_ewu=505.53, internal=126, reward=224, net_margin=43.8 %, items=medicine:advanced x 3 consume
+GUEST_REQUEST_EWU id=guest-request:flood-refuge, kind=Refuge, deadline=4, cost_ewu=884.54, internal=260, reward=400, net_margin=35.0 %, items=food:preserved-ration x 20 consume
+GUEST_REQUEST_EWU id=guest-request:memorial-performance, kind=Spectacle, deadline=5, cost_ewu=480.9, internal=60, reward=214, net_margin=72.0 %, items=craft:candle x 10 consume
+GUEST_REQUEST_EWU id=guest-request:militia-arms, kind=Armament, deadline=4, cost_ewu=990.63, internal=330, reward=440, net_margin=25.0 %, items=ammo:paper-cartridge x 30 consume
+GUEST_REQUEST_EWU id=guest-request:monster-circus, kind=Spectacle, deadline=6, cost_ewu=605.95, internal=200, reward=267, net_margin=25.1 %, items=tool:reinforced-restraint x 4 consume
+GUEST_REQUEST_EWU id=guest-request:persecuted-family, kind=Refuge, deadline=3, cost_ewu=44.99, internal=12, reward=16, net_margin=25.0 %, items=resource:clean-water x 12 consume
+GUEST_REQUEST_EWU id=guest-request:plague-screening, kind=Medical, deadline=3, cost_ewu=229.48, internal=72, reward=104, net_margin=30.8 %, items=medicine:antiseptic x 6 consume
+GUEST_REQUEST_EWU id=guest-request:precision-barter, kind=Trade, deadline=7, cost_ewu=2179.78, internal=728, reward=971, net_margin=25.0 %, items=component:precision-parts x 4 consume
+GUEST_REQUEST_EWU id=guest-request:sealed-archive, kind=Research, deadline=8, cost_ewu=132.93, internal=44, reward=59, net_margin=25.4 %, items=component:engineering-drawing x 2 consume
+GUEST_REQUEST_EWU id=guest-request:winter-fuel-auction, kind=Trade, deadline=5, cost_ewu=231.37, internal=60, reward=96, net_margin=37.5 %, items=material:charcoal x 12 consume
+
+FACTION ROUTE CARGO VALUE
+FACTION_ROUTE_EWU faction=faction:dungeon:beastkin, kind=Trade, cargo_ewu=176.46, cooldown=7, reference_share=5.0 %, items=resource:meat x 8, resource:hide x 5, feed:dog-food x 6
+FACTION_ROUTE_EWU faction=faction:dungeon:beastkin, kind=Supply, cargo_ewu=892.45, cooldown=20, reference_share=8.8 %, items=food:preserved-ration x 12, material:leather x 8, feed:hay x 10
+FACTION_ROUTE_EWU faction=faction:dungeon:demon, kind=Trade, cargo_ewu=579.71, cooldown=23, reference_share=5.0 %, items=resource:mana-crystal x 6, craft:gold-ornament x 3, craft:ritual-reagent x 4
+FACTION_ROUTE_EWU faction=faction:dungeon:demon, kind=Supply, cargo_ewu=4209.43, cooldown=84, reference_share=9.9 %, items=drug:mana-awakener x 6, material:blacksteel-ingot x 5, craft:ritual-reagent x 8
+FACTION_ROUTE_EWU faction=faction:dungeon:golem, kind=Trade, cargo_ewu=657.27, cooldown=27, reference_share=4.8 %, items=material:iron-ingot x 8, material:stone-block x 10, resource:mana-crystal x 4
+FACTION_ROUTE_EWU faction=faction:dungeon:golem, kind=Supply, cargo_ewu=4951.56, cooldown=99, reference_share=9.9 %, items=material:steel-ingot x 10, material:blacksteel-ingot x 5, resource:mana-crystal x 8
+FACTION_ROUTE_EWU faction=faction:dungeon:harpy, kind=Trade, cargo_ewu=400.86, cooldown=16, reference_share=5.0 %, items=resource:feather x 10, ammo:arrow-iron x 12, ammo:bolt-bone x 8
+FACTION_ROUTE_EWU faction=faction:dungeon:harpy, kind=Supply, cargo_ewu=1083.13, cooldown=22, reference_share=9.8 %, items=ammo:arrow-steel x 16, ammo:bolt-steel x 12, resource:feather x 14
+FACTION_ROUTE_EWU faction=faction:dungeon:kobold, kind=Trade, cargo_ewu=622.66, cooldown=25, reference_share=4.9 %, items=resource:iron-ore x 10, ammo:bolt-iron x 12, material:iron-ingot x 5
+FACTION_ROUTE_EWU faction=faction:dungeon:kobold, kind=Supply, cargo_ewu=2469.04, cooldown=49, reference_share=10.0 %, items=ammo:bolt-steel x 16, material:steel-ingot x 8, material:lumber x 10
+FACTION_ROUTE_EWU faction=faction:dungeon:myconid, kind=Trade, cargo_ewu=553.13, cooldown=22, reference_share=5.0 %, items=resource:cave-mushroom x 10, material:compost x 8, medicine:herbal-poultice x 5
+FACTION_ROUTE_EWU faction=faction:dungeon:myconid, kind=Supply, cargo_ewu=1884.8, cooldown=38, reference_share=9.8 %, items=medicine:antidote x 8, medicine:standard x 8, food:mushroom-soup x 10
+
+AUTHORED FACTION CONTRACT BURDEN
+FACTION_CONTRACT_EWU id=faction-contract:beastkin:crisis, kind=CrisisResponse, deadline=7, cost_ewu=239.27, cost_wd=2.42, reference_production=3534.3, burden=6.8 %, items=medicine:standard x 3 consume, exceptional=
+FACTION_CONTRACT_EWU id=faction-contract:beastkin:strategic, kind=Strategic, deadline=45, cost_ewu=2728.23, cost_wd=27.56, reference_production=22720.5, burden=12.0 %, items=equipment-item:shield:tower x 4 consume, exceptional=
+FACTION_CONTRACT_EWU id=faction-contract:beastkin:supply, kind=Supply, deadline=20, cost_ewu=295.07, cost_wd=2.98, reference_production=10098, burden=2.9 %, items=food:salted-meat-stew x 8 consume, exceptional=
+FACTION_CONTRACT_EWU id=faction-contract:demon:crisis, kind=CrisisResponse, deadline=7, cost_ewu=144.38, cost_wd=1.46, reference_production=3534.3, burden=4.1 %, items=component:rune-conductor x 1 consume, exceptional=
+FACTION_CONTRACT_EWU id=faction-contract:demon:strategic, kind=Strategic, deadline=45, cost_ewu=2256.22, cost_wd=22.79, reference_production=22720.5, burden=9.9 %, items=tool:administrative-seal x 18 consume, exceptional=
+FACTION_CONTRACT_EWU id=faction-contract:demon:supply, kind=Supply, deadline=20, cost_ewu=207.73, cost_wd=2.1, reference_production=10098, burden=2.1 %, items=material:paper x 8 consume, exceptional=
+FACTION_CONTRACT_EWU id=faction-contract:golem:crisis, kind=CrisisResponse, deadline=7, cost_ewu=192.72, cost_wd=1.95, reference_production=3534.3, burden=5.5 %, items=tool:maintenance-kit x 1 consume, exceptional=
+FACTION_CONTRACT_EWU id=faction-contract:golem:strategic, kind=Strategic, deadline=45, cost_ewu=1155.03, cost_wd=11.67, reference_production=22720.5, burden=5.1 %, items=component:rune-conductor x 8 consume, exceptional=
+FACTION_CONTRACT_EWU id=faction-contract:golem:supply, kind=Supply, deadline=20, cost_ewu=282.98, cost_wd=2.86, reference_production=10098, burden=2.8 %, items=component:machine-parts x 2 consume, exceptional=
+FACTION_CONTRACT_EWU id=faction-contract:harpy:crisis, kind=CrisisResponse, deadline=7, cost_ewu=229.48, cost_wd=2.32, reference_production=3534.3, burden=6.5 %, items=medicine:antiseptic x 6 consume, exceptional=
+FACTION_CONTRACT_EWU id=faction-contract:harpy:strategic, kind=Strategic, deadline=45, cost_ewu=1137.41, cost_wd=11.49, reference_production=22720.5, burden=5.0 %, items=tool:weather-observation-kit x 6 consume, exceptional=
+FACTION_CONTRACT_EWU id=faction-contract:harpy:supply, kind=Supply, deadline=20, cost_ewu=199.15, cost_wd=2.01, reference_production=10098, burden=2.0 %, items=material:rope x 8 consume, exceptional=
+FACTION_CONTRACT_EWU id=faction-contract:kobold:crisis, kind=CrisisResponse, deadline=7, cost_ewu=192.74, cost_wd=1.95, reference_production=3534.3, burden=5.5 %, items=tool:field-repair-kit x 1 consume, exceptional=
+FACTION_CONTRACT_EWU id=faction-contract:kobold:strategic, kind=Strategic, deadline=45, cost_ewu=1196.34, cost_wd=12.08, reference_production=22720.5, burden=5.3 %, items=component:engineering-drawing x 18 consume, exceptional=
+FACTION_CONTRACT_EWU id=faction-contract:kobold:supply, kind=Supply, deadline=20, cost_ewu=282.98, cost_wd=2.86, reference_production=10098, burden=2.8 %, items=component:machine-parts x 2 consume, exceptional=
+FACTION_CONTRACT_EWU id=faction-contract:myconid:crisis, kind=CrisisResponse, deadline=7, cost_ewu=243.1, cost_wd=2.46, reference_production=3534.3, burden=6.9 %, items=supply:fungicide x 4 consume, exceptional=
+FACTION_CONTRACT_EWU id=faction-contract:myconid:strategic, kind=Strategic, deadline=45, cost_ewu=1137.41, cost_wd=11.49, reference_production=22720.5, burden=5.0 %, items=tool:weather-observation-kit x 6 consume, exceptional=
+FACTION_CONTRACT_EWU id=faction-contract:myconid:supply, kind=Supply, deadline=20, cost_ewu=144, cost_wd=1.45, reference_production=10098, burden=1.4 %, items=resource:cave-mushroom x 16 consume, exceptional=
+
+REGIONAL SUPPLY CONTRACT MARGINS
+CONTRACT_EWU item=ammo:armor-piercing-cartridge, kind=Ammunition, amount=3, internal=48, reward=58, ordinary_margin=17.2 %, project_reward=72, project_margin=33.3 %
+CONTRACT_EWU item=ammo:arrow-rune, kind=Ammunition, amount=3, internal=27, reward=32, ordinary_margin=15.6 %, project_reward=40, project_margin=32.5 %
+CONTRACT_EWU item=ammo:arrow-steel, kind=Ammunition, amount=3, internal=15, reward=18, ordinary_margin=16.7 %, project_reward=22, project_margin=31.8 %
+CONTRACT_EWU item=ammo:blacksteel-bolt, kind=Ammunition, amount=3, internal=132, reward=158, ordinary_margin=16.5 %, project_reward=198, project_margin=33.3 %
+CONTRACT_EWU item=ammo:blasting-charge, kind=Ammunition, amount=3, internal=99, reward=119, ordinary_margin=16.8 %, project_reward=148, project_margin=33.1 %
+CONTRACT_EWU item=ammo:bolt-rune, kind=Ammunition, amount=3, internal=30, reward=36, ordinary_margin=16.7 %, project_reward=45, project_margin=33.3 %
+CONTRACT_EWU item=ammo:bolt-steel, kind=Ammunition, amount=3, internal=18, reward=22, ordinary_margin=18.2 %, project_reward=27, project_margin=33.3 %
+CONTRACT_EWU item=ammo:incendiary-arrow, kind=Ammunition, amount=3, internal=63, reward=76, ordinary_margin=17.1 %, project_reward=94, project_margin=33.0 %
+CONTRACT_EWU item=ammo:incendiary-bolt, kind=Ammunition, amount=3, internal=66, reward=79, ordinary_margin=16.5 %, project_reward=99, project_margin=33.3 %
+CONTRACT_EWU item=ammo:mana-disruptor-bolt, kind=Ammunition, amount=3, internal=90, reward=108, ordinary_margin=16.7 %, project_reward=135, project_margin=33.3 %
+CONTRACT_EWU item=ammo:paper-cartridge, kind=Ammunition, amount=3, internal=33, reward=40, ordinary_margin=17.5 %, project_reward=50, project_margin=34.0 %
+CONTRACT_EWU item=ammo:rune-cartridge, kind=Ammunition, amount=3, internal=75, reward=90, ordinary_margin=16.7 %, project_reward=113, project_margin=33.6 %
+CONTRACT_EWU item=ammo:scatter-cartridge, kind=Ammunition, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=ammo:signal-flare, kind=Ammunition, amount=3, internal=48, reward=58, ordinary_margin=17.2 %, project_reward=72, project_margin=33.3 %
+CONTRACT_EWU item=ammo:smoke-cartridge, kind=Ammunition, amount=3, internal=33, reward=40, ordinary_margin=17.5 %, project_reward=50, project_margin=34.0 %
+CONTRACT_EWU item=ammo:tranquilizer-dart, kind=Ammunition, amount=3, internal=39, reward=47, ordinary_margin=17.0 %, project_reward=59, project_margin=33.9 %
+CONTRACT_EWU item=ammo:trap-canister, kind=Ammunition, amount=3, internal=132, reward=158, ordinary_margin=16.5 %, project_reward=198, project_margin=33.3 %
+CONTRACT_EWU item=apparel:apron, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:belt, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:blouse, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:boots, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:ceremonial-dress, kind=FinishedGood, amount=3, internal=75, reward=90, ordinary_margin=16.7 %, project_reward=113, project_margin=33.6 %
+CONTRACT_EWU item=apparel:chest-wrap, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:cloak, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:contract-sash, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:daily-robe, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:envoy-coat, kind=FinishedGood, amount=3, internal=75, reward=90, ordinary_margin=16.7 %, project_reward=113, project_margin=33.6 %
+CONTRACT_EWU item=apparel:farmer-workwear, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:festival-vest, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:footwraps, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:formal-coat, kind=FinishedGood, amount=3, internal=72, reward=86, ordinary_margin=16.3 %, project_reward=108, project_margin=33.3 %
+CONTRACT_EWU item=apparel:gloves, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:golem-functional-lining, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:hat, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:heat-work-suit, kind=FinishedGood, amount=3, internal=75, reward=90, ordinary_margin=16.7 %, project_reward=113, project_margin=33.6 %
+CONTRACT_EWU item=apparel:hooded-robe, kind=FinishedGood, amount=3, internal=75, reward=90, ordinary_margin=16.7 %, project_reward=113, project_margin=33.6 %
+CONTRACT_EWU item=apparel:horn-ring, kind=FinishedGood, amount=3, internal=36, reward=43, ordinary_margin=16.3 %, project_reward=54, project_margin=33.3 %
+CONTRACT_EWU item=apparel:keeper-coat, kind=FinishedGood, amount=3, internal=75, reward=90, ordinary_margin=16.7 %, project_reward=113, project_margin=33.6 %
+CONTRACT_EWU item=apparel:loincloth-underwear, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:long-underpants, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:lower-underwear, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:miner-workwear, kind=FinishedGood, amount=3, internal=75, reward=90, ordinary_margin=16.7 %, project_reward=113, project_margin=33.6 %
+CONTRACT_EWU item=apparel:mourning-clothes, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:raincoat, kind=FinishedGood, amount=3, internal=75, reward=90, ordinary_margin=16.7 %, project_reward=113, project_margin=33.6 %
+CONTRACT_EWU item=apparel:ritual-robe, kind=FinishedGood, amount=3, internal=75, reward=90, ordinary_margin=16.7 %, project_reward=113, project_margin=33.6 %
+CONTRACT_EWU item=apparel:scarf, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:shorts, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:skirt, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:sky-chorus-shawl, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:sleep-bottom, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:sleep-top, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:smith-apron, kind=FinishedGood, amount=3, internal=75, reward=90, ordinary_margin=16.7 %, project_reward=113, project_margin=33.6 %
+CONTRACT_EWU item=apparel:smoke-protection-hood, kind=FinishedGood, amount=3, internal=72, reward=86, ordinary_margin=16.3 %, project_reward=108, project_margin=33.3 %
+CONTRACT_EWU item=apparel:socks, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:spore-garden-cloak, kind=FinishedGood, amount=3, internal=72, reward=86, ordinary_margin=16.3 %, project_reward=108, project_margin=33.3 %
+CONTRACT_EWU item=apparel:spore-protection-hood, kind=FinishedGood, amount=3, internal=72, reward=86, ordinary_margin=16.3 %, project_reward=108, project_margin=33.3 %
+CONTRACT_EWU item=apparel:sterile-gown, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:surgical-apron, kind=FinishedGood, amount=3, internal=72, reward=86, ordinary_margin=16.3 %, project_reward=108, project_margin=33.3 %
+CONTRACT_EWU item=apparel:tail-guard, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:tail-ribbon, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:trousers, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:tunic, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:undershirt, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:vest, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:waterproof-work-suit, kind=FinishedGood, amount=3, internal=75, reward=90, ordinary_margin=16.7 %, project_reward=113, project_margin=33.6 %
+CONTRACT_EWU item=apparel:weapon-vigil-cloak, kind=FinishedGood, amount=3, internal=72, reward=86, ordinary_margin=16.3 %, project_reward=108, project_margin=33.3 %
+CONTRACT_EWU item=apparel:wing-cloak, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:wing-harness, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=apparel:work-shirt, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=book:seasonal-almanac, kind=FinishedGood, amount=3, internal=66, reward=79, ordinary_margin=16.5 %, project_reward=99, project_margin=33.3 %
+CONTRACT_EWU item=component:blacksteel-defense-plate, kind=FinishedGood, amount=3, internal=648, reward=778, ordinary_margin=16.7 %, project_reward=972, project_margin=33.3 %
+CONTRACT_EWU item=component:blast-coat-shell, kind=FinishedGood, amount=3, internal=129, reward=155, ordinary_margin=16.8 %, project_reward=194, project_margin=33.5 %
+CONTRACT_EWU item=component:brigandine-padding, kind=FinishedGood, amount=3, internal=111, reward=133, ordinary_margin=16.5 %, project_reward=166, project_margin=33.1 %
+CONTRACT_EWU item=component:climate-control-manifold, kind=FinishedGood, amount=3, internal=255, reward=306, ordinary_margin=16.7 %, project_reward=382, project_margin=33.2 %
+CONTRACT_EWU item=component:corridor-detonator, kind=FinishedGood, amount=3, internal=351, reward=421, ordinary_margin=16.6 %, project_reward=526, project_margin=33.3 %
+CONTRACT_EWU item=component:dreamweave-rune-lining, kind=FinishedGood, amount=3, internal=222, reward=266, ordinary_margin=16.5 %, project_reward=333, project_margin=33.3 %
+CONTRACT_EWU item=component:engineering-drawing, kind=Intermediate, amount=15, internal=330, reward=396, ordinary_margin=16.7 %, project_reward=495, project_margin=33.3 %
+CONTRACT_EWU item=component:factory-installation-plan, kind=FinishedGood, amount=3, internal=180, reward=216, ordinary_margin=16.7 %, project_reward=270, project_margin=33.3 %
+CONTRACT_EWU item=component:golem-core-case, kind=FinishedGood, amount=3, internal=258, reward=310, ordinary_margin=16.8 %, project_reward=387, project_margin=33.3 %
+CONTRACT_EWU item=component:growth-frame, kind=Intermediate, amount=15, internal=6165, reward=7398, ordinary_margin=16.7 %, project_reward=9248, project_margin=33.3 %
+CONTRACT_EWU item=component:insulated-wiring, kind=FinishedGood, amount=3, internal=99, reward=119, ordinary_margin=16.8 %, project_reward=148, project_margin=33.1 %
+CONTRACT_EWU item=component:lead-counterweight, kind=Intermediate, amount=15, internal=885, reward=1062, ordinary_margin=16.7 %, project_reward=1328, project_margin=33.4 %
+CONTRACT_EWU item=component:machine-parts, kind=Intermediate, amount=15, internal=705, reward=846, ordinary_margin=16.7 %, project_reward=1058, project_margin=33.4 %
+CONTRACT_EWU item=component:mana-shield-plate, kind=Intermediate, amount=15, internal=675, reward=810, ordinary_margin=16.7 %, project_reward=1013, project_margin=33.4 %
+CONTRACT_EWU item=component:material-test-coupon, kind=FinishedGood, amount=3, internal=267, reward=320, ordinary_margin=16.6 %, project_reward=401, project_margin=33.4 %
+CONTRACT_EWU item=component:paper-paste, kind=FinishedGood, amount=3, internal=39, reward=47, ordinary_margin=17.0 %, project_reward=59, project_margin=33.9 %
+CONTRACT_EWU item=component:powered-armor-joint, kind=FinishedGood, amount=3, internal=726, reward=871, ordinary_margin=16.6 %, project_reward=1089, project_margin=33.3 %
+CONTRACT_EWU item=component:precision-optics, kind=Intermediate, amount=15, internal=555, reward=666, ordinary_margin=16.7 %, project_reward=833, project_margin=33.4 %
+CONTRACT_EWU item=component:precision-parts, kind=Intermediate, amount=15, internal=2730, reward=3276, ordinary_margin=16.7 %, project_reward=4095, project_margin=33.3 %
+CONTRACT_EWU item=component:price-board, kind=FinishedGood, amount=3, internal=81, reward=97, ordinary_margin=16.5 %, project_reward=122, project_margin=33.6 %
+CONTRACT_EWU item=component:prototype-package, kind=FinishedGood, amount=3, internal=255, reward=306, ordinary_margin=16.7 %, project_reward=382, project_margin=33.2 %
+CONTRACT_EWU item=component:reclaimed-water-filter, kind=FinishedGood, amount=3, internal=57, reward=68, ordinary_margin=16.2 %, project_reward=86, project_margin=33.7 %
+CONTRACT_EWU item=component:room-partition-kit, kind=FinishedGood, amount=3, internal=144, reward=173, ordinary_margin=16.8 %, project_reward=216, project_margin=33.3 %
+CONTRACT_EWU item=component:rune-bus-coupler, kind=FinishedGood, amount=3, internal=264, reward=317, ordinary_margin=16.7 %, project_reward=396, project_margin=33.3 %
+CONTRACT_EWU item=component:rune-conductor, kind=Intermediate, amount=15, internal=720, reward=864, ordinary_margin=16.7 %, project_reward=1080, project_margin=33.3 %
+CONTRACT_EWU item=component:rune-control-panel, kind=FinishedGood, amount=3, internal=762, reward=914, ordinary_margin=16.6 %, project_reward=1143, project_margin=33.3 %
+CONTRACT_EWU item=component:rune-leather-lining, kind=FinishedGood, amount=3, internal=144, reward=173, ordinary_margin=16.8 %, project_reward=216, project_margin=33.3 %
+CONTRACT_EWU item=component:rune-leather-strap, kind=FinishedGood, amount=3, internal=297, reward=356, ordinary_margin=16.6 %, project_reward=446, project_margin=33.4 %
+CONTRACT_EWU item=component:rune-purification-crystal, kind=FinishedGood, amount=3, internal=261, reward=313, ordinary_margin=16.6 %, project_reward=392, project_margin=33.4 %
+CONTRACT_EWU item=component:rune-tuning-shield, kind=FinishedGood, amount=3, internal=333, reward=400, ordinary_margin=16.8 %, project_reward=500, project_margin=33.4 %
+CONTRACT_EWU item=component:sealed-seasonal-container, kind=FinishedGood, amount=3, internal=171, reward=205, ordinary_margin=16.6 %, project_reward=256, project_margin=33.2 %
+CONTRACT_EWU item=component:siege-counterweight, kind=FinishedGood, amount=3, internal=354, reward=425, ordinary_margin=16.7 %, project_reward=531, project_margin=33.3 %
+CONTRACT_EWU item=component:siege-reinforcement-kit, kind=FinishedGood, amount=3, internal=666, reward=799, ordinary_margin=16.6 %, project_reward=999, project_margin=33.3 %
+CONTRACT_EWU item=component:stock-sensor-panel, kind=FinishedGood, amount=3, internal=744, reward=893, ordinary_margin=16.7 %, project_reward=1116, project_margin=33.3 %
+CONTRACT_EWU item=component:temporal-stasis-seal, kind=FinishedGood, amount=3, internal=1623, reward=1948, ordinary_margin=16.7 %, project_reward=2434, project_margin=33.3 %
+CONTRACT_EWU item=component:textile-hardener, kind=FinishedGood, amount=3, internal=27, reward=32, ordinary_margin=15.6 %, project_reward=40, project_margin=32.5 %
+CONTRACT_EWU item=component:waterwheel-drive-shaft, kind=FinishedGood, amount=3, internal=402, reward=482, ordinary_margin=16.6 %, project_reward=603, project_margin=33.3 %
+CONTRACT_EWU item=craft:bone-charm, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=craft:candle, kind=FinishedGood, amount=3, internal=18, reward=22, ordinary_margin=18.2 %, project_reward=27, project_margin=33.3 %
+CONTRACT_EWU item=craft:dreamweave-ritual-banner, kind=FinishedGood, amount=3, internal=165, reward=198, ordinary_margin=16.7 %, project_reward=248, project_margin=33.5 %
+CONTRACT_EWU item=craft:fang-poison, kind=FinishedGood, amount=3, internal=60, reward=72, ordinary_margin=16.7 %, project_reward=90, project_margin=33.3 %
+CONTRACT_EWU item=craft:fermented-vinegar, kind=FinishedGood, amount=3, internal=27, reward=32, ordinary_margin=15.6 %, project_reward=40, project_margin=32.5 %
+CONTRACT_EWU item=craft:gold-ornament, kind=FinishedGood, amount=3, internal=285, reward=342, ordinary_margin=16.7 %, project_reward=428, project_margin=33.4 %
+CONTRACT_EWU item=craft:resin-balm, kind=Medicine, amount=3, internal=30, reward=36, ordinary_margin=16.7 %, project_reward=45, project_margin=33.3 %
+CONTRACT_EWU item=craft:ritual-reagent, kind=FinishedGood, amount=3, internal=72, reward=86, ordinary_margin=16.3 %, project_reward=108, project_margin=33.3 %
+CONTRACT_EWU item=craft:soap, kind=FinishedGood, amount=3, internal=21, reward=25, ordinary_margin=16.0 %, project_reward=32, project_margin=34.4 %
+CONTRACT_EWU item=craft:stone-ornament, kind=FinishedGood, amount=3, internal=36, reward=43, ordinary_margin=16.3 %, project_reward=54, project_margin=33.3 %
+CONTRACT_EWU item=craft:toxic-trap-coating, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=equipment:cold-work-suit, kind=FinishedGood, amount=3, internal=126, reward=151, ordinary_margin=16.6 %, project_reward=189, project_margin=33.3 %
+CONTRACT_EWU item=equipment:rune-cold-suit, kind=FinishedGood, amount=3, internal=285, reward=342, ordinary_margin=16.7 %, project_reward=428, project_margin=33.4 %
+CONTRACT_EWU item=equipment:slime-warming-pad, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=feed:silage, kind=FinishedGood, amount=3, internal=15, reward=18, ordinary_margin=16.7 %, project_reward=22, project_margin=31.8 %
+CONTRACT_EWU item=fiber:cave-silk, kind=Raw, amount=28, internal=84, reward=101, ordinary_margin=16.8 %, project_reward=126, project_margin=33.3 %
+CONTRACT_EWU item=fiber:deep-goat-wool, kind=Raw, amount=28, internal=84, reward=101, ordinary_margin=16.8 %, project_reward=126, project_margin=33.3 %
+CONTRACT_EWU item=fiber:ember-cotton, kind=Raw, amount=28, internal=84, reward=101, ordinary_margin=16.8 %, project_reward=126, project_margin=33.3 %
+CONTRACT_EWU item=fiber:frost-flax, kind=Raw, amount=28, internal=84, reward=101, ordinary_margin=16.8 %, project_reward=126, project_margin=33.3 %
+CONTRACT_EWU item=fiber:frost-wool, kind=Raw, amount=28, internal=84, reward=101, ordinary_margin=16.8 %, project_reward=126, project_margin=33.3 %
+CONTRACT_EWU item=fiber:mire-reed, kind=Raw, amount=28, internal=84, reward=101, ordinary_margin=16.8 %, project_reward=126, project_margin=33.3 %
+CONTRACT_EWU item=fiber:spore-hemp, kind=Raw, amount=28, internal=84, reward=101, ordinary_margin=16.8 %, project_reward=126, project_margin=33.3 %
+CONTRACT_EWU item=food:boar-stew, kind=Food, amount=3, internal=45, reward=54, ordinary_margin=16.7 %, project_reward=68, project_margin=33.8 %
+CONTRACT_EWU item=food:cheese-mushroom, kind=Food, amount=3, internal=42, reward=50, ordinary_margin=16.0 %, project_reward=63, project_margin=33.3 %
+CONTRACT_EWU item=food:egg-pancake, kind=Food, amount=3, internal=33, reward=40, ordinary_margin=17.5 %, project_reward=50, project_margin=34.0 %
+CONTRACT_EWU item=food:expedition-ration-pack, kind=Food, amount=3, internal=48, reward=58, ordinary_margin=17.2 %, project_reward=72, project_margin=33.3 %
+CONTRACT_EWU item=food:fermented-pickle, kind=Food, amount=3, internal=27, reward=32, ordinary_margin=15.6 %, project_reward=40, project_margin=32.5 %
+CONTRACT_EWU item=food:fresh-curd, kind=Food, amount=3, internal=27, reward=32, ordinary_margin=15.6 %, project_reward=40, project_margin=32.5 %
+CONTRACT_EWU item=food:garden-meal, kind=Food, amount=3, internal=36, reward=43, ordinary_margin=16.3 %, project_reward=54, project_margin=33.3 %
+CONTRACT_EWU item=food:grain-porridge, kind=Food, amount=3, internal=15, reward=18, ordinary_margin=16.7 %, project_reward=22, project_margin=31.8 %
+CONTRACT_EWU item=food:grape-syrup, kind=Food, amount=3, internal=24, reward=29, ordinary_margin=17.2 %, project_reward=36, project_margin=33.3 %
+CONTRACT_EWU item=food:jerky, kind=Food, amount=3, internal=36, reward=43, ordinary_margin=16.3 %, project_reward=54, project_margin=33.3 %
+CONTRACT_EWU item=food:lavish-meat, kind=Food, amount=3, internal=81, reward=97, ordinary_margin=16.5 %, project_reward=122, project_margin=33.6 %
+CONTRACT_EWU item=food:lavish-vegan, kind=Food, amount=3, internal=72, reward=86, ordinary_margin=16.3 %, project_reward=108, project_margin=33.3 %
+CONTRACT_EWU item=food:malt-porridge, kind=Food, amount=3, internal=18, reward=22, ordinary_margin=18.2 %, project_reward=27, project_margin=33.3 %
+CONTRACT_EWU item=food:meat-pie, kind=Food, amount=3, internal=51, reward=61, ordinary_margin=16.4 %, project_reward=76, project_margin=32.9 %
+CONTRACT_EWU item=food:mushroom-soup, kind=Food, amount=3, internal=21, reward=25, ordinary_margin=16.0 %, project_reward=32, project_margin=34.4 %
+CONTRACT_EWU item=food:preserved-ration, kind=Food, amount=3, internal=39, reward=47, ordinary_margin=17.0 %, project_reward=59, project_margin=33.9 %
+CONTRACT_EWU item=food:preserved-vegetable, kind=Food, amount=3, internal=33, reward=40, ordinary_margin=17.5 %, project_reward=50, project_margin=34.0 %
+CONTRACT_EWU item=food:roasted-meat, kind=Food, amount=3, internal=27, reward=32, ordinary_margin=15.6 %, project_reward=40, project_margin=32.5 %
+CONTRACT_EWU item=food:root-stew, kind=Food, amount=3, internal=21, reward=25, ordinary_margin=16.0 %, project_reward=32, project_margin=34.4 %
+CONTRACT_EWU item=food:salted-meat-stew, kind=Food, amount=3, internal=42, reward=50, ordinary_margin=16.0 %, project_reward=63, project_margin=33.3 %
+CONTRACT_EWU item=food:stuffed-mushroom, kind=Food, amount=3, internal=39, reward=47, ordinary_margin=17.0 %, project_reward=59, project_margin=33.9 %
+CONTRACT_EWU item=food:vegetable-pie, kind=Food, amount=3, internal=36, reward=43, ordinary_margin=16.3 %, project_reward=54, project_margin=33.3 %
+CONTRACT_EWU item=item:equipment-module, kind=FinishedGood, amount=3, internal=72, reward=86, ordinary_margin=16.3 %, project_reward=108, project_margin=33.3 %
+CONTRACT_EWU item=item:lineage-seal, kind=FinishedGood, amount=3, internal=126, reward=151, ordinary_margin=16.6 %, project_reward=189, project_margin=33.3 %
+CONTRACT_EWU item=material:alchemical-solvent, kind=Intermediate, amount=15, internal=180, reward=216, ordinary_margin=16.7 %, project_reward=270, project_margin=33.3 %
+CONTRACT_EWU item=material:alcohol, kind=Intermediate, amount=15, internal=90, reward=108, ordinary_margin=16.7 %, project_reward=135, project_margin=33.3 %
+CONTRACT_EWU item=material:barrel-steel, kind=Intermediate, amount=15, internal=1935, reward=2322, ordinary_margin=16.7 %, project_reward=2902, project_margin=33.3 %
+CONTRACT_EWU item=material:black-powder, kind=Intermediate, amount=15, internal=195, reward=234, ordinary_margin=16.7 %, project_reward=292, project_margin=33.2 %
+CONTRACT_EWU item=material:blacksteel-ingot, kind=Intermediate, amount=15, internal=1050, reward=1260, ordinary_margin=16.7 %, project_reward=1575, project_margin=33.3 %
+CONTRACT_EWU item=material:bowstring, kind=Intermediate, amount=15, internal=120, reward=144, ordinary_margin=16.7 %, project_reward=180, project_margin=33.3 %
+CONTRACT_EWU item=material:brined-vegetable, kind=Intermediate, amount=15, internal=75, reward=90, ordinary_margin=16.7 %, project_reward=113, project_margin=33.6 %
+CONTRACT_EWU item=material:cartridge-paper, kind=Intermediate, amount=15, internal=150, reward=180, ordinary_margin=16.7 %, project_reward=225, project_margin=33.3 %
+CONTRACT_EWU item=material:cave-silk, kind=Intermediate, amount=15, internal=240, reward=288, ordinary_margin=16.7 %, project_reward=360, project_margin=33.3 %
+CONTRACT_EWU item=material:chain-mesh, kind=Intermediate, amount=15, internal=390, reward=468, ordinary_margin=16.7 %, project_reward=585, project_margin=33.3 %
+CONTRACT_EWU item=material:charcoal, kind=Intermediate, amount=15, internal=75, reward=90, ordinary_margin=16.7 %, project_reward=113, project_margin=33.6 %
+CONTRACT_EWU item=material:cheese, kind=Intermediate, amount=15, internal=120, reward=144, ordinary_margin=16.7 %, project_reward=180, project_margin=33.3 %
+CONTRACT_EWU item=material:cloth, kind=Intermediate, amount=15, internal=105, reward=126, ordinary_margin=16.7 %, project_reward=158, project_margin=33.5 %
+CONTRACT_EWU item=material:common-wool, kind=Intermediate, amount=15, internal=195, reward=234, ordinary_margin=16.7 %, project_reward=292, project_margin=33.2 %
+CONTRACT_EWU item=material:compost, kind=Intermediate, amount=15, internal=45, reward=54, ordinary_margin=16.7 %, project_reward=68, project_margin=33.8 %
+CONTRACT_EWU item=material:curd, kind=Intermediate, amount=15, internal=90, reward=108, ordinary_margin=16.7 %, project_reward=135, project_margin=33.3 %
+CONTRACT_EWU item=material:deep-goat-wool, kind=Intermediate, amount=15, internal=240, reward=288, ordinary_margin=16.7 %, project_reward=360, project_margin=33.3 %
+CONTRACT_EWU item=material:dough, kind=Intermediate, amount=15, internal=90, reward=108, ordinary_margin=16.7 %, project_reward=135, project_margin=33.3 %
+CONTRACT_EWU item=material:dreamweave, kind=Intermediate, amount=15, internal=510, reward=612, ordinary_margin=16.7 %, project_reward=765, project_margin=33.3 %
+CONTRACT_EWU item=material:ember-cotton, kind=Intermediate, amount=15, internal=240, reward=288, ordinary_margin=16.7 %, project_reward=360, project_margin=33.3 %
+CONTRACT_EWU item=material:fermented-liquor, kind=Intermediate, amount=15, internal=135, reward=162, ordinary_margin=16.7 %, project_reward=203, project_margin=33.5 %
+CONTRACT_EWU item=material:flour, kind=Intermediate, amount=15, internal=60, reward=72, ordinary_margin=16.7 %, project_reward=90, project_margin=33.3 %
+CONTRACT_EWU item=material:frost-linen, kind=Intermediate, amount=15, internal=240, reward=288, ordinary_margin=16.7 %, project_reward=360, project_margin=33.3 %
+CONTRACT_EWU item=material:frost-wool, kind=Intermediate, amount=15, internal=240, reward=288, ordinary_margin=16.7 %, project_reward=360, project_margin=33.3 %
+CONTRACT_EWU item=material:gold-ingot, kind=Intermediate, amount=15, internal=900, reward=1080, ordinary_margin=16.7 %, project_reward=1350, project_margin=33.3 %
+CONTRACT_EWU item=material:granulated-powder, kind=Intermediate, amount=15, internal=195, reward=234, ordinary_margin=16.7 %, project_reward=292, project_margin=33.2 %
+CONTRACT_EWU item=material:grape-juice, kind=Intermediate, amount=15, internal=90, reward=108, ordinary_margin=16.7 %, project_reward=135, project_margin=33.3 %
+CONTRACT_EWU item=material:hardened-leather, kind=Intermediate, amount=15, internal=210, reward=252, ordinary_margin=16.7 %, project_reward=315, project_margin=33.3 %
+CONTRACT_EWU item=material:iron-ingot, kind=Intermediate, amount=15, internal=135, reward=162, ordinary_margin=16.7 %, project_reward=203, project_margin=33.5 %
+CONTRACT_EWU item=material:laminated-lumber, kind=Intermediate, amount=15, internal=255, reward=306, ordinary_margin=16.7 %, project_reward=382, project_margin=33.2 %
+CONTRACT_EWU item=material:lead-ingot, kind=Intermediate, amount=15, internal=360, reward=432, ordinary_margin=16.7 %, project_reward=540, project_margin=33.3 %
+CONTRACT_EWU item=material:lead-shot, kind=Intermediate, amount=15, internal=105, reward=126, ordinary_margin=16.7 %, project_reward=158, project_margin=33.5 %
+CONTRACT_EWU item=material:leather, kind=Intermediate, amount=15, internal=150, reward=180, ordinary_margin=16.7 %, project_reward=225, project_margin=33.3 %
+CONTRACT_EWU item=material:low-fuel, kind=Intermediate, amount=15, internal=15, reward=18, ordinary_margin=16.7 %, project_reward=22, project_margin=31.8 %
+CONTRACT_EWU item=material:lumber, kind=Intermediate, amount=15, internal=90, reward=108, ordinary_margin=16.7 %, project_reward=135, project_margin=33.3 %
+CONTRACT_EWU item=material:malt, kind=Intermediate, amount=15, internal=75, reward=90, ordinary_margin=16.7 %, project_reward=113, project_margin=33.6 %
+CONTRACT_EWU item=material:mana-alloy, kind=Intermediate, amount=15, internal=945, reward=1134, ordinary_margin=16.7 %, project_reward=1418, project_margin=33.4 %
+CONTRACT_EWU item=material:mending-scrap, kind=Intermediate, amount=15, internal=105, reward=126, ordinary_margin=16.7 %, project_reward=158, project_margin=33.5 %
+CONTRACT_EWU item=material:mire-canvas, kind=Intermediate, amount=15, internal=240, reward=288, ordinary_margin=16.7 %, project_reward=360, project_margin=33.3 %
+CONTRACT_EWU item=material:niter, kind=Intermediate, amount=15, internal=180, reward=216, ordinary_margin=16.7 %, project_reward=270, project_margin=33.3 %
+CONTRACT_EWU item=material:paper, kind=Intermediate, amount=15, internal=135, reward=162, ordinary_margin=16.7 %, project_reward=203, project_margin=33.5 %
+CONTRACT_EWU item=material:plate-blank, kind=Intermediate, amount=15, internal=1200, reward=1440, ordinary_margin=16.7 %, project_reward=1800, project_margin=33.3 %
+CONTRACT_EWU item=material:ration-mixture, kind=Intermediate, amount=15, internal=90, reward=108, ordinary_margin=16.7 %, project_reward=135, project_margin=33.3 %
+CONTRACT_EWU item=material:rope, kind=Intermediate, amount=15, internal=120, reward=144, ordinary_margin=16.7 %, project_reward=180, project_margin=33.3 %
+CONTRACT_EWU item=material:rot-toxin, kind=Intermediate, amount=15, internal=180, reward=216, ordinary_margin=16.7 %, project_reward=270, project_margin=33.3 %
+CONTRACT_EWU item=material:rune-leather, kind=Intermediate, amount=15, internal=450, reward=540, ordinary_margin=16.7 %, project_reward=675, project_margin=33.3 %
+CONTRACT_EWU item=material:salted-meat, kind=Intermediate, amount=15, internal=120, reward=144, ordinary_margin=16.7 %, project_reward=180, project_margin=33.3 %
+CONTRACT_EWU item=material:seasoned-filling, kind=Intermediate, amount=15, internal=135, reward=162, ordinary_margin=16.7 %, project_reward=203, project_margin=33.5 %
+CONTRACT_EWU item=material:sewing-thread, kind=Intermediate, amount=15, internal=75, reward=90, ordinary_margin=16.7 %, project_reward=113, project_margin=33.6 %
+CONTRACT_EWU item=material:spore-hemp, kind=Intermediate, amount=15, internal=240, reward=288, ordinary_margin=16.7 %, project_reward=360, project_margin=33.3 %
+CONTRACT_EWU item=material:spring-steel, kind=Intermediate, amount=15, internal=1305, reward=1566, ordinary_margin=16.7 %, project_reward=1958, project_margin=33.4 %
+CONTRACT_EWU item=material:starch, kind=Intermediate, amount=15, internal=45, reward=54, ordinary_margin=16.7 %, project_reward=68, project_margin=33.8 %
+CONTRACT_EWU item=material:steel-ingot, kind=Intermediate, amount=15, internal=240, reward=288, ordinary_margin=16.7 %, project_reward=360, project_margin=33.3 %
+CONTRACT_EWU item=material:sterile-composite, kind=Intermediate, amount=15, internal=315, reward=378, ordinary_margin=16.7 %, project_reward=473, project_margin=33.4 %
+CONTRACT_EWU item=material:stone-block, kind=Intermediate, amount=15, internal=60, reward=72, ordinary_margin=16.7 %, project_reward=90, project_margin=33.3 %
+CONTRACT_EWU item=material:syrup, kind=Intermediate, amount=15, internal=105, reward=126, ordinary_margin=16.7 %, project_reward=158, project_margin=33.5 %
+CONTRACT_EWU item=material:tallow, kind=Intermediate, amount=15, internal=90, reward=108, ordinary_margin=16.7 %, project_reward=135, project_margin=33.3 %
+CONTRACT_EWU item=material:treated-lumber, kind=Intermediate, amount=15, internal=180, reward=216, ordinary_margin=16.7 %, project_reward=270, project_margin=33.3 %
+CONTRACT_EWU item=material:washed-vegetable, kind=Intermediate, amount=15, internal=60, reward=72, ordinary_margin=16.7 %, project_reward=90, project_margin=33.3 %
+CONTRACT_EWU item=material:young-wine, kind=Intermediate, amount=15, internal=150, reward=180, ordinary_margin=16.7 %, project_reward=225, project_margin=33.3 %
+CONTRACT_EWU item=medical:cross-lineage-medium, kind=Medicine, amount=3, internal=258, reward=310, ordinary_margin=16.8 %, project_reward=387, project_margin=33.3 %
+CONTRACT_EWU item=medical:fertility-treatment, kind=Medicine, amount=3, internal=192, reward=230, ordinary_margin=16.5 %, project_reward=288, project_margin=33.3 %
+CONTRACT_EWU item=medical:isolation-care-kit, kind=Medicine, amount=3, internal=159, reward=191, ordinary_margin=16.8 %, project_reward=239, project_margin=33.5 %
+CONTRACT_EWU item=medical:mana-core-case, kind=FinishedGood, amount=3, internal=750, reward=900, ordinary_margin=16.7 %, project_reward=1125, project_margin=33.3 %
+CONTRACT_EWU item=medical:organ-preservation-canister, kind=FinishedGood, amount=3, internal=252, reward=302, ordinary_margin=16.6 %, project_reward=378, project_margin=33.3 %
+CONTRACT_EWU item=medical:organ-regeneration-scaffold, kind=Medicine, amount=3, internal=207, reward=248, ordinary_margin=16.5 %, project_reward=310, project_margin=33.2 %
+CONTRACT_EWU item=medical:regenerative-medium, kind=Medicine, amount=3, internal=123, reward=148, ordinary_margin=16.9 %, project_reward=184, project_margin=33.2 %
+CONTRACT_EWU item=medical:rejuvenation-serum, kind=Medicine, amount=3, internal=288, reward=346, ordinary_margin=16.8 %, project_reward=432, project_margin=33.3 %
+CONTRACT_EWU item=medical:rune-hibernation-catalyst, kind=Medicine, amount=3, internal=258, reward=310, ordinary_margin=16.8 %, project_reward=387, project_margin=33.3 %
+CONTRACT_EWU item=medical:slime-coagulation-frame, kind=FinishedGood, amount=3, internal=150, reward=180, ordinary_margin=16.7 %, project_reward=225, project_margin=33.3 %
+CONTRACT_EWU item=medical:sterile-bandage, kind=Medicine, amount=3, internal=72, reward=86, ordinary_margin=16.3 %, project_reward=108, project_margin=33.3 %
+CONTRACT_EWU item=medical:sterile-mycelium-graft, kind=FinishedGood, amount=3, internal=99, reward=119, ordinary_margin=16.8 %, project_reward=148, project_margin=33.1 %
+CONTRACT_EWU item=medical:trait-analysis-kit, kind=Medicine, amount=3, internal=135, reward=162, ordinary_margin=16.7 %, project_reward=203, project_margin=33.5 %
+CONTRACT_EWU item=medical:trauma-care-kit, kind=Medicine, amount=3, internal=246, reward=295, ordinary_margin=16.6 %, project_reward=369, project_margin=33.3 %
+CONTRACT_EWU item=medical:whole-body-regeneration-medium, kind=Medicine, amount=3, internal=1029, reward=1235, ordinary_margin=16.7 %, project_reward=1544, project_margin=33.4 %
+CONTRACT_EWU item=medicine:advanced, kind=Medicine, amount=3, internal=126, reward=151, ordinary_margin=16.6 %, project_reward=189, project_margin=33.3 %
+CONTRACT_EWU item=medicine:anesthetic, kind=Medicine, amount=3, internal=72, reward=86, ordinary_margin=16.3 %, project_reward=108, project_margin=33.3 %
+CONTRACT_EWU item=medicine:antidote, kind=Medicine, amount=3, internal=84, reward=101, ordinary_margin=16.8 %, project_reward=126, project_margin=33.3 %
+CONTRACT_EWU item=medicine:antiseptic, kind=Medicine, amount=3, internal=36, reward=43, ordinary_margin=16.3 %, project_reward=54, project_margin=33.3 %
+CONTRACT_EWU item=medicine:herbal-poultice, kind=Medicine, amount=3, internal=24, reward=29, ordinary_margin=17.2 %, project_reward=36, project_margin=33.3 %
+CONTRACT_EWU item=medicine:mycelial-culture-pack, kind=Medicine, amount=3, internal=30, reward=36, ordinary_margin=16.7 %, project_reward=45, project_margin=33.3 %
+CONTRACT_EWU item=medicine:standard, kind=Medicine, amount=3, internal=60, reward=72, ordinary_margin=16.7 %, project_reward=90, project_margin=33.3 %
+CONTRACT_EWU item=medicine:vaccine:blood-wasting, kind=Medicine, amount=3, internal=78, reward=94, ordinary_margin=17.0 %, project_reward=117, project_margin=33.3 %
+CONTRACT_EWU item=medicine:vaccine:cave-flu, kind=Medicine, amount=3, internal=78, reward=94, ordinary_margin=17.0 %, project_reward=117, project_margin=33.3 %
+CONTRACT_EWU item=medicine:vaccine:gut-rot, kind=Medicine, amount=3, internal=78, reward=94, ordinary_margin=17.0 %, project_reward=117, project_margin=33.3 %
+CONTRACT_EWU item=medicine:vaccine:mana-pox, kind=Medicine, amount=3, internal=81, reward=97, ordinary_margin=16.5 %, project_reward=122, project_margin=33.6 %
+CONTRACT_EWU item=medicine:vaccine:red-fever, kind=Medicine, amount=3, internal=78, reward=94, ordinary_margin=17.0 %, project_reward=117, project_margin=33.3 %
+CONTRACT_EWU item=medicine:vaccine:slime-blight, kind=Medicine, amount=3, internal=78, reward=94, ordinary_margin=17.0 %, project_reward=117, project_margin=33.3 %
+CONTRACT_EWU item=medicine:vaccine:spore-lung, kind=Medicine, amount=3, internal=78, reward=94, ordinary_margin=17.0 %, project_reward=117, project_margin=33.3 %
+CONTRACT_EWU item=record:arcane-index, kind=FinishedGood, amount=3, internal=111, reward=133, ordinary_margin=16.5 %, project_reward=166, project_margin=33.1 %
+CONTRACT_EWU item=record:breeding-ledger, kind=FinishedGood, amount=3, internal=144, reward=173, ordinary_margin=16.8 %, project_reward=216, project_margin=33.3 %
+CONTRACT_EWU item=record:career-ledger, kind=FinishedGood, amount=3, internal=144, reward=173, ordinary_margin=16.8 %, project_reward=216, project_margin=33.3 %
+CONTRACT_EWU item=resource:bloodleaf, kind=Raw, amount=28, internal=140, reward=168, ordinary_margin=16.7 %, project_reward=210, project_margin=33.3 %
+CONTRACT_EWU item=resource:cave-mushroom, kind=Raw, amount=28, internal=84, reward=101, ordinary_margin=16.8 %, project_reward=126, project_margin=33.3 %
+CONTRACT_EWU item=resource:clean-water, kind=Raw, amount=28, internal=28, reward=34, ordinary_margin=17.6 %, project_reward=42, project_margin=33.3 %
+CONTRACT_EWU item=resource:coal, kind=Raw, amount=28, internal=84, reward=101, ordinary_margin=16.8 %, project_reward=126, project_margin=33.3 %
+CONTRACT_EWU item=resource:dark-resin, kind=Raw, amount=28, internal=224, reward=269, ordinary_margin=16.7 %, project_reward=336, project_margin=33.3 %
+CONTRACT_EWU item=resource:dreamleaf, kind=Raw, amount=28, internal=168, reward=202, ordinary_margin=16.8 %, project_reward=252, project_margin=33.3 %
+CONTRACT_EWU item=resource:ember-root, kind=Raw, amount=28, internal=56, reward=67, ordinary_margin=16.4 %, project_reward=84, project_margin=33.3 %
+CONTRACT_EWU item=resource:gold-ore, kind=Raw, amount=28, internal=504, reward=605, ordinary_margin=16.7 %, project_reward=756, project_margin=33.3 %
+CONTRACT_EWU item=resource:grass-straw, kind=Raw, amount=28, internal=28, reward=34, ordinary_margin=17.6 %, project_reward=42, project_margin=33.3 %
+CONTRACT_EWU item=resource:iron-ore, kind=Raw, amount=28, internal=112, reward=134, ordinary_margin=16.4 %, project_reward=168, project_margin=33.3 %
+CONTRACT_EWU item=resource:lead-ore, kind=Raw, amount=28, internal=56, reward=67, ordinary_margin=16.4 %, project_reward=84, project_margin=33.3 %
+CONTRACT_EWU item=resource:log, kind=Raw, amount=28, internal=84, reward=101, ordinary_margin=16.8 %, project_reward=126, project_margin=33.3 %
+CONTRACT_EWU item=resource:mana-crystal, kind=Raw, amount=28, internal=784, reward=941, ordinary_margin=16.7 %, project_reward=1176, project_margin=33.3 %
+CONTRACT_EWU item=resource:moonflower, kind=Raw, amount=28, internal=196, reward=235, ordinary_margin=16.6 %, project_reward=294, project_margin=33.3 %
+CONTRACT_EWU item=resource:night-grape, kind=Raw, amount=28, internal=112, reward=134, ordinary_margin=16.4 %, project_reward=168, project_margin=33.3 %
+CONTRACT_EWU item=resource:saltstone, kind=Raw, amount=28, internal=140, reward=168, ordinary_margin=16.7 %, project_reward=210, project_margin=33.3 %
+CONTRACT_EWU item=resource:shade-fiber, kind=Raw, amount=28, internal=56, reward=67, ordinary_margin=16.4 %, project_reward=84, project_margin=33.3 %
+CONTRACT_EWU item=resource:stone, kind=Raw, amount=28, internal=28, reward=34, ordinary_margin=17.6 %, project_reward=42, project_margin=33.3 %
+CONTRACT_EWU item=resource:sulfur, kind=Raw, amount=28, internal=56, reward=67, ordinary_margin=16.4 %, project_reward=84, project_margin=33.3 %
+CONTRACT_EWU item=resource:trail-charm, kind=FinishedGood, amount=3, internal=180, reward=216, ordinary_margin=16.7 %, project_reward=270, project_margin=33.3 %
+CONTRACT_EWU item=resource:twilight-grain, kind=Raw, amount=28, internal=56, reward=67, ordinary_margin=16.4 %, project_reward=84, project_margin=33.3 %
+CONTRACT_EWU item=sample:antigen:blood-wasting, kind=FinishedGood, amount=3, internal=27, reward=32, ordinary_margin=15.6 %, project_reward=40, project_margin=32.5 %
+CONTRACT_EWU item=sample:antigen:cave-flu, kind=FinishedGood, amount=3, internal=27, reward=32, ordinary_margin=15.6 %, project_reward=40, project_margin=32.5 %
+CONTRACT_EWU item=sample:antigen:gut-rot, kind=FinishedGood, amount=3, internal=27, reward=32, ordinary_margin=15.6 %, project_reward=40, project_margin=32.5 %
+CONTRACT_EWU item=sample:antigen:mana-pox, kind=FinishedGood, amount=3, internal=33, reward=40, ordinary_margin=17.5 %, project_reward=50, project_margin=34.0 %
+CONTRACT_EWU item=sample:antigen:red-fever, kind=FinishedGood, amount=3, internal=27, reward=32, ordinary_margin=15.6 %, project_reward=40, project_margin=32.5 %
+CONTRACT_EWU item=sample:antigen:slime-blight, kind=FinishedGood, amount=3, internal=27, reward=32, ordinary_margin=15.6 %, project_reward=40, project_margin=32.5 %
+CONTRACT_EWU item=sample:antigen:spore-lung, kind=FinishedGood, amount=3, internal=27, reward=32, ordinary_margin=15.6 %, project_reward=40, project_margin=32.5 %
+CONTRACT_EWU item=seed-lot:bloodleaf, kind=Raw, amount=28, internal=84, reward=101, ordinary_margin=16.8 %, project_reward=126, project_margin=33.3 %
+CONTRACT_EWU item=seed-lot:cave-mushroom, kind=Raw, amount=28, internal=84, reward=101, ordinary_margin=16.8 %, project_reward=126, project_margin=33.3 %
+CONTRACT_EWU item=seed-lot:dreamleaf, kind=Raw, amount=28, internal=84, reward=101, ordinary_margin=16.8 %, project_reward=126, project_margin=33.3 %
+CONTRACT_EWU item=seed-lot:ember-cotton, kind=Raw, amount=28, internal=112, reward=134, ordinary_margin=16.4 %, project_reward=168, project_margin=33.3 %
+CONTRACT_EWU item=seed-lot:ember-root, kind=Raw, amount=28, internal=84, reward=101, ordinary_margin=16.8 %, project_reward=126, project_margin=33.3 %
+CONTRACT_EWU item=seed-lot:frost-flax, kind=Raw, amount=28, internal=112, reward=134, ordinary_margin=16.4 %, project_reward=168, project_margin=33.3 %
+CONTRACT_EWU item=seed-lot:mire-reed, kind=Raw, amount=28, internal=112, reward=134, ordinary_margin=16.4 %, project_reward=168, project_margin=33.3 %
+CONTRACT_EWU item=seed-lot:moonflower, kind=Raw, amount=28, internal=84, reward=101, ordinary_margin=16.8 %, project_reward=126, project_margin=33.3 %
+CONTRACT_EWU item=seed-lot:night-grape, kind=Raw, amount=28, internal=84, reward=101, ordinary_margin=16.8 %, project_reward=126, project_margin=33.3 %
+CONTRACT_EWU item=seed-lot:shade-fiber, kind=Raw, amount=28, internal=84, reward=101, ordinary_margin=16.8 %, project_reward=126, project_margin=33.3 %
+CONTRACT_EWU item=seed-lot:spore-hemp, kind=Raw, amount=28, internal=112, reward=134, ordinary_margin=16.4 %, project_reward=168, project_margin=33.3 %
+CONTRACT_EWU item=seed-lot:twilight-grain, kind=Raw, amount=28, internal=84, reward=101, ordinary_margin=16.8 %, project_reward=126, project_margin=33.3 %
+CONTRACT_EWU item=supply:alliance-signal-kit, kind=FinishedGood, amount=3, internal=117, reward=140, ordinary_margin=16.4 %, project_reward=176, project_margin=33.5 %
+CONTRACT_EWU item=supply:botanical-pesticide, kind=FinishedGood, amount=3, internal=90, reward=108, ordinary_margin=16.7 %, project_reward=135, project_margin=33.3 %
+CONTRACT_EWU item=supply:certified-seed-kit, kind=FinishedGood, amount=3, internal=51, reward=61, ordinary_margin=16.4 %, project_reward=76, project_margin=32.9 %
+CONTRACT_EWU item=supply:defense-mixed-ammo-box, kind=FinishedGood, amount=3, internal=357, reward=428, ordinary_margin=16.6 %, project_reward=536, project_margin=33.4 %
+CONTRACT_EWU item=supply:funeral-preparation-kit, kind=FinishedGood, amount=3, internal=123, reward=148, ordinary_margin=16.9 %, project_reward=184, project_margin=33.2 %
+CONTRACT_EWU item=supply:fungicide, kind=FinishedGood, amount=3, internal=60, reward=72, ordinary_margin=16.7 %, project_reward=90, project_margin=33.3 %
+CONTRACT_EWU item=supply:greenhouse-nutrient, kind=FinishedGood, amount=3, internal=36, reward=43, ordinary_margin=16.3 %, project_reward=54, project_margin=33.3 %
+CONTRACT_EWU item=supply:inoculated-log, kind=FinishedGood, amount=3, internal=36, reward=43, ordinary_margin=16.3 %, project_reward=54, project_margin=33.3 %
+CONTRACT_EWU item=supply:mushroom-substrate, kind=FinishedGood, amount=3, internal=33, reward=40, ordinary_margin=17.5 %, project_reward=50, project_margin=34.0 %
+CONTRACT_EWU item=supply:nitrate-fertilizer, kind=FinishedGood, amount=3, internal=45, reward=54, ordinary_margin=16.7 %, project_reward=68, project_margin=33.8 %
+CONTRACT_EWU item=supply:performance-prop-box, kind=FinishedGood, amount=3, internal=90, reward=108, ordinary_margin=16.7 %, project_reward=135, project_margin=33.3 %
+CONTRACT_EWU item=supply:pest-lure, kind=FinishedGood, amount=3, internal=45, reward=54, ordinary_margin=16.7 %, project_reward=68, project_margin=33.8 %
+CONTRACT_EWU item=textile:insulating-cloth, kind=Intermediate, amount=15, internal=225, reward=270, ordinary_margin=16.7 %, project_reward=338, project_margin=33.4 %
+CONTRACT_EWU item=textile:quilted-liner, kind=Intermediate, amount=15, internal=315, reward=378, ordinary_margin=16.7 %, project_reward=473, project_margin=33.4 %
+CONTRACT_EWU item=textile:sterile-cloth, kind=Intermediate, amount=15, internal=210, reward=252, ordinary_margin=16.7 %, project_reward=315, project_margin=33.3 %
+CONTRACT_EWU item=tool:administrative-seal, kind=FinishedGood, amount=3, internal=126, reward=151, ordinary_margin=16.6 %, project_reward=189, project_margin=33.3 %
+CONTRACT_EWU item=tool:alloy-crucible, kind=FinishedGood, amount=3, internal=300, reward=360, ordinary_margin=16.7 %, project_reward=450, project_margin=33.3 %
+CONTRACT_EWU item=tool:banquet-cart, kind=FinishedGood, amount=3, internal=273, reward=328, ordinary_margin=16.8 %, project_reward=410, project_margin=33.4 %
+CONTRACT_EWU item=tool:deep-shaft-hoist, kind=FinishedGood, amount=3, internal=411, reward=493, ordinary_margin=16.6 %, project_reward=616, project_margin=33.3 %
+CONTRACT_EWU item=tool:field-repair-kit, kind=FinishedGood, amount=3, internal=192, reward=230, ordinary_margin=16.5 %, project_reward=288, project_margin=33.3 %
+CONTRACT_EWU item=tool:hauling-harness, kind=FinishedGood, amount=3, internal=54, reward=65, ordinary_margin=16.9 %, project_reward=81, project_margin=33.3 %
+CONTRACT_EWU item=tool:inspection-gauge, kind=FinishedGood, amount=3, internal=867, reward=1040, ordinary_margin=16.6 %, project_reward=1300, project_margin=33.3 %
+CONTRACT_EWU item=tool:maintenance-kit, kind=FinishedGood, amount=3, internal=192, reward=230, ordinary_margin=16.5 %, project_reward=288, project_margin=33.3 %
+CONTRACT_EWU item=tool:mana-probe, kind=FinishedGood, amount=3, internal=741, reward=889, ordinary_margin=16.6 %, project_reward=1112, project_margin=33.4 %
+CONTRACT_EWU item=tool:powered-tool-head, kind=FinishedGood, amount=3, internal=432, reward=518, ordinary_margin=16.6 %, project_reward=648, project_margin=33.3 %
+CONTRACT_EWU item=tool:precision-gauge, kind=FinishedGood, amount=3, internal=669, reward=803, ordinary_margin=16.7 %, project_reward=1004, project_margin=33.4 %
+CONTRACT_EWU item=tool:prisoner-work-kit, kind=FinishedGood, amount=3, internal=102, reward=122, ordinary_margin=16.4 %, project_reward=153, project_margin=33.3 %
+CONTRACT_EWU item=tool:prospecting-kit, kind=FinishedGood, amount=3, internal=99, reward=119, ordinary_margin=16.8 %, project_reward=148, project_margin=33.1 %
+CONTRACT_EWU item=tool:reinforced-restraint, kind=FinishedGood, amount=3, internal=150, reward=180, ordinary_margin=16.7 %, project_reward=225, project_margin=33.3 %
+CONTRACT_EWU item=tool:rune-identification-lens, kind=FinishedGood, amount=3, internal=177, reward=212, ordinary_margin=16.5 %, project_reward=266, project_margin=33.5 %
+CONTRACT_EWU item=tool:sewing-kit, kind=FinishedGood, amount=3, internal=162, reward=194, ordinary_margin=16.5 %, project_reward=243, project_margin=33.3 %
+CONTRACT_EWU item=tool:watch-signal-horn, kind=FinishedGood, amount=3, internal=123, reward=148, ordinary_margin=16.9 %, project_reward=184, project_margin=33.2 %
+CONTRACT_EWU item=tool:weather-observation-kit, kind=FinishedGood, amount=3, internal=189, reward=227, ordinary_margin=16.7 %, project_reward=284, project_margin=33.5 %
+CONTRACT_EWU item=yarn:cave-silk, kind=Raw, amount=28, internal=224, reward=269, ordinary_margin=16.7 %, project_reward=336, project_margin=33.3 %
+CONTRACT_EWU item=yarn:common-wool, kind=Raw, amount=28, internal=168, reward=202, ordinary_margin=16.8 %, project_reward=252, project_margin=33.3 %
+CONTRACT_EWU item=yarn:deep-goat-wool, kind=Raw, amount=28, internal=224, reward=269, ordinary_margin=16.7 %, project_reward=336, project_margin=33.3 %
+CONTRACT_EWU item=yarn:dreamweave, kind=Raw, amount=28, internal=224, reward=269, ordinary_margin=16.7 %, project_reward=336, project_margin=33.3 %
+CONTRACT_EWU item=yarn:ember-cotton, kind=Raw, amount=28, internal=224, reward=269, ordinary_margin=16.7 %, project_reward=336, project_margin=33.3 %
+CONTRACT_EWU item=yarn:frost-linen, kind=Raw, amount=28, internal=224, reward=269, ordinary_margin=16.7 %, project_reward=336, project_margin=33.3 %
+CONTRACT_EWU item=yarn:frost-wool, kind=Raw, amount=28, internal=224, reward=269, ordinary_margin=16.7 %, project_reward=336, project_margin=33.3 %
+CONTRACT_EWU item=yarn:mire-canvas, kind=Raw, amount=28, internal=224, reward=269, ordinary_margin=16.7 %, project_reward=336, project_margin=33.3 %
+CONTRACT_EWU item=yarn:shade-cloth, kind=Raw, amount=28, internal=224, reward=269, ordinary_margin=16.7 %, project_reward=336, project_margin=33.3 %
+CONTRACT_EWU item=yarn:spore-hemp, kind=Raw, amount=28, internal=224, reward=269, ordinary_margin=16.7 %, project_reward=336, project_margin=33.3 %
+
+MARKET SALE EWU RECOVERY
+SALE_EWU item=ammo:armor-piercing-cartridge, unit_price=16, rate=0.597, ewu=47.74, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=ammo:arrow-bone, unit_price=2, rate=0.6, ewu=14.55, gold_per_ewu=0.082, recovery=24.7 %
+SALE_EWU item=ammo:arrow-iron, unit_price=3, rate=0.6, ewu=20.24, gold_per_ewu=0.089, recovery=26.7 %
+SALE_EWU item=ammo:arrow-rune, unit_price=9, rate=0.6, ewu=31.69, gold_per_ewu=0.17, recovery=51.1 %
+SALE_EWU item=ammo:arrow-steel, unit_price=5, rate=0.6, ewu=36.69, gold_per_ewu=0.082, recovery=24.5 %
+SALE_EWU item=ammo:blacksteel-bolt, unit_price=44, rate=0.605, ewu=133.02, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=ammo:blasting-charge, unit_price=33, rate=0.6, ewu=98.97, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=ammo:bolt-bone, unit_price=2, rate=0.6, ewu=15.25, gold_per_ewu=0.079, recovery=23.6 %
+SALE_EWU item=ammo:bolt-iron, unit_price=4, rate=0.6, ewu=20.69, gold_per_ewu=0.116, recovery=34.8 %
+SALE_EWU item=ammo:bolt-rune, unit_price=10, rate=0.6, ewu=31.69, gold_per_ewu=0.189, recovery=56.8 %
+SALE_EWU item=ammo:bolt-steel, unit_price=6, rate=0.6, ewu=37.14, gold_per_ewu=0.097, recovery=29.1 %
+SALE_EWU item=ammo:incendiary-arrow, unit_price=21, rate=0.61, ewu=64.05, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=ammo:incendiary-bolt, unit_price=22, rate=0.587, ewu=64.52, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=ammo:mana-disruptor-bolt, unit_price=30, rate=0.604, ewu=90.61, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=ammo:paper-cartridge, unit_price=11, rate=0.6, ewu=33.02, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=ammo:rune-cartridge, unit_price=25, rate=0.592, ewu=74, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=ammo:scatter-cartridge, unit_price=18, rate=0.609, ewu=54.77, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=ammo:signal-flare, unit_price=16, rate=0.595, ewu=47.62, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=ammo:smoke-cartridge, unit_price=11, rate=0.581, ewu=31.96, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=ammo:tranquilizer-dart, unit_price=13, rate=0.587, ewu=38.12, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=ammo:trap-canister, unit_price=44, rate=0.596, ewu=131.21, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:apron, unit_price=18, rate=0.611, ewu=54.99, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:belt, unit_price=18, rate=0.61, ewu=54.91, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:blouse, unit_price=18, rate=0.611, ewu=54.97, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:boots, unit_price=18, rate=0.612, ewu=55.06, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:ceremonial-dress, unit_price=25, rate=0.588, ewu=73.54, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:chest-wrap, unit_price=18, rate=0.61, ewu=54.89, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:cloak, unit_price=18, rate=0.612, ewu=55.08, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:contract-sash, unit_price=18, rate=0.61, ewu=54.89, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:daily-robe, unit_price=18, rate=0.612, ewu=55.12, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:envoy-coat, unit_price=25, rate=0.588, ewu=73.5, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:farmer-workwear, unit_price=18, rate=0.613, ewu=55.16, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:festival-vest, unit_price=18, rate=0.611, ewu=55.01, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:footwraps, unit_price=18, rate=0.61, ewu=54.87, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:formal-coat, unit_price=24, rate=0.612, ewu=73.48, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:gloves, unit_price=18, rate=0.61, ewu=54.93, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:golem-functional-lining, unit_price=18, rate=0.612, ewu=55.08, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:hat, unit_price=18, rate=0.61, ewu=54.91, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:heat-work-suit, unit_price=25, rate=0.589, ewu=73.61, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:hooded-robe, unit_price=25, rate=0.588, ewu=73.53, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:horn-ring, unit_price=12, rate=0.608, ewu=36.45, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:keeper-coat, unit_price=25, rate=0.588, ewu=73.56, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:loincloth-underwear, unit_price=18, rate=0.61, ewu=54.89, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:long-underpants, unit_price=18, rate=0.611, ewu=54.96, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:lower-underwear, unit_price=18, rate=0.61, ewu=54.9, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:miner-workwear, unit_price=25, rate=0.589, ewu=73.58, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:mourning-clothes, unit_price=18, rate=0.612, ewu=55.12, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:raincoat, unit_price=25, rate=0.588, ewu=73.55, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:ritual-robe, unit_price=25, rate=0.588, ewu=73.51, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:scarf, unit_price=18, rate=0.61, ewu=54.9, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:shorts, unit_price=18, rate=0.611, ewu=54.95, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:skirt, unit_price=18, rate=0.611, ewu=54.99, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:sky-chorus-shawl, unit_price=18, rate=0.61, ewu=54.92, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:sleep-bottom, unit_price=18, rate=0.611, ewu=54.95, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:sleep-top, unit_price=18, rate=0.611, ewu=54.96, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:smith-apron, unit_price=25, rate=0.588, ewu=73.5, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:smoke-protection-hood, unit_price=24, rate=0.611, ewu=73.36, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:socks, unit_price=18, rate=0.61, ewu=54.88, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:spore-garden-cloak, unit_price=24, rate=0.612, ewu=73.47, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:spore-protection-hood, unit_price=24, rate=0.611, ewu=73.35, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:sterile-gown, unit_price=18, rate=0.611, ewu=55.02, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:surgical-apron, unit_price=24, rate=0.612, ewu=73.43, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:tail-guard, unit_price=18, rate=0.611, ewu=54.96, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:tail-ribbon, unit_price=18, rate=0.61, ewu=54.86, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:trousers, unit_price=18, rate=0.611, ewu=55.01, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:tunic, unit_price=18, rate=0.611, ewu=55, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:undershirt, unit_price=18, rate=0.61, ewu=54.91, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:vest, unit_price=18, rate=0.611, ewu=54.98, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:waterproof-work-suit, unit_price=25, rate=0.589, ewu=73.61, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:weapon-vigil-cloak, unit_price=24, rate=0.612, ewu=73.48, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:wing-cloak, unit_price=18, rate=0.612, ewu=55.05, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:wing-harness, unit_price=18, rate=0.611, ewu=55.01, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=apparel:work-shirt, unit_price=18, rate=0.611, ewu=55.01, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=book:seasonal-almanac, unit_price=22, rate=0.604, ewu=66.49, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:blacksteel-defense-plate, unit_price=216, rate=0.601, ewu=649.05, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:blast-coat-shell, unit_price=43, rate=0.604, ewu=129.9, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:brigandine-padding, unit_price=37, rate=0.606, ewu=112.04, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:climate-control-manifold, unit_price=85, rate=0.6, ewu=254.83, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:corridor-detonator, unit_price=117, rate=0.598, ewu=349.97, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:dreamweave-rune-lining, unit_price=74, rate=0.604, ewu=223.49, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:engineering-drawing, unit_price=22, rate=0.604, ewu=66.46, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:factory-installation-plan, unit_price=60, rate=0.598, ewu=179.36, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:golem-core-case, unit_price=86, rate=0.602, ewu=259.03, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:growth-frame, unit_price=411, rate=0.6, ewu=1233.78, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:insulated-wiring, unit_price=33, rate=0.608, ewu=100.26, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:lead-counterweight, unit_price=59, rate=0.595, ewu=175.65, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:machine-parts, unit_price=47, rate=0.602, ewu=141.49, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:mana-shield-plate, unit_price=45, rate=0.6, ewu=134.95, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:material-test-coupon, unit_price=89, rate=0.597, ewu=265.52, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:paper-paste, unit_price=13, rate=0.61, ewu=39.66, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:powered-armor-joint, unit_price=242, rate=0.6, ewu=725.75, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:precision-optics, unit_price=37, rate=0.599, ewu=110.81, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:precision-parts, unit_price=182, rate=0.599, ewu=544.94, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:price-board, unit_price=27, rate=0.606, ewu=81.75, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:prototype-package, unit_price=85, rate=0.602, ewu=255.99, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:reclaimed-water-filter, unit_price=19, rate=0.598, ewu=56.83, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:room-partition-kit, unit_price=48, rate=0.596, ewu=143.1, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:rune-bus-coupler, unit_price=88, rate=0.602, ewu=264.7, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:rune-conductor, unit_price=48, rate=0.602, ewu=144.38, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:rune-control-panel, unit_price=254, rate=0.601, ewu=763.23, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:rune-leather-lining, unit_price=48, rate=0.605, ewu=145.1, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:rune-leather-strap, unit_price=99, rate=0.599, ewu=296.38, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:rune-purification-crystal, unit_price=87, rate=0.603, ewu=262.11, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:rune-tuning-shield, unit_price=111, rate=0.602, ewu=333.9, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:sealed-seasonal-container, unit_price=57, rate=0.598, ewu=170.52, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:siege-counterweight, unit_price=118, rate=0.6, ewu=353.81, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:siege-reinforcement-kit, unit_price=222, rate=0.601, ewu=667.14, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:stock-sensor-panel, unit_price=248, rate=0.6, ewu=744.37, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:temporal-stasis-seal, unit_price=541, rate=0.6, ewu=1623.3, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:textile-hardener, unit_price=9, rate=0.594, ewu=26.71, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=component:waterwheel-drive-shaft, unit_price=134, rate=0.598, ewu=400.79, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=craft:bone-charm, unit_price=18, rate=0.6, ewu=71.34, gold_per_ewu=0.151, recovery=45.4 %
+SALE_EWU item=craft:candle, unit_price=6, rate=0.6, ewu=48.09, gold_per_ewu=0.075, recovery=22.5 %
+SALE_EWU item=craft:dreamweave-ritual-banner, unit_price=55, rate=0.597, ewu=164.28, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=craft:fang-poison, unit_price=20, rate=0.6, ewu=113.81, gold_per_ewu=0.105, recovery=31.6 %
+SALE_EWU item=craft:fermented-vinegar, unit_price=9, rate=0.603, ewu=36.18, gold_per_ewu=0.15, recovery=45.0 %
+SALE_EWU item=craft:gold-ornament, unit_price=95, rate=0.6, ewu=53.22, gold_per_ewu=1.071, recovery=321.3 %
+SALE_EWU item=craft:resin-balm, unit_price=10, rate=0.6, ewu=90.68, gold_per_ewu=0.066, recovery=19.8 %
+SALE_EWU item=craft:ritual-reagent, unit_price=24, rate=0.6, ewu=91.01, gold_per_ewu=0.158, recovery=47.5 %
+SALE_EWU item=craft:soap, unit_price=7, rate=0.6, ewu=46.14, gold_per_ewu=0.091, recovery=27.3 %
+SALE_EWU item=craft:stone-ornament, unit_price=12, rate=0.6, ewu=60.23, gold_per_ewu=0.12, recovery=35.9 %
+SALE_EWU item=craft:toxic-trap-coating, unit_price=18, rate=0.614, ewu=55.28, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=drug:blood-stimulant, unit_price=28, rate=0.6, ewu=126.14, gold_per_ewu=0.133, recovery=40.0 %
+SALE_EWU item=drug:dreamleaf-analgesic, unit_price=18, rate=0.6, ewu=125.13, gold_per_ewu=0.086, recovery=25.9 %
+SALE_EWU item=drug:hallucinogenic-distillate, unit_price=22, rate=0.6, ewu=121.94, gold_per_ewu=0.108, recovery=32.5 %
+SALE_EWU item=drug:mana-awakener, unit_price=34, rate=0.6, ewu=129.87, gold_per_ewu=0.157, recovery=47.1 %
+SALE_EWU item=drug:moonflower-tea, unit_price=9, rate=0.6, ewu=27.05, gold_per_ewu=0.2, recovery=59.9 %
+SALE_EWU item=drug:night-wine, unit_price=14, rate=0.6, ewu=82.16, gold_per_ewu=0.102, recovery=30.7 %
+SALE_EWU item=drug:vitality-tonic, unit_price=16, rate=0.6, ewu=55.44, gold_per_ewu=0.173, recovery=51.9 %
+SALE_EWU item=equipment:cold-work-suit, unit_price=42, rate=0.6, ewu=73.5, gold_per_ewu=0.343, recovery=102.9 %
+SALE_EWU item=equipment:rune-cold-suit, unit_price=95, rate=0.6, ewu=73.48, gold_per_ewu=0.776, recovery=232.7 %
+SALE_EWU item=equipment:slime-warming-pad, unit_price=18, rate=0.6, ewu=44.55, gold_per_ewu=0.242, recovery=72.7 %
+SALE_EWU item=feed:dog-food, unit_price=3, rate=0.6, ewu=19.9, gold_per_ewu=0.09, recovery=27.1 %
+SALE_EWU item=feed:hay, unit_price=2, rate=0.6, ewu=17.18, gold_per_ewu=0.07, recovery=21.0 %
+SALE_EWU item=feed:silage, unit_price=5, rate=0.627, ewu=28.23, gold_per_ewu=0.111, recovery=33.3 %
+SALE_EWU item=fiber:cave-silk, unit_price=3, rate=0.571, ewu=8.57, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=fiber:deep-goat-wool, unit_price=3, rate=0.571, ewu=8.57, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=fiber:ember-cotton, unit_price=3, rate=0.571, ewu=8.57, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=fiber:frost-flax, unit_price=3, rate=0.571, ewu=8.57, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=fiber:frost-wool, unit_price=3, rate=0.571, ewu=8.57, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=fiber:mire-reed, unit_price=3, rate=0.571, ewu=8.57, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=fiber:spore-hemp, unit_price=3, rate=0.571, ewu=8.57, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=food:boar-stew, unit_price=15, rate=0.6, ewu=38.93, gold_per_ewu=0.231, recovery=69.3 %
+SALE_EWU item=food:cheese-mushroom, unit_price=14, rate=0.6, ewu=50.47, gold_per_ewu=0.166, recovery=49.9 %
+SALE_EWU item=food:egg-pancake, unit_price=11, rate=0.6, ewu=46.41, gold_per_ewu=0.142, recovery=42.7 %
+SALE_EWU item=food:expedition-ration-pack, unit_price=16, rate=0.595, ewu=56.53, gold_per_ewu=0.168, recovery=50.5 %
+SALE_EWU item=food:fermented-pickle, unit_price=9, rate=0.591, ewu=100.52, gold_per_ewu=0.053, recovery=15.9 %
+SALE_EWU item=food:fresh-curd, unit_price=9, rate=0.595, ewu=29.74, gold_per_ewu=0.18, recovery=54.0 %
+SALE_EWU item=food:garden-meal, unit_price=12, rate=0.6, ewu=41.55, gold_per_ewu=0.173, recovery=52.0 %
+SALE_EWU item=food:grain-porridge, unit_price=5, rate=0.6, ewu=28.03, gold_per_ewu=0.107, recovery=32.1 %
+SALE_EWU item=food:grape-syrup, unit_price=8, rate=0.608, ewu=30.42, gold_per_ewu=0.16, recovery=48.0 %
+SALE_EWU item=food:jerky, unit_price=12, rate=0.6, ewu=44.76, gold_per_ewu=0.161, recovery=48.3 %
+SALE_EWU item=food:lavish-meat, unit_price=27, rate=0.6, ewu=75.57, gold_per_ewu=0.214, recovery=64.3 %
+SALE_EWU item=food:lavish-vegan, unit_price=24, rate=0.6, ewu=86.05, gold_per_ewu=0.167, recovery=50.2 %
+SALE_EWU item=food:malt-porridge, unit_price=6, rate=0.613, ewu=24.52, gold_per_ewu=0.15, recovery=45.0 %
+SALE_EWU item=food:meat-pie, unit_price=17, rate=0.6, ewu=60.43, gold_per_ewu=0.169, recovery=50.6 %
+SALE_EWU item=food:mushroom-soup, unit_price=7, rate=0.6, ewu=27.83, gold_per_ewu=0.151, recovery=45.3 %
+SALE_EWU item=food:night-spirit, unit_price=24, rate=0.606, ewu=96.9, gold_per_ewu=0.15, recovery=45.0 %
+SALE_EWU item=food:preserved-ration, unit_price=13, rate=0.6, ewu=44.23, gold_per_ewu=0.176, recovery=52.9 %
+SALE_EWU item=food:preserved-vegetable, unit_price=11, rate=0.6, ewu=81, gold_per_ewu=0.081, recovery=24.4 %
+SALE_EWU item=food:roasted-meat, unit_price=9, rate=0.6, ewu=17.98, gold_per_ewu=0.3, recovery=90.1 %
+SALE_EWU item=food:root-stew, unit_price=7, rate=0.6, ewu=28.24, gold_per_ewu=0.149, recovery=44.6 %
+SALE_EWU item=food:salted-meat-stew, unit_price=14, rate=0.615, ewu=36.88, gold_per_ewu=0.233, recovery=70.0 %
+SALE_EWU item=food:stuffed-mushroom, unit_price=13, rate=0.592, ewu=44.4, gold_per_ewu=0.173, recovery=52.0 %
+SALE_EWU item=food:twilight-beer, unit_price=13, rate=0.588, ewu=67.67, gold_per_ewu=0.113, recovery=33.9 %
+SALE_EWU item=food:vegetable-pie, unit_price=12, rate=0.613, ewu=55.15, gold_per_ewu=0.133, recovery=40.0 %
+SALE_EWU item=husbandry:bedding, unit_price=3, rate=0.6, ewu=22.24, gold_per_ewu=0.081, recovery=24.3 %
+SALE_EWU item=material:alchemical-solvent, unit_price=12, rate=0.6, ewu=64.09, gold_per_ewu=0.112, recovery=33.7 %
+SALE_EWU item=material:alcohol, unit_price=6, rate=0.6, ewu=69.94, gold_per_ewu=0.051, recovery=15.4 %
+SALE_EWU item=material:barrel-steel, unit_price=129, rate=0.6, ewu=387, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:black-powder, unit_price=13, rate=0.586, ewu=38.06, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:blacksteel-ingot, unit_price=70, rate=0.6, ewu=540.43, gold_per_ewu=0.078, recovery=23.3 %
+SALE_EWU item=material:bowstring, unit_price=8, rate=0.6, ewu=33.63, gold_per_ewu=0.143, recovery=42.8 %
+SALE_EWU item=material:brined-vegetable, unit_price=5, rate=0.602, ewu=54.15, gold_per_ewu=0.056, recovery=16.7 %
+SALE_EWU item=material:cartridge-paper, unit_price=10, rate=0.626, ewu=31.29, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:cave-silk, unit_price=16, rate=0.609, ewu=48.75, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:chain-mesh, unit_price=26, rate=0.591, ewu=76.81, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:charcoal, unit_price=5, rate=0.6, ewu=19.28, gold_per_ewu=0.156, recovery=46.7 %
+SALE_EWU item=material:cheese, unit_price=8, rate=0.6, ewu=54.89, gold_per_ewu=0.087, recovery=26.2 %
+SALE_EWU item=material:cloth, unit_price=7, rate=0.6, ewu=17.96, gold_per_ewu=0.234, recovery=70.2 %
+SALE_EWU item=material:common-wool, unit_price=13, rate=0.597, ewu=38.83, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:compost, unit_price=3, rate=0.6, ewu=31.14, gold_per_ewu=0.058, recovery=17.3 %
+SALE_EWU item=material:curd, unit_price=6, rate=0.619, ewu=30.96, gold_per_ewu=0.12, recovery=36.0 %
+SALE_EWU item=material:deep-goat-wool, unit_price=16, rate=0.61, ewu=48.81, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:dough, unit_price=6, rate=0.589, ewu=47.14, gold_per_ewu=0.075, recovery=22.5 %
+SALE_EWU item=material:dreamweave, unit_price=34, rate=0.6, ewu=48.75, gold_per_ewu=0.418, recovery=125.5 %
+SALE_EWU item=material:ember-cotton, unit_price=16, rate=0.61, ewu=48.78, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:fermented-liquor, unit_price=9, rate=0.581, ewu=43.6, gold_per_ewu=0.12, recovery=36.0 %
+SALE_EWU item=material:flour, unit_price=4, rate=0.6, ewu=22.12, gold_per_ewu=0.109, recovery=32.6 %
+SALE_EWU item=material:frost-linen, unit_price=16, rate=0.61, ewu=48.77, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:frost-wool, unit_price=16, rate=0.61, ewu=48.81, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:gold-ingot, unit_price=60, rate=0.6, ewu=56.29, gold_per_ewu=0.639, recovery=191.8 %
+SALE_EWU item=material:granulated-powder, unit_price=13, rate=0.582, ewu=37.8, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:grape-juice, unit_price=6, rate=0.588, ewu=32.36, gold_per_ewu=0.109, recovery=32.7 %
+SALE_EWU item=material:hardened-leather, unit_price=14, rate=0.601, ewu=42.1, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:iron-ingot, unit_price=9, rate=0.6, ewu=56.2, gold_per_ewu=0.096, recovery=28.8 %
+SALE_EWU item=material:laminated-lumber, unit_price=17, rate=0.594, ewu=50.51, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:lead-ingot, unit_price=24, rate=0.606, ewu=72.78, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:lead-shot, unit_price=7, rate=0.586, ewu=20.5, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:leather, unit_price=10, rate=0.6, ewu=23.74, gold_per_ewu=0.253, recovery=75.8 %
+SALE_EWU item=material:low-fuel, unit_price=1, rate=0.6, ewu=37.23, gold_per_ewu=0.016, recovery=4.8 %
+SALE_EWU item=material:lumber, unit_price=6, rate=0.6, ewu=13.5, gold_per_ewu=0.267, recovery=80.0 %
+SALE_EWU item=material:malt, unit_price=5, rate=0.592, ewu=20.71, gold_per_ewu=0.143, recovery=42.9 %
+SALE_EWU item=material:mana-alloy, unit_price=63, rate=0.6, ewu=188.95, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:mending-scrap, unit_price=7, rate=0.585, ewu=20.47, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:mire-canvas, unit_price=16, rate=0.61, ewu=48.81, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:niter, unit_price=12, rate=0.582, ewu=34.93, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:paper, unit_price=9, rate=0.577, ewu=25.97, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:plate-blank, unit_price=80, rate=0.603, ewu=241.3, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:ration-mixture, unit_price=6, rate=0.598, ewu=47.87, gold_per_ewu=0.075, recovery=22.5 %
+SALE_EWU item=material:rope, unit_price=8, rate=0.622, ewu=24.89, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:rot-toxin, unit_price=12, rate=0.6, ewu=47.04, gold_per_ewu=0.153, recovery=45.9 %
+SALE_EWU item=material:rune-leather, unit_price=30, rate=0.6, ewu=100.86, gold_per_ewu=0.178, recovery=53.5 %
+SALE_EWU item=material:salted-meat, unit_price=8, rate=0.602, ewu=30.11, gold_per_ewu=0.16, recovery=48.0 %
+SALE_EWU item=material:seasoned-filling, unit_price=9, rate=0.592, ewu=38.48, gold_per_ewu=0.138, recovery=41.5 %
+SALE_EWU item=material:sewing-thread, unit_price=5, rate=0.606, ewu=15.16, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:spore-hemp, unit_price=16, rate=0.61, ewu=48.79, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:spring-steel, unit_price=87, rate=0.602, ewu=261.97, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:starch, unit_price=3, rate=0.6, ewu=17.38, gold_per_ewu=0.104, recovery=31.1 %
+SALE_EWU item=material:steel-ingot, unit_price=16, rate=0.6, ewu=217.48, gold_per_ewu=0.044, recovery=13.2 %
+SALE_EWU item=material:sterile-composite, unit_price=21, rate=0.593, ewu=62.28, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=material:stone-block, unit_price=4, rate=0.6, ewu=17.03, gold_per_ewu=0.141, recovery=42.3 %
+SALE_EWU item=material:syrup, unit_price=7, rate=0.6, ewu=24.3, gold_per_ewu=0.173, recovery=51.8 %
+SALE_EWU item=material:tallow, unit_price=6, rate=0.6, ewu=24.84, gold_per_ewu=0.145, recovery=43.5 %
+SALE_EWU item=material:treated-lumber, unit_price=12, rate=0.6, ewu=31.79, gold_per_ewu=0.226, recovery=67.9 %
+SALE_EWU item=material:washed-vegetable, unit_price=4, rate=0.627, ewu=28.21, gold_per_ewu=0.089, recovery=26.7 %
+SALE_EWU item=material:young-wine, unit_price=10, rate=0.596, ewu=56.64, gold_per_ewu=0.105, recovery=31.6 %
+SALE_EWU item=medical:cross-lineage-medium, unit_price=86, rate=0.602, ewu=258.76, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medical:fertility-treatment, unit_price=64, rate=0.601, ewu=192.4, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medical:isolation-care-kit, unit_price=53, rate=0.602, ewu=159.47, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medical:mana-core-case, unit_price=250, rate=0.6, ewu=749.56, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medical:organ-preservation-canister, unit_price=84, rate=0.6, ewu=251.94, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medical:organ-regeneration-scaffold, unit_price=69, rate=0.6, ewu=206.94, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medical:regenerative-medium, unit_price=41, rate=0.602, ewu=123.37, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medical:rejuvenation-serum, unit_price=96, rate=0.597, ewu=286.65, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medical:rune-hibernation-catalyst, unit_price=86, rate=0.602, ewu=258.76, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medical:slime-coagulation-frame, unit_price=50, rate=0.604, ewu=150.94, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medical:sterile-bandage, unit_price=24, rate=0.597, ewu=71.65, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medical:sterile-mycelium-graft, unit_price=33, rate=0.602, ewu=99.28, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medical:trait-analysis-kit, unit_price=45, rate=0.594, ewu=133.61, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medical:trauma-care-kit, unit_price=82, rate=0.6, ewu=245.8, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medical:whole-body-regeneration-medium, unit_price=343, rate=0.599, ewu=1027.53, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medicine:advanced, unit_price=42, rate=0.6, ewu=168.51, gold_per_ewu=0.15, recovery=44.9 %
+SALE_EWU item=medicine:anesthetic, unit_price=24, rate=0.6, ewu=128.73, gold_per_ewu=0.112, recovery=33.6 %
+SALE_EWU item=medicine:antidote, unit_price=28, rate=0.6, ewu=121.05, gold_per_ewu=0.139, recovery=41.6 %
+SALE_EWU item=medicine:antiseptic, unit_price=12, rate=0.6, ewu=38.25, gold_per_ewu=0.188, recovery=56.5 %
+SALE_EWU item=medicine:herbal-poultice, unit_price=8, rate=0.6, ewu=42.8, gold_per_ewu=0.112, recovery=33.6 %
+SALE_EWU item=medicine:mycelial-culture-pack, unit_price=10, rate=0.628, ewu=31.41, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medicine:standard, unit_price=20, rate=0.6, ewu=79.76, gold_per_ewu=0.15, recovery=45.1 %
+SALE_EWU item=medicine:vaccine:blood-wasting, unit_price=26, rate=0.609, ewu=79.19, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medicine:vaccine:cave-flu, unit_price=26, rate=0.609, ewu=79.19, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medicine:vaccine:gut-rot, unit_price=26, rate=0.609, ewu=79.19, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medicine:vaccine:mana-pox, unit_price=27, rate=0.603, ewu=81.43, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medicine:vaccine:red-fever, unit_price=26, rate=0.609, ewu=79.19, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medicine:vaccine:slime-blight, unit_price=26, rate=0.609, ewu=79.19, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=medicine:vaccine:spore-lung, unit_price=26, rate=0.609, ewu=79.19, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=offense:appraised-valuables, unit_price=1, rate=1, ewu=39.74, gold_per_ewu=0.025, recovery=7.5 %
+SALE_EWU item=record:arcane-index, unit_price=37, rate=0.601, ewu=111.12, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=record:breeding-ledger, unit_price=48, rate=0.605, ewu=145.23, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=record:career-ledger, unit_price=48, rate=0.605, ewu=145.23, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=resource:blood, unit_price=7, rate=0.6, ewu=5.25, gold_per_ewu=0.8, recovery=239.9 %
+SALE_EWU item=resource:bloodleaf, unit_price=5, rate=0.6, ewu=8.63, gold_per_ewu=0.348, recovery=104.3 %
+SALE_EWU item=resource:bone, unit_price=3, rate=0.6, ewu=5.22, gold_per_ewu=0.345, recovery=103.4 %
+SALE_EWU item=resource:cave-mushroom, unit_price=3, rate=0.6, ewu=9, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=resource:clean-water, unit_price=1, rate=0.75, ewu=3.75, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=resource:coal, unit_price=3, rate=0.6, ewu=9.33, gold_per_ewu=0.193, recovery=57.9 %
+SALE_EWU item=resource:dark-resin, unit_price=8, rate=0.6, ewu=4.82, gold_per_ewu=0.997, recovery=299.0 %
+SALE_EWU item=resource:dreamleaf, unit_price=6, rate=0.6, ewu=8.57, gold_per_ewu=0.42, recovery=126.1 %
+SALE_EWU item=resource:egg, unit_price=3, rate=0.6, ewu=4.18, gold_per_ewu=0.43, recovery=129.1 %
+SALE_EWU item=resource:ember-root, unit_price=2, rate=0.6, ewu=9.34, gold_per_ewu=0.128, recovery=38.5 %
+SALE_EWU item=resource:fang, unit_price=9, rate=0.6, ewu=8.01, gold_per_ewu=0.674, recovery=202.2 %
+SALE_EWU item=resource:fat, unit_price=4, rate=0.6, ewu=5.24, gold_per_ewu=0.458, recovery=137.5 %
+SALE_EWU item=resource:feather, unit_price=3, rate=0.6, ewu=3.6, gold_per_ewu=0.5, recovery=149.9 %
+SALE_EWU item=resource:gold-ore, unit_price=18, rate=0.6, ewu=9.33, gold_per_ewu=1.157, recovery=347.1 %
+SALE_EWU item=resource:grass-straw, unit_price=1, rate=0.6, ewu=3.62, gold_per_ewu=0.166, recovery=49.7 %
+SALE_EWU item=resource:hide, unit_price=6, rate=0.6, ewu=5.36, gold_per_ewu=0.672, recovery=201.7 %
+SALE_EWU item=resource:horn, unit_price=8, rate=0.6, ewu=8.18, gold_per_ewu=0.587, recovery=176.0 %
+SALE_EWU item=resource:iron-ore, unit_price=4, rate=0.6, ewu=9.33, gold_per_ewu=0.257, recovery=77.1 %
+SALE_EWU item=resource:lead-ore, unit_price=2, rate=0.553, ewu=5.53, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=resource:log, unit_price=3, rate=0.6, ewu=4.82, gold_per_ewu=0.374, recovery=112.1 %
+SALE_EWU item=resource:mana-crystal, unit_price=28, rate=0.6, ewu=9.33, gold_per_ewu=1.8, recovery=539.9 %
+SALE_EWU item=resource:meat, unit_price=4, rate=0.6, ewu=3.79, gold_per_ewu=0.633, recovery=190.0 %
+SALE_EWU item=resource:milk, unit_price=4, rate=0.6, ewu=4.32, gold_per_ewu=0.556, recovery=166.7 %
+SALE_EWU item=resource:moonflower, unit_price=7, rate=0.6, ewu=14.57, gold_per_ewu=0.288, recovery=86.5 %
+SALE_EWU item=resource:night-grape, unit_price=4, rate=0.6, ewu=9, gold_per_ewu=0.267, recovery=80.0 %
+SALE_EWU item=resource:rune-dust, unit_price=24, rate=0.6, ewu=16.45, gold_per_ewu=0.876, recovery=262.7 %
+SALE_EWU item=resource:saltstone, unit_price=5, rate=0.6, ewu=5.57, gold_per_ewu=0.538, recovery=161.5 %
+SALE_EWU item=resource:shade-fiber, unit_price=2, rate=0.6, ewu=8.69, gold_per_ewu=0.138, recovery=41.4 %
+SALE_EWU item=resource:stone, unit_price=1, rate=0.6, ewu=5.57, gold_per_ewu=0.108, recovery=32.3 %
+SALE_EWU item=resource:sulfur, unit_price=2, rate=0.553, ewu=5.53, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=resource:trail-charm, unit_price=60, rate=0.6, ewu=65.57, gold_per_ewu=0.549, recovery=164.7 %
+SALE_EWU item=resource:twilight-grain, unit_price=2, rate=0.6, ewu=9.18, gold_per_ewu=0.131, recovery=39.2 %
+SALE_EWU item=resource:wool, unit_price=6, rate=0.6, ewu=4.21, gold_per_ewu=0.854, recovery=256.3 %
+SALE_EWU item=sample:antigen:blood-wasting, unit_price=9, rate=0.575, ewu=25.9, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=sample:antigen:cave-flu, unit_price=9, rate=0.575, ewu=25.9, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=sample:antigen:gut-rot, unit_price=9, rate=0.575, ewu=25.9, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=sample:antigen:mana-pox, unit_price=11, rate=0.584, ewu=32.1, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=sample:antigen:red-fever, unit_price=9, rate=0.575, ewu=25.9, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=sample:antigen:slime-blight, unit_price=9, rate=0.575, ewu=25.9, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=sample:antigen:spore-lung, unit_price=9, rate=0.575, ewu=25.9, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=supply:alliance-signal-kit, unit_price=39, rate=0.598, ewu=116.66, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=supply:botanical-pesticide, unit_price=30, rate=0.607, ewu=91.1, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=supply:certified-seed-kit, unit_price=17, rate=0.617, ewu=52.49, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=supply:defense-mixed-ammo-box, unit_price=119, rate=0.6, ewu=357.03, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=supply:funeral-preparation-kit, unit_price=41, rate=0.606, ewu=124.27, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=supply:fungicide, unit_price=20, rate=0.608, ewu=60.77, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=supply:greenhouse-nutrient, unit_price=12, rate=0.581, ewu=34.88, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=supply:inoculated-log, unit_price=12, rate=0.606, ewu=36.38, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=supply:mushroom-substrate, unit_price=11, rate=0.615, ewu=33.85, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=supply:nitrate-fertilizer, unit_price=15, rate=0.594, ewu=44.55, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=supply:performance-prop-box, unit_price=30, rate=0.59, ewu=88.55, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=supply:pest-lure, unit_price=15, rate=0.603, ewu=45.26, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=textile:insulating-cloth, unit_price=15, rate=0.611, ewu=45.83, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=textile:quilted-liner, unit_price=21, rate=0.596, ewu=62.54, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=textile:sterile-cloth, unit_price=14, rate=0.588, ewu=41.15, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=tool:administrative-seal, unit_price=42, rate=0.597, ewu=125.35, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=tool:alloy-crucible, unit_price=100, rate=0.601, ewu=300.68, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=tool:banquet-cart, unit_price=91, rate=0.598, ewu=272.18, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=tool:deep-shaft-hoist, unit_price=137, rate=0.599, ewu=410.3, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=tool:field-repair-kit, unit_price=64, rate=0.602, ewu=192.74, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=tool:hauling-harness, unit_price=18, rate=0.613, ewu=55.2, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=tool:inspection-gauge, unit_price=289, rate=0.6, ewu=867.26, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=tool:maintenance-kit, unit_price=64, rate=0.602, ewu=192.72, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=tool:mana-probe, unit_price=247, rate=0.599, ewu=739.94, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=tool:powered-tool-head, unit_price=144, rate=0.601, ewu=432.38, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=tool:precision-gauge, unit_price=223, rate=0.599, ewu=667.69, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=tool:prisoner-work-kit, unit_price=34, rate=0.595, ewu=101.14, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=tool:prospecting-kit, unit_price=33, rate=0.602, ewu=99.39, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=tool:reinforced-restraint, unit_price=50, rate=0.606, ewu=151.49, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=tool:rune-identification-lens, unit_price=59, rate=0.596, ewu=175.94, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=tool:sewing-kit, unit_price=54, rate=0.604, ewu=163.01, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=tool:watch-signal-horn, unit_price=41, rate=0.6, ewu=123.01, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=tool:weather-observation-kit, unit_price=63, rate=0.602, ewu=189.57, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=yarn:cave-silk, unit_price=8, rate=0.611, ewu=24.44, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=yarn:common-wool, unit_price=6, rate=0.598, ewu=17.93, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=yarn:deep-goat-wool, unit_price=8, rate=0.611, ewu=24.44, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=yarn:dreamweave, unit_price=8, rate=0.611, ewu=24.44, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=yarn:ember-cotton, unit_price=8, rate=0.611, ewu=24.44, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=yarn:frost-linen, unit_price=8, rate=0.611, ewu=24.44, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=yarn:frost-wool, unit_price=8, rate=0.611, ewu=24.44, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=yarn:mire-canvas, unit_price=8, rate=0.611, ewu=24.44, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=yarn:shade-cloth, unit_price=8, rate=0.617, ewu=24.66, gold_per_ewu=0.2, recovery=60.0 %
+SALE_EWU item=yarn:spore-hemp, unit_price=8, rate=0.611, ewu=24.44, gold_per_ewu=0.2, recovery=60.0 %
+
+HIGHEST DISMANTLE EWU RATIOS (SKILL 100)
+DISMANTLE_EWU id=8823, ratio=81.2 %, invested=6898.65, recovered=5600.07, asset=Assets/Resources/SO/Building/ResearchOverhaul/RF23_룬_버스_결합기.asset
+DISMANTLE_EWU id=8833, ratio=81.2 %, invested=6898.65, recovered=5600.07, asset=Assets/Resources/SO/Building/ResearchOverhaul/RF33_룬_제어반.asset
+DISMANTLE_EWU id=8867, ratio=81.2 %, invested=6898.65, recovered=5600.07, asset=Assets/Resources/SO/Building/ResearchOverhaul/RF67_재생_배양조.asset
+DISMANTLE_EWU id=8879, ratio=81.2 %, invested=6898.65, recovered=5600.07, asset=Assets/Resources/SO/Building/ResearchOverhaul/RF79_형질_분석기.asset
+DISMANTLE_EWU id=8881, ratio=81.2 %, invested=6898.65, recovered=5600.07, asset=Assets/Resources/SO/Building/ResearchOverhaul/RF81_교차계통_배양기.asset
+DISMANTLE_EWU id=9209, ratio=81.1 %, invested=22079.89, recovered=17916.02, asset=Assets/Resources/SO/V20/Milestones/Landmarks/building_landmark_steel-colossus.asset
+DISMANTLE_EWU id=8889, ratio=80.3 %, invested=6974.65, recovered=5600.07, asset=Assets/Resources/SO/Building/ResearchOverhaul/RF89_원정_천문시계실.asset
+DISMANTLE_EWU id=8847, ratio=78.2 %, invested=7157.68, recovered=5600.07, asset=Assets/Resources/SO/Building/ResearchOverhaul/RF47_구성체_핵_공학대.asset
+DISMANTLE_EWU id=9510, ratio=77.3 %, invested=2249.29, recovered=1739.81, asset=Assets/Resources/SO/Building/Medical/M10_면역조절기.asset
+DISMANTLE_EWU id=8876, ratio=76.9 %, invested=4986.88, recovered=3835.47, asset=Assets/Resources/SO/Building/ResearchOverhaul/RF76_백신_연구실.asset
+DISMANTLE_EWU id=8900, ratio=76.9 %, invested=4986.88, recovered=3835.47, asset=Assets/Resources/SO/Building/ResearchOverhaul/RF100_탄도_시험장.asset
+DISMANTLE_EWU id=8901, ratio=76.9 %, invested=4986.88, recovered=3835.47, asset=Assets/Resources/SO/Building/ResearchOverhaul/RF101_흑강_주조_보조로.asset
+DISMANTLE_EWU id=8898, ratio=76.5 %, invested=5014.88, recovered=3835.47, asset=Assets/Resources/SO/Building/ResearchOverhaul/RF98_보안_거래_금고.asset
+DISMANTLE_EWU id=9207, ratio=76.3 %, invested=14504.13, recovered=11068.89, asset=Assets/Resources/SO/V20/Milestones/Landmarks/building_landmark_temporal-sanctum.asset
+DISMANTLE_EWU id=8868, ratio=76.3 %, invested=7034.65, recovered=5365.56, asset=Assets/Resources/SO/Building/ResearchOverhaul/RF68_장기_재생_수술실.asset
+DISMANTLE_EWU id=8869, ratio=76.3 %, invested=7034.65, recovered=5365.56, asset=Assets/Resources/SO/Building/ResearchOverhaul/RF69_회춘_수혈실.asset
+DISMANTLE_EWU id=8870, ratio=76.3 %, invested=7034.65, recovered=5365.56, asset=Assets/Resources/SO/Building/ResearchOverhaul/RF70_룬_동면실.asset
+DISMANTLE_EWU id=8871, ratio=76.3 %, invested=7034.65, recovered=5365.56, asset=Assets/Resources/SO/Building/ResearchOverhaul/RF71_전신_재생조.asset
+DISMANTLE_EWU id=8872, ratio=76.3 %, invested=7034.65, recovered=5365.56, asset=Assets/Resources/SO/Building/ResearchOverhaul/RF72_시간_고정실.asset
+DISMANTLE_EWU id=8888, ratio=75.8 %, invested=5058.88, recovered=3835.47, asset=Assets/Resources/SO/Building/ResearchOverhaul/RF88_기후_지도실.asset
+
+failures=122
+FAIL Guest request 'guest-request:allergen-banquet' reward 310 must equal premium-service target 256.
+FAIL Guest request 'guest-request:allergen-banquet' margin 38.1 % is outside 20 %..35 %.
+FAIL Guest request 'guest-request:coronation-feast' reward 134 must equal premium-service target 144.
+FAIL Guest request 'guest-request:coronation-feast' margin 19.4 % is outside 20 %..35 %.
+FAIL Guest request 'guest-request:emergency-surgery' reward 224 must equal premium-service target 168.
+FAIL Guest request 'guest-request:emergency-surgery' margin 43.8 % is outside 20 %..35 %.
+FAIL Guest request 'guest-request:flood-refuge' reward 400 must equal premium-service target 347.
+FAIL Guest request 'guest-request:memorial-performance' reward 214 must equal premium-service target 80.
+FAIL Guest request 'guest-request:memorial-performance' margin 72.0 % is outside 20 %..35 %.
+FAIL Guest request 'guest-request:plague-screening' reward 104 must equal premium-service target 96.
+FAIL Guest request 'guest-request:winter-fuel-auction' reward 96 must equal premium-service target 80.
+FAIL Guest request 'guest-request:winter-fuel-auction' margin 37.5 % is outside 20 %..35 %.
+FAIL Market item 'ammo:arrow-bone' EWU recovery 24.7 % is outside 50 %..70 %.
+FAIL Market item 'ammo:arrow-iron' EWU recovery 26.7 % is outside 50 %..70 %.
+FAIL Market item 'ammo:arrow-steel' EWU recovery 24.5 % is outside 50 %..70 %.
+FAIL Market item 'ammo:bolt-bone' EWU recovery 23.6 % is outside 50 %..70 %.
+FAIL Market item 'ammo:bolt-iron' EWU recovery 34.8 % is outside 50 %..70 %.
+FAIL Market item 'ammo:bolt-steel' EWU recovery 29.1 % is outside 50 %..70 %.
+FAIL Market item 'craft:bone-charm' EWU recovery 45.4 % is outside 50 %..70 %.
+FAIL Market item 'craft:candle' EWU recovery 22.5 % is outside 50 %..70 %.
+FAIL Market item 'craft:fang-poison' EWU recovery 31.6 % is outside 50 %..70 %.
+FAIL Market item 'craft:fermented-vinegar' EWU recovery 45.0 % is outside 50 %..70 %.
+FAIL Market item 'craft:gold-ornament' EWU recovery 321.3 % is outside 50 %..70 %.
+FAIL Market item 'craft:resin-balm' EWU recovery 19.8 % is outside 50 %..70 %.
+FAIL Market item 'craft:ritual-reagent' EWU recovery 47.5 % is outside 50 %..70 %.
+FAIL Market item 'craft:soap' EWU recovery 27.3 % is outside 50 %..70 %.
+FAIL Market item 'craft:stone-ornament' EWU recovery 35.9 % is outside 50 %..70 %.
+FAIL Market item 'drug:blood-stimulant' EWU recovery 40.0 % is outside 50 %..70 %.
+FAIL Market item 'drug:dreamleaf-analgesic' EWU recovery 25.9 % is outside 50 %..70 %.
+FAIL Market item 'drug:hallucinogenic-distillate' EWU recovery 32.5 % is outside 50 %..70 %.
+FAIL Market item 'drug:mana-awakener' EWU recovery 47.1 % is outside 50 %..70 %.
+FAIL Market item 'drug:night-wine' EWU recovery 30.7 % is outside 50 %..70 %.
+FAIL Market item 'equipment:cold-work-suit' EWU recovery 102.9 % is outside 50 %..70 %.
+FAIL Market item 'equipment:rune-cold-suit' EWU recovery 232.7 % is outside 50 %..70 %.
+FAIL Market item 'equipment:slime-warming-pad' EWU recovery 72.7 % is outside 50 %..70 %.
+FAIL Market item 'feed:dog-food' EWU recovery 27.1 % is outside 50 %..70 %.
+FAIL Market item 'feed:hay' EWU recovery 21.0 % is outside 50 %..70 %.
+FAIL Market item 'feed:silage' EWU recovery 33.3 % is outside 50 %..70 %.
+FAIL Market item 'food:cheese-mushroom' EWU recovery 49.9 % is outside 50 %..70 %.
+FAIL Market item 'food:egg-pancake' EWU recovery 42.7 % is outside 50 %..70 %.
+FAIL Market item 'food:fermented-pickle' EWU recovery 15.9 % is outside 50 %..70 %.
+FAIL Market item 'food:grain-porridge' EWU recovery 32.1 % is outside 50 %..70 %.
+FAIL Market item 'food:grape-syrup' EWU recovery 48.0 % is outside 50 %..70 %.
+FAIL Market item 'food:jerky' EWU recovery 48.3 % is outside 50 %..70 %.
+FAIL Market item 'food:malt-porridge' EWU recovery 45.0 % is outside 50 %..70 %.
+FAIL Market item 'food:mushroom-soup' EWU recovery 45.3 % is outside 50 %..70 %.
+FAIL Market item 'food:night-spirit' EWU recovery 45.0 % is outside 50 %..70 %.
+FAIL Market item 'food:preserved-vegetable' EWU recovery 24.4 % is outside 50 %..70 %.
+FAIL Market item 'food:roasted-meat' EWU recovery 90.1 % is outside 50 %..70 %.
+FAIL Market item 'food:root-stew' EWU recovery 44.6 % is outside 50 %..70 %.
+FAIL Market item 'food:salted-meat-stew' EWU recovery 70.0 % is outside 50 %..70 %.
+FAIL Market item 'food:twilight-beer' EWU recovery 33.9 % is outside 50 %..70 %.
+FAIL Market item 'food:vegetable-pie' EWU recovery 40.0 % is outside 50 %..70 %.
+FAIL Market item 'husbandry:bedding' EWU recovery 24.3 % is outside 50 %..70 %.
+FAIL Market item 'material:alchemical-solvent' EWU recovery 33.7 % is outside 50 %..70 %.
+FAIL Market item 'material:alcohol' EWU recovery 15.4 % is outside 50 %..70 %.
+FAIL Market item 'material:blacksteel-ingot' EWU recovery 23.3 % is outside 50 %..70 %.
+FAIL Market item 'material:bowstring' EWU recovery 42.8 % is outside 50 %..70 %.
+FAIL Market item 'material:brined-vegetable' EWU recovery 16.7 % is outside 50 %..70 %.
+FAIL Market item 'material:charcoal' EWU recovery 46.7 % is outside 50 %..70 %.
+FAIL Market item 'material:cheese' EWU recovery 26.2 % is outside 50 %..70 %.
+FAIL Market item 'material:cloth' EWU recovery 70.2 % is outside 50 %..70 %.
+FAIL Market item 'material:compost' EWU recovery 17.3 % is outside 50 %..70 %.
+FAIL Market item 'material:curd' EWU recovery 36.0 % is outside 50 %..70 %.
+FAIL Market item 'material:dough' EWU recovery 22.5 % is outside 50 %..70 %.
+FAIL Market item 'material:dreamweave' EWU recovery 125.5 % is outside 50 %..70 %.
+FAIL Market item 'material:fermented-liquor' EWU recovery 36.0 % is outside 50 %..70 %.
+FAIL Market item 'material:flour' EWU recovery 32.6 % is outside 50 %..70 %.
+FAIL Market item 'material:gold-ingot' EWU recovery 191.8 % is outside 50 %..70 %.
+FAIL Market item 'material:grape-juice' EWU recovery 32.7 % is outside 50 %..70 %.
+FAIL Market item 'material:iron-ingot' EWU recovery 28.8 % is outside 50 %..70 %.
+FAIL Market item 'material:leather' EWU recovery 75.8 % is outside 50 %..70 %.
+FAIL Market item 'material:low-fuel' EWU recovery 4.8 % is outside 50 %..70 %.
+FAIL Market item 'material:lumber' EWU recovery 80.0 % is outside 50 %..70 %.
+FAIL Market item 'material:malt' EWU recovery 42.9 % is outside 50 %..70 %.
+FAIL Market item 'material:ration-mixture' EWU recovery 22.5 % is outside 50 %..70 %.
+FAIL Market item 'material:rot-toxin' EWU recovery 45.9 % is outside 50 %..70 %.
+FAIL Market item 'material:salted-meat' EWU recovery 48.0 % is outside 50 %..70 %.
+FAIL Market item 'material:seasoned-filling' EWU recovery 41.5 % is outside 50 %..70 %.
+FAIL Market item 'material:starch' EWU recovery 31.1 % is outside 50 %..70 %.
+FAIL Market item 'material:steel-ingot' EWU recovery 13.2 % is outside 50 %..70 %.
+FAIL Market item 'material:stone-block' EWU recovery 42.3 % is outside 50 %..70 %.
+FAIL Market item 'material:tallow' EWU recovery 43.5 % is outside 50 %..70 %.
+FAIL Market item 'material:washed-vegetable' EWU recovery 26.7 % is outside 50 %..70 %.
+FAIL Market item 'material:young-wine' EWU recovery 31.6 % is outside 50 %..70 %.
+FAIL Market item 'medicine:advanced' EWU recovery 44.9 % is outside 50 %..70 %.
+FAIL Market item 'medicine:anesthetic' EWU recovery 33.6 % is outside 50 %..70 %.
+FAIL Market item 'medicine:antidote' EWU recovery 41.6 % is outside 50 %..70 %.
+FAIL Market item 'medicine:herbal-poultice' EWU recovery 33.6 % is outside 50 %..70 %.
+FAIL Market item 'medicine:standard' EWU recovery 45.1 % is outside 50 %..70 %.
+FAIL Market item 'offense:appraised-valuables' EWU recovery 7.5 % is outside 50 %..70 %.
+FAIL Market item 'resource:blood' EWU recovery 239.9 % is outside 50 %..70 %.
+FAIL Market item 'resource:bloodleaf' EWU recovery 104.3 % is outside 50 %..70 %.
+FAIL Market item 'resource:bone' EWU recovery 103.4 % is outside 50 %..70 %.
+FAIL Market item 'resource:dark-resin' EWU recovery 299.0 % is outside 50 %..70 %.
+FAIL Market item 'resource:dreamleaf' EWU recovery 126.1 % is outside 50 %..70 %.
+FAIL Market item 'resource:egg' EWU recovery 129.1 % is outside 50 %..70 %.
+FAIL Market item 'resource:ember-root' EWU recovery 38.5 % is outside 50 %..70 %.
+FAIL Market item 'resource:fang' EWU recovery 202.2 % is outside 50 %..70 %.
+FAIL Market item 'resource:fat' EWU recovery 137.5 % is outside 50 %..70 %.
+FAIL Market item 'resource:feather' EWU recovery 149.9 % is outside 50 %..70 %.
+FAIL Market item 'resource:gold-ore' EWU recovery 347.1 % is outside 50 %..70 %.
+FAIL Market item 'resource:grass-straw' EWU recovery 49.7 % is outside 50 %..70 %.
+FAIL Market item 'resource:hide' EWU recovery 201.7 % is outside 50 %..70 %.
+FAIL Market item 'resource:horn' EWU recovery 176.0 % is outside 50 %..70 %.
+FAIL Market item 'resource:iron-ore' EWU recovery 77.1 % is outside 50 %..70 %.
+FAIL Market item 'resource:log' EWU recovery 112.1 % is outside 50 %..70 %.
+FAIL Market item 'resource:mana-crystal' EWU recovery 539.9 % is outside 50 %..70 %.
+FAIL Market item 'resource:meat' EWU recovery 190.0 % is outside 50 %..70 %.
+FAIL Market item 'resource:milk' EWU recovery 166.7 % is outside 50 %..70 %.
+FAIL Market item 'resource:moonflower' EWU recovery 86.5 % is outside 50 %..70 %.
+FAIL Market item 'resource:night-grape' EWU recovery 80.0 % is outside 50 %..70 %.
+FAIL Market item 'resource:rune-dust' EWU recovery 262.7 % is outside 50 %..70 %.
+FAIL Market item 'resource:saltstone' EWU recovery 161.5 % is outside 50 %..70 %.
+FAIL Market item 'resource:shade-fiber' EWU recovery 41.4 % is outside 50 %..70 %.
+FAIL Market item 'resource:stone' EWU recovery 32.3 % is outside 50 %..70 %.
+FAIL Market item 'resource:trail-charm' EWU recovery 164.7 % is outside 50 %..70 %.
+FAIL Market item 'resource:twilight-grain' EWU recovery 39.2 % is outside 50 %..70 %.
+FAIL Market item 'resource:wool' EWU recovery 256.3 % is outside 50 %..70 %.
+FAIL Retail sale '햄버거' price 24 does not match EWU-calibrated base price 21 for 'food:meat-pie'.
+FAIL Retail sale '햄버거' ordinary margin 29.2 % is outside 10%..20%.
+FAIL Retail sale '햄버거' premium margin 44.0 % is outside 20%..35%.

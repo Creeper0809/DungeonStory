@@ -62,6 +62,8 @@ public sealed class WorkExecutionContext
         Func<float, bool>,
         IEnumerator> executePersistentWorkAmount;
     private readonly Func<bool> canContinue;
+    private readonly Action<float, float> recordApprovedWork;
+    private readonly Func<bool> trySuspendAtCheckpoint;
 
     public WorkExecutionContext(
         int runId,
@@ -71,13 +73,15 @@ public sealed class WorkExecutionContext
         WorkTypeId workTypeId,
         Func<float, string, float, IEnumerator> executeWorkAmount,
         Func<bool> canContinue,
-        Func<
-            float,
-            float,
-            string,
-            float,
-            Func<float, bool>,
-            IEnumerator> executePersistentWorkAmount = null)
+            Func<
+                float,
+                float,
+                string,
+                float,
+                Func<float, bool>,
+                IEnumerator> executePersistentWorkAmount = null,
+            Action<float, float> recordApprovedWork = null,
+            Func<bool> trySuspendAtCheckpoint = null)
     {
         if (!workTypeId.IsValid)
         {
@@ -101,6 +105,8 @@ public sealed class WorkExecutionContext
         this.canContinue = canContinue
             ?? throw new ArgumentNullException(nameof(canContinue));
         this.executePersistentWorkAmount = executePersistentWorkAmount;
+        this.recordApprovedWork = recordApprovedWork;
+        this.trySuspendAtCheckpoint = trySuspendAtCheckpoint;
     }
 
     public int RunId { get; }
@@ -139,6 +145,31 @@ public sealed class WorkExecutionContext
             extraMultiplier,
             applyDelta ?? throw new ArgumentNullException(nameof(applyDelta)));
     }
+
+    /// <summary>
+    /// Records work accepted by a domain-owned progress loop. Handlers that use
+    /// ExecuteWorkAmount or ExecutePersistentWorkAmount must not call this again.
+    /// </summary>
+    public void RecordApprovedWork(float amount, float remainingWork = -1f)
+    {
+        if (recordApprovedWork == null)
+        {
+            throw new InvalidOperationException(
+                "This work execution context does not support external approved-work accounting.");
+        }
+
+        if (amount <= 0f || float.IsNaN(amount) || float.IsInfinity(amount))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(amount),
+                "Approved work must be finite and greater than zero.");
+        }
+
+        recordApprovedWork(amount, remainingWork);
+    }
+
+    public bool TrySuspendAtCheckpoint() =>
+        trySuspendAtCheckpoint?.Invoke() == true;
 }
 
 public interface IWorkExecutionHandler
@@ -299,14 +330,11 @@ public static class CareerWorkEligibilityRules
         SafeRetireeWorkTypes.Contains(workTypeId);
 }
 
-public abstract class CharacterStatWorkPolicy : IWorkStatPolicy
+public abstract class CharacterContextWorkPolicy : IWorkStatPolicy
 {
     private readonly WorkTypeId[] workTypeIds;
-    private readonly CharacterStatType[] stats;
 
-    protected CharacterStatWorkPolicy(
-        WorkTypeId[] workTypeIds,
-        params CharacterStatType[] stats)
+    protected CharacterContextWorkPolicy(WorkTypeId[] workTypeIds)
     {
         this.workTypeIds = workTypeIds != null && workTypeIds.Length > 0
             ? (WorkTypeId[])workTypeIds.Clone()
@@ -322,74 +350,52 @@ public abstract class CharacterStatWorkPolicy : IWorkStatPolicy
                     nameof(workTypeIds));
             }
         }
-
-        this.stats = stats != null && stats.Length > 0
-            ? (CharacterStatType[])stats.Clone()
-            : throw new ArgumentException("At least one character stat is required.", nameof(stats));
     }
 
     public IReadOnlyCollection<WorkTypeId> WorkTypeIds => workTypeIds;
 
     public virtual float GetWorkSpeedMultiplier(CharacterActor actor, BuildableObject target)
     {
-        if (actor == null)
-        {
-            return 1f;
-        }
-
-        float total = 0f;
-        foreach (CharacterStatType stat in stats)
-        {
-            total += actor.GetCharacterStat(stat);
-        }
-
-        float average = total / stats.Length;
-        return Mathf.Clamp(0.55f + average * 0.09f, 0.45f, 2.5f);
+        // V26: the assigned proficiency profile is the sole worker-growth
+        // authority. Policies may still add facility/context modifiers in
+        // overrides, but must not apply legacy detailed stats a second time.
+        return 1f;
     }
 }
 
-public sealed class ConstructionRepairStatPolicy : CharacterStatWorkPolicy
+public sealed class ConstructionRepairStatPolicy : CharacterContextWorkPolicy
 {
     public ConstructionRepairStatPolicy()
-        : base(
-            new[] { BuiltInWorkTypeIds.Construct, BuiltInWorkTypeIds.Repair },
-            CharacterStatType.Dexterity,
-            CharacterStatType.Strength)
+        : base(new[] { BuiltInWorkTypeIds.Construct, BuiltInWorkTypeIds.Repair })
     {
     }
 }
 
-public sealed class CookingButcherStatPolicy : CharacterStatWorkPolicy
+public sealed class CookingButcherStatPolicy : CharacterContextWorkPolicy
 {
     public CookingButcherStatPolicy()
-        : base(
-            new[] { BuiltInWorkTypeIds.Cook, BuiltInWorkTypeIds.Butcher },
-            CharacterStatType.Dexterity)
+        : base(new[] { BuiltInWorkTypeIds.Cook, BuiltInWorkTypeIds.Butcher })
     {
     }
 }
 
-public sealed class ResearchStatPolicy : CharacterStatWorkPolicy
+public sealed class ResearchStatPolicy : CharacterContextWorkPolicy
 {
     public ResearchStatPolicy()
-        : base(
-            new[] { BuiltInWorkTypeIds.Research },
-            CharacterStatType.Research)
+        : base(new[] { BuiltInWorkTypeIds.Research })
     {
     }
 }
 
-public sealed class CleaningStatPolicy : CharacterStatWorkPolicy
+public sealed class CleaningStatPolicy : CharacterContextWorkPolicy
 {
     public CleaningStatPolicy()
-        : base(
-            new[] { BuiltInWorkTypeIds.Clean },
-            CharacterStatType.Cleaning)
+        : base(new[] { BuiltInWorkTypeIds.Clean })
     {
     }
 }
 
-public sealed class HaulStatPolicy : CharacterStatWorkPolicy
+public sealed class HaulStatPolicy : CharacterContextWorkPolicy
 {
     public HaulStatPolicy()
         : base(
@@ -398,20 +404,15 @@ public sealed class HaulStatPolicy : CharacterStatWorkPolicy
                 BuiltInWorkTypeIds.Haul,
                 BuiltInWorkTypeIds.DrawWater,
                 BuiltInWorkTypeIds.Refuel
-            },
-            CharacterStatType.Strength,
-            CharacterStatType.Endurance)
+            })
     {
     }
 }
 
-public sealed class TreatmentStatPolicy : CharacterStatWorkPolicy
+public sealed class TreatmentStatPolicy : CharacterContextWorkPolicy
 {
     public TreatmentStatPolicy()
-        : base(
-            new[] { BuiltInWorkTypeIds.Treat },
-            CharacterStatType.Medical,
-            CharacterStatType.Dexterity)
+        : base(new[] { BuiltInWorkTypeIds.Treat })
     {
     }
 }
@@ -442,41 +443,19 @@ public sealed class SurgeryStatPolicy : IWorkStatPolicy
         CharacterActor actor,
         BuildableObject target)
     {
-        if (actor == null)
-        {
-            return 1f;
-        }
-
-        if (target != null
-            && surgery.TryGetWorkFor(target, out SurgeryOrder order)
-            && procedures.TryGet(order.procedureId, out SurgicalProcedureSO procedure))
-        {
-            return procedure.OperatorRequirement.GetWorkSpeedMultiplier(
-                actor,
-                procedure.Family);
-        }
-
-        float weightedSkill =
-            actor.GetCharacterStat(CharacterStatType.Medical) * 0.65f
-            + actor.GetCharacterStat(CharacterStatType.Dexterity) * 0.25f
-            + actor.GetCharacterStat(CharacterStatType.Research) * 0.10f;
-        return Mathf.Clamp(0.55f + weightedSkill * 0.09f, 0.45f, 2.5f);
+        return 1f;
     }
 }
 
-public sealed class GuardHuntStatPolicy : CharacterStatWorkPolicy
+public sealed class GuardHuntStatPolicy : CharacterContextWorkPolicy
 {
     public GuardHuntStatPolicy()
-        : base(
-            new[] { BuiltInWorkTypeIds.Guard, BuiltInWorkTypeIds.Hunt },
-            CharacterStatType.Attack,
-            CharacterStatType.Dexterity,
-            CharacterStatType.Strength)
+        : base(new[] { BuiltInWorkTypeIds.Guard, BuiltInWorkTypeIds.Hunt })
     {
     }
 }
 
-public sealed class GatheringStatPolicy : CharacterStatWorkPolicy
+public sealed class GatheringStatPolicy : CharacterContextWorkPolicy
 {
     private readonly IFacilityCapabilityQuery facilities;
 
@@ -489,10 +468,7 @@ public sealed class GatheringStatPolicy : CharacterStatWorkPolicy
                 BuiltInWorkTypeIds.Harvest,
                 BuiltInWorkTypeIds.Logging,
                 BuiltInWorkTypeIds.Quarry
-            },
-            CharacterStatType.Dexterity,
-            CharacterStatType.Strength,
-            CharacterStatType.Endurance)
+            })
     {
         this.facilities = facilities
             ?? throw new ArgumentNullException(nameof(facilities));
@@ -531,15 +507,12 @@ public sealed class GatheringStatPolicy : CharacterStatWorkPolicy
     }
 }
 
-public sealed class AnimalCareStatPolicy : CharacterStatWorkPolicy
+public sealed class AnimalCareStatPolicy : CharacterContextWorkPolicy
 {
     private readonly IFacilityCapabilityQuery facilities;
 
     public AnimalCareStatPolicy(IFacilityCapabilityQuery facilities)
-        : base(
-            new[] { BuiltInWorkTypeIds.AnimalCare },
-            CharacterStatType.Research,
-            CharacterStatType.Dexterity)
+        : base(new[] { BuiltInWorkTypeIds.AnimalCare })
     {
         this.facilities = facilities
             ?? throw new ArgumentNullException(nameof(facilities));
@@ -568,38 +541,26 @@ public sealed class AnimalCareStatPolicy : CharacterStatWorkPolicy
     }
 }
 
-public sealed class GrandProjectStatPolicy : CharacterStatWorkPolicy
+public sealed class GrandProjectStatPolicy : CharacterContextWorkPolicy
 {
     public GrandProjectStatPolicy()
-        : base(
-            new[] { BuiltInWorkTypeIds.GrandProject },
-            CharacterStatType.Research,
-            CharacterStatType.Sales,
-            CharacterStatType.Endurance)
+        : base(new[] { BuiltInWorkTypeIds.GrandProject })
     {
     }
 }
 
-public sealed class ThreatMitigationStatPolicy : CharacterStatWorkPolicy
+public sealed class ThreatMitigationStatPolicy : CharacterContextWorkPolicy
 {
     public ThreatMitigationStatPolicy()
-        : base(
-            new[] { BuiltInWorkTypeIds.ThreatMitigation },
-            CharacterStatType.Research,
-            CharacterStatType.Endurance,
-            CharacterStatType.Dexterity)
+        : base(new[] { BuiltInWorkTypeIds.ThreatMitigation })
     {
     }
 }
 
-public sealed class PlumbingStatPolicy : CharacterStatWorkPolicy
+public sealed class PlumbingStatPolicy : CharacterContextWorkPolicy
 {
     public PlumbingStatPolicy()
-        : base(
-            new[] { BuiltInWorkTypeIds.Plumbing },
-            CharacterStatType.Dexterity,
-            CharacterStatType.Strength,
-            CharacterStatType.Research)
+        : base(new[] { BuiltInWorkTypeIds.Plumbing })
     {
     }
 }
@@ -648,17 +609,25 @@ public sealed class WorkAmountCalculator : IWorkAmountCalculator
     private readonly IWorkStatPolicyRegistry policies;
     private readonly IFacilityEvolutionModifierQuery facilityEvolution;
     private readonly IAutomationInfrastructureQuery automation;
+    private readonly ICharacterPerformanceQuery performance;
+    private readonly CharacterWorkPerformanceContextResolver performanceContext;
 
     public WorkAmountCalculator(
         IWorkStatPolicyRegistry policies,
         IFacilityEvolutionModifierQuery facilityEvolution,
-        IAutomationInfrastructureQuery automation)
+        IAutomationInfrastructureQuery automation,
+        ICharacterPerformanceQuery performance = null,
+        CharacterWorkPerformanceContextResolver performanceContext = null)
     {
         this.policies = policies ?? throw new ArgumentNullException(nameof(policies));
         this.facilityEvolution = facilityEvolution
             ?? throw new ArgumentNullException(nameof(facilityEvolution));
         this.automation = automation
             ?? throw new ArgumentNullException(nameof(automation));
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
+        this.performanceContext = performanceContext
+            ?? throw new ArgumentNullException(nameof(performanceContext));
     }
 
     public float CalculateWorkPerSecond(
@@ -673,9 +642,39 @@ public sealed class WorkAmountCalculator : IWorkAmountCalculator
         }
 
         float statMultiplier = policies.GetStatMultiplier(definition.WorkTypeId, actor, target);
-        float workSpeed = actor != null
-            ? Mathf.Max(0.1f, actor.GetWorkSpeedMultiplier(definition.WorkTypeId))
-            : 1f;
+        float workSpeed = 1f;
+        if (actor != null)
+        {
+            if (performance == null || performanceContext == null)
+                throw new InvalidOperationException(
+                    "Work performance query and context resolver are required.");
+            if (!performanceContext.TryResolve(
+                    actor,
+                    target,
+                    definition.WorkTypeId,
+                    out ProficiencyWorkProfile profile,
+                    out string failureReason))
+                throw new InvalidOperationException(failureReason);
+            CharacterPerformanceSnapshot snapshot = performance.EvaluateWork(
+                actor,
+                definition.WorkTypeId,
+                CharacterPerformanceResultChannel.Speed,
+                performanceContext.BuildEvaluationContext(
+                    profile,
+                    new GameplayEffectContext(new[] { definition.WorkTypeId.Value }),
+                    actor.GetWorkContextMultiplier(definition.WorkTypeId)));
+            if (!snapshot.IsApplicable)
+                throw new InvalidOperationException(
+                    snapshot.Failure?.Message
+                    ?? $"Work performance '{definition.WorkTypeId.Value}' is unavailable.");
+            workSpeed = snapshot.Value;
+            CharacterPerformanceExecutionTrace.Record(
+                snapshot.FormulaId,
+                "WorkAmountCalculator.CalculateWorkPerSecond",
+                1f,
+                workSpeed,
+                definition.WorkTypeId.Value);
+        }
         float environment = 1f / Mathf.Max(0.1f, environmentDurationMultiplier);
         float evolution = facilityEvolution.GetWorkSpeedMultiplier(
             target,

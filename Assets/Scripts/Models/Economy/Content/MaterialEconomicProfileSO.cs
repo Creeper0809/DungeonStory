@@ -120,10 +120,7 @@ public sealed class ResourceMaterialEconomicProfileCatalog :
 
     private static DerivedMaterialProfile Derive(ItemDefinitionSO item)
     {
-        float intrinsic = Mathf.Clamp(
-            Mathf.Log(Mathf.Max(1f, item.UnitPrice + 1f), 2f) / 3f,
-            0f,
-            5f);
+        float intrinsic = ResolveSemanticIntrinsicValue(item);
         float handling = Mathf.Clamp(
             0.25f + Mathf.Sqrt(item.UnitWeight) * 0.22f
             + (item.MaxStack == 1 ? 0.35f : 0f),
@@ -141,6 +138,34 @@ public sealed class ResourceMaterialEconomicProfileCatalog :
                 2.20f),
             salvage,
             consumable);
+    }
+
+    private static float ResolveSemanticIntrinsicValue(ItemDefinitionSO item)
+    {
+        if (!(item is ResourceItemDefinitionSO resource))
+            return item.MaxStack == 1 ? 1.15f : 0.85f;
+
+        float value = resource.Kind switch
+        {
+            ResourceItemKind.Waste => 0.05f,
+            ResourceItemKind.Raw => 0.50f,
+            ResourceItemKind.AnimalProduct => 0.65f,
+            ResourceItemKind.Food => 0.55f,
+            ResourceItemKind.Intermediate => 0.90f,
+            ResourceItemKind.Ammunition => 1.00f,
+            ResourceItemKind.FinishedGood => 1.10f,
+            ResourceItemKind.Substance => 1.20f,
+            ResourceItemKind.Medicine => 1.40f,
+            _ => 0.80f
+        };
+        ResourceIngredientTag tags = resource.IngredientTags;
+        if ((tags & ResourceIngredientTag.Arcane) != 0)
+            value += 0.50f;
+        if ((tags & ResourceIngredientTag.Forbidden) != 0)
+            value += 0.25f;
+        if ((tags & ResourceIngredientTag.Mineral) != 0)
+            value += 0.15f;
+        return Mathf.Clamp(value, 0f, 5f);
     }
 
     private readonly struct DerivedMaterialProfile

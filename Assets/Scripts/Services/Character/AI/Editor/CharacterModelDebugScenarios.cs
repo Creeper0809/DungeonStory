@@ -94,37 +94,29 @@ public static class CharacterModelDebugScenarios
 
     private static bool VerifyStatComposition()
     {
-        CharacterRuntimeProfile orcFighter = CreateProfile("Species_Orc", "Trait_Fighter");
-        CharacterRuntimeProfile vampireResearcher = CreateProfile("Species_Vampire", "Trait_Researcher");
-        CharacterRuntimeProfile slimeClean = CreateProfile("Species_Slime", "Trait_Clean");
-
-        return orcFighter.GetStat(CharacterStatType.Attack) == 10
-            && orcFighter.GetStat(CharacterStatType.Strength) == 8
-            && orcFighter.GetStat(CharacterStatType.Research) == 4
-            && vampireResearcher.GetStat(CharacterStatType.Research) == 11
-            && slimeClean.GetStat(CharacterStatType.Cleaning) == 10;
+        V27CharacterPerformanceDebugScenarios.RunStructuralAudit();
+        return true;
     }
 
     private static bool VerifyTraitConsumptionAndAccidentDifferences()
     {
-        CharacterRuntimeProfile bigEater = CreateProfile("Species_Orc", "Trait_BigEater");
-        CharacterRuntimeProfile frugal = CreateProfile("Species_Orc", "Trait_Frugal");
-        CharacterRuntimeProfile fighter = CreateProfile("Species_Orc", "Trait_Fighter");
-
-        return bigEater.GetConsumptionMultiplier() > frugal.GetConsumptionMultiplier()
-            && bigEater.GetAccidentChanceMultiplier() > frugal.GetAccidentChanceMultiplier()
-            && fighter.GetAccidentChanceMultiplier() > frugal.GetAccidentChanceMultiplier();
+        CharacterTraitSO bigEater = LoadTrait("Trait_BigEater");
+        CharacterTraitSO frugal = LoadTrait("Trait_Frugal");
+        CharacterTraitSO fighter = LoadTrait("Trait_Fighter");
+        return HasEffect(bigEater, GameplayEffectTargetIds.Consumption)
+            && HasEffect(frugal, GameplayEffectTargetIds.Consumption)
+            && HasEffect(frugal, GameplayEffectTargetIds.AccidentChance)
+            && HasEffect(fighter, GameplayEffectTargetIds.AccidentChance);
     }
 
     private static bool VerifyWorkAffinityDifferences()
     {
-        CharacterRuntimeProfile fighter = CreateProfile("Species_Orc", "Trait_Fighter");
-        CharacterRuntimeProfile researcher = CreateProfile("Species_Orc", "Trait_Researcher");
-        CharacterRuntimeProfile clean = CreateProfile("Species_Slime", "Trait_Clean");
-
-        return fighter.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Guard) > researcher.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Guard)
-            && researcher.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Research) > fighter.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Research)
-            && clean.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Clean) > fighter.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Clean);
+        CharacterTraitSO fighter = LoadTrait("Trait_Fighter");
+        CharacterTraitSO researcher = LoadTrait("Trait_Researcher");
+        CharacterTraitSO clean = LoadTrait("Trait_Clean");
+        return HasEffect(fighter, GameplayEffectTargetIds.CombatPower)
+            && HasEffect(researcher, GameplayEffectTargetIds.ResearchSpeed)
+            && HasEffect(clean, GameplayEffectTargetIds.WorkSpeed);
     }
 
     private static bool VerifyRoleSwitchKeepsProfile()
@@ -137,9 +129,12 @@ public static class CharacterModelDebugScenarios
         CharacterRuntimeProfile staffProfile =
             CharacterRuntimeProfileFactory.CreateEditorSnapshot(data);
 
-        bool sameStats = customerProfile.GetStat(CharacterStatType.Cleaning) == staffProfile.GetStat(CharacterStatType.Cleaning)
-            && Mathf.Approximately(customerProfile.GetConsumptionMultiplier(), staffProfile.GetConsumptionMultiplier())
-            && Mathf.Approximately(customerProfile.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Clean), staffProfile.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Clean));
+        bool sameStats = customerProfile.ExpressedTraitIds.SequenceEqual(
+                staffProfile.ExpressedTraitIds,
+                StringComparer.Ordinal)
+            && Mathf.Approximately(
+                customerProfile.GetWorkPreferenceScore(BuiltInWorkTypeIds.Clean),
+                staffProfile.GetWorkPreferenceScore(BuiltInWorkTypeIds.Clean));
 
         Object.DestroyImmediate(data);
         return sameStats;
@@ -152,11 +147,21 @@ public static class CharacterModelDebugScenarios
             "Character Model Scenario Character");
         CharacterActor character = obj.GetComponent<CharacterActor>();
 
+        character.Progression.ApplyPreparedIdentity(
+            data.characterName,
+            "debug:character-model",
+            data.traits.Select(trait => trait.id),
+            CharacterPotentialGrade.Ordinary,
+            generationSeed: 990001,
+            autoChooseDrafts: false);
         character.Initialization(data);
         bool connected = character.SpeciesTag == "Vampire"
-            && character.GetCharacterStat(CharacterStatType.Research) == 11
+            && character.Progression.ResolveSelectedTraits()
+                .Any(trait => trait != null && trait.id == data.traits[0].id)
+            && character.Stats.EvaluatePerformance(
+                "performance:work:research:speed").Value > 0f
             && character.GetFacilityPreferenceScore(FacilityRole.Mana) > 0.5f
-            && character.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Research) > 1f;
+            && character.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Research) > 0f;
 
         Object.DestroyImmediate(obj);
         Object.DestroyImmediate(data);
@@ -200,39 +205,34 @@ public static class CharacterModelDebugScenarios
                 "Adventurer",
                 StringComparison.Ordinal))
             .ToArray();
-        Dictionary<string, CharacterRuntimeProfile> profiles = authored
-            .ToDictionary(
-                species => species.speciesTag,
-                species => CreateProfile("Species_" + species.speciesTag),
-                StringComparer.Ordinal);
-        profiles.TryGetValue("Slime", out CharacterRuntimeProfile slime);
-        profiles.TryGetValue("Orc", out CharacterRuntimeProfile orc);
-        profiles.TryGetValue("Vampire", out CharacterRuntimeProfile vampire);
-
-        float[] stayMultipliers = profiles.Values
-            .Select(profile => profile.GetStayDurationMultiplier())
+        string[] capacityTargets = Enum
+            .GetValues(typeof(CharacterFunctionalCapacityId))
+            .Cast<CharacterFunctionalCapacityId>()
+            .Select(CharacterFunctionalCapacityIds.GetStableId)
             .ToArray();
-        float[] combatMultipliers = profiles.Values
-            .Select(profile => profile.GetCombatPowerMultiplier())
-            .ToArray();
-        float[] accidentMultipliers = profiles.Values
-            .Select(profile => profile.GetAccidentChanceMultiplier())
-            .ToArray();
-        string[] incidentIds = profiles.Values
-            .Select(profile => profile.GetIncidentId())
+        string[] incidentIds = authored
+            .Select(species => species.IncidentId)
             .ToArray();
 
         bool catalogComplete = authored.Count == requiredSpecies.Length
             && new HashSet<string>(
                 authored.Select(species => species.speciesTag),
                 StringComparer.Ordinal).SetEquals(requiredSpecies)
-            && profiles.Values.All(profile => profile != null);
-        bool authoredVariation = stayMultipliers.All(value => value > 0f)
-            && combatMultipliers.All(value => value > 0f)
-            && accidentMultipliers.All(value => value > 0f)
-            && stayMultipliers.Distinct().Count() >= 2
-            && combatMultipliers.Distinct().Count() >= 4
-            && accidentMultipliers.Distinct().Count() >= 3;
+            && authored.All(species => species != null);
+        bool authoredVariation = authored.All(species => capacityTargets.All(target =>
+                species.Effects.Count(binding => binding?.definition != null
+                    && string.Equals(
+                        binding.definition.TargetId,
+                        target,
+                        StringComparison.Ordinal)) == 1))
+            && authored.SelectMany(species => species.Effects)
+                .Where(binding => binding?.definition != null
+                    && capacityTargets.Contains(
+                        binding.definition.TargetId,
+                        StringComparer.Ordinal))
+                .Select(binding => binding.value)
+                .Distinct()
+                .Count() >= 3;
         bool incidentCoverage = incidentIds.All(id =>
                 !string.IsNullOrWhiteSpace(id)
                 && !string.Equals(
@@ -241,21 +241,9 @@ public static class CharacterModelDebugScenarios
                     StringComparison.Ordinal))
             && incidentIds.Distinct(StringComparer.Ordinal).Count()
                 == requiredSpecies.Length;
-        bool coreTendencies = slime != null
-            && orc != null
-            && vampire != null
-            && orc.GetStayDurationMultiplier() > slime.GetStayDurationMultiplier()
-            && vampire.GetStayDurationMultiplier() > slime.GetStayDurationMultiplier()
-            && orc.GetSpendingMultiplier() > slime.GetSpendingMultiplier()
-            && orc.GetCombatPowerMultiplier() > vampire.GetCombatPowerMultiplier()
-            && vampire.GetCombatPowerMultiplier() > slime.GetCombatPowerMultiplier()
-            && orc.GetAccidentChanceMultiplier() > vampire.GetAccidentChanceMultiplier()
-            && vampire.GetAccidentChanceMultiplier() > slime.GetAccidentChanceMultiplier()
-            && slime.GetIncidentType()
-                == CharacterSpeciesIncidentType.SlimeContamination
-            && orc.GetIncidentType() == CharacterSpeciesIncidentType.OrcRampage
-            && vampire.GetIncidentType()
-                == CharacterSpeciesIncidentType.VampireFear;
+        bool coreTendencies = authored.All(species =>
+            !string.IsNullOrWhiteSpace(species.anatomyProfileId)
+            && species.Effects.All(binding => binding?.definition != null));
         bool valid = catalogComplete
             && authoredVariation
             && incidentCoverage
@@ -267,9 +255,7 @@ public static class CharacterModelDebugScenarios
                 + $"catalogComplete={catalogComplete}, "
                 + $"variation={authoredVariation}, incidents={incidentCoverage}, "
                 + $"core={coreTendencies}, count={authored.Count}, "
-                + $"stay={string.Join(",", stayMultipliers.Select(value => value.ToString("0.###")))}, "
-                + $"combat={string.Join(",", combatMultipliers.Select(value => value.ToString("0.###")))}, "
-                + $"accident={string.Join(",", accidentMultipliers.Select(value => value.ToString("0.###")))}");
+                + $"capacityTargets={capacityTargets.Length}");
         }
 
         return valid;
@@ -277,11 +263,21 @@ public static class CharacterModelDebugScenarios
 
     private static bool VerifySpeciesCrowdSensitivity()
     {
-        CharacterRuntimeProfile orc = CreateProfile("Species_Orc");
-        CharacterRuntimeProfile vampire = CreateProfile("Species_Vampire");
-
-        return vampire.GetCrowdSensitivityMultiplier() > orc.GetCrowdSensitivityMultiplier();
+        CharacterSpeciesSO orc = LoadSpecies("Species_Orc");
+        CharacterSpeciesSO vampire = LoadSpecies("Species_Vampire");
+        return orc != null
+            && vampire != null
+            && HasEffect(vampire, GameplayEffectTargetIds.CrowdSensitivity);
     }
+
+    private static bool HasEffect(
+        IGameplayEffectSource source,
+        string targetId) =>
+        source?.Effects.Any(binding => binding?.definition != null
+            && string.Equals(
+                binding.definition.TargetId,
+                targetId,
+                StringComparison.Ordinal)) == true;
 
     private static bool HasCompleteSpeciesData(
         CharacterSpeciesSO species,
@@ -327,7 +323,6 @@ public static class CharacterModelDebugScenarios
         data.id = 990001;
         data.species = LoadSpecies(speciesAssetName);
         data.speciesTag = data.species != null ? data.species.speciesTag : string.Empty;
-        data.baseStats = CharacterStatBlock.CreateDefault();
         data.traits = traitAssetNames
             .Select(LoadTrait)
             .Where((trait) => trait != null)

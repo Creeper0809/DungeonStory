@@ -104,8 +104,8 @@ public static class V20CampaignDebugScenarios
         CharacterSkillSystemSettingsSO settings = content
             .GetAll<CharacterSkillSystemSettingsSO>()
             .Single();
-        Require(traits.Length == 56,
-            $"Expected 56 general traits, found {traits.Length}.");
+        Require(traits.Length == 100,
+            $"Expected 100 general traits, found {traits.Length}.");
 
         for (int index = 0; index < 10_000; index++)
         {
@@ -113,12 +113,15 @@ public static class V20CampaignDebugScenarios
             IReadOnlyList<int> first = CharacterTraitSelectionRules.Select(
                 traits,
                 settings.traitConflicts,
-                new DeterministicRandomSequence(seed));
+                new DeterministicRandomSequence(seed),
+                "Slime");
             IReadOnlyList<int> second = CharacterTraitSelectionRules.Select(
                 traits.Reverse(),
                 settings.traitConflicts,
-                new DeterministicRandomSequence(seed));
-            Require(first.Count == 3 && first.SequenceEqual(second),
+                new DeterministicRandomSequence(seed),
+                "Slime");
+            Require(first.Count >= 1 && first.Count <= 4
+                    && first.SequenceEqual(second),
                 $"General trait selection lost deterministic ordering at sample {index}.");
             Require(!settings.traitConflicts.Any(rule => rule != null
                     && first.Contains(rule.firstTraitId)

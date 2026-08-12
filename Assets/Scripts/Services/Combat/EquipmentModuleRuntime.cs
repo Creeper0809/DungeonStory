@@ -167,9 +167,7 @@ public sealed class EquipmentModuleRuntime
                 },
                 out _))
         {
-            failure = new DomainFailure(
-                FailureCode.EquipmentModuleMissing,
-                MaterialTestCouponItemId);
+            failure = new DomainFailure(FailureCode.EquipmentModuleMissing);
             return false;
         }
 
@@ -224,12 +222,7 @@ public sealed class EquipmentModuleRuntime
             destinationId,
             DurableToolItemRules.RuneIdentificationLens,
             lens != null);
-        string missing = !hasCoupon
-            ? MaterialTestCouponItemId
-            : gauge == null
-                ? DurableToolItemRules.InspectionGauge
-                : DurableToolItemRules.RuneIdentificationLens;
-        failure = new DomainFailure(FailureCode.EquipmentModuleMissing, missing);
+        failure = new DomainFailure(FailureCode.EquipmentModuleMissing);
         return false;
     }
 
@@ -680,7 +673,7 @@ public sealed class EquipmentModuleRuntime
         return physicalItems.GetAllStacks().Any(stack => stack != null
             && stack.Quantity > 0
             && !stack.Forbidden
-            && !stack.IsReserved
+            && stack.AvailableQuantity > 0
             && stack.State == WorldItemStackState.FacilityBuffer
             && string.Equals(stack.StackId, stackId, StringComparison.Ordinal)
             && string.Equals(

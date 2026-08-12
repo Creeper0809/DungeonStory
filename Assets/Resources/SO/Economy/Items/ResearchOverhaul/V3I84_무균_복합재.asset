@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uBB34\uADE0 \uBCF5\uD569\uC7AC"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uBB34\uADE0 \uBCF5\uD569\uC7AC."
   stockCategory: 1
-  unitWeight: 2.74
+  unitWeight: 1.2
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 178
+  unitPrice: 21
   features:
-  - rid: 7737211838074979261
-  - rid: 7737211838074979262
+  - rid: 7737211905655964558
+  - rid: 7737211905655964559
+  - rid: 7737211905660420392
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074979261
+    - rid: 7737211905655964558
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:regenerative-culture
-    - rid: 7737211838074979262
+    - rid: 7737211905655964559
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 1152
         sharedIntermediate: 1
+    - rid: 7737211905660420392
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.59316283

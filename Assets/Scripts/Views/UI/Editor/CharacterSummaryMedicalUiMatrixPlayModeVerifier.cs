@@ -50,6 +50,8 @@ public static class CharacterSummaryMedicalUiMatrixPlayModeVerifier
         {
             File.Delete(GetCapturePath(resolution, "summary-health"));
             File.Delete(GetCapturePath(resolution, "summary-population"));
+            File.Delete(GetCapturePath(resolution, "summary-proficiencies"));
+            File.Delete(GetCapturePath(resolution, "mentorship-modal"));
             File.Delete(GetCapturePath(resolution, "surgery-modal"));
         }
 
@@ -273,6 +275,7 @@ public sealed class CharacterSummaryMedicalUiMatrixRunner : MonoBehaviour
             generated,
             "Content/HealthContent/HealthCommandRow/AutomaticSurgery");
         Button summaryClose = FindButton(generated, "Header/CloseButton");
+        Button detailedStats = FindButton(generated, "Header/DetailedStatsButton");
 
         Check(summary.UI != null && summary.UI.activeInHierarchy,
             "SUMMARY_OPEN_" + suffix,
@@ -287,6 +290,7 @@ public sealed class CharacterSummaryMedicalUiMatrixRunner : MonoBehaviour
             && populationTab != null
             && surgeryCommand != null
             && automaticSurgery != null
+            && detailedStats != null
             && summaryClose != null,
             "SUMMARY_MEDICAL_POINTER_TARGETS_" + suffix,
             $"health={healthTab != null}; population={populationTab != null}; "
@@ -427,6 +431,145 @@ public sealed class CharacterSummaryMedicalUiMatrixRunner : MonoBehaviour
             resolution,
             "SUMMARY_POPULATION_CAPTURE_" + suffix);
 
+        bool detailedClicked = ClickThroughEventSystem(
+            detailedStats,
+            "DETAILED_STATS_POINTER_" + suffix);
+        yield return null;
+        Canvas.ForceUpdateCanvases();
+        Transform detailedOverlay = summary.UI != null
+            ? summary.UI.transform.Find("DetailedOverlay")
+            : null;
+        Button proficiencyTab = FindButton(
+            detailedOverlay,
+            "DetailedTabs/DetailedTab_Proficiencies");
+        Check(detailedClicked
+            && detailedOverlay != null
+            && detailedOverlay.gameObject.activeInHierarchy
+            && proficiencyTab != null,
+            "DETAILED_PROFICIENCY_TARGETS_" + suffix,
+            $"overlay={detailedOverlay?.gameObject.activeInHierarchy}; "
+            + $"tab={proficiencyTab != null}; "
+            + $"raycast={proficiencyTab?.targetGraphic?.raycastTarget}; "
+            + $"enabled={proficiencyTab?.targetGraphic?.enabled}; "
+            + $"canvas={proficiencyTab?.targetGraphic?.canvas?.name ?? "none"}; "
+            + $"depth={proficiencyTab?.targetGraphic?.depth}; "
+            + $"cull={proficiencyTab?.targetGraphic?.canvasRenderer?.cull}; "
+            + $"overlaySibling={detailedOverlay?.GetSiblingIndex()}/"
+            + $"{detailedOverlay?.parent?.childCount}");
+
+        bool proficiencyClicked = ClickThroughEventSystem(
+            proficiencyTab,
+            "PROFICIENCY_TAB_POINTER_" + suffix);
+        yield return null;
+        Canvas.ForceUpdateCanvases();
+        yield return PlayModeVerificationFrameWait.CaptureReady();
+        Button mentorshipManage = FindButton(
+            detailedOverlay,
+            "MentorshipManageButton");
+        TMP_Text detailedText = detailedOverlay != null
+            ? detailedOverlay.Find("DetailedViewport/DetailedStatsText")
+                ?.GetComponent<TMP_Text>()
+            : null;
+        Check(proficiencyClicked
+            && mentorshipManage != null
+            && mentorshipManage.gameObject.activeInHierarchy
+            && detailedText != null
+            && detailedText.text.Contains("XP", StringComparison.Ordinal),
+            "PROFICIENCY_TAB_SELECTED_" + suffix,
+            $"manage={mentorshipManage?.gameObject.activeInHierarchy}; "
+            + $"containsXp={detailedText?.text.Contains("XP", StringComparison.Ordinal)}");
+        Check(AreInsideScreen(proficiencyTab, mentorshipManage)
+            && IsInsideScreen(detailedText?.rectTransform),
+            "PROFICIENCY_BOUNDS_" + suffix,
+            $"tab={DescribeRect(proficiencyTab?.transform as RectTransform)}; "
+            + $"manage={DescribeRect(mentorshipManage?.transform as RectTransform)}");
+        Check(ButtonLabelsFit(proficiencyTab, mentorshipManage),
+            "PROFICIENCY_LABELS_FIT_" + suffix,
+            "proficiency and mentorship labels do not overflow");
+        yield return Capture(
+            CharacterSummaryMedicalUiMatrixPlayModeVerifier.GetCapturePath(
+                resolution,
+                "summary-proficiencies"),
+            resolution,
+            "SUMMARY_PROFICIENCIES_CAPTURE_" + suffix);
+
+        bool mentorshipClicked = ClickThroughEventSystem(
+            mentorshipManage,
+            "MENTORSHIP_MANAGE_POINTER_" + suffix);
+        yield return null;
+        Canvas.ForceUpdateCanvases();
+        yield return PlayModeVerificationFrameWait.CaptureReady();
+        Transform mentorshipPanel = detailedOverlay?.Find("MentorshipPanel");
+        Button mentorCycle = FindButton(mentorshipPanel, "MentorCycle");
+        Button studentCycle = FindButton(mentorshipPanel, "StudentCycle");
+        Button proficiencyCycle = FindButton(mentorshipPanel, "ProficiencyCycle");
+        Button assignMentorship = FindButton(mentorshipPanel, "Assign");
+        Button targetStudent = FindButton(mentorshipPanel, "TargetStudent");
+        Button clearMentorship = FindButton(mentorshipPanel, "Clear");
+        Button closeMentorship = FindButton(mentorshipPanel, "Close");
+        TMP_Text mentorshipStatus = mentorshipPanel != null
+            ? mentorshipPanel.Find("Status")?.GetComponent<TMP_Text>()
+            : null;
+        Check(mentorshipClicked
+            && mentorshipPanel != null
+            && mentorshipPanel.gameObject.activeInHierarchy
+            && mentorCycle != null
+            && studentCycle != null
+            && proficiencyCycle != null
+            && assignMentorship != null
+            && targetStudent != null
+            && clearMentorship != null
+            && closeMentorship != null
+            && !string.IsNullOrWhiteSpace(mentorshipStatus?.text),
+            "MENTORSHIP_MODAL_TARGETS_" + suffix,
+            $"panel={mentorshipPanel?.gameObject.activeInHierarchy}; "
+            + $"status={mentorshipStatus?.text}");
+        Check(AreInsideScreen(
+                mentorCycle,
+                studentCycle,
+                proficiencyCycle,
+                assignMentorship,
+                targetStudent,
+                clearMentorship,
+                closeMentorship)
+            && IsInsideScreen(mentorshipPanel as RectTransform),
+            "MENTORSHIP_MODAL_BOUNDS_" + suffix,
+            DescribeRect(mentorshipPanel as RectTransform));
+        Check(ButtonLabelsFit(
+                mentorCycle,
+                studentCycle,
+                proficiencyCycle,
+                assignMentorship,
+                targetStudent,
+                clearMentorship,
+                closeMentorship),
+            "MENTORSHIP_MODAL_LABELS_FIT_" + suffix,
+            "mentorship command labels do not overflow");
+        yield return Capture(
+            CharacterSummaryMedicalUiMatrixPlayModeVerifier.GetCapturePath(
+                resolution,
+                "mentorship-modal"),
+            resolution,
+            "MENTORSHIP_MODAL_CAPTURE_" + suffix);
+
+        ClickThroughEventSystem(
+            closeMentorship,
+            "MENTORSHIP_CLOSE_POINTER_" + suffix);
+        yield return null;
+
+        Button detailedClose = FindButton(
+            detailedOverlay,
+            "DetailedHeader/DetailedClose");
+        bool detailedClosed = ClickThroughEventSystem(
+            detailedClose,
+            "DETAILED_CLOSE_POINTER_" + suffix);
+        yield return null;
+        Check(detailedClosed
+            && detailedOverlay != null
+            && !detailedOverlay.gameObject.activeSelf,
+            "DETAILED_CLOSED_" + suffix,
+            $"active={detailedOverlay?.gameObject.activeSelf}");
+
         bool healthRestored = ClickThroughEventSystem(
             healthTab,
             "HEALTH_TAB_RESTORE_POINTER_" + suffix);
@@ -540,8 +683,11 @@ public sealed class CharacterSummaryMedicalUiMatrixRunner : MonoBehaviour
             .Select(result => ExecuteEvents.GetEventHandler<IPointerClickHandler>(
                 result.gameObject))
             .FirstOrDefault(handler => handler != null);
-        bool targetIsTopHandler = hit.gameObject != null
-            && topHandler == button.gameObject
+        bool routedByDetailedOverlay = topHandler != null
+            && topHandler.GetComponent<CharacterDetailedOverlayInputRouter>() != null
+            && button.transform.IsChildOf(topHandler.transform);
+        bool targetIsTopHandler = (hit.gameObject != null || routedByDetailedOverlay)
+            && (topHandler == button.gameObject || routedByDetailedOverlay)
             && RectTransformUtility.RectangleContainsScreenPoint(
                 rect,
                 point,
@@ -549,13 +695,17 @@ public sealed class CharacterSummaryMedicalUiMatrixRunner : MonoBehaviour
         if (!Check(targetIsTopHandler,
                 key + "_HIT_TEST",
                 $"point={point}; hits={hits.Count}; "
+                + $"objects={string.Join(",", hits.Select(value => value.gameObject?.name ?? "null"))}; "
                 + $"top={topHandler?.name ?? "none"}; expected={button.name}"))
         {
             return false;
         }
 
+        GameObject dispatchTarget = routedByDetailedOverlay
+            ? topHandler
+            : hit.gameObject;
         bool dispatched = PlayModeVerificationFrameWait.DispatchPointerClick(
-            hit.gameObject,
+            dispatchTarget,
             point);
         return Check(dispatched,
             key + "_DISPATCH",

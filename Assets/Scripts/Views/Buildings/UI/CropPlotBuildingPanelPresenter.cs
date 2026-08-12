@@ -21,18 +21,22 @@ public sealed class CropPlotBuildingPanelPresenter :
     private readonly ICropPlotRuntime cropPlots;
     private readonly IResourceEconomyContentCatalog catalog;
     private readonly IItemDefinitionCatalog itemDefinitions;
+    private readonly ICharacterWorldQuery characterWorld;
     private readonly Dictionary<string, string> feedbackByPlot =
         new Dictionary<string, string>(StringComparer.Ordinal);
 
     public CropPlotBuildingPanelPresenter(
         ICropPlotRuntime cropPlots,
         IResourceEconomyContentCatalog catalog,
-        IItemDefinitionCatalog itemDefinitions)
+        IItemDefinitionCatalog itemDefinitions,
+        ICharacterWorldQuery characterWorld)
     {
         this.cropPlots = cropPlots ?? throw new ArgumentNullException(nameof(cropPlots));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.itemDefinitions = itemDefinitions
             ?? throw new ArgumentNullException(nameof(itemDefinitions));
+        this.characterWorld = characterWorld
+            ?? throw new ArgumentNullException(nameof(characterWorld));
     }
 
     public IReadOnlyList<GameObject> Render(
@@ -107,6 +111,15 @@ public sealed class CropPlotBuildingPanelPresenter :
                 created);
         }
 
+        RenderGoldenHarvestControls(
+            parent,
+            building,
+            plot,
+            font,
+            showFeedback,
+            refresh,
+            created);
+
         AddText(
             parent,
             "재배 작물",
@@ -152,6 +165,72 @@ public sealed class CropPlotBuildingPanelPresenter :
         }
 
         return created;
+    }
+
+    private void RenderGoldenHarvestControls(
+        Transform parent,
+        BuildableObject building,
+        CropPlotSnapshot plot,
+        TMP_FontAsset font,
+        Action<string> showFeedback,
+        Action refresh,
+        ICollection<GameObject> created)
+    {
+        if (plot.Phase is not (CropPlotPhase.ReadyToHarvest
+                or CropPlotPhase.Harvesting))
+            return;
+
+        CharacterActor[] candidates = characterWorld.Characters
+            .Where(actor => actor != null
+                && !actor.IsDead
+                && actor.Progression.ResolveSelectedTraits()
+                    .Any(trait => trait != null && trait.id == 304))
+            .OrderBy(
+                actor => actor.Identity?.PersistentId ?? string.Empty,
+                StringComparer.Ordinal)
+            .ToArray();
+        if (candidates.Length == 0)
+            return;
+
+        AddText(
+            parent,
+            string.IsNullOrWhiteSpace(plot.GoldenHarvestHarvesterId)
+                ? "황금 수확 · 24시간 숙성 후 위험 수확"
+                : $"황금 수확 예약 · {plot.GoldenHarvestHarvesterId}",
+            font,
+            16f,
+            DungeonUiTheme.TextPrimary,
+            30f,
+            created);
+        if (!string.IsNullOrWhiteSpace(plot.GoldenHarvestHarvesterId))
+            return;
+
+        foreach (CharacterActor candidate in candidates)
+        {
+            CharacterActor captured = candidate;
+            GameObject row = CreateRow(
+                parent,
+                $"GoldenHarvest_{captured.Identity.PersistentId}",
+                34f);
+            created.Add(row);
+            AddButton(
+                row.transform,
+                $"{captured.Identity.DisplayName} 지정",
+                font,
+                selected: false,
+                interactable: true,
+                () =>
+                {
+                    bool succeeded = cropPlots.TryScheduleGoldenHarvest(
+                        building,
+                        captured,
+                        out string message);
+                    feedbackByPlot[plot.PlotId] = message;
+                    showFeedback?.Invoke(message);
+                    if (succeeded)
+                        refresh?.Invoke();
+                });
+        }
     }
 
     private string FormatMaterials(CropPlotSnapshot plot)

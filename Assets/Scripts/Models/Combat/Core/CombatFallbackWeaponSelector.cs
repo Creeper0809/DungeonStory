@@ -45,6 +45,8 @@ public sealed class CombatFallbackWeaponSelector
         }
 
         (string id, CombatWeaponSnapshot weapon) choice = options
+            .Where(option => !option.weapon.RequiresAmmo
+                || option.weapon.LoadedAmmo > 0)
             .OrderBy(option => preferLoadedRanged
                 && option.weapon.IsRanged
                 && (!option.weapon.RequiresAmmo || option.weapon.LoadedAmmo > 0)

@@ -79,6 +79,7 @@ public static class DungeonAiRegistration
         builder.Register<CharacterAiSchedulingService>(Lifetime.Singleton)
             .As<ICharacterAiSchedulingService>()
             .As<ICharacterAiDiagnosticsQuery>();
+        builder.RegisterEntryPoint<CharacterAlarmResponseRuntime>(Lifetime.Singleton);
         builder.Register<CharacterMoodImpulseQuery>(Lifetime.Singleton)
             .As<ICharacterMoodImpulseQuery>();
         builder.Register<CharacterSocialMemoryFactory>(Lifetime.Singleton)
@@ -102,6 +103,8 @@ public static class DungeonAiRegistration
 
         builder.Register<SocialReputationBiasService>(Lifetime.Singleton)
             .As<ISocialReputationBiasService>();
+        builder.Register<SettlementPopulationCapacityRuntime>(Lifetime.Singleton)
+            .As<ISettlementPopulationCapacityQuery>();
         RegularCustomerRuntime sceneRuntime = runtimeReferences.RegularCustomers;
         if (sceneRuntime != null)
         {

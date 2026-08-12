@@ -32,30 +32,30 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 3
   features:
-  - rid: 7737211838068949791
-  - rid: 7737211838068949792
-  - rid: 7737211838068949793
-  - rid: 7737211838068949794
+  - rid: 7737211905666712349
+  - rid: 7737211905666712350
+  - rid: 7737211905666712351
+  - rid: 7737211905666712352
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949791
+    - rid: 7737211905666712349
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:agriculture:gathering
-    - rid: 7737211838068949792
+    - rid: 7737211905666712350
       type: {class: FacilitySupplyItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         fuelValue: 0
         nutritionValue: 5
         feedEligible: 1
-    - rid: 7737211838068949793
+    - rid: 7737211905666712351
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 0
         ingredientTags: 2
         sharedIntermediate: 0
-    - rid: 7737211838068949794
+    - rid: 7737211905666712352
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

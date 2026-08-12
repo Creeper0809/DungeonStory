@@ -5,6 +5,21 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
 
+public enum ItemReservationPurpose
+{
+    Hauling,
+    Meal,
+    ProductionInput,
+    Construction,
+    Medical,
+    Equipment,
+    Trade,
+    FacilityBuffer,
+    WasteProcessing,
+    DirectPlayerOrder,
+    Hygiene
+}
+
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public enum WorldItemStackState
 {
@@ -56,7 +71,7 @@ public sealed class ItemHaulingSettingsSnapshot
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonPhysicalItemSaveData
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 7;
 
     public int version = CurrentVersion;
     public ItemHaulingSettingsSnapshot haulingSettings =
@@ -64,6 +79,43 @@ public sealed class DungeonPhysicalItemSaveData
     public List<WorldItemStackSaveData> stacks =
         new List<WorldItemStackSaveData>();
     public List<UniqueItemInstanceSaveData> uniqueItems = new();
+    public List<ItemReservationIntentSaveData> reservationIntents = new();
+}
+
+[Serializable]
+public sealed class ItemReservationClaimHintSaveData
+{
+    public string claimHintId = string.Empty;
+    public string originStackId = string.Empty;
+    public string preferredPhysicalStackId = string.Empty;
+    public string itemId = string.Empty;
+    public string expectedStackSignature = string.Empty;
+    public int quantity;
+    public ItemReservationPurpose purpose;
+    public string aggregationCohortId = string.Empty;
+    public int claimOrdinal;
+}
+
+public interface IItemReservationIntentSaveData
+{
+    string OwnerOperationId { get; }
+    bool HadActiveItemReservation { get; }
+    IReadOnlyList<ItemReservationClaimHintSaveData> ReservationHints { get; }
+}
+
+[Serializable]
+public sealed class ItemReservationIntentSaveData :
+    IItemReservationIntentSaveData
+{
+    public string ownerOperationId = string.Empty;
+    public string ownerCharacterId = string.Empty;
+    public bool hadActiveItemReservation;
+    public List<ItemReservationClaimHintSaveData> reservationHints = new();
+
+    public string OwnerOperationId => ownerOperationId;
+    public bool HadActiveItemReservation => hadActiveItemReservation;
+    public IReadOnlyList<ItemReservationClaimHintSaveData> ReservationHints =>
+        reservationHints ?? new List<ItemReservationClaimHintSaveData>();
 }
 
 [Serializable]
@@ -88,6 +140,7 @@ public sealed class WorldItemStackSaveData
     public int gridY;
     public string reservedByPersistentId = string.Empty;
     public string destinationId = string.Empty;
+    public string aggregationCohortId = string.Empty;
     public string sourceStorageDestinationId = string.Empty;
     public bool hasDestinationPosition;
     public int destinationGridX;
@@ -331,7 +384,9 @@ public enum WorldItemHaulPlanUnloadReason
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CharacterCarriedItemSaveData
 {
+    public string carriedStackId = string.Empty;
     public string sourceStackId = string.Empty;
+    public string ownerOperationId = string.Empty;
     public string itemInstanceId = string.Empty;
     public string itemId = string.Empty;
     public int quantity;

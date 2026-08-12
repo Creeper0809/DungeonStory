@@ -543,6 +543,36 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         if (workOrderRuntime.TryGetOrderFor(site, BuiltInWorkTypeIds.Construct, out WorkOrderProgressState order))
         {
             craftActionObjects.Add(CreateConstructionProgressBar(actionsRoot, order, nameText?.font));
+            if (workOrderRuntime is IConstructionProjectWorkforceRuntime workforce
+                && workforce.TryCaptureConstructionProject(
+                    site,
+                    out ProjectWorkforceSnapshot project))
+            {
+                float remainingWu = Mathf.Max(
+                    0f,
+                    order.RequiredWork - order.CompletedWork);
+                float currentSeconds = project.EffectiveWuPerSecond > 0f
+                    ? remainingWu / project.EffectiveWuPerSecond
+                    : float.PositiveInfinity;
+                float nextRate = project.EffectiveWuPerSecond
+                    + project.ReferenceWorkerWuPerSecond
+                    * project.NextWorkerContribution;
+                float nextSeconds = nextRate > 0f
+                    ? remainingWu / nextRate
+                    : float.PositiveInfinity;
+                string marginal = project.ActiveWorkers >= project.MaximumWorkers
+                    ? "추가 투입 불가"
+                    : float.IsInfinity(currentSeconds)
+                        ? $"다음 작업자 기여 {project.NextWorkerContribution * 100f:0}%"
+                        : $"다음 작업자 투입 시 약 {Mathf.Max(0f, currentSeconds - nextSeconds):0.0}초 단축";
+                GameObject workforceStatus = CreateCraftStatus(
+                    actionsRoot,
+                    $"시공 인원 {project.ActiveWorkers}/{project.MaximumWorkers}명"
+                    + $" · 유효 {project.EffectiveWorkerCount:0.00}명\n{marginal}",
+                    nameText?.font);
+                workforceStatus.name = "BuildingConstructionWorkforceStatus";
+                craftActionObjects.Add(workforceStatus);
+            }
             if (workOrderRuntime is IWorkOrderWorkerPolicyCommand workerCommands)
             {
                 GameObject workerButton = CreateCraftButton(
@@ -669,19 +699,9 @@ public class UIBuildingInfo : SerializedMonoBehaviour
                 mode = WorkerSelectionMode.RuleSet,
                 matchMode = WorkerRequirementMatchMode.All,
                 sortMode = WorkerCandidateSortMode.BestExpectedQuality,
-                statRequirements = new List<WorkerStatRequirementSaveData>
-                {
-                    new()
-                    {
-                        statType = (int)CharacterStatType.Strength,
-                        minimumValue = 7
-                    },
-                    new()
-                    {
-                        statType = (int)CharacterStatType.Dexterity,
-                        minimumValue = 7
-                    }
-                }
+                minimumSkillId =
+                    BuiltInCharacterProficiencyIds.ConstructionEngineering.Value,
+                minimumSkillExperience = 400
             };
         }
         return WorkerSelectionPolicySaveData.Anyone(

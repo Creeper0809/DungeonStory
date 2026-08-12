@@ -92,6 +92,11 @@ public sealed class ClimateWorldSaveData
 
 public sealed class ClimateAggregateState
 {
+    private const int StarterClimateGraceDays = 5;
+    private const string StarterWeatherFrontId = "weather:clear";
+    private const float StarterDailyNoiseC = 0f;
+    private const float StarterOutdoorTemperatureC = 20f;
+
     private ClimateAggregateState()
     {
     }
@@ -114,8 +119,19 @@ public sealed class ClimateAggregateState
             AbsoluteDay = Math.Max(1, absoluteDay),
             ClimateZoneId = zone.Id
         };
-        state.SelectNextFront(definitions, nextUnitRandom);
-        state.DailyNoiseC = NextNoise(nextUnitRandom);
+        if (state.AbsoluteDay <= StarterClimateGraceDays)
+        {
+            _ = definitions.RequireFront(StarterWeatherFrontId);
+            state.WeatherFrontId = StarterWeatherFrontId;
+            state.FrontRemainingDays = StarterClimateGraceDays
+                - state.AbsoluteDay + 1;
+            state.DailyNoiseC = StarterDailyNoiseC;
+        }
+        else
+        {
+            state.SelectNextFront(definitions, nextUnitRandom);
+            state.DailyNoiseC = NextNoise(nextUnitRandom);
+        }
         return state;
     }
 
@@ -133,6 +149,13 @@ public sealed class ClimateAggregateState
         while (AbsoluteDay < absoluteDay)
         {
             AbsoluteDay++;
+            if (AbsoluteDay <= StarterClimateGraceDays)
+            {
+                WeatherFrontId = StarterWeatherFrontId;
+                FrontRemainingDays = StarterClimateGraceDays - AbsoluteDay + 1;
+                DailyNoiseC = StarterDailyNoiseC;
+                continue;
+            }
             FrontRemainingDays--;
             if (FrontRemainingDays <= 0)
             {
@@ -144,6 +167,14 @@ public sealed class ClimateAggregateState
 
     public float GetOutdoorTemperature(IClimateDefinitionCatalog definitions)
     {
+        // A new run begins without rooms, heating or protective workwear. Keep the
+        // authored five-day preparation window genuinely survivable for every
+        // selectable founder species; normal climate authority resumes on day 6.
+        if (AbsoluteDay <= StarterClimateGraceDays)
+        {
+            return StarterOutdoorTemperatureC;
+        }
+
         ClimateZoneDefinition zone = definitions.RequireZone(ClimateZoneId);
         WeatherFrontDefinition front = definitions.RequireFront(WeatherFrontId);
         int dayOfYear = GameCalendarRules.Project(AbsoluteDay, 0).DayOfYear;

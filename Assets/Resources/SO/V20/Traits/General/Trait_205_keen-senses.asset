@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uC608\uBBFC\uD55C \uAC10\uAC01"
   description: "\uC228\uC740 \uC704\uD5D8\uACFC \uC0C1\uD55C \uC2DD\uD488\uC744 \uBE68\uB9AC
     \uC54C\uC544\uCC28\uB9AC\uC9C0\uB9CC \uC545\uCDE8\uC5D0 \uBBFC\uAC10\uD558\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,46 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 1
+  polarity: 1
+  selectionFamilyId: senses
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: safety:inspect
-    utilityDelta: 0.35
-  moodReactions:
-  - triggerTag: air:foul
-    moodDelta: -3
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: service-incident
-    multiplier: 1.3
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:205:effect:0
+    definition: {fileID: 11400000, guid: 9fb14758f44f78e4da0725ea2add69d8, type: 2}
+    value: 1.15
+    condition: {fileID: 0}
+  - bindingId: trait:205:effect:1
+    definition: {fileID: 11400000, guid: 0fc9237e2a8f7ea409c647c25c38c5f9, type: 2}
+    value: 1.25
+    condition: {fileID: 0}
+  - bindingId: trait:205:effect:2
+    definition: {fileID: 11400000, guid: 8738886ff7b663646976ab00e31cb051, type: 2}
+    value: 1.1
+    condition: {fileID: 0}
+  identityRules:
+  - rid: 7737211921986486451
+  - rid: 7737211921986486452
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486451
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:inspect-scout
+        priority: 0
+        behaviorTag: work:inspect-scout
+        utilityDelta: 0.65
+    - rid: 7737211921986486452
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:rot-stench
+        priority: 0
+        eventId: environment:rot-stench
+        moodDelta: -3
+        durationDays: 1

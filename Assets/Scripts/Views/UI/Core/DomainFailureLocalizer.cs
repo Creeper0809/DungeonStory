@@ -260,6 +260,18 @@ public static class DomainFailureLocalizationFormatContract
             [FailureCode.SurvivalTreatmentUnsupported] = 1,
             [FailureCode.SurvivalTreatmentTargetMissing] = 1,
             [FailureCode.SurvivalRefuelUnsupported] = 1,
+            [FailureCode.ItemReservationRequestInvalid] = 1,
+            [FailureCode.ItemReservationStackMissing] = 1,
+            [FailureCode.ItemReservationStackForbidden] = 1,
+            [FailureCode.ItemReservationSignatureMismatch] = 1,
+            [FailureCode.ItemReservationQuantityUnavailable] = 1,
+            [FailureCode.ItemReservationOperationConflict] = 1,
+            [FailureCode.ItemReservationLeaseMissing] = 1,
+            [FailureCode.ItemReservationLeaseExpired] = 1,
+            [FailureCode.ItemReservationSliceInvalid] = 2,
+            [FailureCode.ItemReservationRestoreConflict] = 2,
+            [FailureCode.ItemAggregationIncompatible] = 1,
+            [FailureCode.ItemAggregationDestinationMissing] = 1,
         };
 
     public static int GetFailureArgumentCount(FailureCode code)

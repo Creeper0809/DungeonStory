@@ -32,28 +32,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 12
   features:
-  - rid: 7737211838068949811
-  - rid: 7737211838068949812
-  - rid: 7737211838068949813
-  - rid: 7737211838068949814
+  - rid: 7737211905666712359
+  - rid: 7737211905666712360
+  - rid: 7737211905666712361
+  - rid: 7737211905666712362
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949811
+    - rid: 7737211905666712359
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:vegan
-    - rid: 7737211838068949812
+    - rid: 7737211905666712360
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2
         ingredientTags: 3
         sharedIntermediate: 0
-    - rid: 7737211838068949813
+    - rid: 7737211905666712361
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6
-    - rid: 7737211838068949814
+    - rid: 7737211905666712362
       type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         quality: 1

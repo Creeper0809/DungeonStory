@@ -27,29 +27,30 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uD3EC\uC790\uD3D0\uC99D
     \uBC31\uC2E0."
   stockCategory: 5
-  unitWeight: 2.29
+  unitWeight: 0.4
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 148
+  unitPrice: 26
   features:
-  - rid: 7737211838078125022
-  - rid: 7737211838078125023
-  - rid: 7737211838078125024
-  - rid: 7737211838078125025
+  - rid: 7737211905660420348
+  - rid: 7737211905660420349
+  - rid: 7737211905660420350
+  - rid: 7737211905660420351
+  - rid: 7737211905660420914
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078125022
+    - rid: 7737211905660420348
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:vaccination
-    - rid: 7737211838078125023
+    - rid: 7737211905660420349
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 2
         sharedIntermediate: 0
-    - rid: 7737211838078125024
+    - rid: 7737211905660420350
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 0
@@ -57,8 +58,12 @@ MonoBehaviour:
         infectionReduction: 0
         detoxReduction: 0
         painReduction: 0
-    - rid: 7737211838078125025
+    - rid: 7737211905660420351
       type: {class: VaccineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         diseaseId: disease:spore-lung
         doses: 1
+    - rid: 7737211905660420914
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6091916

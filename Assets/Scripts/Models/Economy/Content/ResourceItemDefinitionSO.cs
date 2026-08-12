@@ -15,6 +15,8 @@ public sealed class ResourceItemDefinitionSO : ItemDefinitionSO
     public bool IsMeal => Kind == ResourceItemKind.Food;
     public MealDietClass MealDietClass => ResourceMealClassification.Classify(IngredientTags);
     public MealQualityTier MealQuality => GetFeatureOrDefault<FoodItemFeature>()?.quality ?? MealQualityTier.Simple;
+    public MealQualityBand QualityBand => GetFeatureOrDefault<FoodItemFeature>()?.qualityBand ?? MealQualityBand.Simple;
+    public MealServingRole ServingRole => GetFeatureOrDefault<FoodItemFeature>()?.servingRole ?? MealServingRole.FullMeal;
     public float Nutrition => Mathf.Max(0f, GetFeatureOrDefault<FoodItemFeature>()?.nutrition ?? 0f);
     public float FuelValue => Mathf.Max(0f, GetFeatureOrDefault<FacilitySupplyItemFeature>()?.fuelValue ?? 0f);
     public float FacilityNutritionValue => Mathf.Max(0f, GetFeatureOrDefault<FacilitySupplyItemFeature>()?.nutritionValue ?? 0f);
@@ -82,17 +84,30 @@ public sealed class ResourceItemDefinitionSO : ItemDefinitionSO
         float nutritionAmount,
         float moodAmount,
         float shelfLifeSeconds,
-        bool isPreserved)
+        bool isPreserved,
+        MealQualityBand? authoredQualityBand = null,
+        MealServingRole servingRole = MealServingRole.FullMeal)
     {
         SetFeature(new FoodItemFeature
         {
             quality = quality,
+            qualityBand = authoredQualityBand ?? DefaultQualityBand(quality),
+            servingRole = servingRole,
             nutrition = Mathf.Max(0f, nutritionAmount),
             mood = moodAmount,
             freshnessSeconds = Mathf.Max(0f, shelfLifeSeconds),
             preserved = isPreserved
         });
     }
+
+    private static MealQualityBand DefaultQualityBand(MealQualityTier quality) =>
+        quality switch
+        {
+            MealQualityTier.Lavish => MealQualityBand.Lavish,
+            MealQualityTier.Fine => MealQualityBand.Decent,
+            MealQualityTier.Preserved => MealQualityBand.Simple,
+            _ => MealQualityBand.Simple
+        };
 
     public void ConfigureMedicine(
         bool canTreatInjuries,

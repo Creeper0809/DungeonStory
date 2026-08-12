@@ -16,7 +16,6 @@ public class CharacterSO : ScriptableObject
     public string characterName;
     public string speciesTag;
     public CharacterSpeciesSO species;
-    public CharacterStatBlock baseStats = CharacterStatBlock.CreateDefault();
     public CharacterTraitSO[] traits = Array.Empty<CharacterTraitSO>();
     public WorkPriorityProfile defaultWorkPriorities = WorkPriorityProfile.CreateDefault();
     public CharacterAiPersonality aiPersonality = new CharacterAiPersonality();
@@ -189,8 +188,7 @@ public class CharacterSO : ScriptableObject
         CharacterRuntimeProfile profile)
     {
         int baseMoney = GetHoldingMoney(randomStream);
-        float multiplier = profile != null ? profile.GetSpendingMultiplier() : 1f;
-        return Mathf.Max(0, Mathf.RoundToInt(baseMoney * multiplier));
+        return baseMoney;
     }
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //                                                                                                                              //

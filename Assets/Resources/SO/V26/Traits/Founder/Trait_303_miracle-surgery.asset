@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d73e94ec113318588b25eed8f9f9ee0, type: 3}
+  m_Name: Trait_303_miracle-surgery
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterTraitSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 303
+  traitName: "\uAE30\uC801\uC758 \uC9D1\uB3C4"
+  description: "\uCE58\uBA85 \uC218\uC220\uC5D0\uC11C \uAE30\uC801\uACFC \uC911\uC99D
+    \uD569\uBCD1\uC99D\uC744 \uD568\uAED8 \uAC74\uB2E4."
+  modifiers:
+    preferredFacilityRoles: 0
+    dislikedFacilityRoles: 0
+    preferredWorkTypes: 0
+    dislikedWorkTypes: 0
+  combatAbilities:
+    abilities: []
+  environmentalProtection:
+    comfortMinimumOffset: 0
+    comfortMaximumOffset: 0
+    safeMinimumOffset: 0
+    safeMaximumOffset: 0
+    coldExposureMultiplier: 1
+    heatExposureMultiplier: 1
+  selectionRarity: 3
+  polarity: 4
+  selectionFamilyId: extreme:medicine
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
+  incompatibilityGroups: []
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:303:effect:0
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 0.6
+    condition: {fileID: 11400000, guid: 0a23dafd86b04704c840ffb0f9cd771a, type: 2}
+  identityRules:
+  - rid: 7737211921986486470
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211921986486470
+      type: {class: MiracleSurgeryRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: extreme:miracle-surgery
+        priority: 100
+        miracleChance: 0.12
+        complicationChance: 0.18
+        aftermathDays: 1

@@ -26,28 +26,33 @@ MonoBehaviour:
   displayName: "\uC9C4\uC815 \uB2E4\uD2B8"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC9C4\uC815 \uB2E4\uD2B8."
   stockCategory: 7
-  unitWeight: 4.24
+  unitWeight: 0.15
   maxStack: 120
   sprite: {fileID: 0}
-  unitPrice: 278
+  unitPrice: 13
   features:
-  - rid: 7737211838078124936
-  - rid: 7737211838078124937
-  - rid: 7737211838078124938
+  - rid: 7737211905658585551
+  - rid: 7737211905658585552
+  - rid: 7737211905658585553
+  - rid: 7737211905660420634
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124936
+    - rid: 7737211905658585551
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:tranquilizer-dart
-    - rid: 7737211838078124937
+    - rid: 7737211905658585552
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:anesthesia
-    - rid: 7737211838078124938
+    - rid: 7737211905658585553
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 0
         sharedIntermediate: 0
+    - rid: 7737211905660420634
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.5865363

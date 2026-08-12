@@ -22,7 +22,7 @@ MonoBehaviour:
   deadlineDays: 4
   serviceRequirements:
     items:
-    - itemDefinitionId: food:festival-sampler
+    - itemDefinitionId: food:lavish-vegan
       amount: 8
       consume: 1
     facilities:
@@ -39,7 +39,7 @@ MonoBehaviour:
   successEffects:
   - kind: 9
     targetId: guest-service
-    amount: 160
+    amount: 310
     durationDays: 0
   - kind: 6
     targetId: requesting-faction

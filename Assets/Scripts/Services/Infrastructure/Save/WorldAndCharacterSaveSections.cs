@@ -91,6 +91,7 @@ public sealed class CharacterWorldSaveSection :
     IDungeonRollbackFreeSaveSection
 {
     public const string Id = "characters.world";
+    public const int CurrentVersion = 2;
 
     private readonly ICharacterWorldSaveService saveService;
     private readonly IGridSystemProvider gridSystemProvider;
@@ -110,7 +111,7 @@ public sealed class CharacterWorldSaveSection :
     }
 
     public override string SectionId => Id;
-    public override int SectionVersion => 1;
+    public override int SectionVersion => CurrentVersion;
     public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.Characters;
     public override IReadOnlyList<string> DependsOn =>

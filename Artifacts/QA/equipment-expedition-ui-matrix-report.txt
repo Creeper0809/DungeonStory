@@ -1,9 +1,9 @@
 RESULT=PASS
 FACILITY_FLOW=RF42,RF43,RF44,I17,I18
-PASS OWNER_SELECTION_POINTER_TARGET button=OwnerOption_1002; active=True; interactable=True; eventSystem=True
+PASS OWNER_SELECTION_POINTER_TARGET button=OwnerOption_1003; active=True; interactable=True; eventSystem=True
 PASS OWNER_SELECTION_POINTER_VIEWPORT no containing ScrollRect; target does not require viewport scrolling
-PASS OWNER_SELECTION_POINTER_HIT_TEST point=(1920.00, 1006.00); hits=4; top=Label; handler=OwnerOption_1002; expected=OwnerOption_1002
-PASS OWNER_SELECTION_POINTER_DISPATCH top=Label; point=(1920.00, 1006.00)
+PASS OWNER_SELECTION_POINTER_HIT_TEST point=(3069.07, 1006.00); hits=4; top=Label; handler=OwnerOption_1003; expected=OwnerOption_1003
+PASS OWNER_SELECTION_POINTER_DISPATCH top=Label; point=(3069.07, 1006.00)
 PASS SCOPE runtime container resolved
 PASS EQUIPMENT_RUNTIME resolved
 PASS PHYSICAL_ITEMS resolved
@@ -19,98 +19,102 @@ PASS OFFENSE_STATE_RESTORED canonical snapshot matched
 PASS EQUIPMENT_FACILITY_SCOPE runtime container available
 PASS EQUIPMENT_FACILITY_ASSET_appraisal Assets/Resources/SO/Building/ResearchOverhaul/RF42_부품_감정대.asset
 PASS EQUIPMENT_FACILITY_TAG_appraisal expected=workstation:v3:appraisal; actual=workstation:v3:appraisal
-FACILITY key=appraisal; code=RF42; asset=Assets/Resources/SO/Building/ResearchOverhaul/RF42_부품_감정대.asset; id=building:dcb2ed9801ad44538603a7b1862b6854
+FACILITY key=appraisal; code=RF42; asset=Assets/Resources/SO/Building/ResearchOverhaul/RF42_부품_감정대.asset; id=building:0da99ebd64774b6e90666b4fcf421231
 PASS EQUIPMENT_FACILITY_ASSET_restoration Assets/Resources/SO/Building/ResearchOverhaul/RF43_부품_복원_작업대.asset
 PASS EQUIPMENT_FACILITY_TAG_restoration expected=workstation:v3:restoration; actual=workstation:v3:restoration
-FACILITY key=restoration; code=RF43; asset=Assets/Resources/SO/Building/ResearchOverhaul/RF43_부품_복원_작업대.asset; id=building:f53ad9cce0b544908e991da460790aba
+FACILITY key=restoration; code=RF43; asset=Assets/Resources/SO/Building/ResearchOverhaul/RF43_부품_복원_작업대.asset; id=building:f27237d652a14b23b9c5ae8ba6d08404
 PASS EQUIPMENT_FACILITY_ASSET_precision-fitting Assets/Resources/SO/Building/ResearchOverhaul/RF44_정밀_장착대.asset
 PASS EQUIPMENT_FACILITY_TAG_precision-fitting expected=workstation:v3:precision-fitting; actual=workstation:v3:precision-fitting
-FACILITY key=precision-fitting; code=RF44; asset=Assets/Resources/SO/Building/ResearchOverhaul/RF44_정밀_장착대.asset; id=building:13043798072142cfa89b041a7c984794
+FACILITY key=precision-fitting; code=RF44; asset=Assets/Resources/SO/Building/ResearchOverhaul/RF44_정밀_장착대.asset; id=building:3d7659d895e14ea49a86b0f776230fe5
 PASS EQUIPMENT_FACILITY_ASSET_rune-tuning Assets/Resources/SO/Building/Industrial/I17_룬_조율실.asset
 PASS EQUIPMENT_FACILITY_TAG_rune-tuning expected=workstation:v3:rune-tuning; actual=workstation:v3:rune-tuning
-FACILITY key=rune-tuning; code=I17; asset=Assets/Resources/SO/Building/Industrial/I17_룬_조율실.asset; id=building:763e1f66e01b48b59228bc531a40bfd9
+FACILITY key=rune-tuning; code=I17; asset=Assets/Resources/SO/Building/Industrial/I17_룬_조율실.asset; id=building:bdd1fd81ced543858d0411c5aaf8969a
+PASS EQUIPMENT_FACILITY_ASSET_resonance-support Assets/Resources/SO/Building/ResearchOverhaul/RF97_공명_조율실.asset
+PASS EQUIPMENT_FACILITY_TAG_resonance-support expected=; actual=workstation:v21:resonance-tuning
+FACILITY key=resonance-support; code=RF97; asset=Assets/Resources/SO/Building/ResearchOverhaul/RF97_공명_조율실.asset; id=building:e9e5dae3dc444d798d2c5123ae8dfcc5
 PASS EQUIPMENT_FACILITY_ASSET_lineage Assets/Resources/SO/Building/Industrial/I18_계보_기록실.asset
 PASS EQUIPMENT_FACILITY_TAG_lineage expected=workstation:v3:lineage-archive; actual=workstation:v3:lineage-archive
-FACILITY key=lineage; code=I18; asset=Assets/Resources/SO/Building/Industrial/I18_계보_기록실.asset; id=building:986933ac068c4271920d9ec0ed7c630a
+FACILITY key=lineage; code=I18; asset=Assets/Resources/SO/Building/Industrial/I18_계보_기록실.asset; id=building:df0425965f3d4a2794a05b773960c7de
 PASS EQUIPMENT_FACILITY_ASSET_wrong Assets/Resources/SO/Building/Modular/S08_대장작업대.asset
 PASS EQUIPMENT_FACILITY_TAG_wrong expected=; actual=workstation:forge-basic
-FACILITY key=wrong; code=S08; asset=Assets/Resources/SO/Building/Modular/S08_대장작업대.asset; id=building:a60f07ce28e6403ebef01d4794a838a7
-PASS EQUIPMENT_PHYSICAL_weapon:longsword spawned=True; stack=stack:586e9215b4b2489a8b995056c34dcd46
-PASS EQUIPMENT_PHYSICAL_weapon:greatsword spawned=True; stack=stack:9b87d20ffe5d4b89a1c4f69cb9334596
-PASS EQUIPMENT_COMMAND_SEED module=item-instance:02a4d217977148f09605bf6a7e49d86d; stack=stack:f2eb8a74882c4472947b685d11d17c73; history=True
-PASS LINEAGE_SEAL_SEEDED spawned=1; stack=stack:24d2561afc504455b73f7470022e967a
-SEED equipment=item-instance:730525684f5e4550b7c9a0eaf0e2deda,item-instance:7589ba653b524875bb31e8bc1e4ea24c; module=item-instance:02a4d217977148f09605bf6a7e49d86d:stack:f2eb8a74882c4472947b685d11d17c73
+FACILITY key=wrong; code=S08; asset=Assets/Resources/SO/Building/Modular/S08_대장작업대.asset; id=building:54848c7d98894e769ea7e6b1347b48a0
+PASS EQUIPMENT_PHYSICAL_weapon:longsword spawned=True; stack=stack:b1f21b4f62fe47038205a24063b1127d
+PASS EQUIPMENT_PHYSICAL_weapon:greatsword spawned=True; stack=stack:ae50be12afc34cc686388870ef65640f
+PASS EQUIPMENT_APPRAISAL_SUPPLIES coupon=1; ready=True
+PASS EQUIPMENT_COMMAND_SEED module=item-instance:5dc1259d61b14a3da61487ea59964e8c; stack=stack:eea1366f59e84f8489d7c0d00a7c705e; history=True
+PASS LINEAGE_SEAL_SEEDED spawned=1; stack=stack:473849cba72a4be28b0ec28254d4077f
+SEED equipment=item-instance:c85db6dde1154182b94f195b41890ada,item-instance:1beafeb2808442b0a1639c4c8779b1ac; module=item-instance:5dc1259d61b14a3da61487ea59964e8c:stack:eea1366f59e84f8489d7c0d00a7c705e
 PASS EQUIPMENT_FACILITY_SELECTED_appraisal 부품 감정대
-PASS EQUIPMENT_FACILITY_COMMANDS_appraisal_1600x900 visible=EquipmentModuleAppraise_item-instance_02a4d217977148f09605bf6a7e49d86d; missing=; forbidden=
-PASS MODULE_APPRAISAL_POINTER_1600x900_TARGET button=EquipmentModuleAppraise_item-instance_02a4d217977148f09605bf6a7e49d86d; active=True; interactable=True; eventSystem=True
+PASS EQUIPMENT_FACILITY_COMMANDS_appraisal_1600x900 visible=EquipmentModuleAppraise_item-instance_5dc1259d61b14a3da61487ea59964e8c; missing=; forbidden=
+PASS MODULE_APPRAISAL_POINTER_1600x900_TARGET button=EquipmentModuleAppraise_item-instance_5dc1259d61b14a3da61487ea59964e8c; active=True; interactable=True; eventSystem=True
 PASS MODULE_APPRAISAL_POINTER_1600x900_VIEWPORT EquipmentViewport:visible=True:target=(-506,290)-(-406,348):viewport=(x:-736.00, y:-414.00, width:1472.00, height:828.00)
-PASS MODULE_APPRAISAL_POINTER_1600x900_HIT_TEST point=(344.00, 769.00); hits=2; top=EquipmentModuleAppraise_item-instance_02a4d217977148f09605bf6a7e49d86d; handler=EquipmentModuleAppraise_item-instance_02a4d217977148f09605bf6a7e49d86d; expected=EquipmentModuleAppraise_item-instance_02a4d217977148f09605bf6a7e49d86d
+PASS MODULE_APPRAISAL_POINTER_1600x900_HIT_TEST point=(344.00, 769.00); hits=2; top=EquipmentModuleAppraise_item-instance_5dc1259d61b14a3da61487ea59964e8c; handler=EquipmentModuleAppraise_item-instance_5dc1259d61b14a3da61487ea59964e8c; expected=EquipmentModuleAppraise_item-instance_5dc1259d61b14a3da61487ea59964e8c
 EQUIPMENT_FEEDBACK 부품 감정을 완료했습니다.
-PASS MODULE_APPRAISAL_POINTER_1600x900_DISPATCH top=EquipmentModuleAppraise_item-instance_02a4d217977148f09605bf6a7e49d86d; point=(344.00, 769.00)
-PASS MODULE_APPRAISAL_BUFFER_1600x900 module=item-instance:02a4d217977148f09605bf6a7e49d86d; stack=stack:f2eb8a74882c4472947b685d11d17c73; state=FacilityBuffer; destination=building:dcb2ed9801ad44538603a7b1862b6854; expected=building:dcb2ed9801ad44538603a7b1862b6854
-PASS MODULE_ROUTE_RESTORATION_1600x900 module=item-instance:02a4d217977148f09605bf6a7e49d86d; stack=stack:f2eb8a74882c4472947b685d11d17c73; destination=building:f53ad9cce0b544908e991da460790aba
-PASS MODULE_ROUTE_RESTORATION_1600x900_STATE module=item-instance:02a4d217977148f09605bf6a7e49d86d; stack=stack:f2eb8a74882c4472947b685d11d17c73; state=FacilityBuffer; destination=building:f53ad9cce0b544908e991da460790aba; expected=building:f53ad9cce0b544908e991da460790aba
+PASS MODULE_APPRAISAL_POINTER_1600x900_DISPATCH top=EquipmentModuleAppraise_item-instance_5dc1259d61b14a3da61487ea59964e8c; point=(344.00, 769.00)
+PASS MODULE_APPRAISAL_BUFFER_1600x900 module=item-instance:5dc1259d61b14a3da61487ea59964e8c; stack=stack:eea1366f59e84f8489d7c0d00a7c705e; state=FacilityBuffer; destination=building:0da99ebd64774b6e90666b4fcf421231; expected=building:0da99ebd64774b6e90666b4fcf421231
+PASS MODULE_ROUTE_RESTORATION_1600x900 module=item-instance:5dc1259d61b14a3da61487ea59964e8c; stack=stack:eea1366f59e84f8489d7c0d00a7c705e; destination=building:f27237d652a14b23b9c5ae8ba6d08404
+PASS MODULE_ROUTE_RESTORATION_1600x900_STATE module=item-instance:5dc1259d61b14a3da61487ea59964e8c; stack=stack:eea1366f59e84f8489d7c0d00a7c705e; state=FacilityBuffer; destination=building:f27237d652a14b23b9c5ae8ba6d08404; expected=building:f27237d652a14b23b9c5ae8ba6d08404
 PASS EQUIPMENT_FACILITY_SELECTED_restoration 부품 복원 작업대
-PASS EQUIPMENT_FACILITY_COMMANDS_restoration_1600x900 visible=EquipmentModuleRestore_item-instance_02a4d217977148f09605bf6a7e49d86d; missing=; forbidden=
-PASS MODULE_RESTORATION_POINTER_1600x900_TARGET button=EquipmentModuleRestore_item-instance_02a4d217977148f09605bf6a7e49d86d; active=True; interactable=True; eventSystem=True
+PASS EQUIPMENT_FACILITY_COMMANDS_restoration_1600x900 visible=EquipmentModuleRestore_item-instance_5dc1259d61b14a3da61487ea59964e8c; missing=; forbidden=
+PASS MODULE_RESTORATION_POINTER_1600x900_TARGET button=EquipmentModuleRestore_item-instance_5dc1259d61b14a3da61487ea59964e8c; active=True; interactable=True; eventSystem=True
 PASS MODULE_RESTORATION_POINTER_1600x900_VIEWPORT EquipmentViewport:visible=True:target=(-506,290)-(-406,348):viewport=(x:-736.00, y:-414.00, width:1472.00, height:828.00)
-PASS MODULE_RESTORATION_POINTER_1600x900_HIT_TEST point=(344.00, 769.00); hits=2; top=EquipmentModuleRestore_item-instance_02a4d217977148f09605bf6a7e49d86d; handler=EquipmentModuleRestore_item-instance_02a4d217977148f09605bf6a7e49d86d; expected=EquipmentModuleRestore_item-instance_02a4d217977148f09605bf6a7e49d86d
+PASS MODULE_RESTORATION_POINTER_1600x900_HIT_TEST point=(344.00, 769.00); hits=2; top=EquipmentModuleRestore_item-instance_5dc1259d61b14a3da61487ea59964e8c; handler=EquipmentModuleRestore_item-instance_5dc1259d61b14a3da61487ea59964e8c; expected=EquipmentModuleRestore_item-instance_5dc1259d61b14a3da61487ea59964e8c
 EQUIPMENT_FEEDBACK 부품 복원을 완료했습니다.
-PASS MODULE_RESTORATION_POINTER_1600x900_DISPATCH top=EquipmentModuleRestore_item-instance_02a4d217977148f09605bf6a7e49d86d; point=(344.00, 769.00)
-PASS MODULE_RESTORATION_BUFFER_1600x900 module=item-instance:02a4d217977148f09605bf6a7e49d86d; stack=stack:f2eb8a74882c4472947b685d11d17c73; state=FacilityBuffer; destination=building:f53ad9cce0b544908e991da460790aba; expected=building:f53ad9cce0b544908e991da460790aba
-PASS MODULE_ROUTE_RUNE_TUNING_1600x900 module=item-instance:02a4d217977148f09605bf6a7e49d86d; stack=stack:f2eb8a74882c4472947b685d11d17c73; destination=building:763e1f66e01b48b59228bc531a40bfd9
-PASS MODULE_ROUTE_RUNE_TUNING_1600x900_STATE module=item-instance:02a4d217977148f09605bf6a7e49d86d; stack=stack:f2eb8a74882c4472947b685d11d17c73; state=FacilityBuffer; destination=building:763e1f66e01b48b59228bc531a40bfd9; expected=building:763e1f66e01b48b59228bc531a40bfd9
+PASS MODULE_RESTORATION_POINTER_1600x900_DISPATCH top=EquipmentModuleRestore_item-instance_5dc1259d61b14a3da61487ea59964e8c; point=(344.00, 769.00)
+PASS MODULE_RESTORATION_BUFFER_1600x900 module=item-instance:5dc1259d61b14a3da61487ea59964e8c; stack=stack:eea1366f59e84f8489d7c0d00a7c705e; state=FacilityBuffer; destination=building:f27237d652a14b23b9c5ae8ba6d08404; expected=building:f27237d652a14b23b9c5ae8ba6d08404
+PASS MODULE_ROUTE_RUNE_TUNING_1600x900 module=item-instance:5dc1259d61b14a3da61487ea59964e8c; stack=stack:eea1366f59e84f8489d7c0d00a7c705e; destination=building:bdd1fd81ced543858d0411c5aaf8969a
+PASS MODULE_ROUTE_RUNE_TUNING_1600x900_STATE module=item-instance:5dc1259d61b14a3da61487ea59964e8c; stack=stack:eea1366f59e84f8489d7c0d00a7c705e; state=FacilityBuffer; destination=building:bdd1fd81ced543858d0411c5aaf8969a; expected=building:bdd1fd81ced543858d0411c5aaf8969a
 PASS EQUIPMENT_FACILITY_SELECTED_rune-tuning 룬 조율실
-PASS EQUIPMENT_FACILITY_COMMANDS_rune-tuning_1600x900 visible=EquipmentModuleTune_item-instance_02a4d217977148f09605bf6a7e49d86d; missing=; forbidden=
-PASS MODULE_RUNE_TUNING_POINTER_1600x900_TARGET button=EquipmentModuleTune_item-instance_02a4d217977148f09605bf6a7e49d86d; active=True; interactable=True; eventSystem=True
+PASS EQUIPMENT_FACILITY_COMMANDS_rune-tuning_1600x900 visible=EquipmentModuleTune_item-instance_5dc1259d61b14a3da61487ea59964e8c; missing=; forbidden=
+PASS MODULE_RUNE_TUNING_POINTER_1600x900_TARGET button=EquipmentModuleTune_item-instance_5dc1259d61b14a3da61487ea59964e8c; active=True; interactable=True; eventSystem=True
 PASS MODULE_RUNE_TUNING_POINTER_1600x900_VIEWPORT EquipmentViewport:visible=True:target=(-506,290)-(-406,348):viewport=(x:-736.00, y:-414.00, width:1472.00, height:828.00)
-PASS MODULE_RUNE_TUNING_POINTER_1600x900_HIT_TEST point=(344.00, 769.00); hits=2; top=EquipmentModuleTune_item-instance_02a4d217977148f09605bf6a7e49d86d; handler=EquipmentModuleTune_item-instance_02a4d217977148f09605bf6a7e49d86d; expected=EquipmentModuleTune_item-instance_02a4d217977148f09605bf6a7e49d86d
+PASS MODULE_RUNE_TUNING_POINTER_1600x900_HIT_TEST point=(344.00, 769.00); hits=2; top=EquipmentModuleTune_item-instance_5dc1259d61b14a3da61487ea59964e8c; handler=EquipmentModuleTune_item-instance_5dc1259d61b14a3da61487ea59964e8c; expected=EquipmentModuleTune_item-instance_5dc1259d61b14a3da61487ea59964e8c
 EQUIPMENT_FEEDBACK 4등급 부품의 룬 조율을 완료했습니다.
-PASS MODULE_RUNE_TUNING_POINTER_1600x900_DISPATCH top=EquipmentModuleTune_item-instance_02a4d217977148f09605bf6a7e49d86d; point=(344.00, 769.00)
-PASS MODULE_RUNE_TUNING_BUFFER_1600x900 module=item-instance:02a4d217977148f09605bf6a7e49d86d; stack=stack:f2eb8a74882c4472947b685d11d17c73; state=FacilityBuffer; destination=building:763e1f66e01b48b59228bc531a40bfd9; expected=building:763e1f66e01b48b59228bc531a40bfd9
-PASS MODULE_ROUTE_PRECISION_FITTING_1600x900 module=item-instance:02a4d217977148f09605bf6a7e49d86d; stack=stack:f2eb8a74882c4472947b685d11d17c73; destination=building:13043798072142cfa89b041a7c984794
-PASS MODULE_ROUTE_PRECISION_FITTING_1600x900_STATE module=item-instance:02a4d217977148f09605bf6a7e49d86d; stack=stack:f2eb8a74882c4472947b685d11d17c73; state=FacilityBuffer; destination=building:13043798072142cfa89b041a7c984794; expected=building:13043798072142cfa89b041a7c984794
-PASS EQUIPMENT_ROUTE_PRECISION_FITTING_1600x900 equipment=item-instance:7589ba653b524875bb31e8bc1e4ea24c; stack=stack:9b87d20ffe5d4b89a1c4f69cb9334596; destination=building:13043798072142cfa89b041a7c984794
+PASS MODULE_RUNE_TUNING_POINTER_1600x900_DISPATCH top=EquipmentModuleTune_item-instance_5dc1259d61b14a3da61487ea59964e8c; point=(344.00, 769.00)
+PASS MODULE_RUNE_TUNING_BUFFER_1600x900 module=item-instance:5dc1259d61b14a3da61487ea59964e8c; stack=stack:eea1366f59e84f8489d7c0d00a7c705e; state=FacilityBuffer; destination=building:bdd1fd81ced543858d0411c5aaf8969a; expected=building:bdd1fd81ced543858d0411c5aaf8969a
+PASS MODULE_ROUTE_PRECISION_FITTING_1600x900 module=item-instance:5dc1259d61b14a3da61487ea59964e8c; stack=stack:eea1366f59e84f8489d7c0d00a7c705e; destination=building:3d7659d895e14ea49a86b0f776230fe5
+PASS MODULE_ROUTE_PRECISION_FITTING_1600x900_STATE module=item-instance:5dc1259d61b14a3da61487ea59964e8c; stack=stack:eea1366f59e84f8489d7c0d00a7c705e; state=FacilityBuffer; destination=building:3d7659d895e14ea49a86b0f776230fe5; expected=building:3d7659d895e14ea49a86b0f776230fe5
+PASS EQUIPMENT_ROUTE_PRECISION_FITTING_1600x900 equipment=item-instance:1beafeb2808442b0a1639c4c8779b1ac; stack=stack:ae50be12afc34cc686388870ef65640f; destination=building:3d7659d895e14ea49a86b0f776230fe5
 PASS EQUIPMENT_FACILITY_SELECTED_precision-fitting 정밀 장착대
-PASS EQUIPMENT_FACILITY_COMMANDS_precision-fitting_1600x900 visible=EquipmentModuleInstall_item-instance_02a4d217977148f09605bf6a7e49d86d_item-instance_7589ba653b524875bb31e8bc1e4ea24c_0,EquipmentModuleInstall_item-instance_02a4d217977148f09605bf6a7e49d86d_item-instance_7589ba653b524875bb31e8bc1e4ea24c_1,EquipmentModuleInstall_item-instance_02a4d217977148f09605bf6a7e49d86d_item-instance_7589ba653b524875bb31e8bc1e4ea24c_2; missing=; forbidden=
-PASS MODULE_INSTALL_POINTER_1600x900_TARGET button=EquipmentModuleInstall_item-instance_02a4d217977148f09605bf6a7e49d86d_item-instance_7589ba653b524875bb31e8bc1e4ea24c_0; active=True; interactable=True; eventSystem=True
+PASS EQUIPMENT_FACILITY_COMMANDS_precision-fitting_1600x900 visible=EquipmentModuleInstall_item-instance_5dc1259d61b14a3da61487ea59964e8c_item-instance_1beafeb2808442b0a1639c4c8779b1ac_0,EquipmentModuleInstall_item-instance_5dc1259d61b14a3da61487ea59964e8c_item-instance_1beafeb2808442b0a1639c4c8779b1ac_1,EquipmentModuleInstall_item-instance_5dc1259d61b14a3da61487ea59964e8c_item-instance_1beafeb2808442b0a1639c4c8779b1ac_2; missing=; forbidden=
+PASS MODULE_INSTALL_POINTER_1600x900_TARGET button=EquipmentModuleInstall_item-instance_5dc1259d61b14a3da61487ea59964e8c_item-instance_1beafeb2808442b0a1639c4c8779b1ac_0; active=True; interactable=True; eventSystem=True
 PASS MODULE_INSTALL_POINTER_1600x900_VIEWPORT EquipmentViewport:visible=True:target=(-506,240)-(-406,282):viewport=(x:-736.00, y:-414.00, width:1472.00, height:828.00)
-PASS MODULE_INSTALL_POINTER_1600x900_HIT_TEST point=(344.00, 711.00); hits=2; top=EquipmentModuleInstall_item-instance_02a4d217977148f09605bf6a7e49d86d_item-instance_7589ba653b524875bb31e8bc1e4ea24c_0; handler=EquipmentModuleInstall_item-instance_02a4d217977148f09605bf6a7e49d86d_item-instance_7589ba653b524875bb31e8bc1e4ea24c_0; expected=EquipmentModuleInstall_item-instance_02a4d217977148f09605bf6a7e49d86d_item-instance_7589ba653b524875bb31e8bc1e4ea24c_0
+PASS MODULE_INSTALL_POINTER_1600x900_HIT_TEST point=(344.00, 711.00); hits=2; top=EquipmentModuleInstall_item-instance_5dc1259d61b14a3da61487ea59964e8c_item-instance_1beafeb2808442b0a1639c4c8779b1ac_0; handler=EquipmentModuleInstall_item-instance_5dc1259d61b14a3da61487ea59964e8c_item-instance_1beafeb2808442b0a1639c4c8779b1ac_0; expected=EquipmentModuleInstall_item-instance_5dc1259d61b14a3da61487ea59964e8c_item-instance_1beafeb2808442b0a1639c4c8779b1ac_0
 EQUIPMENT_FEEDBACK 부품을 장착했습니다.
-PASS MODULE_INSTALL_POINTER_1600x900_DISPATCH top=EquipmentModuleInstall_item-instance_02a4d217977148f09605bf6a7e49d86d_item-instance_7589ba653b524875bb31e8bc1e4ea24c_0; point=(344.00, 711.00)
-PASS EQUIPMENT_FACILITY_COMMANDS_precision-fitting_1600x900 visible=EquipmentModuleRemove_item-instance_7589ba653b524875bb31e8bc1e4ea24c_0; missing=; forbidden=
-PASS MODULE_REMOVE_POINTER_1600x900_TARGET button=EquipmentModuleRemove_item-instance_7589ba653b524875bb31e8bc1e4ea24c_0; active=True; interactable=True; eventSystem=True
+PASS MODULE_INSTALL_POINTER_1600x900_DISPATCH top=EquipmentModuleInstall_item-instance_5dc1259d61b14a3da61487ea59964e8c_item-instance_1beafeb2808442b0a1639c4c8779b1ac_0; point=(344.00, 711.00)
+PASS EQUIPMENT_FACILITY_COMMANDS_precision-fitting_1600x900 visible=EquipmentModuleRemove_item-instance_1beafeb2808442b0a1639c4c8779b1ac_0; missing=; forbidden=
+PASS MODULE_REMOVE_POINTER_1600x900_TARGET button=EquipmentModuleRemove_item-instance_1beafeb2808442b0a1639c4c8779b1ac_0; active=True; interactable=True; eventSystem=True
 PASS MODULE_REMOVE_POINTER_1600x900_VIEWPORT EquipmentViewport:visible=True:target=(-506,306)-(-406,348):viewport=(x:-736.00, y:-414.00, width:1472.00, height:828.00)
-PASS MODULE_REMOVE_POINTER_1600x900_HIT_TEST point=(344.00, 777.00); hits=2; top=EquipmentModuleRemove_item-instance_7589ba653b524875bb31e8bc1e4ea24c_0; handler=EquipmentModuleRemove_item-instance_7589ba653b524875bb31e8bc1e4ea24c_0; expected=EquipmentModuleRemove_item-instance_7589ba653b524875bb31e8bc1e4ea24c_0
+PASS MODULE_REMOVE_POINTER_1600x900_HIT_TEST point=(344.00, 777.00); hits=2; top=EquipmentModuleRemove_item-instance_1beafeb2808442b0a1639c4c8779b1ac_0; handler=EquipmentModuleRemove_item-instance_1beafeb2808442b0a1639c4c8779b1ac_0; expected=EquipmentModuleRemove_item-instance_1beafeb2808442b0a1639c4c8779b1ac_0
 EQUIPMENT_FEEDBACK 부품을 제거했습니다. 상태 70 %로 반환합니다.
-PASS MODULE_REMOVE_POINTER_1600x900_DISPATCH top=EquipmentModuleRemove_item-instance_7589ba653b524875bb31e8bc1e4ea24c_0; point=(344.00, 777.00)
-PASS MODULE_REMOVAL_BUFFER_1600x900 module=item-instance:02a4d217977148f09605bf6a7e49d86d; stack=stack:5429076887684dc395e7bb6aae712779; state=FacilityBuffer; destination=building:13043798072142cfa89b041a7c984794; expected=building:13043798072142cfa89b041a7c984794
+PASS MODULE_REMOVE_POINTER_1600x900_DISPATCH top=EquipmentModuleRemove_item-instance_1beafeb2808442b0a1639c4c8779b1ac_0; point=(344.00, 777.00)
+PASS MODULE_REMOVAL_BUFFER_1600x900 module=item-instance:5dc1259d61b14a3da61487ea59964e8c; stack=stack:a2d25f3e0d6844c29eab791c1aa66faf; state=FacilityBuffer; destination=building:3d7659d895e14ea49a86b0f776230fe5; expected=building:3d7659d895e14ea49a86b0f776230fe5
 PASS EQUIPMENT_FACILITY_SELECTED_wrong 대장작업대
 PASS EQUIPMENT_FACILITY_COMMANDS_wrong_1600x900 visible=; missing=; forbidden=
 PASS EQUIPMENT_FACILITY_SELECTED_lineage 계보 기록실
-PASS LINEAGE_FACILITY_BUFFER_ROUTE destination=building:986933ac068c4271920d9ec0ed7c630a; stacks=stack:586e9215b4b2489a8b995056c34dcd46,stack:9b87d20ffe5d4b89a1c4f69cb9334596,stack:24d2561afc504455b73f7470022e967a
-PASS EQUIPMENT_FACILITY_COMMANDS_lineage_1600x900 visible=EquipmentLineageConfirm,EquipmentLineageSeal_stack_24d2561afc504455b73f7470022e967a,EquipmentLineageSource_item-instance_730525684f5e4550b7c9a0eaf0e2deda,EquipmentLineageSource_item-instance_7589ba653b524875bb31e8bc1e4ea24c,EquipmentLineageTarget_item-instance_730525684f5e4550b7c9a0eaf0e2deda,EquipmentLineageTarget_item-instance_7589ba653b524875bb31e8bc1e4ea24c; missing=; forbidden=
-PASS LINEAGE_SOURCE_POINTER_1600x900_TARGET button=EquipmentLineageSource_item-instance_730525684f5e4550b7c9a0eaf0e2deda; active=True; interactable=True; eventSystem=True
+PASS LINEAGE_FACILITY_BUFFER_ROUTE destination=building:df0425965f3d4a2794a05b773960c7de; stacks=stack:b1f21b4f62fe47038205a24063b1127d,stack:ae50be12afc34cc686388870ef65640f,stack:473849cba72a4be28b0ec28254d4077f
+PASS EQUIPMENT_FACILITY_COMMANDS_lineage_1600x900 visible=EquipmentLineageConfirm,EquipmentLineageSeal_stack_473849cba72a4be28b0ec28254d4077f,EquipmentLineageSource_item-instance_1beafeb2808442b0a1639c4c8779b1ac,EquipmentLineageSource_item-instance_c85db6dde1154182b94f195b41890ada,EquipmentLineageTarget_item-instance_1beafeb2808442b0a1639c4c8779b1ac,EquipmentLineageTarget_item-instance_c85db6dde1154182b94f195b41890ada; missing=; forbidden=
+PASS LINEAGE_SOURCE_POINTER_1600x900_TARGET button=EquipmentLineageSource_item-instance_c85db6dde1154182b94f195b41890ada; active=True; interactable=True; eventSystem=True
 PASS LINEAGE_SOURCE_POINTER_1600x900_VIEWPORT EquipmentViewport:visible=True:target=(-506,194)-(-406,240):viewport=(x:-736.00, y:-414.00, width:1472.00, height:828.00)
-PASS LINEAGE_SOURCE_POINTER_1600x900_HIT_TEST point=(344.00, 667.00); hits=2; top=EquipmentLineageSource_item-instance_730525684f5e4550b7c9a0eaf0e2deda; handler=EquipmentLineageSource_item-instance_730525684f5e4550b7c9a0eaf0e2deda; expected=EquipmentLineageSource_item-instance_730525684f5e4550b7c9a0eaf0e2deda
-PASS LINEAGE_SOURCE_POINTER_1600x900_DISPATCH top=EquipmentLineageSource_item-instance_730525684f5e4550b7c9a0eaf0e2deda; point=(344.00, 667.00)
-PASS LINEAGE_TARGET_POINTER_1600x900_TARGET button=EquipmentLineageTarget_item-instance_7589ba653b524875bb31e8bc1e4ea24c; active=True; interactable=True; eventSystem=True
+PASS LINEAGE_SOURCE_POINTER_1600x900_HIT_TEST point=(344.00, 667.00); hits=2; top=EquipmentLineageSource_item-instance_c85db6dde1154182b94f195b41890ada; handler=EquipmentLineageSource_item-instance_c85db6dde1154182b94f195b41890ada; expected=EquipmentLineageSource_item-instance_c85db6dde1154182b94f195b41890ada
+PASS LINEAGE_SOURCE_POINTER_1600x900_DISPATCH top=EquipmentLineageSource_item-instance_c85db6dde1154182b94f195b41890ada; point=(344.00, 667.00)
+PASS LINEAGE_TARGET_POINTER_1600x900_TARGET button=EquipmentLineageTarget_item-instance_1beafeb2808442b0a1639c4c8779b1ac; active=True; interactable=True; eventSystem=True
 PASS LINEAGE_TARGET_POINTER_1600x900_VIEWPORT EquipmentViewport:visible=True:target=(-506,248)-(-406,294):viewport=(x:-736.00, y:-414.00, width:1472.00, height:828.00)
-PASS LINEAGE_TARGET_POINTER_1600x900_HIT_TEST point=(344.00, 721.00); hits=2; top=EquipmentLineageTarget_item-instance_7589ba653b524875bb31e8bc1e4ea24c; handler=EquipmentLineageTarget_item-instance_7589ba653b524875bb31e8bc1e4ea24c; expected=EquipmentLineageTarget_item-instance_7589ba653b524875bb31e8bc1e4ea24c
-PASS LINEAGE_TARGET_POINTER_1600x900_DISPATCH top=EquipmentLineageTarget_item-instance_7589ba653b524875bb31e8bc1e4ea24c; point=(344.00, 721.00)
-PASS LINEAGE_SEAL_POINTER_1600x900_TARGET button=EquipmentLineageSeal_stack_24d2561afc504455b73f7470022e967a; active=True; interactable=True; eventSystem=True
+PASS LINEAGE_TARGET_POINTER_1600x900_HIT_TEST point=(344.00, 721.00); hits=2; top=EquipmentLineageTarget_item-instance_1beafeb2808442b0a1639c4c8779b1ac; handler=EquipmentLineageTarget_item-instance_1beafeb2808442b0a1639c4c8779b1ac; expected=EquipmentLineageTarget_item-instance_1beafeb2808442b0a1639c4c8779b1ac
+PASS LINEAGE_TARGET_POINTER_1600x900_DISPATCH top=EquipmentLineageTarget_item-instance_1beafeb2808442b0a1639c4c8779b1ac; point=(344.00, 721.00)
+PASS LINEAGE_SEAL_POINTER_1600x900_TARGET button=EquipmentLineageSeal_stack_473849cba72a4be28b0ec28254d4077f; active=True; interactable=True; eventSystem=True
 PASS LINEAGE_SEAL_POINTER_1600x900_VIEWPORT EquipmentViewport:visible=True:target=(-506,90)-(-406,132):viewport=(x:-736.00, y:-414.00, width:1472.00, height:828.00)
-PASS LINEAGE_SEAL_POINTER_1600x900_HIT_TEST point=(344.00, 561.00); hits=2; top=EquipmentLineageSeal_stack_24d2561afc504455b73f7470022e967a; handler=EquipmentLineageSeal_stack_24d2561afc504455b73f7470022e967a; expected=EquipmentLineageSeal_stack_24d2561afc504455b73f7470022e967a
-PASS LINEAGE_SEAL_POINTER_1600x900_DISPATCH top=EquipmentLineageSeal_stack_24d2561afc504455b73f7470022e967a; point=(344.00, 561.00)
+PASS LINEAGE_SEAL_POINTER_1600x900_HIT_TEST point=(344.00, 561.00); hits=2; top=EquipmentLineageSeal_stack_473849cba72a4be28b0ec28254d4077f; handler=EquipmentLineageSeal_stack_473849cba72a4be28b0ec28254d4077f; expected=EquipmentLineageSeal_stack_473849cba72a4be28b0ec28254d4077f
+PASS LINEAGE_SEAL_POINTER_1600x900_DISPATCH top=EquipmentLineageSeal_stack_473849cba72a4be28b0ec28254d4077f; point=(344.00, 561.00)
 PASS LINEAGE_CONFIRM_POINTER_1600x900_TARGET button=EquipmentLineageConfirm; active=True; interactable=True; eventSystem=True
 PASS LINEAGE_CONFIRM_POINTER_1600x900_VIEWPORT EquipmentViewport:visible=True:target=(-712,-36)-(712,-32):viewport=(x:-736.00, y:-414.00, width:1472.00, height:828.00)
 PASS LINEAGE_CONFIRM_POINTER_1600x900_HIT_TEST point=(800.00, 416.00); hits=2; top=EquipmentLineageConfirm; handler=EquipmentLineageConfirm; expected=EquipmentLineageConfirm
 EQUIPMENT_FEEDBACK 계보 이전 작업을 주문했습니다.
 PASS LINEAGE_CONFIRM_POINTER_1600x900_DISPATCH top=EquipmentLineageConfirm; point=(800.00, 416.00)
 PASS EQUIPMENT_MODULE_POINTER_1600x900 appraise=True; restore=True; tune=True; install=True; remove=True
-PASS EQUIPMENT_MODULE_STATE_1600x900 appraise=IdentifiedDamaged; restore=Restored; tune=Tuned:True; absorbed=True:stack:f2eb8a74882c4472947b685d11d17c73; removed=IdentifiedDamaged:0.70:stack:5429076887684dc395e7bb6aae712779; recreated=True
+PASS EQUIPMENT_MODULE_STATE_1600x900 appraise=IdentifiedDamaged; restore=Restored; tune=Tuned:True; absorbed=True:stack:eea1366f59e84f8489d7c0d00a7c705e; removed=IdentifiedDamaged:0.70:stack:a2d25f3e0d6844c29eab791c1aa66faf; recreated=True
 PASS EQUIPMENT_LINEAGE_POINTER_1600x900 source=True; target=True; seal=True; confirm=True; queued=True
-PASS LINEAGE_BUFFER_1600x900 destination=building:986933ac068c4271920d9ec0ed7c630a; expected=3; delivered=stack:586e9215b4b2489a8b995056c34dcd46,stack:9b87d20ffe5d4b89a1c4f69cb9334596,stack:24d2561afc504455b73f7470022e967a
+PASS LINEAGE_BUFFER_1600x900 destination=building:df0425965f3d4a2794a05b773960c7de; expected=3; delivered=stack:b1f21b4f62fe47038205a24063b1127d,stack:ae50be12afc34cc686388870ef65640f,stack:473849cba72a4be28b0ec28254d4077f
 PASS EQUIPMENT_BOUNDS_1600x900 (0, 0, 0),(0, 900, 0),(1600, 900, 0),(1600, 0, 0)
 PASS EQUIPMENT_CAPTURE_1600x900 size=1600x900; path=Artifacts/QA/equipment-expedition-equipment-1600x900.png
 PASS EQUIPMENT_LINEAGE_CONSUMPTION_1600x900 work=True; completed=True; failure=None; source=True; seal=True; target=True
@@ -128,98 +132,102 @@ PASS OFFENSE_STATE_RESTORED canonical snapshot matched
 PASS EQUIPMENT_FACILITY_SCOPE runtime container available
 PASS EQUIPMENT_FACILITY_ASSET_appraisal Assets/Resources/SO/Building/ResearchOverhaul/RF42_부품_감정대.asset
 PASS EQUIPMENT_FACILITY_TAG_appraisal expected=workstation:v3:appraisal; actual=workstation:v3:appraisal
-FACILITY key=appraisal; code=RF42; asset=Assets/Resources/SO/Building/ResearchOverhaul/RF42_부품_감정대.asset; id=building:b873bef2392a4f5b9c75199e955be67a
+FACILITY key=appraisal; code=RF42; asset=Assets/Resources/SO/Building/ResearchOverhaul/RF42_부품_감정대.asset; id=building:13322d046e2c43779f75e7b9d961e304
 PASS EQUIPMENT_FACILITY_ASSET_restoration Assets/Resources/SO/Building/ResearchOverhaul/RF43_부품_복원_작업대.asset
 PASS EQUIPMENT_FACILITY_TAG_restoration expected=workstation:v3:restoration; actual=workstation:v3:restoration
-FACILITY key=restoration; code=RF43; asset=Assets/Resources/SO/Building/ResearchOverhaul/RF43_부품_복원_작업대.asset; id=building:cd3dec30cfa64ea4a546c744640d37d8
+FACILITY key=restoration; code=RF43; asset=Assets/Resources/SO/Building/ResearchOverhaul/RF43_부품_복원_작업대.asset; id=building:4d55a8f171064da58a3fe02d1cce61e8
 PASS EQUIPMENT_FACILITY_ASSET_precision-fitting Assets/Resources/SO/Building/ResearchOverhaul/RF44_정밀_장착대.asset
 PASS EQUIPMENT_FACILITY_TAG_precision-fitting expected=workstation:v3:precision-fitting; actual=workstation:v3:precision-fitting
-FACILITY key=precision-fitting; code=RF44; asset=Assets/Resources/SO/Building/ResearchOverhaul/RF44_정밀_장착대.asset; id=building:1e7332441f9845729f5ef3b264ba0d8a
+FACILITY key=precision-fitting; code=RF44; asset=Assets/Resources/SO/Building/ResearchOverhaul/RF44_정밀_장착대.asset; id=building:dd4f8faf62a848d59648368cd4929ce4
 PASS EQUIPMENT_FACILITY_ASSET_rune-tuning Assets/Resources/SO/Building/Industrial/I17_룬_조율실.asset
 PASS EQUIPMENT_FACILITY_TAG_rune-tuning expected=workstation:v3:rune-tuning; actual=workstation:v3:rune-tuning
-FACILITY key=rune-tuning; code=I17; asset=Assets/Resources/SO/Building/Industrial/I17_룬_조율실.asset; id=building:1556851fde5b4b0ba57829516c992109
+FACILITY key=rune-tuning; code=I17; asset=Assets/Resources/SO/Building/Industrial/I17_룬_조율실.asset; id=building:e745e8672dac4ba7a8dc250c1988697f
+PASS EQUIPMENT_FACILITY_ASSET_resonance-support Assets/Resources/SO/Building/ResearchOverhaul/RF97_공명_조율실.asset
+PASS EQUIPMENT_FACILITY_TAG_resonance-support expected=; actual=workstation:v21:resonance-tuning
+FACILITY key=resonance-support; code=RF97; asset=Assets/Resources/SO/Building/ResearchOverhaul/RF97_공명_조율실.asset; id=building:e5602a98d48e49258032e8a66ed65804
 PASS EQUIPMENT_FACILITY_ASSET_lineage Assets/Resources/SO/Building/Industrial/I18_계보_기록실.asset
 PASS EQUIPMENT_FACILITY_TAG_lineage expected=workstation:v3:lineage-archive; actual=workstation:v3:lineage-archive
-FACILITY key=lineage; code=I18; asset=Assets/Resources/SO/Building/Industrial/I18_계보_기록실.asset; id=building:acd7b0feaeab47e0a241d8afd9e46871
+FACILITY key=lineage; code=I18; asset=Assets/Resources/SO/Building/Industrial/I18_계보_기록실.asset; id=building:8f8c591d994144adae4d3924dfe738ea
 PASS EQUIPMENT_FACILITY_ASSET_wrong Assets/Resources/SO/Building/Modular/S08_대장작업대.asset
 PASS EQUIPMENT_FACILITY_TAG_wrong expected=; actual=workstation:forge-basic
-FACILITY key=wrong; code=S08; asset=Assets/Resources/SO/Building/Modular/S08_대장작업대.asset; id=building:0ee7d90732904399b54016d86941d482
-PASS EQUIPMENT_PHYSICAL_weapon:longsword spawned=True; stack=stack:4d676c6d35d44df39cb0d7c1fd6d6f42
-PASS EQUIPMENT_PHYSICAL_weapon:greatsword spawned=True; stack=stack:888a32c85e454c0583d6e684c6961eb8
-PASS EQUIPMENT_COMMAND_SEED module=item-instance:347042cbf1eb43a68a619a24b481b886; stack=stack:ca4f9478d40b46f2829a008c79cc48ee; history=True
-PASS LINEAGE_SEAL_SEEDED spawned=1; stack=stack:4e4091d426ca4bb1a391ae6cf043a092
-SEED equipment=item-instance:a1be5fc4529143be92276f2f9281fb41,item-instance:f6c3d4dc3e2c4e40ad7d85382d1f4978; module=item-instance:347042cbf1eb43a68a619a24b481b886:stack:ca4f9478d40b46f2829a008c79cc48ee
+FACILITY key=wrong; code=S08; asset=Assets/Resources/SO/Building/Modular/S08_대장작업대.asset; id=building:d4186c4064c340d6824e48aa68847552
+PASS EQUIPMENT_PHYSICAL_weapon:longsword spawned=True; stack=stack:3e5eb84ea2184816a723ade0e4e2ff37
+PASS EQUIPMENT_PHYSICAL_weapon:greatsword spawned=True; stack=stack:87031a8016514961a69b7940c9d42e31
+PASS EQUIPMENT_APPRAISAL_SUPPLIES coupon=1; ready=True
+PASS EQUIPMENT_COMMAND_SEED module=item-instance:bf00cd2f60674237b645e743c6439f42; stack=stack:09e8ddb7663046cc9a82dccc7830d272; history=True
+PASS LINEAGE_SEAL_SEEDED spawned=1; stack=stack:4191977d1ba84836964be9d30031f7d1
+SEED equipment=item-instance:420a62463821473581d576acf394df13,item-instance:1240e9ff14aa4e6da6955fe86278cd75; module=item-instance:bf00cd2f60674237b645e743c6439f42:stack:09e8ddb7663046cc9a82dccc7830d272
 PASS EQUIPMENT_FACILITY_SELECTED_appraisal 부품 감정대
-PASS EQUIPMENT_FACILITY_COMMANDS_appraisal_900x1600 visible=EquipmentModuleAppraise_item-instance_347042cbf1eb43a68a619a24b481b886; missing=; forbidden=
-PASS MODULE_APPRAISAL_POINTER_900x1600_TARGET button=EquipmentModuleAppraise_item-instance_347042cbf1eb43a68a619a24b481b886; active=True; interactable=True; eventSystem=True
+PASS EQUIPMENT_FACILITY_COMMANDS_appraisal_900x1600 visible=EquipmentModuleAppraise_item-instance_bf00cd2f60674237b645e743c6439f42; missing=; forbidden=
+PASS MODULE_APPRAISAL_POINTER_900x1600_TARGET button=EquipmentModuleAppraise_item-instance_bf00cd2f60674237b645e743c6439f42; active=True; interactable=True; eventSystem=True
 PASS MODULE_APPRAISAL_POINTER_900x1600_VIEWPORT EquipmentViewport:visible=True:target=(-506,1184.4)-(-406,1242.4):viewport=(x:-736.00, y:-1308.44, width:1472.00, height:2616.89)
-PASS MODULE_APPRAISAL_POINTER_900x1600_HIT_TEST point=(193.50, 1482.56); hits=4; top=EquipmentModuleAppraise_item-instance_347042cbf1eb43a68a619a24b481b886; handler=EquipmentModuleAppraise_item-instance_347042cbf1eb43a68a619a24b481b886; expected=EquipmentModuleAppraise_item-instance_347042cbf1eb43a68a619a24b481b886
+PASS MODULE_APPRAISAL_POINTER_900x1600_HIT_TEST point=(193.50, 1482.56); hits=4; top=EquipmentModuleAppraise_item-instance_bf00cd2f60674237b645e743c6439f42; handler=EquipmentModuleAppraise_item-instance_bf00cd2f60674237b645e743c6439f42; expected=EquipmentModuleAppraise_item-instance_bf00cd2f60674237b645e743c6439f42
 EQUIPMENT_FEEDBACK 부품 감정을 완료했습니다.
-PASS MODULE_APPRAISAL_POINTER_900x1600_DISPATCH top=EquipmentModuleAppraise_item-instance_347042cbf1eb43a68a619a24b481b886; point=(193.50, 1482.56)
-PASS MODULE_APPRAISAL_BUFFER_900x1600 module=item-instance:347042cbf1eb43a68a619a24b481b886; stack=stack:ca4f9478d40b46f2829a008c79cc48ee; state=FacilityBuffer; destination=building:b873bef2392a4f5b9c75199e955be67a; expected=building:b873bef2392a4f5b9c75199e955be67a
-PASS MODULE_ROUTE_RESTORATION_900x1600 module=item-instance:347042cbf1eb43a68a619a24b481b886; stack=stack:ca4f9478d40b46f2829a008c79cc48ee; destination=building:cd3dec30cfa64ea4a546c744640d37d8
-PASS MODULE_ROUTE_RESTORATION_900x1600_STATE module=item-instance:347042cbf1eb43a68a619a24b481b886; stack=stack:ca4f9478d40b46f2829a008c79cc48ee; state=FacilityBuffer; destination=building:cd3dec30cfa64ea4a546c744640d37d8; expected=building:cd3dec30cfa64ea4a546c744640d37d8
+PASS MODULE_APPRAISAL_POINTER_900x1600_DISPATCH top=EquipmentModuleAppraise_item-instance_bf00cd2f60674237b645e743c6439f42; point=(193.50, 1482.56)
+PASS MODULE_APPRAISAL_BUFFER_900x1600 module=item-instance:bf00cd2f60674237b645e743c6439f42; stack=stack:09e8ddb7663046cc9a82dccc7830d272; state=FacilityBuffer; destination=building:13322d046e2c43779f75e7b9d961e304; expected=building:13322d046e2c43779f75e7b9d961e304
+PASS MODULE_ROUTE_RESTORATION_900x1600 module=item-instance:bf00cd2f60674237b645e743c6439f42; stack=stack:09e8ddb7663046cc9a82dccc7830d272; destination=building:4d55a8f171064da58a3fe02d1cce61e8
+PASS MODULE_ROUTE_RESTORATION_900x1600_STATE module=item-instance:bf00cd2f60674237b645e743c6439f42; stack=stack:09e8ddb7663046cc9a82dccc7830d272; state=FacilityBuffer; destination=building:4d55a8f171064da58a3fe02d1cce61e8; expected=building:4d55a8f171064da58a3fe02d1cce61e8
 PASS EQUIPMENT_FACILITY_SELECTED_restoration 부품 복원 작업대
-PASS EQUIPMENT_FACILITY_COMMANDS_restoration_900x1600 visible=EquipmentModuleRestore_item-instance_347042cbf1eb43a68a619a24b481b886; missing=; forbidden=
-PASS MODULE_RESTORATION_POINTER_900x1600_TARGET button=EquipmentModuleRestore_item-instance_347042cbf1eb43a68a619a24b481b886; active=True; interactable=True; eventSystem=True
+PASS EQUIPMENT_FACILITY_COMMANDS_restoration_900x1600 visible=EquipmentModuleRestore_item-instance_bf00cd2f60674237b645e743c6439f42; missing=; forbidden=
+PASS MODULE_RESTORATION_POINTER_900x1600_TARGET button=EquipmentModuleRestore_item-instance_bf00cd2f60674237b645e743c6439f42; active=True; interactable=True; eventSystem=True
 PASS MODULE_RESTORATION_POINTER_900x1600_VIEWPORT EquipmentViewport:visible=True:target=(-506,1184.4)-(-406,1242.4):viewport=(x:-736.00, y:-1308.44, width:1472.00, height:2616.89)
-PASS MODULE_RESTORATION_POINTER_900x1600_HIT_TEST point=(193.50, 1482.56); hits=4; top=EquipmentModuleRestore_item-instance_347042cbf1eb43a68a619a24b481b886; handler=EquipmentModuleRestore_item-instance_347042cbf1eb43a68a619a24b481b886; expected=EquipmentModuleRestore_item-instance_347042cbf1eb43a68a619a24b481b886
+PASS MODULE_RESTORATION_POINTER_900x1600_HIT_TEST point=(193.50, 1482.56); hits=4; top=EquipmentModuleRestore_item-instance_bf00cd2f60674237b645e743c6439f42; handler=EquipmentModuleRestore_item-instance_bf00cd2f60674237b645e743c6439f42; expected=EquipmentModuleRestore_item-instance_bf00cd2f60674237b645e743c6439f42
 EQUIPMENT_FEEDBACK 부품 복원을 완료했습니다.
-PASS MODULE_RESTORATION_POINTER_900x1600_DISPATCH top=EquipmentModuleRestore_item-instance_347042cbf1eb43a68a619a24b481b886; point=(193.50, 1482.56)
-PASS MODULE_RESTORATION_BUFFER_900x1600 module=item-instance:347042cbf1eb43a68a619a24b481b886; stack=stack:ca4f9478d40b46f2829a008c79cc48ee; state=FacilityBuffer; destination=building:cd3dec30cfa64ea4a546c744640d37d8; expected=building:cd3dec30cfa64ea4a546c744640d37d8
-PASS MODULE_ROUTE_RUNE_TUNING_900x1600 module=item-instance:347042cbf1eb43a68a619a24b481b886; stack=stack:ca4f9478d40b46f2829a008c79cc48ee; destination=building:1556851fde5b4b0ba57829516c992109
-PASS MODULE_ROUTE_RUNE_TUNING_900x1600_STATE module=item-instance:347042cbf1eb43a68a619a24b481b886; stack=stack:ca4f9478d40b46f2829a008c79cc48ee; state=FacilityBuffer; destination=building:1556851fde5b4b0ba57829516c992109; expected=building:1556851fde5b4b0ba57829516c992109
+PASS MODULE_RESTORATION_POINTER_900x1600_DISPATCH top=EquipmentModuleRestore_item-instance_bf00cd2f60674237b645e743c6439f42; point=(193.50, 1482.56)
+PASS MODULE_RESTORATION_BUFFER_900x1600 module=item-instance:bf00cd2f60674237b645e743c6439f42; stack=stack:09e8ddb7663046cc9a82dccc7830d272; state=FacilityBuffer; destination=building:4d55a8f171064da58a3fe02d1cce61e8; expected=building:4d55a8f171064da58a3fe02d1cce61e8
+PASS MODULE_ROUTE_RUNE_TUNING_900x1600 module=item-instance:bf00cd2f60674237b645e743c6439f42; stack=stack:09e8ddb7663046cc9a82dccc7830d272; destination=building:e745e8672dac4ba7a8dc250c1988697f
+PASS MODULE_ROUTE_RUNE_TUNING_900x1600_STATE module=item-instance:bf00cd2f60674237b645e743c6439f42; stack=stack:09e8ddb7663046cc9a82dccc7830d272; state=FacilityBuffer; destination=building:e745e8672dac4ba7a8dc250c1988697f; expected=building:e745e8672dac4ba7a8dc250c1988697f
 PASS EQUIPMENT_FACILITY_SELECTED_rune-tuning 룬 조율실
-PASS EQUIPMENT_FACILITY_COMMANDS_rune-tuning_900x1600 visible=EquipmentModuleTune_item-instance_347042cbf1eb43a68a619a24b481b886; missing=; forbidden=
-PASS MODULE_RUNE_TUNING_POINTER_900x1600_TARGET button=EquipmentModuleTune_item-instance_347042cbf1eb43a68a619a24b481b886; active=True; interactable=True; eventSystem=True
+PASS EQUIPMENT_FACILITY_COMMANDS_rune-tuning_900x1600 visible=EquipmentModuleTune_item-instance_bf00cd2f60674237b645e743c6439f42; missing=; forbidden=
+PASS MODULE_RUNE_TUNING_POINTER_900x1600_TARGET button=EquipmentModuleTune_item-instance_bf00cd2f60674237b645e743c6439f42; active=True; interactable=True; eventSystem=True
 PASS MODULE_RUNE_TUNING_POINTER_900x1600_VIEWPORT EquipmentViewport:visible=True:target=(-506,1184.4)-(-406,1242.4):viewport=(x:-736.00, y:-1308.44, width:1472.00, height:2616.89)
-PASS MODULE_RUNE_TUNING_POINTER_900x1600_HIT_TEST point=(193.50, 1482.56); hits=4; top=EquipmentModuleTune_item-instance_347042cbf1eb43a68a619a24b481b886; handler=EquipmentModuleTune_item-instance_347042cbf1eb43a68a619a24b481b886; expected=EquipmentModuleTune_item-instance_347042cbf1eb43a68a619a24b481b886
+PASS MODULE_RUNE_TUNING_POINTER_900x1600_HIT_TEST point=(193.50, 1482.56); hits=4; top=EquipmentModuleTune_item-instance_bf00cd2f60674237b645e743c6439f42; handler=EquipmentModuleTune_item-instance_bf00cd2f60674237b645e743c6439f42; expected=EquipmentModuleTune_item-instance_bf00cd2f60674237b645e743c6439f42
 EQUIPMENT_FEEDBACK 4등급 부품의 룬 조율을 완료했습니다.
-PASS MODULE_RUNE_TUNING_POINTER_900x1600_DISPATCH top=EquipmentModuleTune_item-instance_347042cbf1eb43a68a619a24b481b886; point=(193.50, 1482.56)
-PASS MODULE_RUNE_TUNING_BUFFER_900x1600 module=item-instance:347042cbf1eb43a68a619a24b481b886; stack=stack:ca4f9478d40b46f2829a008c79cc48ee; state=FacilityBuffer; destination=building:1556851fde5b4b0ba57829516c992109; expected=building:1556851fde5b4b0ba57829516c992109
-PASS MODULE_ROUTE_PRECISION_FITTING_900x1600 module=item-instance:347042cbf1eb43a68a619a24b481b886; stack=stack:ca4f9478d40b46f2829a008c79cc48ee; destination=building:1e7332441f9845729f5ef3b264ba0d8a
-PASS MODULE_ROUTE_PRECISION_FITTING_900x1600_STATE module=item-instance:347042cbf1eb43a68a619a24b481b886; stack=stack:ca4f9478d40b46f2829a008c79cc48ee; state=FacilityBuffer; destination=building:1e7332441f9845729f5ef3b264ba0d8a; expected=building:1e7332441f9845729f5ef3b264ba0d8a
-PASS EQUIPMENT_ROUTE_PRECISION_FITTING_900x1600 equipment=item-instance:f6c3d4dc3e2c4e40ad7d85382d1f4978; stack=stack:888a32c85e454c0583d6e684c6961eb8; destination=building:1e7332441f9845729f5ef3b264ba0d8a
+PASS MODULE_RUNE_TUNING_POINTER_900x1600_DISPATCH top=EquipmentModuleTune_item-instance_bf00cd2f60674237b645e743c6439f42; point=(193.50, 1482.56)
+PASS MODULE_RUNE_TUNING_BUFFER_900x1600 module=item-instance:bf00cd2f60674237b645e743c6439f42; stack=stack:09e8ddb7663046cc9a82dccc7830d272; state=FacilityBuffer; destination=building:e745e8672dac4ba7a8dc250c1988697f; expected=building:e745e8672dac4ba7a8dc250c1988697f
+PASS MODULE_ROUTE_PRECISION_FITTING_900x1600 module=item-instance:bf00cd2f60674237b645e743c6439f42; stack=stack:09e8ddb7663046cc9a82dccc7830d272; destination=building:dd4f8faf62a848d59648368cd4929ce4
+PASS MODULE_ROUTE_PRECISION_FITTING_900x1600_STATE module=item-instance:bf00cd2f60674237b645e743c6439f42; stack=stack:09e8ddb7663046cc9a82dccc7830d272; state=FacilityBuffer; destination=building:dd4f8faf62a848d59648368cd4929ce4; expected=building:dd4f8faf62a848d59648368cd4929ce4
+PASS EQUIPMENT_ROUTE_PRECISION_FITTING_900x1600 equipment=item-instance:1240e9ff14aa4e6da6955fe86278cd75; stack=stack:87031a8016514961a69b7940c9d42e31; destination=building:dd4f8faf62a848d59648368cd4929ce4
 PASS EQUIPMENT_FACILITY_SELECTED_precision-fitting 정밀 장착대
-PASS EQUIPMENT_FACILITY_COMMANDS_precision-fitting_900x1600 visible=EquipmentModuleInstall_item-instance_347042cbf1eb43a68a619a24b481b886_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978_0,EquipmentModuleInstall_item-instance_347042cbf1eb43a68a619a24b481b886_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978_1,EquipmentModuleInstall_item-instance_347042cbf1eb43a68a619a24b481b886_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978_2; missing=; forbidden=
-PASS MODULE_INSTALL_POINTER_900x1600_TARGET button=EquipmentModuleInstall_item-instance_347042cbf1eb43a68a619a24b481b886_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978_0; active=True; interactable=True; eventSystem=True
+PASS EQUIPMENT_FACILITY_COMMANDS_precision-fitting_900x1600 visible=EquipmentModuleInstall_item-instance_bf00cd2f60674237b645e743c6439f42_item-instance_1240e9ff14aa4e6da6955fe86278cd75_0,EquipmentModuleInstall_item-instance_bf00cd2f60674237b645e743c6439f42_item-instance_1240e9ff14aa4e6da6955fe86278cd75_1,EquipmentModuleInstall_item-instance_bf00cd2f60674237b645e743c6439f42_item-instance_1240e9ff14aa4e6da6955fe86278cd75_2; missing=; forbidden=
+PASS MODULE_INSTALL_POINTER_900x1600_TARGET button=EquipmentModuleInstall_item-instance_bf00cd2f60674237b645e743c6439f42_item-instance_1240e9ff14aa4e6da6955fe86278cd75_0; active=True; interactable=True; eventSystem=True
 PASS MODULE_INSTALL_POINTER_900x1600_VIEWPORT EquipmentViewport:visible=True:target=(-506,1134.4)-(-406,1176.4):viewport=(x:-736.00, y:-1308.44, width:1472.00, height:2616.89)
-PASS MODULE_INSTALL_POINTER_900x1600_HIT_TEST point=(193.50, 1449.94); hits=4; top=EquipmentModuleInstall_item-instance_347042cbf1eb43a68a619a24b481b886_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978_0; handler=EquipmentModuleInstall_item-instance_347042cbf1eb43a68a619a24b481b886_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978_0; expected=EquipmentModuleInstall_item-instance_347042cbf1eb43a68a619a24b481b886_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978_0
+PASS MODULE_INSTALL_POINTER_900x1600_HIT_TEST point=(193.50, 1449.94); hits=4; top=EquipmentModuleInstall_item-instance_bf00cd2f60674237b645e743c6439f42_item-instance_1240e9ff14aa4e6da6955fe86278cd75_0; handler=EquipmentModuleInstall_item-instance_bf00cd2f60674237b645e743c6439f42_item-instance_1240e9ff14aa4e6da6955fe86278cd75_0; expected=EquipmentModuleInstall_item-instance_bf00cd2f60674237b645e743c6439f42_item-instance_1240e9ff14aa4e6da6955fe86278cd75_0
 EQUIPMENT_FEEDBACK 부품을 장착했습니다.
-PASS MODULE_INSTALL_POINTER_900x1600_DISPATCH top=EquipmentModuleInstall_item-instance_347042cbf1eb43a68a619a24b481b886_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978_0; point=(193.50, 1449.94)
-PASS EQUIPMENT_FACILITY_COMMANDS_precision-fitting_900x1600 visible=EquipmentModuleRemove_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978_0; missing=; forbidden=
-PASS MODULE_REMOVE_POINTER_900x1600_TARGET button=EquipmentModuleRemove_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978_0; active=True; interactable=True; eventSystem=True
+PASS MODULE_INSTALL_POINTER_900x1600_DISPATCH top=EquipmentModuleInstall_item-instance_bf00cd2f60674237b645e743c6439f42_item-instance_1240e9ff14aa4e6da6955fe86278cd75_0; point=(193.50, 1449.94)
+PASS EQUIPMENT_FACILITY_COMMANDS_precision-fitting_900x1600 visible=EquipmentModuleRemove_item-instance_1240e9ff14aa4e6da6955fe86278cd75_0; missing=; forbidden=
+PASS MODULE_REMOVE_POINTER_900x1600_TARGET button=EquipmentModuleRemove_item-instance_1240e9ff14aa4e6da6955fe86278cd75_0; active=True; interactable=True; eventSystem=True
 PASS MODULE_REMOVE_POINTER_900x1600_VIEWPORT EquipmentViewport:visible=True:target=(-506,1200.4)-(-406,1242.4):viewport=(x:-736.00, y:-1308.44, width:1472.00, height:2616.89)
-PASS MODULE_REMOVE_POINTER_900x1600_HIT_TEST point=(193.50, 1487.06); hits=4; top=EquipmentModuleRemove_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978_0; handler=EquipmentModuleRemove_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978_0; expected=EquipmentModuleRemove_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978_0
+PASS MODULE_REMOVE_POINTER_900x1600_HIT_TEST point=(193.50, 1487.06); hits=4; top=EquipmentModuleRemove_item-instance_1240e9ff14aa4e6da6955fe86278cd75_0; handler=EquipmentModuleRemove_item-instance_1240e9ff14aa4e6da6955fe86278cd75_0; expected=EquipmentModuleRemove_item-instance_1240e9ff14aa4e6da6955fe86278cd75_0
 EQUIPMENT_FEEDBACK 부품을 제거했습니다. 상태 70 %로 반환합니다.
-PASS MODULE_REMOVE_POINTER_900x1600_DISPATCH top=EquipmentModuleRemove_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978_0; point=(193.50, 1487.06)
-PASS MODULE_REMOVAL_BUFFER_900x1600 module=item-instance:347042cbf1eb43a68a619a24b481b886; stack=stack:48f1a214c7384a5399ef5a8a9ac1f5f4; state=FacilityBuffer; destination=building:1e7332441f9845729f5ef3b264ba0d8a; expected=building:1e7332441f9845729f5ef3b264ba0d8a
+PASS MODULE_REMOVE_POINTER_900x1600_DISPATCH top=EquipmentModuleRemove_item-instance_1240e9ff14aa4e6da6955fe86278cd75_0; point=(193.50, 1487.06)
+PASS MODULE_REMOVAL_BUFFER_900x1600 module=item-instance:bf00cd2f60674237b645e743c6439f42; stack=stack:76d033ce5c0743e78fed151b6d4aaab1; state=FacilityBuffer; destination=building:dd4f8faf62a848d59648368cd4929ce4; expected=building:dd4f8faf62a848d59648368cd4929ce4
 PASS EQUIPMENT_FACILITY_SELECTED_wrong 대장작업대
 PASS EQUIPMENT_FACILITY_COMMANDS_wrong_900x1600 visible=; missing=; forbidden=
 PASS EQUIPMENT_FACILITY_SELECTED_lineage 계보 기록실
-PASS LINEAGE_FACILITY_BUFFER_ROUTE destination=building:acd7b0feaeab47e0a241d8afd9e46871; stacks=stack:4d676c6d35d44df39cb0d7c1fd6d6f42,stack:888a32c85e454c0583d6e684c6961eb8,stack:4e4091d426ca4bb1a391ae6cf043a092
-PASS EQUIPMENT_FACILITY_COMMANDS_lineage_900x1600 visible=EquipmentLineageConfirm,EquipmentLineageSeal_stack_4e4091d426ca4bb1a391ae6cf043a092,EquipmentLineageSource_item-instance_a1be5fc4529143be92276f2f9281fb41,EquipmentLineageSource_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978,EquipmentLineageTarget_item-instance_a1be5fc4529143be92276f2f9281fb41,EquipmentLineageTarget_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978; missing=; forbidden=
-PASS LINEAGE_SOURCE_POINTER_900x1600_TARGET button=EquipmentLineageSource_item-instance_a1be5fc4529143be92276f2f9281fb41; active=True; interactable=True; eventSystem=True
+PASS LINEAGE_FACILITY_BUFFER_ROUTE destination=building:8f8c591d994144adae4d3924dfe738ea; stacks=stack:3e5eb84ea2184816a723ade0e4e2ff37,stack:87031a8016514961a69b7940c9d42e31,stack:4191977d1ba84836964be9d30031f7d1
+PASS EQUIPMENT_FACILITY_COMMANDS_lineage_900x1600 visible=EquipmentLineageConfirm,EquipmentLineageSeal_stack_4191977d1ba84836964be9d30031f7d1,EquipmentLineageSource_item-instance_1240e9ff14aa4e6da6955fe86278cd75,EquipmentLineageSource_item-instance_420a62463821473581d576acf394df13,EquipmentLineageTarget_item-instance_1240e9ff14aa4e6da6955fe86278cd75,EquipmentLineageTarget_item-instance_420a62463821473581d576acf394df13; missing=; forbidden=
+PASS LINEAGE_SOURCE_POINTER_900x1600_TARGET button=EquipmentLineageSource_item-instance_420a62463821473581d576acf394df13; active=True; interactable=True; eventSystem=True
 PASS LINEAGE_SOURCE_POINTER_900x1600_VIEWPORT EquipmentViewport:visible=True:target=(-506,1088.4)-(-406,1134.4):viewport=(x:-736.00, y:-1308.44, width:1472.00, height:2616.89)
-PASS LINEAGE_SOURCE_POINTER_900x1600_HIT_TEST point=(193.50, 1425.19); hits=4; top=EquipmentLineageSource_item-instance_a1be5fc4529143be92276f2f9281fb41; handler=EquipmentLineageSource_item-instance_a1be5fc4529143be92276f2f9281fb41; expected=EquipmentLineageSource_item-instance_a1be5fc4529143be92276f2f9281fb41
-PASS LINEAGE_SOURCE_POINTER_900x1600_DISPATCH top=EquipmentLineageSource_item-instance_a1be5fc4529143be92276f2f9281fb41; point=(193.50, 1425.19)
-PASS LINEAGE_TARGET_POINTER_900x1600_TARGET button=EquipmentLineageTarget_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978; active=True; interactable=True; eventSystem=True
+PASS LINEAGE_SOURCE_POINTER_900x1600_HIT_TEST point=(193.50, 1425.19); hits=4; top=EquipmentLineageSource_item-instance_420a62463821473581d576acf394df13; handler=EquipmentLineageSource_item-instance_420a62463821473581d576acf394df13; expected=EquipmentLineageSource_item-instance_420a62463821473581d576acf394df13
+PASS LINEAGE_SOURCE_POINTER_900x1600_DISPATCH top=EquipmentLineageSource_item-instance_420a62463821473581d576acf394df13; point=(193.50, 1425.19)
+PASS LINEAGE_TARGET_POINTER_900x1600_TARGET button=EquipmentLineageTarget_item-instance_1240e9ff14aa4e6da6955fe86278cd75; active=True; interactable=True; eventSystem=True
 PASS LINEAGE_TARGET_POINTER_900x1600_VIEWPORT EquipmentViewport:visible=True:target=(-506,1142.4)-(-406,1188.4):viewport=(x:-736.00, y:-1308.44, width:1472.00, height:2616.89)
-PASS LINEAGE_TARGET_POINTER_900x1600_HIT_TEST point=(193.50, 1455.56); hits=4; top=EquipmentLineageTarget_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978; handler=EquipmentLineageTarget_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978; expected=EquipmentLineageTarget_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978
-PASS LINEAGE_TARGET_POINTER_900x1600_DISPATCH top=EquipmentLineageTarget_item-instance_f6c3d4dc3e2c4e40ad7d85382d1f4978; point=(193.50, 1455.56)
-PASS LINEAGE_SEAL_POINTER_900x1600_TARGET button=EquipmentLineageSeal_stack_4e4091d426ca4bb1a391ae6cf043a092; active=True; interactable=True; eventSystem=True
+PASS LINEAGE_TARGET_POINTER_900x1600_HIT_TEST point=(193.50, 1455.56); hits=4; top=EquipmentLineageTarget_item-instance_1240e9ff14aa4e6da6955fe86278cd75; handler=EquipmentLineageTarget_item-instance_1240e9ff14aa4e6da6955fe86278cd75; expected=EquipmentLineageTarget_item-instance_1240e9ff14aa4e6da6955fe86278cd75
+PASS LINEAGE_TARGET_POINTER_900x1600_DISPATCH top=EquipmentLineageTarget_item-instance_1240e9ff14aa4e6da6955fe86278cd75; point=(193.50, 1455.56)
+PASS LINEAGE_SEAL_POINTER_900x1600_TARGET button=EquipmentLineageSeal_stack_4191977d1ba84836964be9d30031f7d1; active=True; interactable=True; eventSystem=True
 PASS LINEAGE_SEAL_POINTER_900x1600_VIEWPORT EquipmentViewport:visible=True:target=(-506,984.4)-(-406,1026.4):viewport=(x:-736.00, y:-1308.44, width:1472.00, height:2616.89)
-PASS LINEAGE_SEAL_POINTER_900x1600_HIT_TEST point=(193.50, 1365.56); hits=4; top=EquipmentLineageSeal_stack_4e4091d426ca4bb1a391ae6cf043a092; handler=EquipmentLineageSeal_stack_4e4091d426ca4bb1a391ae6cf043a092; expected=EquipmentLineageSeal_stack_4e4091d426ca4bb1a391ae6cf043a092
-PASS LINEAGE_SEAL_POINTER_900x1600_DISPATCH top=EquipmentLineageSeal_stack_4e4091d426ca4bb1a391ae6cf043a092; point=(193.50, 1365.56)
+PASS LINEAGE_SEAL_POINTER_900x1600_HIT_TEST point=(193.50, 1365.56); hits=4; top=EquipmentLineageSeal_stack_4191977d1ba84836964be9d30031f7d1; handler=EquipmentLineageSeal_stack_4191977d1ba84836964be9d30031f7d1; expected=EquipmentLineageSeal_stack_4191977d1ba84836964be9d30031f7d1
+PASS LINEAGE_SEAL_POINTER_900x1600_DISPATCH top=EquipmentLineageSeal_stack_4191977d1ba84836964be9d30031f7d1; point=(193.50, 1365.56)
 PASS LINEAGE_CONFIRM_POINTER_900x1600_TARGET button=EquipmentLineageConfirm; active=True; interactable=True; eventSystem=True
 PASS LINEAGE_CONFIRM_POINTER_900x1600_VIEWPORT EquipmentViewport:visible=True:target=(-712,858.4)-(712,862.4):viewport=(x:-736.00, y:-1308.44, width:1472.00, height:2616.89)
 PASS LINEAGE_CONFIRM_POINTER_900x1600_HIT_TEST point=(450.00, 1284.00); hits=5; top=EquipmentLineageConfirm; handler=EquipmentLineageConfirm; expected=EquipmentLineageConfirm
 EQUIPMENT_FEEDBACK 계보 이전 작업을 주문했습니다.
 PASS LINEAGE_CONFIRM_POINTER_900x1600_DISPATCH top=EquipmentLineageConfirm; point=(450.00, 1284.00)
 PASS EQUIPMENT_MODULE_POINTER_900x1600 appraise=True; restore=True; tune=True; install=True; remove=True
-PASS EQUIPMENT_MODULE_STATE_900x1600 appraise=IdentifiedDamaged; restore=Restored; tune=Tuned:True; absorbed=True:stack:ca4f9478d40b46f2829a008c79cc48ee; removed=IdentifiedDamaged:0.70:stack:48f1a214c7384a5399ef5a8a9ac1f5f4; recreated=True
+PASS EQUIPMENT_MODULE_STATE_900x1600 appraise=IdentifiedDamaged; restore=Restored; tune=Tuned:True; absorbed=True:stack:09e8ddb7663046cc9a82dccc7830d272; removed=IdentifiedDamaged:0.70:stack:76d033ce5c0743e78fed151b6d4aaab1; recreated=True
 PASS EQUIPMENT_LINEAGE_POINTER_900x1600 source=True; target=True; seal=True; confirm=True; queued=True
-PASS LINEAGE_BUFFER_900x1600 destination=building:acd7b0feaeab47e0a241d8afd9e46871; expected=3; delivered=stack:4d676c6d35d44df39cb0d7c1fd6d6f42,stack:888a32c85e454c0583d6e684c6961eb8,stack:4e4091d426ca4bb1a391ae6cf043a092
+PASS LINEAGE_BUFFER_900x1600 destination=building:8f8c591d994144adae4d3924dfe738ea; expected=3; delivered=stack:3e5eb84ea2184816a723ade0e4e2ff37,stack:87031a8016514961a69b7940c9d42e31,stack:4191977d1ba84836964be9d30031f7d1
 PASS EQUIPMENT_BOUNDS_900x1600 (0, 0, 0),(0, 1600, 0),(900, 1600, 0),(900, 0, 0)
 PASS EQUIPMENT_CAPTURE_900x1600 size=900x1600; path=Artifacts/QA/equipment-expedition-equipment-900x1600.png
 PASS EQUIPMENT_LINEAGE_CONSUMPTION_900x1600 work=True; completed=True; failure=None; source=True; seal=True; target=True

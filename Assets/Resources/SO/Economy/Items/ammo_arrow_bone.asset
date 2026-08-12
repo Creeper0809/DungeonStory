@@ -31,28 +31,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 2
   features:
-  - rid: 7737211838068949601
-  - rid: 7737211838068949602
-  - rid: 7737211838068949603
-  - rid: 7737211838068949604
+  - rid: 7737211905666711948
+  - rid: 7737211905666711949
+  - rid: 7737211905666711950
+  - rid: 7737211905666711951
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949601
+    - rid: 7737211905666711948
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:arrow-bone
-    - rid: 7737211838068949602
+    - rid: 7737211905666711949
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:defense:ranged-positions
-    - rid: 7737211838068949603
+    - rid: 7737211905666711950
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 768
         sharedIntermediate: 0
-    - rid: 7737211838068949604
+    - rid: 7737211905666711951
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

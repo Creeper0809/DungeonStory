@@ -79,6 +79,21 @@ public sealed class V23BalanceWorkCalculator : IBalanceWorkCalculator
             throw new ArgumentNullException(nameof(recipe));
         }
 
+        float baseWork = CalculateRecipeBaseWork(recipe, processClass);
+        return RoundTo(
+            baseWork * WeightedMaterialFactor(recipe.Inputs),
+            2f);
+    }
+
+    public static float CalculateRecipeBaseWork(
+        ProductionRecipeSO recipe,
+        ProductionProcessClass processClass)
+    {
+        if (recipe == null)
+        {
+            throw new ArgumentNullException(nameof(recipe));
+        }
+
         float processWork = processClass switch
         {
             ProductionProcessClass.Gathering => 4f,
@@ -105,11 +120,7 @@ public sealed class V23BalanceWorkCalculator : IBalanceWorkCalculator
             + Mathf.Max(0, inputKinds - 1) * 3f
             + Mathf.Max(0, outputKinds - 1) * 2f
             + assemblyComplexity;
-        return RoundTo(
-            direct
-            * Mathf.Pow(expectedOutput, 0.65f)
-            * WeightedMaterialFactor(recipe.Inputs),
-            2f);
+        return RoundTo(direct * Mathf.Pow(expectedOutput, 0.65f), 2f);
     }
 
     public float CalculateEquipment(
@@ -181,6 +192,13 @@ public sealed class V23BalanceWorkCalculator : IBalanceWorkCalculator
     {
         if (building != null && building.id is >= 9201 and <= 9209)
             return ConstructionBalanceClass.Landmark;
+        if (building?.GetAbility<BuildingArcaneSurgeryAbility>() != null)
+            return ConstructionBalanceClass.Arcane;
+        if (building?.GetAbility<BuildingMedicalAbility>() != null
+            || building?.Abilities?.OfType<ISurgicalFacilityAbility>().Any() == true)
+        {
+            return ConstructionBalanceClass.Medical;
+        }
         if (building?.ResearchFacilityCommand is
             ResearchFacilityCommandKind.ResonanceTuning)
             return ConstructionBalanceClass.Arcane;
@@ -212,38 +230,14 @@ public sealed class V23BalanceWorkCalculator : IBalanceWorkCalculator
     public static ProductionProcessClass ResolveProductionProcessClass(
         ProductionRecipeSO recipe)
     {
-        string signature = string.Join("|",
-            recipe?.RecipeId ?? string.Empty,
-            recipe?.FacilityTag ?? string.Empty,
-            recipe?.WorkstationTag ?? string.Empty,
-            recipe?.WorkTypeId.Value ?? string.Empty).ToLowerInvariant();
-        if (signature.Contains("rune") || signature.Contains("mana"))
-            return ProductionProcessClass.Rune;
-        if (signature.Contains("medical") || signature.Contains("medicine")
-            || signature.Contains("surgery") || signature.Contains("vaccine"))
-            return ProductionProcessClass.Medical;
-        if (signature.Contains("chemical") || signature.Contains("alchemy")
-            || signature.Contains("distill") || signature.Contains("powder"))
-            return ProductionProcessClass.Chemical;
-        if (signature.Contains("precision") || signature.Contains("optic")
-            || signature.Contains("gauge") || signature.Contains("instrument"))
-            return ProductionProcessClass.Precision;
-        if (signature.Contains("industrial") || signature.Contains("heavy")
-            || signature.Contains("steel") || signature.Contains("foundry"))
-            return ProductionProcessClass.HeavyIndustrial;
-        if (signature.Contains("forge") || signature.Contains("smith")
-            || signature.Contains("assembly") || signature.Contains("mechanic"))
-            return ProductionProcessClass.ForgingHeavyAssembly;
-        if (signature.Contains("textile") || signature.Contains("weav")
-            || signature.Contains("spin") || signature.Contains("wood"))
-            return ProductionProcessClass.SpinningWeavingWoodworking;
-        if (signature.Contains("cook") || signature.Contains("meal")
-            || signature.Contains("brew") || signature.Contains("food"))
-            return ProductionProcessClass.CookingSimpleMixing;
-        if (signature.Contains("gather") || signature.Contains("harvest")
-            || signature.Contains("mine") || signature.Contains("quarry"))
-            return ProductionProcessClass.Gathering;
-        return ProductionProcessClass.CuttingGrindingWashing;
+        if (recipe == null)
+            throw new ArgumentNullException(nameof(recipe));
+        if (!recipe.HasAuthoredProcessClass)
+        {
+            throw new InvalidOperationException(
+                $"Recipe '{recipe.RecipeId}' has no authored production process class.");
+        }
+        return recipe.ProcessClass;
     }
 
     private float WeightedMaterialFactor(IEnumerable<ItemAmountDefinition> inputs)

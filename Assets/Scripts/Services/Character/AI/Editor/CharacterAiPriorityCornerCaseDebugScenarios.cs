@@ -30,6 +30,8 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         RunScenario("Off priority excludes urgent automatic work", VerifyOffPriorityExcludesUrgentAutomaticWork, errors);
         RunScenario("Direct command bypasses Off through assignment", VerifyDirectCommandBypassesOffThroughAssignment, errors);
         RunScenario("Requested work type does not substitute", VerifyRequestedWorkTypeDoesNotSubstitute, errors);
+        RunScenario("Unrelated work query preserves priority command", VerifyUnrelatedWorkQueryPreservesPriorityCommand, errors);
+        RunScenario("Occupied priority target waits and resumes", VerifyOccupiedPriorityTargetWaitsAndResumes, errors);
         RunScenario("Invalid priority target clears and resumes automatic work", VerifyInvalidPriorityTargetClearsAndResumesAutomaticWork, errors);
         RunScenario("Nearest equivalent work target wins", VerifyNearestEquivalentWorkTargetWins, errors);
         RunScenario("Priority level beats lower urgent work", VerifyPriorityLevelBeatsLowerUrgentWork, errors);
@@ -54,6 +56,34 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
             Debug.Log("Character AI priority corner case scenarios passed.");
         }
 
+        return true;
+    }
+
+    public static bool RunPriorityRetentionRegression(bool logSuccess)
+    {
+        List<string> errors = new List<string>();
+        RunScenario(
+            "Unrelated work query preserves priority command",
+            VerifyUnrelatedWorkQueryPreservesPriorityCommand,
+            errors);
+        RunScenario(
+            "Occupied priority target waits and resumes",
+            VerifyOccupiedPriorityTargetWaitsAndResumes,
+            errors);
+
+        if (errors.Count > 0)
+        {
+            foreach (string error in errors)
+            {
+                Debug.LogError(error);
+            }
+            return false;
+        }
+
+        if (logSuccess)
+        {
+            Debug.Log("Priority command retention scenarios passed.");
+        }
         return true;
     }
 
@@ -517,6 +547,85 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         {
             work.SetWorkPriority(definition.WorkTypeId, WorkPriorityLevel.Off);
         }
+    }
+
+    private static bool VerifyUnrelatedWorkQueryPreservesPriorityCommand()
+    {
+        using PriorityScenarioWorld world = new PriorityScenarioWorld();
+        BuildableObject priorityTarget = world.Place(
+            "P1_RestRoom",
+            new Vector2Int(2, 0));
+        priorityTarget.SetDamaged(true);
+
+        CharacterActor owner = world.CreateOwner(
+            "Owner_Slime",
+            Vector2Int.zero);
+        AbilityWork work = owner.GetAbility<AbilityWork>();
+        SetOnly(work, BuiltInWorkTypeIds.Repair, BuiltInWorkTypeIds.Research);
+
+        GridPathSearchResult search = world.Grid.SearchPath(Vector2Int.zero);
+        bool prioritySet = work.TrySetPriorityWorkTarget(
+            priorityTarget,
+            BuiltInWorkTypeIds.Repair,
+            search,
+            out _);
+        bool unrelatedAssigned = work.TryAssignWork(
+            BuiltInWorkTypeIds.Research,
+            search);
+
+        return prioritySet
+            && !unrelatedAssigned
+            && work.PriorityWorkTarget == priorityTarget
+            && work.PriorityWorkTypeId == BuiltInWorkTypeIds.Repair;
+    }
+
+    private static bool VerifyOccupiedPriorityTargetWaitsAndResumes()
+    {
+        using PriorityScenarioWorld world = new PriorityScenarioWorld();
+        BuildableObject priorityTarget = world.Place(
+            "P1_RestRoom",
+            new Vector2Int(2, 0));
+        priorityTarget.SetDamaged(true);
+
+        CharacterActor owner = world.CreateOwner(
+            "Owner_Slime",
+            Vector2Int.zero);
+        CharacterActor blocker = world.CreateOwner(
+            "Owner_Slime",
+            new Vector2Int(5, 0));
+        AbilityWork work = owner.GetAbility<AbilityWork>();
+        SetOnly(work, BuiltInWorkTypeIds.Repair);
+
+        GridPathSearchResult search = world.Grid.SearchPath(Vector2Int.zero);
+        bool prioritySet = work.TrySetPriorityWorkTarget(
+            priorityTarget,
+            BuiltInWorkTypeIds.Repair,
+            search,
+            out _);
+        if (!prioritySet || priorityTarget is not IWorkableFacility workable)
+        {
+            return false;
+        }
+
+        IEnumerator allocation = workable.AllocateWorker(blocker.BuildingVisitor);
+        allocation?.MoveNext();
+        bool assignedWhileOccupied = work.TryAssignWork(
+            BuiltInWorkTypeIds.Repair,
+            search);
+        bool retainedWhileOccupied = !assignedWhileOccupied
+            && work.PriorityWorkTarget == priorityTarget
+            && work.TryGetLastRejectedWorkCandidate(out WorkTargetCandidate rejected)
+            && rejected.FailureKind == AIActionFailureKind.DestinationOccupied;
+
+        workable.DeallocateWorker(blocker.BuildingVisitor);
+        bool assignedAfterRelease = work.TryAssignWork(
+            BuiltInWorkTypeIds.Repair,
+            search);
+        return retainedWhileOccupied
+            && assignedAfterRelease
+            && work.PriorityWorkTarget == priorityTarget
+            && work.assignedShop == priorityTarget
+            && work.AssignedWorkTypeId == BuiltInWorkTypeIds.Repair;
     }
 
     private static void ClearShopStock(BuildableObject building)

@@ -35,6 +35,9 @@ public static class DungeonFactionAssetBuilder
             asset.reinforcementRole = spec.ReinforcementRole;
             asset.tradeCargo = Cargo(spec.TradeCargo);
             asset.supplyCargo = Cargo(spec.SupplyCargo);
+            asset.tradeCooldownDays = TradeCooldownDays(spec.Id);
+            asset.supplyCooldownDays = SupplyCooldownDays(spec.Id);
+            asset.reinforcementCooldownDays = 10;
             asset.crest ??= CreateCrest(asset, spec);
             EditorUtility.SetDirty(asset);
         }
@@ -265,6 +268,28 @@ public static class DungeonFactionAssetBuilder
 
     private static CargoSpec C(string itemId, int amount) =>
         new CargoSpec(itemId, amount);
+
+    private static int TradeCooldownDays(string factionId) => factionId switch
+    {
+        DungeonFactionIds.Beastkin => 7,
+        DungeonFactionIds.Harpy => 16,
+        DungeonFactionIds.Myconid => 22,
+        DungeonFactionIds.Demon => 23,
+        DungeonFactionIds.Kobold => 25,
+        DungeonFactionIds.Golem => 27,
+        _ => throw new ArgumentOutOfRangeException(nameof(factionId), factionId, null)
+    };
+
+    private static int SupplyCooldownDays(string factionId) => factionId switch
+    {
+        DungeonFactionIds.Beastkin => 20,
+        DungeonFactionIds.Harpy => 22,
+        DungeonFactionIds.Myconid => 38,
+        DungeonFactionIds.Kobold => 49,
+        DungeonFactionIds.Demon => 84,
+        DungeonFactionIds.Golem => 99,
+        _ => throw new ArgumentOutOfRangeException(nameof(factionId), factionId, null)
+    };
 
     private static void EnsureFolder(string path)
     {

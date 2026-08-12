@@ -269,7 +269,8 @@ public class EventAlertRuntime : MonoBehaviour
 
     private void OnDestroy()
     {
-        viewPresenter?.DestroyRuntimeUI();
+        viewPresenter?.DestroyRuntimeUI(immediate: true);
+        viewPresenter = null;
     }
 
     private void SubscribeToScopedEvents()

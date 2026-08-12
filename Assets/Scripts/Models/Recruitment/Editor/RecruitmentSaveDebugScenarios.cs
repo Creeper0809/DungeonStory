@@ -13,7 +13,7 @@ public static class RecruitmentSaveDebugScenarios
                 {
                     new()
                     {
-                        customerId = "customer:save-fixture",
+                        customerId = "character:customer:save-fixture",
                         displayName = "Save Fixture Customer",
                         speciesTag = "Slime",
                         sourceDataId = 112,

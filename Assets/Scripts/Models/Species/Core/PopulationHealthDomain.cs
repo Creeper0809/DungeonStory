@@ -209,6 +209,35 @@ public readonly struct PopulationExposureTarget
     public float Susceptibility { get; }
 }
 
+public readonly struct PopulationDiseaseStatModifiers
+{
+    public PopulationDiseaseStatModifiers(
+        float susceptibility,
+        float recoverySpeed,
+        float immunityGain,
+        float immunityRetention)
+    {
+        Susceptibility = Math.Clamp(susceptibility, 0.05f, 3f);
+        RecoverySpeed = Math.Clamp(recoverySpeed, 0.05f, 10f);
+        ImmunityGain = Math.Clamp(immunityGain, 0.05f, 10f);
+        ImmunityRetention = Math.Clamp(immunityRetention, 0.05f, 10f);
+    }
+
+    public static PopulationDiseaseStatModifiers Neutral => new(1f, 1f, 1f, 1f);
+
+    public float Susceptibility { get; }
+    public float RecoverySpeed { get; }
+    public float ImmunityGain { get; }
+    public float ImmunityRetention { get; }
+}
+
+public interface IPopulationDiseaseModifierQuery
+{
+    PopulationDiseaseStatModifiers Resolve(
+        CharacterId characterId,
+        DiseaseDefinition disease);
+}
+
 public enum PopulationHealthChangeKind
 {
     Infected = 0,
@@ -352,10 +381,33 @@ public sealed class PopulationHealthAggregateState
         }
     }
 
+    public int RemovePendingExposures(CharacterId characterId)
+    {
+        if (!characterId.IsValid)
+        {
+            return 0;
+        }
+
+        string[] keys = exposures
+            .Where(pair => string.Equals(
+                pair.Value?.characterId,
+                characterId.Value,
+                StringComparison.Ordinal))
+            .Select(pair => pair.Key)
+            .ToArray();
+        for (int index = 0; index < keys.Length; index++)
+        {
+            exposures.Remove(keys[index]);
+        }
+        return keys.Length;
+    }
+
     public IReadOnlyList<PopulationHealthChange> AdvanceToDay(
         int absoluteDay,
         IDiseaseDefinitionCatalog definitions,
-        Func<double> nextUnitRandom)
+        Func<double> nextUnitRandom,
+        Func<CharacterId, DiseaseDefinition, PopulationDiseaseStatModifiers>
+            resolveModifiers = null)
     {
         if (absoluteDay <= CurrentAbsoluteDay)
             throw new InvalidOperationException("Population health requires strictly increasing daily updates.");
@@ -364,9 +416,9 @@ public sealed class PopulationHealthAggregateState
         while (CurrentAbsoluteDay < absoluteDay)
         {
             CurrentAbsoluteDay++;
-            DecayImmunity();
-            ResolveExposures(definitions, nextUnitRandom, changes);
-            AdvanceActiveDiseases(definitions, changes);
+            DecayImmunity(definitions, resolveModifiers);
+            ResolveExposures(definitions, nextUnitRandom, changes, resolveModifiers);
+            AdvanceActiveDiseases(definitions, changes, resolveModifiers);
             AdvanceEpidemics();
         }
         return changes;
@@ -377,11 +429,24 @@ public sealed class PopulationHealthAggregateState
         string diseaseId,
         IDiseaseDefinitionCatalog definitions)
     {
+        Vaccinate(
+            characterId,
+            diseaseId,
+            definitions,
+            PopulationDiseaseStatModifiers.Neutral);
+    }
+
+    public void Vaccinate(
+        CharacterId characterId,
+        string diseaseId,
+        IDiseaseDefinitionCatalog definitions,
+        PopulationDiseaseStatModifiers modifiers)
+    {
         DiseaseDefinition disease = definitions.Require(diseaseId);
         if (!disease.VaccineAllowed)
             throw new InvalidOperationException($"Disease '{disease.Id}' does not permit vaccination.");
         CharacterPopulationHealthSaveData record = RequireCharacter(characterId);
-        SetImmunity(record, disease.Id, 70f, 0.05f);
+        SetImmunity(record, disease.Id, 70f, 0.05f, modifiers.ImmunityGain);
     }
 
     public PopulationHealthChange ApplyEnvironmentalCondition(
@@ -441,6 +506,21 @@ public sealed class PopulationHealthAggregateState
         float severityReduction,
         IDiseaseDefinitionCatalog definitions)
     {
+        return ApplyFieldResponse(
+            characterId,
+            diseaseId,
+            severityReduction,
+            definitions,
+            PopulationDiseaseStatModifiers.Neutral);
+    }
+
+    public float ApplyFieldResponse(
+        CharacterId characterId,
+        string diseaseId,
+        float severityReduction,
+        IDiseaseDefinitionCatalog definitions,
+        PopulationDiseaseStatModifiers modifiers)
+    {
         DiseaseDefinition disease = definitions.Require(diseaseId);
         if (!characters.TryGetValue(characterId, out CharacterPopulationHealthSaveData record))
             throw new InvalidOperationException(
@@ -459,7 +539,7 @@ public sealed class PopulationHealthAggregateState
         {
             record.activeDiseases.Remove(active);
             if (disease.Contagious)
-                SetImmunity(record, disease.Id, 35f, 0.08f);
+                SetImmunity(record, disease.Id, 35f, 0.08f, modifiers.ImmunityGain);
             return 0f;
         }
         return active.severity;
@@ -607,7 +687,9 @@ public sealed class PopulationHealthAggregateState
     private void ResolveExposures(
         IDiseaseDefinitionCatalog definitions,
         Func<double> nextUnitRandom,
-        ICollection<PopulationHealthChange> changes)
+        ICollection<PopulationHealthChange> changes,
+        Func<CharacterId, DiseaseDefinition, PopulationDiseaseStatModifiers>
+            resolveModifiers)
     {
         foreach (DiseaseExposureSaveData exposure in exposures.Values
                      .OrderBy(value => value.characterId, StringComparer.Ordinal)
@@ -623,13 +705,20 @@ public sealed class PopulationHealthAggregateState
                 exposure.susceptibility,
                 1f);
             if (ClampUnit(nextUnitRandom()) >= probability) continue;
+            PopulationDiseaseStatModifiers modifiers = ResolveModifiers(
+                resolveModifiers,
+                characterId,
+                disease);
+            int contagiousDays = ResolveContagiousDurationDays(
+                disease.ContagiousDays,
+                modifiers.RecoverySpeed);
             CharacterPopulationHealthSaveData record = RequireCharacter(characterId);
             record.activeDiseases.Add(new ActiveDiseaseSaveData
             {
                 diseaseId = disease.Id,
                 infectionDay = CurrentAbsoluteDay,
                 symptomDay = CurrentAbsoluteDay + disease.IncubationDays,
-                recoveryDay = CurrentAbsoluteDay + disease.IncubationDays + disease.ContagiousDays,
+                recoveryDay = CurrentAbsoluteDay + disease.IncubationDays + contagiousDays,
                 severity = disease.BaseSeverity
             });
             changes.Add(new PopulationHealthChange(
@@ -644,7 +733,9 @@ public sealed class PopulationHealthAggregateState
 
     private void AdvanceActiveDiseases(
         IDiseaseDefinitionCatalog definitions,
-        ICollection<PopulationHealthChange> changes)
+        ICollection<PopulationHealthChange> changes,
+        Func<CharacterId, DiseaseDefinition, PopulationDiseaseStatModifiers>
+            resolveModifiers)
     {
         foreach (KeyValuePair<CharacterId, CharacterPopulationHealthSaveData> pair in characters)
         {
@@ -662,7 +753,16 @@ public sealed class PopulationHealthAggregateState
                 if (CurrentAbsoluteDay >= active.recoveryDay)
                 {
                     pair.Value.activeDiseases.Remove(active);
-                    SetImmunity(pair.Value, disease.Id, 80f, 0.02f);
+                    PopulationDiseaseStatModifiers modifiers = ResolveModifiers(
+                        resolveModifiers,
+                        pair.Key,
+                        disease);
+                    SetImmunity(
+                        pair.Value,
+                        disease.Id,
+                        80f,
+                        0.02f,
+                        modifiers.ImmunityGain);
                     changes.Add(new PopulationHealthChange(
                         pair.Key, disease.Id, PopulationHealthChangeKind.Recovered,
                         active.severity, disease.TargetSystem));
@@ -700,11 +800,28 @@ public sealed class PopulationHealthAggregateState
         }
     }
 
-    private void DecayImmunity()
+    private void DecayImmunity(
+        IDiseaseDefinitionCatalog definitions,
+        Func<CharacterId, DiseaseDefinition, PopulationDiseaseStatModifiers>
+            resolveModifiers)
     {
-        foreach (CharacterPopulationHealthSaveData record in characters.Values)
+        foreach (KeyValuePair<CharacterId, CharacterPopulationHealthSaveData> pair in characters)
+        {
+            CharacterPopulationHealthSaveData record = pair.Value;
             foreach (DiseaseImmunitySaveData immunity in record.immunity)
-                immunity.value = Math.Max(0f, immunity.value - immunity.dailyDecay);
+            {
+                DiseaseDefinition disease = definitions.Require(immunity.diseaseId);
+                PopulationDiseaseStatModifiers modifiers = ResolveModifiers(
+                    resolveModifiers,
+                    pair.Key,
+                    disease);
+                immunity.value = Math.Max(
+                    0f,
+                    immunity.value - ResolveDailyImmunityDecay(
+                        immunity.dailyDecay,
+                        modifiers.ImmunityRetention));
+            }
+        }
     }
 
     private CharacterPopulationHealthSaveData RequireCharacter(CharacterId id)
@@ -726,7 +843,8 @@ public sealed class PopulationHealthAggregateState
         CharacterPopulationHealthSaveData record,
         string diseaseId,
         float minimum,
-        float decay)
+        float decay,
+        float immunityGain)
     {
         DiseaseImmunitySaveData state = record.immunity.FirstOrDefault(value =>
             string.Equals(value.diseaseId, diseaseId, StringComparison.Ordinal));
@@ -735,9 +853,39 @@ public sealed class PopulationHealthAggregateState
             state = new DiseaseImmunitySaveData { diseaseId = diseaseId };
             record.immunity.Add(state);
         }
-        state.value = Math.Max(state.value, minimum);
+        state.value = Math.Max(
+            state.value,
+            ResolveImmunityAward(minimum, immunityGain));
         state.dailyDecay = decay;
     }
+
+    public static int ResolveContagiousDurationDays(
+        int baseDurationDays,
+        float diseaseRecoverySpeed) => Math.Max(
+            1,
+            (int)Math.Ceiling(
+                Math.Max(1, baseDurationDays)
+                / Math.Max(0.05f, diseaseRecoverySpeed)));
+
+    public static float ResolveImmunityAward(
+        float baseAward,
+        float immunityGain) => Math.Clamp(
+            Math.Max(0f, baseAward) * Math.Max(0.05f, immunityGain),
+            0f,
+            100f);
+
+    public static float ResolveDailyImmunityDecay(
+        float baseDailyDecay,
+        float immunityRetention) => Math.Max(0f, baseDailyDecay)
+            / Math.Max(0.05f, immunityRetention);
+
+    private static PopulationDiseaseStatModifiers ResolveModifiers(
+        Func<CharacterId, DiseaseDefinition, PopulationDiseaseStatModifiers>
+            resolveModifiers,
+        CharacterId characterId,
+        DiseaseDefinition disease) => resolveModifiers == null
+            ? PopulationDiseaseStatModifiers.Neutral
+            : resolveModifiers(characterId, disease);
 
     private static void ValidateCharacter(
         CharacterPopulationHealthSaveData source,
@@ -817,6 +965,7 @@ public interface IPopulationHealthService
     void Vaccinate(CharacterId characterId, string diseaseId);
     PopulationHealthChange ApplyEnvironmentalCondition(CharacterId characterId, string diseaseId);
     void RemoveEnvironmentalCondition(CharacterId characterId, string diseaseId);
+    int RemovePendingExposures(CharacterId characterId);
     float GetImmunity(CharacterId characterId, string diseaseId);
     bool IsEpidemicDeclared(string diseaseId);
     IReadOnlyList<ContagiousDiseaseSnapshot> GetContagious();

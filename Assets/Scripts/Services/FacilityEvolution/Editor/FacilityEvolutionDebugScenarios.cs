@@ -26,7 +26,7 @@ public static class FacilityEvolutionDebugScenarios
         RunScenario("Mutation resolver gates suggestions by evidence", VerifyMutationResolverGatesSuggestionsByEvidence, errors);
         RunScenario("Context gates evolution candidates", VerifyContextGatesEvolutionCandidates, errors);
         RunScenario("Validation checks expose candidate condition state", VerifyValidationChecksExposeCandidateConditionState, errors);
-        RunScenario("LLM proposal filters ids and orders valid candidates", VerifyLlmProposalFiltersIdsAndOrdersCandidates, errors);
+        RunScenario("LLM narrative filters IDs without overriding rule authority", VerifyLlmProposalFiltersIdsAndOrdersCandidates, errors);
         RunScenario("Evolution overview stays rule based and does not enqueue LLM work", VerifyOverviewDoesNotRequestLlm, errors);
         RunScenario("Runtime events build evolution records", VerifyRuntimeEventsBuildEvolutionRecords, errors);
         RunScenario("Evolution replaces facility and preserves lineage records", VerifyEvolutionReplacesFacilityAndPreservesLineageRecords, errors);
@@ -402,6 +402,7 @@ public static class FacilityEvolutionDebugScenarios
             + "\"rejectedHints\":[{\"id\":\"evolve_test_combat_dining\",\"reason\":\"다른 전투 계보도 가능하지만 결정적인 사건 기록이 조금 부족합니다.\"},{\"id\":\"unknown_candidate\",\"reason\":\"무시되어야 합니다.\"}],"
             + "\"mutationTagSuggestions\":[\"Combat\",\"UnknownMutation\"],"
             + "\"flavorText\":\"식탁 주변의 무용담이 다음 계보를 부르고 있습니다.\","
+            + "\"usedMotifIds\":[],\"usedCharacterFactIds\":[],"
             + "\"confidence\":0.82}");
         CachedLocalLlmFacilityEvolutionProposalProvider proposalProvider =
             new CachedLocalLlmFacilityEvolutionProposalProvider(
@@ -415,16 +416,29 @@ public static class FacilityEvolutionDebugScenarios
             engine.GetCandidates(world.SourceFacility, includeRejected: false);
 
         FacilityEvolutionCandidate first = candidates.FirstOrDefault();
-        return fakeLlm.FacilityEvolutionRequestCount == 1
+        bool valid = fakeLlm.FacilityEvolutionRequestCount == 1
             && !string.IsNullOrWhiteSpace(fakeLlm.LastPrompt)
             && fakeLlm.LastPrompt.Contains("rejectedHints")
             && first != null
-            && first.Recipe == secondary
-            && first.ProposalSource == FacilityEvolutionProposalSources.LocalLlm
-            && first.ProposalStatusMessage.Contains("filtered ids=1")
-            && first.ProposalStatusMessage.Contains("mutations=1")
-            && first.Reason.Contains("용병 기록")
+            && first.Recipe == primary
+            && first.ProposalSource == FacilityEvolutionProposalSources.RuleBased
+            && first.ProposalStatusMessage.Contains("Rule-authoritative")
+            && first.ProposalStatusMessage.Contains("local narrative")
+            && first.Reason.Contains("용병")
             && first.FlavorText.Contains("무용담");
+        if (!valid)
+        {
+            Debug.LogError(
+                $"Facility evolution LLM diagnostic: requests={fakeLlm.FacilityEvolutionRequestCount}, "
+                + $"prompt={(!string.IsNullOrWhiteSpace(fakeLlm.LastPrompt))}, "
+                + $"promptHints={fakeLlm.LastPrompt?.Contains("rejectedHints") == true}, "
+                + $"candidateCount={candidates.Count}, "
+                + $"first={first?.Recipe?.evolutionId ?? "null"}, "
+                + $"source={first?.ProposalSource ?? "null"}, "
+                + $"status={first?.ProposalStatusMessage ?? "null"}, "
+                + $"reason={first?.Reason ?? "null"}, flavor={first?.FlavorText ?? "null"}");
+        }
+        return valid;
     }
 
     private static bool VerifyOverviewDoesNotRequestLlm()
@@ -843,10 +857,6 @@ public static class FacilityEvolutionDebugScenarios
         data.speciesTag = speciesTag;
         data.characterType = type;
         data.role = CharacterRole.Regular;
-        data.baseStats = CharacterStatBlock.CreateDefault();
-        data.baseStats.Set(CharacterStatType.Attack, attack);
-        data.baseStats.Set(CharacterStatType.Sales, sales);
-
         GameObject obj = new GameObject(name);
         world.TrackObject(obj);
         CharacterActor actor = obj.AddComponent<CharacterActor>();

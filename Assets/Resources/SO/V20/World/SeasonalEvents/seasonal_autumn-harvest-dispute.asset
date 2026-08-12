@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: DungeonStory.Content::SeasonalWorldEventDefinitionSO
   stableId: seasonal:autumn-harvest-dispute
   displayName: "\uC218\uD655 \uBAAB \uBD84\uC7C1"
-  description: "\uC778\uC811 \uC138\uB825\uC774 \uACF5\uB3D9 \uACBD\uC791\uC9C0\uC758
+  description: "\uCF54\uBCFC\uD2B8 \uC5F0\uD569\uC774 \uACF5\uB3D9 \uACBD\uC791\uC9C0\uC758
     \uC218\uD655 \uBAAB\uC744 \uB2E4\uC2DC \uC694\uAD6C\uD55C\uB2E4."
   authoringRevision: 1
   sourceNote: V20 hand-authored seasonal world event manifest.

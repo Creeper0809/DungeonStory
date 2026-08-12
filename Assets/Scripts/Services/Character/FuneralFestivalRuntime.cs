@@ -8,16 +8,19 @@ public readonly struct FestivalCelebratedEvent
     public FestivalCelebratedEvent(
         string festivalId,
         int absoluteDay,
-        IReadOnlyList<CharacterId> participantIds)
+        IReadOnlyList<CharacterId> participantIds,
+        FestivalResolutionGrade grade)
     {
         FestivalId = festivalId ?? string.Empty;
         AbsoluteDay = absoluteDay;
         ParticipantIds = participantIds ?? Array.Empty<CharacterId>();
+        Grade = grade;
     }
 
     public string FestivalId { get; }
     public int AbsoluteDay { get; }
     public IReadOnlyList<CharacterId> ParticipantIds { get; }
+    public FestivalResolutionGrade Grade { get; }
 }
 
 public interface IFuneralFestivalService
@@ -114,6 +117,7 @@ public sealed class FuneralFestivalRuntime :
     private readonly IAtomicItemConsumptionService atomicItems;
     private readonly IFactionCampaignQuery factions;
     private readonly V20CampaignRuntime campaign;
+    private readonly ICharacterRitualFastingCommand ritualFasting;
 
     public FuneralFestivalRuntime(
         IKinshipQuery kinship,
@@ -129,7 +133,8 @@ public sealed class FuneralFestivalRuntime :
         IItemReservationService reservations,
         IAtomicItemConsumptionService atomicItems,
         IFactionCampaignQuery factions,
-        V20CampaignRuntime campaign)
+        V20CampaignRuntime campaign,
+        ICharacterRitualFastingCommand ritualFasting = null)
     {
         this.kinship = kinship ?? throw new ArgumentNullException(nameof(kinship));
         this.species = species ?? throw new ArgumentNullException(nameof(species));
@@ -148,6 +153,7 @@ public sealed class FuneralFestivalRuntime :
             ?? throw new ArgumentNullException(nameof(atomicItems));
         this.factions = factions ?? throw new ArgumentNullException(nameof(factions));
         this.campaign = campaign ?? throw new ArgumentNullException(nameof(campaign));
+        this.ritualFasting = ritualFasting;
     }
 
     public void HoldFuneral(
@@ -244,7 +250,7 @@ public sealed class FuneralFestivalRuntime :
             .Where(value => value != null
                 && value.Quantity > 0
                 && !value.Forbidden
-                && !value.IsReserved)
+                && value.AvailableQuantity > 0)
             .GroupBy(value => value.ItemId, StringComparer.Ordinal)
             .ToDictionary(
                 group => group.Key,
@@ -371,7 +377,9 @@ public sealed class FuneralFestivalRuntime :
         events.Publish(new FestivalCelebratedEvent(
             festival.StableId,
             calendar.Day,
-            order.ParticipantIds));
+            order.ParticipantIds,
+            order.Grade));
+        CompleteParticipantFasts(order.ParticipantIds);
         return true;
     }
 
@@ -459,6 +467,7 @@ public sealed class FuneralFestivalRuntime :
             return false;
         }
         psychosocial.PublishRestore(candidate);
+        CompleteParticipantFasts(participants);
         return true;
     }
 
@@ -555,6 +564,7 @@ public sealed class FuneralFestivalRuntime :
             return false;
         }
         psychosocial.PublishRestore(candidate);
+        CompleteParticipantFasts(participants);
         return true;
     }
 
@@ -606,6 +616,26 @@ public sealed class FuneralFestivalRuntime :
         return true;
     }
 
+    private void CompleteParticipantFasts(
+        IEnumerable<CharacterId> participantIds)
+    {
+        if (ritualFasting == null)
+            return;
+        HashSet<CharacterId> participants = new(
+            participantIds ?? Array.Empty<CharacterId>());
+        foreach (CharacterActor actor in characters.Characters
+                     .Where(value => value != null
+                         && CharacterPersistentIdentity.TryGet(
+                             value,
+                             out CharacterId id)
+                         && participants.Contains(id))
+                     .OrderBy(value => value.Identity?.PersistentId,
+                         StringComparer.Ordinal))
+        {
+            ritualFasting.TryComplete(actor, out _);
+        }
+    }
+
     private bool TryReserve(
         IReadOnlyDictionary<string, int> costs,
         string owner,
@@ -622,7 +652,7 @@ public sealed class FuneralFestivalRuntime :
                          .Where(value => value != null
                              && value.Quantity > 0
                              && !value.Forbidden
-                             && !value.IsReserved
+                             && value.AvailableQuantity > 0
                              && string.Equals(value.ItemId, cost.Key, StringComparison.Ordinal))
                          .OrderBy(value => value.StackId, StringComparer.Ordinal))
             {
@@ -639,7 +669,11 @@ public sealed class FuneralFestivalRuntime :
             }
         }
         if (result.Count > 0
-            && !reservations.TryReserve(result.Select(value => value.StackId), owner))
+            && !reservations.TryReserveQuantities(
+                result,
+                owner,
+                ItemReservationPurpose.FacilityBuffer,
+                $"festival:{owner}:materials"))
         {
             selected = Array.Empty<ReservedItemConsumption>();
             failure = new DomainFailure(FailureCode.ItemTransferStackUnavailable);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
@@ -248,13 +248,13 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
                 StringComparison.Ordinal));
         if (target == null)
         {
-            message = "Strategic 理쒖쥌 紐⑺몴? ?곌껐??吏꾩떎 紐⑺몴媛 ?놁뒿?덈떎.";
+            message = "전략 최종 목표와 연결된 진실 목표가 없습니다.";
             return false;
         }
 
         if (MutableState.TruthRevealed)
         {
-            message = "?대? ?섏쟾??吏꾩떎??諛앺삍?듬땲??";
+            message = "이미 지상의 진실을 밝혔습니다.";
             return true;
         }
 
@@ -271,7 +271,7 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
             target.id,
             OffenseWorldMapService.TruthTitle,
             target.truthText));
-        message = "理쒖쥌 ?ㅽ렂?ㅻ? 留덉튂怨??섏쟾??吏꾩떎??諛앺삍?듬땲??";
+        message = "최종 작전을 마치고 지상의 진실을 공개했습니다!";
         return true;
     }
 

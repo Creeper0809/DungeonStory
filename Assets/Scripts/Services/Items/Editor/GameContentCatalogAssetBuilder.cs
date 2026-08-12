@@ -162,6 +162,40 @@ public static class GameContentCatalogAssetBuilder
         EditorUtility.SetDirty(domainCatalog);
     }
 
+    public static void ReindexCharacterAiActions()
+    {
+        GameDomainContentCatalogSO domainCatalog =
+            AssetDatabase.LoadAssetAtPath<GameDomainContentCatalogSO>(
+                DomainCatalogPath)
+            ?? throw new InvalidOperationException(
+                $"Required domain content catalog is missing at '{DomainCatalogPath}'.");
+        AIActionSet[] actions = AssetDatabase
+            .FindAssets("t:AIActionSet", new[]
+            {
+                "Assets/Resources/SO/AI/Action"
+            })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<AIActionSet>)
+            .Where(action => action != null)
+            .OrderBy(action => action.name, StringComparer.Ordinal)
+            .ToArray();
+        ScriptableObject[] definitions = domainCatalog.Definitions
+            .Where(asset => asset != null && asset is not AIActionSet)
+            .Concat(actions.Cast<ScriptableObject>())
+            .Distinct()
+            .ToArray();
+
+        domainCatalog.SetDefinitions(definitions);
+        IReadOnlyList<string> errors = domainCatalog.ValidateCatalog();
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "AI action domain-definition reindex failed:\n"
+                + string.Join("\n", errors));
+        }
+        EditorUtility.SetDirty(domainCatalog);
+    }
+
     /// <summary>
     /// Replaces only the V22 apparel and textile definition slices. The full
     /// catalog migration is deliberately avoided so unrelated authored assets

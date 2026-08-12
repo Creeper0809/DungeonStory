@@ -2,12 +2,12 @@
   <Project Path="Assembly-CSharp.csproj" />
   <Project Path="DungeonStory.Combat.csproj" />
   <Project Path="DungeonStory.Economy.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="DungeonStory.Infrastructure.csproj" />
   <Project Path="DungeonStory.Captivity.csproj" />
   <Project Path="DungeonStory.Survival.csproj" />
   <Project Path="DungeonStory.Presentation.csproj" />
   <Project Path="VContainer.csproj" />
-  <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="DungeonStory.Buildings.csproj" />
   <Project Path="DungeonStory.Content.csproj" />
   <Project Path="DungeonStory.Evolution.csproj" />
@@ -27,9 +27,9 @@
   <Project Path="DungeonStory.Operation.csproj" />
   <Project Path="DungeonStory.Medical.csproj" />
   <Project Path="DungeonStory.Foundation.csproj" />
-  <Project Path="DungeonStory.Characters.csproj" />
   <Project Path="DungeonStory.Rooms.csproj" />
   <Project Path="DungeonStory.Architecture.Tests.csproj" />
+  <Project Path="DungeonStory.Characters.csproj" />
   <Project Path="DungeonStory.CoreSession.csproj" />
   <Project Path="DungeonStory.Grid.csproj" />
   <Project Path="DungeonStory.Production.csproj" />

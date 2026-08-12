@@ -286,7 +286,7 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         bool brainWasEnabled = false;
         AIHaul haulAction = null;
         bool normalAiAlreadyReserved = blueprintStack != null
-            && !string.IsNullOrWhiteSpace(blueprintStack.ReservedByPersistentId);
+            && blueprintStack.HasReservations;
         if (!assignmentStatus.IsArchived
             && blueprintStack != null
             && !normalAiAlreadyReserved)
@@ -320,7 +320,7 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                 assignmentStatus.IsArchived
                     ? "일반 AI가 이미 보관을 완료함"
                     : normalAiAlreadyReserved
-                        ? $"일반 AI 예약자 {blueprintStack.ReservedByPersistentId}"
+                        ? $"일반 AI 예약 수량 {blueprintStack.ReservedQuantity}"
                         : "일반 AI가 설계도를 운반 중");
         }
 
@@ -844,7 +844,7 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         }
 
         return $"state={stack.State}; pos={stack.Position}; destination={stack.DestinationId}; "
-            + $"reserved={stack.ReservedByPersistentId}";
+            + $"reserved={stack.ReservedQuantity}; available={stack.AvailableQuantity}";
     }
 
     private static string DescribeArchiveCandidates(IRoomLayoutCache roomLayoutCache)

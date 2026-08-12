@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: DungeonStory.Content::SeasonalWorldEventDefinitionSO
   stableId: seasonal:winter-memorial-envoys
   displayName: "\uCD94\uBAA8 \uC0AC\uC808\uB2E8"
-  description: "\uC138\uB825 \uC0AC\uC808\uB4E4\uC774 \uACF5\uB3D9 \uCD94\uBAA8\uC5D0
+  description: "\uACE8\uB818 \uC5F0\uD569 \uC0AC\uC808\uB4E4\uC774 \uACF5\uB3D9 \uCD94\uBAA8\uC5D0
     \uCC38\uC5EC\uD558\uBA70 \uC624\uB798\uB41C \uC6D0\uD55C\uC758 \uCC98\uB9AC\uB97C
     \uC694\uAD6C\uD55C\uB2E4."
   authoringRevision: 1

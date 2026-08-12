@@ -34,22 +34,37 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730889015658
-    - rid: 7737211730889015659
-    - rid: 7737211730889015660
-    - rid: 7737211730889015661
-    - rid: 7737211730889015662
-    - rid: 7737211730889015663
-    - rid: 7737211730889015664
-    - rid: 7737211730889015665
-    - rid: 7737211730889015666
-    - rid: 7737211730889015667
-    - rid: 7737211838074978693
-    - rid: 7737211838074978694
+    - rid: 7737211857806557916
+    - rid: 7737211857806557917
+    - rid: 7737211857806557918
+    - rid: 7737211857806557920
+    - rid: 7737211857806557921
+    - rid: 7737211857806557922
+    - rid: 7737211857806557923
+    - rid: 7737211857806557924
+    - rid: 7737211857806557925
+    - rid: 7737211905655964001
+    - rid: 7737211905655964002
+    - rid: 7737211905666711772
   width: 2
   height: 1
   layer: 1
@@ -65,12 +80,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730889015658
+    - rid: 7737211857806557916
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: M11
-    - rid: 7737211730889015659
+    - rid: 7737211857806557917
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -78,7 +93,7 @@ MonoBehaviour:
         - medical
         - surgery
         - m11
-    - rid: 7737211730889015660
+    - rid: 7737211857806557918
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,28 +102,17 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211730889015661
-      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingFacilityAbility
-        settings:
-          roles: 4096
-          capacity: 1
-          useDuration: 1.5
-          requiredWorkers: 1
-          supportedWorkTypes: 536903808
-          disabledWhenDamaged: 1
-    - rid: 7737211730889015662
+    - rid: 7737211857806557920
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211730889015663
+    - rid: 7737211857806557921
       type: {class: BuildingInternalStockAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 12
         restockRequestThreshold: 3
-    - rid: 7737211730889015664
+    - rid: 7737211857806557922
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -117,10 +121,21 @@ MonoBehaviour:
         cleanWorkRequired: 8
         researchWorkRequired: 6
         operateWorkRequired: 12
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
         - itemId: material:steel-ingot
           amount: 8
-    - rid: 7737211730889015665
+    - rid: 7737211857806557923
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -132,14 +147,14 @@ MonoBehaviour:
           - m11
           scores: []
           metrics: []
-    - rid: 7737211730889015666
+    - rid: 7737211857806557924
       type: {class: BuildingMedicalAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingMedicalAbility
         workSeconds: 1.8
         severityReduction: 0.65
         requiresMedicine: 1
-    - rid: 7737211730889015667
+    - rid: 7737211857806557925
       type: {class: BuildingTransplantSupportAbility, ns: , asm: DungeonStory.Medical}
       data:
         abilityId: BuildingTransplantSupportAbility
@@ -150,14 +165,14 @@ MonoBehaviour:
         rejectionReduction: 0.2
         bloodCost: 0
         immunosuppressantCost: 0
-    - rid: 7737211838074978693
+    - rid: 7737211905655964001
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737211838074978694
+    - rid: 7737211905655964002
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility
@@ -167,3 +182,14 @@ MonoBehaviour:
         wastewaterPerCycle: 0.2
         minimumQuality: 0
         allowsManualWaterFallback: 1
+    - rid: 7737211905666711772
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 4096
+          capacity: 1
+          useDuration: 1.5
+          requiredWorkers: 1
+          supportedWorkTypes: 536903808
+          disabledWhenDamaged: 1

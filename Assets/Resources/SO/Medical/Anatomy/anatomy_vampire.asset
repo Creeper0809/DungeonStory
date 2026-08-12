@@ -30,7 +30,6 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 1
-    axisContributions: []
   - nodeId: brain
     displayName: "\uB1CC"
     parentNodeId: head
@@ -43,7 +42,6 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
-    axisContributions: []
   - nodeId: night-eye:left
     displayName: "\uC67C\uCABD \uC57C\uAC04\uC548"
     parentNodeId: head
@@ -56,7 +54,6 @@ MonoBehaviour:
     pairedGroupId: night-eyes
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
-    axisContributions: []
   - nodeId: night-eye:right
     displayName: "\uC624\uB978\uCABD \uC57C\uAC04\uC548"
     parentNodeId: head
@@ -69,7 +66,6 @@ MonoBehaviour:
     pairedGroupId: night-eyes
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
-    axisContributions: []
   - nodeId: fang:left
     displayName: "\uC67C\uCABD \uC1A1\uACF3\uB2C8"
     parentNodeId: head
@@ -82,7 +78,6 @@ MonoBehaviour:
     pairedGroupId: fangs
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
-    axisContributions: []
   - nodeId: fang:right
     displayName: "\uC624\uB978\uCABD \uC1A1\uACF3\uB2C8"
     parentNodeId: head
@@ -95,7 +90,6 @@ MonoBehaviour:
     pairedGroupId: fangs
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
-    axisContributions: []
   - nodeId: torso
     displayName: "\uBAB8\uD1B5"
     parentNodeId: 
@@ -108,7 +102,6 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 1
     mapsToLegacyBodyPart: 1
-    axisContributions: []
   - nodeId: heart
     displayName: "\uC2EC\uC7A5"
     parentNodeId: torso
@@ -121,7 +114,6 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
-    axisContributions: []
   - nodeId: blood-sac
     displayName: "\uD608\uC561\uB0AD"
     parentNodeId: torso
@@ -134,7 +126,6 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
-    axisContributions: []
   - nodeId: lung:left
     displayName: "\uC67C\uCABD \uD3D0"
     parentNodeId: torso
@@ -147,7 +138,6 @@ MonoBehaviour:
     pairedGroupId: lungs
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
-    axisContributions: []
   - nodeId: lung:right
     displayName: "\uC624\uB978\uCABD \uD3D0"
     parentNodeId: torso
@@ -160,12 +150,11 @@ MonoBehaviour:
     pairedGroupId: lungs
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
-    axisContributions: []
   - nodeId: liver
     displayName: "\uAC04"
     parentNodeId: torso
     kind: 1
-    functions: 32
+    functions: 8224
     maxHealth: 14
     capacityWeight: 1
     vital: 0
@@ -173,12 +162,11 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
-    axisContributions: []
   - nodeId: arm:left
     displayName: "\uC67C\uD314"
     parentNodeId: torso
     kind: 3
-    functions: 64
+    functions: 1088
     maxHealth: 21
     capacityWeight: 0.5
     vital: 0
@@ -186,7 +174,6 @@ MonoBehaviour:
     pairedGroupId: arms
     legacyBodyPart: 2
     mapsToLegacyBodyPart: 1
-    axisContributions: []
   - nodeId: arm:right
     displayName: "\uC624\uB978\uD314"
     parentNodeId: torso
@@ -199,7 +186,6 @@ MonoBehaviour:
     pairedGroupId: arms
     legacyBodyPart: 3
     mapsToLegacyBodyPart: 1
-    axisContributions: []
   - nodeId: leg:left
     displayName: "\uC67C\uB2E4\uB9AC"
     parentNodeId: torso
@@ -212,7 +198,6 @@ MonoBehaviour:
     pairedGroupId: legs
     legacyBodyPart: 4
     mapsToLegacyBodyPart: 1
-    axisContributions: []
   - nodeId: leg:right
     displayName: "\uC624\uB978\uB2E4\uB9AC"
     parentNodeId: torso
@@ -225,4 +210,4 @@ MonoBehaviour:
     pairedGroupId: legs
     legacyBodyPart: 5
     mapsToLegacyBodyPart: 1
-    axisContributions: []
+  notApplicableCapacities: []

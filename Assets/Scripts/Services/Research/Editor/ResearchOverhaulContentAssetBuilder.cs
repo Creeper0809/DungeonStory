@@ -33,7 +33,7 @@ public static class ResearchOverhaulContentAssetBuilder
             string researchId,
             string name,
             string workstationTag,
-            FacilityBomProfile bomProfile = FacilityBomProfile.Legacy)
+            FacilityBomProfile bomProfile)
         {
             ResearchId = researchId;
             Name = name;
@@ -49,7 +49,6 @@ public static class ResearchOverhaulContentAssetBuilder
 
     private enum FacilityBomProfile
     {
-        Legacy,
         ARecordDesk,
         BWorkbench,
         CLivingRoom,
@@ -57,7 +56,15 @@ public static class ResearchOverhaulContentAssetBuilder
         EIndustrialLab,
         FRuneBiolab,
         GGreenhouse,
-        HObservationTower
+        HObservationTower,
+        IFieldStation,
+        JWaterworks,
+        KSecureFixture,
+        LIndustrialMachine,
+        MPrecisionWorkshop,
+        NDefenseInstallation,
+        OPowderWorkshop,
+        PServiceStation
     }
 
     private readonly struct InputSpec
@@ -118,6 +125,8 @@ public static class ResearchOverhaulContentAssetBuilder
         BuildFacilities();
         BuildItemsAndRecipes();
         GameContentCatalogAssetBuilder.ReindexItemDefinitions();
+        V23RecipeProcessClassAuthoring.NormalizeRecipeWorkUnder(RecipeRoot);
+        V23MarketValueCalibrator.Apply();
     }
 
     public static IReadOnlyDictionary<string, int[]> GetFacilityUnlockIds() =>
@@ -263,10 +272,12 @@ public static class ResearchOverhaulContentAssetBuilder
                     });
                 abilities.Add(cropPlot);
             }
+            IReadOnlyList<ItemAmountDefinition> constructionMaterials =
+                ResolveConstructionMaterials(spec);
             abilities.Add(new BuildingEconomyAbility
             {
-                constructionCost = 80 + index * 4,
-                maintenance = 1 + index / 12,
+                constructionCost = ResolveConstructionValue(spec.BomProfile),
+                maintenance = ResolveMaintenanceCost(spec.BomProfile),
                 unlockPhase = 1,
                 demolitionRefundRate = 0.5f
             });
@@ -277,6 +288,25 @@ public static class ResearchOverhaulContentAssetBuilder
             });
             if (IsAgeTreatmentFacility(spec.ResearchId))
             {
+                facility.AddSupportedWorkTypeId(BuiltInWorkTypeIds.Plumbing);
+                abilities.Add(new BuildingUtilityConnectionAbility
+                {
+                    channels = UtilityChannel.CleanWater
+                        | UtilityChannel.Wastewater,
+                    maxThroughput = 20f,
+                    normallyOpen = true
+                });
+                abilities.Add(new BuildingProcessFluidAbility
+                {
+                    workTypeIds = new[]
+                    {
+                        BuiltInWorkTypeIds.Surgery.Value
+                    },
+                    cleanWaterPerCycle = 0.2f,
+                    wastewaterPerCycle = 0.2f,
+                    minimumQuality = WorldWaterQuality.Clean,
+                    allowsManualWaterFallback = true
+                });
                 abilities.Add(new BuildingSurgeryTableAbility
                 {
                     allowedProcedureTags = SurgeryFacilityTag.AgeTreatment,
@@ -289,13 +319,15 @@ public static class ResearchOverhaulContentAssetBuilder
             abilities.Add(new BuildingRoomRequirementAbility());
             BuildingWorkAmountAbility workAmount = new BuildingWorkAmountAbility
             {
-                constructionWorkRequired = 90f + index * 3f,
-                repairWorkRequired = 24f,
-                cleanWorkRequired = 8f,
+                constructionWorkRequired = ResolveFallbackConstructionWork(
+                    classification,
+                    command,
+                    constructionMaterials.Count),
+                repairWorkRequired = ResolveRepairWork(spec.BomProfile),
+                cleanWorkRequired = ResolveCleaningWork(spec.BomProfile),
                 operateWorkRequired = 12f
             };
-            workAmount.SetConstructionMaterials(
-                ResolveConstructionMaterials(spec, index));
+            workAmount.SetConstructionMaterials(constructionMaterials);
             abilities.Add(workAmount);
             if (string.Equals(
                     spec.ResearchId,
@@ -394,10 +426,45 @@ public static class ResearchOverhaulContentAssetBuilder
                 roles = FacilityRole.Research;
                 workTypes = FacilityWorkType.Research | FacilityWorkType.Operate;
                 break;
-            default:
-                roles = FacilityRole.Research | FacilityRole.Logistics;
-                workTypes = FacilityWorkType.Research | FacilityWorkType.Operate;
+            case FacilityBomProfile.IFieldStation:
+                roles = FacilityRole.Logistics;
+                workTypes = FacilityWorkType.Craft | FacilityWorkType.Operate;
                 break;
+            case FacilityBomProfile.JWaterworks:
+                roles = FacilityRole.Logistics;
+                workTypes = FacilityWorkType.Operate;
+                break;
+            case FacilityBomProfile.KSecureFixture:
+                roles = FacilityRole.Security | FacilityRole.Logistics;
+                workTypes = FacilityWorkType.Craft | FacilityWorkType.Operate;
+                break;
+            case FacilityBomProfile.LIndustrialMachine:
+                roles = FacilityRole.Logistics;
+                workTypes = FacilityWorkType.Craft | FacilityWorkType.Repair
+                    | FacilityWorkType.Operate;
+                break;
+            case FacilityBomProfile.MPrecisionWorkshop:
+                roles = FacilityRole.Research | FacilityRole.Logistics;
+                workTypes = FacilityWorkType.Research | FacilityWorkType.Craft
+                    | FacilityWorkType.Operate;
+                break;
+            case FacilityBomProfile.NDefenseInstallation:
+                roles = FacilityRole.Security | FacilityRole.Logistics;
+                workTypes = FacilityWorkType.Craft | FacilityWorkType.Operate;
+                break;
+            case FacilityBomProfile.OPowderWorkshop:
+                roles = FacilityRole.Logistics;
+                workTypes = FacilityWorkType.Craft | FacilityWorkType.Operate;
+                break;
+            case FacilityBomProfile.PServiceStation:
+                roles = FacilityRole.Administration | FacilityRole.Logistics;
+                workTypes = FacilityWorkType.Operate;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(
+                    nameof(spec),
+                    spec.BomProfile,
+                    "Research facilities require an explicit semantic BOM profile.");
         }
 
         if (IsAgeTreatmentFacility(spec.ResearchId))
@@ -423,6 +490,7 @@ public static class ResearchOverhaulContentAssetBuilder
         if ((mask & FacilityWorkType.Operate) != 0) yield return BuiltInWorkTypeIds.Operate;
         if ((mask & FacilityWorkType.Rest) != 0) yield return BuiltInWorkTypeIds.Rest;
         if ((mask & FacilityWorkType.Craft) != 0) yield return BuiltInWorkTypeIds.Craft;
+        if ((mask & FacilityWorkType.Repair) != 0) yield return BuiltInWorkTypeIds.Repair;
         if ((mask & FacilityWorkType.Research) != 0) yield return BuiltInWorkTypeIds.Research;
         if ((mask & FacilityWorkType.Treat) != 0) yield return BuiltInWorkTypeIds.Treat;
         if ((mask & FacilityWorkType.Sow) != 0) yield return BuiltInWorkTypeIds.Sow;
@@ -437,23 +505,8 @@ public static class ResearchOverhaulContentAssetBuilder
         || string.Equals(researchId, "research:medical:whole-body-regeneration", StringComparison.Ordinal)
         || string.Equals(researchId, "research:medical:temporal-stasis", StringComparison.Ordinal);
 
-    private static string ResolveConstructionMaterialId(int index)
-    {
-        if (index >= 40)
-        {
-            return "component:precision-parts";
-        }
-
-        if (index >= 20)
-        {
-            return "component:machine-parts";
-        }
-
-        return "material:lumber";
-    }
-
     private static IReadOnlyList<ItemAmountDefinition>
-        ResolveConstructionMaterials(FacilitySpec spec, int index)
+        ResolveConstructionMaterials(FacilitySpec spec)
     {
         IReadOnlyList<ItemAmountDefinition> authored = spec.BomProfile switch
         {
@@ -507,55 +560,145 @@ public static class ResearchOverhaulContentAssetBuilder
                 ("material:iron-ingot", 6),
                 ("material:cloth", 2),
                 ("component:machine-parts", 1)),
-            _ => null
+            FacilityBomProfile.IFieldStation => Materials(
+                ("material:lumber", 6),
+                ("material:treated-lumber", 3),
+                ("material:iron-ingot", 2),
+                ("material:rope", 2),
+                ("material:cloth", 2)),
+            FacilityBomProfile.JWaterworks => Materials(
+                ("material:stone-block", 8),
+                ("material:treated-lumber", 4),
+                ("material:iron-ingot", 4),
+                ("resource:clean-water", 4)),
+            FacilityBomProfile.KSecureFixture => Materials(
+                ("material:treated-lumber", 5),
+                ("material:iron-ingot", 4),
+                ("material:hardened-leather", 2),
+                ("material:chain-mesh", 1)),
+            FacilityBomProfile.LIndustrialMachine => Materials(
+                ("material:stone-block", 10),
+                ("material:steel-ingot", 6),
+                ("component:machine-parts", 4),
+                ("component:precision-parts", 1),
+                ("component:engineering-drawing", 1)),
+            FacilityBomProfile.MPrecisionWorkshop => Materials(
+                ("material:stone-block", 6),
+                ("material:treated-lumber", 4),
+                ("material:steel-ingot", 4),
+                ("component:precision-parts", 3),
+                ("component:engineering-drawing", 1)),
+            FacilityBomProfile.NDefenseInstallation => Materials(
+                ("material:stone-block", 8),
+                ("material:steel-ingot", 6),
+                ("component:machine-parts", 3),
+                ("material:cloth", 2)),
+            FacilityBomProfile.OPowderWorkshop => Materials(
+                ("material:stone-block", 10),
+                ("material:iron-ingot", 4),
+                ("material:treated-lumber", 2),
+                ("component:machine-parts", 2),
+                ("resource:clean-water", 2)),
+            FacilityBomProfile.PServiceStation => Materials(
+                ("material:treated-lumber", 6),
+                ("material:iron-ingot", 2),
+                ("material:cloth", 2),
+                ("material:paper", 2)),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(spec),
+                spec.BomProfile,
+                "Research facilities require an authored physical BOM.")
         };
-        if (authored != null)
-        {
-            return AppendV21InstallationMaterials(spec, authored);
-        }
-
-        List<ItemAmountDefinition> materials = new()
-        {
-            new ItemAmountDefinition(
-                ResolveConstructionMaterialId(index),
-                4 + index / 10)
-        };
-        string[] installationItems = spec.ResearchId switch
-        {
-            "research:industry:rune-grid" =>
-                new[] { "tool:alloy-crucible" },
-            "research:industry:industrial-cooling" or
-            "research:industry:line-balancing" or
-            "research:industry:maintenance" or
-            "research:industry:powered-tools" =>
-                new[] { "component:factory-installation-plan" },
-            "research:industry:precision" =>
-                new[] { "tool:powered-tool-head" },
-            "research:industry:rune-automation" =>
-                new[]
-                {
-                    "component:rune-bus-coupler",
-                    "tool:precision-gauge"
-                },
-            "research:equipment:precision-fitting" =>
-                new[] { "tool:precision-gauge" },
-            "research:equipment:modular-frames" =>
-                new[] { "component:prototype-package" },
-            "research:equipment:industrial-metrology" =>
-                new[]
-                {
-                    "component:prototype-package",
-                    "component:paper-paste",
-                    "tool:powered-tool-head"
-                },
-            "research:medical:construct-core-engineering" =>
-                new[] { "component:factory-installation-plan" },
-            _ => Array.Empty<string>()
-        };
-        materials.AddRange(installationItems.Select(
-            itemId => new ItemAmountDefinition(itemId, 1)));
-        return AppendV21InstallationMaterials(spec, materials);
+        return AppendV21InstallationMaterials(spec, authored);
     }
+
+    private static int ResolveConstructionValue(FacilityBomProfile profile) =>
+        profile switch
+        {
+            FacilityBomProfile.ARecordDesk => 120,
+            FacilityBomProfile.BWorkbench => 220,
+            FacilityBomProfile.CLivingRoom => 160,
+            FacilityBomProfile.DMedicalRoom => 320,
+            FacilityBomProfile.EIndustrialLab => 420,
+            FacilityBomProfile.FRuneBiolab => 650,
+            FacilityBomProfile.GGreenhouse => 260,
+            FacilityBomProfile.HObservationTower => 240,
+            FacilityBomProfile.IFieldStation => 130,
+            FacilityBomProfile.JWaterworks => 200,
+            FacilityBomProfile.KSecureFixture => 280,
+            FacilityBomProfile.LIndustrialMachine => 440,
+            FacilityBomProfile.MPrecisionWorkshop => 400,
+            FacilityBomProfile.NDefenseInstallation => 360,
+            FacilityBomProfile.OPowderWorkshop => 300,
+            FacilityBomProfile.PServiceStation => 180,
+            _ => throw new ArgumentOutOfRangeException(nameof(profile), profile, null)
+        };
+
+    private static int ResolveMaintenanceCost(FacilityBomProfile profile) =>
+        profile switch
+        {
+            FacilityBomProfile.ARecordDesk or FacilityBomProfile.CLivingRoom
+                or FacilityBomProfile.IFieldStation
+                or FacilityBomProfile.PServiceStation => 1,
+            FacilityBomProfile.BWorkbench or FacilityBomProfile.GGreenhouse
+                or FacilityBomProfile.HObservationTower
+                or FacilityBomProfile.JWaterworks
+                or FacilityBomProfile.KSecureFixture => 2,
+            FacilityBomProfile.DMedicalRoom or FacilityBomProfile.NDefenseInstallation
+                or FacilityBomProfile.OPowderWorkshop => 3,
+            FacilityBomProfile.EIndustrialLab or FacilityBomProfile.LIndustrialMachine
+                or FacilityBomProfile.MPrecisionWorkshop => 4,
+            FacilityBomProfile.FRuneBiolab => 6,
+            _ => throw new ArgumentOutOfRangeException(nameof(profile), profile, null)
+        };
+
+    private static float ResolveFallbackConstructionWork(
+        FacilityUseClassification classification,
+        ResearchFacilityCommandKind command,
+        int materialKinds)
+    {
+        float baseWork = command switch
+        {
+            ResearchFacilityCommandKind.ResonanceTuning => 360f,
+            ResearchFacilityCommandKind.AgingAssessment
+                or ResearchFacilityCommandKind.BiologicalAgeMeasurement
+                or ResearchFacilityCommandKind.GeriatricCare
+                or ResearchFacilityCommandKind.ChronicCare
+                or ResearchFacilityCommandKind.PathogenDiagnosis
+                or ResearchFacilityCommandKind.Serology => 200f,
+            _ => classification switch
+            {
+                FacilityUseClassification.Structure => 20f,
+                FacilityUseClassification.Storage => 48f,
+                FacilityUseClassification.Production => 110f,
+                FacilityUseClassification.Service => 130f,
+                FacilityUseClassification.Environment => 160f,
+                FacilityUseClassification.Logistics => 280f,
+                FacilityUseClassification.Combat => 180f,
+                FacilityUseClassification.DomainCommand => 230f,
+                FacilityUseClassification.EventVenue => 130f,
+                FacilityUseClassification.Decoration => 28f,
+                _ => 32f
+            }
+        };
+        float materialComplexity = Mathf.Clamp(
+            1f + Mathf.Max(0, materialKinds - 1) * 0.05f,
+            1f,
+            1.25f);
+        return Mathf.Round(baseWork * materialComplexity / 4f) * 4f;
+    }
+
+    private static float ResolveRepairWork(FacilityBomProfile profile) =>
+        Mathf.Max(8f, Mathf.Round(ResolveConstructionValue(profile) * 0.08f));
+
+    private static float ResolveCleaningWork(FacilityBomProfile profile) =>
+        profile is FacilityBomProfile.DMedicalRoom
+            or FacilityBomProfile.FRuneBiolab
+            or FacilityBomProfile.GGreenhouse
+            or FacilityBomProfile.JWaterworks
+            or FacilityBomProfile.OPowderWorkshop
+            ? 12f
+            : 8f;
 
     private static IReadOnlyList<ItemAmountDefinition> AppendV21InstallationMaterials(
         FacilitySpec spec,
@@ -702,14 +845,19 @@ public static class ResearchOverhaulContentAssetBuilder
                     : CategoryFor(spec.Kind),
                 spec.Kind,
                 spec.Tags,
-                12 + index * 2,
-                0.25f + index * 0.03f,
+                ResolveGeneratedUnitPrice(spec),
+                ResolveGeneratedUnitWeight(spec),
                 spec.ItemId == PhysicalItemIds.EquipmentModule
                     ? 1
                     : DurableToolItemRules.TryGetMaximumDurability(spec.ItemId, out _)
                         ? 1
                         : spec.Kind == ResourceItemKind.Ammunition ? 120 : 50,
                 spec.ResearchId);
+            if (spec.ItemId == PhysicalItemIds.EquipmentModule
+                || spec.ItemId == EquipmentProgressionItemIds.LineageSeal)
+            {
+                item.ConfigureMarketSaleRate(0f);
+            }
             item.ConfigureFacilitySupply(0f, false, spec.SharedIntermediate);
             if (spec.ItemId == "medical:sterile-bandage")
             {
@@ -768,7 +916,7 @@ public static class ResearchOverhaulContentAssetBuilder
                 spec.WorkstationTag,
                 BuiltInWorkTypeIds.Craft.Value,
                 spec.ResearchId,
-                8f + index * 0.75f,
+                10f,
                 spec.Inputs.Select(input =>
                     new ItemAmountDefinition(input.ItemId, input.Amount)),
                 new[]
@@ -781,60 +929,76 @@ public static class ResearchOverhaulContentAssetBuilder
                 spec.WorkstationTag,
                 Array.Empty<string>(),
                 ProductionProcessKind.WorkOnly);
+            ProductionFlowRole flowRole =
+                spec.Inputs.Length == 0
+                    ? ProductionFlowRole.Source
+                    : ProductionFlowRole.Transform;
+            recipe.ConfigureFlowRole(flowRole);
+            ProductionProcessClass processClass =
+                V23RecipeProcessClassAuthoring.Resolve(
+                    spec.WorkstationTag,
+                    BuiltInWorkTypeIds.Craft.Value,
+                    flowRole,
+                    spec.ItemId);
+            recipe.ConfigureProcessClass(processClass);
+            recipe.ConfigureBalanceWork(
+                V23BalanceWorkCalculator.CalculateRecipeBaseWork(
+                    recipe,
+                    processClass));
             EditorUtility.SetDirty(recipe);
         }
     }
 
     private static FacilitySpec[] FacilitySpecs() => new[]
     {
-        F("research:agriculture:gathering", "채집 바구니 작업대", "workstation:v3:gathering"),
-        F("research:agriculture:irrigation", "중력식 수문", "workstation:v3:irrigation"),
-        F("research:agriculture:subterranean", "동굴 재배 선반", "workstation:v3:subterranean"),
-        F("research:authority:prestige", "문장 깃발 제작대", "workstation:v3:heraldry"),
-        F("research:authority:ritual", "의식 화로", "workstation:v3:ritual"),
-        F("research:commerce:logistics", "운반 멜빵 걸이", "workstation:v3:logistics"),
-        F("research:commerce:retail", "가격표 게시판", "workstation:v3:retail"),
-        F("research:control:blood-show", "피의 무대 배수구", "workstation:v3:blood-stage"),
-        F("research:control:labor", "포로 작업 도구함", "workstation:v3:prison-labor"),
-        F("research:control:restraints", "강화 구속구 선반", "workstation:v3:restraint"),
-        F("research:control:show", "공연 소품 보관대", "workstation:v3:show"),
-        F("research:defense:alliance-signals", "동맹 신호기", "workstation:v3:signals"),
-        F("research:forestry:fungal", "균사 재배 선반", "workstation:v3:fungal"),
-        F("research:forestry:logging", "벌목 키트 걸이", "workstation:v3:logging"),
-        F("research:forestry:tools", "쐐기 도끼 작업대", "workstation:v3:forestry-tools"),
-        F("research:forestry:treated", "방부 처리 목재대", "workstation:v3:treated-lumber"),
-        F("research:husbandry:breeding", "번식 장부대", "workstation:v3:breeding"),
-        F("research:husbandry:selective", "혈통 촉진제 선반", "workstation:v3:selective"),
-        F("research:husbandry:stable", "마구 선반", "workstation:v3:stable"),
-        F("research:husbandry:taming", "조련용 고삐 걸이", "workstation:v3:taming"),
-        F("research:industry:assisted-processing", "동력 공구날 연마대", "workstation:v3:machine-parts"),
-        F("research:industry:automatic-sanitation", "자동 세척기", "workstation:v3:sanitation"),
-        F("research:industry:rune-grid", "룬 버스 결합기", "workstation:v3:rune-conductor"),
-        F("research:industry:defense-supply", "방어시설 장전기", "workstation:v3:defense-ammo"),
-        F("research:equipment:prototype-engineering", "시제품 연구실", "workstation:v3:prototype"),
-        F("research:equipment:material-testing", "재료 시험기", "workstation:v3:material-test"),
-        F("research:industry:factory-layout", "기계 기초대", "workstation:v3:factory-layout"),
-        F("research:industry:industrial-cooling", "냉각 매니폴드", "workstation:v3:cooling"),
-        F("research:industry:line-balancing", "유량계", "workstation:v3:metering"),
-        F("research:industry:maintenance", "정비 부품함", "workstation:v3:maintenance"),
-        F("research:industry:powered-tools", "전동 선반", "workstation:v3:powered-tools"),
-        F("research:industry:precision", "정밀 게이지", "workstation:v3:precision-parts"),
-        F("research:industry:rune-automation", "룬 제어반", "workstation:v3:rune-control"),
-        F("research:equipment:weapon-patterns", "무기 도면걸이", "workstation:v3:weapon-pattern"),
-        F("research:equipment:armor-tailoring", "방어구 맞춤대", "workstation:v3:armor-tailoring"),
-        F("research:equipment:bowyery", "궁시 지그", "workstation:v3:bow-jig"),
-        F("research:equipment:mechanical-projectiles", "권양 작업대", "workstation:v3:windlass"),
-        F("research:equipment:mail-weaving", "사슬 조립틀", "workstation:v3:chain"),
-        F("research:equipment:articulated-plate", "관절 지그", "workstation:v3:plate-jig"),
-        F("research:equipment:black-powder", "화약 분쇄소", "workstation:v3:powder-mill"),
-        F("research:equipment:standard-ammunition", "탄약 압착기", "workstation:v3:ammo-press"),
-        F("research:equipment:relic-appraisal", "부품 감정대", "workstation:v3:appraisal"),
-        F("research:equipment:relic-restoration", "부품 복원 작업대", "workstation:v3:restoration"),
-        F("research:equipment:precision-fitting", "정밀 장착대", "workstation:v3:precision-fitting"),
-        F("research:equipment:modular-frames", "성장형 골격 지그", "workstation:v3:growth-frame"),
-        F("research:equipment:industrial-metrology", "계측 작업대", "workstation:v3:metrology"),
-        F("research:medical:construct-core-engineering", "구성체 핵 공학대", "workstation:v3:construct-core-engineering"),
-        F("research:service:dining-operations", "배식 운영판", "workstation:v3:dining-operations"),
+        F("research:agriculture:gathering", "채집 바구니 작업대", "workstation:v3:gathering", FacilityBomProfile.IFieldStation),
+        F("research:agriculture:irrigation", "중력식 수문", "workstation:v3:irrigation", FacilityBomProfile.JWaterworks),
+        F("research:agriculture:subterranean", "동굴 재배 선반", "workstation:v3:subterranean", FacilityBomProfile.GGreenhouse),
+        F("research:authority:prestige", "문장 깃발 제작대", "workstation:v3:heraldry", FacilityBomProfile.BWorkbench),
+        F("research:authority:ritual", "의식 화로", "workstation:v3:ritual", FacilityBomProfile.BWorkbench),
+        F("research:commerce:logistics", "운반 멜빵 걸이", "workstation:v3:logistics", FacilityBomProfile.BWorkbench),
+        F("research:commerce:retail", "가격표 게시판", "workstation:v3:retail", FacilityBomProfile.ARecordDesk),
+        F("research:control:blood-show", "피의 무대 배수구", "workstation:v3:blood-stage", FacilityBomProfile.JWaterworks),
+        F("research:control:labor", "포로 작업 도구함", "workstation:v3:prison-labor", FacilityBomProfile.KSecureFixture),
+        F("research:control:restraints", "강화 구속구 선반", "workstation:v3:restraint", FacilityBomProfile.KSecureFixture),
+        F("research:control:show", "공연 소품 보관대", "workstation:v3:show", FacilityBomProfile.PServiceStation),
+        F("research:defense:alliance-signals", "동맹 신호기", "workstation:v3:signals", FacilityBomProfile.NDefenseInstallation),
+        F("research:forestry:fungal", "균사 재배 선반", "workstation:v3:fungal", FacilityBomProfile.GGreenhouse),
+        F("research:forestry:logging", "벌목 키트 걸이", "workstation:v3:logging", FacilityBomProfile.IFieldStation),
+        F("research:forestry:tools", "쐐기 도끼 작업대", "workstation:v3:forestry-tools", FacilityBomProfile.BWorkbench),
+        F("research:forestry:treated", "방부 처리 목재대", "workstation:v3:treated-lumber", FacilityBomProfile.BWorkbench),
+        F("research:husbandry:breeding", "번식 장부대", "workstation:v3:breeding", FacilityBomProfile.ARecordDesk),
+        F("research:husbandry:selective", "혈통 촉진제 선반", "workstation:v3:selective", FacilityBomProfile.BWorkbench),
+        F("research:husbandry:stable", "마구 선반", "workstation:v3:stable", FacilityBomProfile.IFieldStation),
+        F("research:husbandry:taming", "조련용 고삐 걸이", "workstation:v3:taming", FacilityBomProfile.IFieldStation),
+        F("research:industry:assisted-processing", "동력 공구날 연마대", "workstation:v3:machine-parts", FacilityBomProfile.LIndustrialMachine),
+        F("research:industry:automatic-sanitation", "자동 세척기", "workstation:v3:sanitation", FacilityBomProfile.LIndustrialMachine),
+        F("research:industry:rune-grid", "룬 버스 결합기", "workstation:v3:rune-conductor", FacilityBomProfile.FRuneBiolab),
+        F("research:industry:defense-supply", "방어시설 장전기", "workstation:v3:defense-ammo", FacilityBomProfile.NDefenseInstallation),
+        F("research:equipment:prototype-engineering", "시제품 연구실", "workstation:v3:prototype", FacilityBomProfile.MPrecisionWorkshop),
+        F("research:equipment:material-testing", "재료 시험기", "workstation:v3:material-test", FacilityBomProfile.MPrecisionWorkshop),
+        F("research:industry:factory-layout", "기계 기초대", "workstation:v3:factory-layout", FacilityBomProfile.LIndustrialMachine),
+        F("research:industry:industrial-cooling", "냉각 매니폴드", "workstation:v3:cooling", FacilityBomProfile.LIndustrialMachine),
+        F("research:industry:line-balancing", "유량계", "workstation:v3:metering", FacilityBomProfile.MPrecisionWorkshop),
+        F("research:industry:maintenance", "정비 부품함", "workstation:v3:maintenance", FacilityBomProfile.LIndustrialMachine),
+        F("research:industry:powered-tools", "전동 선반", "workstation:v3:powered-tools", FacilityBomProfile.LIndustrialMachine),
+        F("research:industry:precision", "정밀 게이지", "workstation:v3:precision-parts", FacilityBomProfile.MPrecisionWorkshop),
+        F("research:industry:rune-automation", "룬 제어반", "workstation:v3:rune-control", FacilityBomProfile.FRuneBiolab),
+        F("research:equipment:weapon-patterns", "무기 도면걸이", "workstation:v3:weapon-pattern", FacilityBomProfile.ARecordDesk),
+        F("research:equipment:armor-tailoring", "방어구 맞춤대", "workstation:v3:armor-tailoring", FacilityBomProfile.BWorkbench),
+        F("research:equipment:bowyery", "궁시 지그", "workstation:v3:bow-jig", FacilityBomProfile.BWorkbench),
+        F("research:equipment:mechanical-projectiles", "권양 작업대", "workstation:v3:windlass", FacilityBomProfile.LIndustrialMachine),
+        F("research:equipment:mail-weaving", "사슬 조립틀", "workstation:v3:chain", FacilityBomProfile.LIndustrialMachine),
+        F("research:equipment:articulated-plate", "관절 지그", "workstation:v3:plate-jig", FacilityBomProfile.LIndustrialMachine),
+        F("research:equipment:black-powder", "화약 분쇄소", "workstation:v3:powder-mill", FacilityBomProfile.OPowderWorkshop),
+        F("research:equipment:standard-ammunition", "탄약 압착기", "workstation:v3:ammo-press", FacilityBomProfile.LIndustrialMachine),
+        F("research:equipment:relic-appraisal", "부품 감정대", "workstation:v3:appraisal", FacilityBomProfile.MPrecisionWorkshop),
+        F("research:equipment:relic-restoration", "부품 복원 작업대", "workstation:v3:restoration", FacilityBomProfile.MPrecisionWorkshop),
+        F("research:equipment:precision-fitting", "정밀 장착대", "workstation:v3:precision-fitting", FacilityBomProfile.MPrecisionWorkshop),
+        F("research:equipment:modular-frames", "성장형 골격 지그", "workstation:v3:growth-frame", FacilityBomProfile.LIndustrialMachine),
+        F("research:equipment:industrial-metrology", "계측 작업대", "workstation:v3:metrology", FacilityBomProfile.MPrecisionWorkshop),
+        F("research:medical:construct-core-engineering", "구성체 핵 공학대", "workstation:v3:construct-core-engineering", FacilityBomProfile.FRuneBiolab),
+        F("research:service:dining-operations", "배식 운영판", "workstation:v3:dining-operations", FacilityBomProfile.PServiceStation),
         F("research:life:seasonal-calendar", "계절력 기록대", "workstation:v19:seasonal-calendar", FacilityBomProfile.ARecordDesk),
         F("research:agriculture:phenology", "작물 달력대", "workstation:v19:crop-calendar", FacilityBomProfile.ARecordDesk),
         F("research:climate:weather-observation", "기상 관측탑", "workstation:v19:weather-observation", FacilityBomProfile.HObservationTower),
@@ -921,7 +1085,7 @@ public static class ResearchOverhaulContentAssetBuilder
         S("research:mining:mana", "tool:mana-probe", "마나 탐침", ResourceItemKind.FinishedGood, ResourceIngredientTag.Arcane, "workstation:v3:material-test", 1, false, true, A("component:precision-parts", 1), A("component:mana-shield-plate", 1)),
         S("research:equipment:industrial-metrology", "tool:precision-gauge", "정밀 게이지", ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, "workstation:v3:metrology", 1, false, true, A("component:precision-parts", 1), A("component:engineering-drawing", 1)),
         S("research:equipment:prototype-engineering", "component:prototype-package", "시제품 설계 묶음", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, "workstation:v3:prototype", 1, false, true, A("component:engineering-drawing", 1), A("component:machine-parts", 1)),
-        S("research:industry:factory-layout", "component:factory-installation-plan", "공장 설치 도면", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, "workstation:v3:factory-layout", 1, false, true, A("component:engineering-drawing", 1), A("material:paper", 1)),
+        S("research:industry:factory-layout", "component:factory-installation-plan", "공장 설치 도면", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, "workstation:v3:factory-layout", 1, false, true, A("component:engineering-drawing", 1), A("material:paper", 1), A("component:paper-paste", 1)),
         S("research:equipment:mechanical-projectiles", "component:siege-counterweight", "공성 균형추 조립품", ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, "workstation:v3:windlass", 1, false, true, A("component:lead-counterweight", 1), A("component:machine-parts", 1)),
         S("research:equipment:rune-module-tuning", "component:rune-tuning-shield", "룬 조율 차폐판", ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral | ResourceIngredientTag.Arcane, "workstation:v3:precision-fitting", 1, false, true, A("component:mana-shield-plate", 1), A("component:rune-conductor", 1)),
         S("research:medical:mana-core-engineering", "medical:mana-core-case", "마핵 케이스", ResourceItemKind.FinishedGood, ResourceIngredientTag.Arcane, "workstation:v3:precision-fitting", 1, false, true, A("component:rune-conductor", 1), A("component:precision-parts", 1)),
@@ -1044,7 +1208,7 @@ public static class ResearchOverhaulContentAssetBuilder
         string researchId,
         string name,
         string tag,
-        FacilityBomProfile bomProfile = FacilityBomProfile.Legacy) =>
+        FacilityBomProfile bomProfile) =>
         new FacilitySpec(researchId, name, tag, bomProfile);
 
     private static InputSpec A(string itemId, int amount) =>
@@ -1080,6 +1244,67 @@ public static class ResearchOverhaulContentAssetBuilder
         ResourceItemKind.Ammunition => StockCategory.Ammunition,
         _ => StockCategory.General
     };
+
+    private static int ResolveGeneratedUnitPrice(ItemSpec spec)
+    {
+        float kindValue = spec.Kind switch
+        {
+            ResourceItemKind.Raw => 6f,
+            ResourceItemKind.Intermediate => 14f,
+            ResourceItemKind.Food => 10f,
+            ResourceItemKind.Medicine => 28f,
+            ResourceItemKind.Substance => 18f,
+            ResourceItemKind.AnimalProduct => 10f,
+            ResourceItemKind.Waste => 2f,
+            ResourceItemKind.Ammunition => 12f,
+            ResourceItemKind.FinishedGood => 24f,
+            _ => 8f
+        };
+        float tagValue = 0f;
+        if ((spec.Tags & ResourceIngredientTag.Arcane) != 0) tagValue += 18f;
+        if ((spec.Tags & ResourceIngredientTag.Mineral) != 0) tagValue += 8f;
+        if ((spec.Tags & ResourceIngredientTag.Forbidden) != 0) tagValue += 10f;
+        if ((spec.Tags & ResourceIngredientTag.Fiber) != 0) tagValue += 3f;
+        if ((spec.Tags & ResourceIngredientTag.Wood) != 0) tagValue += 3f;
+        int inputKinds = spec.Inputs
+            .Select(value => value.ItemId)
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+        int inputUnits = spec.Inputs.Sum(value => Mathf.Max(0, value.Amount));
+        float complexityValue = inputKinds * 4f + inputUnits * 2f;
+        float outputEconomy = Mathf.Pow(Mathf.Max(1, spec.OutputAmount), 0.45f);
+        return Mathf.Clamp(
+            Mathf.CeilToInt((kindValue + tagValue + complexityValue) / outputEconomy),
+            2,
+            200);
+    }
+
+    private static float ResolveGeneratedUnitWeight(ItemSpec spec)
+    {
+        if (spec.Kind == ResourceItemKind.Ammunition)
+        {
+            return 0.15f;
+        }
+
+        float weight = spec.Kind switch
+        {
+            ResourceItemKind.Medicine => 0.25f,
+            ResourceItemKind.Food => 0.55f,
+            ResourceItemKind.Waste => 0.75f,
+            ResourceItemKind.FinishedGood => 0.9f,
+            ResourceItemKind.Intermediate => 0.7f,
+            _ => 0.5f
+        };
+        if ((spec.Tags & ResourceIngredientTag.Mineral) != 0) weight += 1.35f;
+        if ((spec.Tags & ResourceIngredientTag.Wood) != 0) weight += 0.8f;
+        if ((spec.Tags & ResourceIngredientTag.Fiber) != 0) weight += 0.15f;
+        if ((spec.Tags & ResourceIngredientTag.Arcane) != 0) weight += 0.2f;
+        if ((spec.Tags & ResourceIngredientTag.Plant) != 0) weight += 0.1f;
+        return Mathf.Clamp(
+            Mathf.Round((weight + spec.Inputs.Length * 0.05f) * 20f) / 20f,
+            0.05f,
+            8f);
+    }
 
     private static string ItemPath(int index, ItemSpec spec) =>
         $"{ItemRoot}/V3I{index + 1:D2}_{Sanitize(spec.Name)}.asset";

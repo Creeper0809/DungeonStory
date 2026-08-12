@@ -34,19 +34,33 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730538791893
-    - rid: 7737211730538791894
-    - rid: 7737211730538791896
-    - rid: 7737211730538791897
-    - rid: 7737211730538791898
-    - rid: 7737211730538791899
-    - rid: 7737211730538791900
-    - rid: 7737211838074979011
-    - rid: 7737211838074979012
+    - rid: 7737211921440178542
+    - rid: 7737211921440178543
+    - rid: 7737211921440178544
+    - rid: 7737211921440178545
+    - rid: 7737211921440178546
+    - rid: 7737211921440178547
+    - rid: 7737211921440178548
+    - rid: 7737211921440178549
   width: 3
   height: 1
   layer: 5
@@ -62,19 +76,25 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730538791893
+    - rid: 7737211921440178542
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: P23
-    - rid: 7737211730538791894
+    - rid: 7737211921440178543
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - crop-plot
         - crop-outdoor
-    - rid: 7737211730538791896
+    - rid: 7737211921440178544
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:crop-plot
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211921440178545
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -83,19 +103,35 @@ MonoBehaviour:
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211730538791897
+    - rid: 7737211921440178546
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 32.5
-        repairWorkRequired: 14
-        cleanWorkRequired: 8.75
+        constructionProjectScale: 0
+        constructionWorkRequired: 176
+        repairWorkRequired: 44
+        cleanWorkRequired: 6
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: material:lumber
-          amount: 7
-    - rid: 7737211730538791898
+        - itemId: material:cloth
+          amount: 6
+        - itemId: material:iron-ingot
+          amount: 2
+        - itemId: component:machine-parts
+          amount: 1
+    - rid: 7737211921440178547
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -106,7 +142,7 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 6291460
           disabledWhenDamaged: 1
-    - rid: 7737211730538791899
+    - rid: 7737211921440178548
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -121,7 +157,7 @@ MonoBehaviour:
           - key: Agriculture
             value: 2
           metrics: []
-    - rid: 7737211730538791900
+    - rid: 7737211921440178549
       type: {class: BuildingCropPlotAbility, ns: , asm: DungeonStory.Economy}
       data:
         abilityId: BuildingCropPlotAbility
@@ -133,31 +169,3 @@ MonoBehaviour:
         cycleSupplyInputs:
         - itemId: supply:nitrate-fertilizer
           amount: 1
-    - rid: 7737211838074979011
-      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionWorkstationAbility
-        workstationTag: workstation:crop-plot
-        stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211838074979012
-      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionBufferAbility
-        defaultBatchCapacity: 4
-        outputCapacities:
-        - itemId: material:lead-ingot
-          capacity: 24
-        - itemId: material:lead-shot
-          capacity: 96
-        - itemId: material:black-powder
-          capacity: 48
-        - itemId: material:paper
-          capacity: 64
-        - itemId: ammo:paper-cartridge
-          capacity: 120
-        - itemId: component:machine-parts
-          capacity: 16
-        - itemId: component:precision-parts
-          capacity: 16
-        allowOverflowDump: 1
-        overflowOffset: {x: 1, y: 0}

@@ -53,6 +53,7 @@ public sealed class WarehouseFeatureForecastRow
     public string Name { get; set; } = string.Empty;
     public string Detail { get; set; } = string.Empty;
     public bool PolicyEnabled { get; set; }
+    public bool IsEmergencyReserve { get; set; }
     public int MinimumStock { get; set; }
     public int TargetStock { get; set; }
     public int MaximumStock { get; set; }
@@ -98,6 +99,7 @@ public interface IWarehouseFeatureCommandService
     WarehouseFeatureCommandResult PurchaseDelivery(StockDeliveryOffer offer);
     WarehouseFeatureCommandResult CycleStockPolicy(string itemId);
     WarehouseFeatureCommandResult ToggleStockPolicy(string itemId);
+    WarehouseFeatureCommandResult ToggleEmergencyReserve(string itemId);
     WarehouseFeatureCommandResult AdjustStockPolicy(
         string itemId,
         ResourceStockThreshold threshold,
@@ -260,8 +262,8 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
                 {
                     Index = index,
                     Offer = offer,
-                    Name = $"{stockCategoryCatalog.GetDisplayName(offer.category)} {offer.amount}개",
-                    Detail = $"{offer.sourceLabel} / 비용 {offer.cost} / 현재 자금 {FormatMoney(money)}"
+                    Name = $"{ResolveItemName(offer.itemId)} {offer.amount}개",
+                    Detail = $"{stockCategoryCatalog.GetDisplayName(offer.category)} / {offer.sourceLabel} / 비용 {offer.cost} / 현재 자금 {FormatMoney(money)}"
                 })
                 .ToArray(),
             ForecastSummary =
@@ -318,6 +320,7 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
                         + $"수요 -{row.ExpectedDemand} / 예상 {row.ProjectedBalance}\n"
                         + FormatPolicy(policy),
                     PolicyEnabled = policy.enabled,
+                    IsEmergencyReserve = policy.isEmergencyReserve,
                     MinimumStock = policy.minimumStock,
                     TargetStock = policy.targetStock,
                     MaximumStock = policy.maximumStock,
@@ -401,6 +404,7 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
         }
 
         return $"정책 {policy.minimumStock}/{policy.targetStock}/{policy.maximumStock}"
+            + (policy.isEmergencyReserve ? " · 비상 비축" : string.Empty)
             + $" · 초과 시 {FormatDisposition(policy.surplusDisposition)}"
             + (string.IsNullOrWhiteSpace(policy.lastStatus)
                 ? string.Empty
@@ -474,7 +478,7 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
                 continue;
             }
 
-            bool reservedLike = stack.IsReserved
+            bool reservedLike = stack.HasReservations
                 || stack.HasDestinationPosition
                 || stack.State == WorldItemStackState.ExpeditionPacked;
             if (reservedLike)
@@ -696,6 +700,15 @@ public sealed class WarehouseFeatureSurfacePresenter : IFeatureSurfaceTabPresent
                         () => ShowAndRefresh(
                             view,
                             commandService.CycleStockPolicy(
+                                captured.ItemId))),
+                    new FeatureSurfaceAction(
+                        "EmergencyReserve",
+                        captured.IsEmergencyReserve
+                            ? "비상 비축 해제"
+                            : "비상 비축 지정",
+                        () => ShowAndRefresh(
+                            view,
+                            commandService.ToggleEmergencyReserve(
                                 captured.ItemId)))
                 },
                 144f);

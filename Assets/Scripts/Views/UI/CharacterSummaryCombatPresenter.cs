@@ -30,6 +30,7 @@ public sealed class CharacterSummaryCombatPresenter
     private readonly ICombatEquipmentCatalog equipmentCatalog;
     private readonly ICombatEquipmentMaintenanceRuntime maintenanceRuntime;
     private readonly IGameEventBus eventBus;
+    private readonly ICharacterPerformanceQuery performance;
 
     private TMP_Text summaryText;
     private Button loadoutButton;
@@ -44,7 +45,8 @@ public sealed class CharacterSummaryCombatPresenter
         ICombatEquipmentRuntime equipmentRuntime,
         ICombatEquipmentCatalog equipmentCatalog,
         ICombatEquipmentMaintenanceRuntime maintenanceRuntime,
-        IGameEventBus eventBus)
+        IGameEventBus eventBus,
+        ICharacterPerformanceQuery performance)
     {
         this.bodyHealthQuery = bodyHealthQuery
             ?? throw new ArgumentNullException(nameof(bodyHealthQuery));
@@ -56,6 +58,8 @@ public sealed class CharacterSummaryCombatPresenter
             ?? throw new ArgumentNullException(nameof(maintenanceRuntime));
         this.eventBus = eventBus
             ?? throw new ArgumentNullException(nameof(eventBus));
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
     }
 
     public void Bind(
@@ -305,12 +309,26 @@ public sealed class CharacterSummaryCombatPresenter
         }
 
         string characterId = actor.Identity?.PersistentId ?? string.Empty;
-        int melee = actor.GetCharacterStat(CharacterStatType.Attack);
-        int shooting = actor.GetCharacterStat(CharacterStatType.Shooting);
-        int evasion = actor.GetCharacterStat(CharacterStatType.Evasion);
-        int move = actor.GetCharacterStat(CharacterStatType.MoveSpeed);
-        int strength = actor.GetCharacterStat(CharacterStatType.Strength);
-        int dexterity = actor.GetCharacterStat(CharacterStatType.Dexterity);
+        float meleeFactor = performance.Evaluate(
+            actor,
+            "performance:combat:melee-hit").Value;
+        float rangedFactor = performance.Evaluate(
+            actor,
+            "performance:combat:ranged-hit").Value;
+        int melee = Mathf.RoundToInt(meleeFactor * 5f);
+        int shooting = Mathf.RoundToInt(rangedFactor * 5f);
+        int evasion = Mathf.RoundToInt(performance.Evaluate(
+            actor,
+            "performance:combat:evasion").Value * 5f);
+        int move = Mathf.RoundToInt(performance.Evaluate(
+            actor,
+            "performance:combat:movement").Value * 5f);
+        int strength = Mathf.RoundToInt(performance.Evaluate(
+            actor,
+            "performance:combat:melee-power").Value * 5f);
+        int dexterity = Mathf.RoundToInt(Mathf.Max(
+            meleeFactor,
+            rangedFactor) * 5f);
 
         float baseRangedHit = Mathf.Clamp(
             0.45f + shooting * 0.025f + dexterity * 0.01f,

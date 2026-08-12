@@ -109,10 +109,10 @@ internal sealed class CharacterBodyHealthStateRules
                 out float surfaceConsciousness,
                 out float surfaceManipulation,
                 out float surfaceMobility);
-            consciousness = Mathf.Min(anatomy.Consciousness, surfaceConsciousness)
+            consciousness = Mathf.Min(anatomy.MentalMaintenance, surfaceConsciousness)
                 * Mathf.Lerp(1f, 0.2f, state.bloodLoss / 100f);
-            manipulation = Mathf.Min(anatomy.Manipulation, surfaceManipulation);
-            mobility = Mathf.Min(anatomy.Mobility, surfaceMobility);
+            manipulation = Mathf.Min(anatomy.PrecisionManipulation, surfaceManipulation);
+            mobility = Mathf.Min(anatomy.PhysicalMobility, surfaceMobility);
             return;
         }
 
@@ -195,6 +195,11 @@ internal sealed class CharacterBodyHealthStateRules
             sedationRatio = Mathf.Clamp01(source.sedationRatio),
             sedationRemainingSeconds = Mathf.Max(0f, source.sedationRemainingSeconds),
             manaBlockedRemainingSeconds = Mathf.Max(0f, source.manaBlockedRemainingSeconds),
+            maxMana = Mathf.Max(1f, source.maxMana),
+            currentMana = Mathf.Clamp(
+                source.currentMana,
+                0f,
+                Mathf.Max(1f, source.maxMana)),
             downed = source.downed,
             lastDamageReason = source.lastDamageReason ?? string.Empty
         };
@@ -265,98 +270,52 @@ internal sealed class CharacterBodyHealthStateRules
     {
         AnatomyProfileDefinition profile = ResolveProfile(state.anatomyProfileId);
         EnsureAnatomy(state, profile);
-        float consciousness = CalculateFunctionEfficiency(
-            state,
-            profile,
-            AnatomyFunction.Consciousness,
-            defaultValue: 1f);
-        float sight = CalculateFunctionEfficiency(
-            state,
-            profile,
-            AnatomyFunction.Sight,
-            defaultValue: 1f);
-        float breathing = CalculateFunctionEfficiency(
-            state,
-            profile,
-            AnatomyFunction.Breathing,
-            defaultValue: 1f);
-        float digestion = CalculateFunctionEfficiency(
-            state,
-            profile,
-            AnatomyFunction.Digestion,
-            defaultValue: 1f);
-        float filtration = CalculateFunctionEfficiency(
-            state,
-            profile,
-            AnatomyFunction.Filtration,
-            defaultValue: 1f);
-        float manipulation = CalculateFunctionEfficiency(
-            state,
-            profile,
-            AnatomyFunction.Manipulation,
-            defaultValue: 1f);
-        float mobility = CalculateFunctionEfficiency(
-            state,
-            profile,
-            AnatomyFunction.Mobility,
-            defaultValue: 1f);
-        float core = CalculateFunctionEfficiency(
-            state,
-            profile,
-            AnatomyFunction.Core,
-            defaultValue: 1f);
-        consciousness = Mathf.Min(consciousness, core);
-        breathing = Mathf.Min(breathing, core);
-        digestion = Mathf.Min(digestion, core);
-        filtration = Mathf.Min(filtration, core);
+        float mentalMaintenance = CalculateFunctionEfficiency(
+            state, profile, AnatomyFunction.MentalMaintenance, 1f);
+        float visualDiscernment = CalculateFunctionEfficiency(
+            state, profile, AnatomyFunction.VisualDiscernment, 1f);
+        float auditorySensing = CalculateFunctionEfficiency(
+            state, profile, AnatomyFunction.AuditorySensing, 1f);
+        float respiratoryExchange = CalculateFunctionEfficiency(
+            state, profile, AnatomyFunction.RespiratoryExchange, 1f);
+        float powerCirculation = CalculateFunctionEfficiency(
+            state, profile, AnatomyFunction.PowerCirculation, 1f)
+            * Mathf.Lerp(1f, 0.2f, state.bloodLoss / 100f);
+        float intakeProcessing = CalculateFunctionEfficiency(
+            state, profile, AnatomyFunction.IntakeProcessing, 1f);
+        float purificationProcessing = CalculateFunctionEfficiency(
+            state, profile, AnatomyFunction.PurificationProcessing, 1f);
+        float vitalityResponse = CalculateFunctionEfficiency(
+            state, profile, AnatomyFunction.VitalityResponse, 1f);
+        float physicalPower = CalculateFunctionEfficiency(
+            state, profile, AnatomyFunction.PhysicalPower, 1f);
+        float precisionManipulation = CalculateFunctionEfficiency(
+            state, profile, AnatomyFunction.PrecisionManipulation, 1f);
+        float physicalMobility = CalculateFunctionEfficiency(
+            state, profile, AnatomyFunction.PhysicalMobility, 1f);
+        float communication = CalculateFunctionEfficiency(
+            state, profile, AnatomyFunction.Communication, 1f);
+        float arcaneConduction = CalculateFunctionEfficiency(
+            state, profile, AnatomyFunction.ArcaneConduction, 1f);
+        float immuneDefense = CalculateFunctionEfficiency(
+            state, profile, AnatomyFunction.ImmuneDefense, 1f);
         return new AnatomyHealthSnapshot(
             profile.ProfileId,
             state.anatomyNodes.Select(CloneAnatomyNode).ToArray(),
-            consciousness,
-            sight,
-            breathing,
-            digestion,
-            filtration,
-            manipulation,
-            mobility);
-    }
-
-    public AnatomyActionAxisSnapshot BuildActionAxes(
-        CharacterBodyHealthState state)
-    {
-        AnatomyProfileDefinition profile = ResolveProfile(state.anatomyProfileId);
-        EnsureAnatomy(state, profile);
-        return new AnatomyActionAxisSnapshot(
-            CalculateAxisEfficiency(state, profile, AnatomyActionAxisId.Awareness),
-            CalculateAxisEfficiency(state, profile, AnatomyActionAxisId.Handling),
-            CalculateAxisEfficiency(state, profile, AnatomyActionAxisId.Locomotion),
-            CalculateAxisEfficiency(state, profile, AnatomyActionAxisId.Sustain),
-            CalculateAxisEfficiency(state, profile, AnatomyActionAxisId.Recovery));
-    }
-
-    public float CalculateAxisEfficiency(
-        CharacterBodyHealthState state,
-        AnatomyProfileDefinition profile,
-        AnatomyActionAxisId axis)
-    {
-        float weightedTotal = 0f;
-        float totalWeight = 0f;
-        foreach (AnatomyNodeDefinition definition in profile.Nodes)
-        {
-            float weight = definition.GetAxisContribution(axis);
-            if (weight <= 0f)
-            {
-                continue;
-            }
-
-            AnatomyNodeHealthState node = FindAnatomyNode(state, definition.NodeId);
-            weightedTotal += (node?.FunctionalEfficiency ?? 0f) * weight;
-            totalWeight += weight;
-        }
-
-        return totalWeight > 0f
-            ? Mathf.Max(0f, weightedTotal / totalWeight)
-            : 1f;
+            mentalMaintenance,
+            visualDiscernment,
+            auditorySensing,
+            respiratoryExchange,
+            powerCirculation,
+            intakeProcessing,
+            purificationProcessing,
+            vitalityResponse,
+            physicalPower,
+            precisionManipulation,
+            physicalMobility,
+            communication,
+            arcaneConduction,
+            immuneDefense);
     }
 
     public float CalculateFunctionEfficiency(
@@ -369,20 +328,20 @@ internal sealed class CharacterBodyHealthStateRules
         float totalWeight = 0f;
         foreach (AnatomyNodeDefinition definition in profile.Nodes)
         {
-            if ((definition.Functions & function) == 0)
+            if ((definition.ExpandedFunctions & function) == 0)
             {
                 continue;
             }
 
             AnatomyNodeHealthState node = FindAnatomyNode(state, definition.NodeId);
             float weight = Mathf.Max(0.01f, definition.CapacityWeight);
-            weightedTotal += (node?.EffectiveEfficiency ?? 0f) * weight;
+            weightedTotal += (node?.FunctionalEfficiency ?? 0f) * weight;
             totalWeight += weight;
         }
 
         return totalWeight > 0f
-            ? Mathf.Clamp01(weightedTotal / totalWeight)
-            : Mathf.Clamp01(defaultValue);
+            ? Mathf.Max(0f, weightedTotal / totalWeight)
+            : Mathf.Max(0f, defaultValue);
     }
 
     public float GetStateBleeding(CharacterBodyHealthState state)
@@ -623,16 +582,18 @@ internal sealed class CharacterBodyHealthStateRules
         };
     }
 
-    public AnatomyActionAxisSnapshot DefaultActionAxes()
-    {
-        return new AnatomyActionAxisSnapshot(1f, 1f, 1f, 1f, 1f);
-    }
-
     public AnatomyHealthSnapshot EmptyAnatomySnapshot()
     {
         return new AnatomyHealthSnapshot(
             string.Empty,
             Array.Empty<AnatomyNodeHealthState>(),
+            1f,
+            1f,
+            1f,
+            1f,
+            1f,
+            1f,
+            1f,
             1f,
             1f,
             1f,
@@ -966,7 +927,7 @@ internal sealed class CharacterVitalsAuthority
         if (!validation.Success)
         {
             throw new InvalidOperationException(
-                "Character body-health restore rejected an invalid V4 candidate: "
+                "Character body-health restore rejected an invalid V5 candidate: "
                 + string.Join(" | ", validation.Errors));
         }
 
@@ -1013,6 +974,8 @@ internal sealed class CharacterVitalsAuthority
             || !IsFiniteInRange(state.sedationRatio, 0f, 1f)
             || !IsFiniteInRange(state.sedationRemainingSeconds, 0f, float.MaxValue)
             || !IsFiniteInRange(state.manaBlockedRemainingSeconds, 0f, float.MaxValue)
+            || !IsFiniteInRange(state.maxMana, 1f, float.MaxValue)
+            || !IsFiniteInRange(state.currentMana, 0f, state.maxMana)
             || state.lastDamageReason == null || !string.Equals(state.lastDamageReason,
                 state.lastDamageReason.Trim(), StringComparison.Ordinal))
         {

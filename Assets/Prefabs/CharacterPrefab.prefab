@@ -582,6 +582,16 @@ MonoBehaviour:
     funCurveMultiplier: 1
     moodCurveMultiplier: 1
     preferredFacilityTags: []
+    narrativeTrace:
+      schemaId: 
+      schemaVersion: 0
+      schemaHash: 
+      cultureStyleId: 
+      usedMotifIds: []
+      usedCharacterFactIds: []
+      verdict: 0
+      retryCount: 0
+      usedFallback: 0
   hasGeneratedPersona: 0
   personaRequestInProgress: 0
   lastPrompt: 
@@ -700,28 +710,21 @@ MonoBehaviour:
     generationSeed: 0
     origin: 
     displayName: 
-    initialBaseStats:
-      entries:
-      - statId: stat:attack
-        value: 5
-      - statId: stat:sales
-        value: 5
-      - statId: stat:research
-        value: 5
-      - statId: stat:move-speed
-        value: 5
-      - statId: stat:strength
-        value: 5
-      - statId: stat:toughness
-        value: 5
-      - statId: stat:dexterity
-        value: 5
-      - statId: stat:cleaning
-        value: 5
-      - statId: stat:endurance
-        value: 5
-    levelGrowthStats:
-      entries: []
+    startingProfile:
+      prepared: 0
+      originId: 
+      originDisplayName: 
+      historyId: 
+      historyDisplayName: 
+      primaryProficiencyId: 
+      secondaryProficiencyId: 
+      ageBand: 0
+      biologicalAgeYears: 0
+      proficiencyCap: 0
+      initialAgeConditionIds: []
+    startingProficiencies: []
+    traitSelectionAuthorityVersion: 0
+    traitSelectionAuthorityOrigin: 0
     traitIds: 
     activeSkills: []
     passiveSkills: []
@@ -740,14 +743,22 @@ MonoBehaviour:
       targetPositions: 7
       modules: []
       requestKey: 
+      narrativeTrace:
+        schemaId: 
+        schemaVersion: 0
+        schemaHash: 
+        cultureStyleId: 
+        usedMotifIds: []
+        usedCharacterFactIds: []
+        verdict: 0
+        retryCount: 0
+        usedFallback: 0
     drafts: []
     pendingRequestKeys: []
-    allocationRecords: []
     useLimits:
       offenseBattleSerial: -1
       defenseInvasionSerial: -1
       managementOperatingDay: -1
-    allocatedGrowthPoints: 0
     nextActiveDraftHasPity: 0
     skillGenerationRevision: 0
   narrativeLedger:

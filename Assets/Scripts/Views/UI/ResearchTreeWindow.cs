@@ -26,10 +26,13 @@ public sealed class ResearchTreeWindow :
     private readonly List<RectTransform> queueRows = new List<RectTransform>();
     private readonly Dictionary<string, ResearchNodeState> nodeStates =
         new Dictionary<string, ResearchNodeState>(StringComparer.Ordinal);
+    private readonly Dictionary<string, ResearchTreeNodeVisual> nodeVisuals =
+        new Dictionary<string, ResearchTreeNodeVisual>(StringComparer.Ordinal);
 
     private IResearchProjectCatalog projectCatalog;
     private IResearchGraphLayoutService layoutService;
     private IResearchQueueCommandService queueCommands;
+    private ICharacterWorldQuery characterWorld;
     private BlueprintResearchRuntime runtime;
     private ResearchTreePresentationRules presentationRules;
     private ResearchTreeViewFactory viewFactory;
@@ -51,6 +54,8 @@ public sealed class ResearchTreeWindow :
     private ResearchTreeDetailScrollView detailScrollView;
     private Button projectActionButton;
     private TMP_Text projectActionLabel;
+    private Button forbiddenLeapButton;
+    private TMP_Text forbiddenLeapLabel;
     private Button detailTabButton;
     private Button queueTabButton;
     private ResearchGraphLayout graphLayout;
@@ -75,6 +80,7 @@ public sealed class ResearchTreeWindow :
         IResearchBlueprintArchiveQuery archiveQuery,
         IFacilityShopCatalog facilityCatalog,
         IResearchRewardCatalog rewardCatalog,
+        ICharacterWorldQuery characterWorld,
         ITmpKoreanFontService fontService,
         IDungeonUserSettingsService settingsService,
         IGameSpeedController gameSpeedController)
@@ -85,6 +91,8 @@ public sealed class ResearchTreeWindow :
             ?? throw new ArgumentNullException(nameof(layoutService));
         this.queueCommands = queueCommands
             ?? throw new ArgumentNullException(nameof(queueCommands));
+        this.characterWorld = characterWorld
+            ?? throw new ArgumentNullException(nameof(characterWorld));
         runtime = (progressionRuntimes
                 ?? throw new ArgumentNullException(nameof(progressionRuntimes)))
             .BlueprintResearch
@@ -204,7 +212,7 @@ public sealed class ResearchTreeWindow :
         }
 
         selectedProject = project;
-        RebuildNodesAndConnections();
+        RefreshNodeVisualsAndConnections();
         RebuildInspector();
         detailScrollView?.ScrollToTop();
     }
@@ -380,6 +388,15 @@ public sealed class ResearchTreeWindow :
             new Vector2(0f, 0f), new Vector2(1f, 0.14f), 0f, 0f, 0f, 0f);
         projectActionLabel = projectActionButton.GetComponentInChildren<TMP_Text>();
 
+        forbiddenLeapButton = viewFactory.CreateButton(
+            detailRoot,
+            "ForbiddenResearchLeap",
+            "금단의 도약",
+            TryForbiddenResearchLeap);
+        SetRect(forbiddenLeapButton.GetComponent<RectTransform>(),
+            new Vector2(0f, 0.14f), new Vector2(1f, 0.21f), 0f, 4f, 0f, -2f);
+        forbiddenLeapLabel = forbiddenLeapButton.GetComponentInChildren<TMP_Text>();
+
         queueRoot = CreateRect("Queue", inspectorRoot);
         queueRoot.anchorMin = Vector2.zero;
         queueRoot.anchorMax = Vector2.one;
@@ -462,13 +479,14 @@ public sealed class ResearchTreeWindow :
             return;
         }
 
-        RebuildNodesAndConnections();
+        RefreshNodeVisualsAndConnections();
         RebuildInspector();
     }
 
     private void RebuildNodesAndConnections()
     {
         ClearObjects(nodeObjects);
+        nodeVisuals.Clear();
         nodeStates.Clear();
         if (runtime == null)
         {
@@ -493,17 +511,7 @@ public sealed class ResearchTreeWindow :
             CreateNode(project, state, nodeRect, matches);
         }
 
-        List<ResearchConnectorLine> lines = graphLayout.Edges.Select(edge =>
-        {
-            nodeStates.TryGetValue(edge.To.Value, out ResearchNodeState state);
-            return new ResearchConnectorLine(
-                edge.Points,
-                ResearchTreePresentationRules.GetConnectorColor(
-                    state,
-                    edge.IsShortcut),
-                edge.IsShortcut);
-        }).ToList();
-        connectorGraphic.SetLines(lines);
+        RefreshConnections();
     }
 
     private void CreateNode(
@@ -527,12 +535,10 @@ public sealed class ResearchTreeWindow :
         button.targetGraphic = background;
         button.onClick.AddListener(() => SelectProject(project));
 
-        if (selectedProject == project)
-        {
-            Outline outline = node.gameObject.AddComponent<Outline>();
-            outline.effectColor = DungeonUiTheme.Accent;
-            outline.effectDistance = new Vector2(3f, -3f);
-        }
+        Outline outline = node.gameObject.AddComponent<Outline>();
+        outline.effectColor = DungeonUiTheme.Accent;
+        outline.effectDistance = new Vector2(3f, -3f);
+        outline.enabled = selectedProject == project;
 
         TMP_Text field = viewFactory.CreateText(
             node,
@@ -571,7 +577,65 @@ public sealed class ResearchTreeWindow :
         progressFill.offsetMax = Vector2.zero;
         CreateImage(progressFill.gameObject, DungeonUiTheme.Accent);
 
+        nodeVisuals[project.ProjectId.Value] = new ResearchTreeNodeVisual(
+            background,
+            stateText,
+            progressFill,
+            outline);
         nodeObjects.Add(node.gameObject);
+    }
+
+    private void RefreshNodeVisualsAndConnections()
+    {
+        if (runtime == null)
+        {
+            return;
+        }
+
+        string search = searchInput?.text?.Trim() ?? string.Empty;
+        nodeStates.Clear();
+        foreach (ResearchProjectSO project in projectCatalog.Projects)
+        {
+            ResearchNodeState state = runtime.GetNodeState(project, out _);
+            nodeStates[project.ProjectId.Value] = state;
+            if (!nodeVisuals.TryGetValue(
+                    project.ProjectId.Value,
+                    out ResearchTreeNodeVisual visual))
+            {
+                continue;
+            }
+
+            bool matches = presentationRules.MatchesFilter(
+                project,
+                selectedField,
+                search);
+            Color nodeColor = ResearchTreePresentationRules.GetNodeColor(state);
+            visual.Background.color = WithAlpha(nodeColor, matches ? 1f : 0.28f);
+            visual.StateText.text = ResearchTreePresentationRules.FormatNodeState(state);
+            visual.StateText.color = ResearchTreePresentationRules.GetStateTextColor(state);
+            float ratio = runtime.State.Projects
+                .GetProgress(project.ProjectId)
+                .GetRatio(project);
+            visual.ProgressFill.anchorMax = new Vector2(ratio, 1f);
+            visual.SelectionOutline.enabled = selectedProject == project;
+        }
+
+        RefreshConnections();
+    }
+
+    private void RefreshConnections()
+    {
+        List<ResearchConnectorLine> lines = graphLayout.Edges.Select(edge =>
+        {
+            nodeStates.TryGetValue(edge.To.Value, out ResearchNodeState state);
+            return new ResearchConnectorLine(
+                edge.Points,
+                ResearchTreePresentationRules.GetConnectorColor(
+                    state,
+                    edge.IsShortcut),
+                edge.IsShortcut);
+        }).ToList();
+        connectorGraphic.SetLines(lines);
     }
 
     private void RebuildInspector()
@@ -588,6 +652,8 @@ public sealed class ResearchTreeWindow :
         {
             detailText.text = "연구 노드를 선택하세요.";
             projectActionButton.interactable = false;
+            if (forbiddenLeapButton != null)
+                forbiddenLeapButton.interactable = false;
             return;
         }
 
@@ -645,6 +711,20 @@ public sealed class ResearchTreeWindow :
         SetButtonColor(projectActionButton, queued
             ? DungeonUiTheme.Warning
             : DungeonUiTheme.Accent);
+
+        CharacterActor leapResearcher = ResolveForbiddenLeapResearcher();
+        bool canLeap = leapResearcher != null
+            && state is ResearchNodeState.Active
+                or ResearchNodeState.Queued
+                or ResearchNodeState.Suspended;
+        if (forbiddenLeapButton != null)
+            forbiddenLeapButton.interactable = canLeap;
+        if (forbiddenLeapLabel != null)
+        {
+            forbiddenLeapLabel.text = leapResearcher == null
+                ? "금단의 도약 · 보유자 없음"
+                : $"금단의 도약 · {leapResearcher.name}";
+        }
     }
 
     private void RebuildQueue()
@@ -732,6 +812,37 @@ public sealed class ResearchTreeWindow :
                 ? queueCommands.Remove(selectedProject.ProjectId)
                 : queueCommands.Enqueue(selectedProject.ProjectId);
         ShowFeedback(result.Message, result.Succeeded);
+        RefreshDynamicContent();
+    }
+
+    private CharacterActor ResolveForbiddenLeapResearcher() =>
+        (characterWorld?.Characters ?? Array.Empty<CharacterActor>())
+        .Where(actor => actor != null && !actor.IsDead)
+        .Where(actor => actor.Progression?.ResolveSelectedTraits()
+            .Any(trait => trait != null && trait.id == 302) == true)
+        .OrderBy(
+            actor => actor.Identity?.PersistentId ?? string.Empty,
+            StringComparer.Ordinal)
+        .FirstOrDefault();
+
+    private void TryForbiddenResearchLeap()
+    {
+        CharacterActor researcher = ResolveForbiddenLeapResearcher();
+        if (researcher == null)
+        {
+            ShowFeedback("금단의 도약 특성을 가진 생존 연구자가 없습니다.", false);
+            return;
+        }
+
+        bool succeeded = runtime.TryForbiddenResearchLeap(
+            researcher,
+            out ExtremeRiskResolution resolution,
+            out string failureReason);
+        ShowFeedback(
+            succeeded
+                ? $"금단의 도약: {resolution.Outcome}"
+                : failureReason,
+            succeeded);
         RefreshDynamicContent();
     }
 

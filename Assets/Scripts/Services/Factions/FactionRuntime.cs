@@ -479,7 +479,7 @@ public sealed class FactionRuntimeApplicationAdapter :
             new List<(WorldItemStackSnapshot, int)>();
         foreach (WorldItemStackSnapshot stack in itemRuntime.GetAllStacks()
                      .Where(value => value != null
-                         && !value.IsReserved
+                         && value.AvailableQuantity > 0
                          && !value.HasUniqueMetadata
                          && value.Quantity > 0
                          && value.UnitPrice > 0
@@ -839,6 +839,28 @@ public sealed class FactionRuntimeApplicationAdapter :
             return false;
         }
 
+        FactionDefinitionSnapshot definition = FindDefinition(factionId);
+        int cooldownDays = kind switch
+        {
+            FactionRouteKind.TradeCaravan => definition?.TradeCooldownDays ?? 7,
+            FactionRouteKind.SupplyCaravan => definition?.SupplyCooldownDays ?? 20,
+            FactionRouteKind.Reinforcement => definition?.ReinforcementCooldownDays ?? 10,
+            _ => 1
+        };
+        int latestCreatedDay = routes
+            .Where(value => value != null
+                && value.kind == kind
+                && string.Equals(value.factionId, factionId, StringComparison.Ordinal))
+            .Select(value => value.createdDay)
+            .DefaultIfEmpty(int.MinValue / 2)
+            .Max();
+        int nextAvailableDay = latestCreatedDay + cooldownDays;
+        if (currentDay < nextAvailableDay)
+        {
+            message = $"같은 지원 경로는 Day {nextAvailableDay}부터 다시 요청할 수 있습니다.";
+            return false;
+        }
+
         if (!world.TryFindPath(
                 new OffenseHexCoord(faction.HomeCoord.Q, faction.HomeCoord.R),
                 world.DungeonCoord,
@@ -868,6 +890,8 @@ public sealed class FactionRuntimeApplicationAdapter :
                 .ToList()
         };
         routeId = domain.AddRoute(route);
+        if (kind == FactionRouteKind.Reinforcement)
+            campaignCommand.ApplyFactionChange(factionId, 0, 0, -1);
         message = $"{DisplayName(factionId)} 경로 출발 · ETA Day {route.estimatedArrivalDay}";
         return true;
     }

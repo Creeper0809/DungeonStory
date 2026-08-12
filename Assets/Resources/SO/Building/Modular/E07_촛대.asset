@@ -31,15 +31,35 @@ MonoBehaviour:
   objectName: "\uCD1B\uB300"
   sprite: {fileID: 21300000, guid: ab07a3600400d284eaab63267de44567, type: 3}
   icon: {fileID: 21300000, guid: ab07a3600400d284eaab63267de44567, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  deprecatedCompatibilityAsset: 0
+  useClassification: 0
+  researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730538791916
-    - rid: 7737211730538791917
-    - rid: 7737211730538791918
-    - rid: 7737211730538791919
-    - rid: 7737211730538791920
-    - rid: 7737211730538791921
-    - rid: 7737211730538791922
+    - rid: 7737211921440178564
+    - rid: 7737211921440178565
+    - rid: 7737211921440178566
+    - rid: 7737211921440178567
+    - rid: 7737211921440178568
+    - rid: 7737211921440178569
+    - rid: 7737211921440178570
   width: 1
   height: 1
   layer: 1
@@ -55,13 +75,13 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730538791916
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440178564
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: E07
-    - rid: 7737211730538791917
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440178565
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 60
@@ -69,19 +89,31 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211730538791918
+    - rid: 7737211921440178566
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 19.2
-        repairWorkRequired: 10
-        cleanWorkRequired: 6.25
+        constructionProjectScale: 0
+        constructionWorkRequired: 32
+        repairWorkRequired: 8
+        cleanWorkRequired: 4
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: material:lumber
-          amount: 3
-    - rid: 7737211730538791919
+        - itemId: material:iron-ingot
+          amount: 2
+    - rid: 7737211921440178567
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -92,7 +124,7 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 65536
           disabledWhenDamaged: 1
-    - rid: 7737211730538791920
+    - rid: 7737211921440178568
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -107,15 +139,15 @@ MonoBehaviour:
           - key: Luxury
             value: 3
           metrics: []
-    - rid: 7737211730538791921
+    - rid: 7737211921440178569
       type: {class: BuildingLightingAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingLightingAbility
         settings: {fileID: 0}
         intensity: 0.5
         radius: 2.1
-    - rid: 7737211730538791922
-      type: {class: BuildingFuelConsumerAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440178570
+      type: {class: BuildingFuelConsumerAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingFuelConsumerAbility
         fuelPerRefuel: 1

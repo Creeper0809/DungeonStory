@@ -35,6 +35,10 @@ public abstract class AIActionSet : SerializedScriptableObject
         return Descriptor != null && Descriptor.HasTag(tag);
     }
 
+    public virtual IReadOnlyCollection<string> GetSemanticTags(
+        CharacterActor actor) => Descriptor?.SemanticTags
+        ?? Array.Empty<string>();
+
     public string GetDisplayLabel()
     {
         if (!string.IsNullOrWhiteSpace(actionName))

@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uC815\uBC00 \uAD11\uD559\uACC4"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC815\uBC00 \uAD11\uD559\uACC4."
   stockCategory: 1
-  unitWeight: 2.6799998
+  unitWeight: 2.35
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 174
+  unitPrice: 37
   features:
-  - rid: 7737211838078124131
-  - rid: 7737211838078124132
+  - rid: 7737211905655964657
+  - rid: 7737211905655964658
+  - rid: 7737211905660420437
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124131
+    - rid: 7737211905655964657
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:industrial-metrology
-    - rid: 7737211838078124132
+    - rid: 7737211905655964658
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 1536
         sharedIntermediate: 1
+    - rid: 7737211905660420437
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.59896535

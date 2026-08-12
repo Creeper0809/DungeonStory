@@ -27,23 +27,28 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uBC00\uD3D0\uD615 \uACC4\uC808
     \uBCF4\uAD00\uD568."
   stockCategory: 1
-  unitWeight: 3.31
+  unitWeight: 1.8
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 216
+  unitPrice: 57
   features:
-  - rid: 7737211838074979287
-  - rid: 7737211838074979288
+  - rid: 7737211905655964571
+  - rid: 7737211905655964572
+  - rid: 7737211905660420398
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074979287
+    - rid: 7737211905655964571
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:survival:seasonal-storage
-    - rid: 7737211838074979288
+    - rid: 7737211905655964572
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 256
         sharedIntermediate: 0
+    - rid: 7737211905660420398
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.59830695

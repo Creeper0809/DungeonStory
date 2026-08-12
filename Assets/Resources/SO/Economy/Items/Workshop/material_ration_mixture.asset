@@ -32,16 +32,21 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 6
   features:
-  - rid: 7737211838074979035
-  - rid: 7737211838074979036
+  - rid: 7737211905660420639
+  - rid: 7737211907793485924
+  - rid: 7737211907793485925
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074979035
+    - rid: 7737211905660420639
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.59839123
+    - rid: 7737211907793485924
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:lavish
-    - rid: 7737211838074979036
+    - rid: 7737211907793485925
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1

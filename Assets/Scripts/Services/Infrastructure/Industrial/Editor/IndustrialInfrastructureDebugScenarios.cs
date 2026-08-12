@@ -84,6 +84,24 @@ public static class IndustrialInfrastructureDebugScenarios
             "IndustrialInfrastructureDebugScenarios passed: research, assets, utilities, conveyors, automation, save, and UI.");
     }
 
+    public static string RunCurrentBalanceContracts()
+    {
+        VerifySanitationAndProcessFluids();
+        VerifyWorkRegistration();
+        VerifyUtilityLayerCoexistence();
+        VerifyConveyorStateEvaluation();
+        VerifyAutomationPowerDemand();
+        VerifySaveRoundTrip();
+        VerifyItemDefinitions();
+        VerifyIndustryTab();
+        const string report =
+            "INDUSTRIAL_CURRENT_CONTRACTS=PASS; sanitation=1; work=1; "
+            + "utilityCoexistence=1; conveyorStates=1; automationPower=1; "
+            + "save=1; itemDefinitions=1; industryTab=1";
+        Debug.Log(report);
+        return report;
+    }
+
     [MenuItem(
         "DungeonStory/Debug/Infrastructure/Run Industrial PlayMode Checks")]
     public static void RunPlayModeChecks()
@@ -166,12 +184,12 @@ public static class IndustrialInfrastructureDebugScenarios
             "A research project has an invalid reference or blueprint rule.");
         int industryCount = projects.Count(project =>
             project.Field == ResearchField.IndustryAndAutomation);
-        Require(industryCount == 46,
-            $"Expected 46 industry and automation projects, got {industryCount}.");
+        Require(industryCount == 31,
+            $"Expected 31 consolidated industry and automation projects, got {industryCount}.");
         int waterCount = projects.Count(project =>
             project.Field == ResearchField.WaterAndSanitation);
-        Require(waterCount == 9,
-            $"Expected 9 water and sanitation projects, got {waterCount}.");
+        Require(waterCount == 5,
+            $"Expected 5 consolidated water and sanitation projects, got {waterCount}.");
     }
 
     private static void VerifyIndustrialBuildings()

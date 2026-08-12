@@ -305,6 +305,48 @@ public sealed class CharacterLifeRecord
     public IReadOnlyCollection<CharacterAgeConditionState> AgeConditions =>
         ageConditions.Values;
 
+    public IReadOnlyList<AgeConditionChange> AddInitialAgeConditions(
+        IReadOnlyList<string> conditionIds,
+        IReadOnlyList<AgeConditionDefinition> availableConditions)
+    {
+        Dictionary<string, AgeConditionDefinition> available =
+            (availableConditions ?? Array.Empty<AgeConditionDefinition>())
+            .Where(value => value.IsValid)
+            .ToDictionary(value => value.ConditionId, StringComparer.Ordinal);
+        List<AgeConditionChange> changes = new();
+        foreach (string conditionId in (conditionIds ?? Array.Empty<string>())
+                     .Where(value => !string.IsNullOrWhiteSpace(value))
+                     .Select(value => value.Trim())
+                     .Distinct(StringComparer.Ordinal)
+                     .OrderBy(value => value, StringComparer.Ordinal))
+        {
+            if (!available.TryGetValue(
+                    conditionId,
+                    out _)
+                || ageConditions.ContainsKey(conditionId))
+            {
+                throw new InvalidOperationException(
+                    $"Initial age condition '{conditionId}' is invalid or duplicated.");
+            }
+
+            double onset = BiologicalAgeDayUnits;
+            ageConditions.Add(
+                conditionId,
+                new CharacterAgeConditionState(
+                    conditionId,
+                    AgeConditionSeverity.Mild,
+                    onset,
+                    onset + GameCalendarRules.DaysPerYear));
+            changes.Add(new AgeConditionChange(
+                CharacterId,
+                conditionId,
+                AgeConditionSeverity.Mild,
+                AgeConditionSeverity.Mild,
+                newlyDiagnosed: true));
+        }
+        return changes;
+    }
+
     public IReadOnlyList<AgeConditionChange> AdvanceOneChronologicalDay(
         SpeciesLifeHistoryDefinition lifeHistory,
         IReadOnlyList<AgeConditionDefinition> availableConditions,
@@ -697,6 +739,9 @@ public interface ICharacterLifeCommand
         double biologicalAgeDayUnits,
         int birthdayDayOfYear);
     IReadOnlyList<AgeConditionChange> AdvanceDay(CharacterId characterId);
+    IReadOnlyList<AgeConditionChange> AddInitialAgeConditions(
+        CharacterId characterId,
+        IReadOnlyList<string> conditionIds);
     void ApplyRejuvenation(CharacterId characterId, int biologicalYears);
     bool TryApplyBloodRejuvenation(
         CharacterId characterId,
@@ -813,6 +858,21 @@ public sealed class CharacterLifeRuntime :
 
     public IReadOnlyList<AgeConditionChange> AdvanceDay(CharacterId characterId) =>
         AdvanceDay(characterId, 1d);
+
+    public IReadOnlyList<AgeConditionChange> AddInitialAgeConditions(
+        CharacterId characterId,
+        IReadOnlyList<string> conditionIds)
+    {
+        CharacterLifeRecord record = RequireWritableRecord(characterId);
+        SpeciesLifeHistoryDefinition history =
+            definitions.RequireLifeHistory(record.PhenotypeSpeciesId);
+        IReadOnlyList<AgeConditionChange> changes = record.AddInitialAgeConditions(
+            conditionIds,
+            definitions.GetAgeConditions(history.Construct));
+        if (changes.Count > 0)
+            version = unchecked(version + 1);
+        return changes;
+    }
 
     public IReadOnlyList<AgeConditionChange> AdvanceDay(
         CharacterId characterId,

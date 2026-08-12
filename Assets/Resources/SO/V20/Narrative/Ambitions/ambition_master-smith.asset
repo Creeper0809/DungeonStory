@@ -46,7 +46,7 @@ MonoBehaviour:
     excludedFlags: []
   completionRewards:
   - kind: 3
-    targetId: crafting
+    targetId: proficiency:crafting
     amount: 100
     durationDays: 0
   relatedEventWeights:

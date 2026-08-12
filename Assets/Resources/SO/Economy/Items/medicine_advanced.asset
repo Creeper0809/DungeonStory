@@ -32,28 +32,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 42
   features:
-  - rid: 7737211838068949597
-  - rid: 7737211838068949598
-  - rid: 7737211838068949599
-  - rid: 7737211838068949600
+  - rid: 7737211905666711944
+  - rid: 7737211905666711945
+  - rid: 7737211905666711946
+  - rid: 7737211905666711947
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949597
+    - rid: 7737211905666711944
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:advanced
-    - rid: 7737211838068949598
+    - rid: 7737211905666711945
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1025
         sharedIntermediate: 0
-    - rid: 7737211838068949599
+    - rid: 7737211905666711946
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6
-    - rid: 7737211838068949600
+    - rid: 7737211905666711947
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 1

@@ -271,6 +271,8 @@ public sealed class CharacterConsumableOperationState
     public string itemDefinitionId = string.Empty;
     public string itemStackId = string.Empty;
     public bool meal;
+    public bool policyViolation;
+    public bool contaminated;
     public float completedAt;
 
     public ConsumableOperationId OperationId =>
@@ -282,10 +284,35 @@ public sealed class CharacterConsumableOperationState
 }
 
 [Serializable]
+public sealed class CharacterMealPlanSaveData
+{
+    public string planId = string.Empty;
+    public string characterId = string.Empty;
+    public string facilityInstanceId = string.Empty;
+    public string sourceStackId = string.Empty;
+    public string itemDefinitionId = string.Empty;
+    public CharacterMealPlanPhase phase = CharacterMealPlanPhase.Eating;
+    public double createdAt;
+    public double leaseExpiresAt;
+    public float expectedCompletionEta;
+    public bool automaticOperation;
+    public float beginContamination;
+
+    public ConsumableOperationId OperationId =>
+        (ConsumableOperationId)planId;
+    public CharacterId CharacterId => (CharacterId)characterId;
+    public BuildingInstanceId FacilityId =>
+        (BuildingInstanceId)facilityInstanceId;
+    public ItemStackId SourceStackId => (ItemStackId)sourceStackId;
+    public ConsumableItemDefinitionId ItemDefinitionId =>
+        (ConsumableItemDefinitionId)itemDefinitionId;
+}
+
+[Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonCharacterConsumablesSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 6;
 
     public int version = CurrentVersion;
     public long nextOperationSequence = 1;
@@ -295,6 +322,25 @@ public sealed class DungeonCharacterConsumablesSaveData
     public List<CharacterSubstanceState> substanceStates = new();
     public List<CharacterMealDeliveryState> pendingMealDeliveries = new();
     public List<CharacterConsumableOperationState> completedOperations = new();
+    public List<CharacterMealFollowupCooldownSaveData> mealFollowupCooldowns = new();
+    public List<CharacterMealQualityPolicyState> mealQualityPolicies = new();
+    public List<CharacterMealPlanSaveData> activeMealPlans = new();
+}
+
+[Serializable]
+public sealed class CharacterMealQualityPolicyState
+{
+    public string characterId = string.Empty;
+    public CharacterMealQualityLimit maximumQuality = CharacterMealQualityLimit.Inherit;
+    public CharacterId CharacterId => (CharacterId)characterId;
+}
+
+[Serializable]
+public sealed class CharacterMealFollowupCooldownSaveData
+{
+    public string characterId = string.Empty;
+    public float untilGameSeconds;
+    public CharacterId CharacterId => (CharacterId)characterId;
 }
 
 public sealed class CharacterConsumablesRestoreCandidate

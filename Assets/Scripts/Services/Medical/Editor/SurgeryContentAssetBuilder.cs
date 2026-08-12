@@ -75,6 +75,7 @@ public static class SurgeryContentAssetBuilder
         BuildConditionLexicons();
         BuildProcedures();
         BuildProstheticRecipes();
+        V23RecipeProcessClassAuthoring.NormalizeRecipeWorkUnder(RecipeRoot);
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
 
@@ -227,6 +228,12 @@ public static class SurgeryContentAssetBuilder
             requiredWork,
             inputs,
             new[] { new ProductionOutputDefinition(outputItemId, 1) });
+        recipe.ConfigureFlowRole(ProductionFlowRole.Transform);
+        recipe.ConfigureProcessClass(ProductionProcessClass.Precision);
+        recipe.ConfigureBalanceWork(
+            V23BalanceWorkCalculator.CalculateRecipeBaseWork(
+                recipe,
+                ProductionProcessClass.Precision));
         EditorUtility.SetDirty(recipe);
     }
 

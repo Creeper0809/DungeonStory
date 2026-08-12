@@ -44,7 +44,7 @@ public sealed class TextileBatchCompactionService :
             .Where(record => record != null
                 && record.quantity > 0
                 && string.IsNullOrWhiteSpace(record.itemInstanceId)
-                && string.IsNullOrWhiteSpace(record.reservedByPersistentId)
+                && record.reservedQuantity <= 0
                 && string.Equals(
                     record.destinationId,
                     destination,

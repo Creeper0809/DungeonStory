@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 12
   features:
-  - rid: 7737211838068949376
-  - rid: 7737211838068949377
-  - rid: 7737211838068949378
+  - rid: 7737211905666711845
+  - rid: 7737211905666711846
+  - rid: 7737211905666711847
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949376
+    - rid: 7737211905666711845
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:mining:stonecutting
-    - rid: 7737211838068949377
+    - rid: 7737211905666711846
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 512
         sharedIntermediate: 0
-    - rid: 7737211838068949378
+    - rid: 7737211905666711847
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

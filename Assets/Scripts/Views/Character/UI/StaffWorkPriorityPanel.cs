@@ -11,6 +11,7 @@ public class StaffWorkPriorityPanel :
     IStaffManagementSurfaceQuery,
     IStaffManagementSurfaceCommand
 {
+    private const string DeferCleaningActionTag = "order:defer-cleaning";
     private const float CharacterColumnWidth = 180f;
     private const float WorkColumnWidth = 98f;
     private const float StatusColumnWidth = 270f;
@@ -39,6 +40,14 @@ public class StaffWorkPriorityPanel :
     private IPlayerStaffCommandSource playerStaffCommands;
     private ICharacterMoodImpulseQuery moodImpulseQuery;
     private IGameEventBus gameEventBus;
+    private CharacterDirectOrderCostPreviewService directOrderCosts;
+    private ICharacterApologyCommand apologyCommands;
+    private ICharacterRitualFastingQuery ritualFastingQuery;
+    private ICharacterRitualFastingCommand ritualFastingCommands;
+    private ICharacterManaQuery manaQuery;
+    private IArcaneOverchargeCommand arcaneOverchargeCommands;
+    private ICombatEquipmentRuntime combatEquipment;
+    private ICharacterPerformanceQuery performance;
     private StaffManagementSurfacePanel managementSurface;
     private IDisposable infoFeedSubscription;
     public int VisibleWorkerCount { get; private set; }
@@ -90,6 +99,53 @@ public class StaffWorkPriorityPanel :
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         managementSurface = null;
         SubscribeToInfoFeed();
+    }
+
+    [Inject]
+    public void ConstructStaffWorkPriorityIdentityCosts(
+        CharacterDirectOrderCostPreviewService directOrderCosts)
+    {
+        this.directOrderCosts = directOrderCosts
+            ?? throw new ArgumentNullException(nameof(directOrderCosts));
+    }
+
+    [Inject]
+    public void ConstructStaffWorkPriorityApology(
+        ICharacterApologyCommand apologyCommands)
+    {
+        this.apologyCommands = apologyCommands
+            ?? throw new ArgumentNullException(nameof(apologyCommands));
+        managementSurface = null;
+    }
+
+    [Inject]
+    public void ConstructStaffWorkPriorityRitualFasting(
+        ICharacterRitualFastingQuery ritualFastingQuery,
+        ICharacterRitualFastingCommand ritualFastingCommands)
+    {
+        this.ritualFastingQuery = ritualFastingQuery
+            ?? throw new ArgumentNullException(nameof(ritualFastingQuery));
+        this.ritualFastingCommands = ritualFastingCommands
+            ?? throw new ArgumentNullException(nameof(ritualFastingCommands));
+        managementSurface = null;
+    }
+
+    [Inject]
+    public void ConstructStaffWorkPriorityArcane(
+        ICharacterManaQuery manaQuery,
+        IArcaneOverchargeCommand arcaneOverchargeCommands,
+        ICombatEquipmentRuntime combatEquipment,
+        ICharacterPerformanceQuery performance)
+    {
+        this.manaQuery = manaQuery
+            ?? throw new ArgumentNullException(nameof(manaQuery));
+        this.arcaneOverchargeCommands = arcaneOverchargeCommands
+            ?? throw new ArgumentNullException(nameof(arcaneOverchargeCommands));
+        this.combatEquipment = combatEquipment
+            ?? throw new ArgumentNullException(nameof(combatEquipment));
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
+        managementSurface = null;
     }
 
     private void Awake()
@@ -415,16 +471,36 @@ public class StaffWorkPriorityPanel :
         Button button = RequireUiFactory().AddButton(cell, image);
         WorkTypeId capturedType = workTypeId;
         AbilityWork capturedWork = worker.Work;
+        CharacterActor capturedCharacter = worker.Character;
         button.onClick.AddListener(() =>
         {
-            WorkPriorityLevel next = capturedWork.WorkPriorities.GetPriority(capturedType).Next();
+            WorkPriorityLevel current = capturedWork.WorkPriorities.GetPriority(capturedType);
+            WorkPriorityLevel next = current.Next();
             capturedWork.SetWorkPriority(capturedType, next);
+            if (StaffWorkPriorityIdentityOrderPolicy.IsDeferredCleaning(
+                    capturedType,
+                    current,
+                    next))
+            {
+                directOrderCosts?.Apply(capturedCharacter, DeferCleaningActionTag);
+            }
             Refresh();
         });
 
-        TMP_Text label = AddCellText(cell.transform, GetPriorityLabel(priority), TextAlignmentOptions.Center, true);
-        label.enableAutoSizing = false;
-        label.fontSize = 30f;
+        CharacterDirectOrderCostPreview preview = GetDirectOrderCostPreview(
+            worker.Character,
+            workTypeId,
+            priority,
+            priority.Next());
+        TMP_Text label = AddCellText(
+            cell.transform,
+            GetPriorityLabel(priority, preview),
+            TextAlignmentOptions.Center,
+            true);
+        label.enableAutoSizing = preview.HasCost;
+        label.fontSize = preview.HasCost ? 18f : 30f;
+        label.fontSizeMin = preview.HasCost ? 9f : 30f;
+        label.fontSizeMax = preview.HasCost ? 18f : 30f;
         label.fontStyle = FontStyles.Bold;
         label.color = priority == WorkPriorityLevel.Off
             ? DungeonUiTheme.TextSecondary
@@ -475,15 +551,38 @@ public class StaffWorkPriorityPanel :
         return definition?.DisplayName ?? string.Empty;
     }
 
-    private static string GetPriorityLabel(WorkPriorityLevel priority)
+    private CharacterDirectOrderCostPreview GetDirectOrderCostPreview(
+        CharacterActor actor,
+        WorkTypeId workTypeId,
+        WorkPriorityLevel current,
+        WorkPriorityLevel next)
     {
-        return priority switch
+        return directOrderCosts != null
+            && StaffWorkPriorityIdentityOrderPolicy.IsDeferredCleaning(
+                workTypeId,
+                current,
+                next)
+            ? directOrderCosts.Preview(actor, DeferCleaningActionTag)
+            : default;
+    }
+
+    private static string GetPriorityLabel(
+        WorkPriorityLevel priority,
+        CharacterDirectOrderCostPreview preview)
+    {
+        string priorityLabel = priority switch
         {
             WorkPriorityLevel.Priority1 => "1",
             WorkPriorityLevel.Priority2 => "2",
             WorkPriorityLevel.Priority3 => "3",
             _ => "X"
         };
+        if (!preview.HasCost)
+        {
+            return priorityLabel;
+        }
+
+        return $"{priorityLabel}\n예상 기분 {preview.MoodDelta:+0.#;-0.#;0} / 스트레스 {preview.StressDelta:+0.#;-0.#;0}";
     }
 
     private static Color GetPriorityColor(WorkPriorityLevel priority, bool selected)
@@ -617,6 +716,13 @@ public class StaffWorkPriorityPanel :
             this,
             RequireModelBuilder(),
             domain,
+            apologyCommands,
+            ritualFastingQuery,
+            ritualFastingCommands,
+            manaQuery,
+            arcaneOverchargeCommands,
+            combatEquipment,
+            performance,
             () => selectedCharacter,
             actor => selectedCharacter = actor);
         return managementSurface;
@@ -637,4 +743,17 @@ public class StaffWorkPriorityPanel :
     }
 
     void IStaffManagementSurfaceCommand.RequestRefresh() => Refresh();
+}
+
+public static class StaffWorkPriorityIdentityOrderPolicy
+{
+    public static bool IsDeferredCleaning(
+        WorkTypeId workTypeId,
+        WorkPriorityLevel current,
+        WorkPriorityLevel next)
+    {
+        return workTypeId == BuiltInWorkTypeIds.Clean
+            && current != WorkPriorityLevel.Off
+            && next != WorkPriorityLevel.Priority1;
+    }
 }

@@ -20,7 +20,10 @@ internal static class CombatEquipmentRestoreBuilder
                 "Combat equipment V6 payload is missing a required collection.");
         }
 
-        CombatEquipmentRuntimeState restored = new();
+        CombatEquipmentRuntimeState restored = new()
+        {
+            NextCraftSequence = ResolveNextCraftSequence(source)
+        };
         RestoreLoadouts(source.loadouts, restored, catalog);
         RestoreCraftOrders(source.craftOrders, restored, catalog, crafting);
         RestoreMaterialPolicies(
@@ -31,6 +34,25 @@ internal static class CombatEquipmentRestoreBuilder
         RestoreHistoryOrders(source.historyTransferOrders, restored);
         RestoreClaimedRegions(source.claimedLineageSealRegionIds, restored);
         return new CombatEquipmentRestoreCandidate(restored);
+    }
+
+    private static int ResolveNextCraftSequence(
+        DungeonCombatEquipmentSaveData source)
+    {
+        if (source.nextCraftSequence < 0)
+            throw new InvalidOperationException(
+                "Combat equipment next craft sequence is invalid.");
+        int minimum = source.craftOrders?.Count ?? 0;
+        foreach (CombatEquipmentCraftOrderSaveData order in source.craftOrders
+                     ?? new List<CombatEquipmentCraftOrderSaveData>())
+        {
+            const string prefix = "combat-craft:";
+            string orderId = order?.orderId?.Trim() ?? string.Empty;
+            if (orderId.StartsWith(prefix, StringComparison.Ordinal)
+                && int.TryParse(orderId.Substring(prefix.Length), out int sequence))
+                minimum = Math.Max(minimum, checked(sequence + 1));
+        }
+        return Math.Max(source.nextCraftSequence, minimum);
     }
 
     private static void RestoreLoadouts(

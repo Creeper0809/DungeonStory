@@ -941,6 +941,23 @@ public static class ModularFacilityDebugScenarios
 
             mealCore.ReleaseVisitReservation(visitors[0]);
             mealCore.ReleaseVisitReservation(visitors[2]);
+            bool bridgeReserved = mealCore.TryReserveVisit(
+                visitors[0],
+                out string bridgeReserveReason);
+            bool bridgeUse = mealCore.TryBeginUse(
+                visitors[0].BuildingVisitor,
+                out string bridgeUseReason);
+            RecordAiCase(rows, failures, "dining_actor_adapter_identity",
+                bridgeReserved
+                && bridgeUse
+                && mealCore.ActiveVisitReservationCount == 0
+                && mealCore.CurrentUserCount == 1,
+                $"reserved={bridgeReserved}:{bridgeReserveReason}; "
+                + $"use={bridgeUse}:{bridgeUseReason}; "
+                + $"reservations={mealCore.ActiveVisitReservationCount}; "
+                + $"users={mealCore.CurrentUserCount}");
+            mealCore.EndUse(visitors[0].BuildingVisitor);
+
             bool useFirst = mealCore.TryBeginUse(visitors[0], out string useFirstReason);
             bool useSecond = mealCore.TryBeginUse(visitors[1], out string useSecondReason);
             bool useThirdBlocked = !mealCore.TryBeginUse(visitors[2], out string useFullReason);

@@ -40,6 +40,7 @@ public sealed class ApparelWorkOrderSaveData
         WorkerSelectionPolicySaveData.Anyone(
             WorkerCandidateSortMode.BestExpectedQuality);
     public List<CraftContributionSaveData> contributions = new();
+    public string lastWorkerCharacterId = string.Empty;
     public CraftQualityRollSaveData qualityRoll;
     public int qualityAttemptIndex;
     public RejectedOutputDisposition rejectedDisposition =
@@ -191,6 +192,9 @@ public sealed class ApparelWorkOrderRuntime :
     private readonly IRunSeedProvider runSeedProvider;
     private readonly IWorkerNarrativeQualificationQuery narrativeQualifications;
     private readonly ICharacterWorldQuery characterWorld;
+    private readonly ExtremeCraftInspirationRuntime inspirationRuntime;
+    private readonly CharacterIdentityEventPublisher identityEvents;
+    private readonly ICharacterPerformanceQuery performance;
     private readonly List<ApparelWorkOrderSaveData> orders = new();
     private int nextSequence = 1;
 
@@ -205,7 +209,10 @@ public sealed class ApparelWorkOrderRuntime :
         ICraftQualityResolver qualityResolver = null,
         IRunSeedProvider runSeedProvider = null,
         IWorkerNarrativeQualificationQuery narrativeQualifications = null,
-        ICharacterWorldQuery characterWorld = null)
+        ICharacterWorldQuery characterWorld = null,
+        ExtremeCraftInspirationRuntime inspirationRuntime = null,
+        CharacterIdentityEventPublisher identityEvents = null,
+        ICharacterPerformanceQuery performance = null)
     {
         this.apparel = apparel ?? throw new ArgumentNullException(nameof(apparel));
         this.materials = materials ?? throw new ArgumentNullException(nameof(materials));
@@ -219,6 +226,10 @@ public sealed class ApparelWorkOrderRuntime :
         this.runSeedProvider = runSeedProvider;
         this.narrativeQualifications = narrativeQualifications;
         this.characterWorld = characterWorld;
+        this.inspirationRuntime = inspirationRuntime;
+        this.identityEvents = identityEvents;
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
     }
 
     public int Version { get; private set; }
@@ -522,6 +533,7 @@ public sealed class ApparelWorkOrderRuntime :
                 acceptedWork,
                 GetApparelQualitySkill(worker));
             order.contributions = contributions.Capture();
+            order.lastWorkerCharacterId = worker.Identity.PersistentId?.Trim() ?? string.Empty;
         }
         if (order.completedWork < order.requiredWork)
         {
@@ -735,9 +747,58 @@ public sealed class ApparelWorkOrderRuntime :
             toolBonus: 0f,
             complexityPenalty: Mathf.Max(0f,
                 definition.TailoringCoefficient - 1f) * 4f);
+        CraftsmanshipQualityTier completedQuality = quality.Tier;
+        MythicProvenanceSaveData mythicProvenance = null;
+        string makerCharacterId = order.lastWorkerCharacterId?.Trim() ?? string.Empty;
+        float totalContribution = order.contributions
+            .Where(value => value != null)
+            .Sum(value => Mathf.Max(0f, value.contributedWork));
+        float makerContribution = order.contributions
+            .Where(value => value != null && string.Equals(
+                value.characterId,
+                makerCharacterId,
+                StringComparison.Ordinal))
+            .Sum(value => Mathf.Max(0f, value.contributedWork));
+        CharacterActor maker = characterWorld?.Characters.FirstOrDefault(actor =>
+            actor != null && string.Equals(
+                actor.Identity?.PersistentId,
+                makerCharacterId,
+                StringComparison.Ordinal));
+        bool hasInspiration = ExtremeCraftInspirationRuntime.TryResolveRule(
+            maker,
+            out ExtremeCraftInspirationRule inspirationRule);
+        if (hasInspiration
+            && totalContribution > 0f
+            && makerContribution / totalContribution + 0.0001f
+                >= inspirationRule.minimumContributionShare
+            && definition.AllowMythicInspiration)
+        {
+            ulong fixedRollHash = MythicCraftInspirationRules.ResolveFixedRollHash(
+                unchecked((ulong)(uint)(runSeedProvider?.RunSeed ?? 1)),
+                order.orderId,
+                definition.ApparelId,
+                order.qualityRoll?.attemptIndex ?? order.qualityAttemptIndex,
+                makerCharacterId);
+            if (MythicCraftInspirationRules.IsMythic(
+                    fixedRollHash,
+                    inspirationRule.mythicChance))
+            {
+                completedQuality = CraftsmanshipQualityTier.Mythic;
+                mythicProvenance = new MythicProvenanceSaveData
+                {
+                    makerCharacterId = makerCharacterId,
+                    sourceTraitId = MythicCraftInspirationRules.SourceTraitId,
+                    originalQuality = quality.Tier,
+                    fixedRollHash = fixedRollHash,
+                    createdDay = Mathf.FloorToInt(clock.Time / GameCalendarRules.SecondsPerDay),
+                    createdFacilityId = facility.RequirePersistentInstanceId().Value
+                };
+            }
+        }
         string outputDestination = order.rejectedDisposition
             == RejectedOutputDisposition.MarkForSale
-                ? "sale:quality-rejected"
+            && completedQuality != CraftsmanshipQualityTier.Mythic
+                ? QualityRejectedOutputRules.MarketDestinationId
                 : ProductionBillRuntime.OutputDestinationPrefix
                     + facility.RequirePersistentInstanceId().Value;
         if (!items.SpawnUniqueItemAt(
@@ -754,7 +815,7 @@ public sealed class ApparelWorkOrderRuntime :
         {
             apparelDefinitionId = definition.ApparelId,
             primaryMaterialId = material.MaterialId,
-            craftsmanshipQuality = quality.Tier,
+            craftsmanshipQuality = completedQuality,
             sourceKind = SourceKind(material.Tags),
             sourceDefinitionId = material.MaterialId,
             size = order.targetSize,
@@ -762,7 +823,8 @@ public sealed class ApparelWorkOrderRuntime :
             durability = 100f,
             craftedAbsoluteDay = Mathf.FloorToInt(
                 clock.Time / GameCalendarRules.SecondsPerDay),
-            deterministicBatchHash = Hash(order.orderId)
+            deterministicBatchHash = Hash(order.orderId),
+            mythicProvenance = mythicProvenance
         };
         if (!items.TrySetInstanceComponent(stackId, ApparelItemStateCodec.Create(state))
             || !ConsumeNonTargetMaterials(order, string.Empty))
@@ -771,8 +833,32 @@ public sealed class ApparelWorkOrderRuntime :
             failure = new DomainFailure(FailureCode.ApparelTransferFailed, order.orderId);
             return false;
         }
+        if (hasInspiration)
+        {
+            inspirationRuntime?.RecordEligibleCompletion(
+                maker,
+                definition.ApparelId,
+                completedQuality == CraftsmanshipQualityTier.Mythic,
+                clock.Time);
+        }
+        if (identityEvents != null
+            && CharacterPersistentIdentity.TryGet(
+                maker,
+                out CharacterId qualityMakerId))
+        {
+            identityEvents.Publish(new ProductQualityResolvedEvent(
+                qualityMakerId,
+                definition.ApparelId,
+                completedQuality,
+                order.qualityRoll?.attemptIndex
+                    ?? order.qualityAttemptIndex,
+                Mathf.FloorToInt(
+                    clock.Time / GameCalendarRules.SecondsPerDay),
+                rejectedBelowMinimum: (int)completedQuality
+                    < (int)order.minimumCraftsmanshipQuality));
+        }
         order.consumedWork += Mathf.Max(0f, order.craftWorkPerAttempt);
-        if ((int)quality.Tier >= (int)order.minimumCraftsmanshipQuality)
+        if ((int)completedQuality >= (int)order.minimumCraftsmanshipQuality)
         {
             order.acceptedCount++;
             if (order.acceptedCount >= Mathf.Max(1, order.requiredAcceptedCount))
@@ -792,8 +878,14 @@ public sealed class ApparelWorkOrderRuntime :
             order.dismantlingRejectedOutput = true;
             order.rejectedOutputConsumed = false;
             order.rejectedOutputStackId = stackId;
+            float salvageYield = maker != null
+                ? maker.GetDetailedStatMultiplier(
+                    GameplayEffectTargetIds.SalvageYield)
+                : 1f;
             order.rejectedMaterialAmount = Mathf.FloorToInt(
-                order.materialStackAmounts.Sum() * 0.50f);
+                order.materialStackAmounts.Sum()
+                * 0.50f
+                * Mathf.Max(0f, salvageYield));
             order.rejectedMaterialSpawned = 0;
             order.requiredWork = Mathf.Max(
                 0.1f,
@@ -904,6 +996,7 @@ public sealed class ApparelWorkOrderRuntime :
         order.requiredWork = Mathf.Max(0.1f, order.craftWorkPerAttempt);
         order.completedWork = 0f;
         order.contributions.Clear();
+        order.lastWorkerCharacterId = string.Empty;
         order.materialStackIds.Clear();
         order.materialStackAmounts.Clear();
         if (!TryRebuildSelection(
@@ -1081,7 +1174,7 @@ public sealed class ApparelWorkOrderRuntime :
         {
             foreach (WorldItemStackSnapshot stack in items.GetAllStacks())
             {
-                if (stack == null || stack.IsReserved || stack.Forbidden
+                if (stack == null || stack.AvailableQuantity <= 0 || stack.Forbidden
                     || !string.Equals(
                         stack.ItemId,
                         candidateMaterial.PhysicalItemId,
@@ -1156,7 +1249,7 @@ public sealed class ApparelWorkOrderRuntime :
         int remaining = amount;
         foreach (WorldItemStackSnapshot stack in items.GetAllStacks()
                      .Where(value => value != null
-                         && !value.IsReserved
+                         && value.AvailableQuantity > 0
                          && !value.Forbidden
                          && string.Equals(value.ItemId, itemId, StringComparison.Ordinal))
                      .OrderBy(value => value.StackId, StringComparer.Ordinal))
@@ -1536,7 +1629,8 @@ public sealed class ApparelWorkOrderRuntime :
         contamination = state.contamination,
         designatedWearerCharacterId = state.designatedWearerCharacterId,
         craftedAbsoluteDay = state.craftedAbsoluteDay,
-        deterministicBatchHash = state.deterministicBatchHash
+        deterministicBatchHash = state.deterministicBatchHash,
+        mythicProvenance = state.mythicProvenance?.Clone()
     };
 
     private static TextileSourceKind SourceKind(TextileMaterialTag tags)
@@ -1547,14 +1641,25 @@ public sealed class ApparelWorkOrderRuntime :
         return TextileSourceKind.Unknown;
     }
 
-    private static float GetApparelQualitySkill(CharacterActor worker) =>
-        worker == null
-            ? 50f
-            : Mathf.Clamp(
-                (worker.GetCharacterStat(CharacterStatType.Dexterity) * 7f)
-                + (worker.GetCharacterStat(CharacterStatType.Research) * 3f),
-                0f,
-                100f);
+    private float GetApparelQualitySkill(CharacterActor worker)
+    {
+        if (worker == null) return 25f;
+        if (performance == null)
+            throw new InvalidOperationException(
+                "Apparel quality requires the character performance query.");
+        CharacterPerformanceSnapshot snapshot = performance.Evaluate(
+            worker,
+            "performance:work:craft:quality",
+            new CharacterPerformanceEvaluationContext
+            {
+                GameplayEffectContext = new GameplayEffectContext(
+                    new[] { "work:craft-finished" })
+            });
+        if (!snapshot.IsApplicable)
+            throw new InvalidOperationException(
+                snapshot.Failure?.Message ?? "Apparel quality is unavailable.");
+        return Mathf.Clamp(snapshot.Value * 58f, 0f, 100f);
+    }
 
     private bool HasEligibleWorker(
         WorkerSelectionPolicySaveData policy,
@@ -1665,6 +1770,7 @@ public sealed class ApparelWorkOrderRuntime :
             .Where(contribution => contribution != null)
             .Select(contribution => contribution.Clone())
             .ToList() ?? new List<CraftContributionSaveData>(),
+        lastWorkerCharacterId = value?.lastWorkerCharacterId?.Trim() ?? string.Empty,
         qualityRoll = value?.qualityRoll == null ? null : new CraftQualityRollSaveData
         {
             attemptIndex = value.qualityRoll.attemptIndex,

@@ -27,14 +27,14 @@ MonoBehaviour:
     SerializationNodes:
     - Name: stocks
       Entry: 7
-      Data: 0|System.Collections.Generic.List`1[[System.Tuple`2[[SaleItem, Assembly-CSharp],[System.Int32,
+      Data: 0|System.Collections.Generic.List`1[[System.Tuple`2[[SaleItem, DungeonStory.Economy],[System.Int32,
         mscorlib]], mscorlib]], mscorlib
     - Name: 
       Entry: 12
       Data: 4
     - Name: 
       Entry: 7
-      Data: 1|System.Tuple`2[[SaleItem, Assembly-CSharp],[System.Int32, mscorlib]],
+      Data: 1|System.Tuple`2[[SaleItem, DungeonStory.Economy],[System.Int32, mscorlib]],
         mscorlib
     - Name: m_Item1
       Entry: 10
@@ -47,7 +47,7 @@ MonoBehaviour:
       Data: 
     - Name: 
       Entry: 7
-      Data: 2|System.Tuple`2[[SaleItem, Assembly-CSharp],[System.Int32, mscorlib]],
+      Data: 2|System.Tuple`2[[SaleItem, DungeonStory.Economy],[System.Int32, mscorlib]],
         mscorlib
     - Name: m_Item1
       Entry: 10
@@ -60,7 +60,7 @@ MonoBehaviour:
       Data: 
     - Name: 
       Entry: 7
-      Data: 3|System.Tuple`2[[SaleItem, Assembly-CSharp],[System.Int32, mscorlib]],
+      Data: 3|System.Tuple`2[[SaleItem, DungeonStory.Economy],[System.Int32, mscorlib]],
         mscorlib
     - Name: m_Item1
       Entry: 10
@@ -73,7 +73,7 @@ MonoBehaviour:
       Data: 
     - Name: 
       Entry: 7
-      Data: 4|System.Tuple`2[[SaleItem, Assembly-CSharp],[System.Int32, mscorlib]],
+      Data: 4|System.Tuple`2[[SaleItem, DungeonStory.Economy],[System.Int32, mscorlib]],
         mscorlib
     - Name: m_Item1
       Entry: 10

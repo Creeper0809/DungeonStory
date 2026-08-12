@@ -36,6 +36,81 @@ public sealed class ResourceDiseaseDefinitionCatalog : IDiseaseDefinitionCatalog
             : throw new KeyNotFoundException($"Unknown disease '{diseaseId}'.");
 }
 
+public sealed class CharacterPopulationDiseaseModifierQuery :
+    IPopulationDiseaseModifierQuery
+{
+    private readonly ICharacterWorldQuery world;
+    private readonly IHeritableTraitEffectQuery heritableTraits;
+    private readonly ICharacterPerformanceQuery performance;
+
+    public CharacterPopulationDiseaseModifierQuery(
+        ICharacterWorldQuery world,
+        IHeritableTraitEffectQuery heritableTraits,
+        ICharacterPerformanceQuery performance)
+    {
+        this.world = world ?? throw new ArgumentNullException(nameof(world));
+        this.heritableTraits = heritableTraits
+            ?? throw new ArgumentNullException(nameof(heritableTraits));
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
+    }
+
+    public PopulationDiseaseStatModifiers Resolve(
+        CharacterId characterId,
+        DiseaseDefinition disease)
+    {
+        CharacterActor actor = world.Characters.FirstOrDefault(candidate =>
+            CharacterPersistentIdentity.TryGet(candidate, out CharacterId id)
+            && id.Equals(characterId));
+        if (actor?.profile == null)
+            return PopulationDiseaseStatModifiers.Neutral;
+
+        float route = (disease.Routes & DiseaseTransmissionRoute.Air) != 0
+            ? Mathf.Max(
+                0.05f,
+                actor.profile.GetEnvironmentProfile().airborneExposureMultiplier)
+            : 1f;
+        float broad = heritableTraits.GetMultiplier(
+            characterId,
+            HeritableTraitConsequenceKind.DiseaseResistance,
+            "all");
+        float toxin = (disease.Routes & (DiseaseTransmissionRoute.Food
+                                          | DiseaseTransmissionRoute.Water)) != 0
+            ? heritableTraits.GetMultiplier(
+                characterId,
+                HeritableTraitConsequenceKind.DiseaseResistance,
+                "toxin")
+            : 1f;
+        float sharedResistance = performance.Evaluate(
+            actor,
+            "performance:medical:disease-resistance").Value;
+        float inheritedRecovery = heritableTraits.GetMultiplier(
+            characterId,
+            HeritableTraitConsequenceKind.DiseaseResistance,
+            "recovery");
+        float inheritedRetention = heritableTraits.GetMultiplier(
+            characterId,
+            HeritableTraitConsequenceKind.DiseaseResistance,
+            "memory");
+        float susceptibility = route / Mathf.Max(
+            0.1f,
+            broad * toxin * sharedResistance);
+
+        return new PopulationDiseaseStatModifiers(
+            susceptibility,
+            performance.Evaluate(
+                actor,
+                "performance:medical:disease-recovery").Value * inheritedRecovery,
+            performance.Evaluate(
+                actor,
+                "performance:medical:immunity-gain").Value,
+            performance.Evaluate(
+                actor,
+                "performance:medical:immunity-retention").Value
+                    * inheritedRetention);
+    }
+}
+
 public sealed class PopulationHealthRuntime :
     IPopulationHealthService,
     IPopulationHealthQuery,
@@ -45,6 +120,7 @@ public sealed class PopulationHealthRuntime :
     private const string InfectionRandomStreamId = "population:infection";
     private readonly DungeonRuntimeAggregateRootStore rootStore;
     private readonly IDiseaseDefinitionCatalog definitions;
+    private readonly IPopulationDiseaseModifierQuery modifiers;
     private readonly IGameCalendar calendar;
     private readonly IRandomStream random;
     private int version = 1;
@@ -52,11 +128,13 @@ public sealed class PopulationHealthRuntime :
     public PopulationHealthRuntime(
         DungeonRuntimeAggregateRootStore rootStore,
         IDiseaseDefinitionCatalog definitions,
+        IPopulationDiseaseModifierQuery modifiers,
         IGameCalendar calendar,
         IRandomStreamProvider randomStreams)
     {
         this.rootStore = rootStore ?? throw new ArgumentNullException(nameof(rootStore));
         this.definitions = definitions ?? throw new ArgumentNullException(nameof(definitions));
+        this.modifiers = modifiers ?? throw new ArgumentNullException(nameof(modifiers));
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         random = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams)))
             .Get(InfectionRandomStreamId);
@@ -70,9 +148,17 @@ public sealed class PopulationHealthRuntime :
         float exposureHours,
         float environmentCoefficient)
     {
+        DiseaseDefinition disease = definitions.Require(diseaseId);
+        PopulationExposureTarget[] resolvedTargets = (targets
+                ?? Array.Empty<PopulationExposureTarget>())
+            .Select(target => new PopulationExposureTarget(
+                target.CharacterId,
+                target.Susceptibility
+                * modifiers.Resolve(target.CharacterId, disease).Susceptibility))
+            .ToArray();
         Writable.RecordExposure(
             diseaseId,
-            targets,
+            resolvedTargets,
             exposureHours,
             environmentCoefficient,
             definitions);
@@ -84,14 +170,20 @@ public sealed class PopulationHealthRuntime :
         IReadOnlyList<PopulationHealthChange> changes = Writable.AdvanceToDay(
             absoluteDay,
             definitions,
-            () => random.NextFloat());
+            () => random.NextFloat(),
+            modifiers.Resolve);
         version = unchecked(version + 1);
         return changes;
     }
 
     public void Vaccinate(CharacterId characterId, string diseaseId)
     {
-        Writable.Vaccinate(characterId, diseaseId, definitions);
+        DiseaseDefinition disease = definitions.Require(diseaseId);
+        Writable.Vaccinate(
+            characterId,
+            diseaseId,
+            definitions,
+            modifiers.Resolve(characterId, disease));
         version = unchecked(version + 1);
     }
 
@@ -111,6 +203,16 @@ public sealed class PopulationHealthRuntime :
     {
         Writable.RemoveEnvironmentalCondition(characterId, diseaseId, definitions);
         version = unchecked(version + 1);
+    }
+
+    public int RemovePendingExposures(CharacterId characterId)
+    {
+        int removed = Writable.RemovePendingExposures(characterId);
+        if (removed > 0)
+        {
+            version = unchecked(version + 1);
+        }
+        return removed;
     }
 
     public float GetImmunity(CharacterId characterId, string diseaseId) =>
@@ -205,13 +307,13 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
     private readonly IAnatomyProfileCatalog anatomyProfiles;
     private readonly IAnatomyHealthRuntime anatomyHealth;
     private readonly IGameEventBus events;
-    private readonly IHeritableTraitEffectQuery heritableTraits;
     private readonly IDiseaseSymptomEffectQuery symptoms;
     private IDisposable dayEndedSubscription;
     private IDisposable mealConsumedSubscription;
     private IDisposable waterConsumedSubscription;
     private IDisposable routeExposureSubscription;
     private IDisposable medicalBloodContactSubscription;
+    private IDisposable characterDeathSubscription;
 
     public PopulationHealthApplicationAdapter(
         IPopulationHealthService health,
@@ -223,7 +325,6 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
         IAnatomyProfileCatalog anatomyProfiles,
         IAnatomyHealthRuntime anatomyHealth,
         IGameEventBus events,
-        IHeritableTraitEffectQuery heritableTraits,
         IDiseaseSymptomEffectQuery symptoms)
     {
         this.health = health ?? throw new ArgumentNullException(nameof(health));
@@ -235,8 +336,6 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
         this.anatomyProfiles = anatomyProfiles ?? throw new ArgumentNullException(nameof(anatomyProfiles));
         this.anatomyHealth = anatomyHealth ?? throw new ArgumentNullException(nameof(anatomyHealth));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
-        this.heritableTraits = heritableTraits
-            ?? throw new ArgumentNullException(nameof(heritableTraits));
         this.symptoms = symptoms ?? throw new ArgumentNullException(nameof(symptoms));
     }
 
@@ -249,6 +348,7 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
             OnRouteExposure);
         medicalBloodContactSubscription ??= events.Subscribe<CharacterMedicalBloodContactEvent>(
             OnMedicalBloodContact);
+        characterDeathSubscription ??= events.Subscribe<CharacterDeathEvent>(OnCharacterDeath);
     }
     public void Dispose()
     {
@@ -257,11 +357,21 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
         waterConsumedSubscription?.Dispose();
         routeExposureSubscription?.Dispose();
         medicalBloodContactSubscription?.Dispose();
+        characterDeathSubscription?.Dispose();
         dayEndedSubscription = null;
         mealConsumedSubscription = null;
         waterConsumedSubscription = null;
         routeExposureSubscription = null;
         medicalBloodContactSubscription = null;
+        characterDeathSubscription = null;
+    }
+
+    private void OnCharacterDeath(CharacterDeathEvent gameEvent)
+    {
+        if (gameEvent.CharacterId.IsValid)
+        {
+            health.RemovePendingExposures(gameEvent.CharacterId);
+        }
     }
 
     private void OnMealConsumed(PhysicalMealConsumedEvent consumed)
@@ -382,7 +492,7 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
             return;
         health.RecordExposure(
             disease.Id,
-            new[] { new PopulationExposureTarget(characterId, ResolveSusceptibility(actor, disease)) },
+            new[] { new PopulationExposureTarget(characterId, 1f) },
             exposureHours,
             environmentCoefficient);
     }
@@ -466,7 +576,7 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
                     .Where(actor => !sourceIds.Contains(CharacterPersistentIdentity.Require(actor)))
                     .Select(actor => new PopulationExposureTarget(
                         CharacterPersistentIdentity.Require(actor),
-                        ResolveSusceptibility(actor, disease)))
+                        1f))
                     .ToArray();
                 health.RecordExposure(
                     disease.Id,
@@ -511,26 +621,4 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
             out _);
     }
 
-    private float ResolveSusceptibility(
-        CharacterActor actor,
-        DiseaseDefinition disease)
-    {
-        if (actor?.profile == null) return 1f;
-        CharacterId characterId = CharacterPersistentIdentity.Require(actor);
-        float route = (disease.Routes & DiseaseTransmissionRoute.Air) != 0
-            ? Mathf.Max(0.05f, actor.profile.GetEnvironmentProfile().airborneExposureMultiplier)
-            : 1f;
-        float broad = heritableTraits.GetMultiplier(
-            characterId,
-            HeritableTraitConsequenceKind.DiseaseResistance,
-            "all");
-        float toxin = (disease.Routes & (DiseaseTransmissionRoute.Food
-                                          | DiseaseTransmissionRoute.Water)) != 0
-            ? heritableTraits.GetMultiplier(
-                characterId,
-                HeritableTraitConsequenceKind.DiseaseResistance,
-                "toxin")
-            : 1f;
-        return Mathf.Clamp(route / Mathf.Max(0.1f, broad * toxin), 0.05f, 3f);
-    }
 }

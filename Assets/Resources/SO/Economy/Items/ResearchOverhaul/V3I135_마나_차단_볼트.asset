@@ -27,28 +27,33 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uB9C8\uB098 \uCC28\uB2E8
     \uBCFC\uD2B8."
   stockCategory: 7
-  unitWeight: 4.27
+  unitWeight: 0.15
   maxStack: 120
   sprite: {fileID: 0}
-  unitPrice: 280
+  unitPrice: 30
   features:
-  - rid: 7737211838078124716
-  - rid: 7737211838078124717
-  - rid: 7737211838078124718
+  - rid: 7737211905658585444
+  - rid: 7737211905658585445
+  - rid: 7737211905658585446
+  - rid: 7737211905660420603
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124716
+    - rid: 7737211905658585444
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:mana-disruptor-bolt
-    - rid: 7737211838078124717
+    - rid: 7737211905658585445
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:defense:rune-identification
-    - rid: 7737211838078124718
+    - rid: 7737211905658585446
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 1024
         sharedIntermediate: 0
+    - rid: 7737211905660420603
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.60405046

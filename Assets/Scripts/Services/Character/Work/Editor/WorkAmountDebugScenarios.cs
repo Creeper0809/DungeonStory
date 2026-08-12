@@ -33,6 +33,10 @@ public static class WorkAmountDebugScenarios
             errors);
         RunScenario("construction order lifecycle", VerifyConstructionOrderLifecycle, errors);
         RunScenario(
+            "construction site quantity-aware worker capacity",
+            VerifyConstructionSiteParallelWorkerCapacity,
+            errors);
+        RunScenario(
             "purchased facility kit delivery",
             VerifyPurchasedFacilityKitDelivery,
             errors);
@@ -1024,6 +1028,89 @@ public static class WorkAmountDebugScenarios
             .Count(site => site != null && site.IsDetachedRestoreCandidate);
     }
 
+    private static bool VerifyConstructionSiteParallelWorkerCapacity()
+    {
+        BuildingSO building = CreateTestBuilding(
+            991_204,
+            "Industrial capacity audit",
+            2,
+            2,
+            constructionWork: 100f,
+            materialAmount: 1);
+        building.GetAbility<BuildingWorkAmountAbility>()
+            .SetConstructionProjectScale(ProjectScale.IndustrialFacility);
+        GameObject siteObject = new GameObject("WorkAmountParallelConstructionSite");
+        ConstructionSite site = siteObject.AddComponent<ConstructionSite>();
+        CharacterAiEditorTestDependencies.Inject(site);
+        TestBuildingCharacterPort[] workers = Enumerable.Range(0, 5)
+            .Select(index => new TestBuildingCharacterPort($"character:test:builder:{index}"))
+            .ToArray();
+        TestBuildingCharacterPort sameCharacterAdapter =
+            new TestBuildingCharacterPort(workers[0].BuildingCharacterId.Value);
+        try
+        {
+            site.Initialization(building, Vector2Int.zero);
+            if (site.MaximumWorkers != 4)
+                return false;
+
+            if (!site.TryReserveWorker(
+                    workers[0],
+                    out FacilityAssignmentStatus firstIdentity,
+                    seconds: 30f)
+                || !firstIdentity.IsAllowed
+                || !site.TryReserveWorker(
+                    sameCharacterAdapter,
+                    out FacilityAssignmentStatus adapterIdentity,
+                    seconds: 30f)
+                || !adapterIdentity.IsAllowed
+                || site.OccupiedWorkerSlotCount != 1)
+            {
+                return false;
+            }
+
+            site.ReleaseWorkerReservation(sameCharacterAdapter);
+            if (site.OccupiedWorkerSlotCount != 0)
+            {
+                return false;
+            }
+
+            for (int index = 0; index < 4; index++)
+            {
+                if (!site.TryReserveWorker(
+                        workers[index],
+                        out FacilityAssignmentStatus status,
+                        seconds: 30f)
+                    || !status.IsAllowed)
+                {
+                    return false;
+                }
+            }
+            if (site.OccupiedWorkerSlotCount != 4
+                || site.TryReserveWorker(
+                    workers[4],
+                    out FacilityAssignmentStatus overflow,
+                    seconds: 30f)
+                || overflow.IsAllowed)
+            {
+                return false;
+            }
+
+            site.ReleaseWorkerReservation(workers[1]);
+            return site.OccupiedWorkerSlotCount == 3
+                && site.TryReserveWorker(
+                    workers[4],
+                    out FacilityAssignmentStatus replacement,
+                    seconds: 30f)
+                && replacement.IsAllowed
+                && site.OccupiedWorkerSlotCount == 4;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(siteObject);
+            UnityEngine.Object.DestroyImmediate(building);
+        }
+    }
+
     private static BuildingSO CreateTestBuilding(
         int id,
         string objectName,
@@ -1063,6 +1150,18 @@ public static class WorkAmountDebugScenarios
         }
 
         return building;
+    }
+
+    private sealed class TestBuildingCharacterPort : IBuildingCharacterPort
+    {
+        public TestBuildingCharacterPort(string characterId)
+        {
+            BuildingCharacterId = (CharacterId)characterId;
+        }
+
+        public CharacterId BuildingCharacterId { get; }
+        public string BuildingDisplayName => BuildingCharacterId.Value;
+        public bool IsBuildingInteractionAvailable => true;
     }
 
     private sealed class CandidateFacilitySection :
@@ -1424,6 +1523,12 @@ public static class WorkAmountDebugScenarios
         public DungeonPhysicalItemSaveData Capture() => new DungeonPhysicalItemSaveData();
         public void Restore(DungeonPhysicalItemSaveData snapshot) { }
         public void SetStoredItemMarkersVisible(bool visible) { }
+        public bool SpawnItemAtDropoff(string itemId, int amount, string sourceLabel, out int spawned)
+        {
+            spawned = 0;
+            return false;
+        }
+
         public bool SpawnStockAtDropoff(StockCategory category, int amount, string sourceLabel, out int spawned)
         {
             spawned = 0;

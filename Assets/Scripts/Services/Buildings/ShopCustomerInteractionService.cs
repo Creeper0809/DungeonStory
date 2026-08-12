@@ -303,11 +303,7 @@ internal sealed class ShopCustomerInteractionService
             2);
 
         if (createsRevenue && usedMoney > 0)
-        {
-            usedMoney = Mathf.Max(1, Mathf.RoundToInt(
-                usedMoney * (owner.ServingWorker?.VisitorSnapshot.RevenueMultiplier ?? 1f)));
             owner.RequireCustomerFloatingNumberFeedbackService().TryShow(NumberCondition.ONEARNMONEY, endPos + Vector2.up, usedMoney);
-        }
 
         if (createsRevenue && usedMoney > 0)
         {
@@ -360,8 +356,9 @@ internal sealed class ShopCustomerInteractionService
             currentAction);
         yield return Linger(actor, 0.1f, currentAction);
 
-        float duration = owner.Facility != null ? owner.Facility.useDuration : 1f;
-        duration *= actor?.VisitorSnapshot.StayDurationMultiplier ?? 1f;
+        // The consumables runtime owns the authored four-second physical meal action.
+        // A second facility linger here would double-count meal time.
+        float duration = 0f;
 
         actor?.SetActionPhase("식사 중", owner, $"{duration:0.#}초");
         if (duration > 0f)
@@ -370,13 +367,51 @@ internal sealed class ShopCustomerInteractionService
         }
 
         BuildingMealUseSnapshot meal = default;
-        if (actor == null
-            || !actor.TryConsumeMeal(
+        bool consumed = actor != null
+            && actor.TryConsumeMeal(
                 owner.CustomerMealConsumptionRuntime,
                 owner,
-                out meal))
+                out meal);
+        if (!consumed && meal.AcceptedPending)
         {
-            string failureCode = meal.FailureCode;
+            actor.SetActionPhase("식사 중", owner, "4s");
+            float deadline = Time.realtimeSinceStartup + 15f;
+            while (Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+                if (!actor.TryGetMealConsumptionResult(
+                        owner.CustomerMealConsumptionRuntime,
+                        meal.OperationId,
+                        out BuildingMealUseSnapshot currentMeal))
+                {
+                    meal = currentMeal;
+                    break;
+                }
+                meal = currentMeal;
+                if (meal.Success)
+                {
+                    consumed = true;
+                    break;
+                }
+                if (!meal.AcceptedPending)
+                {
+                    break;
+                }
+            }
+            if (!consumed && meal.AcceptedPending)
+            {
+                meal = new BuildingMealUseSnapshot(
+                    false,
+                    CharacterConsumablesFailureCode.PhysicalConsumptionFailed.ToString(),
+                    string.Empty,
+                    0);
+            }
+        }
+        if (!consumed)
+        {
+            string failureCode = string.IsNullOrWhiteSpace(meal.FailureCode)
+                ? CharacterConsumablesFailureCode.PhysicalConsumptionFailed.ToString()
+                : meal.FailureCode;
             shopping.SetVisitOutcome(owner, BuildingVisitOutcome.Failed);
             actor?.RecordActivity(owner, new BuildingActivitySnapshot(
                 BuildingActivityKinds.FacilityUse,
@@ -576,10 +611,6 @@ internal sealed class ShopCustomerInteractionService
         switch (stage)
         {
             case BuildingCheckoutWaitStage.Restless:
-                owner.CustomerGameEventBus.Publish(
-                    new CharacterTraitReactionEvent(
-                        new[] { actor.BuildingCharacterId },
-                        "queue:delay"));
                 actor.ApplyMoodFactor(
                     $"checkout-wait:{owner.RequirePersistentInstanceId().Value}:restless",
                     "계산대가 오래 걸림",
@@ -625,6 +656,12 @@ internal sealed class ShopCustomerInteractionService
                     "기다리다 구매를 포기함",
                     patience.AbandonMoodPenalty,
                     180f,
+                    1);
+                actor.ApplyMoodFactor(
+                    "wait:exceeded",
+                    "대기 한계 초과",
+                    0f,
+                    GameCalendarRules.SecondsPerDay,
                     1);
                 actor.RememberFacilityExperience(
                     owner,

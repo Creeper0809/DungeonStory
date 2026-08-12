@@ -11,29 +11,47 @@ public sealed class ResearchWorkExecutionHandler :
 {
     private readonly DefaultResearchWorkRuntimePort runtime;
     private readonly DungeonStory.Work.ResearchWorkExecutionHandler core;
+    private readonly IBlueprintResearchWorkforcePolicyQuery workforcePolicy;
+    private readonly IProjectWorkforceRuntime projectWorkforce;
 
     public ResearchWorkExecutionHandler(IBlueprintResearchWorkService researchWorkService)
-        : this(researchWorkService, UnavailableEquipmentPhysicalItemGateway.Instance)
+        : this(
+            researchWorkService,
+            UnavailableEquipmentPhysicalItemGateway.Instance,
+            new SingleResearchWorkforcePolicyQuery(),
+            new ProjectWorkforceRuntime())
     {
     }
 
     [VContainer.Inject]
     public ResearchWorkExecutionHandler(
         IBlueprintResearchWorkService researchWorkService,
-        IWorldItemStackRuntime items)
-        : this(researchWorkService, (IEquipmentPhysicalItemGateway)items)
+        IWorldItemStackRuntime items,
+        IBlueprintResearchWorkforcePolicyQuery workforcePolicy,
+        IProjectWorkforceRuntime projectWorkforce)
+        : this(
+            researchWorkService,
+            (IEquipmentPhysicalItemGateway)items,
+            workforcePolicy,
+            projectWorkforce)
     {
     }
 
     private ResearchWorkExecutionHandler(
         IBlueprintResearchWorkService researchWorkService,
-        IEquipmentPhysicalItemGateway items)
+        IEquipmentPhysicalItemGateway items,
+        IBlueprintResearchWorkforcePolicyQuery workforcePolicy,
+        IProjectWorkforceRuntime projectWorkforce)
     {
         runtime = new DefaultResearchWorkRuntimePort(
             researchWorkService
                 ?? throw new ArgumentNullException(nameof(researchWorkService)),
             items ?? throw new ArgumentNullException(nameof(items)));
         core = new DungeonStory.Work.ResearchWorkExecutionHandler(runtime);
+        this.workforcePolicy = workforcePolicy
+            ?? throw new ArgumentNullException(nameof(workforcePolicy));
+        this.projectWorkforce = projectWorkforce
+            ?? throw new ArgumentNullException(nameof(projectWorkforce));
     }
 
     public IReadOnlyCollection<WorkTypeId> WorkTypeIds => core.WorkTypeIds;
@@ -45,14 +63,62 @@ public sealed class ResearchWorkExecutionHandler :
         out string reason)
     {
         reason = string.Empty;
-        return target != null && core.IsAvailable(
-            workTypeId,
-            runtime.CaptureFacility(target),
-            out reason);
+        if (target == null
+            || !core.IsAvailable(
+                workTypeId,
+                runtime.CaptureFacility(target),
+                out reason))
+        {
+            return false;
+        }
+
+        if (!workforcePolicy.TryGetWorkforcePolicy(
+                target,
+                out string projectId,
+                out int maximumResearchers)
+            || !CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId))
+        {
+            reason = "연구 프로젝트 또는 연구자 ID를 확인할 수 없습니다.";
+            return false;
+        }
+
+        bool available = projectWorkforce.CanJoin(
+            projectId,
+            characterId.Value,
+            maximumResearchers);
+        reason = available ? string.Empty : "연구 프로젝트의 동시 연구자 슬롯이 가득 찼습니다.";
+        return available;
     }
 
     public IEnumerator Execute(WorkExecutionContext context, WorkExecutionResult result)
     {
+        if (!workforcePolicy.TryGetWorkforcePolicy(
+                context.Target,
+                out string projectId,
+                out int maximumResearchers)
+            || !CharacterPersistentIdentity.TryGet(
+                context.Actor,
+                out CharacterId characterId))
+        {
+            result.CompletedSuccessfully = false;
+            yield break;
+        }
+
+        ProjectScale scale = ResolveResearchScale(maximumResearchers);
+        if (!projectWorkforce.TryJoin(
+                projectId,
+                characterId.Value,
+                scale,
+                maximumResearchers,
+                out ProjectWorkerLease workforceLease,
+                out _))
+        {
+            result.CompletedSuccessfully = false;
+            yield break;
+        }
+
+        using (workforceLease)
+        {
         ResearchWorkerHandle worker = runtime.CaptureWorker(context.Actor);
         ResearchFacilityHandle facility = runtime.CaptureFacility(context.Target);
         ResearchWorkPlan plan = core.CreatePlan(facility);
@@ -63,7 +129,10 @@ public sealed class ResearchWorkExecutionHandler :
             yield break;
         }
 
-        ResearchWorkProgressResult work = core.Apply(worker, facility, 1f);
+        float contribution = projectWorkforce.GetContributionMultiplier(
+            projectId,
+            characterId.Value);
+        ResearchWorkProgressResult work = core.Apply(worker, facility, contribution);
         result.CompletedSuccessfully = work.Succeeded;
         if (!work.Succeeded)
         {
@@ -89,6 +158,33 @@ public sealed class ResearchWorkExecutionHandler :
             context.Target,
             reasonCode: work.Completed ? "blueprint-completed" : "research-progress",
             value: work.ProgressRatio));
+        }
+    }
+
+    private static ProjectScale ResolveResearchScale(int maximumResearchers) =>
+        maximumResearchers switch
+        {
+            1 => ProjectScale.StandardResearch,
+            2 => ProjectScale.CollaborativeResearch,
+            4 => ProjectScale.MajorResearch,
+            _ => throw new InvalidOperationException(
+                $"Research maximum {maximumResearchers} must be 1, 2 or 4.")
+        };
+
+    private sealed class SingleResearchWorkforcePolicyQuery :
+        IBlueprintResearchWorkforcePolicyQuery
+    {
+        public bool TryGetWorkforcePolicy(
+            BuildableObject facility,
+            out string projectId,
+            out int maximumResearchers)
+        {
+            projectId = facility != null
+                ? $"research:test:{facility.RequirePersistentInstanceId().Value}"
+                : string.Empty;
+            maximumResearchers = facility != null ? 1 : 0;
+            return facility != null;
+        }
     }
 }
 

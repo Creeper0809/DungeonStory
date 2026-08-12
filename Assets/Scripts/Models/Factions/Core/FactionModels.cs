@@ -103,7 +103,10 @@ public sealed class FactionDefinitionSnapshot
         IReadOnlyList<string> tradeTags,
         string reinforcementRole,
         IReadOnlyList<FactionCargoLine> tradeCargo,
-        IReadOnlyList<FactionCargoLine> supplyCargo)
+        IReadOnlyList<FactionCargoLine> supplyCargo,
+        int tradeCooldownDays,
+        int supplyCooldownDays,
+        int reinforcementCooldownDays)
     {
         StableId = stableId?.Trim() ?? string.Empty;
         DisplayName = displayName ?? string.Empty;
@@ -114,6 +117,9 @@ public sealed class FactionDefinitionSnapshot
         ReinforcementRole = reinforcementRole ?? string.Empty;
         TradeCargo = tradeCargo ?? Array.Empty<FactionCargoLine>();
         SupplyCargo = supplyCargo ?? Array.Empty<FactionCargoLine>();
+        TradeCooldownDays = Math.Max(1, tradeCooldownDays);
+        SupplyCooldownDays = Math.Max(1, supplyCooldownDays);
+        ReinforcementCooldownDays = Math.Max(1, reinforcementCooldownDays);
     }
 
     public string StableId { get; }
@@ -125,6 +131,9 @@ public sealed class FactionDefinitionSnapshot
     public string ReinforcementRole { get; }
     public IReadOnlyList<FactionCargoLine> TradeCargo { get; }
     public IReadOnlyList<FactionCargoLine> SupplyCargo { get; }
+    public int TradeCooldownDays { get; }
+    public int SupplyCooldownDays { get; }
+    public int ReinforcementCooldownDays { get; }
 }
 
 [Serializable]

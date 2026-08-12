@@ -696,7 +696,7 @@ public sealed class IndustrialFeatureSurfacePresenter :
         int direction)
     {
         int minimum = (int)CombatEquipmentQuality.Awful;
-        int maximum = (int)CombatEquipmentQuality.Legendary;
+        int maximum = (int)CombatEquipmentQuality.Mythic;
         return (CombatEquipmentQuality)Mathf.Clamp(
             (int)quality + Math.Sign(direction),
             minimum,

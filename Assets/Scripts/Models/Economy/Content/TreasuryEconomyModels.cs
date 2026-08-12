@@ -21,6 +21,7 @@ public enum EconomyTransactionKind
     PaidFacilityUse = 25,
     PaidFacilityOrder = 26,
     ShopPurchase = 27,
+    ShopPurchaseRefund = 28,
     ReforgePrecision = 30,
     EquipmentOverclock = 31,
     FacilityOverclock = 32,

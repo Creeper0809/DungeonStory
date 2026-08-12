@@ -26,28 +26,33 @@ MonoBehaviour:
   displayName: "\uC2DD\uBB3C\uC131 \uC0B4\uCDA9\uC81C"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC2DD\uBB3C\uC131 \uC0B4\uCDA9\uC81C."
   stockCategory: 1
-  unitWeight: 1.93
+  unitWeight: 1.15
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 124
+  unitPrice: 30
   features:
-  - rid: 7737211838078124225
-  - rid: 7737211838078124226
-  - rid: 7737211838078124227
+  - rid: 7737211905658585132
+  - rid: 7737211905658585133
+  - rid: 7737211905658585134
+  - rid: 7737211905660420460
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124225
+    - rid: 7737211905658585132
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:agriculture:soil-cycles
-    - rid: 7737211838078124226
+    - rid: 7737211905658585133
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211838078124227
+    - rid: 7737211905658585134
       type: {class: CropTreatmentItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         treatmentKind: 1
+    - rid: 7737211905660420460
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6073408

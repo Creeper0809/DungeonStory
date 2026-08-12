@@ -49,8 +49,6 @@ public readonly struct BuildingVisitorSnapshot
         float productionOutputMultiplier,
         int stockProductionBonus,
         float expeditionStress,
-        int dexterity,
-        int research,
         float mood,
         float hunger,
         float fun,
@@ -72,8 +70,6 @@ public readonly struct BuildingVisitorSnapshot
         ProductionOutputMultiplier = productionOutputMultiplier;
         StockProductionBonus = stockProductionBonus;
         ExpeditionStress = expeditionStress;
-        Dexterity = dexterity;
-        Research = research;
         Mood = mood;
         Hunger = hunger;
         Fun = fun;
@@ -96,8 +92,6 @@ public readonly struct BuildingVisitorSnapshot
     public float ProductionOutputMultiplier { get; }
     public int StockProductionBonus { get; }
     public float ExpeditionStress { get; }
-    public int Dexterity { get; }
-    public int Research { get; }
     public float Mood { get; }
     public float Hunger { get; }
     public float Fun { get; }
@@ -189,7 +183,31 @@ public readonly struct BuildingNeedRecoverySnapshot
         float excretion,
         float hygiene,
         string sourceId,
+        IReadOnlyList<string> activeConditionIds,
         string sourceName)
+        : this(
+            sleep,
+            mood,
+            fun,
+            hunger,
+            excretion,
+            hygiene,
+            sourceId,
+            sourceName,
+            activeConditionIds)
+    {
+    }
+
+    public BuildingNeedRecoverySnapshot(
+        float sleep,
+        float mood,
+        float fun,
+        float hunger,
+        float excretion,
+        float hygiene,
+        string sourceId,
+        string sourceName,
+        IReadOnlyList<string> activeConditionIds = null)
     {
         Sleep = sleep;
         Mood = mood;
@@ -199,6 +217,7 @@ public readonly struct BuildingNeedRecoverySnapshot
         Hygiene = hygiene;
         SourceId = sourceId ?? string.Empty;
         SourceName = sourceName ?? string.Empty;
+        ActiveConditionIds = activeConditionIds ?? System.Array.Empty<string>();
     }
 
     public float Sleep { get; }
@@ -209,6 +228,7 @@ public readonly struct BuildingNeedRecoverySnapshot
     public float Hygiene { get; }
     public string SourceId { get; }
     public string SourceName { get; }
+    public IReadOnlyList<string> ActiveConditionIds { get; }
 }
 
 public readonly struct BuildingMealUseSnapshot
@@ -217,18 +237,47 @@ public readonly struct BuildingMealUseSnapshot
         bool success,
         string failureCode,
         string displayName,
-        int unitPrice)
+        int unitPrice,
+        bool acceptedPending = false,
+        string operationId = "")
     {
         Success = success;
         FailureCode = failureCode ?? string.Empty;
         DisplayName = displayName ?? string.Empty;
         UnitPrice = unitPrice;
+        AcceptedPending = acceptedPending;
+        OperationId = operationId ?? string.Empty;
     }
 
     public bool Success { get; }
     public string FailureCode { get; }
     public string DisplayName { get; }
     public int UnitPrice { get; }
+    public bool AcceptedPending { get; }
+    public string OperationId { get; }
+}
+
+public readonly struct BuildingRecreationalSubstanceUseSnapshot
+{
+    public BuildingRecreationalSubstanceUseSnapshot(
+        bool success,
+        string failureCode,
+        string displayName,
+        bool becameAddicted,
+        bool overdosed)
+    {
+        Success = success;
+        FailureCode = failureCode ?? string.Empty;
+        DisplayName = displayName ?? string.Empty;
+        BecameAddicted = becameAddicted;
+        Overdosed = overdosed;
+    }
+
+    public bool Success { get; }
+    public string FailureCode { get; }
+    public string DisplayName { get; }
+    public bool BecameAddicted { get; }
+    public bool Overdosed { get; }
 }
 
 public interface IBuildingShoppingVisitorPort
@@ -285,6 +334,13 @@ public interface IBuildingVisitorPort : IBuildingCharacterPort
         object mealRuntime,
         IBuildingWorldEntryPort facility,
         out BuildingMealUseSnapshot result);
+    bool TryGetMealConsumptionResult(
+        object mealRuntime,
+        string operationId,
+        out BuildingMealUseSnapshot result);
+    bool TryConsumeRecreationalSubstance(
+        IBuildingWorldEntryPort facility,
+        out BuildingRecreationalSubstanceUseSnapshot result);
     void ApplyRoomExperience(
         object roomExperienceRuntime,
         IBuildingWorldEntryPort facility,

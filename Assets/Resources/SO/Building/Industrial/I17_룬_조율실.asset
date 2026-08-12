@@ -34,19 +34,34 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211838074978600
-    - rid: 7737211838074978601
-    - rid: 7737211838074978602
-    - rid: 7737211838074978603
-    - rid: 7737211838074978604
-    - rid: 7737211838074978605
-    - rid: 7737211838074978606
-    - rid: 7737211838074978607
-    - rid: 7737211838074978608
+    - rid: 7737211905655963872
+    - rid: 7737211905655963873
+    - rid: 7737211905655963874
+    - rid: 7737211905655963875
+    - rid: 7737211905655963876
+    - rid: 7737211905655963877
+    - rid: 7737211905655963878
+    - rid: 7737211905655963879
+    - rid: 7737211905655963880
   width: 2
   height: 1
   layer: 1
@@ -62,12 +77,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074978600
+    - rid: 7737211905655963872
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I17
-    - rid: 7737211838074978601
+    - rid: 7737211905655963873
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -76,33 +91,52 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211838074978602
+    - rid: 7737211905655963874
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 48
-        repairWorkRequired: 12
-        cleanWorkRequired: 8
+        constructionWorkRequired: 312
+        repairWorkRequired: 94
+        cleanWorkRequired: 16
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: component:rune-conductor
+        - itemId: material:stone-block
           amount: 4
-    - rid: 7737211838074978603
+        - itemId: material:iron-ingot
+          amount: 3
+        - itemId: material:cloth
+          amount: 1
+        - itemId: component:rune-conductor
+          amount: 2
+        - itemId: material:mana-alloy
+          amount: 1
+    - rid: 7737211905655963875
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737211838074978604
+    - rid: 7737211905655963876
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 9
         priority: 4
         minimumSupplyFraction: 1
-    - rid: 7737211838074978605
+    - rid: 7737211905655963877
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -110,13 +144,13 @@ MonoBehaviour:
         - industrial-infrastructure
         - research:equipment:rune-module-tuning
         - workstation:v3:rune-tuning
-    - rid: 7737211838074978606
+    - rid: 7737211905655963878
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v3:rune-tuning
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211838074978607
+    - rid: 7737211905655963879
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -124,7 +158,7 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211838074978608
+    - rid: 7737211905655963880
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

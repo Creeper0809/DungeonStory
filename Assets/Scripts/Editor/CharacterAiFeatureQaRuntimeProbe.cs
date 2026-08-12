@@ -540,7 +540,6 @@ public static class CharacterAiFeatureQaRuntimeProbe
         data.characterType = type;
         data.role = role;
         data.speciesTag = type == CharacterType.Intruder ? "Intruder" : "QA";
-        data.baseStats = CharacterStatBlock.CreateDefault(statValue);
         data.defaultWorkPriorities = WorkPriorityProfile.CreateDefault();
 
         GameObject obj = new GameObject(name);

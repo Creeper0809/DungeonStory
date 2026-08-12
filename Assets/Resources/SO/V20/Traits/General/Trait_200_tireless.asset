@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uC9C0\uAD6C\uB825"
   description: "\uAE34 \uAD50\uB300 \uB4A4\uC5D0\uB3C4 \uC791\uC5C5 \uB9AC\uB4EC\uC744
     \uC27D\uAC8C \uC783\uC9C0 \uC54A\uB294\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1.05
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,42 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 1
+  polarity: 0
+  selectionFamilyId: stamina
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: work:long-shift
-    utilityDelta: 0.25
-  moodReactions:
-  - triggerTag: mood:rested
-    moodDelta: 2
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: career
-    multiplier: 1.2
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:200:effect:0
+    definition: {fileID: 11400000, guid: 0efffa6163b1c1d4ab0721b231ffa8ad, type: 2}
+    value: 0.85
+    condition: {fileID: 11400000, guid: bf68d05a76f91ee4c9e5eb59e55bdcfe, type: 2}
+  - bindingId: trait:200:effect:1
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 1.05
+    condition: {fileID: 11400000, guid: bf68d05a76f91ee4c9e5eb59e55bdcfe, type: 2}
+  identityRules:
+  - rid: 7737211921986486537
+  - rid: 7737211921986486538
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486537
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:long-shift
+        priority: 0
+        behaviorTag: work:long-shift
+        utilityDelta: 0.45
+    - rid: 7737211921986486538
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:well-rested
+        priority: 0
+        eventId: rest:sufficient
+        moodDelta: 2
+        durationDays: 1

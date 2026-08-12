@@ -231,6 +231,12 @@ public static class OffenseJourneyDebugScenarios
             "OffenseJourney_Fitting",
             new Vector2Int(64, 60),
             facilityObjects);
+        string appraisalDestination = EquipmentProgressionFacilityContract
+            .GetLocalBufferDestinationId(appraisal);
+        string restorationDestination = EquipmentProgressionFacilityContract
+            .GetLocalBufferDestinationId(restoration);
+        string fittingDestination = EquipmentProgressionFacilityContract
+            .GetLocalBufferDestinationId(fitting);
 
         CombatEquipmentInstance weapon = equipment.CreateInstance(
             "weapon:greatsword",
@@ -240,7 +246,24 @@ public static class OffenseJourneyDebugScenarios
             3,
             appraisal.centerPos,
             WorldItemStackState.FacilityBuffer,
-            appraisal.RequirePersistentInstanceId().Value);
+            appraisalDestination);
+        foreach (string supplyItemId in new[]
+                 {
+                     "component:material-test-coupon",
+                     DurableToolItemRules.InspectionGauge,
+                     DurableToolItemRules.RuneIdentificationLens
+                 })
+        {
+            Require(physicalItems.SpawnItemAt(
+                    supplyItemId,
+                    1,
+                    appraisal.centerPos,
+                    WorldItemStackState.FacilityBuffer,
+                    appraisalDestination,
+                    out int spawnedSupply)
+                    && spawnedSupply == 1,
+                $"failed to supply expedition module appraisal item: {supplyItemId}");
+        }
         Require(equipment.TryAppraiseModule(
                 module.instanceId,
                 appraisal,
@@ -249,7 +272,7 @@ public static class OffenseJourneyDebugScenarios
         Require(physicalItems.TryRouteStackToDestination(
                 module.sourceStackId,
                 WorldItemStackState.FacilityBuffer,
-                restoration.RequirePersistentInstanceId().Value,
+                restorationDestination,
                 restoration.centerPos,
                 out string restorationRouteFailure),
             $"expedition module restoration routing failed: {restorationRouteFailure}");
@@ -261,7 +284,7 @@ public static class OffenseJourneyDebugScenarios
         Require(physicalItems.TryRouteStackToDestination(
                 module.sourceStackId,
                 WorldItemStackState.FacilityBuffer,
-                fitting.RequirePersistentInstanceId().Value,
+                fittingDestination,
                 fitting.centerPos,
                 out string fittingRouteFailure),
             $"expedition module fitting routing failed: {fittingRouteFailure}");
@@ -270,7 +293,7 @@ public static class OffenseJourneyDebugScenarios
                 (ItemInstanceId)weapon.instanceId,
                 fitting.centerPos,
                 WorldItemStackState.FacilityBuffer,
-                fitting.RequirePersistentInstanceId().Value,
+                fittingDestination,
                 out string weaponStackId)
                 && equipment.TryLinkToWorldStack(
                     weapon.instanceId,
@@ -447,7 +470,7 @@ public static class OffenseJourneyDebugScenarios
             Guid.NewGuid().ToString("N"),
             Target(),
             new[] { actor },
-            OffenseExpeditionService.CalculateMemberPower(actor),
+            0f,
             100f,
             null,
             supplies,

@@ -90,7 +90,7 @@ public sealed class FactionCampaignWorldSaveData
 [Serializable]
 public sealed class RunMilestoneWorldSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
     public int version = CurrentVersion;
     public RunProgressionPhase phase;
     public int endlessCycle;
@@ -101,6 +101,7 @@ public sealed class RunMilestoneWorldSaveData
     public List<string> activeEndlessCrisisIds = new();
     public List<string> worldFlags = new();
     public int selfSufficiencyStreakDays;
+    public int productivityCoverageStreakDays;
     public int lastMilestoneEvaluationAbsoluteDay = -1;
     public int lastAccordSignalSupportAbsoluteDay = -1;
 }
@@ -1916,7 +1917,7 @@ public sealed class V20CampaignRuntime :
     }
     private RunMilestoneWorldSaveData ValidateMilestones(RunMilestoneWorldSaveData data)
     {
-        if (data == null || data.version != RunMilestoneWorldSaveData.CurrentVersion || data.completedMilestoneIds == null || data.grantedRewardIds == null || data.unlockedLandmarkIds == null || data.activePressureIds == null || data.activeEndlessCrisisIds == null || data.worldFlags == null || data.endlessCycle < 0 || data.selfSufficiencyStreakDays < 0 || data.lastMilestoneEvaluationAbsoluteDay < -1 || data.lastAccordSignalSupportAbsoluteDay < -1)
+        if (data == null || data.version != RunMilestoneWorldSaveData.CurrentVersion || data.completedMilestoneIds == null || data.grantedRewardIds == null || data.unlockedLandmarkIds == null || data.activePressureIds == null || data.activeEndlessCrisisIds == null || data.worldFlags == null || data.endlessCycle < 0 || data.selfSufficiencyStreakDays < 0 || data.productivityCoverageStreakDays < 0 || data.lastMilestoneEvaluationAbsoluteDay < -1 || data.lastAccordSignalSupportAbsoluteDay < -1)
             throw new InvalidOperationException("Milestone save payload is invalid.");
         foreach (string id in data.completedMilestoneIds) catalog.Require(id);
         if (data.completedMilestoneIds.Distinct(StringComparer.Ordinal).Count() != data.completedMilestoneIds.Count)
@@ -1947,8 +1948,12 @@ public sealed class V20CampaignRuntime :
         {
             snapshot.WorldMetrics[V20WorldMetricKind.SelfSufficiencyDays] =
                 state.selfSufficiencyStreakDays;
+            snapshot.WorldMetrics[V20WorldMetricKind.ProductivityCoverageDays] =
+                state.productivityCoverageStreakDays;
             if (state.selfSufficiencyStreakDays >= 120)
                 snapshot.WorldFlags.Add("ecology:closed-cycle");
+            if (state.productivityCoverageStreakDays >= 120)
+                snapshot.WorldFlags.Add("temporal:productivity-sustained");
             return;
         }
 
@@ -1960,11 +1965,20 @@ public sealed class V20CampaignRuntime :
         state.selfSufficiencyStreakDays = sufficientToday
             ? (consecutive ? state.selfSufficiencyStreakDays + 1 : 1)
             : 0;
+        bool productivityQualifiedToday = snapshot.WorldFlags.Contains(
+            "temporal:productivity-qualified-today");
+        state.productivityCoverageStreakDays = productivityQualifiedToday
+            ? (consecutive ? state.productivityCoverageStreakDays + 1 : 1)
+            : 0;
         state.lastMilestoneEvaluationAbsoluteDay = snapshot.AbsoluteDay;
         snapshot.WorldMetrics[V20WorldMetricKind.SelfSufficiencyDays] =
             state.selfSufficiencyStreakDays;
         if (state.selfSufficiencyStreakDays >= 120)
             snapshot.WorldFlags.Add("ecology:closed-cycle");
+        snapshot.WorldMetrics[V20WorldMetricKind.ProductivityCoverageDays] =
+            state.productivityCoverageStreakDays;
+        if (state.productivityCoverageStreakDays >= 120)
+            snapshot.WorldFlags.Add("temporal:productivity-sustained");
     }
 
     private void RequireValidEvents(

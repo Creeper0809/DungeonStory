@@ -19,7 +19,7 @@ MonoBehaviour:
   weight: 4.8
   occupiedHands: 0
   maxDurability: 120
-  requiredCraftWork: 104
+  requiredCraftWork: 148
   defaultMaterialId: material:iron
   primaryMaterialAmount: 4
   allowedMaterialFamilies: 03000000
@@ -34,6 +34,15 @@ MonoBehaviour:
   lineageKind: 1
   growthEquipment: 0
   growthBaseStatMultiplier: 1
+  proficiency:
+    primaryProficiencyId: proficiency:crafting
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  effects: []
+  allowMythicInspiration: 1
   layer: 4
   collisionTag: torso-hardened-leather
   bodyPartDefense:

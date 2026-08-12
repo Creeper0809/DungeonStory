@@ -26,28 +26,33 @@ MonoBehaviour:
   displayName: "\uBC1C\uD30C \uC7A5\uC57D"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uBC1C\uD30C \uC7A5\uC57D."
   stockCategory: 7
-  unitWeight: 0.82
+  unitWeight: 0.15
   maxStack: 120
   sprite: {fileID: 0}
-  unitPrice: 50
+  unitPrice: 33
   features:
-  - rid: 7737211838078124500
-  - rid: 7737211838078124501
-  - rid: 7737211838078124502
+  - rid: 7737211905658585318
+  - rid: 7737211905658585319
+  - rid: 7737211905658585320
+  - rid: 7737211905660420538
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124500
+    - rid: 7737211905658585318
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:blasting-charge
-    - rid: 7737211838078124501
+    - rid: 7737211905658585319
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:mining:deep
-    - rid: 7737211838078124502
+    - rid: 7737211905658585320
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 512
         sharedIntermediate: 0
+    - rid: 7737211905660420538
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.5998207

@@ -73,9 +73,35 @@ public sealed class WorkTaskEnvironmentDependencies
     public IEnvironmentWorkPolicy EnvironmentWorkPolicy { get; }
 }
 
+public readonly struct EmergencyWorkSuspensionReceipt
+{
+    public EmergencyWorkSuspensionReceipt(
+        WorkTypeId workTypeId,
+        string targetBuildingId,
+        long alertEpochId,
+        bool progressExternallyPersisted)
+    {
+        WorkTypeId = workTypeId;
+        TargetBuildingId = targetBuildingId?.Trim() ?? string.Empty;
+        AlertEpochId = alertEpochId;
+        ProgressExternallyPersisted = progressExternallyPersisted;
+    }
+
+    public WorkTypeId WorkTypeId { get; }
+    public string TargetBuildingId { get; }
+    public long AlertEpochId { get; }
+    public bool ProgressExternallyPersisted { get; }
+    public bool IsValid => WorkTypeId.IsValid
+        && !string.IsNullOrWhiteSpace(TargetBuildingId)
+        && AlertEpochId > 0L
+        && ProgressExternallyPersisted;
+}
+
 public sealed class WorkTaskExecutor
 {
     private const float RestockPickupWaitSeconds = 0.35f;
+    private const float BaseAccidentHazardPerApprovedWorkUnit = 0.001f;
+    private const float WorkAccidentDamage = 2f;
 
     private readonly AbilityWork work;
     private readonly WorkTargetSelector targetSelector;
@@ -89,13 +115,49 @@ public sealed class WorkTaskExecutor
     private readonly IEnvironmentalWorkwearCommand environmentalWorkwearCommands;
     private readonly IEnvironmentWorkPolicy environmentWorkPolicy;
     private readonly IDungeonDebugRuleQuery debugRules;
+    private readonly ICharacterProficiencyCommand proficiencyCommands;
+    private readonly ICharacterProficiencyQuery proficiencyQuery;
+    private readonly IGameCalendar calendar;
+    private readonly ICombatEquipmentRuntime combatEquipmentRuntime;
+    private readonly IRandomStream workAccidentRandom;
+    private readonly CharacterIdentityEventPublisher identityEvents;
+    private readonly ICharacterPerformanceQuery performance;
+    private readonly CharacterWorkPerformanceContextResolver performanceContext;
+    private readonly IAnatomyHealthRuntime anatomyHealth;
+    private readonly ICharacterSpeciesCommand speciesCommands;
+    private readonly IEmergencyWorkAccountingService emergencyWorkAccounting;
+    private readonly ISettlementLaborAccountingService settlementLaborAccounting;
     private float nextEnvironmentRecheckAt;
     private bool environmentInterrupted;
+    private float approvedProficiencyWork;
+    private bool proficiencyAwarded;
+    private float proficiencyRepetitionMultiplier = 1f;
+    private bool workAccidentOccurred;
+    private bool workStartedPublished;
+    private int currentRunId;
+    private string activeEmergencyOperationId = string.Empty;
+    private long emergencyAccountingSequence;
+    private bool emergencySuspensionRequested;
+    private bool emergencySuspended;
+    private long requestedEmergencyEpochId;
+    private EmergencyWorkSuspensionReceipt pendingSuspensionReceipt;
 
     public WorkTaskExecutor(
         WorkTaskCoreDependencies core,
         WorkTaskExecutionDependencies execution,
-        WorkTaskEnvironmentDependencies environment)
+        WorkTaskEnvironmentDependencies environment,
+        ICharacterProficiencyCommand proficiencyCommands = null,
+        IGameCalendar calendar = null,
+        ICharacterProficiencyQuery proficiencyQuery = null,
+        ICombatEquipmentRuntime combatEquipmentRuntime = null,
+        IRandomStream workAccidentRandom = null,
+        CharacterIdentityEventPublisher identityEvents = null,
+        ICharacterPerformanceQuery performance = null,
+        CharacterWorkPerformanceContextResolver performanceContext = null,
+        IAnatomyHealthRuntime anatomyHealth = null,
+        ICharacterSpeciesCommand speciesCommands = null,
+        IEmergencyWorkAccountingService emergencyWorkAccounting = null,
+        ISettlementLaborAccountingService settlementLaborAccounting = null)
     {
         core = core ?? throw new ArgumentNullException(nameof(core));
         execution = execution ?? throw new ArgumentNullException(nameof(execution));
@@ -112,10 +174,38 @@ public sealed class WorkTaskExecutor
         characterEnvironment = environment.CharacterEnvironment;
         environmentalWorkwearCommands = environment.EnvironmentalWorkwearCommands;
         environmentWorkPolicy = environment.EnvironmentWorkPolicy;
+        this.proficiencyCommands = proficiencyCommands;
+        this.proficiencyQuery = proficiencyQuery;
+        this.calendar = calendar;
+        this.combatEquipmentRuntime = combatEquipmentRuntime;
+        this.workAccidentRandom = workAccidentRandom;
+        this.identityEvents = identityEvents;
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
+        this.performanceContext = performanceContext
+            ?? throw new ArgumentNullException(nameof(performanceContext));
+        this.anatomyHealth = anatomyHealth
+            ?? throw new ArgumentNullException(nameof(anatomyHealth));
+        this.speciesCommands = speciesCommands
+            ?? throw new ArgumentNullException(nameof(speciesCommands));
+        this.emergencyWorkAccounting = emergencyWorkAccounting;
+        this.settlementLaborAccounting = settlementLaborAccounting;
     }
 
     public IEnumerator Work(int runId)
     {
+        currentRunId = runId;
+        activeEmergencyOperationId = string.Empty;
+        emergencyAccountingSequence = 0L;
+        emergencySuspensionRequested = false;
+        emergencySuspended = false;
+        requestedEmergencyEpochId = 0L;
+        approvedProficiencyWork = 0f;
+        proficiencyAwarded = false;
+        proficiencyRepetitionMultiplier = 1f;
+        workAccidentOccurred = false;
+        workStartedPublished = false;
+        work.BeginDutyWorkRun();
         CharacterActor actor = work.WorkerActor;
         AIAction currentAction = actor != null && actor.Brain != null
             ? actor.Brain.bestAction
@@ -191,6 +281,9 @@ public sealed class WorkTaskExecutor
                     out WorkOrderProgressState paidOrder))
             {
                 paidOrderKey = paidOrder.WorkOrderId;
+                proficiencyRepetitionMultiplier =
+                    ResolveRepeatPracticeMultiplier(
+                        paidOrder.QualityAttemptIndex);
             }
 
             if (paidFacilityContracts != null
@@ -307,7 +400,15 @@ public sealed class WorkTaskExecutor
                             completedWork,
                             label,
                             applyDelta,
-                            extraMultiplier));
+                            extraMultiplier),
+                    (amount, remainingWork) => RecordApprovedWork(
+                        amount,
+                        actor,
+                        remainingWork: remainingWork),
+                    () => TrySuspendAtSafeCheckpoint(
+                        actor,
+                        assignedTarget,
+                        workTypeId));
                 yield return executionHandler.Execute(executionContext, executionResult);
                 completedSuccessfully = executionResult.CompletedSuccessfully;
                 completionEffectsAlreadyApplied =
@@ -341,9 +442,16 @@ public sealed class WorkTaskExecutor
                 WorkDebugLog.LogEnd(actor, "작업량 완료");
             }
 
+            bool routineNeedInterrupted =
+                work.LastWorkRunInterruptedForRoutineNeed;
             if (completedSuccessfully)
             {
-                actor.Progression?.AddExperience(5);
+                AwardApprovedWork(actor, ProficiencyWorkOutcome.Success);
+                RecordSpeciesCompletedWork(
+                    actor,
+                    workTypeId,
+                    approvedProficiencyWork);
+                PublishWorkCompleted(actor, workTypeId, string.Empty);
                 CharacterSkillRuntimeEffects.TriggerWorkCompleted(
                     actor,
                     assignedTarget,
@@ -362,6 +470,28 @@ public sealed class WorkTaskExecutor
                         workTypeId));
                 }
             }
+            else if (routineNeedInterrupted)
+            {
+                AwardApprovedWork(actor, ProficiencyWorkOutcome.PartialSuccess);
+                RecordSpeciesCompletedWork(
+                    actor,
+                    workTypeId,
+                    approvedProficiencyWork);
+                actor?.AddActivity(CharacterActivityEvent.Work(
+                    workTypeId,
+                    CharacterActivityOutcomes.Changed,
+                    "생리 욕구 해결 후 재개하도록 작업 진행 상태 보존",
+                    assignedTarget,
+                    reasonCode: "routine-need-suspended"));
+            }
+            else
+            {
+                AwardApprovedWork(actor, ProficiencyWorkOutcome.SafeFailure);
+                PublishWorkCompleted(
+                    actor,
+                    workTypeId,
+                    "outcome:failure");
+            }
 
             actor?.AiMemory?.RecordWork(
                 workTypeId,
@@ -373,7 +503,7 @@ public sealed class WorkTaskExecutor
             facility.DeallocateWorker(visitor);
             currentAction?.ReleaseReservation(actor);
             work.AssignWork(null, FacilityWorkType.None);
-            if (wasPriorityTarget)
+            if (wasPriorityTarget && !routineNeedInterrupted)
             {
                 work.ClearPriorityWorkTarget();
             }
@@ -408,8 +538,8 @@ public sealed class WorkTaskExecutor
             return false;
         }
 
-        GridCell currentCell = grid.GetGridCell(grid.GetXY(work.transform.position));
-        return currentCell != null && currentCell.ContainsOccupant(work.assignedShop);
+        return work.assignedShop.ContainsGridPosition(
+            grid.GetXY(work.transform.position));
     }
 
     private IEnumerator ExecuteRestockHaulWork(
@@ -579,6 +709,15 @@ public sealed class WorkTaskExecutor
             bubbleEligible: restocked <= 0));
         if (restocked > 0)
         {
+            RecordApprovedWork(restocked, actor, remainingWork: 0f);
+            RecordSpeciesCompletedWork(
+                actor,
+                BuiltInWorkTypeIds.Restock,
+                restocked);
+            PublishWorkCompleted(
+                actor,
+                BuiltInWorkTypeIds.Restock,
+                saleItem.Id.ToString(System.Globalization.CultureInfo.InvariantCulture));
             CharacterSkillRuntimeEffects.TriggerWorkCompleted(
                 actor,
                 restockTarget,
@@ -774,23 +913,86 @@ public sealed class WorkTaskExecutor
         WorkTypeId workTypeId = workDefinition?.WorkTypeId ?? default;
         float durationMultiplier = work.GetWorkEnvironmentDurationMultiplier(workTypeId);
         float lastReportTime = -10f;
+        float lastNeedUpdateTime = gameClock.Time;
+        IConstructionProjectWorkforceRuntime constructionProject =
+            workTypeId == BuiltInWorkTypeIds.Construct
+                ? workOrderRuntime as IConstructionProjectWorkforceRuntime
+                : null;
+        ProjectWorkerLease constructionLease = null;
+        string workforceFailure = string.Empty;
+        if (workTypeId == BuiltInWorkTypeIds.Construct
+            && (constructionProject == null
+                || !constructionProject.TryJoinConstructionProject(
+                    target,
+                    actor,
+                    out constructionLease,
+                    out workforceFailure)))
+        {
+            actor?.AddActivity(CharacterActivityEvent.Work(
+                workType,
+                CharacterActivityOutcomes.Blocked,
+                $"{label} 중단: {workforceFailure ?? "건설 인력 권위 없음"}",
+                target,
+                reasonCode: "construction-workforce-blocked",
+                bubbleEligible: true));
+            onCompleted?.Invoke(false, false);
+            yield break;
+        }
+
+        try
+        {
         while (CanContinueTimedWork(runId, actor)
             && work.isWorking
             && workOrderRuntime.TryGetOrderFor(target, workTypeId, out WorkOrderProgressState order)
             && order.Status != WorkOrderStatus.Completed
             && order.Status != WorkOrderStatus.Cancelled)
         {
+            if (ApplyTimedWorkNeedsAndInterrupt(actor, ref lastNeedUpdateTime))
+            {
+                onCompleted?.Invoke(false, false);
+                yield break;
+            }
+
+            if (TrySuspendAtSafeCheckpoint(actor, target, workTypeId))
+            {
+                onCompleted?.Invoke(false, false);
+                yield break;
+            }
+
+            float workerRate = CalculateWorkPerSecond(
+                workAmountCalculator,
+                actor,
+                target,
+                workTypeId,
+                durationMultiplier);
+            float contributionMultiplier = 1f;
+            if (constructionProject != null)
+            {
+                if (!constructionProject.UpdateConstructionWorkerRate(
+                        target,
+                        actor,
+                        workerRate))
+                {
+                    onCompleted?.Invoke(false, false);
+                    yield break;
+                }
+                contributionMultiplier =
+                    constructionProject.GetConstructionContributionMultiplier(
+                        target,
+                        actor);
+                if (contributionMultiplier <= 0f)
+                {
+                    onCompleted?.Invoke(false, false);
+                    yield break;
+                }
+            }
+
             float remainingSeconds = Mathf.Max(
                 0f,
                 order.RequiredWork - order.CompletedWork)
                 / Mathf.Max(
                     0.05f,
-                    WorkExecutionRules.CalculateWorkPerSecond(
-                        workAmountCalculator,
-                        actor,
-                        target,
-                        workTypeId,
-                        durationMultiplier));
+                    workerRate * contributionMultiplier);
             if (ShouldInterruptForEnvironment(
                     actor,
                     target,
@@ -817,13 +1019,16 @@ public sealed class WorkTaskExecutor
                 }
             }
 
-            float deltaWork = WorkExecutionRules.CalculateWorkPerSecond(
-                    workAmountCalculator,
-                    actor,
-                    target,
-                    workTypeId,
-                    durationMultiplier)
-                * gameClock.DeltaTime;
+            float requestedLaborWork = workerRate * gameClock.DeltaTime;
+            float deltaWork = Mathf.Min(
+                requestedLaborWork * contributionMultiplier,
+                Mathf.Max(0f, order.RequiredWork - order.CompletedWork));
+            float acceptedLaborWork = deltaWork / contributionMultiplier;
+            if (deltaWork <= 0f || acceptedLaborWork <= 0f)
+            {
+                yield return null;
+                continue;
+            }
             if (!workOrderRuntime.ApplyWork(
                     actor,
                     target,
@@ -843,6 +1048,17 @@ public sealed class WorkTaskExecutor
                 onCompleted?.Invoke(false, false);
                 yield break;
             }
+            RecordApprovedWork(
+                acceptedLaborWork,
+                actor,
+                remainingWork: Mathf.Max(
+                    0f,
+                    order.RequiredWork - order.CompletedWork - deltaWork)
+                    / contributionMultiplier);
+            RecordProjectOutputAdjustment(
+                deltaWork,
+                acceptedLaborWork,
+                workTypeId);
 
             if (gameClock.Time - lastReportTime >= 0.75f
                 && workOrderRuntime.TryGetOrderFor(target, workTypeId, out order))
@@ -873,6 +1089,11 @@ public sealed class WorkTaskExecutor
 
             yield return null;
         }
+        }
+        finally
+        {
+            constructionLease?.Dispose();
+        }
 
         onCompleted?.Invoke(false, appliedCompletionEffects);
     }
@@ -890,6 +1111,11 @@ public sealed class WorkTaskExecutor
         label = string.IsNullOrWhiteSpace(label) ? WorkTaskCatalog.GetLegacyDisplayName(workType) : label;
         if (debugRules.IsEnabled(DungeonDebugCheat.InstantWork))
         {
+            RecordApprovedWork(
+                requiredWork,
+                actor,
+                allowAccident: false,
+                remainingWork: 0f);
             actor?.Brain?.SetActionPhase($"{label} 100%", target);
             yield return null;
             yield break;
@@ -903,15 +1129,21 @@ public sealed class WorkTaskExecutor
             : default;
         float durationMultiplier = work.GetWorkEnvironmentDurationMultiplier(workTypeId);
         float lastReportTime = -10f;
+        float lastNeedUpdateTime = gameClock.Time;
         while (completedWork + 0.001f < requiredWork
             && CanContinueTimedWork(runId, actor)
             && work.isWorking)
         {
+            if (ApplyTimedWorkNeedsAndInterrupt(actor, ref lastNeedUpdateTime))
+            {
+                yield break;
+            }
+
             float remainingSeconds =
                 Mathf.Max(0f, requiredWork - completedWork)
                 / Mathf.Max(
                     0.05f,
-                    WorkExecutionRules.CalculateWorkPerSecond(
+                    CalculateWorkPerSecond(
                         workAmountCalculator,
                         actor,
                         target,
@@ -929,7 +1161,7 @@ public sealed class WorkTaskExecutor
             float tickDeltaTime = gameClock.DeltaTime > 0f
                 ? gameClock.DeltaTime
                 : 1f / 60f;
-            float deltaWork = WorkExecutionRules.CalculateWorkPerSecond(
+            float deltaWork = CalculateWorkPerSecond(
                     workAmountCalculator,
                     actor,
                     target,
@@ -937,7 +1169,12 @@ public sealed class WorkTaskExecutor
                     durationMultiplier)
                 * Mathf.Max(0.05f, extraMultiplier)
                 * tickDeltaTime;
+            deltaWork = Mathf.Min(requiredWork - completedWork, deltaWork);
             completedWork = Mathf.Min(requiredWork, completedWork + deltaWork);
+            RecordApprovedWork(
+                deltaWork,
+                actor,
+                remainingWork: Mathf.Max(0f, requiredWork - completedWork));
             if (gameClock.Time - lastReportTime >= 0.75f)
             {
                 lastReportTime = gameClock.Time;
@@ -978,7 +1215,14 @@ public sealed class WorkTaskExecutor
             float remainingWork = Mathf.Max(0f, requiredWork - completedWork);
             if (remainingWork > 0f)
             {
-                applyDelta(remainingWork);
+                if (applyDelta(remainingWork))
+                {
+                    RecordApprovedWork(
+                        remainingWork,
+                        actor,
+                        allowAccident: false,
+                        remainingWork: 0f);
+                }
             }
 
             actor?.Brain?.SetActionPhase($"{label} 100%", target);
@@ -994,16 +1238,27 @@ public sealed class WorkTaskExecutor
         float durationMultiplier =
             work.GetWorkEnvironmentDurationMultiplier(workTypeId);
         float lastReportTime = -10f;
+        float lastNeedUpdateTime = gameClock.Time;
 
         while (completedWork + 0.001f < requiredWork
             && CanContinueTimedWork(runId, actor)
             && work.isWorking)
         {
+            if (ApplyTimedWorkNeedsAndInterrupt(actor, ref lastNeedUpdateTime))
+            {
+                yield break;
+            }
+
+            if (TrySuspendAtSafeCheckpoint(actor, target, workTypeId))
+            {
+                yield break;
+            }
+
             float remainingSeconds =
                 Mathf.Max(0f, requiredWork - completedWork)
                 / Mathf.Max(
                     0.05f,
-                    WorkExecutionRules.CalculateWorkPerSecond(
+                    CalculateWorkPerSecond(
                         workAmountCalculator,
                         actor,
                         target,
@@ -1023,7 +1278,7 @@ public sealed class WorkTaskExecutor
                 : 1f / 60f;
             float deltaWork = Mathf.Min(
                 requiredWork - completedWork,
-                WorkExecutionRules.CalculateWorkPerSecond(
+                CalculateWorkPerSecond(
                         workAmountCalculator,
                         actor,
                         target,
@@ -1037,6 +1292,10 @@ public sealed class WorkTaskExecutor
             }
 
             completedWork = Mathf.Min(requiredWork, completedWork + deltaWork);
+            RecordApprovedWork(
+                deltaWork,
+                actor,
+                remainingWork: Mathf.Max(0f, requiredWork - completedWork));
             if (gameClock.Time - lastReportTime >= 0.75f)
             {
                 lastReportTime = gameClock.Time;
@@ -1055,6 +1314,32 @@ public sealed class WorkTaskExecutor
 
             yield return null;
         }
+    }
+
+    private bool ApplyTimedWorkNeedsAndInterrupt(
+        CharacterActor actor,
+        ref float lastNeedUpdateTime)
+    {
+        float currentTime = gameClock.Time;
+        float elapsed = Mathf.Max(0f, currentTime - lastNeedUpdateTime);
+        lastNeedUpdateTime = currentTime;
+        if (elapsed > 0f)
+        {
+            work.ApplyWorkNeedDepletion(elapsed);
+        }
+
+        if (!work.ShouldInterruptCurrentWork(out string interruptReason))
+        {
+            return false;
+        }
+
+        work.StopAssignedWorkFromAi(interruptReason);
+        actor?.AddActivity(CharacterActivityEvent.Create(
+            CharacterActivityKinds.Duty,
+            CharacterActivityOutcomes.Changed,
+            $"생리 욕구로 작업 중단: {interruptReason}",
+            reasonCode: "routine-need-interrupt"));
+        return true;
     }
 
     private bool ShouldInterruptForEnvironment(
@@ -1165,6 +1450,8 @@ public sealed class WorkTaskExecutor
 
     private void FinishWorkRun(CharacterActor actor, AIAction currentAction)
     {
+        CompleteEmergencyAccounting("completed");
+        work.RecordSuccessfulWorkAttempt(work.AssignedWorkTypeId);
         CharacterSkillRuntimeEffects.EndWork(actor);
         characterEnvironment.ClearWorkContext(
             new CharacterId(actor?.Identity?.PersistentId));
@@ -1188,6 +1475,7 @@ public sealed class WorkTaskExecutor
         return !work.IsActiveWorkRun(runId)
             || actor == null
             || actor.Brain == null
+            || workAccidentOccurred
             || actor.Brain.isBestActionEnd;
     }
 
@@ -1215,6 +1503,79 @@ public sealed class WorkTaskExecutor
 
     private void AbortWorkRun(int runId, CharacterActor actor, AIAction currentAction)
     {
+        if (emergencySuspended)
+        {
+            CompleteEmergencyAccounting("suspended-for-emergency");
+            AwardApprovedWork(actor, ProficiencyWorkOutcome.PartialSuccess);
+            RecordSpeciesCompletedWork(
+                actor,
+                work.AssignedWorkTypeId,
+                approvedProficiencyWork);
+            CharacterSkillRuntimeEffects.EndWork(actor);
+            characterEnvironment.ClearWorkContext(
+                new CharacterId(actor?.Identity?.PersistentId));
+            currentAction?.ReleaseReservation(actor);
+            work.isWorking = false;
+            if (work.IsActiveWorkRun(runId))
+            {
+                work.AssignWork(null, FacilityWorkType.None);
+            }
+            work.ClearActiveWorkRoutine(runId);
+            emergencySuspended = false;
+            return;
+        }
+
+        bool routineNeedInterrupted =
+            work.LastWorkRunInterruptedForRoutineNeed;
+        CompleteEmergencyAccounting(
+            workAccidentOccurred
+                ? "accident"
+                : environmentInterrupted
+                    ? "environment-interrupted"
+                    : routineNeedInterrupted
+                        ? "routine-need-suspended"
+                        : "aborted");
+        WorkTypeId interruptedWorkTypeId = routineNeedInterrupted
+            ? work.RoutineNeedResumeWorkTypeId
+            : work.AssignedWorkTypeId;
+        BuildableObject interruptedTarget = routineNeedInterrupted
+            ? work.RoutineNeedResumeTarget
+            : work.assignedShop;
+        if (!routineNeedInterrupted)
+        {
+            work.RecordFailedWorkAttempt(work.AssignedWorkTypeId);
+        }
+        AwardApprovedWork(
+            actor,
+            routineNeedInterrupted
+                ? ProficiencyWorkOutcome.PartialSuccess
+                : environmentInterrupted || workAccidentOccurred
+                ? ProficiencyWorkOutcome.AccidentOrForcedStop
+                : ProficiencyWorkOutcome.SafeFailure);
+        if (!routineNeedInterrupted)
+        {
+            PublishWorkCompleted(
+                actor,
+                interruptedWorkTypeId,
+                workAccidentOccurred
+                    ? "outcome:accident"
+                    : environmentInterrupted
+                        ? "outcome:environment-interrupted"
+                        : "outcome:failure");
+        }
+        else
+        {
+            RecordSpeciesCompletedWork(
+                actor,
+                interruptedWorkTypeId,
+                approvedProficiencyWork);
+            actor?.AddActivity(CharacterActivityEvent.Work(
+                interruptedWorkTypeId,
+                CharacterActivityOutcomes.Changed,
+                "생리 욕구 해결 후 재개하도록 작업 진행 상태 보존",
+                interruptedTarget,
+                reasonCode: "routine-need-suspended"));
+        }
         CharacterSkillRuntimeEffects.EndWork(actor);
         characterEnvironment.ClearWorkContext(
             new CharacterId(actor?.Identity?.PersistentId));
@@ -1230,6 +1591,632 @@ public sealed class WorkTaskExecutor
         }
 
         work.ClearActiveWorkRoutine(runId);
+    }
+
+    private void RecordApprovedWork(
+        float amount,
+        CharacterActor actor,
+        bool allowAccident = true,
+        float remainingWork = -1f)
+    {
+        if (amount > 0f && !float.IsNaN(amount) && !float.IsInfinity(amount))
+        {
+            RecordEmergencyAccounting(actor, amount, remainingWork);
+            approvedProficiencyWork += amount;
+            PublishWorkStarted(actor, work.AssignedWorkTypeId);
+            if (allowAccident)
+                TryTriggerWorkAccident(actor, amount);
+        }
+    }
+
+    public void CancelActiveRun(CharacterActor actor, string reason)
+    {
+        CompleteEmergencyAccounting(
+            string.IsNullOrWhiteSpace(reason) ? "cancelled" : reason.Trim());
+    }
+
+    public bool RequestEmergencySuspension(long alertEpochId)
+    {
+        WorkTypeId workTypeId = work.AssignedWorkTypeId;
+        if (alertEpochId <= 0L
+            || !work.isWorking
+            || work.assignedShop == null
+            || !workTypeId.IsValid
+            || !WorkTypeCatalog.TryGet(workTypeId, out WorkTypeDefinition definition)
+            || (definition.EmergencyFlags & EmergencyWorkFlags.ReserveEligible) == 0
+            || (definition.EmergencyFlags
+                & (EmergencyWorkFlags.InterruptImmediately
+                    | EmergencyWorkFlags.InterruptAtCheckpoint)) == 0)
+        {
+            return false;
+        }
+
+        emergencySuspensionRequested = true;
+        requestedEmergencyEpochId = alertEpochId;
+        return true;
+    }
+
+    public bool CancelEmergencySuspensionRequest(long alertEpochId)
+    {
+        if (alertEpochId <= 0L
+            || requestedEmergencyEpochId != alertEpochId
+            || emergencySuspended
+            || pendingSuspensionReceipt.IsValid)
+        {
+            return false;
+        }
+
+        emergencySuspensionRequested = false;
+        requestedEmergencyEpochId = 0L;
+        return true;
+    }
+
+    public bool TryConsumeEmergencySuspension(
+        out EmergencyWorkSuspensionReceipt receipt)
+    {
+        receipt = pendingSuspensionReceipt;
+        if (!receipt.IsValid)
+        {
+            return false;
+        }
+
+        pendingSuspensionReceipt = default;
+        requestedEmergencyEpochId = 0L;
+        return true;
+    }
+
+    private bool TrySuspendAtSafeCheckpoint(
+        CharacterActor actor,
+        BuildableObject target,
+        WorkTypeId workTypeId)
+    {
+        if (!emergencySuspensionRequested
+            || requestedEmergencyEpochId <= 0L
+            || !work.isWorking
+            || workAccidentOccurred
+            || actor == null
+            || actor.Brain == null
+            || actor.Brain.isBestActionEnd
+            || target == null
+            || !workTypeId.IsValid
+            || !target.PersistentInstanceId.IsValid)
+        {
+            return false;
+        }
+
+        pendingSuspensionReceipt = new EmergencyWorkSuspensionReceipt(
+            workTypeId,
+            target.PersistentInstanceId.Value,
+            requestedEmergencyEpochId,
+            progressExternallyPersisted: true);
+        emergencySuspensionRequested = false;
+        emergencySuspended = true;
+        work.isWorking = false;
+        actor.Brain?.SetActionPhase(
+            "비상 대응을 위해 안전 지점에서 작업 일시중단",
+            target);
+        actor.AddActivity(CharacterActivityEvent.Work(
+            workTypeId,
+            CharacterActivityOutcomes.Changed,
+            "비상 대응을 위해 진행 상태를 보존하고 작업을 일시중단했습니다.",
+            target,
+            reasonCode: "suspended-for-emergency"));
+        if (actor.Brain != null)
+        {
+            actor.Brain.isBestActionEnd = true;
+        }
+        return true;
+    }
+
+    private void RecordEmergencyAccounting(
+        CharacterActor actor,
+        float approvedWork,
+        float remainingWork)
+    {
+        if (emergencyWorkAccounting == null)
+        {
+            return;
+        }
+
+        WorkTypeId workTypeId = work.AssignedWorkTypeId;
+        if (!workTypeId.IsValid
+            || !WorkTypeCatalog.TryGet(workTypeId, out WorkTypeDefinition definition)
+            || !CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId))
+        {
+            throw new InvalidOperationException(
+                "Emergency work accounting requires a registered work type and persistent worker identity.");
+        }
+
+        float knownRemaining = remainingWork >= 0f
+            ? remainingWork
+            : EmergencyWuUnits.ToWu(EmergencyWuUnits.MaximumReserveWindowMilliWu);
+        long remainingMilliWu = EmergencyWuUnits.FromWu(knownRemaining);
+        if (string.IsNullOrWhiteSpace(activeEmergencyOperationId))
+        {
+            activeEmergencyOperationId =
+                $"work:{characterId.Value}:{currentRunId}:{workTypeId.Value}";
+            long initialRemaining = checked(
+                remainingMilliWu + EmergencyWuUnits.FromWu(approvedWork));
+            long reserve = (definition.EmergencyFlags & EmergencyWorkFlags.ReserveEligible) != 0
+                ? Math.Min(initialRemaining, EmergencyWuUnits.MaximumReserveWindowMilliWu)
+                : 0L;
+            EmergencyAccountingResult registration = emergencyWorkAccounting.Register(
+                new EmergencyWorkLedgerEntry(
+                    activeEmergencyOperationId,
+                    characterId.Value,
+                    workTypeId,
+                    definition.EmergencyFlags,
+                    initialRemaining,
+                    reserve,
+                    classificationRevision: 0,
+                    mutationSequence: emergencyAccountingSequence));
+            RequireEmergencyAccountingSuccess(registration);
+        }
+
+        emergencyAccountingSequence = checked(emergencyAccountingSequence + 1L);
+        EmergencyAccountingResult progress = emergencyWorkAccounting.ApplyProgress(
+            new EmergencyWorkProgress(
+                activeEmergencyOperationId,
+                EmergencyWuUnits.FromWu(approvedWork),
+                remainingMilliWu,
+                emergencyAccountingSequence));
+        RequireEmergencyAccountingSuccess(progress);
+
+        if (settlementLaborAccounting != null)
+        {
+            EmergencyAccountingResult labor = settlementLaborAccounting.Record(
+                new SettlementLaborContribution(
+                    activeEmergencyOperationId,
+                    emergencyAccountingSequence,
+                    SettlementLaborContributionChannel.ActualLabor,
+                    EmergencyWuUnits.FromWu(approvedWork),
+                    workTypeId.Value));
+            RequireEmergencyAccountingSuccess(labor);
+            if (SettlementLaborBalanceRules.TryGetMaintenanceChannel(
+                    workTypeId,
+                    out SettlementLaborContributionChannel maintenanceChannel))
+            {
+                EmergencyAccountingResult maintenance =
+                    settlementLaborAccounting.Record(
+                        new SettlementLaborContribution(
+                            activeEmergencyOperationId,
+                            emergencyAccountingSequence,
+                            maintenanceChannel,
+                            EmergencyWuUnits.FromWu(approvedWork),
+                            workTypeId.Value));
+                RequireEmergencyAccountingSuccess(maintenance);
+            }
+        }
+    }
+
+    private void CompleteEmergencyAccounting(string reason)
+    {
+        if (emergencyWorkAccounting == null
+            || string.IsNullOrWhiteSpace(activeEmergencyOperationId))
+        {
+            return;
+        }
+
+        emergencyAccountingSequence = checked(emergencyAccountingSequence + 1L);
+        string operationId = activeEmergencyOperationId;
+        activeEmergencyOperationId = string.Empty;
+        EmergencyAccountingResult result = emergencyWorkAccounting.Remove(
+            new EmergencyWorkCompletion(
+                operationId,
+                $"{operationId}:{reason}",
+                emergencyAccountingSequence));
+        RequireEmergencyAccountingSuccess(result);
+    }
+
+    private void RecordProjectOutputAdjustment(
+        float outputEquivalentWork,
+        float actualLaborWork,
+        WorkTypeId workTypeId)
+    {
+        if (settlementLaborAccounting == null
+            || string.IsNullOrWhiteSpace(activeEmergencyOperationId)
+            || !workTypeId.IsValid)
+        {
+            return;
+        }
+
+        long outputMilliWu = EmergencyWuUnits.FromWu(outputEquivalentWork);
+        long laborMilliWu = EmergencyWuUnits.FromWu(actualLaborWork);
+        long difference = checked(outputMilliWu - laborMilliWu);
+        if (difference == 0L)
+        {
+            return;
+        }
+
+        SettlementLaborContributionChannel channel = difference > 0L
+            ? SettlementLaborContributionChannel.ConvertedProcessOutput
+            : SettlementLaborContributionChannel.FuelMaintenanceAccidentSpoilageLoss;
+        EmergencyAccountingResult result = settlementLaborAccounting.Record(
+            new SettlementLaborContribution(
+                activeEmergencyOperationId,
+                emergencyAccountingSequence,
+                channel,
+                Math.Abs(difference),
+                workTypeId.Value));
+        RequireEmergencyAccountingSuccess(result);
+    }
+
+    private static void RequireEmergencyAccountingSuccess(
+        EmergencyAccountingResult result)
+    {
+        if (!result.Success)
+        {
+            throw new InvalidOperationException(
+                $"{result.Code}: {result.Message}");
+        }
+    }
+
+    private void PublishWorkStarted(CharacterActor actor, WorkTypeId workTypeId)
+    {
+        if (workStartedPublished
+            || identityEvents == null
+            || !workTypeId.IsValid
+            || !CharacterPersistentIdentity.TryGet(actor, out CharacterId id))
+            return;
+        workStartedPublished = true;
+        identityEvents.Publish(new WorkStartedIdentityEvent(
+            id,
+            workTypeId.Value,
+            ResolveCommandOrigin(),
+            calendar?.Day ?? 0));
+    }
+
+    private void PublishWorkCompleted(
+        CharacterActor actor,
+        WorkTypeId workTypeId,
+        string productId)
+    {
+        if (!workStartedPublished
+            || identityEvents == null
+            || !workTypeId.IsValid
+            || !CharacterPersistentIdentity.TryGet(actor, out CharacterId id))
+            return;
+        identityEvents.Publish(new WorkCompletedIdentityEvent(
+            id,
+            workTypeId.Value,
+            productId,
+            ResolveCommandOrigin(),
+            calendar?.Day ?? 0));
+    }
+
+    private CharacterCommandOrigin ResolveCommandOrigin() =>
+        work.PriorityWorkTarget != null
+        && work.assignedShop == work.PriorityWorkTarget
+            ? CharacterCommandOrigin.DirectPlayerOrder
+            : CharacterCommandOrigin.Autonomous;
+
+    private bool TryTriggerWorkAccident(
+        CharacterActor actor,
+        float approvedWork)
+    {
+        if (workAccidentOccurred
+            || actor == null
+            || workAccidentRandom == null
+            || approvedWork <= 0f)
+        {
+            return false;
+        }
+
+        if (performance == null || performanceContext == null)
+            throw new InvalidOperationException(
+                "Work accident execution requires the character performance query.");
+        if (!performanceContext.TryResolve(
+                actor,
+                work.assignedShop,
+                work.AssignedWorkTypeId,
+                out ProficiencyWorkProfile profile,
+                out string failureReason))
+            throw new InvalidOperationException(failureReason);
+        CharacterPerformanceSnapshot accident = performance.EvaluateWork(
+            actor,
+            work.AssignedWorkTypeId,
+            CharacterPerformanceResultChannel.AccidentRisk,
+            performanceContext.BuildEvaluationContext(
+                profile,
+                new GameplayEffectContext(new[] { work.AssignedWorkTypeId.Value })));
+        if (!accident.IsApplicable)
+            throw new InvalidOperationException(
+                accident.Failure?.Message
+                ?? $"Work accident performance '{work.AssignedWorkTypeId.Value}' is unavailable.");
+        float accidentMultiplier = Mathf.Max(0f, accident.Value);
+        float chance = 1f - Mathf.Exp(
+            -BaseAccidentHazardPerApprovedWorkUnit
+            * approvedWork
+            * accidentMultiplier);
+        CharacterPerformanceExecutionTrace.Record(
+            accident.FormulaId,
+            "WorkTaskExecutor.TryTriggerWorkAccident",
+            approvedWork,
+            chance,
+            work.AssignedWorkTypeId.Value);
+        if (!workAccidentRandom.Chance(Mathf.Clamp01(chance)))
+            return false;
+
+        workAccidentOccurred = true;
+        work.isWorking = false;
+        AnatomyNodeHealthState[] eligibleNodes = anatomyHealth
+            .GetAnatomySnapshot(actor)
+            .Nodes
+            .Where(value => value != null
+                && !value.missing
+                && value.currentHealth > 0f)
+            .OrderBy(value => value.nodeId, StringComparer.Ordinal)
+            .ToArray();
+        if (eligibleNodes.Length == 0)
+            throw new InvalidOperationException(
+                $"Work accident cannot resolve an anatomy node for '{actor.name}'.");
+        AnatomyNodeHealthState injured = eligibleNodes[
+            workAccidentRandom.NextInt(0, eligibleNodes.Length)];
+        if (!anatomyHealth.TryDamageNode(
+                actor,
+                injured.nodeId,
+                WorkAccidentDamage,
+                bleeding: 0f,
+                reason: "work-accident"))
+            throw new InvalidOperationException(
+                $"Work accident failed to damage anatomy node '{injured.nodeId}'.");
+        actor.AddActivity(CharacterActivityEvent.Work(
+            work.AssignedWorkType,
+            CharacterActivityOutcomes.Failed,
+            "작업 사고로 작업이 중단됨",
+            work.assignedShop,
+            reasonCode: "work-accident",
+            bubbleEligible: true));
+        return true;
+    }
+
+    private float CalculateWorkPerSecond(
+        IWorkAmountCalculator calculator,
+        CharacterActor actor,
+        BuildableObject target,
+        WorkTypeId workTypeId,
+        float environmentDurationMultiplier)
+    {
+        float baseRate = WorkExecutionRules.CalculateWorkPerSecond(
+            calculator,
+            actor,
+            target,
+            workTypeId,
+            environmentDurationMultiplier);
+        return Mathf.Clamp(baseRate, 0.05f, 8f);
+    }
+
+    private void AwardApprovedWork(
+        CharacterActor actor,
+        ProficiencyWorkOutcome outcome)
+    {
+        if (proficiencyAwarded
+            || approvedProficiencyWork <= 0f
+            || proficiencyCommands == null
+            || calendar == null
+            || !TryResolveProficiencyProfile(
+                actor,
+                work.assignedShop,
+                work.AssignedWorkTypeId,
+                out ProficiencyWorkProfile profile)
+            || !CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId))
+        {
+            return;
+        }
+
+        proficiencyAwarded = true;
+        proficiencyCommands.AddApprovedWork(
+            characterId,
+            profile,
+            approvedProficiencyWork,
+            difficultyMultiplier: ResolveDifficultyMultiplier(
+                actor,
+                work.assignedShop,
+                work.AssignedWorkTypeId,
+                profile),
+            outcome: outcome,
+            learningMultiplier:
+                CharacterProficiencyLearningRules.Resolve(
+                    actor,
+                    profile,
+                    work.AssignedWorkTypeId),
+            repetitionMultiplier: work.AssignedWorkTypeId
+                == BuiltInWorkTypeIds.Dismantle
+                    ? Mathf.Min(0.20f, proficiencyRepetitionMultiplier)
+                    : proficiencyRepetitionMultiplier,
+            absoluteHour: calendar.AbsoluteHour);
+    }
+
+    private void RecordSpeciesCompletedWork(
+        CharacterActor actor,
+        WorkTypeId workTypeId,
+        float completedWork)
+    {
+        if (completedWork <= 0f)
+            return;
+        if (!CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId))
+            throw new InvalidOperationException(
+                "Species completed-work projection requires a persistent character id.");
+        if (!speciesCommands.RecordCompletedWork(
+                characterId,
+                workTypeId.Value,
+                completedWork,
+                out DomainFailure failure))
+            throw new InvalidOperationException(
+                $"Species completed-work projection failed: {failure.Code}");
+    }
+
+    private bool TryResolveProficiencyProfile(
+        CharacterActor actor,
+        BuildableObject target,
+        WorkTypeId workTypeId,
+        out ProficiencyWorkProfile profile)
+    {
+        ProficiencyWorkProfileAuthoring authored = ResolveAuthoredProfile(
+            target,
+            workTypeId);
+        if (authored?.IsValid == true)
+        {
+            if (authored.CombinationMode == ProficiencyCombinationMode.Higher)
+            {
+                profile = ResolveHigherCombatProfile(actor);
+                return profile.IsValid;
+            }
+            profile = new ProficiencyWorkProfile(
+                authored.Primary,
+                authored.Secondary,
+                authored.PrimaryWeight);
+            return profile.IsValid;
+        }
+        if (workTypeId == BuiltInWorkTypeIds.Operate)
+        {
+            profile = default;
+            return false;
+        }
+        if (!WorkTypeProficiencyRules.TryResolve(workTypeId, out profile))
+        {
+            return false;
+        }
+
+        if (workTypeId == BuiltInWorkTypeIds.Hunt)
+        {
+            CharacterProficiencyId combat =
+                BuiltInCharacterProficiencyIds.MeleeCombat;
+            if (actor != null
+                && combatEquipmentRuntime != null
+                && combatEquipmentRuntime.TryGetActiveWeapon(
+                    actor.Identity?.PersistentId ?? string.Empty,
+                    out CombatWeaponSnapshot weapon)
+                && weapon?.IsRanged == true)
+            {
+                combat = BuiltInCharacterProficiencyIds.RangedCombat;
+            }
+            profile = new ProficiencyWorkProfile(
+                BuiltInCharacterProficiencyIds.FoodProduction,
+                combat,
+                0.80f);
+        }
+        else if (workTypeId == BuiltInWorkTypeIds.Warden
+            && actor != null
+            && proficiencyQuery != null
+            && calendar != null
+            && CharacterPersistentIdentity.TryGet(
+                actor,
+                out CharacterId characterId))
+        {
+            proficiencyQuery.TryGetProficiency(
+                characterId,
+                BuiltInCharacterProficiencyIds.MeleeCombat,
+                calendar.AbsoluteHour,
+                out CharacterProficiencySnapshot melee);
+            proficiencyQuery.TryGetProficiency(
+                characterId,
+                BuiltInCharacterProficiencyIds.RangedCombat,
+                calendar.AbsoluteHour,
+                out CharacterProficiencySnapshot ranged);
+            profile = new ProficiencyWorkProfile(
+                BuiltInCharacterProficiencyIds.Social,
+                ranged.CurrentExperience > melee.CurrentExperience
+                    ? BuiltInCharacterProficiencyIds.RangedCombat
+                    : BuiltInCharacterProficiencyIds.MeleeCombat,
+                0.80f);
+        }
+        else if (workTypeId == BuiltInWorkTypeIds.Craft
+            && IsRuneCraftTarget(target))
+        {
+            profile = new ProficiencyWorkProfile(
+                BuiltInCharacterProficiencyIds.Crafting,
+                BuiltInCharacterProficiencyIds.Scholarship,
+                0.80f);
+        }
+        return true;
+    }
+
+    private float ResolveDifficultyMultiplier(
+        CharacterActor actor,
+        BuildableObject target,
+        WorkTypeId workTypeId,
+        ProficiencyWorkProfile profile)
+    {
+        ProficiencyWorkProfileAuthoring authored = ResolveAuthoredProfile(
+            target,
+            workTypeId);
+        if (authored?.IsValid != true
+            || proficiencyQuery == null
+            || calendar == null
+            || actor == null
+            || !CharacterPersistentIdentity.TryGet(actor, out CharacterId id)
+            || !proficiencyQuery.TryGetProficiency(
+                id,
+                profile.Primary,
+                calendar.AbsoluteHour,
+                out CharacterProficiencySnapshot current))
+        {
+            return 1f;
+        }
+
+        int rankDifference = (int)current.Rank - (int)authored.RecommendedRank;
+        if (rankDifference < 0) return 1.25f;
+        if (rankDifference == 0) return 1f;
+        if (rankDifference == 1) return 0.55f;
+        return 0.20f;
+    }
+
+    private static ProficiencyWorkProfileAuthoring ResolveAuthoredProfile(
+        BuildableObject target,
+        WorkTypeId workTypeId)
+    {
+        BuildingSO building = target?.BuildingData;
+        if (building == null) return null;
+        if (workTypeId == BuiltInWorkTypeIds.Operate)
+            return building.OperationProficiency;
+        if (workTypeId == BuiltInWorkTypeIds.Construct
+            || workTypeId == BuiltInWorkTypeIds.Repair
+            || workTypeId == BuiltInWorkTypeIds.Plumbing
+            || workTypeId == BuiltInWorkTypeIds.Dismantle
+            || workTypeId == BuiltInWorkTypeIds.GrandProject)
+            return building.ConstructionProficiency;
+        return null;
+    }
+
+    private ProficiencyWorkProfile ResolveHigherCombatProfile(
+        CharacterActor actor)
+    {
+        if (actor == null || proficiencyQuery == null || calendar == null
+            || !CharacterPersistentIdentity.TryGet(actor, out CharacterId id))
+        {
+            return new ProficiencyWorkProfile(
+                BuiltInCharacterProficiencyIds.MeleeCombat);
+        }
+        proficiencyQuery.TryGetProficiency(
+            id,
+            BuiltInCharacterProficiencyIds.MeleeCombat,
+            calendar.AbsoluteHour,
+            out CharacterProficiencySnapshot melee);
+        proficiencyQuery.TryGetProficiency(
+            id,
+            BuiltInCharacterProficiencyIds.RangedCombat,
+            calendar.AbsoluteHour,
+            out CharacterProficiencySnapshot ranged);
+        return new ProficiencyWorkProfile(
+            ranged.CurrentMilliExperience > melee.CurrentMilliExperience
+                ? BuiltInCharacterProficiencyIds.RangedCombat
+                : BuiltInCharacterProficiencyIds.MeleeCombat);
+    }
+
+    private static float ResolveRepeatPracticeMultiplier(int attemptIndex)
+    {
+        int attemptNumber = Mathf.Max(0, attemptIndex) + 1;
+        if (attemptNumber <= 3) return 1f;
+        if (attemptNumber <= 10) return 0.50f;
+        return 0.15f;
+    }
+
+    private static bool IsRuneCraftTarget(BuildableObject target)
+    {
+        string name = target?.BuildingData?.objectName ?? string.Empty;
+        return name.IndexOf("rune", StringComparison.OrdinalIgnoreCase) >= 0
+            || name.Contains("룬", StringComparison.Ordinal);
     }
 
     private void ReturnEnvironmentalWorkwear(CharacterActor actor)

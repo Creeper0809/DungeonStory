@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3492011b3dafa9042a1ad22895608b38, type: 3}
+  m_Name: performance_survival_nutrition-efficiency
+  m_EditorClassIdentifier: DungeonStory.Foundation::CharacterPerformanceFormulaDefinitionSO
+  formulaId: performance:survival:nutrition-efficiency
+  displayName: "\uC601\uC591 \uD6A8\uC728"
+  domain: 4
+  resultChannel: 0
+  baseValue: 1
+  capacityInputs:
+  - capacityId: 5
+    weight: 0.55
+    role: 3
+    requiredThreshold: 0.1
+  - capacityId: 6
+    weight: 0.2
+    role: 1
+    requiredThreshold: 0.1
+  - capacityId: 4
+    weight: 0.15
+    role: 1
+    requiredThreshold: 0.1
+  - capacityId: 7
+    weight: 0.1
+    role: 1
+    requiredThreshold: 0.1
+  primaryProficiencyId: 
+  secondaryProficiencyId: 
+  secondaryProficiencyWeight: 0
+  gameplayEffectTargetId: 
+  executionWorkTypeId: 

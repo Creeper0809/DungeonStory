@@ -1,0 +1,43 @@
+[PASS] SCOPE_READY gameplay LifetimeScope resolved
+[PASS] ITEM_RUNTIME_READY world item runtime resolved
+[PASS] WORK_ORDER_RUNTIME_READY work order runtime resolved
+[PASS] EQUIPMENT_RUNTIME_READY common combat equipment runtime resolved
+[PASS] EQUIPMENT_MAINTENANCE_READY equipment maintenance runtime resolved
+[PASS] ECONOMY_CATALOG_READY resource economy catalog resolved
+[PASS] PREPARATION_RUNTIME_READY offense preparation service resolved
+[PASS] DEBUG_MODE_READY debug mode service resolved
+[PASS] GRID_READY grid resolved
+[INFO] FAST_PARTY_COMMIT committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; staff=2; actors=Roma:-621604:character:staff:1:01:active=True,Arin:-621672:character:staff:1:02:active=True; diagnostics=prepared-1:name=Roma;go=-621576;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-621644;id=character:staff:1:02;active=False || scan:name=Roma;go=-621576;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-621644;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-621576;id=character:staff:1:01;active=True || retained:name=Arin;go=-621644;id=character:staff:1:02;active=True
+[PASS] RUN_READY owner=Leon
+[PASS] HAULER_READY Roma
+[PASS] REACHABLE_TEST_CELLS count=8; actor=(1, 0)
+[PASS] TEMP_WAREHOUSE_READY QA_Physical_Logistics_Warehouse
+[PASS] TEMP_CRAFT_BENCH_READY QA_Physical_Logistics_Bench
+[PASS] CONSTRUCTION_WOOD_SEEDED item=material:lumber; amount=4; destination=warehouse:building:7897e97aac63481899d831ca3f08f334
+[PASS] CONSTRUCTION_SITE_REGISTERED pos=(3, 0)
+[PASS] CONSTRUCTION_ORDER_CREATED order=work:000001
+[PASS] CONSTRUCTION_WAITS_FOR_MATERIALS status=WaitingForMaterials; destination=construction:99121:3:0
+[PASS] CONSTRUCTION_STOCK_HELD_UNTIL_PICKUP item=material:lumber; quantity=4->4
+[PASS] CONSTRUCTION_REQUEST_NO_LOOSE_PILE stack:29b08e0ca76f408881d6e2503fcb2bb0:material:lumberx2:Stored:dest=warehouse:building:7897e97aac63481899d831ca3f08f334:pos=(0, 0) | stack:d96b3ed420c241f291910f3979271f8f:material:lumberx2:Stored:dest=construction:99121:3:0:pos=(0, 0)
+[PASS] CONSTRUCTION_MATERIAL_RESERVED_IN_STORAGE stack:29b08e0ca76f408881d6e2503fcb2bb0:material:lumberx2:Stored:dest=warehouse:building:7897e97aac63481899d831ca3f08f334:pos=(0, 0) | stack:d96b3ed420c241f291910f3979271f8f:material:lumberx2:Stored:dest=construction:99121:3:0:pos=(0, 0)
+[PASS] AI_HAUL_CAN_START_CONSTRUCTION actor=Roma; pos=(1, 0); phase=/; haul=운반 계획 없음; unload=진행 중; carry=0/15.3/22.95kg ; stacks=stack:29b08e0ca76f408881d6e2503fcb2bb0:material:lumberx2:Stored:dest=warehouse:building:7897e97aac63481899d831ca3f08f334:pos=(0, 0) | stack:d96b3ed420c241f291910f3979271f8f:material:lumberx2:Stored:dest=construction:99121:3:0:pos=(0, 0)
+[PASS] AI_HAUL_COMPLETED elapsed=3.5s
+[PASS] CONSTRUCTION_STOCK_WITHDRAWN_ON_PICKUP item=material:lumber; quantity=4->2
+[PASS] CONSTRUCTION_READY_AFTER_PHYSICAL_DELIVERY status=Ready; delivered=2
+[PASS] CONSTRUCTION_PROJECT_WORKFORCE_READY runtime resolved
+[PASS] CONSTRUCTION_INDUSTRIAL_WORKER_CAP maximum=4
+[PASS] CONSTRUCTION_LIVE_WORKER_SAMPLE workers=3; required>=3; maximum=4
+[PASS] CONSTRUCTION_PROJECT_WORKER_1_JOINED worker=character:staff:1:01
+[PASS] CONSTRUCTION_PROJECT_WORKER_1_RATE authored=1.00 WU/s
+[PASS] CONSTRUCTION_PROJECT_WORKER_2_JOINED worker=character:staff:1:02
+[PASS] CONSTRUCTION_PROJECT_WORKER_2_RATE authored=1.00 WU/s
+[PASS] CONSTRUCTION_PROJECT_WORKER_3_JOINED worker=owner
+[PASS] CONSTRUCTION_PROJECT_WORKER_3_RATE authored=1.00 WU/s
+[PASS] CONSTRUCTION_PROJECT_LIVE_SNAPSHOT active=3; maximum=4; automatic=4; effectiveWorkers=2.60; effectiveRate=2.60
+[PASS] CONSTRUCTION_PROJECT_WORKER_1_PROGRESS multiplier=1.00; completed=False; message=건설 4%
+[PASS] CONSTRUCTION_PROJECT_WORKER_2_PROGRESS multiplier=0.85; completed=False; message=건설 7%
+[PASS] CONSTRUCTION_PROJECT_WORKER_3_PROGRESS multiplier=0.75; completed=False; message=건설 9%
+[PASS] CONSTRUCTION_PROJECT_DIMINISHING_PROGRESS_APPLIED rawWorkers=3; accepted=2.60; expected=2.60
+capturedErrors=0; <none>
+capturedWarnings=0; <none>
+RESULT=PASS; failures=0; <none>

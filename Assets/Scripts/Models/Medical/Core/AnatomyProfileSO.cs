@@ -18,6 +18,8 @@ public sealed class AnatomyProfileSO : ScriptableObject
     [SerializeField] private List<string> speciesIds = new List<string>();
     [SerializeField] private List<AnatomyNodeDefinition> nodes =
         new List<AnatomyNodeDefinition>();
+    [SerializeField] private List<AnatomyFunctionalCapacityNotApplicable> notApplicableCapacities =
+        new List<AnatomyFunctionalCapacityNotApplicable>();
 
     public string ProfileId => string.IsNullOrWhiteSpace(profileId)
         ? name
@@ -30,6 +32,8 @@ public sealed class AnatomyProfileSO : ScriptableObject
         : anatomyFamily.Trim();
     public IReadOnlyList<string> SpeciesIds => speciesIds;
     public IReadOnlyList<AnatomyNodeDefinition> Nodes => nodes;
+    public IReadOnlyList<AnatomyFunctionalCapacityNotApplicable> NotApplicableCapacities =>
+        notApplicableCapacities;
 
 #if UNITY_EDITOR
     public void Configure(
@@ -37,7 +41,8 @@ public sealed class AnatomyProfileSO : ScriptableObject
         string label,
         string family,
         IEnumerable<string> species,
-        IEnumerable<AnatomyNodeDefinition> anatomyNodes)
+        IEnumerable<AnatomyNodeDefinition> anatomyNodes,
+        IEnumerable<AnatomyFunctionalCapacityNotApplicable> authoredNotApplicable = null)
     {
         profileId = id?.Trim() ?? string.Empty;
         displayName = label?.Trim() ?? string.Empty;
@@ -50,6 +55,43 @@ public sealed class AnatomyProfileSO : ScriptableObject
         nodes = (anatomyNodes ?? Array.Empty<AnatomyNodeDefinition>())
             .Where(node => node != null)
             .ToList();
+        if (authoredNotApplicable != null)
+        {
+            notApplicableCapacities = authoredNotApplicable
+                .Where(value => value != null)
+                .ToList();
+        }
+    }
+
+    public void ConfigureNotApplicableCapacities(
+        IEnumerable<AnatomyFunctionalCapacityNotApplicable> values)
+    {
+        notApplicableCapacities = (values
+                ?? Array.Empty<AnatomyFunctionalCapacityNotApplicable>())
+            .Where(value => value != null)
+            .ToList();
     }
 #endif
+}
+
+[Serializable]
+public sealed class AnatomyFunctionalCapacityNotApplicable
+{
+    [SerializeField] private CharacterFunctionalCapacityId capacityId;
+    [SerializeField, TextArea] private string reason = string.Empty;
+
+    public AnatomyFunctionalCapacityNotApplicable()
+    {
+    }
+
+    public AnatomyFunctionalCapacityNotApplicable(
+        CharacterFunctionalCapacityId capacityId,
+        string reason)
+    {
+        this.capacityId = capacityId;
+        this.reason = reason?.Trim() ?? string.Empty;
+    }
+
+    public CharacterFunctionalCapacityId CapacityId => capacityId;
+    public string Reason => reason?.Trim() ?? string.Empty;
 }

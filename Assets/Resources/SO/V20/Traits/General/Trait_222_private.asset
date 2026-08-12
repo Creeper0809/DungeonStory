@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uACFC\uBB35\uD568"
   description: "\uD63C\uC790 \uC26C\uB294 \uC2DC\uAC04\uC744 \uC911\uC2DC\uD558\uACE0
     \uACF5\uAC1C\uC801\uC778 \uC9C8\uBB38\uC744 \uBD80\uB2F4\uC2A4\uB7EC\uC6CC\uD55C\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,47 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 0
+  polarity: 3
+  selectionFamilyId: sociability
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: rest:private
-    utilityDelta: 0.45
-  moodReactions:
-  - triggerTag: room:overcrowded
-    moodDelta: -3
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: social
-    multiplier: 0.8
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:222:effect:0
+    definition: {fileID: 11400000, guid: 8738886ff7b663646976ab00e31cb051, type: 2}
+    value: 0.8
+    condition: {fileID: 0}
+  identityRules:
+  - rid: 7737211921986486467
+  - rid: 7737211921986486468
+  - rid: 7737211921986486469
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486467
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:rest-alone
+        priority: 0
+        behaviorTag: rest:private
+        utilityDelta: 0.75
+    - rid: 7737211921986486468
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:private-rest
+        priority: 0
+        eventId: rest:private
+        moodDelta: 3
+        durationDays: 1
+    - rid: 7737211921986486469
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:public-question
+        priority: 0
+        eventId: social:public-question
+        moodDelta: -3
+        durationDays: 1

@@ -101,6 +101,8 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
         "Assets/Resources/SO/Building/ResearchOverhaul/RF44_정밀_장착대.asset";
     private const string RuneTuningFacilityPath =
         "Assets/Resources/SO/Building/Industrial/I17_룬_조율실.asset";
+    private const string ResonanceTuningSupportFacilityPath =
+        "Assets/Resources/SO/Building/ResearchOverhaul/RF97_공명_조율실.asset";
     private const string LineageArchiveFacilityPath =
         "Assets/Resources/SO/Building/Industrial/I18_계보_기록실.asset";
     private const string WrongFacilityPath =
@@ -133,7 +135,8 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
         "research:equipment:rune-module-tuning",
         "research:equipment:lineage-binding",
         "research:equipment:weapon-patterns",
-        "research:metallurgy:steel"
+        "research:metallurgy:steel",
+        "research:survival:field-rations"
     };
 
     private readonly List<string> report = new();
@@ -373,6 +376,41 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
         installTargetId = target.instanceId;
         lineageSourceId = source.instanceId;
         lineageTargetId = target.instanceId;
+
+        bool appraisalSuppliesReady = physicalItems.SpawnItemAt(
+                "component:material-test-coupon",
+                1,
+                appraisalFacility.centerPos,
+                WorldItemStackState.FacilityBuffer,
+                appraisalDestination,
+                out int couponCount)
+            && couponCount == 1
+            && physicalItems.SpawnUniqueItemAt(
+                DurableToolItemRules.InspectionGauge,
+                appraisalFacility.centerPos,
+                WorldItemStackState.FacilityBuffer,
+                appraisalDestination,
+                out string gaugeStackId)
+            && physicalItems.TrySetInstanceComponent(
+                gaugeStackId,
+                DurableToolItemRules.CreateDurability(
+                    DurableToolItemRules.InspectionGauge,
+                    100f))
+            && physicalItems.SpawnUniqueItemAt(
+                DurableToolItemRules.RuneIdentificationLens,
+                appraisalFacility.centerPos,
+                WorldItemStackState.FacilityBuffer,
+                appraisalDestination,
+                out string lensStackId)
+            && physicalItems.TrySetInstanceComponent(
+                lensStackId,
+                DurableToolItemRules.CreateDurability(
+                    DurableToolItemRules.RuneIdentificationLens,
+                    100f));
+        Check(
+            appraisalSuppliesReady,
+            "EQUIPMENT_APPRAISAL_SUPPLIES",
+            $"coupon={couponCount}; ready={appraisalSuppliesReady}");
 
         bool historySeeded = equipment.TryUpdateEvolutionState(
             source.instanceId,
@@ -801,6 +839,11 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
             "rune-tuning",
             RuneTuningFacilityPath,
             new Vector2Int(9006, 9000));
+        CreateEquipmentFacility(
+            scope,
+            "resonance-support",
+            ResonanceTuningSupportFacilityPath,
+            new Vector2Int(9007, 9000));
         CreateEquipmentFacility(
             scope,
             "lineage",

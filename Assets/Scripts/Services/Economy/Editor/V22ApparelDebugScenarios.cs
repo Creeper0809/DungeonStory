@@ -204,7 +204,7 @@ public static class V22ApparelDebugScenarios
 
     private static void ValidateSaveBoundary()
     {
-        Require(DungeonGameSaveData.CurrentVersion == 23,
+        Require(DungeonGameSaveData.CurrentVersion == 24,
             "The full-world save generation must be V23.");
         Require(DungeonCharacterEnvironmentSaveData.CurrentVersion == 5,
             "The character environment section must include apparel work orders.");

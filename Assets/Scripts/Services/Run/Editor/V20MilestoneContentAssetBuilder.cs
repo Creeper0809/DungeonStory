@@ -26,12 +26,12 @@ public static class V20MilestoneContentAssetBuilder
     private static readonly Spec[] Specs =
     {
         S("ending:truth-revealed", "진실의 폭로", "진실 코어와 원정 기록을 결합해 던전의 기원을 세계에 증명한다.", "building:landmark:truth-observatory", "진실 관측소", RunMilestoneTier.Legacy, 9201, V20WorldMetricKind.DefeatedHumanBranches, 1, 0, "story:truth-core-secured", B(("material:stone-block",24),("material:steel-ingot",12),("component:precision-parts",6),("component:prototype-package",4))),
-        S("ending:monster-accord", "괴물 대협약", "여섯 던전 세력의 이해관계를 조정해 상호 방위 협약을 성립시킨다.", "building:landmark:accord-hall", "대협약 회당", RunMilestoneTier.Legacy, 9202, V20WorldMetricKind.Population, 40, 0, "faction:all-six-allied", B(("material:treated-lumber",24),("material:stone-block",18),("material:steel-ingot",8),("material:paper",12))),
+        S("ending:monster-accord", "괴물 대협약", "여섯 던전 세력의 이해관계를 조정해 상호 방위 협약을 성립시킨다.", "building:landmark:accord-hall", "대협약 회당", RunMilestoneTier.Legacy, 9202, V20WorldMetricKind.CultureAcceptance, 80, 0, "faction:all-six-allied", B(("material:treated-lumber",24),("material:stone-block",18),("material:steel-ingot",8),("material:paper",12))),
         S("ending:surface-hegemony", "지상 패권", "인간 다섯 전쟁 계통의 핵심 전력을 무너뜨리고 지상 진입로를 장악한다.", "building:landmark:surface-gate", "지상 패권문", RunMilestoneTier.Legacy, 9203, V20WorldMetricKind.DefeatedHumanBranches, 5, 0, "offense:surface-command-broken", B(("material:stone-block",30),("material:steel-ingot",16),("material:blacksteel-ingot",6),("component:machine-parts",6))),
-        S("ending:dungeon-sovereignty", "던전 주권국", "인구·경제·생산·방어 체계를 갖춘 독립 국가로서 던전을 선포한다.", "building:landmark:sovereign-citadel", "주권 성채", RunMilestoneTier.Legacy, 9204, V20WorldMetricKind.DefenseReadiness, 80, 0, "economy:sovereign-ready", B(("material:stone-block",36),("material:steel-ingot",18),("component:machine-parts",8),("component:prototype-package",4))),
+        S("ending:dungeon-sovereignty", "던전 주권국", "생활·경제·생산·방어 체계를 갖춘 독립 국가로서 던전을 선포한다.", "building:landmark:sovereign-citadel", "주권 성채", RunMilestoneTier.Legacy, 9204, V20WorldMetricKind.DefenseReadiness, 80, 0, "economy:sovereign-ready", B(("material:stone-block",36),("material:steel-ingot",18),("component:machine-parts",8),("component:prototype-package",4))),
         S("ending:sealed-paradise", "봉인된 낙원", "외부 조달 없이 주민과 생산 시설을 장기간 유지하는 폐쇄 생태계를 완성한다.", "building:landmark:sealed-garden", "봉인 생태정원", RunMilestoneTier.Legacy, 9205, V20WorldMetricKind.SelfSufficiencyDays, 120, 7255, "ecology:closed-cycle", B(("material:treated-lumber",30),("material:stone-block",18),("resource:clean-water",24),("component:machine-parts",6))),
         S("ending:eternal-lineage", "영원한 계보", "세 세대가 직업과 장비 계보를 이어 던전의 살아 있는 역사를 만든다.", "building:landmark:lineage-vault", "영원 계보전", RunMilestoneTier.Grand, 9206, V20WorldMetricKind.CompletedGenerations, 3, 7240, "lineage:three-generations", B(("material:stone-block",30),("material:steel-ingot",16),("component:precision-parts",8),("component:rune-conductor",4))),
-        S("ending:timeless-sanctuary", "시간 없는 성역", "실제 인구가 거주하는 시간 고정망을 장기 가동해 노화 없는 구역을 유지한다.", "building:landmark:temporal-sanctum", "시간 고정 성소", RunMilestoneTier.Grand, 9207, V20WorldMetricKind.Population, 60, 7271, "temporal:population-sustained", B(("material:stone-block",40),("material:steel-ingot",20),("component:precision-parts",10),("component:rune-conductor",10),("resource:mana-crystal",12))),
+        S("ending:timeless-sanctuary", "시간 없는 성역", "높은 인당 순생산성과 필수 유지 예비력을 갖춘 시간 고정망을 120일간 유지한다.", "building:landmark:temporal-sanctum", "시간 고정 성소", RunMilestoneTier.Grand, 9207, V20WorldMetricKind.ProductivityCoverageDays, 120, 7271, "temporal:productivity-sustained", B(("material:stone-block",40),("material:steel-ingot",20),("component:precision-parts",10),("component:rune-conductor",10),("resource:mana-crystal",12))),
         S("ending:arcane-ascension", "비전 승천", "룬 전력망과 비전 생산을 통합해 물질과 마력의 경계를 산업 체계로 바꾼다.", "building:landmark:arcane-spire", "비전 승천탑", RunMilestoneTier.Grand, 9208, V20WorldMetricKind.RunePower, 100, 7238, "arcane:grid-integrated", B(("material:stone-block",36),("material:steel-ingot",18),("component:rune-conductor",12),("resource:mana-crystal",16),("component:prototype-package",6))),
         S("ending:steel-apotheosis", "강철 신격화", "자동 생산·자가 정비·통합 방어가 사람의 개입 없이 순환하는 산업 신체를 완성한다.", "building:landmark:steel-colossus", "강철 신격상", RunMilestoneTier.Grand, 9209, V20WorldMetricKind.ProductionAutomation, 100, 7244, "industry:self-maintaining", B(("material:stone-block",32),("material:steel-ingot",30),("material:blacksteel-ingot",12),("component:machine-parts",12),("component:precision-parts",8)))
     };
@@ -82,12 +82,31 @@ public static class V20MilestoneContentAssetBuilder
         value.ConfigureMetadata(spec.Id, spec.Name, spec.Description, 1, "V20 hand-authored non-terminal run milestone.");
         value.tier = spec.Tier;
         value.landmarkBuildingId = spec.LandmarkId;
+        List<V20WorldMetricRequirement> worldMetrics = new()
+        {
+            new V20WorldMetricRequirement
+            {
+                kind = spec.Metric,
+                minimumValue = spec.Target
+            }
+        };
+        if (string.Equals(
+                spec.Id,
+                "ending:monster-accord",
+                StringComparison.Ordinal))
+        {
+            worldMetrics.Add(new V20WorldMetricRequirement
+            {
+                kind = V20WorldMetricKind.PerCapitaServiceIndex,
+                minimumValue = 1.25f
+            });
+        }
         value.completionRequirements = new V20ContentRequirementSet
         {
             research = spec.ResearchId > 0
                 ? new List<V20ResearchRequirement> { new() { researchNumericId = spec.ResearchId } }
                 : new List<V20ResearchRequirement>(),
-            worldMetrics = new List<V20WorldMetricRequirement> { new() { kind = spec.Metric, minimumValue = spec.Target } },
+            worldMetrics = worldMetrics,
             requiredFlags = new List<string> { spec.RequiredFlag }
         };
         value.permanentRewards = new List<V20ContentEffect>

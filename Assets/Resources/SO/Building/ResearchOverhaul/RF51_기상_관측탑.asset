@@ -34,18 +34,33 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 3
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: proficiency:scholarship
+    secondaryProficiencyId: proficiency:fieldwork
+    primaryWeight: 0.8
+    combinationMode: 1
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211838078124328
-    - rid: 7737211838078124329
-    - rid: 7737211838078124330
-    - rid: 7737211838078124331
-    - rid: 7737211838078124332
-    - rid: 7737211838078124333
-    - rid: 7737211838078124334
-    - rid: 7737211838078124335
+    - rid: 7737211905658585895
+    - rid: 7737211905658585896
+    - rid: 7737211905658585897
+    - rid: 7737211905658585898
+    - rid: 7737211905658585899
+    - rid: 7737211905658585900
+    - rid: 7737211905658585901
+    - rid: 7737211905658585902
   width: 1
   height: 1
   layer: 1
@@ -61,12 +76,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124328
+    - rid: 7737211905658585895
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF51
-    - rid: 7737211838078124329
+    - rid: 7737211905658585896
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -74,13 +89,13 @@ MonoBehaviour:
         - research-overhaul
         - research:climate:weather-observation
         - workstation:v19:weather-observation
-    - rid: 7737211838078124330
+    - rid: 7737211905658585897
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v19:weather-observation
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211838078124331
+    - rid: 7737211905658585898
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -88,16 +103,16 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211838078124332
+    - rid: 7737211905658585899
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
-        constructionCost: 280
-        maintenance: 5
+        constructionCost: 240
+        maintenance: 2
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211838078124333
+    - rid: 7737211905658585900
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -108,19 +123,30 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 17
           disabledWhenDamaged: 1
-    - rid: 7737211838078124334
+    - rid: 7737211905658585901
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211838078124335
+    - rid: 7737211905658585902
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 240
-        repairWorkRequired: 24
+        constructionWorkRequired: 132
+        repairWorkRequired: 19
         cleanWorkRequired: 8
         researchWorkRequired: 6
         operateWorkRequired: 12
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
         - itemId: material:treated-lumber
           amount: 8

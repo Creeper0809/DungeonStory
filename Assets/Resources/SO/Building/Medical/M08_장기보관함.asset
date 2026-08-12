@@ -31,19 +31,39 @@ MonoBehaviour:
   objectName: "\uC7A5\uAE30 \uBCF4\uAD00\uD568"
   sprite: {fileID: 21300000, guid: a82f0756fe0caeb4680a2db180e15d88, type: 3}
   icon: {fileID: 21300000, guid: a82f0756fe0caeb4680a2db180e15d88, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  deprecatedCompatibilityAsset: 0
+  useClassification: 0
+  researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730889015579
-    - rid: 7737211730889015580
-    - rid: 7737211730889015581
-    - rid: 7737211730889015582
-    - rid: 7737211730889015583
-    - rid: 7737211730889015584
-    - rid: 7737211730889015585
-    - rid: 7737211730889015586
-    - rid: 7737211730889015587
-    - rid: 7737211730889015588
-    - rid: 7737211730889015589
+    - rid: 7737211857806557786
+    - rid: 7737211857806557787
+    - rid: 7737211857806557788
+    - rid: 7737211857806557790
+    - rid: 7737211857806557791
+    - rid: 7737211857806557792
+    - rid: 7737211857806557793
+    - rid: 7737211857806557794
+    - rid: 7737211857806557795
+    - rid: 7737211857806557796
+    - rid: 7737211905666711811
   width: 1
   height: 1
   layer: 1
@@ -59,21 +79,21 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730889015579
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211857806557786
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: M08
-    - rid: 7737211730889015580
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211857806557787
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - medical
         - surgery
         - m08
-    - rid: 7737211730889015581
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211857806557788
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
@@ -81,28 +101,17 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211730889015582
-      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingFacilityAbility
-        settings:
-          roles: 4096
-          capacity: 1
-          useDuration: 1.5
-          requiredWorkers: 1
-          supportedWorkTypes: 66048
-          disabledWhenDamaged: 1
-    - rid: 7737211730889015583
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211857806557790
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211730889015584
-      type: {class: BuildingInternalStockAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211857806557791
+      type: {class: BuildingInternalStockAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 8
         restockRequestThreshold: 2
-    - rid: 7737211730889015585
+    - rid: 7737211857806557792
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -111,10 +120,21 @@ MonoBehaviour:
         cleanWorkRequired: 8
         researchWorkRequired: 6
         operateWorkRequired: 12
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
         - itemId: material:steel-ingot
           amount: 7
-    - rid: 7737211730889015586
+    - rid: 7737211857806557793
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -126,25 +146,36 @@ MonoBehaviour:
           - m08
           scores: []
           metrics: []
-    - rid: 7737211730889015587
-      type: {class: BuildingStorageAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211857806557794
+      type: {class: BuildingStorageAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingStorageAbility
         category: 8
         capacity: 8
         allCategories: 0
-    - rid: 7737211730889015588
-      type: {class: BuildingFuelConsumerAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211857806557795
+      type: {class: BuildingFuelConsumerAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingFuelConsumerAbility
         fuelPerRefuel: 1
         workSeconds: 1
         warmth: 0
         lightSafety: 2
-    - rid: 7737211730889015589
-      type: {class: BuildingOrganStorageAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211857806557796
+      type: {class: BuildingOrganStorageAbility, ns: , asm: DungeonStory.Medical}
       data:
         abilityId: BuildingOrganStorageAbility
         preservationDays: 15
         fuelPerDay: 1
         capacity: 8
+    - rid: 7737211905666711811
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 4096
+          capacity: 1
+          useDuration: 1.5
+          requiredWorkers: 1
+          supportedWorkTypes: 66048
+          disabledWhenDamaged: 1

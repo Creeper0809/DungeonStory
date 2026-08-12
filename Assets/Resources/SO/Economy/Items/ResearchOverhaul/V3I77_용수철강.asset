@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uC6A9\uC218\uCCA0\uAC15"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC6A9\uC218\uCCA0\uAC15."
   stockCategory: 1
-  unitWeight: 2.53
+  unitWeight: 2.15
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 164
+  unitPrice: 87
   features:
-  - rid: 7737211838078124775
-  - rid: 7737211838078124776
+  - rid: 7737211905658585491
+  - rid: 7737211905658585492
+  - rid: 7737211905660420613
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124775
+    - rid: 7737211905658585491
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:metallurgy:advanced
-    - rid: 7737211838078124776
+    - rid: 7737211905658585492
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 512
         sharedIntermediate: 1
+    - rid: 7737211905660420613
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.60221887

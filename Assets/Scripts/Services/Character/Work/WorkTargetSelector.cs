@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -146,26 +147,39 @@ public sealed class WorkTargetSelector
             bool forced = work.PriorityWorkType != FacilityWorkType.None;
             bool canUsePriorityForRequest = requestedWorkType == FacilityWorkType.None
                 || work.PriorityWorkType == requestedWorkType;
-            if (canUsePriorityForRequest
-                && TryEvaluateWorkTarget(
-                    work.PriorityWorkTarget,
-                    searchResult,
-                    work.PriorityWorkType,
-                    forced,
-                    out WorkTargetCandidate priorityCandidate))
+            if (canUsePriorityForRequest)
             {
-                work.AssignWork(work.PriorityWorkTarget, priorityCandidate.WorkTypeId);
-                return true;
-            }
+                if (TryEvaluateWorkTarget(
+                        work.PriorityWorkTarget,
+                        searchResult,
+                        work.PriorityWorkType,
+                        forced,
+                        out WorkTargetCandidate priorityCandidate))
+                {
+                    work.AssignWork(
+                        work.PriorityWorkTarget,
+                        priorityCandidate.WorkTypeId);
+                    return true;
+                }
 
-            work.WorkerActor?.AddActivity(CharacterActivityEvent.Work(
-                work.PriorityWorkType,
-                CharacterActivityOutcomes.Cancelled,
-                "우선 작업 취소: 대상 사용 불가",
-                work.PriorityWorkTarget,
-                reasonCode: "target-unavailable",
-                bubbleEligible: true));
-            work.ClearPriorityWorkTarget();
+                if (ShouldRetainPriorityTarget(priorityCandidate))
+                {
+                    // The direct order remains authoritative while its target is
+                    // temporarily unable to accept this worker. Do not replace it
+                    // with unrelated autonomous work or erase the player's order.
+                    work.AssignWork(null, FacilityWorkType.None);
+                    return false;
+                }
+
+                work.WorkerActor?.AddActivity(CharacterActivityEvent.Work(
+                    work.PriorityWorkType,
+                    CharacterActivityOutcomes.Cancelled,
+                    "우선 작업 취소: 대상 사용 불가",
+                    work.PriorityWorkTarget,
+                    reasonCode: "target-unavailable",
+                    bubbleEligible: true));
+                work.ClearPriorityWorkTarget();
+            }
         }
 
         if (work.assignedShop != null
@@ -778,7 +792,10 @@ public sealed class WorkTargetSelector
         float survivalPressure;
         using (CandidateActorStatsMarker.Auto())
         {
-            ActorWorkScore actorScore = GetActorWorkScore(actor, workTypeId);
+            ActorWorkScore actorScore = GetActorWorkScore(
+                actor,
+                workTypeId,
+                building);
             preferenceScore = actorScore.Preference;
             speedScore = actorScore.Speed;
             survivalPressure = actor != null
@@ -869,6 +886,14 @@ public sealed class WorkTargetSelector
             - weatherPenalty
             - failurePenalty
             - movementPenalty;
+        score += CharacterSpeciesWorkAptitudeRules.GetAutonomousUtilityAdjustment(
+            actor,
+            workTypeId);
+        score *= GetIdentityTargetMultiplier(
+            actor,
+            building,
+            workTypeId,
+            searchResult);
 
         // Candidate scans stay numeric. The selected candidate is formatted once
         // by RecordBestWorkBreakdown instead of allocating details per facility.
@@ -914,6 +939,87 @@ public sealed class WorkTargetSelector
             string.Empty,
             AIActionFailureKind.None,
             breakdownSummary);
+    }
+
+    private float GetIdentityTargetMultiplier(
+        CharacterActor actor,
+        BuildableObject building,
+        WorkTypeId workTypeId,
+        GridPathSearchResult searchResult)
+    {
+        CharacterRuntimeProfile profile = actor?.Progression?
+            .GetEffectiveRuntimeProfile();
+        if (profile == null || building == null || !workTypeId.IsValid)
+            return 1f;
+
+        HashSet<string> tags = new(StringComparer.Ordinal);
+        FacilityRole roles = building.Facility?.roles ?? FacilityRole.None;
+        if (workTypeId == BuiltInWorkTypeIds.Guard
+            && (roles & FacilityRole.Training) != 0)
+            tags.Add("work:combat-training");
+
+        if (workTypeId == BuiltInWorkTypeIds.Research)
+            tags.Add("work:new-process");
+
+        if (workTypeId == BuiltInWorkTypeIds.Craft
+            && building.BuildingData?
+                .GetAbility<BuildingEquipmentCraftingAbility>() != null)
+        {
+            tags.Add("work:inspect");
+            tags.Add("work:quality-first");
+            if (work.CandidateUsesSubstituteMaterial(building))
+            {
+                tags.Add("work:prototype");
+                tags.Add("work:new-process");
+            }
+        }
+
+        if (building.BuildingData?
+                .GetAbility<BuildingTemperatureAbility>() != null)
+            tags.Add("room:temperature-controlled");
+
+        if (work.IsRecentRetryCandidate(workTypeId))
+            tags.Add("work:prevent-repeat-failure");
+
+        if (building.BuildingData?.ResearchFacilityCommand
+            == ResearchFacilityCommandKind.MentorAcademy)
+            tags.Add("work:mentoring");
+
+        if (workTypeId == BuiltInWorkTypeIds.Restock
+            && work.ResourceStockPolicies?.GetEmergencyReadiness()
+                is EmergencyStockReadiness readiness
+            && readiness.Configured
+            && !readiness.Ready)
+            tags.Add("work:emergency-check");
+
+        if (targetEnvironment.TryAssessEstimate(
+                building,
+                workTypeId,
+                out WorkEnvironmentAssessment assessment)
+            && (assessment.Projection.Cold.RouteHighestRate > 0f
+                || assessment.Projection.Cold.WorkEnd
+                    > assessment.Projection.Cold.Current + 0.01f))
+            tags.Add("work:cold-zone");
+
+        if (workTypeId == BuiltInWorkTypeIds.Rescue
+            && IsRoughTerrainRoute(building, searchResult))
+            tags.Add("work:rough-terrain-rescue");
+
+        return profile.GetBehaviorUtilityMultiplier(tags);
+    }
+
+    private bool IsRoughTerrainRoute(
+        BuildableObject building,
+        GridPathSearchResult searchResult)
+    {
+        if (building == null || searchResult == null)
+            return false;
+        Grid grid = work.WorkGridResolver.ResolveActiveGrid(work, null);
+        if (grid == null)
+            return false;
+        return searchResult.GetMovePathTo(building.centerPos)
+            .Any(step => grid.GetGridCell(step.To)?.TerrainType
+                != GridCellTerrainType.Dry);
     }
 
     private void RecordBestWorkBreakdown(WorkTargetCandidate candidate)
@@ -962,6 +1068,21 @@ public sealed class WorkTargetSelector
         };
     }
 
+    private static bool ShouldRetainPriorityTarget(
+        WorkTargetCandidate candidate)
+    {
+        return candidate.FailureKind switch
+        {
+            AIActionFailureKind.Cooldown => true,
+            AIActionFailureKind.PathSearchDeferred => true,
+            AIActionFailureKind.CannotStart => true,
+            AIActionFailureKind.DestinationOccupied => true,
+            AIActionFailureKind.NoPath => true,
+            AIActionFailureKind.Unknown => true,
+            _ => false
+        };
+    }
+
     private CharacterAiDecisionContext GetDecisionContext(CharacterActor actor)
     {
         int frame = work.GameClock.FrameCount;
@@ -978,7 +1099,8 @@ public sealed class WorkTargetSelector
 
     private ActorWorkScore GetActorWorkScore(
         CharacterActor actor,
-        WorkTypeId workTypeId)
+        WorkTypeId workTypeId,
+        BuildableObject target)
     {
         if (actor == null)
         {
@@ -992,17 +1114,25 @@ public sealed class WorkTargetSelector
             actorWorkScoreCacheFrame = frame;
         }
 
-        if (actorWorkScoreCache.TryGetValue(
+        bool facilitySpecific =
+            workTypeId == BuiltInWorkTypeIds.Operate;
+        if (!facilitySpecific
+            && actorWorkScoreCache.TryGetValue(
                 workTypeId,
                 out ActorWorkScore cached))
         {
             return cached;
         }
 
+        float speedScore = workTypeId == BuiltInWorkTypeIds.Rest
+            ? 0.5f
+            : Mathf.Clamp01(
+                actor.GetWorkSpeedMultiplier(workTypeId, target) / 2f);
         ActorWorkScore score = new ActorWorkScore(
             actor.GetWorkPreferenceScore(workTypeId),
-            Mathf.Clamp01(actor.GetWorkSpeedMultiplier(workTypeId) / 2f));
-        actorWorkScoreCache[workTypeId] = score;
+            speedScore);
+        if (!facilitySpecific)
+            actorWorkScoreCache[workTypeId] = score;
         return score;
     }
 

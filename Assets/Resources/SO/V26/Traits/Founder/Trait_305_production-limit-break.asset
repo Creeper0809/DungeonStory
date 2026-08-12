@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d73e94ec113318588b25eed8f9f9ee0, type: 3}
+  m_Name: Trait_305_production-limit-break
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterTraitSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 305
+  traitName: "\uD55C\uACC4 \uB3CC\uD30C"
+  description: "\uAE34\uAE09 \uC0DD\uC0B0\uC5D0\uC11C \uC0AC\uACE0\uC640 \uD0C8\uC9C4\uC744
+    \uAC10\uC218\uD558\uACE0 \uD55C\uACC4\uB97C \uB118\uB294\uB2E4."
+  modifiers:
+    preferredFacilityRoles: 0
+    dislikedFacilityRoles: 0
+    preferredWorkTypes: 0
+    dislikedWorkTypes: 0
+  combatAbilities:
+    abilities: []
+  environmentalProtection:
+    comfortMinimumOffset: 0
+    comfortMaximumOffset: 0
+    safeMinimumOffset: 0
+    safeMaximumOffset: 0
+    coldExposureMultiplier: 1
+    heatExposureMultiplier: 1
+  selectionRarity: 3
+  polarity: 4
+  selectionFamilyId: extreme:production
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
+  incompatibilityGroups: []
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:305:effect:0
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 1.5
+    condition: {fileID: 11400000, guid: 3385b4492d744e0489ef3fcb0ca0db44, type: 2}
+  - bindingId: trait:305:effect:1
+    definition: {fileID: 11400000, guid: ab46736f68b07c442bc3c27bbc87e7cc, type: 2}
+    value: 1.5
+    condition: {fileID: 11400000, guid: 3385b4492d744e0489ef3fcb0ca0db44, type: 2}
+  - bindingId: trait:305:effect:2
+    definition: {fileID: 11400000, guid: 0efffa6163b1c1d4ab0721b231ffa8ad, type: 2}
+    value: 2
+    condition: {fileID: 11400000, guid: 3385b4492d744e0489ef3fcb0ca0db44, type: 2}
+  - bindingId: trait:305:effect:3
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 0.65
+    condition: {fileID: 11400000, guid: a67ea573f4488d949a6a89fd00cfda58, type: 2}
+  identityRules:
+  - rid: 7737211921986486477
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211921986486477
+      type: {class: ProductionLimitBreakRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: extreme:production-limit-break
+        priority: 100
+        aftermathDays: 1

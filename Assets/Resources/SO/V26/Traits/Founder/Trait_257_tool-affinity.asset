@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d73e94ec113318588b25eed8f9f9ee0, type: 3}
+  m_Name: Trait_257_tool-affinity
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterTraitSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 257
+  traitName: "\uACF5\uAD6C \uCE5C\uD654"
+  description: "\uACF5\uAD6C\uC640 \uAD6C\uC870\uB294 \uC798 \uB2E4\uB8E8\uC9C0\uB9CC
+    \uC758\uB8CC \uB3C4\uAD6C\uC5D0\uB294 \uB0AF\uC124\uB2E4."
+  modifiers:
+    preferredFacilityRoles: 0
+    dislikedFacilityRoles: 0
+    preferredWorkTypes: 0
+    dislikedWorkTypes: 0
+  combatAbilities:
+    abilities: []
+  environmentalProtection:
+    comfortMinimumOffset: 0
+    comfortMaximumOffset: 0
+    safeMinimumOffset: 0
+    safeMaximumOffset: 0
+    coldExposureMultiplier: 1
+    heatExposureMultiplier: 1
+  selectionRarity: 0
+  polarity: 1
+  selectionFamilyId: aptitude-tradeoff
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
+  incompatibilityGroups: []
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:257:effect:0
+    definition: {fileID: 11400000, guid: 9de64f9d1ea803d46a24bc8419d6fa59, type: 2}
+    value: 15
+    condition: {fileID: 0}
+  - bindingId: trait:257:effect:1
+    definition: {fileID: 11400000, guid: f6f85a33238adf84c9342e3e696c3d06, type: 2}
+    value: -10
+    condition: {fileID: 0}
+  identityRules: []
+  references:
+    version: 2
+    RefIds: []

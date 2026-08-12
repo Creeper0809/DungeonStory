@@ -60,11 +60,11 @@ public sealed class WasteProcessingInventoryPortAdapter :
         StackId = (ItemStackId)source.StackId,
         ItemId = source.ItemId,
         Quantity = source.Quantity,
+        ReservedQuantity = source.ReservedQuantity,
         State = source.State,
         Position = source.Position,
         DestinationId = source.DestinationId,
         Forbidden = source.Forbidden,
-        IsReserved = source.IsReserved,
         WasteOrigin = source.WasteOrigin,
         Contamination = source.Contamination
     };

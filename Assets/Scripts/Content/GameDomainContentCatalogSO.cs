@@ -247,8 +247,9 @@ public sealed class AuthoredStockCategoryRecord
     public string shortName = string.Empty;
     public int sortOrder;
     public float seedWeight;
+    public string deliveryItemId = string.Empty;
     public int dailyBaseAmount;
-    public int dailyUnitCost;
+    public float dailyUnitCost;
     public int dailyGrowthDivisor = 1;
 }
 

@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uC790\uADF9 \uCD94\uAD6C\uC790"
   description: "\uC704\uD5D8\uD55C \uC6D0\uC815\uACFC \uC2E4\uD5D8\uC744 \uC120\uD638\uD558\uBA70
     \uD3C9\uC628\uD55C \uAD50\uB300\uC5D0 \uC2EB\uC99D\uB0B8\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1.08
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,46 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 0
+  polarity: 1
+  selectionFamilyId: risk
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: danger:volunteer
-    utilityDelta: 0.5
-  moodReactions:
-  - triggerTag: work:routine
-    moodDelta: -2
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: expedition
-    multiplier: 1.45
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:221:effect:0
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 1.08
+    condition: {fileID: 11400000, guid: 662653dcbfd1f3141874e01a19bd7b66, type: 2}
+  - bindingId: trait:221:effect:1
+    definition: {fileID: 11400000, guid: ab46736f68b07c442bc3c27bbc87e7cc, type: 2}
+    value: 1.08
+    condition: {fileID: 0}
+  identityRules:
+  - rid: 7737211921986486527
+  - rid: 7737211921986486528
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486527
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:seek-danger
+        priority: 0
+        behaviorTag: work:dangerous
+        utilityDelta: 0.75
+    - rid: 7737211921986486528
+      type: {class: PersistentNeedRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: need:stimulation
+        priority: 0
+        needId: need:stimulation
+        satisfiedEventId: danger:success
+        deprivedEventId: work:repetitive-three-days
+        deprivationDays: 3
+        deprivedMoodDelta: -2
+        satisfiedMoodDelta: 4
+        moodDurationDays: 2

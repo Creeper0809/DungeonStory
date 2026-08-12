@@ -17,7 +17,11 @@ public sealed class CharacterCombatCommandRuntime :
     private readonly ICombatCoverQuery coverQuery;
     private readonly ICombatAffiliationService affiliation;
     private readonly ICharacterBodyHealthQuery bodyHealth;
+    private readonly ICharacterManaQuery mana;
+    private readonly ICharacterManaCommand manaCommands;
     private readonly ICombatAmmoResupplyRuntime ammoResupply;
+    private readonly ExtremeTraitRuntime extremeTraits;
+    private readonly ICharacterPerformanceQuery performance;
     private readonly IDefenseTacticalCoordinator tacticalCoordinator;
     private readonly IGridPathSearchBroker pathSearchBroker;
     private readonly IGameClock gameClock;
@@ -75,7 +79,11 @@ public sealed class CharacterCombatCommandRuntime :
         coverQuery = combat.CoverQuery;
         affiliation = combat.Affiliation;
         bodyHealth = combat.BodyHealth;
+        mana = combat.Mana;
+        manaCommands = combat.ManaCommands;
         ammoResupply = combat.AmmoResupply;
+        extremeTraits = combat.ExtremeTraits;
+        performance = combat.Performance;
         tacticalCoordinator = world.TacticalCoordinator;
         pathSearchBroker = world.PathSearchBroker;
         gameClock = world.GameClock;
@@ -711,6 +719,20 @@ public sealed class CharacterCombatCommandRuntime :
                 BlockCommand(command, tileSight.FailureReason);
                 return;
             }
+            float tileManaCost = CharacterArcaneWeaponRules.GetManaCost(
+                weapon.DefinitionId);
+            if (tileManaCost > 0f
+                && !mana.CanSpendMana(actor, tileManaCost, out string tileManaFailure))
+            {
+                BlockCommand(command, tileManaFailure);
+                return;
+            }
+            if (tileManaCost > 0f
+                && !manaCommands.TrySpendMana(actor, tileManaCost, out tileManaFailure))
+            {
+                BlockCommand(command, tileManaFailure);
+                return;
+            }
 
             CombatCommandProjectileLauncher.Launch(
                 actor.transform.position,
@@ -724,7 +746,7 @@ public sealed class CharacterCombatCommandRuntime :
                     weapon,
                     profile?.fireMode ?? CombatFireMode.Aimed));
             command.attackCooldownRemaining = resolution.CalculateAttackInterval(
-                CombatRuntimeStatFactory.Create(actor, bodyHealth.GetSnapshot(actor)),
+                CreateCombatStats(actor, bodyHealth.GetSnapshot(actor), command),
                 weapon,
                 profile?.fireMode ?? CombatFireMode.Aimed);
             command.status = "지정 칸 사격";
@@ -766,12 +788,25 @@ public sealed class CharacterCombatCommandRuntime :
         CharacterBodyHealthSnapshot defenderBody = impactTarget.IsCharacter
             ? bodyHealth.GetSnapshot(impactTarget.Character)
             : default;
-        ConsumePoweredAttack(weapon);
+        float manaCost = CharacterArcaneWeaponRules.GetManaCost(
+            weapon.DefinitionId);
+        if (manaCost > 0f
+            && !mana.CanSpendMana(actor, manaCost, out string manaFailure))
+        {
+            BlockCommand(command, manaFailure);
+            return;
+        }
+        if (manaCost > 0f
+            && !manaCommands.TrySpendMana(actor, manaCost, out manaFailure))
+        {
+            BlockCommand(command, manaFailure);
+            return;
+        }
         CombatAttackResult result = resolution.Resolve(new CombatAttackRequest(
             command.commandId + ":" + command.revision++,
             GetId(actor),
             impactTarget.Id,
-            CombatRuntimeStatFactory.Create(actor, attackerBody),
+            CreateCombatStats(actor, attackerBody, command),
             defenderStats,
             weapon,
             CharacterCombatCommandLifecyclePolicy.Manhattan(
@@ -795,9 +830,12 @@ public sealed class CharacterCombatCommandRuntime :
                 : default));
         if (!result.Executed)
         {
+            if (manaCost > 0f)
+                manaCommands.RefundFailedManaSpend(actor, manaCost);
             BlockCommand(command, result.FailureReason);
             return;
         }
+        ConsumePoweredAttack(weapon);
         ConsumePoweredDefense(impactTarget, result);
 
         CombatCommandProjectileLauncher.Launch(
@@ -824,7 +862,7 @@ public sealed class CharacterCombatCommandRuntime :
             weapon.Verb?.damageType ?? CombatDamageType.Pierce);
         resultApplier.ApplyArmorDurabilityDamage(result);
         command.attackCooldownRemaining = resolution.CalculateAttackInterval(
-            CombatRuntimeStatFactory.Create(actor, attackerBody),
+            CreateCombatStats(actor, attackerBody, command),
             weapon,
             mode);
         command.state = CharacterCombatCommandState.Executing;
@@ -852,12 +890,25 @@ public sealed class CharacterCombatCommandRuntime :
         CharacterBodyHealthSnapshot defenderBody = target.IsCharacter
             ? bodyHealth.GetSnapshot(target.Character)
             : default;
-        ConsumePoweredAttack(weapon);
+        float manaCost = CharacterArcaneWeaponRules.GetManaCost(
+            weapon.DefinitionId);
+        if (manaCost > 0f
+            && !mana.CanSpendMana(actor, manaCost, out string manaFailure))
+        {
+            BlockCommand(command, manaFailure);
+            return;
+        }
+        if (manaCost > 0f
+            && !manaCommands.TrySpendMana(actor, manaCost, out manaFailure))
+        {
+            BlockCommand(command, manaFailure);
+            return;
+        }
         CombatAttackResult result = resolution.Resolve(new CombatAttackRequest(
             command.commandId + ":" + command.revision++,
             GetId(actor),
             target.Id,
-            CombatRuntimeStatFactory.Create(actor, attackerBody),
+            CreateCombatStats(actor, attackerBody, command),
             participants.GetCombatStats(target),
             weapon,
             1,
@@ -876,9 +927,12 @@ public sealed class CharacterCombatCommandRuntime :
                 : default));
         if (!result.Executed)
         {
+            if (manaCost > 0f)
+                manaCommands.RefundFailedManaSpend(actor, manaCost);
             BlockCommand(command, result.FailureReason);
             return;
         }
+        ConsumePoweredAttack(weapon);
         ConsumePoweredDefense(target, result);
 
         Vector3 targetWorld = target.IsCharacter
@@ -893,7 +947,7 @@ public sealed class CharacterCombatCommandRuntime :
             weapon.Verb?.damageType ?? CombatDamageType.Slash);
         resultApplier.ApplyArmorDurabilityDamage(result);
         command.attackCooldownRemaining = resolution.CalculateAttackInterval(
-            CombatRuntimeStatFactory.Create(actor, attackerBody),
+            CreateCombatStats(actor, attackerBody, command),
             weapon,
             CombatFireMode.Aimed);
         command.state = CharacterCombatCommandState.Executing;
@@ -974,7 +1028,7 @@ public sealed class CharacterCombatCommandRuntime :
 
         command.weaponInstanceId = weapon.InstanceId;
         command.reloadRemaining = resolution.CalculateReloadTime(
-            CombatRuntimeStatFactory.Create(actor, bodyHealth.GetSnapshot(actor)),
+            CreateCombatStats(actor, bodyHealth.GetSnapshot(actor), command),
             weapon);
         command.state = CharacterCombatCommandState.Executing;
         command.status = "재장전 중";
@@ -1107,6 +1161,8 @@ public sealed class CharacterCombatCommandRuntime :
         }
 
         CharacterActor actor = participants.FindCharacter(actorId);
+        if (actor != null)
+            extremeTraits.EndLastStand(actor, command.commandId, gameClock.Time);
         actor?.GetComponent<AbilityMove>()?.CancelActiveMovement();
         AbilityRescue.Ensure(actor)?.StopRescue(
             CharacterMedicalStatusCode.Cancelled);
@@ -1162,6 +1218,8 @@ public sealed class CharacterCombatCommandRuntime :
         command.status = status ?? string.Empty;
         PublishTerminalEvent(command);
         CharacterActor actor = participants.FindCharacter(command.actorId);
+        if (actor != null)
+            extremeTraits.EndLastStand(actor, command.commandId, gameClock.Time);
         actor?.GetComponent<AbilityMove>()?.CancelActiveMovement();
         DefenseCombatPresentation.Ensure(actor)?.SetStatus(
             IsInCombatStance(actor) ? "전투 태세" : string.Empty,
@@ -1171,6 +1229,18 @@ public sealed class CharacterCombatCommandRuntime :
         tacticalCoordinator.Release(command.actorId);
         MarkDirty();
     }
+
+    private CombatStatSnapshot CreateCombatStats(
+        CharacterActor actor,
+        CharacterBodyHealthSnapshot body,
+        CharacterCombatCommand command) =>
+        CombatRuntimeStatFactory.Create(
+            actor,
+            body,
+            performance,
+            extremeTraits,
+            command?.commandId ?? "combat:ambient",
+            gameClock.Time);
 
     private void PublishTerminalEvent(CharacterCombatCommand command)
     {

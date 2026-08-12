@@ -34,18 +34,32 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730834227229
-    - rid: 7737211730834227230
-    - rid: 7737211730834227231
-    - rid: 7737211730834227232
-    - rid: 7737211730834227233
-    - rid: 7737211730834227234
-    - rid: 7737211730834227235
-    - rid: 7737211838079696930
+    - rid: 7737211921440178603
+    - rid: 7737211921440178604
+    - rid: 7737211921440178605
+    - rid: 7737211921440178606
+    - rid: 7737211921440178607
+    - rid: 7737211921440178608
+    - rid: 7737211921440178609
   width: 2
   height: 1
   layer: 1
@@ -61,12 +75,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730834227229
+    - rid: 7737211921440178603
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: Q01
-    - rid: 7737211730834227230
+    - rid: 7737211921440178604
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -75,19 +89,35 @@ MonoBehaviour:
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211730834227231
+    - rid: 7737211921440178605
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 26.2
-        repairWorkRequired: 12
-        cleanWorkRequired: 7.5
+        constructionProjectScale: 0
+        constructionWorkRequired: 168
+        repairWorkRequired: 42
+        cleanWorkRequired: 8
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: material:lumber
-          amount: 6
-    - rid: 7737211730834227232
+        - itemId: material:treated-lumber
+          amount: 5
+        - itemId: material:iron-ingot
+          amount: 1
+        - itemId: component:engineering-drawing
+          amount: 1
+    - rid: 7737211921440178606
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -98,11 +128,11 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 20
           disabledWhenDamaged: 1
-    - rid: 7737211730834227233
+    - rid: 7737211921440178607
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211730834227234
+    - rid: 7737211921440178608
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -114,7 +144,7 @@ MonoBehaviour:
           - key: Research
             value: 2
           metrics: []
-    - rid: 7737211730834227235
+    - rid: 7737211921440178609
       type: {class: BuildingNeedRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingNeedRecoveryAbility
@@ -125,10 +155,3 @@ MonoBehaviour:
           hunger: 0
           excretion: 0
           hygiene: 0
-    - rid: 7737211838079696930
-      type: {class: BuildingResearchCapacityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingResearchCapacityAbility
-        contributions:
-        - capability: 0
-          capacity: 1

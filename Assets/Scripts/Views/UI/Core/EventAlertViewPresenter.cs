@@ -38,7 +38,7 @@ public interface IEventAlertViewPresenter
 {
     bool IsDetailVisible { get; }
     void EnsureRuntimeUI();
-    void DestroyRuntimeUI();
+    void DestroyRuntimeUI(bool immediate = false);
     void CreateButton(EventAlertRecord record);
     void UpdateButton(EventAlertRecord record);
     void RemoveButton(EventAlertRecord record);
@@ -203,22 +203,24 @@ public sealed class EventAlertViewPresenter : IEventAlertViewPresenter
         RefreshRuntimeRaycasters();
     }
 
-    public void DestroyRuntimeUI()
+    public void DestroyRuntimeUI(bool immediate = false)
     {
         choicePresenter.Clear();
-        ClearButtons();
+        ClearButtons(immediate);
         if (runtimeRoot == null)
         {
             return;
         }
 
-        if (Application.isPlaying)
+        GameObject ownedRuntimeRoot = runtimeRoot;
+        runtimeRoot = null;
+        if (Application.isPlaying && !immediate)
         {
-            UnityEngine.Object.Destroy(runtimeRoot);
+            UnityEngine.Object.Destroy(ownedRuntimeRoot);
         }
         else
         {
-            UnityEngine.Object.DestroyImmediate(runtimeRoot);
+            UnityEngine.Object.DestroyImmediate(ownedRuntimeRoot);
         }
     }
 
@@ -343,11 +345,18 @@ public sealed class EventAlertViewPresenter : IEventAlertViewPresenter
         }
     }
 
-    private void ClearButtons()
+    private void ClearButtons(bool immediate)
     {
         foreach (Button button in buttonsById.Values)
         {
-            buttonFactory.Release(button);
+            if (immediate && button != null)
+            {
+                UnityEngine.Object.DestroyImmediate(button.gameObject);
+            }
+            else
+            {
+                buttonFactory.Release(button);
+            }
         }
 
         buttonsById.Clear();

@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 7
   features:
-  - rid: 7737211838068949542
-  - rid: 7737211838068949543
-  - rid: 7737211838068949544
+  - rid: 7737211905666711910
+  - rid: 7737211905666711911
+  - rid: 7737211905666711912
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949542
+    - rid: 7737211905666711910
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:herbalism
-    - rid: 7737211838068949543
+    - rid: 7737211905666711911
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 0
         ingredientTags: 1025
         sharedIntermediate: 0
-    - rid: 7737211838068949544
+    - rid: 7737211905666711912
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

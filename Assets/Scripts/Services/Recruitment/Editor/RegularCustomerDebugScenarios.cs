@@ -32,9 +32,18 @@ public static class RegularCustomerDebugScenarios
         RunScenario("낮은 만족도는 단골 제외", VerifyLowSatisfactionDoesNotBecomeRegular, errors);
         RunScenario("방문 이벤트 런타임 연결", VerifyRuntimeEvents, errors);
 
+        RunScenario("regular recruitment respects the ten-day settlement cadence", VerifyRecruitmentCooldown, errors);
         RunScenario("offense reward promotes known visitors into recruit candidates", VerifyOffenseRewardPromotesCandidates, errors);
         RunScenario("visit event keeps an immutable customer snapshot", VerifyVisitEventSnapshotDoesNotDrift, errors);
         RunScenario("strict regular-customer save boundary", VerifyStrictSaveBoundary, errors);
+        RunScenario(
+            "immigration policy uses physical capacity without target-population rubber banding",
+            VerifyImmigrationCapacityPolicy,
+            errors);
+        RunScenario(
+            "recruit candidate promotion waits for physical settlement capacity",
+            VerifyRecruitCandidatePromotionWaitsForCapacity,
+            errors);
 
         if (errors.Count > 0)
         {
@@ -66,6 +75,103 @@ public static class RegularCustomerDebugScenarios
         }
 
         errors.Add(name);
+    }
+
+    private static bool VerifyImmigrationCapacityPolicy()
+    {
+        SettlementPopulationCapacitySnapshot viable = new(
+            residentCount: 10,
+            sleepingSlotCount: 12,
+            vacantSleepingSlotCount: 2,
+            foodSupplyDays: 14,
+            waterSupplyDays: 14,
+            sanitationRisk: 20f,
+            diseaseRisk: 10f,
+            untreatedCount: 0,
+            alertLevel: SettlementThreatAlertLevel.Green,
+            emergencyReserveCoverage: 1.10f,
+            rollingPerCapitaNetWuIndex: 1.05f,
+            latestGuaranteedGrowthMilliWu:
+                20L * EmergencyWuUnits.UnitsPerWu);
+        SettlementPopulationAcceptance balanced =
+            SettlementPopulationAcceptanceRules.Evaluate(
+                in viable,
+                SettlementImmigrationPolicy.Balanced);
+        SettlementPopulationAcceptance conservative =
+            SettlementPopulationAcceptanceRules.Evaluate(
+                in viable,
+                SettlementImmigrationPolicy.Conservative);
+
+        SettlementPopulationCapacitySnapshot noBed = new(
+            residentCount: 10,
+            sleepingSlotCount: 10,
+            vacantSleepingSlotCount: 0,
+            foodSupplyDays: 999,
+            waterSupplyDays: 999,
+            sanitationRisk: 0f,
+            diseaseRisk: 0f,
+            untreatedCount: 0,
+            alertLevel: SettlementThreatAlertLevel.Green,
+            emergencyReserveCoverage: 10f,
+            rollingPerCapitaNetWuIndex: 10f,
+            latestGuaranteedGrowthMilliWu:
+                100L * EmergencyWuUnits.UnitsPerWu);
+        SettlementPopulationAcceptance rejectedForBed =
+            SettlementPopulationAcceptanceRules.Evaluate(
+                in noBed,
+                SettlementImmigrationPolicy.Open);
+
+        return balanced.Accepted
+            && !conservative.Accepted
+            && conservative.FailureCode
+                == "ImmigrationFoodForecastInsufficient"
+            && !rejectedForBed.Accepted
+            && rejectedForBed.FailureCode
+                == "ImmigrationSleepingSlotUnavailable";
+    }
+
+    private static bool VerifyRecruitCandidatePromotionWaitsForCapacity()
+    {
+        RegularCustomerState state = new RegularCustomerState();
+        RegularCustomerRules rules = CreateTestRules();
+        CharacterActor customer = CreateCustomer(
+            113,
+            "Capacity Gated Candidate",
+            "Slime",
+            85f);
+
+        try
+        {
+            for (int visit = 0;
+                 visit < rules.recruitCandidateVisitThreshold;
+                 visit++)
+            {
+                state.RecordVisit(
+                    CharacterActor.From(customer),
+                    rules,
+                    allowRecruitCandidate: false);
+            }
+
+            string customerId = RegularCustomerService.GetCustomerId(customer);
+            if (!state.TryGetRecord(customerId, out RegularCustomerRecord waiting)
+                || !waiting.IsRegular
+                || waiting.IsRecruitCandidate)
+            {
+                return false;
+            }
+
+            RegularCustomerVisitResult promoted = state.RecordVisit(
+                CharacterActor.From(customer),
+                rules,
+                allowRecruitCandidate: true);
+            return promoted.Success
+                && promoted.BecameRecruitCandidate
+                && promoted.Record.IsRecruitCandidate;
+        }
+        finally
+        {
+            DestroyCustomer(customer);
+        }
     }
 
     private static bool VerifyVisitCountAndAverageSatisfaction()
@@ -171,6 +277,58 @@ public static class RegularCustomerDebugScenarios
 
         DestroyCustomer(customer);
         return valid;
+    }
+
+    private static bool VerifyRecruitmentCooldown()
+    {
+        RegularCustomerState state = new RegularCustomerState();
+        RegularCustomerRules rules = RegularCustomerRules.CreateDefault();
+        CharacterActor first = CreateCustomer(
+            109,
+            "First Cadence Recruit",
+            "Orc",
+            80f);
+        CharacterActor second = CreateCustomer(
+            110,
+            "Second Cadence Recruit",
+            "Slime",
+            80f);
+        try
+        {
+            for (int index = 0; index < 2; index++)
+            {
+                state.RecordVisit(CharacterActor.From(first), rules);
+                state.RecordVisit(CharacterActor.From(second), rules);
+            }
+
+            bool firstSuccess = state.TryRecruit(
+                RegularCustomerService.GetCustomerId(first),
+                1,
+                rules,
+                out RegularCustomerRecruitResult firstResult);
+            bool earlySuccess = state.TryRecruit(
+                RegularCustomerService.GetCustomerId(second),
+                10,
+                rules,
+                out RegularCustomerRecruitResult earlyResult);
+            bool secondSuccess = state.TryRecruit(
+                RegularCustomerService.GetCustomerId(second),
+                11,
+                rules,
+                out RegularCustomerRecruitResult secondResult);
+
+            return firstSuccess
+                && firstResult.Record.RecruitedAbsoluteDay == 1
+                && !earlySuccess
+                && earlyResult.Message.Contains("11", StringComparison.Ordinal)
+                && secondSuccess
+                && secondResult.Record.RecruitedAbsoluteDay == 11;
+        }
+        finally
+        {
+            DestroyCustomer(first);
+            DestroyCustomer(second);
+        }
     }
 
     private static bool VerifyRuntimeEvents()
@@ -344,6 +502,7 @@ public static class RegularCustomerDebugScenarios
 
         try
         {
+            source.CycleImmigrationPolicy();
             source.ReplaceStateForDebug(new[]
             {
                 new RegularCustomerRecord(
@@ -356,6 +515,7 @@ public static class RegularCustomerDebugScenarios
                     isRegular: true,
                     isRecruitCandidate: true,
                     isRecruited: false,
+                    recruitedAbsoluteDay: 0,
                     RecruitCapability.All)
             });
             RegularCustomerPersistenceAdapter sourceAdapter =
@@ -377,6 +537,7 @@ public static class RegularCustomerDebugScenarios
             object sectionContract = targetSection;
             if (!validReport.Success
                 || target.State.Records.Count != 1
+                || target.ImmigrationPolicy != SettlementImmigrationPolicy.Open
                 || !string.Equals(
                     targetSection.Capture(),
                     canonicalJson,
@@ -390,6 +551,7 @@ public static class RegularCustomerDebugScenarios
                     "Regular-customer strict restore detail: phase=valid; "
                     + $"report={validReport.Success}; "
                     + $"records={target.State.Records.Count}; "
+                    + $"policy={target.ImmigrationPolicy}; "
                     + $"canonical={string.Equals(targetSection.Capture(), canonicalJson, StringComparison.Ordinal)}; "
                     + $"preflight={sectionContract is IDungeonSaveSectionPreflight}; "
                     + $"rollbackFree={sectionContract is IDungeonRollbackFreeSaveSection}; "

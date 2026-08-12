@@ -13,11 +13,17 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
     private readonly ICombatEquipmentRuntime combatRuntime;
     private readonly ICombatEquipmentCatalog combatCatalog;
     private readonly ICharacterEnvironmentStatusQuery environmentStatus;
+    private readonly IGameCalendar calendar;
+    private readonly CharacterIdentityEventPublisher identityEvents;
+    private readonly ICharacterPerformanceQuery performance;
 
     public EquipmentCraftingBuildingAbilityHandler(
         ICombatEquipmentRuntime combatRuntime,
         ICombatEquipmentCatalog combatCatalog,
-        ICharacterEnvironmentStatusQuery environmentStatus)
+        ICharacterEnvironmentStatusQuery environmentStatus,
+        IGameCalendar calendar = null,
+        CharacterIdentityEventPublisher identityEvents = null,
+        ICharacterPerformanceQuery performance = null)
     {
         this.combatRuntime = combatRuntime
             ?? throw new ArgumentNullException(nameof(combatRuntime));
@@ -25,6 +31,10 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
             ?? throw new ArgumentNullException(nameof(combatCatalog));
         this.environmentStatus = environmentStatus
             ?? throw new ArgumentNullException(nameof(environmentStatus));
+        this.calendar = calendar;
+        this.identityEvents = identityEvents;
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
     }
 
     public IReadOnlyCollection<Type> AbilityTypes => Types;
@@ -53,12 +63,13 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
         }
 
         CharacterBuildingVisitorAdapter.TryGetActor(actor, out CharacterActor worker);
-        BuildingVisitorSnapshot workerSnapshot = actor?.VisitorSnapshot ?? default;
-        // Craft quality uses the shared 0..100 craftsmanship scale while
-        // character stats are authored on 0..10. Weight the two relevant
-        // attributes equally, then project the mean to the shared scale.
+        if (worker == null || performance == null)
+            throw new InvalidOperationException(
+                "Equipment craft quality requires a live worker and the character performance query.");
         float relevantSkill = Mathf.Clamp(
-            (workerSnapshot.Dexterity + workerSnapshot.Research) * 5f,
+            performance.Evaluate(
+                worker,
+                "performance:work:craft:quality").Value * 58f,
             0f,
             100f);
         int completed = equipmentRuntime.ApplyCraftWork(
@@ -68,7 +79,8 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
             relevantSkill,
             out string completedEquipmentId,
             out string completedMaterialId,
-            out CombatEquipmentQuality completedQuality);
+            out CombatEquipmentQuality completedQuality,
+            out MythicProvenanceSaveData mythicProvenance);
         if (completed > 0)
         {
             SpawnCraftedOutput(
@@ -77,7 +89,12 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
                 completedEquipmentId,
                 completedMaterialId,
                 completedQuality,
+                mythicProvenance,
                 completed);
+            PublishMaterialOutcome(
+                worker,
+                completedEquipmentId,
+                completedMaterialId);
         }
 
         string targetName = string.IsNullOrWhiteSpace(completedEquipmentId)
@@ -108,12 +125,43 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
         return completed;
     }
 
+    private void PublishMaterialOutcome(
+        CharacterActor worker,
+        string definitionId,
+        string materialId)
+    {
+        if (identityEvents == null
+            || worker == null
+            || !CharacterPersistentIdentity.TryGet(worker, out CharacterId characterId)
+            || !combatCatalog.TryGet(definitionId, out CombatEquipmentDefinitionSO definition))
+        {
+            return;
+        }
+
+        string resolvedMaterial = string.IsNullOrWhiteSpace(materialId)
+            ? definition.DefaultMaterialId
+            : materialId.Trim();
+        bool substitute = !string.Equals(
+            resolvedMaterial,
+            definition.DefaultMaterialId,
+            StringComparison.Ordinal);
+        identityEvents.Publish(new WorkCompletedIdentityEvent(
+            characterId,
+            substitute
+                ? "work:substitute-success"
+                : "work:strict-procedure",
+            definitionId,
+            CharacterCommandOrigin.Autonomous,
+            Mathf.Max(0, calendar?.Day ?? 0)));
+    }
+
     private bool SpawnCraftedOutput(
         IBuildingVisitorPort actor,
         BuildableObject building,
         string completedEquipmentId,
         string completedMaterialId,
         CombatEquipmentQuality completedQuality,
+        MythicProvenanceSaveData mythicProvenance,
         int completed)
     {
         IBuildingItemStackPort itemRuntime = building.WorldItemStackRuntime;
@@ -142,11 +190,18 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
             && completed == 1
             && itemRuntime != null)
         {
+            if (mythicProvenance != null)
+            {
+                mythicProvenance.createdDay = Mathf.Max(0, calendar?.Day ?? 0);
+                mythicProvenance.createdFacilityId =
+                    building.RequirePersistentInstanceId().Value;
+            }
             CombatEquipmentInstance instance = combatRuntime.CreateInstance(
                 completedEquipmentId,
                 completedQuality,
                 CombatEquipmentWorldState.Loose,
-                completedMaterialId);
+                completedMaterialId,
+                mythicProvenance);
             if (!itemRuntime.SpawnExistingFacilityBufferUniqueItem(
                     PhysicalItemIds.ForEquipment(completedEquipmentId),
                     (ItemInstanceId)instance.instanceId,

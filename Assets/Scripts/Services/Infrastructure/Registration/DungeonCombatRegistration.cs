@@ -28,8 +28,6 @@ public static class DungeonCombatRegistration
             .As<ICombatFiringSolutionService>();
         builder.Register<ResourceAnatomyProfileCatalog>(Lifetime.Singleton)
             .As<IAnatomyProfileCatalog>();
-        builder.Register<DefaultAnatomyActivityProfileCatalog>(Lifetime.Singleton)
-            .As<IAnatomyActivityProfileCatalog>();
         builder.Register<ResourceAnatomyConditionLexicon>(Lifetime.Singleton)
             .As<IAnatomyConditionLexicon>();
         builder.Register<ResourceCombatEquipmentCatalog>(Lifetime.Singleton)
@@ -51,6 +49,11 @@ public static class DungeonCombatRegistration
             .As<IBuildingEquipmentCraftingRuntimePort>()
             .As<ICombatLoadoutRuntime>()
             .As<ICombatEquipmentBurdenQuery>();
+        builder.Register<CharacterTransientGameplayEffectSourceQuery>(Lifetime.Singleton)
+            .As<ICharacterTransientGameplayEffectSourceQuery>();
+        builder.Register<CharacterEquipmentGameplayEffectSourceQuery>(Lifetime.Singleton)
+            .As<ICharacterEquipmentGameplayEffectSourceQuery>();
+        builder.Register<CharacterDerivedStatsSnapshotProjector>(Lifetime.Singleton);
         builder.Register<EquipmentExpeditionRewardService>(Lifetime.Singleton)
             .As<IEquipmentExpeditionRewardService>();
         builder.Register<EquipmentEvolutionRuntime>(Lifetime.Singleton)
@@ -80,9 +83,10 @@ public static class DungeonCombatRegistration
             .As<ICharacterBodyHealthQuery>()
             .As<ICharacterBodyHealthCommand>()
             .As<ICharacterCombatSpecialStatusQuery>()
+            .As<ICharacterManaQuery>()
+            .As<ICharacterManaCommand>()
             .As<ICharacterBodyHealthPersistence>()
-            .As<IAnatomyHealthRuntime>()
-            .As<IAnatomyEffectRuntime>();
+            .As<IAnatomyHealthRuntime>();
         builder.Register<SurgeryAggregateStateStore>(Lifetime.Singleton)
             .AsSelf()
             .As<ISurgeryOrderDemandQuery>();
@@ -92,8 +96,6 @@ public static class DungeonCombatRegistration
         builder.RegisterEntryPoint<SurgicalPatientTransportRuntime>(
                 Lifetime.Singleton)
             .As<ISurgicalPatientTransportRuntime>();
-        builder.Register<CharacterPhysicalCapacityQuery>(Lifetime.Singleton)
-            .As<ICharacterPhysicalCapacityQuery>();
         builder.Register<CharacterMedicalWorldServices>(Lifetime.Singleton);
         builder.RegisterEntryPoint<CharacterMedicalRuntime>(Lifetime.Singleton)
             .As<ICharacterMedicalQuery>()
@@ -164,6 +166,8 @@ public static class DungeonCombatRegistration
         builder.Register<CharacterCombatCommandCollaborators>(Lifetime.Singleton);
         builder.Register<CharacterCombatUiTextLocalizer>(Lifetime.Singleton)
             .As<ICharacterCombatUiTextQuery>();
+        builder.Register<CharacterCombatStanceProjection>(Lifetime.Singleton)
+            .As<ICharacterCombatStanceQuery>();
         builder.Register<CharacterCombatCommandRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<ICharacterCombatCommandRuntime>()

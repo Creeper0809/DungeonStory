@@ -197,8 +197,8 @@ public static class EnvironmentalFieldDebugScenarios
         string[] guids = AssetDatabase.FindAssets(
             "t:EnvironmentalWorkwearSO",
             new[] { "Assets/Resources/SO/Environment/Workwear" });
-        Require(guids.Length == 3,
-            $"expected 3 authored workwear definitions, found {guids.Length}");
+        Require(guids.Length == 4,
+            $"expected 4 authored workwear definitions, found {guids.Length}");
         foreach (string guid in guids)
         {
             EnvironmentalWorkwearSO workwear =
@@ -289,7 +289,9 @@ public static class EnvironmentalFieldDebugScenarios
                     coldExposure = 101f
                 }
             },
-            equippedWorkwear = Array.Empty<EnvironmentalWorkwearSaveData>()
+            equippedWorkwear = Array.Empty<EnvironmentalWorkwearSaveData>(),
+            equippedApparel = Array.Empty<EquippedApparelSaveData>(),
+            apparelWorkOrders = Array.Empty<ApparelWorkOrderSaveData>()
         };
         RequireRejectedWithoutPublish(
             section,
@@ -313,7 +315,9 @@ public static class EnvironmentalFieldDebugScenarios
         {
             version = DungeonCharacterEnvironmentSaveData.CurrentVersion,
             exposures = Array.Empty<CharacterEnvironmentExposure>(),
-            equippedWorkwear = Array.Empty<EnvironmentalWorkwearSaveData>()
+            equippedWorkwear = Array.Empty<EnvironmentalWorkwearSaveData>(),
+            equippedApparel = Array.Empty<EquippedApparelSaveData>(),
+            apparelWorkOrders = Array.Empty<ApparelWorkOrderSaveData>()
         };
         DungeonGameRestoreReport validValidation = new();
         CharacterEnvironmentSaveValidation.Validate(valid, validValidation);

@@ -34,21 +34,36 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730834227272
-    - rid: 7737211730834227273
-    - rid: 7737211730834227274
-    - rid: 7737211730834227275
-    - rid: 7737211730834227276
-    - rid: 7737211730834227277
-    - rid: 7737211730834227278
-    - rid: 7737211730834227279
-    - rid: 7737211730834227280
-    - rid: 7737211730834227281
-    - rid: 7737211838074978842
+    - rid: 7737211921440178678
+    - rid: 7737211921440178679
+    - rid: 7737211921440178680
+    - rid: 7737211921440178681
+    - rid: 7737211921440178682
+    - rid: 7737211921440178683
+    - rid: 7737211921440178684
+    - rid: 7737211921440178685
+    - rid: 7737211921440178686
+    - rid: 7737211921440178687
+    - rid: 7737211921440178688
   width: 2
   height: 1
   layer: 1
@@ -64,12 +79,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730834227272
+    - rid: 7737211921440178678
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: R02
-    - rid: 7737211730834227273
+    - rid: 7737211921440178679
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -78,34 +93,48 @@ MonoBehaviour:
         maintenance: 4
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7737211730834227274
+    - rid: 7737211921440178680
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 26.7
-        repairWorkRequired: 12
-        cleanWorkRequired: 7.5
+        constructionProjectScale: 1
+        constructionWorkRequired: 168
+        repairWorkRequired: 42
+        cleanWorkRequired: 8
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: material:stone-block
-          amount: 7
-    - rid: 7737211730834227275
+        - itemId: material:lumber
+          amount: 5
+        - itemId: material:cloth
+          amount: 3
+    - rid: 7737211921440178681
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
         settings:
           roles: 4
           capacity: 1
-          useDuration: 1.5
-          requiredWorkers: 1
+          useDuration: 40
+          requiredWorkers: 0
           supportedWorkTypes: 32900
           disabledWhenDamaged: 1
-    - rid: 7737211730834227276
+    - rid: 7737211921440178682
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211730834227277
+    - rid: 7737211921440178683
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -120,7 +149,7 @@ MonoBehaviour:
           - key: Luxury
             value: 3
           metrics: []
-    - rid: 7737211730834227278
+    - rid: 7737211921440178684
       type: {class: BuildingNeedRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingNeedRecoveryAbility
@@ -131,28 +160,28 @@ MonoBehaviour:
           hunger: 0
           excretion: 0
           hygiene: 0
-    - rid: 7737211730834227279
+    - rid: 7737211921440178685
       type: {class: BuildingExpeditionRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingExpeditionRecoveryAbility
         healthHealRatio: 0.22
         injuryReduction: 0.08
         stressRecovery: 22
-    - rid: 7737211730834227280
+    - rid: 7737211921440178686
       type: {class: BuildingMedicalAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingMedicalAbility
         workSeconds: 1.2
         severityReduction: 0.38
         requiresMedicine: 1
-    - rid: 7737211730834227281
+    - rid: 7737211921440178687
       type: {class: BuildingTemperatureAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingTemperatureAbility
         roomTemperatureOffset: 1
         coldProtection: 5
         heatProtection: 3
-    - rid: 7737211838074978842
+    - rid: 7737211921440178688
       type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceHubAbility

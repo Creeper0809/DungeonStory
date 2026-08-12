@@ -31,10 +31,30 @@ MonoBehaviour:
   objectName: "\uC624\uC5FC"
   sprite: {fileID: 0}
   icon: {fileID: 0}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  deprecatedCompatibilityAsset: 0
+  useClassification: 0
+  researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 8799999998049989999
-    - rid: 7737211679622037857
+    - rid: 7737211921623154715
+    - rid: 7737211921623154716
   width: 1
   height: 1
   layer: 9
@@ -52,19 +72,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 8799999998049989999
-      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 18
-        repairWorkRequired: 10
-        cleanWorkRequired: 6.25
-        researchWorkRequired: 6
-        operateWorkRequired: 10
-        constructionMaterials:
-        - itemId: material:stone-block
-          amount: 1
-    - rid: 7737211679622037857
+    - rid: 7737211921623154715
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -75,3 +83,27 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 8
           disabledWhenDamaged: 0
+    - rid: 7737211921623154716
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
+        constructionWorkRequired: 18
+        repairWorkRequired: 10
+        cleanWorkRequired: 6.25
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
+        constructionMaterials:
+        - itemId: material:stone-block
+          amount: 1

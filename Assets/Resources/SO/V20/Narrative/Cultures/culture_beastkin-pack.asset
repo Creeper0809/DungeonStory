@@ -52,7 +52,7 @@ MonoBehaviour:
   - id: culture:golem-core
     weight: 1.01
   - id: culture:harpy-aerie
-    weight: 1.04
+    weight: 1.0400001
   - id: culture:kobold-toolclan
     weight: 1.07
   - id: culture:myconid-grove

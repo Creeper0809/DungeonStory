@@ -24,7 +24,7 @@ MonoBehaviour:
   completionRequirements:
     items:
     - itemDefinitionId: material:rope
-      amount: 12
+      amount: 8
       consume: 1
     facilities: []
     research: []

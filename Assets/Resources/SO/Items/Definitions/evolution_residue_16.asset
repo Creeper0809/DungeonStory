@@ -33,18 +33,18 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 1310720
   features:
-  - rid: 7737211825767055992
-  - rid: 7737211825767055993
+  - rid: 7737211921623155045
+  - rid: 7737211921623155046
   references:
     version: 2
     RefIds:
-    - rid: 7737211825767055992
+    - rid: 7737211921623155045
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211825767055993
+    - rid: 7737211921623155046
       type: {class: EvolutionCatalystItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         family: universal

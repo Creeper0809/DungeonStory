@@ -9,6 +9,16 @@ public static class CharacterDetailedStatsTextFormatter
     public static string Get(string key, params object[] arguments) =>
         CharacterSummaryUiTextQuery.Get(key, arguments);
 
+    public static string GameplayEffectTargetLabel(string targetId) => targetId switch
+    {
+        GameplayEffectTargetIds.RecoverySpeed => "\uC2E0\uCCB4 \uD68C\uBCF5 \uC18D\uB3C4",
+        GameplayEffectTargetIds.DiseaseResistance => "\uC9C8\uBCD1 \uC800\uD56D\uB825",
+        GameplayEffectTargetIds.DiseaseRecoverySpeed => "\uC9C8\uBCD1 \uD68C\uBCF5 \uC18D\uB3C4",
+        GameplayEffectTargetIds.ImmunityGain => "\uBA74\uC5ED \uD68D\uB4DD\uB825",
+        GameplayEffectTargetIds.ImmunityRetention => "\uBA74\uC5ED \uC720\uC9C0\uB825",
+        _ => targetId ?? string.Empty
+    };
+
     public static string RecoveryLabel(PartRecoveryPolicy value) => value switch
     {
         PartRecoveryPolicy.Natural => Get("CharacterSummary.Detailed.Recovery.Natural"),
@@ -24,28 +34,8 @@ public static class CharacterDetailedStatsTextFormatter
         CharacterDetailedStatsTab.Work => Get("CharacterSummary.Detailed.Tab.Work"),
         CharacterDetailedStatsTab.CombatEquipment => Get("CharacterSummary.Detailed.Tab.CombatEquipment"),
         CharacterDetailedStatsTab.HealthAnatomy => Get("CharacterSummary.Detailed.Tab.HealthAnatomy"),
+        CharacterDetailedStatsTab.Proficiencies => Get("CharacterSummary.Detailed.Tab.Proficiencies"),
         _ => Get("CharacterSummary.Detailed.Tab.Modifiers")
     };
 
-    public static string ActivityLabel(AnatomyActivityId value) => value switch
-    {
-        AnatomyActivityId.Movement => Get("CharacterSummary.Detailed.Activity.Movement"),
-        AnatomyActivityId.Accuracy => Get("CharacterSummary.Detailed.Activity.Accuracy"),
-        AnatomyActivityId.Evasion => Get("CharacterSummary.Detailed.Activity.Evasion"),
-        AnatomyActivityId.Work => Get("CharacterSummary.Detailed.Activity.Work"),
-        AnatomyActivityId.Carry => Get("CharacterSummary.Detailed.Activity.Carry"),
-        AnatomyActivityId.MeleePower => Get("CharacterSummary.Detailed.Activity.MeleePower"),
-        AnatomyActivityId.Treatment => Get("CharacterSummary.Detailed.Activity.Treatment"),
-        AnatomyActivityId.Recovery => Get("CharacterSummary.Detailed.Activity.Recovery"),
-        _ => Get("CharacterSummary.Detailed.Activity.Overclock")
-    };
-
-    public static string AxisLabel(AnatomyActionAxisId value) => value switch
-    {
-        AnatomyActionAxisId.Awareness => Get("CharacterSummary.Detailed.Axis.Awareness"),
-        AnatomyActionAxisId.Handling => Get("CharacterSummary.Detailed.Axis.Handling"),
-        AnatomyActionAxisId.Locomotion => Get("CharacterSummary.Detailed.Axis.Locomotion"),
-        AnatomyActionAxisId.Sustain => Get("CharacterSummary.Detailed.Axis.Sustain"),
-        _ => Get("CharacterSummary.Detailed.Axis.Recovery")
-    };
 }

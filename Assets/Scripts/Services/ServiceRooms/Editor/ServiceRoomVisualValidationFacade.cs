@@ -247,7 +247,9 @@ public sealed class ServiceRoomVisualCaptureRunner : MonoBehaviour
                 modeButton != null ? modeButton.name : "mode button missing");
             if (modeButton != null)
             {
-                ClickThroughEventSystem(
+                yield return BringIntoView(
+                    modeButton.transform as RectTransform);
+                yield return ClickThroughEventSystem(
                     modeButton,
                     "SERVICE_MODE_POINTER_" + suffix);
                 yield return null;
@@ -267,46 +269,121 @@ public sealed class ServiceRoomVisualCaptureRunner : MonoBehaviour
             "SERVICE_CAPTURE_" + suffix);
     }
 
-    private bool ClickThroughEventSystem(Button button, string key)
+    private static IEnumerator BringIntoView(RectTransform target)
+    {
+        ScrollRect scroll = target != null
+            ? target.GetComponentInParent<ScrollRect>()
+            : null;
+        RectTransform viewport = scroll != null
+            ? scroll.viewport ?? scroll.transform as RectTransform
+            : null;
+        if (scroll == null
+            || scroll.content == null
+            || viewport == null
+            || !target.IsChildOf(scroll.content))
+        {
+            yield break;
+        }
+
+        scroll.StopMovement();
+        Canvas.ForceUpdateCanvases();
+        for (int pass = 0; pass < 2; pass++)
+        {
+            Bounds bounds = RectTransformUtility
+                .CalculateRelativeRectTransformBounds(viewport, target);
+            float lower = viewport.rect.yMin + 8f;
+            float upper = viewport.rect.yMax - 8f;
+            float adjustment = 0f;
+            if (bounds.min.y < lower)
+            {
+                adjustment = lower - bounds.min.y;
+            }
+            else if (bounds.max.y > upper)
+            {
+                adjustment = upper - bounds.max.y;
+            }
+
+            if (Mathf.Abs(adjustment) < 0.5f)
+            {
+                break;
+            }
+            Vector2 position = scroll.content.anchoredPosition;
+            position.y += adjustment;
+            scroll.content.anchoredPosition = position;
+            scroll.velocity = Vector2.zero;
+            Canvas.ForceUpdateCanvases();
+            yield return null;
+        }
+        yield return null;
+    }
+
+    private IEnumerator ClickThroughEventSystem(Button button, string key)
     {
         if (button == null || EventSystem.current == null)
         {
-            return Check(false, key, "button or EventSystem missing");
+            Check(false, key, "button or EventSystem missing");
+            yield break;
         }
 
-        RectTransform rect = button.transform as RectTransform;
-        Canvas canvas = button.GetComponentInParent<Canvas>();
-        Camera camera = canvas != null
-            && canvas.renderMode != RenderMode.ScreenSpaceOverlay
-                ? canvas.worldCamera ?? Camera.main
-                : null;
-        Vector2 point = RectTransformUtility.WorldToScreenPoint(
-            camera,
-            rect.TransformPoint(rect.rect.center));
-        PointerEventData pointer = new(EventSystem.current)
+        string buttonName = button.name;
+        Vector2 point = Vector2.zero;
+        GameObject topHandler = null;
+        int hitCount = 0;
+        for (int attempt = 0; attempt < 12; attempt++)
         {
-            position = point,
-            button = PointerEventData.InputButton.Left
-        };
-        List<RaycastResult> hits = new();
-        EventSystem.current.RaycastAll(pointer, hits);
-        GameObject topHandler = hits
-            .Select(hit => ExecuteEvents.GetEventHandler<IPointerClickHandler>(
-                hit.gameObject))
-            .FirstOrDefault(handler => handler != null);
-        if (!Check(topHandler == button.gameObject,
-                key + "_HIT_TEST",
-                $"top={topHandler?.name ?? "none"}; expected={button.name}"))
-        {
-            return false;
+            button = FindObjectsByType<Button>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .FirstOrDefault(candidate => candidate != null
+                    && candidate.interactable
+                    && candidate.name == buttonName);
+            if (button == null)
+            {
+                yield return null;
+                continue;
+            }
+
+            Canvas.ForceUpdateCanvases();
+            yield return null;
+            RectTransform rect = button.transform as RectTransform;
+            Canvas canvas = button.GetComponentInParent<Canvas>();
+            Camera camera = canvas != null
+                && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+                    ? canvas.worldCamera ?? Camera.main
+                    : null;
+            point = RectTransformUtility.WorldToScreenPoint(
+                camera,
+                rect.TransformPoint(rect.rect.center));
+            PointerEventData pointer = new(EventSystem.current)
+            {
+                position = point,
+                button = PointerEventData.InputButton.Left
+            };
+            List<RaycastResult> hits = new();
+            EventSystem.current.RaycastAll(pointer, hits);
+            hitCount = hits.Count;
+            topHandler = hits
+                .Select(hit => ExecuteEvents.GetEventHandler<IPointerClickHandler>(
+                    hit.gameObject))
+                .FirstOrDefault(handler => handler != null);
+            if (topHandler == button.gameObject)
+            {
+                Check(true,
+                    key + "_HIT_TEST",
+                    $"top={topHandler.name}; expected={button.name}; point={point}; hits={hitCount}");
+                Check(
+                    PlayModeVerificationFrameWait.DispatchPointerClick(
+                        button.gameObject,
+                        point),
+                    key + "_DISPATCH",
+                    "Unity EventSystem pointer dispatch");
+                yield break;
+            }
         }
 
-        return Check(
-            PlayModeVerificationFrameWait.DispatchPointerClick(
-                button.gameObject,
-                point),
-            key + "_DISPATCH",
-            "Unity EventSystem pointer dispatch");
+        Check(false,
+            key + "_HIT_TEST",
+            $"top={topHandler?.name ?? "none"}; expected={buttonName}; point={point}; hits={hitCount}");
     }
 
     private IEnumerator Capture(

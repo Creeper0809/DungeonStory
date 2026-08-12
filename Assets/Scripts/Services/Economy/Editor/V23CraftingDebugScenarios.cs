@@ -46,12 +46,8 @@ public static class V23CraftingDebugScenarios
             sortMode = WorkerCandidateSortMode.SpecificThenBestExpectedQuality,
             specificCharacterIds = new List<string> { " worker-b ", "worker-a", "worker-a" },
             excludedCharacterIds = new List<string> { "worker-z", "worker-z" },
-            statRequirements = new List<WorkerStatRequirementSaveData>
-            {
-                new() { statType = 2, minimumValue = 4 },
-                new() { statType = 2, minimumValue = 8 },
-                new() { statType = 1, minimumValue = 6 }
-            },
+            minimumSkillId = BuiltInCharacterProficiencyIds.Crafting.Value,
+            minimumSkillExperience = 800,
             requiredTraitIds = new List<string> { "trait:b", "trait:a", "trait:a" }
         };
 
@@ -61,10 +57,9 @@ public static class V23CraftingDebugScenarios
             "Specific worker IDs must be trimmed, unique and deterministic.");
         Require(normalized.excludedCharacterIds.SequenceEqual(new[] { "worker-z" }),
             "Excluded worker IDs must be unique.");
-        Require(normalized.statRequirements.Count == 2
-                && normalized.statRequirements[1].statType == 2
-                && normalized.statRequirements[1].minimumValue == 8,
-            "Duplicate stat requirements must keep the strictest threshold.");
+        Require(normalized.minimumSkillId == BuiltInCharacterProficiencyIds.Crafting.Value
+                && normalized.minimumSkillExperience == 800,
+            "Proficiency-only worker requirement was not preserved.");
         Require(normalized.requiredTraitIds.SequenceEqual(
                 new[] { "trait:a", "trait:b" }),
             "Trait requirements must be deterministic.");

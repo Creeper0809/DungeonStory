@@ -122,19 +122,19 @@ public static class ResourceEconomyAssetBuilder
             I("material:low-fuel", "저급 연료", "부패물과 분뇨를 굳힌 냄새나는 연료.", StockCategory.Fuel, ResourceItemKind.Intermediate, ResourceIngredientTag.Spoiled | ResourceIngredientTag.Fuel, 1, 0.8f, 75, "research:agriculture:compost"),
             I("material:rot-toxin", "부패 독소", "금기 약물과 독성 의식에 쓰는 농축 독소.", StockCategory.Biological, ResourceItemKind.Intermediate, ResourceIngredientTag.Spoiled | ResourceIngredientTag.Forbidden, 12, 0.2f, 40, "research:arcane:alchemy"),
 
-            M("food:grain-porridge", "황혼곡죽", "값싸고 속이 편한 비건 단순식.", ResourceIngredientTag.Plant, 5, 0.6f, 50, "research:cuisine:crops", MealQualityTier.Simple, 35f, 2f, 360f),
-            M("food:root-stew", "잿불뿌리 스튜", "열량이 높은 비건 스튜.", ResourceIngredientTag.Plant, 7, 0.7f, 50, "research:cuisine:crops", MealQualityTier.Simple, 38f, 3f, 360f),
-            M("food:mushroom-soup", "동굴버섯국", "단백질이 풍부한 비건 국.", ResourceIngredientTag.Fungus, 7, 0.65f, 50, "research:cuisine:crops", MealQualityTier.Simple, 36f, 3f, 330f),
-            M("food:garden-meal", "정원 요리", "곡물과 뿌리, 버섯을 섞은 비건 고급식.", ResourceIngredientTag.Plant | ResourceIngredientTag.Fungus, 12, 0.75f, 40, "research:cuisine:vegan", MealQualityTier.Fine, 46f, 6f, 420f),
-            M("food:egg-pancake", "달걀전", "알과 곡물로 만든 채식식.", ResourceIngredientTag.Egg | ResourceIngredientTag.Plant, 11, 0.65f, 40, "research:cuisine:livestock", MealQualityTier.Fine, 44f, 6f, 360f),
-            M("food:cheese-mushroom", "치즈버섯찜", "치즈와 버섯을 곁들인 채식 고급식.", ResourceIngredientTag.Milk | ResourceIngredientTag.Fungus, 14, 0.7f, 40, "research:cuisine:livestock", MealQualityTier.Fine, 47f, 7f, 390f),
-            M("food:roasted-meat", "고기구이", "간단히 구운 육식 단순식.", ResourceIngredientTag.Meat, 9, 0.75f, 40, "research:cuisine:livestock", MealQualityTier.Simple, 42f, 4f, 300f),
-            M("food:boar-stew", "멧돼지 스튜", "고기와 뿌리를 끓인 혼합 고급식.", ResourceIngredientTag.Meat | ResourceIngredientTag.Plant, 15, 0.85f, 40, "research:cuisine:livestock", MealQualityTier.Fine, 50f, 8f, 390f),
-            M("food:meat-pie", "고기 파이", "고기와 밀가루를 쓴 혼합 고급식.", ResourceIngredientTag.Meat | ResourceIngredientTag.Plant, 17, 0.8f, 40, "research:cuisine:livestock", MealQualityTier.Fine, 52f, 8f, 450f),
-            M("food:jerky", "육포", "오래 보관 가능한 육식 보존식.", ResourceIngredientTag.Meat, 12, 0.45f, 50, "research:survival:preservation", MealQualityTier.Preserved, 34f, 1f, 1440f, true),
-            M("food:lavish-vegan", "월야 비건 만찬", "세 가지 식물 재료군을 쓴 비건 호화식.", ResourceIngredientTag.Plant | ResourceIngredientTag.Fungus, 24, 0.9f, 30, "research:cuisine:lavish", MealQualityTier.Lavish, 58f, 13f, 480f),
-            M("food:lavish-meat", "핏빛 호화식", "고기와 유제품, 과일을 쓴 호화식.", ResourceIngredientTag.Meat | ResourceIngredientTag.Milk | ResourceIngredientTag.Plant, 27, 1f, 30, "research:cuisine:lavish", MealQualityTier.Lavish, 60f, 14f, 480f),
-            M("food:preserved-ration", "보존 배급식", "전분과 소금으로 수명을 늘린 원정 식량.", ResourceIngredientTag.Plant, 13, 0.5f, 60, "research:cuisine:lavish", MealQualityTier.Preserved, 36f, 1f, 1800f, true),
+            M("food:grain-porridge", "황혼곡죽", "값싸고 속이 편한 비건 단순식.", ResourceIngredientTag.Plant, 5, 0.6f, 50, "research:cuisine:crops", MealQualityTier.Simple, 35f, 0f, 360f),
+            M("food:root-stew", "잿불뿌리 스튜", "열량이 높은 비건 스튜.", ResourceIngredientTag.Plant, 7, 0.7f, 50, "research:cuisine:crops", MealQualityTier.Simple, 40f, 2f, 360f),
+            M("food:mushroom-soup", "동굴버섯국", "단백질이 풍부한 비건 국.", ResourceIngredientTag.Fungus, 7, 0.65f, 50, "research:cuisine:crops", MealQualityTier.Simple, 36f, 1f, 330f),
+            M("food:garden-meal", "정원 요리", "곡물과 뿌리, 버섯을 섞은 비건 고급식.", ResourceIngredientTag.Plant | ResourceIngredientTag.Fungus, 12, 0.75f, 40, "research:cuisine:vegan", MealQualityTier.Fine, 50f, 4f, 420f),
+            M("food:egg-pancake", "달걀전", "알과 곡물로 만든 채식식.", ResourceIngredientTag.Egg | ResourceIngredientTag.Plant, 11, 0.65f, 40, "research:cuisine:livestock", MealQualityTier.Fine, 50f, 4f, 360f),
+            M("food:cheese-mushroom", "치즈버섯찜", "치즈와 버섯을 곁들인 채식 고급식.", ResourceIngredientTag.Milk | ResourceIngredientTag.Fungus, 14, 0.7f, 40, "research:cuisine:livestock", MealQualityTier.Fine, 50f, 5f, 390f),
+            M("food:roasted-meat", "고기구이", "간단히 구운 육식 단순식.", ResourceIngredientTag.Meat, 9, 0.75f, 40, "research:cuisine:livestock", MealQualityTier.Simple, 42f, 3f, 300f),
+            M("food:boar-stew", "멧돼지 스튜", "고기와 뿌리를 끓인 혼합 고급식.", ResourceIngredientTag.Meat | ResourceIngredientTag.Plant, 15, 0.85f, 40, "research:cuisine:livestock", MealQualityTier.Fine, 55f, 7f, 390f),
+            M("food:meat-pie", "고기 파이", "고기와 밀가루를 쓴 혼합 고급식.", ResourceIngredientTag.Meat | ResourceIngredientTag.Plant, 17, 0.8f, 40, "research:cuisine:livestock", MealQualityTier.Fine, 55f, 7f, 450f),
+            M("food:jerky", "육포", "오래 보관 가능한 육식 보존식.", ResourceIngredientTag.Meat, 12, 0.45f, 50, "research:survival:preservation", MealQualityTier.Preserved, 35f, -1f, 1440f, true),
+            M("food:lavish-vegan", "월야 비건 만찬", "세 가지 식물 재료군을 쓴 비건 호화식.", ResourceIngredientTag.Plant | ResourceIngredientTag.Fungus, 24, 0.9f, 30, "research:cuisine:lavish", MealQualityTier.Lavish, 60f, 10f, 480f),
+            M("food:lavish-meat", "핏빛 호화식", "고기와 유제품, 과일을 쓴 호화식.", ResourceIngredientTag.Meat | ResourceIngredientTag.Milk | ResourceIngredientTag.Plant, 27, 1f, 30, "research:cuisine:lavish", MealQualityTier.Lavish, 65f, 12f, 480f),
+            M("food:preserved-ration", "보존 배급식", "전분과 소금으로 수명을 늘린 원정 식량.", ResourceIngredientTag.Plant, 13, 0.5f, 60, "research:cuisine:lavish", MealQualityTier.Preserved, 40f, 0f, 1800f, true),
             I("feed:hay", "건초 사료", "초식동물용 기본 사료.", StockCategory.Food, ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, 2, 0.45f, 75, "research:husbandry:feed"),
             I("feed:dog-food", "개밥", "곡물과 동물성 부산물을 섞은 육식·잡식 사료.", StockCategory.Food, ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant | ResourceIngredientTag.Meat, 3, 0.55f, 75, "research:husbandry:feed"),
             I("husbandry:bedding", "깔짚", "축사 위생과 휴식을 유지하는 바닥재.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Fiber, 3, 0.5f, 60, "research:husbandry:feed"),
@@ -143,9 +143,9 @@ public static class ResourceEconomyAssetBuilder
             I("craft:resin-balm", "수액 연고", "피부 손상과 방어구 마찰을 줄이는 연고.", StockCategory.Medicine, ResourceItemKind.Medicine, ResourceIngredientTag.Plant | ResourceIngredientTag.Fat, 10, 0.15f, 40, "research:pharmacology:antiseptic"),
             I("craft:bone-charm", "뼈뿔 장신구", "흥행과 권위 장식에 쓰는 거친 장신구.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, 18, 0.2f, 40, "research:authority:prestige"),
             I("resource:trail-charm", "길잡이 부적", "숨겨진 원정지의 위험과 약점을 해독하는 부적.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Arcane, 60, 0.1f, 30, "research:husbandry:capture"),
-            I("equipment:slime-warming-pad", "보온 점액 패드", "슬라임 전용 초기 저온 작업복.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Fiber, 18, 0.3f, 50, "research:environment:cold-work"),
-            I("equipment:cold-work-suit", "방한 작업복", "8°C 냉장실 상시 근무용 작업복.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Fiber, 42, 0.9f, 40, "research:environment:cold-work"),
-            I("equipment:rune-cold-suit", "룬 방한복", "2°C 장기 근무를 지원하되 치명선을 바꾸지 않는 작업복.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Fiber | ResourceIngredientTag.Arcane, 95, 0.8f, 25, "research:environment:rune-insulation"),
+            I("equipment:slime-warming-pad", "보온 점액 패드", "슬라임 전용 초기 저온 작업복.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Fiber, 18, 0.3f, 1, "research:environment:cold-work"),
+            I("equipment:cold-work-suit", "방한 작업복", "8°C 냉장실 상시 근무용 작업복.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Fiber, 42, 0.9f, 1, "research:environment:cold-work"),
+            I("equipment:rune-cold-suit", "룬 방한복", "2°C 장기 근무를 지원하되 치명선을 바꾸지 않는 작업복.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Fiber | ResourceIngredientTag.Arcane, 95, 0.8f, 1, "research:environment:rune-insulation"),
             I("craft:gold-ornament", "금 장식", "권위 시설과 계약 납품에 쓰는 고가 장식.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, 95, 0.4f, 20, "research:metallurgy:precious"),
             I("craft:stone-ornament", "석조 장식", "방의 미관과 대형 사업에 쓰는 석조물.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, 12, 1.6f, 30, "research:mining:stonecutting"),
             I("craft:ritual-reagent", "혈액 의식재", "피와 독소를 안정화한 금기 의식 재료.", StockCategory.Biological, ResourceItemKind.FinishedGood, ResourceIngredientTag.Blood | ResourceIngredientTag.Forbidden, 24, 0.25f, 30, "research:control:blood-show"),
@@ -221,7 +221,9 @@ public static class ResourceEconomyAssetBuilder
                     spec.Nutrition,
                     spec.MealMood,
                     spec.FreshnessSeconds,
-                    spec.Preserved);
+                    spec.Preserved,
+                    ResolveMealQualityBand(spec.Id),
+                    ResolveMealServingRole(spec.Id));
             }
             if (spec.HasMedicineData)
             {
@@ -383,6 +385,7 @@ public static class ResourceEconomyAssetBuilder
                 spec.RequiredWork,
                 spec.Inputs,
                 spec.Outputs);
+            asset.ConfigureFlowRole(spec.FlowRole);
             if (spec.FacilityTag.StartsWith(
                     "workstation:",
                     StringComparison.Ordinal))
@@ -392,9 +395,27 @@ public static class ResourceEconomyAssetBuilder
                     Array.Empty<string>(),
                     ProductionProcessKind.WorkOnly);
             }
+            asset.ConfigureProcessClass(spec.ProcessClass);
+            asset.ConfigureBalanceWork(
+                V23BalanceWorkCalculator.CalculateRecipeBaseWork(
+                    asset,
+                    spec.ProcessClass));
             EditorUtility.SetDirty(asset);
             return asset;
         }).ToArray();
+    }
+
+    private static ProductionFlowRole ResolveFlowRole(
+        IReadOnlyCollection<ItemAmountDefinition> inputs,
+        IReadOnlyCollection<ProductionOutputDefinition> outputs)
+    {
+        bool hasInputs = inputs != null && inputs.Count > 0;
+        bool hasOutputs = outputs != null && outputs.Count > 0;
+        if (!hasInputs && hasOutputs)
+            return ProductionFlowRole.Source;
+        if (hasInputs && !hasOutputs)
+            return ProductionFlowRole.Sink;
+        return ProductionFlowRole.Transform;
     }
 
     private static CropDefinitionSO[] BuildCrops()
@@ -650,6 +671,22 @@ public static class ResourceEconomyAssetBuilder
             preserved);
     }
 
+    private static MealQualityBand ResolveMealQualityBand(string itemId) =>
+        itemId switch
+        {
+            "food:grain-porridge" or "food:mushroom-soup" or "food:jerky" => MealQualityBand.Poor,
+            "food:root-stew" or "food:roasted-meat" or "food:preserved-ration" => MealQualityBand.Simple,
+            "food:garden-meal" or "food:egg-pancake" or "food:cheese-mushroom" => MealQualityBand.Decent,
+            "food:boar-stew" or "food:meat-pie" => MealQualityBand.Fine,
+            "food:lavish-vegan" or "food:lavish-meat" => MealQualityBand.Lavish,
+            _ => MealQualityBand.Simple
+        };
+
+    private static MealServingRole ResolveMealServingRole(string itemId) =>
+        itemId is "food:jerky" or "food:preserved-ration"
+            ? MealServingRole.FieldRation
+            : MealServingRole.FullMeal;
+
     private static ItemSpec Med(
         string id,
         string name,
@@ -699,6 +736,11 @@ public static class ResourceEconomyAssetBuilder
         float requiredWork,
         params object[] parts)
     {
+        ItemAmountDefinition[] inputs =
+            parts.OfType<ItemAmountDefinition>().ToArray();
+        ProductionOutputDefinition[] outputs =
+            parts.OfType<ProductionOutputDefinition>().ToArray();
+        ProductionFlowRole flowRole = ResolveFlowRole(inputs, outputs);
         return new RecipeSpec(
             id,
             name,
@@ -707,8 +749,13 @@ public static class ResourceEconomyAssetBuilder
             workType,
             researchId,
             requiredWork,
-            parts.OfType<ItemAmountDefinition>().ToArray(),
-            parts.OfType<ProductionOutputDefinition>().ToArray());
+            inputs,
+            outputs,
+            flowRole,
+            V23RecipeProcessClassAuthoring.Resolve(
+                facility,
+                workType,
+                flowRole));
     }
 
     private static RecipeSpec Source(
@@ -727,7 +774,9 @@ public static class ResourceEconomyAssetBuilder
             researchId,
             10f,
             Array.Empty<ItemAmountDefinition>(),
-            outputs);
+            outputs,
+            ProductionFlowRole.Source,
+            ProductionProcessClass.Gathering);
     }
 
     private static RecipeSpec SourceWork(
@@ -747,7 +796,9 @@ public static class ResourceEconomyAssetBuilder
             researchId,
             10f,
             Array.Empty<ItemAmountDefinition>(),
-            outputs);
+            outputs,
+            ProductionFlowRole.Source,
+            ProductionProcessClass.Gathering);
     }
 
     private static RecipeSpec Sink(
@@ -766,7 +817,12 @@ public static class ResourceEconomyAssetBuilder
             researchId,
             4f,
             inputs,
-            Array.Empty<ProductionOutputDefinition>());
+            Array.Empty<ProductionOutputDefinition>(),
+            ProductionFlowRole.Sink,
+            V23RecipeProcessClassAuthoring.Resolve(
+                facility,
+                "work:operate",
+                ProductionFlowRole.Sink));
     }
 
     private static CropSpec C(
@@ -872,11 +928,24 @@ public static class ResourceEconomyAssetBuilder
 
     private sealed class RecipeSpec
     {
-        public RecipeSpec(string id, string name, string description, string facilityTag, string workTypeId, string researchId, float requiredWork, ItemAmountDefinition[] inputs, ProductionOutputDefinition[] outputs)
+        public RecipeSpec(
+            string id,
+            string name,
+            string description,
+            string facilityTag,
+            string workTypeId,
+            string researchId,
+            float requiredWork,
+            ItemAmountDefinition[] inputs,
+            ProductionOutputDefinition[] outputs,
+            ProductionFlowRole flowRole,
+            ProductionProcessClass processClass)
         {
             Id = id; Name = name; Description = description; FacilityTag = facilityTag;
             WorkTypeId = workTypeId; ResearchId = researchId; RequiredWork = requiredWork;
             Inputs = inputs; Outputs = outputs;
+            FlowRole = flowRole;
+            ProcessClass = processClass;
         }
         public string Id { get; }
         public string Name { get; }
@@ -887,6 +956,8 @@ public static class ResourceEconomyAssetBuilder
         public float RequiredWork { get; }
         public ItemAmountDefinition[] Inputs { get; }
         public ProductionOutputDefinition[] Outputs { get; }
+        public ProductionFlowRole FlowRole { get; }
+        public ProductionProcessClass ProcessClass { get; }
     }
 
     private sealed class CropSpec
@@ -947,6 +1018,7 @@ public static class ResourceEconomyAssetBuilder
         public DungeonPhysicalItemSaveData Capture() => new DungeonPhysicalItemSaveData();
         public void Restore(DungeonPhysicalItemSaveData snapshot) { }
         public void SetStoredItemMarkersVisible(bool visible) { }
+        public bool SpawnItemAtDropoff(string itemId, int amount, string sourceLabel, out int spawned) { spawned = 0; return false; }
         public bool SpawnStockAtDropoff(StockCategory category, int amount, string sourceLabel, out int spawned) { spawned = 0; return false; }
         public bool SpawnStockAtDropoff(StockCategory category, int amount, string sourceLabel, WorldItemStackState state, string destinationId, out int spawned) { spawned = 0; return false; }
         public bool SpawnStockInWarehouse(IWarehouseFacility warehouse, StockCategory category, int amount, out int spawned) { spawned = 0; return false; }

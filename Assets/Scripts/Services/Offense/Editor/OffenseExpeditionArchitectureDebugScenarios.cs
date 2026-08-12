@@ -65,7 +65,7 @@ public static class OffenseExpeditionArchitectureDebugScenarios
             .Select(method => method.GetParameters().Length)
             .OrderBy(count => count)
             .ToArray();
-        if (!parameterCounts.SequenceEqual(new[] { 5, 7, 23 }))
+        if (!parameterCounts.SequenceEqual(new[] { 5, 7, 25 }))
         {
             failures.Add(
                 "OffenseExpeditionRuntime DI overload contract changed unexpectedly: "

@@ -5,11 +5,12 @@ using UnityEngine;
 public sealed class BuildingOccupancy
 {
     private readonly BuildableObject owner;
-    private readonly Dictionary<IBuildingCharacterPort, float> visitReservations =
-        new Dictionary<IBuildingCharacterPort, float>();
-    private readonly List<IBuildingCharacterPort> expiredVisitReservations =
-        new List<IBuildingCharacterPort>();
-    private int currentUserCount;
+    private readonly Dictionary<CharacterId, float> visitReservations =
+        new Dictionary<CharacterId, float>();
+    private readonly List<CharacterId> expiredVisitReservations =
+        new List<CharacterId>();
+    private readonly HashSet<CharacterId> activeUsers =
+        new HashSet<CharacterId>();
     private float nextVisitReservationExpiry = float.PositiveInfinity;
 
     public BuildingOccupancy(BuildableObject owner)
@@ -17,7 +18,7 @@ public sealed class BuildingOccupancy
         this.owner = owner ?? throw new ArgumentNullException(nameof(owner));
     }
 
-    public int CurrentUserCount => currentUserCount;
+    public int CurrentUserCount => activeUsers.Count;
 
     public int ActiveVisitReservationCount
     {
@@ -30,7 +31,7 @@ public sealed class BuildingOccupancy
 
     public void Reset()
     {
-        currentUserCount = 0;
+        activeUsers.Clear();
         visitReservations.Clear();
         expiredVisitReservations.Clear();
         nextVisitReservationExpiry = float.PositiveInfinity;
@@ -73,9 +74,10 @@ public sealed class BuildingOccupancy
             return false;
         }
 
+        CharacterId visitorId = GetVisitorId(visitor);
         int effectiveCapacity = owner.EffectiveCapacity;
         if (effectiveCapacity > 0
-            && currentUserCount + GetActiveVisitReservationCountExcept(visitor)
+            && activeUsers.Count + GetActiveVisitReservationCountExcept(visitorId)
                 >= effectiveCapacity)
         {
             failureReason = "\uC218\uC6A9 \uC778\uC6D0 \uCD08\uACFC";
@@ -101,6 +103,13 @@ public sealed class BuildingOccupancy
 
     public bool TryBeginUse(IBuildingCharacterPort visitor, out string failureReason)
     {
+        CharacterId visitorId = GetVisitorId(visitor);
+        if (!visitorId.IsValid)
+        {
+            failureReason = "방문자 영구 ID 없음";
+            return false;
+        }
+
         if (!CanVisit(visitor, out failureReason))
         {
             return false;
@@ -113,19 +122,23 @@ public sealed class BuildingOccupancy
         }
 
         ReleaseVisitReservation(visitor);
-        currentUserCount++;
+        if (!activeUsers.Add(visitorId))
+        {
+            failureReason = "이미 시설 이용 중";
+            return false;
+        }
         owner.RecordFacilityUse(visitor);
         return true;
     }
 
     public void EndUse(IBuildingCharacterPort visitor)
     {
-        if (currentUserCount <= 0)
+        CharacterId visitorId = GetVisitorId(visitor);
+        if (!visitorId.IsValid || !activeUsers.Remove(visitorId))
         {
             return;
         }
 
-        currentUserCount--;
         owner.NotifyOccupancyOrAssignmentChanged();
     }
 
@@ -141,20 +154,27 @@ public sealed class BuildingOccupancy
             return false;
         }
 
+        CharacterId visitorId = GetVisitorId(visitor);
+        if (!visitorId.IsValid)
+        {
+            failureReason = "방문자 영구 ID 없음";
+            return false;
+        }
+
         if (!CanVisit(visitor, out failureReason))
         {
             return false;
         }
 
         float expiry = Now + Mathf.Max(0.1f, seconds);
-        if (visitReservations.TryGetValue(visitor, out float previousExpiry)
+        if (visitReservations.TryGetValue(visitorId, out float previousExpiry)
             && previousExpiry <= nextVisitReservationExpiry
             && expiry > previousExpiry)
         {
             nextVisitReservationExpiry = 0f;
         }
 
-        visitReservations[visitor] = expiry;
+        visitReservations[visitorId] = expiry;
         nextVisitReservationExpiry = Mathf.Min(nextVisitReservationExpiry, expiry);
         owner.NotifyOccupancyOrAssignmentChanged();
         return true;
@@ -162,14 +182,15 @@ public sealed class BuildingOccupancy
 
     public void RefreshVisitReservation(IBuildingCharacterPort visitor, float seconds)
     {
-        if (visitor == null || !visitReservations.ContainsKey(visitor))
+        CharacterId visitorId = GetVisitorId(visitor);
+        if (!visitorId.IsValid || !visitReservations.ContainsKey(visitorId))
         {
             return;
         }
 
-        float previousExpiry = visitReservations[visitor];
+        float previousExpiry = visitReservations[visitorId];
         float expiry = Now + Mathf.Max(0.1f, seconds);
-        visitReservations[visitor] = expiry;
+        visitReservations[visitorId] = expiry;
         if (previousExpiry <= nextVisitReservationExpiry
             && expiry > previousExpiry)
         {
@@ -183,13 +204,14 @@ public sealed class BuildingOccupancy
 
     public void ReleaseVisitReservation(IBuildingCharacterPort visitor)
     {
-        if (visitor == null)
+        CharacterId visitorId = GetVisitorId(visitor);
+        if (!visitorId.IsValid)
         {
             return;
         }
 
-        if (!visitReservations.TryGetValue(visitor, out float expiry)
-            || !visitReservations.Remove(visitor))
+        if (!visitReservations.TryGetValue(visitorId, out float expiry)
+            || !visitReservations.Remove(visitorId))
         {
             return;
         }
@@ -202,13 +224,13 @@ public sealed class BuildingOccupancy
         owner.NotifyOccupancyOrAssignmentChanged();
     }
 
-    private int GetActiveVisitReservationCountExcept(IBuildingCharacterPort visitor)
+    private int GetActiveVisitReservationCountExcept(CharacterId visitorId)
     {
         PruneExpiredVisitReservations();
         return Mathf.Max(
             0,
             visitReservations.Count
-            - (visitor != null && visitReservations.ContainsKey(visitor) ? 1 : 0));
+            - (visitorId.IsValid && visitReservations.ContainsKey(visitorId) ? 1 : 0));
     }
 
     private void PruneExpiredVisitReservations()
@@ -228,11 +250,9 @@ public sealed class BuildingOccupancy
         bool changed = false;
         float nextExpiry = float.PositiveInfinity;
         expiredVisitReservations.Clear();
-        foreach (KeyValuePair<IBuildingCharacterPort, float> pair in visitReservations)
+        foreach (KeyValuePair<CharacterId, float> pair in visitReservations)
         {
-            if (pair.Key != null
-                && pair.Key.IsBuildingInteractionAvailable
-                && now < pair.Value)
+            if (pair.Key.IsValid && now < pair.Value)
             {
                 nextExpiry = Mathf.Min(nextExpiry, pair.Value);
                 continue;
@@ -241,9 +261,9 @@ public sealed class BuildingOccupancy
             expiredVisitReservations.Add(pair.Key);
         }
 
-        foreach (IBuildingCharacterPort visitor in expiredVisitReservations)
+        foreach (CharacterId visitorId in expiredVisitReservations)
         {
-            visitReservations.Remove(visitor);
+            visitReservations.Remove(visitorId);
             changed = true;
         }
 
@@ -254,6 +274,9 @@ public sealed class BuildingOccupancy
             owner.NotifyOccupancyOrAssignmentChanged();
         }
     }
+
+    private static CharacterId GetVisitorId(IBuildingCharacterPort visitor) =>
+        visitor?.BuildingCharacterId ?? default;
 
     private float Now => owner.OccupancyAndAssignmentTime;
 }

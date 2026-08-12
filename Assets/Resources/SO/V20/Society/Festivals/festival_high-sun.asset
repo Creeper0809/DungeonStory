@@ -25,7 +25,7 @@ MonoBehaviour:
   requiredBuildingDefinitionId: building:festival-common-hall
   requiredItems:
   - itemDefinitionId: food:twilight-beer
-    amount: 10
+    amount: 8
   minimumParticipants: 8
   successOutcome:
     moodDelta: 6

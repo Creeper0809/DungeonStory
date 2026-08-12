@@ -336,58 +336,63 @@ public sealed class CharacterSkillUseLimitState
     }
 }
 
-[Serializable]
-public sealed class CharacterGrowthAllocationRecord
+public enum CharacterTraitSelectionAuthorityOrigin
 {
-    public int level;
-    public CharacterStatType statType;
-    public string reason = string.Empty;
-
-    public CharacterGrowthAllocationRecord Clone()
-    {
-        return new CharacterGrowthAllocationRecord
-        {
-            level = level,
-            statType = statType,
-            reason = reason ?? string.Empty
-        };
-    }
+    None = 0,
+    PreparedSelection = 1,
+    PopulationGeneration = 2,
+    LegacyCharacterDefinitionBootstrap = 3
 }
 
 [Serializable]
 public sealed class CharacterGrowthState
 {
+    public const int CurrentTraitSelectionAuthorityVersion = 1;
+
     public bool initialized;
     public bool autoChooseDrafts;
     public CharacterPotentialGrade potentialGrade;
     public int generationSeed;
     public string origin = string.Empty;
     public string displayName = string.Empty;
-    public CharacterStatBlock initialBaseStats = CharacterStatBlock.CreateDefault();
-    public CharacterStatBlock levelGrowthStats = new CharacterStatBlock();
+    public CharacterStartingProfileState startingProfile =
+        new CharacterStartingProfileState();
+    public List<CharacterStartingProficiencyExperience> startingProficiencies =
+        new List<CharacterStartingProficiencyExperience>();
+    public int traitSelectionAuthorityVersion;
+    public CharacterTraitSelectionAuthorityOrigin traitSelectionAuthorityOrigin;
     public List<int> traitIds = new List<int>();
     public List<CharacterSkillInstance> activeSkills = new List<CharacterSkillInstance>();
     public List<CharacterSkillInstance> passiveSkills = new List<CharacterSkillInstance>();
     public CharacterSkillInstance ultimate;
     public List<CharacterSkillDraft> drafts = new List<CharacterSkillDraft>();
     public List<string> pendingRequestKeys = new List<string>();
-    public List<CharacterGrowthAllocationRecord> allocationRecords =
-        new List<CharacterGrowthAllocationRecord>();
     public CharacterSkillUseLimitState useLimits = new CharacterSkillUseLimitState();
-    public int allocatedGrowthPoints;
     public bool nextActiveDraftHasPity;
     public int skillGenerationRevision;
 
     public void EnsureCollections()
     {
-        initialBaseStats ??= CharacterStatBlock.CreateDefault();
-        levelGrowthStats ??= new CharacterStatBlock();
+        startingProficiencies ??=
+            new List<CharacterStartingProficiencyExperience>();
+        startingProfile ??= new CharacterStartingProfileState();
+        startingProfile.EnsureCollections();
+        foreach (CharacterStartingProficiencyExperience value in
+                 startingProficiencies.Where(value => value != null))
+        {
+            CharacterProficiencyId proficiencyId = new(value.proficiencyId);
+            value.learningMultiplier = startingProfile.prepared
+                ? CharacterProficiencySpecializationRules.Resolve(
+                    startingProfile,
+                    proficiencyId)
+                : CharacterProficiencySpecializationRules
+                    .NormalizeSerializedMultiplier(value.learningMultiplier);
+        }
         traitIds ??= new List<int>();
         activeSkills ??= new List<CharacterSkillInstance>();
         passiveSkills ??= new List<CharacterSkillInstance>();
         drafts ??= new List<CharacterSkillDraft>();
         pendingRequestKeys ??= new List<string>();
-        allocationRecords ??= new List<CharacterGrowthAllocationRecord>();
         useLimits ??= new CharacterSkillUseLimitState();
     }
 
@@ -402,20 +407,20 @@ public sealed class CharacterGrowthState
             generationSeed = generationSeed,
             origin = origin,
             displayName = displayName,
-            initialBaseStats = CharacterSkillModelUtility.CopyStats(initialBaseStats),
-            levelGrowthStats = CharacterSkillModelUtility.CopyStats(levelGrowthStats),
+            startingProfile = startingProfile.Clone(),
+            startingProficiencies = startingProficiencies
+                .Where(item => item != null)
+                .Select(item => item.Clone())
+                .ToList(),
+            traitSelectionAuthorityVersion = traitSelectionAuthorityVersion,
+            traitSelectionAuthorityOrigin = traitSelectionAuthorityOrigin,
             traitIds = traitIds.ToList(),
             activeSkills = activeSkills.Where(item => item != null).Select(item => item.Clone()).ToList(),
             passiveSkills = passiveSkills.Where(item => item != null).Select(item => item.Clone()).ToList(),
             ultimate = ultimate?.Clone(),
             drafts = drafts.Where(item => item != null).Select(item => item.Clone()).ToList(),
             pendingRequestKeys = pendingRequestKeys.ToList(),
-            allocationRecords = allocationRecords
-                .Where(item => item != null)
-                .Select(item => item.Clone())
-                .ToList(),
             useLimits = useLimits.Clone(),
-            allocatedGrowthPoints = allocatedGrowthPoints,
             nextActiveDraftHasPity = nextActiveDraftHasPity,
             skillGenerationRevision = skillGenerationRevision
         };
@@ -595,19 +600,5 @@ public static class CharacterSkillDisplay
             CharacterSkillRarity.Legendary => "전설",
             _ => "일반"
         };
-    }
-}
-
-public static class CharacterSkillModelUtility
-{
-    public static CharacterStatBlock CopyStats(CharacterStatBlock source)
-    {
-        CharacterStatBlock copy = new CharacterStatBlock();
-        if (source != null)
-        {
-            copy.Add(source);
-        }
-
-        return copy;
     }
 }

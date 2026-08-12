@@ -63,6 +63,12 @@ public static class GameplayPerformanceReportEvaluator
             return false;
         }
 
+        if (!report.meetsGcDistributionTarget
+            || !report.meetsMemoryGrowthTarget)
+        {
+            return false;
+        }
+
         if (options.LivestockCount > 0
             && (report.actualLivestockCount < options.LivestockCount
                 || report.actualStressLivestockCount < options.LivestockCount
@@ -89,11 +95,21 @@ public static class GameplayPerformanceReportEvaluator
             + $"grid={report.gridWidth}x{report.gridHeight}; "
             + $"frameP95={report.frame?.p95 ?? 0f:0.###}; "
             + $"schedulerP95={report.aiBudget?.p95 ?? 0f:0.###}; "
+            + $"gcAuthority={report.gcAcceptanceAuthority}; "
             + $"avgGcBytes={report.gc?.averageBytes ?? 0d:0}; "
-            + $"baselineGcBytes={report.editorBaselineGcAverageBytes:0}; "
-            + $"incrementalGcBytes={report.gameplayIncrementalGcAverageBytes:0}; "
+            + $"p95GcBytes={report.gc?.p95Bytes ?? 0L}; "
+            + $"maxGcBytes={report.gc?.maximumBytes ?? 0L}; "
+            + $"baselineGcSamples={report.editorBaselineGcSampleCount}; "
+            + $"baselineAvgGcBytes={report.editorBaselineGcAverageBytes:0}; "
+            + $"baselineP95GcBytes={report.editorBaselineGcP95Bytes}; "
+            + $"baselineMaxGcBytes={report.editorBaselineGcMaximumBytes}; "
+            + $"incrementalAvgGcBytes={report.gameplayIncrementalGcAverageBytes:0}; "
+            + $"incrementalP95GcBytes={report.gameplayIncrementalGcP95Bytes:0}; "
+            + $"gcTargetPass={report.meetsGcDistributionTarget}; "
+            + $"finalGcAuthority={report.isFinalGcAuthority}; "
             + $"sustainedMonoGrowthBytes={report.sustainedMonoGrowthBytes}; "
-            + $"retainedMonoGrowthBytes={report.retainedMonoGrowthBytes}";
+            + $"retainedMonoGrowthBytes={report.retainedMonoGrowthBytes}; "
+            + $"memoryTargetPass={report.meetsMemoryGrowthTarget}";
     }
 
     public static float ReadRecorderMilliseconds(ProfilerRecorder recorder)

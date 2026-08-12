@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uBE60\uB978 \uD559\uC2B5\uC790"
   description: "\uC0C8 \uACF5\uC815\uC744 \uC9C1\uC811 \uC2DC\uD5D8\uD560 \uAE30\uD68C\uB97C
     \uC120\uD638\uD558\uACE0 \uCCAB \uC131\uACF5\uC5D0 \uD06C\uAC8C \uACE0\uBB34\uB41C\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1.04
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,38 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 3
+  polarity: 0
+  selectionFamilyId: learning
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: work:training
-    utilityDelta: 0.45
-  moodReactions:
-  - triggerTag: event:first-success
-    moodDelta: 3
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: apprenticeship
-    multiplier: 1.35
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:230:effect:0
+    definition: {fileID: 11400000, guid: 7b6cd223d9a9eda43964e6cfee0c6b8e, type: 2}
+    value: 1.3
+    condition: {fileID: 0}
+  identityRules:
+  - rid: 7737211921986486510
+  - rid: 7737211921986486511
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486510
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:new-process
+        priority: 0
+        behaviorTag: work:new-process
+        utilityDelta: 0.75
+    - rid: 7737211921986486511
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:first-process-success
+        priority: 0
+        eventId: work:first-process-success
+        moodDelta: 3
+        durationDays: 1

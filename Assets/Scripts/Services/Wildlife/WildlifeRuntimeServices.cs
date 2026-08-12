@@ -52,7 +52,8 @@ public sealed class WildlifeCombatServices
         ICombatLineOfSightService lineOfSight,
         CombatCoverServices coverServices,
         ICombatAmmoResupplyRuntime ammoResupply,
-        IWildlifeCarcassService carcasses)
+        IWildlifeCarcassService carcasses,
+        ICharacterPerformanceQuery performance)
     {
         Resolution = resolution ?? throw new ArgumentNullException(nameof(resolution));
         Equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
@@ -65,6 +66,7 @@ public sealed class WildlifeCombatServices
             ?? throw new ArgumentNullException(nameof(coverServices));
         AmmoResupply = ammoResupply ?? throw new ArgumentNullException(nameof(ammoResupply));
         Carcasses = carcasses ?? throw new ArgumentNullException(nameof(carcasses));
+        Performance = performance ?? throw new ArgumentNullException(nameof(performance));
     }
 
     public ICombatResolutionService Resolution { get; }
@@ -78,6 +80,7 @@ public sealed class WildlifeCombatServices
         CoverServices.Durability;
     public ICombatAmmoResupplyRuntime AmmoResupply { get; }
     public IWildlifeCarcassService Carcasses { get; }
+    public ICharacterPerformanceQuery Performance { get; }
 }
 
 public sealed class WildlifeExecutionServices

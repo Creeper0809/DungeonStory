@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uAE68\uB057\uD55C \uBB3C"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uAE68\uB057\uD55C \uBB3C."
   stockCategory: 4
-  unitWeight: 0.25
+  unitWeight: 0.5
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 12
+  unitPrice: 1
   features:
-  - rid: 7737211838078124258
-  - rid: 7737211838078124259
+  - rid: 7737211905658585847
+  - rid: 7737211905658585848
+  - rid: 7737211905660420738
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124258
+    - rid: 7737211905658585847
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:agriculture:irrigation
-    - rid: 7737211838078124259
+    - rid: 7737211905658585848
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 0
         ingredientTags: 0
         sharedIntermediate: 0
+    - rid: 7737211905660420738
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.74985075

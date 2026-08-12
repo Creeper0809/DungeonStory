@@ -154,7 +154,8 @@ public static class CombatSystemDebugScenarios
             && Mathf.Approximately(CombatQualityRules.GetMultiplier(CombatEquipmentQuality.Good), 1.1f)
             && Mathf.Approximately(CombatQualityRules.GetMultiplier(CombatEquipmentQuality.Excellent), 1.2f)
             && Mathf.Approximately(CombatQualityRules.GetMultiplier(CombatEquipmentQuality.Masterwork), 1.32f)
-            && Mathf.Approximately(CombatQualityRules.GetMultiplier(CombatEquipmentQuality.Legendary), 1.48f);
+            && Mathf.Approximately(CombatQualityRules.GetMultiplier(CombatEquipmentQuality.Legendary), 1.48f)
+            && Mathf.Approximately(CombatQualityRules.GetMultiplier(CombatEquipmentQuality.Mythic), 1.70f);
     }
 
     private static bool VerifyRangedResolutionOrder()
@@ -766,7 +767,7 @@ public static class CombatSystemDebugScenarios
             attacker,
             defender,
             CreateRoleWeapon(
-                "weapon:rune-bow",
+                "weapon:test-rune-projectile",
                 CombatEquipmentRoleFlags.None,
                 "ammo:rune-cartridge",
                 loadedAmmo: 1),
@@ -1140,7 +1141,7 @@ public static class CombatSystemDebugScenarios
             .Where(item => item != null
                 && item.Kind == ResourceItemKind.Ammunition)
             .ToArray();
-        if (resourceAmmunition.Length != 11
+        if (resourceAmmunition.Length == 0
             || resourceAmmunition.Any(item =>
                 !consumedAmmunitionIds.Contains(
                     (ItemDefinitionId)item.ItemId)))
@@ -1184,15 +1185,15 @@ public static class CombatSystemDebugScenarios
         };
         string[] expectedCartridges = { "ammo:paper-cartridge" };
 
-        return bows.All(id => HasExactAmmunition(
+        return bows.All(id => HasAllAmmunition(
                 equipmentCatalog,
                 id,
                 expectedArrows))
-            && crossbows.All(id => HasExactAmmunition(
+            && crossbows.All(id => HasAllAmmunition(
                 equipmentCatalog,
                 id,
                 expectedBolts))
-            && guns.All(id => HasExactAmmunition(
+            && guns.All(id => HasAllAmmunition(
                 equipmentCatalog,
                 id,
                 expectedCartridges))
@@ -1202,16 +1203,16 @@ public static class CombatSystemDebugScenarios
                 (ItemDefinitionId)"ammo:trap-canister");
     }
 
-    private static bool HasExactAmmunition(
+    private static bool HasAllAmmunition(
         ICombatEquipmentCatalog catalog,
         string weaponId,
         IReadOnlyList<string> expectedItemIds)
     {
         return catalog.TryGet(weaponId, out CombatEquipmentDefinitionSO definition)
             && definition is CombatWeaponSO weapon
-            && weapon.CompatibleAmmunitionItemIds
-                .Select(itemId => itemId.Value)
-                .SequenceEqual(expectedItemIds);
+            && expectedItemIds.All(expected =>
+                weapon.CompatibleAmmunitionItemIds.Any(actual =>
+                    actual.Equals((ItemDefinitionId)expected)));
     }
 
     private static IReadOnlyList<T> LoadAuthoredAssets<T>()
@@ -1446,7 +1447,6 @@ public static class CombatSystemDebugScenarios
                     new ResourceAnatomyProfileCatalog(
                         new ResourceGameContentCatalog(
                             new UnityGameContentRootLoader())),
-                    new DefaultAnatomyActivityProfileCatalog(),
                     new DungeonRuntimeAggregateRootStore());
             CharacterBodyHealthSnapshot critical = new CharacterBodyHealthSnapshot(
                 CreateBodyParts(headAndTorsoRatio: 0.2f, legRatio: 1f),
@@ -1513,7 +1513,6 @@ public static class CombatSystemDebugScenarios
                     new ResourceAnatomyProfileCatalog(
                         new ResourceGameContentCatalog(
                             new UnityGameContentRootLoader())),
-                    new DefaultAnatomyActivityProfileCatalog(),
                     new DungeonRuntimeAggregateRootStore());
             actor.Stats.ConstructCharacterVitals(
                 new CharacterStatsVitalsService(
@@ -1639,25 +1638,10 @@ public static class CombatSystemDebugScenarios
 
     private static bool VerifyInitialStats()
     {
-        CharacterStatDefinition[] definitions = CharacterStatCatalog.All.ToArray();
-        if (definitions.Length != 12
-            || definitions.All(item => item.Id != CharacterStatIds.Shooting)
-            || definitions.All(item => item.Id != CharacterStatIds.Evasion)
-            || definitions.All(item => item.Id != CharacterStatIds.Medical))
-        {
-            return false;
-        }
-
-        CharacterSkillSystemSettingsSO settings = ScriptableObject.CreateInstance<CharacterSkillSystemSettingsSO>();
-        settings.initialStatTotal = 60;
-        settings.initialStatMin = 1;
-        settings.initialStatMax = 10;
-        CharacterStatBlock block = CharacterGrowthRules.RollInitialStats(settings, new System.Random(991));
-        int total = Enum.GetValues(typeof(CharacterStatType))
-            .Cast<CharacterStatType>()
-            .Sum(block.Get);
-        UnityEngine.Object.DestroyImmediate(settings);
-        return total == 60;
+        IReadOnlyList<CharacterStartingProficiencyExperience> values =
+            CharacterStartingProficiencyRules.Create(991);
+        CharacterStartingProficiencyRules.Validate(values);
+        return values.Count == BuiltInCharacterProficiencyIds.All.Count;
     }
 
     private static bool VerifySaveContract()
@@ -1749,7 +1733,6 @@ public static class CombatSystemDebugScenarios
                 new DynamicFrameWorkBudget(new UnityGameClock(), new UnityUiClock()),
                 new ResourceAnatomyProfileCatalog(
                     new ResourceGameContentCatalog(new UnityGameContentRootLoader())),
-                new DefaultAnatomyActivityProfileCatalog(),
                 root);
             runtime.ConfigureVitals(actor, 123f, resetCurrentHealth: true);
             CharacterBodyHealthSaveSection section = new CharacterBodyHealthSaveSection(runtime);

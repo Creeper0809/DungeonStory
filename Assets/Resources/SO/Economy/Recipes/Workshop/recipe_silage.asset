@@ -32,9 +32,19 @@ MonoBehaviour:
   - support:fermenter
   batchSupportTag: support:fermenter
   processKind: 1
+  flowRole: 0
+  processClass: 2
+  processClassAuthored: 1
   workTypeId: work:craft
+  proficiency:
+    primaryProficiencyId: proficiency:food-production
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
   requiredResearchId: research:husbandry:feed
-  requiredWork: 3
+  requiredWork: 46
   preparationWork: 3
   finishingWork: 1
   processingGameHours: 12

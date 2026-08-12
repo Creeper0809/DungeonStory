@@ -84,7 +84,6 @@ public static class SampleSceneRationDebugScenarios
                 temporaryActorData = ScriptableObject.CreateInstance<CharacterSO>();
                 temporaryActorData.characterName = "Ration Probe";
                 temporaryActorData.characterType = CharacterType.NPC;
-                temporaryActorData.baseStats = CharacterStatBlock.CreateDefault();
                 actor.Initialize(temporaryActorData);
                 actor.SetLifecycleState(CharacterLifecycleState.Active);
             }

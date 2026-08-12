@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 4
   features:
-  - rid: 7737211838068949802
-  - rid: 7737211838068949803
-  - rid: 7737211838068949804
+  - rid: 7737211905666712063
+  - rid: 7737211905666712064
+  - rid: 7737211905666712065
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949802
+    - rid: 7737211905666712063
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:milling
-    - rid: 7737211838068949803
+    - rid: 7737211905666712064
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 1
         sharedIntermediate: 1
-    - rid: 7737211838068949804
+    - rid: 7737211905666712065
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

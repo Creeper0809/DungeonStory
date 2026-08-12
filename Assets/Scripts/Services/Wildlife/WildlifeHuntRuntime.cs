@@ -13,6 +13,7 @@ internal sealed class WildlifeHuntRuntime
     private readonly ICombatEquipmentRuntime combatEquipmentRuntime;
     private readonly ICharacterBodyHealthQuery bodyHealthQuery;
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
+    private readonly ICharacterPerformanceQuery performance;
     private readonly ICombatLineOfSightService lineOfSightService;
     private readonly ICombatCoverQuery coverQuery;
     private readonly ICombatCoverDurabilityRegistry coverDurability;
@@ -45,6 +46,7 @@ internal sealed class WildlifeHuntRuntime
         combatEquipmentRuntime = requiredCombat.Equipment;
         bodyHealthQuery = requiredCombat.BodyHealthQuery;
         bodyHealthCommands = requiredCombat.BodyHealthCommands;
+        performance = requiredCombat.Performance;
         lineOfSightService = requiredCombat.LineOfSight;
         coverQuery = requiredCombat.Cover;
         coverDurability = requiredCombat.CoverDurability;
@@ -517,28 +519,11 @@ internal sealed class WildlifeHuntRuntime
             false);
     }
 
-    private static CombatStatSnapshot CreateHunterCombatStats(
+    private CombatStatSnapshot CreateHunterCombatStats(
         CharacterActor hunter,
         CharacterBodyHealthSnapshot body)
     {
-        if (hunter == null)
-        {
-            return default;
-        }
-
-        float healthRatio = Mathf.Clamp01(hunter.CurrentHealth / Mathf.Max(1f, hunter.MaxHealth));
-        float bodyEfficiency = Mathf.Min(
-            body.Consciousness,
-            Mathf.Lerp(0.5f, 1f, body.Manipulation));
-        return new CombatStatSnapshot(
-            hunter.GetCharacterStat(CharacterStatType.Attack),
-            hunter.GetCharacterStat(CharacterStatType.Shooting),
-            hunter.GetCharacterStat(CharacterStatType.Evasion),
-            hunter.GetCharacterStat(CharacterStatType.MoveSpeed) * body.Mobility,
-            hunter.GetCharacterStat(CharacterStatType.Strength),
-            hunter.GetCharacterStat(CharacterStatType.Toughness),
-            hunter.GetCharacterStat(CharacterStatType.Dexterity) * body.Manipulation,
-            healthRatio * bodyEfficiency);
+        return CombatRuntimeStatFactory.Create(hunter, body, performance);
     }
 
     private static CombatStatSnapshot CreateWildlifeCombatStats(WildlifeActor actor)

@@ -22,7 +22,7 @@ MonoBehaviour:
   deadlineDays: 5
   serviceRequirements:
     items:
-    - itemDefinitionId: item:candle
+    - itemDefinitionId: craft:candle
       amount: 10
       consume: 1
     facilities:
@@ -39,7 +39,7 @@ MonoBehaviour:
   successEffects:
   - kind: 9
     targetId: guest-service
-    amount: 200
+    amount: 214
     durationDays: 0
   - kind: 6
     targetId: requesting-faction

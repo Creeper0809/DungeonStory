@@ -16,6 +16,14 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
     private IStockQuery stockQuery;
     private IStockCategoryDefinitionCatalog stockCategoryCatalog;
 
+    private static void SetVisitOutcome(
+        IBuildingVisitorPort actor,
+        Facility facility,
+        BuildingVisitOutcome outcome)
+    {
+        actor?.Shopping?.SetVisitOutcome(facility, outcome);
+    }
+
     public WarehouseInventory Inventory => warehouseInventory;
     public IWarehouseInventoryPort InventoryPort => warehouseInventory;
     public bool HasWarehouseInventory => warehouseInventory != null;
@@ -83,6 +91,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
     {
         if (!CanVisit(actor, out string visitFailure))
         {
+            SetVisitOutcome(actor, this, BuildingVisitOutcome.Failed);
             actor?.RecordActivity(this, new BuildingActivitySnapshot(
                 BuildingActivityKinds.FacilityUse,
                 BuildingActivityOutcomes.Failed,
@@ -251,6 +260,11 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 currentAction);
         }
 
+        BuildingRecreationalSubstanceServiceAbility recreation =
+            BuildingData?.GetAbility<BuildingRecreationalSubstanceServiceAbility>();
+        bool usesPhysicalMealAction = recreation?.IsValid != true
+            && Facility != null
+            && Facility.SupportsRole(FacilityRole.Meal);
         float duration = serviceSession?.Contract?.serviceSeconds > 0f
             ? serviceSession.Contract.serviceSeconds
             : Facility != null
@@ -266,23 +280,104 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 ServiceSessionStage.Service,
                 out _);
         }
-        if (duration > 0f)
+        if (duration > 0f && !usesPhysicalMealAction)
         {
             yield return Linger(actor, duration, currentAction);
         }
 
         BuildingMealUseSnapshot mealResult = default;
-        if (Facility != null && Facility.SupportsRole(FacilityRole.Meal))
+        if (recreation?.IsValid == true)
         {
-            if (mealConsumptionRuntime == null
-                || !actor.TryConsumeMeal(
+            if (!actor.TryConsumeRecreationalSubstance(
+                    this,
+                    out BuildingRecreationalSubstanceUseSnapshot substanceResult))
+            {
+                string failureCode = string.IsNullOrWhiteSpace(substanceResult.FailureCode)
+                    ? CharacterConsumablesFailureCode.InvalidCommand.ToString()
+                    : substanceResult.FailureCode;
+                if (serviceSession != null)
+                {
+                    serviceSessionRuntime.CancelSession(
+                        serviceSession.SessionId,
+                        failureCode);
+                }
+                actor.RecordActivity(this, new BuildingActivitySnapshot(
+                    BuildingActivityKinds.FacilityUse,
+                    BuildingActivityOutcomes.Failed,
+                    failureCode,
+                    reasonCode: failureCode,
+                    bubbleEligible: true));
+                EndUse(actor);
+                yield break;
+            }
+
+            ApplyRecovery(actor, 0f, 0f, recreation.funRecovery, 0f, 0f, 0f);
+            float sentiment = recreation.facilitySentiment;
+            string socialDetail = $"{substanceResult.DisplayName}을(를) 즐김";
+            actor.RememberFacilityExperience(this, sentiment, socialDetail);
+            actor.RecordActivity(this, new BuildingActivitySnapshot(
+                BuildingActivityKinds.Social,
+                BuildingActivityOutcomes.Completed,
+                socialDetail,
+                actionId: "social:recreational-drink",
+                reasonCode: substanceResult.Overdosed
+                    ? "recreational-drink-overdose"
+                    : substanceResult.BecameAddicted
+                        ? "recreational-drink-addiction"
+                        : "recreational-drink",
+                value: recreation.funRecovery,
+                sentiment: substanceResult.Overdosed ? -0.5f : sentiment,
+                bubbleEligible: true));
+        }
+        else if (Facility != null && Facility.SupportsRole(FacilityRole.Meal))
+        {
+            bool mealConsumed = mealConsumptionRuntime != null
+                && actor.TryConsumeMeal(
                     mealConsumptionRuntime,
                     this,
-                    out mealResult))
+                    out mealResult);
+            if (!mealConsumed && mealResult.AcceptedPending)
+            {
+                actor.SetActionPhase("식사 중", this, "4s");
+                float deadline = Time.realtimeSinceStartup + 15f;
+                while (Time.realtimeSinceStartup < deadline)
+                {
+                    yield return null;
+                    if (!actor.TryGetMealConsumptionResult(
+                            mealConsumptionRuntime,
+                            mealResult.OperationId,
+                            out BuildingMealUseSnapshot currentMeal))
+                    {
+                        mealResult = currentMeal;
+                        break;
+                    }
+                    mealResult = currentMeal;
+                    if (mealResult.Success)
+                    {
+                        mealConsumed = true;
+                        break;
+                    }
+                    if (!mealResult.AcceptedPending)
+                    {
+                        break;
+                    }
+                }
+                if (!mealConsumed && mealResult.AcceptedPending)
+                {
+                    mealResult = new BuildingMealUseSnapshot(
+                        false,
+                        CharacterConsumablesFailureCode.PhysicalConsumptionFailed.ToString(),
+                        string.Empty,
+                        0);
+                }
+            }
+            if (!mealConsumed)
             {
                 string failureCode = mealConsumptionRuntime == null
                     ? "InvalidCommand"
-                    : mealResult.FailureCode;
+                    : string.IsNullOrWhiteSpace(mealResult.FailureCode)
+                        ? CharacterConsumablesFailureCode.PhysicalConsumptionFailed.ToString()
+                        : mealResult.FailureCode;
                 if (serviceSession != null)
                 {
                     serviceSessionRuntime.CancelSession(
@@ -346,6 +441,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             mealResult.Success
                 ? $"{mealResult.DisplayName} 식사 완료"
                 : $"{objectNameOrDefault()} 이용 완료"));
+        SetVisitOutcome(actor, this, BuildingVisitOutcome.Completed);
         if (serviceSession != null
             && !serviceSessionRuntime.TryCompleteSession(
                 serviceSession.SessionId,
@@ -618,6 +714,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             excretion,
             hygiene,
             $"facility:{RequirePersistentInstanceId().Value}",
+            roomEnvironmentExperienceService?.GetActiveConditionIds(this),
             $"{objectNameOrDefault()} 이용"));
     }
 

@@ -1395,6 +1395,146 @@ MonoBehaviour:
     m_Key: VaccineDoseUnavailable
     m_Metadata:
       m_Items: []
+  - m_Id: 3501337194352640
+    m_Key: ApparelAttachmentMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337240489984
+    m_Key: ApparelBodyFormIncompatible
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337240489985
+    m_Key: ApparelCharacterMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684288
+    m_Key: ApparelDefinitionMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684289
+    m_Key: ApparelFacilityUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684290
+    m_Key: ApparelItemReserved
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684291
+    m_Key: ApparelLayerOccupied
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684292
+    m_Key: ApparelMaterialUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684293
+    m_Key: ApparelModificationRequired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684294
+    m_Key: ApparelPhysicalItemMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684295
+    m_Key: ApparelPlanStale
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684296
+    m_Key: ApparelRecoveryDeferred
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684297
+    m_Key: ApparelResearchLocked
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684298
+    m_Key: ApparelReservationExpired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684299
+    m_Key: ApparelSizeIncompatible
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684300
+    m_Key: ApparelStateInvalid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684301
+    m_Key: ApparelTransferFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337244684302
+    m_Key: ApparelWorkOrderInvalid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337248878592
+    m_Key: QualityPipelineBlocked
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337248878593
+    m_Key: QualityTargetUnreachable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337248878594
+    m_Key: WorkOrderInvalid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337248878595
+    m_Key: WorkOrderMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501337248878596
+    m_Key: WorkOrderWorkerIneligible
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626472966541312
+    m_Key: ItemAggregationDestinationMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473075593216
+    m_Key: ItemAggregationIncompatible
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473075593217
+    m_Key: ItemReservationLeaseExpired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473075593218
+    m_Key: ItemReservationLeaseMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473079787520
+    m_Key: ItemReservationOperationConflict
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473079787521
+    m_Key: ItemReservationQuantityUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473079787522
+    m_Key: ItemReservationRequestInvalid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473079787523
+    m_Key: ItemReservationRestoreConflict
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473079787524
+    m_Key: ItemReservationSignatureMismatch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473079787525
+    m_Key: ItemReservationSliceInvalid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473079787526
+    m_Key: ItemReservationStackForbidden
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3626473079787527
+    m_Key: ItemReservationStackMissing
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

@@ -31,15 +31,35 @@ MonoBehaviour:
   objectName: "\uC804\uC220\uC9C0\uB3C4\uD0C1\uC790"
   sprite: {fileID: 21300000, guid: 63b7ea22cb495bc46b7ea71d8d4a68a3, type: 3}
   icon: {fileID: 21300000, guid: 63b7ea22cb495bc46b7ea71d8d4a68a3, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  deprecatedCompatibilityAsset: 0
+  useClassification: 0
+  researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: proficiency:melee-combat
+    secondaryProficiencyId: proficiency:ranged-combat
+    primaryWeight: 0.5
+    combinationMode: 2
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730538791876
-    - rid: 7737211730538791877
-    - rid: 7737211730538791878
-    - rid: 7737211730538791879
-    - rid: 7737211730538791880
-    - rid: 7737211730538791881
-    - rid: 7737211730538791882
+    - rid: 7737211921440178535
+    - rid: 7737211921440178536
+    - rid: 7737211921440178537
+    - rid: 7737211921440178538
+    - rid: 7737211921440178539
+    - rid: 7737211921440178540
+    - rid: 7737211921440178541
   width: 2
   height: 1
   layer: 1
@@ -55,13 +75,13 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730538791876
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440178535
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: G04
-    - rid: 7737211730538791877
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440178536
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 135
@@ -69,19 +89,35 @@ MonoBehaviour:
         maintenance: 4
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7737211730538791878
+    - rid: 7737211921440178537
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 26.7
-        repairWorkRequired: 12
-        cleanWorkRequired: 7.5
+        constructionProjectScale: 1
+        constructionWorkRequired: 232
+        repairWorkRequired: 58
+        cleanWorkRequired: 10
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: material:stone-block
-          amount: 7
-    - rid: 7737211730538791879
+        - itemId: material:treated-lumber
+          amount: 5
+        - itemId: component:engineering-drawing
+          amount: 1
+        - itemId: material:iron-ingot
+          amount: 1
+    - rid: 7737211921440178538
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -92,11 +128,11 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 37
           disabledWhenDamaged: 1
-    - rid: 7737211730538791880
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440178539
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211730538791881
+    - rid: 7737211921440178540
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -114,7 +150,7 @@ MonoBehaviour:
           - key: Service
             value: 2.5
           metrics: []
-    - rid: 7737211730538791882
+    - rid: 7737211921440178541
       type: {class: BuildingSecurityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingSecurityAbility

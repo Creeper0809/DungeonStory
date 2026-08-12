@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uC810\uC561 \uC751\uACE0\uD2C0"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC810\uC561 \uC751\uACE0\uD2C0."
   stockCategory: 1
-  unitWeight: 1.3299999
+  unitWeight: 1.15
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 84
+  unitPrice: 50
   features:
-  - rid: 7737211838078124389
-  - rid: 7737211838078124390
+  - rid: 7737211905658585936
+  - rid: 7737211905658585937
+  - rid: 7737211905660420774
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124389
+    - rid: 7737211905658585936
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:slime-bioengineering
-    - rid: 7737211838078124390
+    - rid: 7737211905658585937
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 128
         sharedIntermediate: 0
+    - rid: 7737211905660420774
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6037649

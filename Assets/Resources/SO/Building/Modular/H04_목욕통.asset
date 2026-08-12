@@ -34,25 +34,38 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730834227307
-    - rid: 7737211730834227308
-    - rid: 7737211730834227309
-    - rid: 7737211730834227310
-    - rid: 7737211730834227311
-    - rid: 7737211730834227312
-    - rid: 7737211730834227313
-    - rid: 7737211730834227314
-    - rid: 7737211730834227315
-    - rid: 7737211730834227316
-    - rid: 7737211730834227317
-    - rid: 7737211730834227318
-    - rid: 7737211838074978532
-    - rid: 7737211838074978533
-    - rid: 7737211838074979034
+    - rid: 7737211921440178696
+    - rid: 7737211921440178697
+    - rid: 7737211921440178698
+    - rid: 7737211921440178699
+    - rid: 7737211921440178700
+    - rid: 7737211921440178701
+    - rid: 7737211921440178702
+    - rid: 7737211921440178703
+    - rid: 7737211921440178704
+    - rid: 7737211921440178705
+    - rid: 7737211921440178706
+    - rid: 7737211921440178707
+    - rid: 7737211921440178708
   width: 2
   height: 1
   layer: 1
@@ -68,12 +81,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730834227307
+    - rid: 7737211921440178696
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: H04
-    - rid: 7737211730834227308
+    - rid: 7737211921440178697
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -82,19 +95,35 @@ MonoBehaviour:
         maintenance: 4
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7737211730834227309
+    - rid: 7737211921440178698
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 26.7
-        repairWorkRequired: 12
-        cleanWorkRequired: 7.5
+        constructionProjectScale: 1
+        constructionWorkRequired: 208
+        repairWorkRequired: 52
+        cleanWorkRequired: 10
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
+        - itemId: material:treated-lumber
+          amount: 6
+        - itemId: material:iron-ingot
+          amount: 3
         - itemId: material:stone-block
-          amount: 7
-    - rid: 7737211730834227310
+          amount: 2
+    - rid: 7737211921440178699
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -103,13 +132,13 @@ MonoBehaviour:
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
-          supportedWorkTypes: 536911884
+          supportedWorkTypes: 40972
           disabledWhenDamaged: 1
-    - rid: 7737211730834227311
+    - rid: 7737211921440178700
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211730834227312
+    - rid: 7737211921440178701
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -124,7 +153,7 @@ MonoBehaviour:
           - key: Rest
             value: 2
           metrics: []
-    - rid: 7737211730834227313
+    - rid: 7737211921440178702
       type: {class: BuildingNeedRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingNeedRecoveryAbility
@@ -135,56 +164,39 @@ MonoBehaviour:
           hunger: 0
           excretion: 0
           hygiene: 85
-    - rid: 7737211730834227314
+    - rid: 7737211921440178703
       type: {class: BuildingCleaningAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingCleaningAbility
         restoredCleanliness: 100
-    - rid: 7737211730834227315
+    - rid: 7737211921440178704
       type: {class: BuildingExpeditionRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingExpeditionRecoveryAbility
         healthHealRatio: 0.08
         injuryReduction: 0.12
         stressRecovery: 26
-    - rid: 7737211730834227316
+    - rid: 7737211921440178705
       type: {class: BuildingWaterSourceAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingWaterSourceAbility
         waterPerWork: 6
         workSeconds: 1.2
         blockedByFreezingWeather: 1
-    - rid: 7737211730834227317
+    - rid: 7737211921440178706
       type: {class: BuildingMedicalAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingMedicalAbility
         workSeconds: 1.1
         severityReduction: 0.28
         requiresMedicine: 0
-    - rid: 7737211730834227318
+    - rid: 7737211921440178707
       type: {class: BuildingVentilationAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingVentilationAbility
         hygieneRiskReduction: 16
         smokeRiskReduction: 6
-    - rid: 7737211838074978532
-      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingUtilityConnectionAbility
-        channels: 6
-        maxThroughput: 20
-        normallyOpen: 1
-    - rid: 7737211838074978533
-      type: {class: BuildingWaterFixtureAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingWaterFixtureAbility
-        cleanWaterPerUse: 1
-        wastewaterPerUse: 1
-        minimumQuality: 0
-        allowsManualWaterFallback: 0
-        allowsDryFallback: 0
-        manualWasteItemId: 
-    - rid: 7737211838074979034
+    - rid: 7737211921440178708
       type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceHubAbility

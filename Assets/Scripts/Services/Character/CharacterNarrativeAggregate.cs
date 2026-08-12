@@ -11,7 +11,8 @@ internal sealed class CharacterNarrativeRecord
     private readonly Dictionary<LifeEventCategory, CharacterNarrativeEventSummarySaveData> summaries;
     private readonly Dictionary<string, CulturalPracticeParticipationSaveData>
         practiceParticipations;
-    private readonly Dictionary<string, int> skillExperienceById;
+    private readonly Dictionary<string, NarrativeSkillExperienceSaveData>
+        proficiencyById;
     private readonly Dictionary<string, float> backgroundFactionReactionById;
 
     private CharacterNarrativeRecord(CharacterNarrativeSaveData data)
@@ -44,14 +45,69 @@ internal sealed class CharacterNarrativeRecord
             0,
             data.backgroundInitializedAbsoluteDay);
         InitialMemoryCode = Normalize(data.initialMemoryCode);
-        skillExperienceById = (data.skillExperience ?? new())
+        proficiencyById = (data.skillExperience ?? new())
             .Where(value => value != null
-                && !string.IsNullOrWhiteSpace(value.skillId))
-            .GroupBy(value => Normalize(value.skillId), StringComparer.Ordinal)
+                && !string.IsNullOrWhiteSpace(value.proficiencyId))
+            .GroupBy(
+                value => Normalize(value.proficiencyId),
+                StringComparer.Ordinal)
             .ToDictionary(
                 group => group.Key,
-                group => group.Sum(value => Math.Max(0, value.experience)),
+                group =>
+                {
+                    NarrativeSkillExperienceSaveData latest = group.Last();
+                    long current = Math.Clamp(
+                        group.Sum(value => Math.Max(0L, value.currentMilliExperience)),
+                        0L,
+                        ProficiencyProgressionRules.MasterCurrentCap);
+                    long lifetime = Math.Max(
+                        current,
+                        group.Sum(value => Math.Max(0L, value.lifetimeMilliExperience)));
+                    return new NarrativeSkillExperienceSaveData
+                    {
+                        proficiencyId = group.Key,
+                        learningMultiplier =
+                            CharacterProficiencySpecializationRules
+                                .NormalizeSerializedMultiplier(
+                                    latest.learningMultiplier),
+                        currentMilliExperience = current,
+                        lifetimeMilliExperience = lifetime,
+                        lastPracticeAbsoluteHour = Math.Max(
+                            0L,
+                            latest.lastPracticeAbsoluteHour),
+                        lastDecaySettlementAbsoluteHour = Math.Max(
+                            Math.Max(0L, latest.lastPracticeAbsoluteHour),
+                            latest.lastDecaySettlementAbsoluteHour),
+                        maintenancePracticeMilliExperience = Math.Max(
+                            0L,
+                            latest.maintenancePracticeMilliExperience),
+                        practiceAbsoluteDay = latest.practiceAbsoluteDay,
+                        practiceMilliExperienceToday = Math.Max(
+                            0L,
+                            latest.practiceMilliExperienceToday),
+                        combatAwardAbsoluteDay = latest.combatAwardAbsoluteDay,
+                        combatAwardMilliToday = Math.Max(
+                            0L,
+                            latest.combatAwardMilliToday),
+                        trainingAwardMilliToday = Math.Max(
+                            0L,
+                            latest.trainingAwardMilliToday),
+                        recentCombatAwardKeys =
+                            (latest.recentCombatAwardKeys ?? new List<string>())
+                            .Where(value => !string.IsNullOrWhiteSpace(value))
+                            .Distinct(StringComparer.Ordinal)
+                            .TakeLast(64)
+                            .ToList()
+                    };
+                },
                 StringComparer.Ordinal);
+        if (proficiencyById.Values.Any(value =>
+                !CharacterProficiencySpecializationRules.IsCanonical(
+                    value.learningMultiplier)))
+        {
+            throw new InvalidOperationException(
+                $"Character '{CharacterId.Value}' has an invalid proficiency learning multiplier.");
+        }
         backgroundFactionReactionById =
             (data.backgroundFactionReactions ?? new())
             .Where(value => value != null
@@ -92,7 +148,9 @@ internal sealed class CharacterNarrativeRecord
         string enemyArchetypeId = "",
         string originFactionId = "",
         string militaryTrainingId = "",
-        float loyalty = 0f)
+        float loyalty = 0f,
+        IReadOnlyList<CharacterStartingProficiencyExperience>
+            startingProficiencies = null)
     {
         if (!characterId.IsValid) throw new ArgumentException("A valid CharacterId is required.", nameof(characterId));
         if (!backgroundId.IsValid || !cultureId.IsValid) throw new InvalidOperationException("Narrative registration requires valid definition ids.");
@@ -100,6 +158,13 @@ internal sealed class CharacterNarrativeRecord
         string[] latentIds = RequireTraits(latent, 2, "latent");
         if (expressedIds.Intersect(latentIds, StringComparer.Ordinal).Any())
             throw new InvalidOperationException("A heritable trait cannot be both expressed and latent.");
+        IReadOnlyList<CharacterStartingProficiencyExperience> starts =
+            startingProficiencies != null && startingProficiencies.Count > 0
+                ? startingProficiencies
+                : CharacterStartingProficiencyRules.Create(
+                    unchecked((int)PersistentEntityId.GetStableHash32(
+                        characterId.Value)));
+        CharacterStartingProficiencyRules.Validate(starts);
         return new CharacterNarrativeRecord(new CharacterNarrativeSaveData
         {
             characterId = characterId.Value,
@@ -111,7 +176,26 @@ internal sealed class CharacterNarrativeRecord
             originEnemyArchetypeId = Normalize(enemyArchetypeId),
             originFactionId = Normalize(originFactionId),
             militaryTrainingId = Normalize(militaryTrainingId),
-            loyalty = Math.Max(0f, Math.Min(100f, loyalty))
+            loyalty = Math.Max(0f, Math.Min(100f, loyalty)),
+            skillExperience = starts
+                .OrderBy(value => value.proficiencyId, StringComparer.Ordinal)
+                .Select(value => new NarrativeSkillExperienceSaveData
+                {
+                    proficiencyId = value.proficiencyId,
+                    learningMultiplier =
+                        CharacterProficiencySpecializationRules
+                            .NormalizeSerializedMultiplier(
+                                value.learningMultiplier),
+                    currentMilliExperience = checked(
+                        (long)value.experience
+                        * ProficiencyProgressionRules.MilliPerExperience),
+                    lifetimeMilliExperience = checked(
+                        (long)value.experience
+                        * ProficiencyProgressionRules.MilliPerExperience),
+                    lastPracticeAbsoluteHour = 0L,
+                    lastDecaySettlementAbsoluteHour = 0L
+                })
+                .ToList()
         });
     }
 
@@ -156,6 +240,30 @@ internal sealed class CharacterNarrativeRecord
                     $"'{data.characterId}' has an invalid cultural-practice history.");
             }
         }
+        foreach (NarrativeSkillExperienceSaveData proficiency in
+                 value.proficiencyById.Values)
+        {
+            CharacterProficiencyId proficiencyId = new(proficiency.proficiencyId);
+            catalog.Require(proficiencyId);
+            if (proficiency.currentMilliExperience < 0L
+                || proficiency.currentMilliExperience
+                    > ProficiencyProgressionRules.MasterCurrentCap
+                || proficiency.lifetimeMilliExperience
+                    < proficiency.currentMilliExperience
+                || proficiency.lastPracticeAbsoluteHour < 0L
+                || proficiency.lastDecaySettlementAbsoluteHour
+                    < proficiency.lastPracticeAbsoluteHour)
+            {
+                throw new InvalidOperationException(
+                    $"'{data.characterId}' has invalid proficiency state for '{proficiency.proficiencyId}'.");
+            }
+        }
+        if (BuiltInCharacterProficiencyIds.All.Any(id =>
+                !value.proficiencyById.ContainsKey(id.Value)))
+        {
+            throw new InvalidOperationException(
+                $"'{data.characterId}' predates the nine-proficiency starting authority; new game required.");
+        }
         return value;
     }
 
@@ -197,10 +305,24 @@ internal sealed class CharacterNarrativeRecord
                 continue;
             }
             string skillId = Normalize(bonus.skillId);
-            skillExperienceById[skillId] = checked(
-                (skillExperienceById.TryGetValue(skillId, out int current)
-                    ? current
-                    : 0) + Math.Max(0, bonus.experience));
+            CharacterProficiencyId proficiencyId = new(skillId);
+            if (!proficiencyId.IsValid)
+            {
+                throw new InvalidOperationException(
+                    $"Background '{definition.StableId}' uses removed skill id '{skillId}'.");
+            }
+            NarrativeSkillExperienceSaveData state = RequireProficiencyState(
+                proficiencyId,
+                absoluteDay <= 0
+                    ? 0L
+                    : (long)(absoluteDay - 1) * GameCalendarRules.HoursPerDay);
+            long award = Math.Max(0, bonus.experience)
+                * ProficiencyProgressionRules.MilliPerExperience;
+            state.currentMilliExperience = Math.Min(
+                ProficiencyProgressionRules.MasterCurrentCap,
+                checked(state.currentMilliExperience + award));
+            state.lifetimeMilliExperience = checked(
+                state.lifetimeMilliExperience + award);
         }
         foreach (V20WeightedId reaction in definition.factionReactions
                      ?? new List<V20WeightedId>())
@@ -219,9 +341,7 @@ internal sealed class CharacterNarrativeRecord
         {
             BackgroundId = BackgroundId,
             InitialMemoryCode = InitialMemoryCode,
-            SkillExperienceById = new Dictionary<string, int>(
-                skillExperienceById,
-                StringComparer.Ordinal),
+            SkillExperienceById = CreateExperienceProjection(),
             FactionReactionById = new Dictionary<string, float>(
                 backgroundFactionReactionById,
                 StringComparer.Ordinal),
@@ -409,9 +529,11 @@ internal sealed class CharacterNarrativeRecord
         BackgroundInitialized = BackgroundInitialized,
         BackgroundInitializedAbsoluteDay = BackgroundInitializedAbsoluteDay,
         InitialMemoryCode = InitialMemoryCode,
-        SkillExperienceById = new Dictionary<string, int>(
-            skillExperienceById,
-            StringComparer.Ordinal),
+        SkillExperienceById = CreateExperienceProjection(),
+        Proficiencies = proficiencyById.Values
+            .OrderBy(value => value.proficiencyId, StringComparer.Ordinal)
+            .Select(CreateSnapshot)
+            .ToArray(),
         BackgroundFactionReactionById = new Dictionary<string, float>(
             backgroundFactionReactionById,
             StringComparer.Ordinal),
@@ -445,13 +567,9 @@ internal sealed class CharacterNarrativeRecord
         backgroundInitialized = BackgroundInitialized,
         backgroundInitializedAbsoluteDay = BackgroundInitializedAbsoluteDay,
         initialMemoryCode = InitialMemoryCode,
-        skillExperience = skillExperienceById
+        skillExperience = proficiencyById
             .OrderBy(value => value.Key, StringComparer.Ordinal)
-            .Select(value => new NarrativeSkillExperienceSaveData
-            {
-                skillId = value.Key,
-                experience = value.Value
-            })
+            .Select(value => Clone(value.Value))
             .ToList(),
         backgroundFactionReactions = backgroundFactionReactionById
             .OrderBy(value => value.Key, StringComparer.Ordinal)
@@ -465,6 +583,315 @@ internal sealed class CharacterNarrativeRecord
             .OrderBy(value => value.practiceId, StringComparer.Ordinal)
             .Select(Clone)
             .ToList()
+    };
+
+    public bool TryGetProficiency(
+        CharacterProficiencyId proficiencyId,
+        long absoluteHour,
+        out CharacterProficiencySnapshot snapshot)
+    {
+        if (!proficiencyId.IsValid)
+        {
+            snapshot = default;
+            return false;
+        }
+
+        NarrativeSkillExperienceSaveData state = RequireProficiencyState(
+            proficiencyId,
+            absoluteHour);
+        SettleProficiency(state, absoluteHour);
+        snapshot = CreateSnapshot(state);
+        return true;
+    }
+
+    public IReadOnlyList<CharacterProficiencySnapshot> GetAllProficiencies(
+        IReadOnlyList<ProficiencyDefinitionSO> definitions,
+        long absoluteHour)
+    {
+        List<CharacterProficiencySnapshot> snapshots = new(
+            definitions?.Count ?? 0);
+        foreach (ProficiencyDefinitionSO definition in definitions
+                     ?? Array.Empty<ProficiencyDefinitionSO>())
+        {
+            NarrativeSkillExperienceSaveData state = RequireProficiencyState(
+                definition.ProficiencyId,
+                absoluteHour);
+            SettleProficiency(state, absoluteHour);
+            snapshots.Add(CreateSnapshot(state));
+        }
+        return snapshots;
+    }
+
+    public long AddApprovedWork(
+        ProficiencyWorkProfile profile,
+        float approvedWork,
+        float difficultyMultiplier,
+        ProficiencyWorkOutcome outcome,
+        float learningMultiplier,
+        float repetitionMultiplier,
+        long absoluteHour)
+    {
+        long totalAward = 0L;
+        totalAward += AddAward(
+            profile.Primary,
+            ProficiencyProgressionRules.CalculateWorkAwardMilli(
+                approvedWork * profile.PrimaryWeight,
+                difficultyMultiplier,
+                outcome,
+                learningMultiplier * ResolveLearningMultiplier(profile.Primary),
+                repetitionMultiplier),
+            absoluteHour);
+        if (profile.Secondary.IsValid && profile.SecondaryWeight > 0f)
+        {
+            totalAward += AddAward(
+                profile.Secondary,
+                ProficiencyProgressionRules.CalculateWorkAwardMilli(
+                    approvedWork * profile.SecondaryWeight,
+                    difficultyMultiplier,
+                    outcome,
+                    learningMultiplier * ResolveLearningMultiplier(
+                        profile.Secondary),
+                    repetitionMultiplier),
+                absoluteHour);
+        }
+        return totalAward;
+    }
+
+    public long AddDirectExperience(
+        CharacterProficiencyId proficiencyId,
+        float experience,
+        long absoluteHour,
+        bool applyLearningMultiplier = true)
+    {
+        if (experience <= 0f) return 0L;
+        float multiplier = applyLearningMultiplier
+            ? ResolveLearningMultiplier(proficiencyId)
+            : CharacterProficiencySpecializationRules
+                .NeutralLearningMultiplier;
+        long award = Math.Max(0L, checked((long)Math.Round(
+            experience * multiplier
+                * ProficiencyProgressionRules.MilliPerExperience,
+            MidpointRounding.AwayFromZero)));
+        return AddAward(proficiencyId, award, absoluteHour);
+    }
+
+    public long AddCombatExperience(
+        CharacterProficiencyId proficiencyId,
+        float experience,
+        bool training,
+        string stableAwardKey,
+        long absoluteHour)
+    {
+        if (experience <= 0f || !proficiencyId.IsValid
+            || (proficiencyId != BuiltInCharacterProficiencyIds.MeleeCombat
+                && proficiencyId != BuiltInCharacterProficiencyIds.RangedCombat))
+        {
+            return 0L;
+        }
+
+        NarrativeSkillExperienceSaveData state = RequireProficiencyState(
+            proficiencyId,
+            absoluteHour);
+        SettleProficiency(state, absoluteHour);
+        string awardKey = Normalize(stableAwardKey);
+        state.recentCombatAwardKeys ??= new List<string>();
+        if (awardKey.Length > 0
+            && state.recentCombatAwardKeys.Contains(
+                awardKey,
+                StringComparer.Ordinal))
+        {
+            return 0L;
+        }
+
+        int day = checked((int)Math.Min(
+            int.MaxValue,
+            Math.Max(0L, absoluteHour) / GameCalendarRules.HoursPerDay));
+        if (state.combatAwardAbsoluteDay != day)
+        {
+            state.combatAwardAbsoluteDay = day;
+            state.combatAwardMilliToday = 0L;
+            state.trainingAwardMilliToday = 0L;
+            state.recentCombatAwardKeys.Clear();
+        }
+
+        long requested = Math.Max(0L, checked((long)Math.Round(
+            experience * ResolveLearningMultiplier(proficiencyId)
+                * ProficiencyProgressionRules.MilliPerExperience,
+            MidpointRounding.AwayFromZero)));
+        long totalRemaining = Math.Max(
+            0L,
+            8L * ProficiencyProgressionRules.MilliPerExperience
+                - state.combatAwardMilliToday);
+        long trainingRemaining = training
+            ? Math.Max(
+                0L,
+                2L * ProficiencyProgressionRules.MilliPerExperience
+                    - state.trainingAwardMilliToday)
+            : long.MaxValue;
+        long approved = Math.Min(requested, Math.Min(totalRemaining, trainingRemaining));
+        if (awardKey.Length > 0)
+        {
+            state.recentCombatAwardKeys.Add(awardKey);
+            if (state.recentCombatAwardKeys.Count > 64)
+            {
+                state.recentCombatAwardKeys.RemoveRange(
+                    0,
+                    state.recentCombatAwardKeys.Count - 64);
+            }
+        }
+        if (approved <= 0L) return 0L;
+
+        state.combatAwardMilliToday += approved;
+        if (training) state.trainingAwardMilliToday += approved;
+        return AddAward(proficiencyId, approved, absoluteHour);
+    }
+
+    public void RecordPractice(
+        CharacterProficiencyId proficiencyId,
+        long absoluteHour)
+    {
+        NarrativeSkillExperienceSaveData state = RequireProficiencyState(
+            proficiencyId,
+            absoluteHour);
+        SettleProficiency(state, absoluteHour);
+        state.maintenancePracticeMilliExperience = 0L;
+        state.lastPracticeAbsoluteHour = Math.Max(0L, absoluteHour);
+        state.lastDecaySettlementAbsoluteHour = Math.Max(
+            state.lastDecaySettlementAbsoluteHour,
+            state.lastPracticeAbsoluteHour);
+    }
+
+    private long AddAward(
+        CharacterProficiencyId proficiencyId,
+        long awardMilli,
+        long absoluteHour)
+    {
+        if (!proficiencyId.IsValid || awardMilli <= 0L) return 0L;
+        NarrativeSkillExperienceSaveData state = RequireProficiencyState(
+            proficiencyId,
+            absoluteHour);
+        SettleProficiency(state, absoluteHour);
+        long before = state.currentMilliExperience;
+        state.currentMilliExperience = Math.Min(
+            ProficiencyProgressionRules.MasterCurrentCap,
+            checked(state.currentMilliExperience + awardMilli));
+        state.lifetimeMilliExperience = checked(
+            state.lifetimeMilliExperience + awardMilli);
+        int absoluteDay = checked((int)Math.Min(
+            int.MaxValue,
+            Math.Max(0L, absoluteHour) / GameCalendarRules.HoursPerDay));
+        if (state.practiceAbsoluteDay != absoluteDay)
+        {
+            state.practiceAbsoluteDay = absoluteDay;
+            state.practiceMilliExperienceToday = 0L;
+        }
+        state.practiceMilliExperienceToday = checked(
+            state.practiceMilliExperienceToday + awardMilli);
+        state.maintenancePracticeMilliExperience = checked(
+            state.maintenancePracticeMilliExperience + awardMilli);
+        if (state.maintenancePracticeMilliExperience
+            >= ProficiencyProgressionRules.MilliPerExperience)
+        {
+            state.maintenancePracticeMilliExperience = 0L;
+            state.lastPracticeAbsoluteHour = Math.Max(0L, absoluteHour);
+            state.lastDecaySettlementAbsoluteHour = Math.Max(
+                state.lastDecaySettlementAbsoluteHour,
+                state.lastPracticeAbsoluteHour);
+        }
+        return state.currentMilliExperience - before;
+    }
+
+    private NarrativeSkillExperienceSaveData RequireProficiencyState(
+        CharacterProficiencyId proficiencyId,
+        long absoluteHour)
+    {
+        if (!proficiencyId.IsValid)
+        {
+            throw new ArgumentException(
+                "A valid proficiency id is required.",
+                nameof(proficiencyId));
+        }
+        if (proficiencyById.TryGetValue(
+                proficiencyId.Value,
+                out NarrativeSkillExperienceSaveData state))
+        {
+            return state;
+        }
+
+        long now = Math.Max(0L, absoluteHour);
+        state = new NarrativeSkillExperienceSaveData
+        {
+            proficiencyId = proficiencyId.Value,
+            learningMultiplier = CharacterProficiencySpecializationRules
+                .NeutralLearningMultiplier,
+            lastPracticeAbsoluteHour = now,
+            lastDecaySettlementAbsoluteHour = now
+        };
+        proficiencyById.Add(proficiencyId.Value, state);
+        return state;
+    }
+
+    private static void SettleProficiency(
+        NarrativeSkillExperienceSaveData state,
+        long absoluteHour)
+    {
+        long now = Math.Max(
+            state.lastDecaySettlementAbsoluteHour,
+            absoluteHour);
+        state.currentMilliExperience = ProficiencyProgressionRules.SettleDecay(
+            state.currentMilliExperience,
+            state.lastPracticeAbsoluteHour,
+            state.lastDecaySettlementAbsoluteHour,
+            now);
+        state.lastDecaySettlementAbsoluteHour = now;
+    }
+
+    private Dictionary<string, int> CreateExperienceProjection() =>
+        proficiencyById.ToDictionary(
+            value => value.Key,
+            value => checked((int)Math.Min(
+                int.MaxValue,
+                value.Value.currentMilliExperience
+                    / ProficiencyProgressionRules.MilliPerExperience)),
+            StringComparer.Ordinal);
+
+    private float ResolveLearningMultiplier(
+        CharacterProficiencyId proficiencyId) => proficiencyById.TryGetValue(
+            proficiencyId.Value,
+            out NarrativeSkillExperienceSaveData state)
+        ? CharacterProficiencySpecializationRules
+            .NormalizeSerializedMultiplier(state.learningMultiplier)
+        : CharacterProficiencySpecializationRules.NeutralLearningMultiplier;
+
+    private static CharacterProficiencySnapshot CreateSnapshot(
+        NarrativeSkillExperienceSaveData state) => new(
+            new CharacterProficiencyId(state.proficiencyId),
+            state.currentMilliExperience,
+            state.lifetimeMilliExperience,
+            state.lastPracticeAbsoluteHour,
+            state.lastDecaySettlementAbsoluteHour,
+            state.practiceMilliExperienceToday,
+            state.learningMultiplier);
+
+    private static NarrativeSkillExperienceSaveData Clone(
+        NarrativeSkillExperienceSaveData source) => new()
+    {
+        proficiencyId = source.proficiencyId,
+        learningMultiplier = CharacterProficiencySpecializationRules
+            .NormalizeSerializedMultiplier(source.learningMultiplier),
+        currentMilliExperience = source.currentMilliExperience,
+        lifetimeMilliExperience = source.lifetimeMilliExperience,
+        lastPracticeAbsoluteHour = source.lastPracticeAbsoluteHour,
+        lastDecaySettlementAbsoluteHour = source.lastDecaySettlementAbsoluteHour,
+        maintenancePracticeMilliExperience =
+            source.maintenancePracticeMilliExperience,
+        practiceAbsoluteDay = source.practiceAbsoluteDay,
+        practiceMilliExperienceToday = source.practiceMilliExperienceToday,
+        combatAwardAbsoluteDay = source.combatAwardAbsoluteDay,
+        combatAwardMilliToday = source.combatAwardMilliToday,
+        trainingAwardMilliToday = source.trainingAwardMilliToday,
+        recentCombatAwardKeys = new List<string>(
+            source.recentCombatAwardKeys ?? new List<string>())
     };
 
     private static string[] RequireTraits(IReadOnlyList<string> source, int maximum, string label)
@@ -503,6 +930,7 @@ internal sealed class CharacterNarrativeRecord
 public sealed class CharacterNarrativeAggregateState
 {
     internal Dictionary<CharacterId, CharacterNarrativeRecord> Characters { get; } = new();
+    internal List<CharacterIdentityRuntimeStateSaveData> IdentityStates { get; } = new();
 
     public static CharacterNarrativeAggregateState Restore(CharacterNarrativeWorldSaveData data, ICharacterNarrativeCatalog catalog)
     {
@@ -516,12 +944,17 @@ public sealed class CharacterNarrativeAggregateState
             if (!state.Characters.TryAdd(record.CharacterId, record))
                 throw new InvalidOperationException($"Duplicate narrative character '{record.CharacterId.Value}'.");
         }
+        state.IdentityStates.AddRange((data.identityStates
+                ?? new List<CharacterIdentityRuntimeStateSaveData>())
+            .Where(value => value != null)
+            .Select(value => value.Clone()));
         return state;
     }
 
     public CharacterNarrativeWorldSaveData Capture() => new()
     {
         characters = Characters.Values.OrderBy(value => value.CharacterId.Value, StringComparer.Ordinal)
-            .Select(value => value.Capture()).ToList()
+            .Select(value => value.Capture()).ToList(),
+        identityStates = IdentityStates.Select(value => value.Clone()).ToList()
     };
 }

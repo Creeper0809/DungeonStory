@@ -31,28 +31,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 10
   features:
-  - rid: 7737211838068949961
-  - rid: 7737211838068949962
-  - rid: 7737211838068949963
-  - rid: 7737211838068949964
+  - rid: 7737211905666712447
+  - rid: 7737211905666712448
+  - rid: 7737211905666712449
+  - rid: 7737211905666712450
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949961
+    - rid: 7737211905666712447
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:bolt-rune
-    - rid: 7737211838068949962
+    - rid: 7737211905666712448
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:arcane:advanced
-    - rid: 7737211838068949963
+    - rid: 7737211905666712449
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 1280
         sharedIntermediate: 0
-    - rid: 7737211838068949964
+    - rid: 7737211905666712450
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

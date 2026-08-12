@@ -70,7 +70,9 @@ public static class OffenseExpeditionService
         return true;
     }
 
-    public static float CalculateMemberPower(CharacterActor actor)
+    public static float CalculateMemberPower(
+        CharacterActor actor,
+        ICharacterPerformanceQuery performance)
     {
         actor?.EnsureRuntimeState();
         CharacterStats stats = actor != null ? actor.Stats : null;
@@ -79,18 +81,122 @@ public static class OffenseExpeditionService
             return 0f;
         }
 
-        float basePower =
-            stats.GetCharacterStat(CharacterStatType.Attack) * 1.4f
-            + stats.GetCharacterStat(CharacterStatType.Strength) * 0.8f
-            + stats.GetCharacterStat(CharacterStatType.Toughness) * 0.6f
-            + stats.GetCharacterStat(CharacterStatType.Endurance) * 0.4f
-            + stats.GetCharacterStat(CharacterStatType.MoveSpeed) * 0.25f;
-        return Mathf.Max(0f, basePower * actor.GetCombatPowerMultiplier());
+        if (performance == null) throw new ArgumentNullException(nameof(performance));
+        return CalculateBasePower(
+            5f * performance.Evaluate(actor, "performance:combat:melee-hit").Value,
+            5f * performance.Evaluate(actor, "performance:combat:melee-power").Value,
+            5f * performance.Evaluate(actor, "performance:combat:defense-reaction").Value,
+            5f * performance.Evaluate(actor, CharacterCompositePerformanceIds.SustainedExecution).Value,
+            5f * performance.Evaluate(actor, "performance:combat:movement").Value,
+            1f);
     }
 
-    public static float CalculatePartyPower(IEnumerable<CharacterActor> members)
+    public static float CalculatePartyPower(
+        IEnumerable<CharacterActor> members,
+        ICharacterPerformanceQuery performance)
     {
-        return members?.Where((member) => member != null).Sum(CalculateMemberPower) ?? 0f;
+        return members?.Where((member) => member != null)
+            .Sum(member => CalculateMemberPower(member, performance)) ?? 0f;
+    }
+
+    public static float CalculateProjectedProficiencyPower(
+        Func<CharacterProficiencyId, long> experienceQuery,
+        float combatPowerMultiplier = 1f)
+    {
+        if (experienceQuery == null)
+        {
+            throw new ArgumentNullException(nameof(experienceQuery));
+        }
+
+        CharacterProficiencyEffectSnapshot melee = ProficiencyProgressionRules.ResolveEffects(
+            experienceQuery(BuiltInCharacterProficiencyIds.MeleeCombat));
+        CharacterProficiencyEffectSnapshot ranged = ProficiencyProgressionRules.ResolveEffects(
+            experienceQuery(BuiltInCharacterProficiencyIds.RangedCombat));
+        float meleeFactor = Mathf.Max(.1f, melee.QualityScore / 58f);
+        float rangedFactor = Mathf.Max(.1f, ranged.QualityScore / 58f);
+
+        return CalculateBasePower(
+            5f * Mathf.Max(meleeFactor, rangedFactor),
+            5f * meleeFactor,
+            5f,
+            5f,
+            5f,
+            combatPowerMultiplier);
+    }
+
+    public static float CalculateMemberPower(
+        CharacterActor actor,
+        ICombatEquipmentRuntime equipment,
+        ICharacterPerformanceQuery performance)
+    {
+        if (equipment == null)
+        {
+            throw new ArgumentNullException(nameof(equipment));
+        }
+
+        float characterPower = CalculateMemberPower(actor, performance);
+        string characterId = actor?.Identity?.PersistentId ?? string.Empty;
+        if (characterPower <= 0f || string.IsNullOrWhiteSpace(characterId))
+        {
+            return characterPower;
+        }
+
+        equipment.TryGetActiveWeapon(
+            characterId,
+            out CombatWeaponSnapshot weapon);
+        weapon ??= CombatWeaponSnapshot.CreateUnarmed();
+        float loadoutPower = OffenseEquipmentPowerRules.CalculateLoadoutContribution(
+            characterPower,
+            weapon,
+            equipment.GetArmor(characterId),
+            equipment.GetShield(characterId));
+        return characterPower + loadoutPower;
+    }
+
+    public static float CalculatePartyPower(
+        IEnumerable<CharacterActor> members,
+        ICombatEquipmentRuntime equipment,
+        ICharacterPerformanceQuery performance)
+    {
+        if (equipment == null)
+        {
+            throw new ArgumentNullException(nameof(equipment));
+        }
+
+        if (members == null)
+        {
+            return 0f;
+        }
+
+        float totalPower = 0f;
+        foreach (CharacterActor member in members)
+        {
+            if (member != null)
+            {
+                totalPower += CalculateMemberPower(member, equipment, performance);
+            }
+        }
+
+        return totalPower;
+    }
+
+    private static float CalculateBasePower(
+        float attack,
+        float strength,
+        float toughness,
+        float endurance,
+        float moveSpeed,
+        float combatPowerMultiplier)
+    {
+        float basePower =
+            attack * 1.4f
+            + strength * 0.8f
+            + toughness * 0.6f
+            + endurance * 0.4f
+            + moveSpeed * 0.25f;
+        return Mathf.Max(
+            0f,
+            basePower * Mathf.Max(0f, combatPowerMultiplier));
     }
 
 }

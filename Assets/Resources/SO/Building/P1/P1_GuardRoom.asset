@@ -34,14 +34,29 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 1
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
     - rid: 8800000000000000035
     - rid: 7302562995605602970
-    - rid: 7737211838074978911
-    - rid: 7737211838074978912
+    - rid: 7737211905655964158
+    - rid: 7737211905655964159
   width: 3
   height: 1
   layer: 1
@@ -53,7 +68,7 @@ MonoBehaviour:
   movementTravelTime: 2
   facilityAnchors:
     slots: []
-  unlocked: 1
+  unlocked: 0
   references:
     version: 2
     RefIds:
@@ -66,7 +81,7 @@ MonoBehaviour:
         maintenance: 6
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211838074978911
+    - rid: 7737211905655964158
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -77,7 +92,7 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 36
           disabledWhenDamaged: 1
-    - rid: 7737211838074978912
+    - rid: 7737211905655964159
       type: {class: BuildingDefenseAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingDefenseAbility
@@ -120,11 +135,29 @@ MonoBehaviour:
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 33.6
-        repairWorkRequired: 14
-        cleanWorkRequired: 8.75
+        constructionProjectScale: 0
+        constructionWorkRequired: 316
+        repairWorkRequired: 80
+        cleanWorkRequired: 18
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: material:steel-ingot
-          amount: 9
+        - itemId: material:treated-lumber
+          amount: 8
+        - itemId: material:stone-block
+          amount: 6
+        - itemId: material:iron-ingot
+          amount: 3
+        - itemId: component:machine-parts
+          amount: 1

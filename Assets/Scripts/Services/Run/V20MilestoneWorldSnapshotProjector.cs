@@ -20,6 +20,8 @@ public sealed class V20MilestoneWorldSnapshotProjector :
     private readonly IGameMoneyAccount money;
     private readonly IOffenseQuery offense;
     private readonly IKinshipQuery kinship;
+    private readonly ISettlementLaborAccountingService labor;
+    private readonly ISettlementAlertService alerts;
     private IReadOnlyList<CharacterActor> livingCharacters =
         Array.Empty<CharacterActor>();
 
@@ -33,7 +35,9 @@ public sealed class V20MilestoneWorldSnapshotProjector :
         IFactionCampaignQuery factions,
         IGameMoneyAccount money,
         IOffenseQuery offense,
-        IKinshipQuery kinship)
+        IKinshipQuery kinship,
+        ISettlementLaborAccountingService labor,
+        ISettlementAlertService alerts)
     {
         this.characters = characters
             ?? throw new ArgumentNullException(nameof(characters));
@@ -47,6 +51,8 @@ public sealed class V20MilestoneWorldSnapshotProjector :
         this.money = money ?? throw new ArgumentNullException(nameof(money));
         this.offense = offense ?? throw new ArgumentNullException(nameof(offense));
         this.kinship = kinship ?? throw new ArgumentNullException(nameof(kinship));
+        this.labor = labor ?? throw new ArgumentNullException(nameof(labor));
+        this.alerts = alerts ?? throw new ArgumentNullException(nameof(alerts));
     }
 
     public RunMilestoneEvaluationSnapshot Build(int absoluteDay)
@@ -87,6 +93,20 @@ public sealed class V20MilestoneWorldSnapshotProjector :
         snapshot.EligibleCharacterCount = living.Length;
         snapshot.WorldMetrics[V20WorldMetricKind.Population] = living.Length;
         snapshot.WorldMetrics[V20WorldMetricKind.Money] = money.Balance;
+        float perCapitaNetWuIndex = labor.Capture().RollingPerCapitaNetWuMedian;
+        float emergencyReserveCoverage = alerts.Capture().ReserveCoverage;
+        snapshot.WorldMetrics[V20WorldMetricKind.PerCapitaNetWuIndex] =
+            perCapitaNetWuIndex;
+        snapshot.WorldMetrics[V20WorldMetricKind.EmergencyReserveCoverage] =
+            emergencyReserveCoverage;
+        float cultureAcceptance = snapshot.Factions.Count == 0
+            ? 0f
+            : snapshot.Factions.Values.Average(value => Mathf.Clamp(
+                (value.rapport + (100f - value.grievance)) * 0.5f,
+                0f,
+                100f));
+        snapshot.WorldMetrics[V20WorldMetricKind.CultureAcceptance] =
+            cultureAcceptance;
 
         int foodUnits = stacks
             .Where(value => value.StockCategory == StockCategory.Food)
@@ -116,6 +136,20 @@ public sealed class V20MilestoneWorldSnapshotProjector :
         snapshot.WorldMetrics[V20WorldMetricKind.ProductionAutomation] =
             automation;
         snapshot.WorldMetrics[V20WorldMetricKind.RunePower] = runePower;
+        const FacilityRole serviceRoles = FacilityRole.Meal
+            | FacilityRole.Rest
+            | FacilityRole.Toilet
+            | FacilityRole.Hygiene
+            | FacilityRole.Entertainment
+            | FacilityRole.Medical;
+        int serviceCapacity = activeBuildings
+            .Where(value => value.Facility != null
+                && (value.Facility.roles & serviceRoles) != 0)
+            .Sum(value => Math.Max(0, value.EffectiveCapacity));
+        snapshot.WorldMetrics[V20WorldMetricKind.PerCapitaServiceIndex] =
+            living.Length > 0
+                ? serviceCapacity / (float)living.Length
+                : 0f;
 
         int generation = living.Length == 0
             ? 0
@@ -153,18 +187,22 @@ public sealed class V20MilestoneWorldSnapshotProjector :
             snapshot.WorldFlags.Add("offense:surface-command-broken");
         if (generation >= 3 && snapshot.CompletedResearchIds.Contains(7240))
             snapshot.WorldFlags.Add("lineage:three-generations");
-        if (defense >= 80f && money.Balance >= 1_000 && living.Length >= 20)
+        if (defense >= 80f
+            && money.Balance >= 1_000
+            && perCapitaNetWuIndex >= 1.55f
+            && emergencyReserveCoverage >= 1.10f)
             snapshot.WorldFlags.Add("economy:sovereign-ready");
         if (automation >= 100f && snapshot.CompletedResearchIds.Contains(7244))
             snapshot.WorldFlags.Add("industry:self-maintaining");
         if (runePower >= 100f && snapshot.CompletedResearchIds.Contains(7238))
             snapshot.WorldFlags.Add("arcane:grid-integrated");
-        if (living.Length >= 60
+        if (perCapitaNetWuIndex >= 2f
+            && emergencyReserveCoverage >= 1.20f
             && snapshot.CompletedResearchIds.Contains(7271)
             && activeBuildings.Any(value => ContainsAny(
                 BuildingId(value.BuildingData),
                 "temporal", "time-stasis", "time-fix")))
-            snapshot.WorldFlags.Add("temporal:population-sustained");
+            snapshot.WorldFlags.Add("temporal:productivity-qualified-today");
 
         return snapshot;
     }

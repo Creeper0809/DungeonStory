@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEngine;
 
 public readonly struct ApparelFitAssessment
@@ -430,6 +431,8 @@ public sealed class CharacterApparelAggregate :
     private readonly IWorldItemStackRuntime items;
     private readonly ICharacterWorldQuery characters;
     private readonly IApparelAvailabilityIndex availability;
+    private readonly CharacterIdentityEventPublisher identityEvents;
+    private readonly IGameClock gameClock;
 
     public CharacterApparelAggregate(
         CharacterApparelAggregateStateStore stateStore,
@@ -437,7 +440,9 @@ public sealed class CharacterApparelAggregate :
         IAnatomyAttachmentQuery anatomy,
         IWorldItemStackRuntime items,
         ICharacterWorldQuery characters,
-        IApparelAvailabilityIndex availability)
+        IApparelAvailabilityIndex availability,
+        CharacterIdentityEventPublisher identityEvents,
+        IGameClock gameClock)
     {
         this.stateStore = stateStore ?? throw new ArgumentNullException(nameof(stateStore));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -446,6 +451,9 @@ public sealed class CharacterApparelAggregate :
         this.characters = characters ?? throw new ArgumentNullException(nameof(characters));
         this.availability = availability
             ?? throw new ArgumentNullException(nameof(availability));
+        this.identityEvents = identityEvents
+            ?? throw new ArgumentNullException(nameof(identityEvents));
+        this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
     }
 
     public int Version => stateStore.Current.Version;
@@ -513,7 +521,7 @@ public sealed class CharacterApparelAggregate :
             failure = new DomainFailure(FailureCode.ApparelPhysicalItemMissing, itemInstanceId.Value);
             return false;
         }
-        if (stack.IsReserved)
+        if (stack.AvailableQuantity <= 0)
         {
             failure = new DomainFailure(FailureCode.ApparelItemReserved, stack.StackId);
             return false;
@@ -576,7 +584,7 @@ public sealed class CharacterApparelAggregate :
 
         CharacterActor actor = FindActor(plan.CharacterId);
         WorldItemStackSnapshot candidate = FindStack(plan.ItemInstanceId);
-        if (actor == null || candidate == null || candidate.IsReserved)
+        if (actor == null || candidate == null || candidate.AvailableQuantity <= 0)
         {
             failure = new DomainFailure(FailureCode.ApparelPlanStale, plan.ItemInstanceId.Value);
             return false;
@@ -678,6 +686,17 @@ public sealed class CharacterApparelAggregate :
         });
         stateStore.Replace(next);
         availability.Invalidate();
+        foreach (EquippedApparelSaveData displaced in plan.Displaced)
+        {
+            PublishApparelChanged(
+                plan.CharacterId,
+                displaced.apparelDefinitionId,
+                equipped: false);
+        }
+        PublishApparelChanged(
+            plan.CharacterId,
+            plan.Definition.ApparelId,
+            equipped: true);
         return true;
     }
 
@@ -713,7 +732,29 @@ public sealed class CharacterApparelAggregate :
             string.Equals(value.itemInstanceId, itemInstanceId.Value, StringComparison.Ordinal));
         stateStore.Replace(next);
         availability.Invalidate();
+        PublishApparelChanged(
+            characterId,
+            equipped.ApparelDefinitionId,
+            equipped: false);
         return true;
+    }
+
+    private void PublishApparelChanged(
+        CharacterId characterId,
+        string apparelId,
+        bool equipped)
+    {
+        if (!characterId.IsValid || string.IsNullOrWhiteSpace(apparelId))
+            return;
+        identityEvents.Publish(new ApparelChangedEvent(
+            characterId,
+            apparelId,
+            equipped,
+            CharacterCommandOrigin.DirectPlayerOrder,
+            Mathf.Max(
+                0,
+                Mathf.FloorToInt(
+                    gameClock.Time / GameCalendarRules.SecondsPerDay))));
     }
 
     public IReadOnlyList<EquippedApparelSaveData> CaptureApparel()

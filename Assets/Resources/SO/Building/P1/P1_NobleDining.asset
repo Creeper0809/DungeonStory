@@ -31,6 +31,26 @@ MonoBehaviour:
   objectName: "3\uC131 \uADC0\uC871\uC758 \uC2DD\uB2F9"
   sprite: {fileID: 21300000, guid: c7b5f7de0353112418d16e57b045025f, type: 3}
   icon: {fileID: 21300000, guid: c7b5f7de0353112418d16e57b045025f, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  deprecatedCompatibilityAsset: 1
+  useClassification: 0
+  researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: proficiency:food-production
+    secondaryProficiencyId: proficiency:social
+    primaryWeight: 0.8
+    combinationMode: 1
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
     - rid: 8800000000000000056
@@ -57,22 +77,11 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 8800000000000000056
-      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 36
-        repairWorkRequired: 16
-        cleanWorkRequired: 10
-        researchWorkRequired: 6
-        operateWorkRequired: 10
-        constructionMaterials:
-        - itemId: material:steel-ingot
-          amount: 1
     - rid: 7302562978982527595
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 0
         constructionCost: 0
         maintenance: 7
         unlockPhase: 1
@@ -89,21 +98,21 @@ MonoBehaviour:
           supportedWorkTypes: 23
           disabledWhenDamaged: 1
     - rid: 7302562987322638789
-      type: {class: BuildingInternalStockAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingInternalStockAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 24
         restockRequestThreshold: 5
     - rid: 7302562987322638790
-      type: {class: BuildingRequiresStockAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingRequiresStockAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRequiresStockAbility
     - rid: 7302562987322638791
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
     - rid: 7302562987322638792
-      type: {class: BuildingSpeciesAffinityAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSpeciesAffinityAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSpeciesAffinityAbility
         preferredTags:
@@ -124,6 +133,26 @@ MonoBehaviour:
           star: 1
           combatLogText: 
           effectAssets: []
+          supplyKind: 0
+          supplyItemId: 
+          supplyCategory: 1
+          supplyCapacity: 0
+          supplyPerActivation: 1
+          initialSupply: 1
+          requiresPower: 0
+          powerDemand: 0
+          conditionLossPerActivation: 1
+          baseJamChance: 0
+          baseMisfireChance: 0
+          facilityFamilyId: defense:general
+          affinityTags: []
+          growth:
+            capacityLevel: 0
+            resetSpeedLevel: 0
+            effectStrengthLevel: 0
+            detectionRangeLevel: 0
+            identificationLevel: 0
+            outageResistanceLevel: 0
     - rid: 7302562987322638823
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -153,3 +182,27 @@ MonoBehaviour:
             value: 1
           - key: PrivateSeatCount
             value: 3
+    - rid: 8800000000000000056
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
+        constructionWorkRequired: 36
+        repairWorkRequired: 16
+        cleanWorkRequired: 10
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
+        constructionMaterials:
+        - itemId: material:steel-ingot
+          amount: 1

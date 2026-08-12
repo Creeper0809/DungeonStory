@@ -8,61 +8,74 @@ internal static class StartPartyPreparationPresentation
 {
     public static string BuildTraitTooltipText(CharacterTraitSO trait)
     {
-        StringBuilder builder = new StringBuilder();
-        List<string> statLines = new List<string>();
-        foreach (CharacterStatType type in Enum.GetValues(typeof(CharacterStatType)).Cast<CharacterStatType>())
+        if (trait == null)
+            return "특성 정의 없음";
+        StringBuilder builder = new();
+        builder.AppendLine($"{trait.traitName} · {TraitRarityLabel(trait.selectionRarity)}");
+        if (!string.IsNullOrWhiteSpace(trait.description))
+            builder.AppendLine(trait.description.Trim());
+        if (!string.IsNullOrWhiteSpace(trait.selectionFamilyId))
+            builder.AppendLine($"선택 계열: {trait.selectionFamilyId.Trim()}");
+
+        foreach (GameplayEffectBinding binding in trait.Effects
+                     .Where(value => value?.definition != null)
+                     .OrderBy(value => value.definition.TargetId,
+                         StringComparer.Ordinal)
+                     .ThenBy(value => value.bindingId, StringComparer.Ordinal))
         {
-            int value = trait.statBonus?.Get(type) ?? 0;
-            if (value != 0)
-            {
-                statLines.Add($"{StatLabel(type)} {value:+#;-#;0}");
-            }
+            string condition = binding.condition != null
+                ? $" ({binding.condition.ConditionId}일 때)"
+                : string.Empty;
+            builder.AppendLine(
+                $"효과: {binding.definition.TargetId} "
+                + $"{FormatEffectValue(binding)}{condition}");
         }
-
-        builder.AppendLine(statLines.Count > 0
-            ? "스탯 변화  " + string.Join(" · ", statLines)
-            : "스탯 변화  없음");
-
-        CharacterModelModifiers modifiers = trait.modifiers;
-        List<string> modifierLines = new List<string>();
-        AddMultiplierLine(modifierLines, "욕구 소모", modifiers?.consumptionMultiplier ?? 1f);
-        AddMultiplierLine(modifierLines, "소비 성향", modifiers?.spendingMultiplier ?? 1f);
-        AddMultiplierLine(modifierLines, "대기 인내", modifiers?.waitPatienceMultiplier ?? 1f);
-        AddMultiplierLine(modifierLines, "혼잡 민감도", modifiers?.crowdSensitivityMultiplier ?? 1f);
-        AddMultiplierLine(modifierLines, "사고 확률", modifiers?.accidentChanceMultiplier ?? 1f);
-        AddMultiplierLine(modifierLines, "작업 속도", modifiers?.workSpeedMultiplier ?? 1f);
-        AddMultiplierLine(modifierLines, "연구 속도", modifiers?.researchSpeedMultiplier ?? 1f);
-        AddMultiplierLine(modifierLines, "전투력", modifiers?.combatPowerMultiplier ?? 1f);
-        AddMultiplierLine(modifierLines, "이동 속도", modifiers?.moveSpeedMultiplier ?? 1f);
-        AddMultiplierLine(modifierLines, "체류 시간", modifiers?.stayDurationMultiplier ?? 1f);
-        if (modifierLines.Count > 0)
+        foreach (CharacterIdentityRule rule in (trait.identityRules
+                     ?? new List<CharacterIdentityRule>())
+                     .Where(value => value != null)
+                     .OrderBy(value => value.priority)
+                     .ThenBy(value => value.ruleId, StringComparer.Ordinal))
         {
-            builder.AppendLine("세부 보정  " + string.Join(" · ", modifierLines));
+            builder.AppendLine($"성향: {DescribeIdentityRule(rule)}");
         }
-
-        AppendFlags(builder, "선호 시설", FormatFacilityRoles(modifiers?.preferredFacilityRoles ?? FacilityRole.None));
-        AppendFlags(builder, "기피 시설", FormatFacilityRoles(modifiers?.dislikedFacilityRoles ?? FacilityRole.None));
-        AppendFlags(
-            builder,
-            "선호 업무",
-            FormatWorkTypes(modifiers != null ? modifiers.PreferredWorkTypeIds : Array.Empty<WorkTypeId>()));
-        AppendFlags(
-            builder,
-            "기피 업무",
-            FormatWorkTypes(modifiers != null ? modifiers.DislikedWorkTypeIds : Array.Empty<WorkTypeId>()));
         return builder.ToString().TrimEnd();
     }
 
-    public static void AddMultiplierLine(List<string> lines, string label, float value)
-    {
-        if (Mathf.Approximately(value, 1f))
+    private static string FormatEffectValue(GameplayEffectBinding binding) =>
+        binding.definition.Operation switch
         {
-            return;
-        }
+            GameplayEffectOperation.Multiply => $"×{binding.value:0.##}",
+            GameplayEffectOperation.AddPercent => $"{binding.value:+0.##;-0.##;0}%",
+            GameplayEffectOperation.AddFlat => $"{binding.value:+0.##;-0.##;0}",
+            GameplayEffectOperation.Override => $"={binding.value:0.##}",
+            GameplayEffectOperation.ClampMinimum => $"최소 {binding.value:0.##}",
+            GameplayEffectOperation.ClampMaximum => $"최대 {binding.value:0.##}",
+            _ => binding.value.ToString("0.##")
+        };
 
-        float delta = (value - 1f) * 100f;
-        lines.Add($"{label} x{value:0.##} ({delta:+0.#;-0.#;0}%)");
-    }
+    private static string DescribeIdentityRule(CharacterIdentityRule rule) => rule switch
+    {
+        BehaviorUtilityRule value => $"{value.behaviorTag} 선호 {value.utilityDelta:+0.##;-0.##}",
+        PersistentNeedRule value => $"{value.needId} 욕구 · {value.deprivationDays}일 미충족 시 {value.deprivedMoodDelta:0.#}",
+        EventMoodRule value => $"{value.eventId} 기분 {value.moodDelta:+0.#;-0.#}",
+        MoodImmunityRule value => $"{value.eventId} 기분 반응 면역",
+        MoodTransformRule value => $"{value.eventId} 기분 반응 ×{value.multiplier:0.##}",
+        PostActionConsequenceRule value => $"{value.actionTag} 이후 기분 {value.moodDelta:+0.#;-0.#}, 스트레스 {value.stressDelta:+0.#;-0.#}",
+        RelationshipMemoryRule value => $"{value.eventId} 관계 기억 {value.relationshipDelta:+0.#;-0.#}",
+        AutonomousWorkRestrictionRule value => $"자율 {value.actionTag} 제한: {value.failureReason}",
+        IncidentWeightRule value => $"{value.incidentId} 사건 가중치 ×{value.multiplier:0.##}",
+        _ => rule.ruleId
+    };
+
+    public static string TraitRarityLabel(CharacterTraitSelectionRarity rarity) =>
+        rarity switch
+        {
+            CharacterTraitSelectionRarity.Common => "일반",
+            CharacterTraitSelectionRarity.Uncommon => "고급",
+            CharacterTraitSelectionRarity.Rare => "희귀",
+            CharacterTraitSelectionRarity.Exceptional => "특별",
+            _ => rarity.ToString()
+        };
 
     public static void AppendFlags(StringBuilder builder, string label, string value)
     {
@@ -133,18 +146,6 @@ internal static class StartPartyPreparationPresentation
         return ids.Length == 0 ? "-" : string.Join(", ", ids.Select(id => $"Trait {id}"));
     }
 
-    public static string FormatStats(CharacterStatBlock stats)
-    {
-        if (stats == null)
-        {
-            return "-";
-        }
-
-        return string.Join(" - ", Enum.GetValues(typeof(CharacterStatType))
-            .Cast<CharacterStatType>()
-            .Select(type => $"{type} {stats.Get(type)}"));
-    }
-
     public static string PotentialLabel(CharacterPotentialGrade grade)
     {
         return grade switch
@@ -157,21 +158,52 @@ internal static class StartPartyPreparationPresentation
         };
     }
 
-    public static string StatLabel(CharacterStatType type)
+    public static string ProficiencyLabel(CharacterProficiencyId id)
     {
-        return type switch
-        {
-            CharacterStatType.Attack => "\uACF5\uACA9",
-            CharacterStatType.Sales => "\uD310\uB9E4",
-            CharacterStatType.Research => "\uC5F0\uAD6C",
-            CharacterStatType.MoveSpeed => "\uC774\uB3D9",
-            CharacterStatType.Strength => "\uADFC\uB825",
-            CharacterStatType.Toughness => "\uB9F7\uC9D1",
-            CharacterStatType.Dexterity => "\uBBFC\uCCA9",
-            CharacterStatType.Cleaning => "\uCCAD\uC18C",
-            CharacterStatType.Endurance => "\uC9C0\uAD6C",
-            _ => type.ToString()
-        };
+        if (id == BuiltInCharacterProficiencyIds.Fieldwork) return "현장 작업";
+        if (id == BuiltInCharacterProficiencyIds.ConstructionEngineering) return "건설·공학";
+        if (id == BuiltInCharacterProficiencyIds.Crafting) return "제작";
+        if (id == BuiltInCharacterProficiencyIds.FoodProduction) return "식량 생산";
+        if (id == BuiltInCharacterProficiencyIds.Scholarship) return "학술";
+        if (id == BuiltInCharacterProficiencyIds.Medicine) return "의료";
+        if (id == BuiltInCharacterProficiencyIds.Social) return "사교";
+        if (id == BuiltInCharacterProficiencyIds.MeleeCombat) return "근접 전투";
+        if (id == BuiltInCharacterProficiencyIds.RangedCombat) return "원거리 전투";
+        throw new ArgumentOutOfRangeException(nameof(id), id, "Unknown proficiency id.");
     }
+
+    public static string ProficiencyBandLabel(long milliExperience)
+    {
+        CharacterProficiencyBandSnapshot band =
+            ProficiencyProgressionRules.ResolveBand(milliExperience);
+        string rank = band.Rank switch
+        {
+            CharacterProficiencyRank.Apprentice => "\uACAC\uC2B5\uC0DD",
+            CharacterProficiencyRank.Skilled => "\uC219\uB828\uC790",
+            CharacterProficiencyRank.Technician => "\uAE30\uC220\uC790",
+            CharacterProficiencyRank.Expert => "\uC804\uBB38\uAC00",
+            CharacterProficiencyRank.Master => "\uB300\uAC00",
+            _ => throw new ArgumentOutOfRangeException()
+        };
+        string grade = band.Subgrade switch
+        {
+            CharacterProficiencySubgrade.Fourth => "IV",
+            CharacterProficiencySubgrade.Third => "III",
+            CharacterProficiencySubgrade.Second => "II",
+            CharacterProficiencySubgrade.First => "I",
+            _ => throw new ArgumentOutOfRangeException()
+        };
+        return $"{rank} {grade}";
+    }
+
+    public static string StartingAgeBandLabel(CharacterStartingAgeBand band) =>
+        band switch
+        {
+            CharacterStartingAgeBand.YoungAdult => "\uC80A\uC740 \uC131\uC778",
+            CharacterStartingAgeBand.EstablishedAdult => "\uACBD\uB825 \uC131\uC778",
+            CharacterStartingAgeBand.VeteranAdult => "\uBCA0\uD14C\uB791",
+            CharacterStartingAgeBand.Elder => "\uB178\uB144",
+            _ => throw new ArgumentOutOfRangeException(nameof(band), band, null)
+        };
 
 }

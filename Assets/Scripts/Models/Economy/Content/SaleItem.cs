@@ -23,6 +23,11 @@ public class SaleItem : DataScriptableObject
     {
         itemDefinitionId = global::ItemDefinitionId.Normalize(value);
     }
+
+    public void ConfigureCost(int value)
+    {
+        cost = Mathf.Max(1, value);
+    }
 #endif
 
 }

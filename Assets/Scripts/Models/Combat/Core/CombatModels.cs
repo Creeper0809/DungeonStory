@@ -132,13 +132,14 @@ public enum CombatFireMode
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public enum CombatEquipmentQuality
 {
-    Awful,
-    Poor,
-    Normal,
-    Good,
-    Excellent,
-    Masterwork,
-    Legendary
+    Awful = 0,
+    Poor = 1,
+    Normal = 2,
+    Good = 3,
+    Excellent = 4,
+    Masterwork = 5,
+    Legendary = 6,
+    Mythic = 7
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -212,6 +213,7 @@ public static class CombatQualityRules
             CombatEquipmentQuality.Excellent => 1.2f,
             CombatEquipmentQuality.Masterwork => 1.32f,
             CombatEquipmentQuality.Legendary => 1.48f,
+            CombatEquipmentQuality.Mythic => 1.70f,
             _ => 1f
         };
     }
@@ -226,6 +228,7 @@ public static class CombatQualityRules
             CombatEquipmentQuality.Excellent => "훌륭",
             CombatEquipmentQuality.Masterwork => "걸작",
             CombatEquipmentQuality.Legendary => "전설",
+            CombatEquipmentQuality.Mythic => "신화",
             _ => "보통"
         };
     }
@@ -300,6 +303,7 @@ public sealed class CombatEquipmentInstance
     public string definitionId = string.Empty;
     public string materialId = string.Empty;
     public CombatEquipmentQuality quality = CombatEquipmentQuality.Normal;
+    public MythicProvenanceSaveData mythicProvenance;
     [Range(0f, 1f)] public float durabilityRatio = 1f;
     [Range(0f, 100f)] public float powerCharge = 100f;
     public LoadedAmmunitionBatch loadedAmmunition = new LoadedAmmunitionBatch();
@@ -333,6 +337,7 @@ public sealed class CombatEquipmentInstance
             definitionId = definitionId ?? string.Empty,
             materialId = materialId ?? string.Empty,
             quality = quality,
+            mythicProvenance = mythicProvenance?.Clone(),
             durabilityRatio = durabilityRatio,
             powerCharge = Mathf.Clamp(powerCharge, 0f, 100f),
             loadedAmmunition = loadedAmmunition?.Clone()
@@ -857,6 +862,38 @@ public readonly struct CombatAttackResult
     public float TargetAirborneExposure { get; }
     public int AmmunitionConsumed { get; }
     public int ForcedMovement { get; }
+
+    public CombatAttackResult WithAppliedDamageMultiplier(float multiplier)
+    {
+        float safeMultiplier = Mathf.Max(0f, multiplier);
+        return new CombatAttackResult(
+            Executed,
+            Hit,
+            CoverBlocked,
+            Evaded,
+            BodyPart,
+            RawDamage,
+            AppliedDamage * safeMultiplier,
+            Bleeding * safeMultiplier,
+            Suppression,
+            ArmorDurabilityDamage,
+            ArmorInstanceId,
+            FailureReason,
+            ShieldBlocked,
+            CoverSourceId,
+            CoverDamage,
+            ArmorDurabilityHits,
+            SmokeExposure,
+            AmmunitionItemId,
+            SpecialEffects,
+            StatusPotency,
+            StatusTurns,
+            Nonlethal,
+            PelletHits,
+            TargetAirborneExposure,
+            AmmunitionConsumed,
+            ForcedMovement);
+    }
 
     public CombatAttackResult WithSmokeExposure(
         float smokeExposure,

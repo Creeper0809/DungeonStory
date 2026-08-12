@@ -65,14 +65,24 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
                 || generated.Find("Content/StatusContent/CarrySummaryText") == null
                 || generated.Find("Content/AiContent/AiContentViewport/AiSummaryText") == null
                 || generated.Find("Header/DetailedStatsButton") == null
-                || generated.Find("DetailedOverlay/DetailedViewport/DetailedStatsText") == null))
+                || uiRoot.transform.Find("DetailedOverlay/DetailedViewport/DetailedStatsText") == null))
         {
             UnityEngine.Object.DestroyImmediate(generated.gameObject);
+            Transform staleDetailed = uiRoot.transform.Find("DetailedOverlay");
+            if (staleDetailed != null)
+            {
+                UnityEngine.Object.DestroyImmediate(staleDetailed.gameObject);
+            }
             generated = null;
         }
 
         if (generated == null)
         {
+            Transform staleDetailed = uiRoot.transform.Find("DetailedOverlay");
+            if (staleDetailed != null)
+            {
+                UnityEngine.Object.DestroyImmediate(staleDetailed.gameObject);
+            }
             DisableLegacyChildren(uiRoot.transform);
             generated = CreateView(view, actions, uiRoot.transform);
         }
@@ -507,7 +517,7 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             fillParent: true);
         aiContent.gameObject.SetActive(false);
 
-        RectTransform detailedOverlay = CreateRect("DetailedOverlay", view);
+        RectTransform detailedOverlay = CreateRect("DetailedOverlay", parent);
         SetStretch(detailedOverlay, Vector2.zero, Vector2.zero);
         detailedOverlay.gameObject.AddComponent<Image>().color = DungeonUiTheme.Panel;
 
@@ -543,9 +553,9 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
         GridLayoutGroup detailedTabGrid = detailedTabs.gameObject.AddComponent<GridLayoutGroup>();
         detailedTabGrid.padding = new RectOffset(14, 14, 0, 0);
         detailedTabGrid.spacing = new Vector2(6f, 6f);
-        detailedTabGrid.cellSize = new Vector2(153f, 36f);
+        detailedTabGrid.cellSize = new Vector2(112f, 36f);
         detailedTabGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-        detailedTabGrid.constraintCount = 3;
+        detailedTabGrid.constraintCount = 4;
         CharacterDetailedStatsTab[] detailedTabValues =
             (CharacterDetailedStatsTab[])Enum.GetValues(typeof(CharacterDetailedStatsTab));
         Button[] detailedTabButtons = new Button[detailedTabValues.Length];
@@ -574,8 +584,6 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             detailedViewport.offsetMin = new Vector2(14f, 14f);
             detailedViewport.offsetMax = new Vector2(-14f, -150f);
         }
-        detailedOverlay.gameObject.SetActive(false);
-
         viewBinding.BindGeneratedView(
             nameText,
             profileText,
@@ -714,14 +722,23 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             generated.Find("TabBar/AiTab")?.GetComponent<Button>());
         Button[] detailedTabButtons = Enum.GetValues(typeof(CharacterDetailedStatsTab))
             .Cast<CharacterDetailedStatsTab>()
-            .Select(tab => generated.Find($"DetailedOverlay/DetailedTabs/DetailedTab_{tab}")
+            .Select(tab => generated.parent.Find($"DetailedOverlay/DetailedTabs/DetailedTab_{tab}")
                 ?.GetComponent<Button>())
             .ToArray();
+        GameObject detailedOverlay = generated.parent.Find("DetailedOverlay")?.gameObject;
+        CharacterDetailedOverlayInputRouter inputRouter =
+            generated.parent.GetComponent<CharacterDetailedOverlayInputRouter>();
+        if (inputRouter == null)
+        {
+            inputRouter = generated.parent.gameObject
+                .AddComponent<CharacterDetailedOverlayInputRouter>();
+        }
+        inputRouter.Bind(detailedOverlay?.transform);
         viewBinding.BindGeneratedDetailedStats(
             generated.Find("Header/DetailedStatsButton")?.GetComponent<Button>(),
-            generated.Find("DetailedOverlay")?.gameObject,
-            generated.Find("DetailedOverlay/DetailedHeader/DetailedTitle")?.GetComponent<TMP_Text>(),
-            generated.Find("DetailedOverlay/DetailedViewport/DetailedStatsText")?.GetComponent<TMP_Text>(),
+            detailedOverlay,
+            generated.parent.Find("DetailedOverlay/DetailedHeader/DetailedTitle")?.GetComponent<TMP_Text>(),
+            generated.parent.Find("DetailedOverlay/DetailedViewport/DetailedStatsText")?.GetComponent<TMP_Text>(),
             detailedTabButtons);
     }
 

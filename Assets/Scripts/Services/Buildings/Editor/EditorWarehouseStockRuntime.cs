@@ -15,6 +15,16 @@ internal sealed class EditorWarehouseStockRuntime : IWorldItemStackRuntime
     public void Restore(DungeonPhysicalItemSaveData snapshot) { }
     public void SetStoredItemMarkersVisible(bool visible) { }
 
+    public bool SpawnItemAtDropoff(
+        string itemId,
+        int amount,
+        string sourceLabel,
+        out int spawned)
+    {
+        spawned = 0;
+        return false;
+    }
+
     public bool SpawnStockInWarehouse(
         IWarehouseFacility warehouse,
         StockCategory category,

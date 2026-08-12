@@ -13,6 +13,7 @@ internal sealed class DefenseRangedSupportRuntime
     private readonly ICombatAmmoResupplyRuntime ammoResupply;
     private readonly IGameClock clock;
     private readonly DefenseRangedPositionPlanner positionPlanner;
+    private readonly ICharacterPerformanceQuery performance;
 
     public DefenseRangedSupportRuntime(
         DefenseEngagementWorldServices world,
@@ -25,6 +26,7 @@ internal sealed class DefenseRangedSupportRuntime
         combatExecutor = requiredCombat.Executor;
         lineOfSight = requiredCombat.LineOfSight;
         ammoResupply = requiredCombat.AmmoResupply;
+        performance = requiredCombat.Performance;
         this.positionPlanner = positionPlanner
             ?? throw new ArgumentNullException(nameof(positionPlanner));
     }
@@ -52,7 +54,9 @@ internal sealed class DefenseRangedSupportRuntime
             .Where(combatExecutor.HasActiveRangedWeapon)
             .Where(candidate => candidate != engagement.RangedGuard
                 && candidate != engagement.SecondaryRangedGuard)
-            .OrderByDescending(candidate => candidate.GetCharacterStat(CharacterStatType.Shooting))
+            .OrderByDescending(candidate => performance.Evaluate(
+                candidate,
+                "performance:combat:ranged-hit").Value)
             .ThenBy(candidate => Manhattan(
                 candidate.GetNowXY(),
                 engagement.IntruderActor.GetNowXY())))

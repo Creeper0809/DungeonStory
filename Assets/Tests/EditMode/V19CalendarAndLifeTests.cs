@@ -680,7 +680,11 @@ namespace DungeonStory.Tests.Architecture
                 CareerPositionKind.Mentor,
                 academy.Value,
                 40);
-            careers.AssignMentorship(mentor, student, academy);
+            careers.AssignMentorship(
+                mentor,
+                student,
+                academy,
+                BuiltInCharacterProficiencyIds.Crafting);
 
             Assert.That(careers.TryMarkMentoringAwarded(student, 41), Is.True);
             Assert.That(careers.TryMarkMentoringAwarded(student, 41), Is.False);
@@ -690,6 +694,9 @@ namespace DungeonStory.Tests.Architecture
             CharacterCareerAggregate restored = CharacterCareerAggregate.Restore(
                 careers.CaptureWorld());
             Assert.That(restored.Mentorships.Count, Is.EqualTo(1));
+            Assert.That(
+                restored.Mentorships[0].ProficiencyId,
+                Is.EqualTo(BuiltInCharacterProficiencyIds.Crafting));
             Assert.That(
                 restored.Mentorships[0].LastAwardAbsoluteDay,
                 Is.EqualTo(42));

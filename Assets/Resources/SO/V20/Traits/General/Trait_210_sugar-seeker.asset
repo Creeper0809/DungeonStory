@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uB2E8\uB9DB \uD0D0\uB2C9"
   description: "\uACFC\uC2E4\uACFC \uC2DC\uB7FD\uC774 \uC788\uC73C\uBA74 \uC6B0\uC120
     \uCC3E\uACE0 \uBD80\uC871\uD558\uBA74 \uC9D1\uC911\uB825\uC774 \uB5A8\uC5B4\uC9C4\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1.05
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,46 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 0
+  polarity: 1
+  selectionFamilyId: appetite
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: food:sweet
-    utilityDelta: 0.45
-  moodReactions:
-  - triggerTag: food:no-sweets
-    moodDelta: -2
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: festival
-    multiplier: 1.25
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:210:effect:0
+    definition: {fileID: 11400000, guid: 4c10a3b16899e31478c3820a16829879, type: 2}
+    value: 1.05
+    condition: {fileID: 0}
+  - bindingId: trait:210:effect:1
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 1.05
+    condition: {fileID: 11400000, guid: 8ab5f55768bfba546924a154bd0e9833, type: 2}
+  identityRules:
+  - rid: 7737211921986486465
+  - rid: 7737211921986486466
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486465
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:prefer-sweets
+        priority: 0
+        behaviorTag: food:sweet
+        utilityDelta: 0.75
+    - rid: 7737211921986486466
+      type: {class: PersistentNeedRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: need:sweets
+        priority: 0
+        needId: need:sweets
+        satisfiedEventId: food:sweet
+        deprivedEventId: food:no-sweets
+        deprivationDays: 3
+        deprivedMoodDelta: -2
+        satisfiedMoodDelta: 4
+        moodDurationDays: 1

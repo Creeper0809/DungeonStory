@@ -374,7 +374,7 @@ public static class V21ContentEffectCommitPreflight
             .Where(value => value != null
                 && value.Quantity > 0
                 && !value.Forbidden
-                && !value.IsReserved)
+                && value.AvailableQuantity > 0)
             .OrderBy(value => value.StackId, StringComparer.Ordinal)
             .ToArray();
         foreach (IGrouping<string, V20ContentEffect> group in (effects
@@ -1391,9 +1391,11 @@ public sealed class V20ContentResolutionService : IContentResolutionService
         }
         plan.ItemCosts.AddRange(itemCosts);
         if (plan.ItemCosts.Count > 0
-            && !reservations.TryReserve(
-                plan.ItemCosts.Select(value => value.StackId),
-                plan.ReservationOwnerId))
+            && !reservations.TryReserveQuantities(
+                plan.ItemCosts,
+                plan.ReservationOwnerId,
+                ItemReservationPurpose.DirectPlayerOrder,
+                $"content-resolution:{plan.ReservationOwnerId}:costs"))
         {
             failure = new DomainFailure(FailureCode.ItemTransferStackUnavailable);
             return false;

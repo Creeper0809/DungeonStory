@@ -9,6 +9,7 @@ public interface ICharacterCarryInventoryRegistry
     void Register(CharacterCarryInventory inventory);
     void Unregister(CharacterCarryInventory inventory);
     CharacterCarryInventory Find(CharacterId characterId);
+    IReadOnlyList<CharacterCarryInventory> All { get; }
 }
 
 public sealed class CharacterCarryInventoryRegistry :
@@ -30,6 +31,18 @@ public sealed class CharacterCarryInventoryRegistry :
     private readonly Dictionary<CharacterId, CharacterSkillState> skillStates =
         new Dictionary<CharacterId, CharacterSkillState>();
     private bool disposed;
+
+    public IReadOnlyList<CharacterCarryInventory> All
+    {
+        get
+        {
+            if (disposed) return Array.Empty<CharacterCarryInventory>();
+            activeInventories.RemoveWhere(inventory => inventory == null);
+            return activeInventories
+                .OrderBy(inventory => inventory.CharacterId.Value, StringComparer.Ordinal)
+                .ToArray();
+        }
+    }
 
     public void Register(CharacterCarryInventory inventory)
     {
@@ -185,8 +198,122 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
     private IEnvironmentalWorkwearCommand environmentalWorkwearCommands;
 
     public IReadOnlyList<CharacterCarriedItemSaveData> Items => carriedItems;
+    public Vector2Int OwnerGridPosition => actor != null
+        ? actor.GetNowXY()
+        : Vector2Int.RoundToInt(transform.position);
+
+    public List<CharacterCarriedItemSaveData> AdvanceCarriedFoodFreshness(
+        IItemDefinitionCatalog itemCatalog,
+        float elapsedSeconds)
+    {
+        List<CharacterCarriedItemSaveData> spoiled = new();
+        float elapsed = Mathf.Max(0f, elapsedSeconds);
+        if (itemCatalog == null || elapsed <= 0f)
+            return spoiled;
+        bool changed = false;
+        for (int index = carriedItems.Count - 1; index >= 0; index--)
+        {
+            CharacterCarriedItemSaveData carried = carriedItems[index];
+            if (carried == null
+                || carried.quantity <= 0
+                || !itemCatalog.TryGet(
+                    (ItemDefinitionId)carried.itemId,
+                    out ItemDefinitionSO definition)
+                || definition == null
+                || !definition.TryGetFeature(out FoodItemFeature food)
+                || food.freshnessSeconds <= 0f)
+            {
+                continue;
+            }
+            ItemInstanceComponentSaveData component =
+                (carried.components ?? new List<ItemInstanceComponentSaveData>())
+                .FirstOrDefault(value => value != null
+                    && string.Equals(
+                        value.componentTypeId,
+                        ItemInstanceComponentIds.Freshness,
+                        StringComparison.Ordinal));
+            if (component == null)
+            {
+                component = new ItemInstanceComponentSaveData
+                {
+                    componentTypeId = ItemInstanceComponentIds.Freshness,
+                    schemaVersion = 2,
+                    affectsStacking = true,
+                    values = new List<ItemStateValueSaveData>()
+                };
+                carried.components ??= new List<ItemInstanceComponentSaveData>();
+                carried.components.Add(component);
+            }
+            component.values ??= new List<ItemStateValueSaveData>();
+            ItemStateValueSaveData remaining = component.values.FirstOrDefault(value =>
+                value != null
+                && string.Equals(value.key, "remaining-seconds", StringComparison.Ordinal));
+            ItemStateValueSaveData preserved = component.values.FirstOrDefault(value =>
+                value != null
+                && string.Equals(value.key, "preserved", StringComparison.Ordinal));
+            if (remaining == null)
+            {
+                remaining = new ItemStateValueSaveData
+                {
+                    key = "remaining-seconds",
+                    kind = ItemStateValueKind.Decimal,
+                    decimalValue = food.freshnessSeconds
+                };
+                component.values.Add(remaining);
+            }
+            if (preserved == null)
+            {
+                preserved = new ItemStateValueSaveData
+                {
+                    key = "preserved",
+                    kind = ItemStateValueKind.Boolean,
+                    booleanValue = food.preserved
+                };
+                component.values.Add(preserved);
+            }
+            double rate = preserved.booleanValue ? 0.25d : 1d;
+            remaining.kind = ItemStateValueKind.Decimal;
+            remaining.decimalValue = Math.Max(
+                0d,
+                remaining.decimalValue - elapsed * rate);
+            changed = true;
+            if (remaining.decimalValue > 0d && carried.contamination <= 0.01f)
+                continue;
+            spoiled.Add(CloneCarriedItem(carried));
+            carriedItems.RemoveAt(index);
+        }
+        if (changed) Changed?.Invoke();
+        return spoiled;
+    }
+
+    private static CharacterCarriedItemSaveData CloneCarriedItem(
+        CharacterCarriedItemSaveData item) => new()
+    {
+        carriedStackId = item?.carriedStackId ?? string.Empty,
+        sourceStackId = item?.sourceStackId ?? string.Empty,
+        ownerOperationId = item?.ownerOperationId ?? string.Empty,
+        itemInstanceId = item?.itemInstanceId ?? string.Empty,
+        itemId = item?.itemId ?? string.Empty,
+        quantity = Mathf.Max(0, item?.quantity ?? 0),
+        wasteOrigin = item?.wasteOrigin ?? WasteOriginKind.Unknown,
+        contamination = Mathf.Clamp(item?.contamination ?? 0f, 0f, 100f),
+        components = (item?.components ?? new List<ItemInstanceComponentSaveData>())
+            .Where(component => component != null)
+            .Select(component => component.Clone())
+            .ToList()
+    };
     public bool HasItems => carriedItems.Any(item => item != null && item.quantity > 0);
-    internal CharacterId CharacterId => actor?.Identity?.TypedPersistentId ?? default;
+    internal CharacterId CharacterId
+    {
+        get
+        {
+            if (actor == null)
+            {
+                actor = GetComponent<CharacterActor>();
+            }
+            return actor?.Identity?.TypedPersistentId ?? default;
+        }
+    }
     public event Action Changed;
 
     private void Awake()
@@ -254,11 +381,18 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
 
     public float GetBaseCarryLimit()
     {
-        CharacterStats stats = actor != null ? actor.Stats : null;
-        int strength = stats != null ? stats.GetCharacterStat(CharacterStatType.Strength) : 5;
-        int endurance = stats != null ? stats.GetCharacterStat(CharacterStatType.Endurance) : 5;
-        float baseLimit = 8f + (strength * 1.5f) + (endurance * 0.75f);
-        return IsHaulingHarnessEquipped() ? baseLimit * 1.25f : baseLimit;
+        if (actor == null)
+        {
+            actor = GetComponent<CharacterActor>();
+        }
+        CharacterStats stats = actor?.Stats
+            ?? throw new InvalidOperationException(
+                "Carry capacity requires an initialized character runtime.");
+        float baseLimit = 20f * stats.EvaluatePerformance(
+            "performance:survival:haul-capacity").Value;
+        if (IsHaulingHarnessEquipped())
+            baseLimit *= 1.25f;
+        return Mathf.Max(0.01f, baseLimit);
     }
 
     public bool TryPrepareHaulingHarness(out bool equippedForThisRun)
@@ -518,6 +652,37 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
         out int acceptedQuantity,
         out string failureReason)
     {
+        return TryAddLeasedPartialStack(
+            string.Empty,
+            sourceStackId,
+            string.Empty,
+            itemInstanceId,
+            itemId,
+            quantity,
+            catalogProvider,
+            settingsProvider,
+            wasteOrigin,
+            contamination,
+            components,
+            out acceptedQuantity,
+            out failureReason);
+    }
+
+    public bool TryAddLeasedPartialStack(
+        string carriedStackId,
+        string sourceStackId,
+        string ownerOperationId,
+        string itemInstanceId,
+        string itemId,
+        int quantity,
+        IDungeonItemCatalogProvider catalogProvider,
+        IItemHaulingSettingsProvider settingsProvider,
+        WasteOriginKind wasteOrigin,
+        float contamination,
+        IReadOnlyList<ItemInstanceComponentSaveData> components,
+        out int acceptedQuantity,
+        out string failureReason)
+    {
         failureReason = string.Empty;
         ItemInstanceId typedInstanceId = (ItemInstanceId)itemInstanceId;
         DungeonItemDefinition definition = ResolveDefinition(
@@ -541,6 +706,8 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
             ? $"{ItemStackSignature.Create(itemId, components)}#instance={typedInstanceId.Value}"
             : ItemStackSignature.Create(itemId, components);
         CharacterCarriedItemSaveData existing = carriedItems.FirstOrDefault(item => item != null
+            && string.IsNullOrWhiteSpace(carriedStackId)
+            && string.IsNullOrWhiteSpace(item.carriedStackId)
             && string.Equals(item.itemId, itemId, StringComparison.Ordinal)
             && string.Equals(item.sourceStackId, sourceStackId, StringComparison.Ordinal)
             && string.Equals(item.itemInstanceId, typedInstanceId.Value, StringComparison.Ordinal)
@@ -554,7 +721,9 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
         {
             carriedItems.Add(new CharacterCarriedItemSaveData
             {
+                carriedStackId = carriedStackId?.Trim() ?? string.Empty,
                 sourceStackId = sourceStackId ?? string.Empty,
+                ownerOperationId = ownerOperationId?.Trim() ?? string.Empty,
                 itemInstanceId = typedInstanceId.IsValid ? typedInstanceId.Value : string.Empty,
                 itemId = itemId ?? string.Empty,
                 quantity = acceptedQuantity,
@@ -647,7 +816,9 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
 
             taken = new CharacterCarriedItemSaveData
             {
+                carriedStackId = item.carriedStackId,
                 sourceStackId = item.sourceStackId,
+                ownerOperationId = item.ownerOperationId,
                 itemInstanceId = item.itemInstanceId,
                 itemId = item.itemId,
                 quantity = 1,
@@ -717,7 +888,9 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
             .Where(item => item != null && item.quantity > 0)
             .Select(item => new CharacterCarriedItemSaveData
             {
+                carriedStackId = item.carriedStackId,
                 sourceStackId = item.sourceStackId,
+                ownerOperationId = item.ownerOperationId,
                 itemInstanceId = item.itemInstanceId,
                 itemId = item.itemId,
                 quantity = item.quantity,
@@ -745,7 +918,9 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
                 .Where(item => item != null && item.quantity > 0)
                 .Select(item => new CharacterCarriedItemSaveData
                 {
+                    carriedStackId = item.carriedStackId,
                     sourceStackId = item.sourceStackId,
+                    ownerOperationId = item.ownerOperationId,
                     itemInstanceId = item.itemInstanceId,
                     itemId = item.itemId,
                     quantity = Mathf.Max(0, item.quantity),
@@ -783,7 +958,9 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
 
             carriedItems.Add(new CharacterCarriedItemSaveData
             {
+                carriedStackId = item.carriedStackId?.Trim() ?? string.Empty,
                 sourceStackId = item.sourceStackId ?? string.Empty,
+                ownerOperationId = item.ownerOperationId?.Trim() ?? string.Empty,
                 itemInstanceId = itemInstanceId.IsValid
                     ? itemInstanceId.Value
                     : string.Empty,

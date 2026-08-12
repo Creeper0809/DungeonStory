@@ -38,5 +38,13 @@ MonoBehaviour:
   allowedMaterialTags: 3
   tailoringCoefficient: 1.18
   baseWeight: 1.4
+  allowMythicInspiration: 1
   requiredResearchId: research:environment:cold-work
   sprite: {fileID: 0}
+  proficiency:
+    primaryProficiencyId: proficiency:crafting
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0

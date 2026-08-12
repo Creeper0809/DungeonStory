@@ -11,12 +11,17 @@ using VContainer.Unity;
 public sealed class WorldItemStackSnapshot
 {
     public string StackId { get; set; }
+    public long ContentRevision { get; set; }
+    public long ReservationRevision { get; set; }
     public string ItemInstanceId { get; set; }
     public string ItemId { get; set; }
     public string DisplayName { get; set; }
     public string Description { get; set; }
     public StockCategory StockCategory { get; set; }
     public int Quantity { get; set; }
+    public int TotalQuantity => Mathf.Max(0, Quantity);
+    public int ReservedQuantity { get; set; }
+    public int AvailableQuantity => Mathf.Max(0, TotalQuantity - ReservedQuantity);
     public int UnitPrice { get; set; }
     public float UnitWeight { get; set; }
     public Sprite Sprite { get; set; }
@@ -24,6 +29,7 @@ public sealed class WorldItemStackSnapshot
     public Vector2Int Position { get; set; }
     public string ReservedByPersistentId { get; set; }
     public string DestinationId { get; set; }
+    public string AggregationCohortId { get; set; }
     public string SourceStorageDestinationId { get; set; }
     public bool HasDestinationPosition { get; set; }
     public Vector2Int DestinationPosition { get; set; }
@@ -42,7 +48,10 @@ public sealed class WorldItemStackSnapshot
     public bool HasUniqueMetadata => !string.IsNullOrWhiteSpace(SourceCharacterId);
     public float TotalWeight => UnitWeight * Quantity;
     public int TotalValue => UnitPrice * Quantity;
-    public bool IsReserved => !string.IsNullOrWhiteSpace(ReservedByPersistentId);
+    public bool HasReservations => ReservedQuantity > 0;
+    public bool IsFullyReserved => TotalQuantity > 0 && AvailableQuantity == 0;
+    [Obsolete("Use ReservedQuantity or AvailableQuantity.")]
+    public bool IsReserved => HasReservations;
 }
 
 public sealed class WorldItemPileSnapshot
@@ -54,7 +63,7 @@ public sealed class WorldItemPileSnapshot
     public int TotalQuantity => Stacks.Sum(stack => stack.Quantity);
     public int KindCount => Stacks.Select(stack => stack.ItemId).Distinct(StringComparer.Ordinal).Count();
     public float TotalWeight => Stacks.Sum(stack => stack.TotalWeight);
-    public bool HasReservedItems => Stacks.Any(stack => stack.IsReserved);
+    public bool HasReservedItems => Stacks.Any(stack => stack.HasReservations);
 }
 
 public readonly struct WorldItemStockCandidate
@@ -96,7 +105,9 @@ public readonly struct WorldItemReservedStackQuantity
         int quantity,
         Vector2Int position,
         WorldItemHaulDestinationKind destinationKind,
-        string destinationId)
+        string destinationId,
+        string leaseId = "",
+        string ownerOperationId = "")
     {
         StackId = stackId ?? string.Empty;
         ItemId = itemId ?? string.Empty;
@@ -104,6 +115,8 @@ public readonly struct WorldItemReservedStackQuantity
         Position = position;
         DestinationKind = destinationKind;
         DestinationId = destinationId ?? string.Empty;
+        LeaseId = leaseId?.Trim() ?? string.Empty;
+        OwnerOperationId = ownerOperationId?.Trim() ?? string.Empty;
     }
 
     public string StackId { get; }
@@ -112,7 +125,12 @@ public readonly struct WorldItemReservedStackQuantity
     public Vector2Int Position { get; }
     public WorldItemHaulDestinationKind DestinationKind { get; }
     public string DestinationId { get; }
-    public bool IsValid => !string.IsNullOrWhiteSpace(StackId) && Quantity > 0;
+    public string LeaseId { get; }
+    public string OwnerOperationId { get; }
+    public bool IsValid => !string.IsNullOrWhiteSpace(StackId)
+        && Quantity > 0
+        && (!string.IsNullOrWhiteSpace(LeaseId)
+            || string.IsNullOrWhiteSpace(OwnerOperationId));
 }
 
 public readonly struct WorldItemHaulPlanLeg
@@ -197,7 +215,10 @@ public readonly struct WorldItemHaulJob
         WorldItemHaulDestinationKind destinationKind = WorldItemHaulDestinationKind.Warehouse,
         string destinationId = "",
         Vector2Int dropPosition = default,
-        bool useDropPosition = false)
+        bool useDropPosition = false,
+        int quantity = 0,
+        string leaseId = "",
+        string ownerOperationId = "")
     {
         StackId = stackId ?? string.Empty;
         ItemPosition = itemPosition;
@@ -207,6 +228,9 @@ public readonly struct WorldItemHaulJob
         DestinationKind = destinationKind;
         DestinationId = destinationId ?? string.Empty;
         DropPosition = useDropPosition ? dropPosition : deliveryPosition;
+        Quantity = Mathf.Max(0, quantity);
+        LeaseId = leaseId?.Trim() ?? string.Empty;
+        OwnerOperationId = ownerOperationId?.Trim() ?? string.Empty;
     }
 
     public string StackId { get; }
@@ -217,6 +241,9 @@ public readonly struct WorldItemHaulJob
     public Vector2Int DropPosition { get; }
     public WorldItemHaulDestinationKind DestinationKind { get; }
     public string DestinationId { get; }
+    public int Quantity { get; }
+    public string LeaseId { get; }
+    public string OwnerOperationId { get; }
     public bool IsValid => !string.IsNullOrWhiteSpace(StackId)
         && (DestinationKind == WorldItemHaulDestinationKind.FacilityBuffer || Warehouse != null);
 }
@@ -357,6 +384,7 @@ public interface IWorldItemStackRuntime : IEquipmentPhysicalItemGateway
     DungeonPhysicalItemSaveData Capture();
     void Restore(DungeonPhysicalItemSaveData snapshot);
     void SetStoredItemMarkersVisible(bool visible);
+    bool SpawnItemAtDropoff(string itemId, int amount, string sourceLabel, out int spawned);
     bool SpawnStockAtDropoff(StockCategory category, int amount, string sourceLabel, out int spawned);
     bool SpawnStockAtDropoff(
         StockCategory category,
@@ -513,6 +541,14 @@ public interface IWorldItemStackRuntime : IEquipmentPhysicalItemGateway
     new int ReleaseStacksByDestination(string destinationId, Vector2Int releasePosition);
 }
 
+public interface IWorldItemQuantityLeaseRuntime
+{
+    bool TryRenewQuantityLease(
+        string leaseId,
+        double requestedUntilGameSeconds,
+        out string failureReason);
+}
+
 internal sealed class WorldItemStackRecord
 {
     public string stackId = string.Empty;
@@ -522,7 +558,10 @@ internal sealed class WorldItemStackRecord
     public WorldItemStackState state;
     public Vector2Int position;
     public string reservedByPersistentId = string.Empty;
+    public int reservedQuantity;
+    public long reservationRevision;
     public string destinationId = string.Empty;
+    public string aggregationCohortId = string.Empty;
     public string sourceStorageDestinationId = string.Empty;
     public bool hasDestinationPosition;
     public Vector2Int destinationPosition;

@@ -19,7 +19,7 @@ MonoBehaviour:
   weight: 6.8
   occupiedHands: 2
   maxDurability: 100
-  requiredCraftWork: 184
+  requiredCraftWork: 224
   defaultMaterialId: material:iron
   primaryMaterialAmount: 6
   allowedMaterialFamilies: 03000000
@@ -44,8 +44,17 @@ MonoBehaviour:
   lineageKind: 0
   growthEquipment: 1
   growthBaseStatMultiplier: 0.88
+  proficiency:
+    primaryProficiencyId: proficiency:crafting
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  effects: []
+  allowMythicInspiration: 1
   verbs:
-  - rid: 7737211838079696920
+  - rid: 7737211905660420942
   rangeProfiles:
   - band: 2
     accuracyMultiplier: 0.72
@@ -72,7 +81,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211838079696920
+    - rid: 7737211905660420942
       type: {class: ProjectileVerb, ns: , asm: DungeonStory.Combat}
       data:
         attackTime: 1.85

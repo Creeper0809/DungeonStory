@@ -32,9 +32,19 @@ MonoBehaviour:
   - support:pickling-vat
   batchSupportTag: support:pickling-vat
   processKind: 1
+  flowRole: 0
+  processClass: 2
+  processClassAuthored: 1
   workTypeId: work:craft
+  proficiency:
+    primaryProficiencyId: proficiency:food-production
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
   requiredResearchId: research:survival:preservation
-  requiredWork: 2
+  requiredWork: 34
   preparationWork: 2
   finishingWork: 1
   processingGameHours: 12

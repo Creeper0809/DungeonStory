@@ -1,0 +1,14 @@
+INFRASTRUCTURE_BALANCE=PASS
+buildings=419
+automationFacilities=28
+powerProducers=3
+powerConsumers=57
+powerStorage=1
+assistMultiplierRange=1.35-1.35
+maintenancePerHourRange=1.00-1.00
+utilityCells=10000
+payloadRoutes=2000
+topologyMs=703.1
+routesMs=987.8
+topologyAllocatedBytes=0
+routeAllocatedBytes=0

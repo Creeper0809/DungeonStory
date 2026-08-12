@@ -25,6 +25,15 @@ public static class V21OperationalContentLinkBuilder
             ["research:defense:siege-fortification"] = "component:siege-reinforcement-kit",
             ["research:industry:waterwheel"] = "component:waterwheel-drive-shaft"
         };
+    private static readonly IReadOnlyDictionary<string, string>
+        ExactFacilityInstallationComponents =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["research:industry:factory-layout"] =
+                "component:factory-installation-plan",
+            ["research:industry:rune-grid"] = "component:rune-bus-coupler",
+            ["research:equipment:industrial-metrology"] = "tool:precision-gauge"
+        };
     private static readonly IReadOnlyDictionary<string, string[]> FormerFabricatedGuestSupplyIds =
         new Dictionary<string, string[]>(StringComparer.Ordinal)
         {
@@ -158,26 +167,58 @@ public static class V21OperationalContentLinkBuilder
                     throw new InvalidOperationException(
                         $"V21 installation target building '{buildingId}' is missing.");
                 }
-                BuildingWorkAmountAbility work =
-                    building.GetAbility<BuildingWorkAmountAbility>();
-                if (work == null)
-                {
-                    throw new InvalidOperationException(
-                        $"V21 installation target building '{buildingId}' has no construction contract.");
-                }
-                List<ItemAmountDefinition> materials = work.ConstructionMaterials
-                    .Select(value => new ItemAmountDefinition(value.ItemId, value.Amount))
-                    .ToList();
-                if (materials.All(value => !string.Equals(
-                        value.ItemId,
-                        pair.Value,
-                        StringComparison.Ordinal)))
-                {
-                    materials.Add(new ItemAmountDefinition(pair.Value, 1));
-                    work.SetConstructionMaterials(materials);
-                    EditorUtility.SetDirty(building);
-                }
+                AddConstructionComponent(building, pair.Value);
             }
+        }
+
+        foreach (KeyValuePair<string, string> pair in
+                 ExactFacilityInstallationComponents)
+        {
+            BuildingSO[] targets = buildings.Values
+                .Where(building => building
+                    .GetAbility<BuildingSemanticTagsAbility>()?.tags
+                    ?.Any(tag => string.Equals(
+                        tag,
+                        pair.Key,
+                        StringComparison.Ordinal)) == true)
+                .OrderBy(building => building.id)
+                .ToArray();
+            if (targets.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    $"V21 exact installation target '{pair.Key}' is missing.");
+            }
+
+            foreach (BuildingSO building in targets)
+            {
+                AddConstructionComponent(building, pair.Value);
+            }
+        }
+    }
+
+    private static void AddConstructionComponent(
+        BuildingSO building,
+        string itemId)
+    {
+        BuildingWorkAmountAbility work =
+            building.GetAbility<BuildingWorkAmountAbility>();
+        if (work == null)
+        {
+            throw new InvalidOperationException(
+                $"V21 installation target building '{building.id}' has no construction contract.");
+        }
+
+        List<ItemAmountDefinition> materials = work.ConstructionMaterials
+            .Select(value => new ItemAmountDefinition(value.ItemId, value.Amount))
+            .ToList();
+        if (materials.All(value => !string.Equals(
+                value.ItemId,
+                itemId,
+                StringComparison.Ordinal)))
+        {
+            materials.Add(new ItemAmountDefinition(itemId, 1));
+            work.SetConstructionMaterials(materials);
+            EditorUtility.SetDirty(building);
         }
     }
 }

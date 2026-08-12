@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ebd4cc0caa42da7478c3e9277410030d, type: 3}
+  m_Name: StartingOrigin_caravan-city
+  m_EditorClassIdentifier: DungeonStory.Characters::CharacterStartingOriginSO
+  originId: origin:caravan-city
+  displayName: "\uB300\uC0C1\uB85C \uB3C4\uC2DC"
+  description: "\uB300\uC0C1\uB85C \uB3C4\uC2DC\uC5D0\uC11C \uC0B4\uC544\uC628 \uACBD\uD5D8\uC774
+    \uAE30\uCD08 \uC219\uB828\uC73C\uB85C \uB0A8\uC558\uB2E4."
+  proficiencyBonuses:
+  - proficiencyId: proficiency:social
+    experience: 10
+  - proficiencyId: proficiency:ranged-combat
+    experience: 7

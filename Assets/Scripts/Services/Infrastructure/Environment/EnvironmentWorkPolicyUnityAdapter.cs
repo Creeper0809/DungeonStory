@@ -16,13 +16,15 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
     private readonly ICharacterEnvironmentProtectionResolver protection;
     private readonly IEnvironmentalWorkwearCommand workwear;
     private readonly ICharacterSpeciesEnvironmentCatalog speciesEnvironment;
+    private readonly ICharacterPerformanceQuery performance;
 
     public EnvironmentWorkPolicyUnityAdapter(
         IEnvironmentalFieldQuery field,
         ICharacterEnvironmentStatusQuery status,
         ICharacterEnvironmentProtectionResolver protection,
         IEnvironmentalWorkwearCommand workwear,
-        ICharacterSpeciesEnvironmentCatalog speciesEnvironment)
+        ICharacterSpeciesEnvironmentCatalog speciesEnvironment,
+        ICharacterPerformanceQuery performance)
     {
         this.field = field ?? throw new ArgumentNullException(nameof(field));
         this.status = status ?? throw new ArgumentNullException(nameof(status));
@@ -32,6 +34,8 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
             ?? throw new ArgumentNullException(nameof(workwear));
         this.speciesEnvironment = speciesEnvironment
             ?? throw new ArgumentNullException(nameof(speciesEnvironment));
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
     }
 
     public WorkEnvironmentAssessment Assess(
@@ -266,6 +270,10 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
 
         ThermalProtectionProfile resolvedProtection =
             protection.Resolve(actor);
+        CharacterThermalGameplayEffectProjection.Apply(
+            actor,
+            resolvedProtection,
+            performance);
         SpeciesThermalProfile thermal =
             speciesEnvironment
                 .GetRequiredThermalProfile(
@@ -370,6 +378,10 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
                 out DomainFailure equipmentFailure))
             {
                 resolvedProtection = protection.Resolve(actor);
+                CharacterThermalGameplayEffectProjection.Apply(
+                    actor,
+                    resolvedProtection,
+                    performance);
                 thermal = speciesEnvironment
                     .GetRequiredThermalProfile(
                         new CharacterSpeciesId(actor.SpeciesTag))
@@ -690,6 +702,10 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
     {
         ThermalProtectionProfile resolvedProtection =
             protection.Resolve(actor);
+        CharacterThermalGameplayEffectProjection.Apply(
+            actor,
+            resolvedProtection,
+            performance);
         SpeciesThermalProfile thermal = speciesEnvironment
             .GetRequiredThermalProfile(
                 new CharacterSpeciesId(actor.SpeciesTag))

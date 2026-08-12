@@ -36,7 +36,9 @@ public enum ResourceIngredientTag
     Spoiled = 1 << 11,
     Forbidden = 1 << 12,
     Fuel = 1 << 13,
-    Feed = 1 << 14
+    Feed = 1 << 14,
+    Sweet = 1 << 15,
+    Salted = 1 << 16
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

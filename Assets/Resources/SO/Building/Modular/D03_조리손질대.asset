@@ -34,25 +34,34 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730538791923
-    - rid: 7737211730538791924
-    - rid: 7737211730538791926
-    - rid: 7737211730538791927
-    - rid: 7737211730538791928
-    - rid: 7737211730538791929
-    - rid: 7737211730538791930
-    - rid: 7737211730538791931
-    - rid: 7737211838074978477
-    - rid: 7737211838074978478
-    - rid: 7737211838074978479
-    - rid: 7737211838074978480
-    - rid: 7737211838074978481
-    - rid: 7737211838074979018
-    - rid: 7737211838074979019
+    - rid: 7737211921440178571
+    - rid: 7737211921440178572
+    - rid: 7737211921440178573
+    - rid: 7737211921440178574
+    - rid: 7737211921440178575
+    - rid: 7737211921440178576
+    - rid: 7737211921440178577
+    - rid: 7737211921440178578
+    - rid: 7737211921440178579
   width: 2
   height: 1
   layer: 1
@@ -68,18 +77,24 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730538791923
+    - rid: 7737211921440178571
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: D03
-    - rid: 7737211730538791924
+    - rid: 7737211921440178572
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - cookbench
-    - rid: 7737211730538791926
+    - rid: 7737211921440178573
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:kitchen-basic
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211921440178574
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -88,19 +103,35 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211730538791927
+    - rid: 7737211921440178575
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 25.5
-        repairWorkRequired: 12
-        cleanWorkRequired: 7.5
+        constructionProjectScale: 0
+        constructionWorkRequired: 40
+        repairWorkRequired: 10
+        cleanWorkRequired: 4
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: material:lumber
-          amount: 4
-    - rid: 7737211730538791928
+        - itemId: material:treated-lumber
+          amount: 6
+        - itemId: material:iron-ingot
+          amount: 2
+        - itemId: material:stone-block
+          amount: 2
+    - rid: 7737211921440178576
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -109,9 +140,9 @@ MonoBehaviour:
           capacity: 0
           useDuration: 0
           requiredWorkers: 1
-          supportedWorkTypes: 536887296
+          supportedWorkTypes: 16384
           disabledWhenDamaged: 1
-    - rid: 7737211730538791929
+    - rid: 7737211921440178577
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -126,14 +157,14 @@ MonoBehaviour:
           - key: Service
             value: 2.5
           metrics: []
-    - rid: 7737211730538791930
+    - rid: 7737211921440178578
       type: {class: BuildingServiceAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingServiceAbility
         capacity: 1
         contributesStockCategory: 1
         stockCategory: 0
-    - rid: 7737211730538791931
+    - rid: 7737211921440178579
       type: {class: BuildingCookingAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingCookingAbility
@@ -141,73 +172,3 @@ MonoBehaviour:
         cookedMeals: 1
         workSeconds: 1
         requiresFuel: 0
-    - rid: 7737211838074978477
-      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingPowerConsumerAbility
-        demandPerSecond: 5
-        priority: 4
-        minimumSupplyFraction: 0.75
-    - rid: 7737211838074978478
-      type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingAutomationAbility
-        maximumMode: 2
-        assistedPowerDemand: 2
-        automaticPowerDemand: 5
-        assistedWorkMultiplier: 1.35
-        automaticWorkPerSecond: 1
-        automaticQualityCap: 0.75
-        maintenancePerGameHour: 1
-    - rid: 7737211838074978479
-      type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingConveyorPortAbility
-        mode: 2
-        destinationId: 
-        capacity: 4
-    - rid: 7737211838074978480
-      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingUtilityConnectionAbility
-        channels: 7
-        maxThroughput: 25
-        normallyOpen: 1
-    - rid: 7737211838074978481
-      type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProcessFluidAbility
-        workTypeIds:
-        - work:cook
-        cleanWaterPerCycle: 0.25
-        wastewaterPerCycle: 0.25
-        minimumQuality: 0
-        allowsManualWaterFallback: 1
-    - rid: 7737211838074979018
-      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionWorkstationAbility
-        workstationTag: workstation:kitchen-basic
-        stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211838074979019
-      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionBufferAbility
-        defaultBatchCapacity: 4
-        outputCapacities:
-        - itemId: material:lead-ingot
-          capacity: 24
-        - itemId: material:lead-shot
-          capacity: 96
-        - itemId: material:black-powder
-          capacity: 48
-        - itemId: material:paper
-          capacity: 64
-        - itemId: ammo:paper-cartridge
-          capacity: 120
-        - itemId: component:machine-parts
-          capacity: 16
-        - itemId: component:precision-parts
-          capacity: 16
-        allowOverflowDump: 1
-        overflowOffset: {x: 1, y: 0}

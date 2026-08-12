@@ -7,6 +7,8 @@ public sealed class ExpeditionFeatureSurfaceModel
 {
     public bool IsAvailable { get; set; }
     public bool TruthRevealed { get; set; }
+    public bool CanLaunchExpedition { get; set; }
+    public string ExpeditionBlocker { get; set; } = string.Empty;
     public string CampaignSummary { get; set; } = string.Empty;
     public string CampaignGuidance { get; set; } = string.Empty;
     public string SelectedTargetId { get; set; } = string.Empty;
@@ -109,6 +111,8 @@ public sealed class ExpeditionFeatureQueryService : IExpeditionFeatureQueryServi
         {
             IsAvailable = true,
             TruthRevealed = campaign.TruthRevealed,
+            CanLaunchExpedition = campaign.CanLaunchExpedition,
+            ExpeditionBlocker = campaign.ExpeditionBlocker,
             CampaignSummary = campaign.TruthRevealed
                 ? "진실이 밝혀졌습니다."
                 : $"진실 추적 {campaign.CompletedTargetCount}/{campaign.CampaignTargetCount}"
@@ -336,7 +340,9 @@ public sealed class ExpeditionFeatureSurfacePresenter : IFeatureSurfaceTabPresen
             view,
             "P1Action_OffenseOpenExpedition",
             "원정 편성 열기",
-            $"참가 가능한 직원 {model.AvailableMemberCount}명",
+            model.CanLaunchExpedition
+                ? $"참가 가능한 직원 {model.AvailableMemberCount}명"
+                : model.ExpeditionBlocker,
             commands.OpenExpedition,
             refresh: false);
         AddCommandCard(
@@ -383,7 +389,9 @@ public sealed class ExpeditionFeatureSurfacePresenter : IFeatureSurfaceTabPresen
                 view,
                 "P1Action_OffenseStart",
                 "선택 목표 출정",
-                $"{selected.Title} / 필요 인원 {selected.RequiredMembers}명",
+                model.CanLaunchExpedition
+                    ? $"{selected.Title} / 필요 인원 {selected.RequiredMembers}명"
+                    : model.ExpeditionBlocker,
                 commands.StartSelectedTarget);
         }
 

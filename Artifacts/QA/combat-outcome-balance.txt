@@ -1,0 +1,46 @@
+﻿COMBAT_OUTCOME_BALANCE_V1
+samplesPerEncounter=32; encounters=36; stallDetails=0
+encounter | campaign | objective | party | required power | wins | win rate | median rounds | mean ally health | severe casualty | stalled | capture down/dead/active | shots/executed/hits | end/peak sedation
+encounter:01 | 1 | DefeatAll | 2 | 10.0 | 0 | 0.0 % | 6.0 | 3.3 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:02 | 1 | SurviveRounds | 2 | 10.0 | 28 | 87.5 % | 9.0 | 46.7 % | 93.8 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:03 | 1 | ProtectTarget | 2 | 10.0 | 22 | 68.8 % | 7.0 | 6.9 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:04 | 1 | SabotageTarget | 2 | 10.0 | 3 | 9.4 % | 4.0 | 19.2 % | 90.6 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:05 | 1 | Escape | 2 | 10.0 | 28 | 87.5 % | 8.0 | 38.3 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:06 | 1 | CaptureLeader | 2 | 10.0 | 3 | 9.4 % | 3.0 | 15.2 % | 90.6 % | 0 | 3/0/29 | 64/64/26 | 0.20/0.28
+encounter:07 | 2 | DefeatAll | 3 | 16.0 | 3 | 9.4 % | 9.0 | 12.0 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:08 | 2 | SurviveRounds | 3 | 16.0 | 32 | 100.0 % | 9.0 | 38.7 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:09 | 2 | ProtectTarget | 3 | 16.0 | 29 | 90.6 % | 8.0 | 53.9 % | 84.4 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:10 | 2 | SabotageTarget | 3 | 16.0 | 0 | 0.0 % | 5.0 | 6.2 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:11 | 2 | Escape | 3 | 16.0 | 29 | 90.6 % | 7.0 | 50.9 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:12 | 2 | CaptureLeader | 3 | 16.0 | 2 | 6.3 % | 4.0 | 11.1 % | 93.8 % | 0 | 2/0/30 | 57/57/16 | 0.10/0.18
+encounter:13 | 3 | DefeatAll | 3 | 32.0 | 14 | 43.8 % | 10.0 | 39.0 % | 81.3 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:14 | 3 | SurviveRounds | 3 | 32.0 | 17 | 53.1 % | 9.0 | 40.2 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:15 | 3 | ProtectTarget | 3 | 32.0 | 0 | 0.0 % | 4.0 | 11.5 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:16 | 3 | SabotageTarget | 3 | 32.0 | 3 | 9.4 % | 6.0 | 9.4 % | 90.6 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:17 | 3 | Escape | 3 | 32.0 | 32 | 100.0 % | 8.0 | 65.5 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:18 | 3 | CaptureLeader | 3 | 32.0 | 14 | 43.8 % | 5.5 | 54.6 % | 53.1 % | 0 | 14/0/18 | 62/62/44 | 0.31/0.48
+encounter:19 | 4 | DefeatAll | 4 | 42.0 | 29 | 90.6 % | 5.5 | 87.8 % | 28.1 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:20 | 4 | SurviveRounds | 4 | 42.0 | 30 | 93.8 % | 9.0 | 47.6 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:21 | 4 | ProtectTarget | 4 | 42.0 | 32 | 100.0 % | 8.0 | 77.2 % | 43.8 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:22 | 4 | SabotageTarget | 4 | 42.0 | 8 | 25.0 % | 8.0 | 64.4 % | 78.1 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:23 | 4 | Escape | 4 | 42.0 | 32 | 100.0 % | 7.0 | 77.4 % | 59.4 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:24 | 4 | CaptureLeader | 4 | 42.0 | 17 | 53.1 % | 1.0 | 81.0 % | 43.8 % | 0 | 17/0/15 | 64/64/45 | 0.37/0.49
+encounter:25 | 5 | DefeatAll | 5 | 60.0 | 2 | 6.3 % | 9.0 | 18.1 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:26 | 5 | SurviveRounds | 5 | 60.0 | 32 | 100.0 % | 9.0 | 64.7 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:27 | 5 | ProtectTarget | 5 | 60.0 | 32 | 100.0 % | 8.0 | 57.3 % | 90.6 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:28 | 5 | SabotageTarget | 5 | 60.0 | 18 | 56.3 % | 1.0 | 53.8 % | 53.1 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:29 | 5 | Escape | 5 | 60.0 | 32 | 100.0 % | 7.0 | 77.2 % | 96.9 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:30 | 5 | CaptureLeader | 5 | 60.0 | 18 | 56.3 % | 1.0 | 74.3 % | 43.8 % | 0 | 18/0/14 | 64/64/46 | 0.39/0.50
+encounter:31 | 6 | DefeatAll | 5 | 85.0 | 32 | 100.0 % | 4.0 | 66.3 % | 84.4 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:32 | 6 | SurviveRounds | 5 | 85.0 | 17 | 53.1 % | 9.0 | 23.6 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:33 | 6 | ProtectTarget | 5 | 85.0 | 0 | 0.0 % | 3.0 | 0.5 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:34 | 6 | SabotageTarget | 5 | 85.0 | 26 | 81.3 % | 4.5 | 53.4 % | 93.8 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:35 | 6 | Escape | 5 | 85.0 | 28 | 87.5 % | 8.0 | 44.4 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:36 | 6 | CaptureLeader | 5 | 85.0 | 0 | 0.0 % | 7.0 | 38.8 % | 100.0 % | 0 | 0/0/32 | 62/62/20 | 0.00/0.22
+CAMPAIGN_SUMMARY
+campaign=1; win_rate=43.8 %; min=0.0 %; max=87.5 %; severe=95.8 %
+campaign=2; win_rate=49.5 %; min=0.0 %; max=100.0 %; severe=96.4 %
+campaign=3; win_rate=41.7 %; min=0.0 %; max=100.0 %; severe=87.5 %
+campaign=4; win_rate=77.1 %; min=25.0 %; max=100.0 %; severe=58.9 %
+campaign=5; win_rate=69.8 %; min=6.3 %; max=100.0 %; severe=80.7 %
+campaign=6; win_rate=53.6 %; min=0.0 %; max=100.0 %; severe=96.4 %

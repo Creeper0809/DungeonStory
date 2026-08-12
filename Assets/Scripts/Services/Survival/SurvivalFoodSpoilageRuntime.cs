@@ -13,13 +13,15 @@ internal sealed class SurvivalFoodSpoilageRuntime
     private readonly IWorldItemStackRuntime itemStackRuntime;
     private readonly IItemDefinitionCatalog itemCatalog;
     private readonly SurvivalFoodStockRuntime stockRuntime;
+    private readonly ICharacterCarryInventoryRegistry carryInventories;
     private IEnvironmentalFieldQuery environmentalField =
         NoEnvironmentalFieldQuery.Instance;
 
     public SurvivalFoodSpoilageRuntime(
         IWorldItemStackRuntime itemStackRuntime,
         IItemDefinitionCatalog itemCatalog,
-        SurvivalFoodStockRuntime stockRuntime)
+        SurvivalFoodStockRuntime stockRuntime,
+        ICharacterCarryInventoryRegistry carryInventories = null)
     {
         this.itemStackRuntime = itemStackRuntime
             ?? throw new ArgumentNullException(nameof(itemStackRuntime));
@@ -27,6 +29,7 @@ internal sealed class SurvivalFoodSpoilageRuntime
             ?? throw new ArgumentNullException(nameof(itemCatalog));
         this.stockRuntime = stockRuntime
             ?? throw new ArgumentNullException(nameof(stockRuntime));
+        this.carryInventories = carryInventories;
     }
 
     public void ConfigureStorageEnvironment(IEnvironmentalFieldQuery fieldQuery)
@@ -48,6 +51,46 @@ internal sealed class SurvivalFoodSpoilageRuntime
                     stack.StackId,
                     Mathf.Max(0f, freshness.RemainingSeconds - advance),
                     freshness.Preserved);
+            }
+        }
+        ProcessCarriedFood(advance);
+    }
+
+    private void ProcessCarriedFood(float elapsedSeconds)
+    {
+        if (carryInventories == null)
+            return;
+        IReadOnlyList<CharacterCarryInventory> inventories = carryInventories.All;
+        for (int inventoryIndex = 0; inventoryIndex < inventories.Count; inventoryIndex++)
+        {
+            CharacterCarryInventory inventory = inventories[inventoryIndex];
+            if (inventory == null) continue;
+            List<CharacterCarriedItemSaveData> spoiled =
+                inventory.AdvanceCarriedFoodFreshness(
+                    itemCatalog,
+                    Mathf.Max(0f, elapsedSeconds));
+            for (int itemIndex = 0; itemIndex < spoiled.Count; itemIndex++)
+            {
+                CharacterCarriedItemSaveData item = spoiled[itemIndex];
+                if (item == null
+                    || item.quantity <= 0
+                    || !TryGetTrackableDefinition(
+                        item.itemId,
+                        out ItemDefinitionSO definition))
+                {
+                    continue;
+                }
+                ResolveWaste(
+                    definition,
+                    out string wasteItemId,
+                    out WasteOriginKind wasteOrigin);
+                itemStackRuntime.SpawnWasteAt(
+                    wasteItemId,
+                    item.quantity,
+                    inventory.OwnerGridPosition,
+                    wasteOrigin,
+                    item.contamination > 0.01f ? 90f : 50f,
+                    out _);
             }
         }
     }
@@ -161,6 +204,9 @@ internal sealed class SurvivalFoodSpoilageRuntime
                     freshness.Preserved);
             }
         }
+
+        if (advanceTime)
+            ProcessCarriedFood(180f);
     }
 
     public int CountWarnings(DungeonSurvivalSaveData state)

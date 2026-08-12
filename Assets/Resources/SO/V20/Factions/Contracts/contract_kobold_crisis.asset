@@ -24,8 +24,8 @@ MonoBehaviour:
   deadlineDays: 7
   completionRequirements:
     items:
-    - itemDefinitionId: item:field-repair-kit
-      amount: 6
+    - itemDefinitionId: tool:field-repair-kit
+      amount: 1
       consume: 1
     facilities: []
     research: []

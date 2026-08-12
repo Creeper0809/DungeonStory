@@ -87,25 +87,14 @@ MonoBehaviour:
     mechanicTags:
     - invasion
     - combat
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
     dislikedWorkTypes: 0
   combatAbilities:
     abilities: []
+  effects: []
   references:
     version: 2
     RefIds: []

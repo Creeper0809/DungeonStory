@@ -235,6 +235,18 @@ internal sealed class DefenseEngagementCombatRuntime
         }
 
         CharacterActor victor = engagement.LeadGuard;
+        combatExecutor.AwardEncounterCompletion(
+            engagement,
+            engagement.LeadGuard,
+            BuiltInCharacterProficiencyIds.MeleeCombat);
+        combatExecutor.AwardEncounterCompletion(
+            engagement,
+            engagement.RangedGuard,
+            BuiltInCharacterProficiencyIds.RangedCombat);
+        combatExecutor.AwardEncounterCompletion(
+            engagement,
+            engagement.SecondaryRangedGuard,
+            BuiltInCharacterProficiencyIds.RangedCombat);
         if (victor != null && !victor.IsDead)
         {
             TriggerPassives(

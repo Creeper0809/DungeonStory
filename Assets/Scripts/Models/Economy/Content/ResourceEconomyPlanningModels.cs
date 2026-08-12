@@ -27,6 +27,7 @@ public sealed class ResourceStockPolicyData
 {
     public string itemId = string.Empty;
     public bool enabled;
+    public bool isEmergencyReserve;
     [Min(0)] public int minimumStock;
     [Min(0)] public int targetStock = 20;
     [Min(0)] public int maximumStock = 40;
@@ -41,6 +42,8 @@ public sealed class ResourceStockPolicyData
     public void Normalize()
     {
         itemId = itemId?.Trim() ?? string.Empty;
+        if (!enabled)
+            isEmergencyReserve = false;
         minimumStock = Mathf.Max(0, minimumStock);
         targetStock = Mathf.Max(minimumStock, targetStock);
         maximumStock = Mathf.Max(targetStock, maximumStock);
@@ -52,6 +55,27 @@ public interface IResourceStockPolicyQuery
 {
     IReadOnlyList<ResourceStockPolicyData> Policies { get; }
     int CountOwned(string itemId);
+    EmergencyStockReadiness GetEmergencyReadiness();
+}
+
+public readonly struct EmergencyStockReadiness
+{
+    public EmergencyStockReadiness(
+        bool configured,
+        bool ready,
+        int reserveCount,
+        int shortageCount)
+    {
+        Configured = configured;
+        Ready = ready;
+        ReserveCount = Math.Max(0, reserveCount);
+        ShortageCount = Math.Max(0, shortageCount);
+    }
+
+    public bool Configured { get; }
+    public bool Ready { get; }
+    public int ReserveCount { get; }
+    public int ShortageCount { get; }
 }
 
 public interface IResourceStockPolicyRuntime
@@ -183,6 +207,13 @@ public interface IRegionalSupplyContractRuntime
 
 public static class RegionalSupplyContractSizing
 {
+    public static int MinimumViableUnitPrice(ResourceItemKind kind) => kind switch
+    {
+        ResourceItemKind.Raw => 1,
+        ResourceItemKind.Intermediate => 1,
+        _ => 5
+    };
+
     public static int ResolveAmount(
         ResourceItemKind kind,
         int population,

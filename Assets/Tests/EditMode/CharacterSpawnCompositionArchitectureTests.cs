@@ -439,9 +439,10 @@ namespace DungeonStory.Tests.Architecture
             AssertInOrder(
                 offenseTrySpawnPrisoner,
                 "characterFactory.CreateInactive(",
-                "CharacterId characterId = CharacterId.FromStableSuffix(",
+                "EnemyIndividualBlueprint blueprint = enemyIndividuals.RequireBlueprint(",
+                "CharacterId characterId = blueprint.CharacterId;",
                 "actorId = characterId.Value;",
-                "actor.Initialize(data);",
+                "actor.Initialize(data, blueprint.SpawnRequest);",
                 "actor.Identity?.SetPersistentId(characterId);",
                 "characterFactory.Publish(characterObject);");
             Assert.That(offenseTrySpawnPrisoner, Does.Not.Contain(

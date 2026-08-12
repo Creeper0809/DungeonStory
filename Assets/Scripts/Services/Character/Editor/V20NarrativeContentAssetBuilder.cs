@@ -50,25 +50,25 @@ public static class V20NarrativeContentAssetBuilder
 
     private static readonly BackgroundSpec[] Backgrounds =
     {
-        B("background:tenant-farmer", "소작농의 자식", "척박한 밭에서 수확량보다 토양과 이웃을 먼저 살피는 법을 배웠다.", "farming", 80, "memory:first-harvest", "faction:free-settlers", 5),
-        B("background:caravan-artisan", "대상단 수공업자", "이동 공방에서 자재 손실과 납기를 동시에 다루며 손기술을 익혔다.", "crafting", 80, "memory:caravan-workshop", "faction:merchant-league", 6),
-        B("background:mine-bondworker", "광산 계약노동자", "무너지는 갱도와 부당한 할당량 속에서 광맥과 위험 징후를 읽었다.", "mining", 90, "memory:collapsed-shaft", "faction:iron-consortium", -5),
-        B("background:inn-servant", "여관 심부름꾼", "취객과 사절 사이를 오가며 주문, 소문, 모욕을 놓치지 않았다.", "service", 75, "memory:night-shift", "faction:merchant-league", 4),
-        B("background:siege-survivor", "공성전 생존자", "성벽이 무너진 날 살아남아 엄폐와 비상 보급을 습관처럼 확인한다.", "defense", 90, "memory:fallen-wall", "faction:human-crown", -8),
-        B("background:camp-refugee", "피난 행렬 출신", "긴 피난길에서 식량을 나누고 뒤처진 사람을 챙기는 법을 배웠다.", "hauling", 70, "memory:last-ration", "faction:free-settlers", 8),
-        B("background:deserter", "탈영병", "명령보다 살아남는 판단을 택했으며 군대의 습관과 약점을 함께 안다.", "combat", 85, "memory:desertion-night", "faction:human-legion", -12),
-        B("background:exiled-heir", "추방된 후계자", "가문의 몰락 뒤에도 협상 언어와 권력의 체면을 잊지 않았다.", "diplomacy", 80, "memory:broken-seal", "faction:old-nobility", 6),
-        B("background:monastery-novice", "수도원 수련자", "기록과 절제, 환자 곁을 지키는 반복 노동에 익숙하다.", "medicine", 75, "memory:monastery-vigil", "faction:truth-keepers", 5),
-        B("background:guild-apprentice", "길드 도제", "규격과 검사표를 지키며 실패한 시제품의 원인을 기록했다.", "engineering", 90, "memory:first-masterwork", "faction:iron-consortium", 7),
-        B("background:ritual-test-subject", "의식 실험 생존자", "비전 실험의 흔적을 지녔고 마나 이상에 예민하게 반응한다.", "arcana", 85, "memory:ritual-chamber", "faction:truth-keepers", -6),
-        B("background:archive-caretaker", "봉인 기록고지기", "읽어서는 안 될 장부를 분류하며 지식의 가치와 위험을 배웠다.", "research", 90, "memory:sealed-ledger", "faction:archive-conclave", 8)
+        B("background:tenant-farmer", "소작농의 자식", "척박한 밭에서 수확량보다 토양과 이웃을 먼저 살피는 법을 배웠다.", "proficiency:food-production", 80, "memory:first-harvest", "faction:free-settlers", 5),
+        B("background:caravan-artisan", "대상단 수공업자", "이동 공방에서 자재 손실과 납기를 동시에 다루며 손기술을 익혔다.", "proficiency:crafting", 80, "memory:caravan-workshop", "faction:merchant-league", 6),
+        B("background:mine-bondworker", "광산 계약노동자", "무너지는 갱도와 부당한 할당량 속에서 광맥과 위험 징후를 읽었다.", "proficiency:fieldwork", 90, "memory:collapsed-shaft", "faction:iron-consortium", -5),
+        B("background:inn-servant", "여관 심부름꾼", "취객과 사절 사이를 오가며 주문, 소문, 모욕을 놓치지 않았다.", "proficiency:social", 75, "memory:night-shift", "faction:merchant-league", 4),
+        B("background:siege-survivor", "공성전 생존자", "성벽이 무너진 날 살아남아 엄폐와 비상 보급을 습관처럼 확인한다.", "proficiency:melee-combat", 90, "memory:fallen-wall", "faction:human-crown", -8),
+        B("background:camp-refugee", "피난 행렬 출신", "긴 피난길에서 식량을 나누고 뒤처진 사람을 챙기는 법을 배웠다.", "proficiency:fieldwork", 70, "memory:last-ration", "faction:free-settlers", 8),
+        B("background:deserter", "탈영병", "명령보다 살아남는 판단을 택했으며 군대의 습관과 약점을 함께 안다.", "proficiency:melee-combat", 85, "memory:desertion-night", "faction:human-legion", -12),
+        B("background:exiled-heir", "추방된 후계자", "가문의 몰락 뒤에도 협상 언어와 권력의 체면을 잊지 않았다.", "proficiency:social", 80, "memory:broken-seal", "faction:old-nobility", 6),
+        B("background:monastery-novice", "수도원 수련자", "기록과 절제, 환자 곁을 지키는 반복 노동에 익숙하다.", "proficiency:medicine", 75, "memory:monastery-vigil", "faction:truth-keepers", 5),
+        B("background:guild-apprentice", "길드 도제", "규격과 검사표를 지키며 실패한 시제품의 원인을 기록했다.", "proficiency:construction-engineering", 90, "memory:first-masterwork", "faction:iron-consortium", 7),
+        B("background:ritual-test-subject", "의식 실험 생존자", "비전 실험의 흔적을 지녔고 마나 이상에 예민하게 반응한다.", "proficiency:scholarship", 85, "memory:ritual-chamber", "faction:truth-keepers", -6),
+        B("background:archive-caretaker", "봉인 기록고지기", "읽어서는 안 될 장부를 분류하며 지식의 가치와 위험을 배웠다.", "proficiency:scholarship", 90, "memory:sealed-ledger", "faction:archive-conclave", 8)
     };
 
     private static readonly AmbitionSpec[] Ambitions =
     {
-        A("ambition:master-smith", "대장장이의 대가", "자신의 이름으로 남을 장비 계보를 완성하려 한다.", CharacterAmbitionCategory.Mastery, 300, "life-event:masterpiece-commission", V20ContentEffectKind.SkillExperience, "crafting"),
-        A("ambition:master-healer", "죽음을 늦추는 손", "치료 불가능하다고 여긴 환자를 회복시키려 한다.", CharacterAmbitionCategory.Mastery, 260, "life-event:impossible-patient", V20ContentEffectKind.SkillExperience, "medicine"),
-        A("ambition:field-scholar", "현장 학자의 증명", "원정에서 발견한 사실로 기존 학설을 뒤집으려 한다.", CharacterAmbitionCategory.Mastery, 280, "life-event:disputed-thesis", V20ContentEffectKind.SkillExperience, "research"),
+        A("ambition:master-smith", "대장장이의 대가", "자신의 이름으로 남을 장비 계보를 완성하려 한다.", CharacterAmbitionCategory.Mastery, 300, "life-event:masterpiece-commission", V20ContentEffectKind.SkillExperience, "proficiency:crafting"),
+        A("ambition:master-healer", "죽음을 늦추는 손", "치료 불가능하다고 여긴 환자를 회복시키려 한다.", CharacterAmbitionCategory.Mastery, 260, "life-event:impossible-patient", V20ContentEffectKind.SkillExperience, "proficiency:medicine"),
+        A("ambition:field-scholar", "현장 학자의 증명", "원정에서 발견한 사실로 기존 학설을 뒤집으려 한다.", CharacterAmbitionCategory.Mastery, 280, "life-event:disputed-thesis", V20ContentEffectKind.SkillExperience, "proficiency:scholarship"),
         A("ambition:raise-family", "안전한 가족", "가족이 굶거나 피난하지 않아도 되는 집을 만들려 한다.", CharacterAmbitionCategory.Family, 220, "life-event:family-room", V20ContentEffectKind.Relationship, "household"),
         A("ambition:restore-lineage", "끊긴 계보 복원", "잃어버린 가문의 기록과 유산을 다음 세대에 잇고자 한다.", CharacterAmbitionCategory.Family, 260, "life-event:lineage-relic", V20ContentEffectKind.WorldFlag, "flag:lineage-restored"),
         A("ambition:worthy-guardian", "믿을 만한 보호자", "보호받지 못한 아이가 성년이 될 때까지 곁을 지키려 한다.", CharacterAmbitionCategory.Family, 240, "life-event:guardian-oath", V20ContentEffectKind.Relationship, "guardian"),
@@ -77,7 +77,7 @@ public static class V20NarrativeContentAssetBuilder
         A("ambition:cultural-voice", "문화의 대변자", "자신의 관습이 조롱받지 않고 공동체의 규칙에 반영되길 바란다.", CharacterAmbitionCategory.Status, 230, "life-event:cultural-petition", V20ContentEffectKind.Mood, "cultural-pride"),
         A("ambition:build-clinic", "모두를 위한 진료소", "신분과 종족에 관계없이 치료받는 시설을 세우려 한다.", CharacterAmbitionCategory.Community, 280, "life-event:clinic-shortage", V20ContentEffectKind.WorldFlag, "flag:public-clinic"),
         A("ambition:end-hunger", "빈 식탁 없는 겨울", "한겨울에도 모든 가구가 충분히 먹는 생산망을 만들려 한다.", CharacterAmbitionCategory.Community, 260, "life-event:winter-pantry", V20ContentEffectKind.WorldFlag, "flag:winter-fed"),
-        A("ambition:mentor-generation", "다음 세대의 스승", "세 명의 도제를 숙련자로 성장시키고 자신의 실패까지 전하려 한다.", CharacterAmbitionCategory.Community, 300, "life-event:apprentice-mistake", V20ContentEffectKind.SkillExperience, "mentoring"),
+        A("ambition:mentor-generation", "다음 세대의 스승", "세 명의 도제를 숙련자로 성장시키고 자신의 실패까지 전하려 한다.", CharacterAmbitionCategory.Community, 300, "life-event:apprentice-mistake", V20ContentEffectKind.SkillExperience, "proficiency:social"),
         A("ambition:faction-peacemaker", "두 깃발의 중재자", "적대 세력 사이에 지속 가능한 계약을 성립시키려 한다.", CharacterAmbitionCategory.Faction, 320, "life-event:envoy-appeal", V20ContentEffectKind.FactionRapport, "faction:negotiated"),
         A("ambition:faction-champion", "동맹의 방패", "선택한 세력의 위기를 막아 신뢰받는 투사가 되려 한다.", CharacterAmbitionCategory.Faction, 300, "life-event:allied-distress", V20ContentEffectKind.FactionObligation, "faction:protected"),
         A("ambition:break-debt", "물려받은 빚 청산", "가구를 옭아맨 오래된 세력 의무를 끝내려 한다.", CharacterAmbitionCategory.Faction, 260, "life-event:inherited-debt", V20ContentEffectKind.FactionGrievance, "faction:creditor"),
@@ -127,10 +127,10 @@ public static class V20NarrativeContentAssetBuilder
         C("culture:adventurer-frontier", "Adventurer", "개척자 연맹 문화", "서로 다른 고향의 규칙을 원정대식 실용주의로 엮는다.", "food:preserved-ration", "food:raw-monster-meat", "lit communal rooms", "전리품은 귀환자 전원이 확인한 뒤 나눈다."),
         C("culture:beastkin-pack", "Beastkin", "무리의 화로 문화", "식사와 휴식을 무리 단위로 공유하고 홀로 남는 이를 먼저 챙긴다.", "resource:meat", "medicine:strong-perfume", "warm shared quarters", "상대의 냄새표식을 허락 없이 지우지 않는다."),
         C("culture:demon-contract", "Demon", "재의 계약 문화", "말보다 기록된 약속을 중시하고 결연과 장례에 계약 소각을 쓴다.", "food:spiced-stew", "item:unsealed-oath", "warm dry rooms", "세 번 확인한 약속은 공개적으로 번복하지 않는다."),
-        C("culture:golem-core", "Golem", "핵 공명 문화", "침묵의 정비와 기억 기록을 휴식으로 여기며 핵의 이력을 존중한다.", "component:maintenance-parts", "resource:corrosive-slurry", "dry rune-powered alcoves", "다른 골렘의 핵각인을 허락 없이 읽지 않는다."),
+        C("culture:golem-core", "Golem", "핵 공명 문화", "침묵의 정비와 기억 기록을 휴식으로 여기며 핵의 이력을 존중한다.", "tool:maintenance-kit", "resource:corrosive-slurry", "dry rune-powered alcoves", "다른 골렘의 핵각인을 허락 없이 읽지 않는다."),
         C("culture:harpy-aerie", "Harpy", "높은 둥지 문화", "높은 공간과 바람길을 선호하며 소식과 노래를 공동 자산으로 여긴다.", "food:dried-fruit", "food:heavy-oil-stew", "high airy rooms", "노래 중간에 말을 끊는 것은 공개적인 도전이다."),
         C("culture:kobold-toolclan", "Kobold", "도구씨족 문화", "잘 관리된 도구를 가계의 증거로 여기며 작은 성취도 씨족 앞에서 기록한다.", "food:mushroom-stew", "item:broken-tool", "compact warm workshops", "도구를 빌릴 때는 돌려줄 상태를 먼저 약속한다."),
-        C("culture:myconid-grove", "Myconid", "포자정원 문화", "대화와 기억을 향과 포자 리듬으로 나누며 습한 공동 정원을 지킨다.", "food:cultured-mushroom", "item:fungicide", "humid dim gardens", "타인의 포자권에 불꽃을 들이지 않는다."),
+        C("culture:myconid-grove", "Myconid", "포자정원 문화", "대화와 기억을 향과 포자 리듬으로 나누며 습한 공동 정원을 지킨다.", "resource:cave-mushroom", "supply:fungicide", "humid dim gardens", "타인의 포자권에 불꽃을 들이지 않는다."),
         C("culture:orc-vigil", "Orc", "무기 철야 문화", "행동으로 신뢰를 증명하며 잔치와 철야에서 공동체의 빚을 기억한다.", "food:salted-meat-stew", "food:tiny-portion", "robust communal halls", "무기를 내려놓고 한 약속은 결투로 뒤집지 않는다."),
         C("culture:slime-confluence", "Slime", "합류수 문화", "몸의 일부와 기억을 나누는 것을 친밀함으로 여기되 핵의 경계는 엄격히 지킨다.", "resource:clean-water", "resource:salt", "clean humid pools", "상대 핵에 닿기 전 반드시 색 변화로 동의를 구한다."),
         C("culture:vampire-nightcourt", "Vampire", "밤궁정 문화", "절제된 환대와 혈액 제공의 동의를 체면보다 중요한 규칙으로 삼는다.", "food:blood-reserve", "food:garlic-tonic", "dark private chambers", "혈액과 개인 서사는 명시적 허락 없이 거래하지 않는다.")
@@ -144,7 +144,7 @@ public static class V20NarrativeContentAssetBuilder
         P("practice:beastkin-scent-vigil", "culture:beastkin-pack", "향취 철야", "사망자의 익숙한 향을 천에 남겨 무리가 차례로 작별한다.", CulturalPracticeKind.Funeral, "textile:cloth", V20ContentEffectKind.Trauma),
         P("practice:demon-oath-embers", "culture:demon-contract", "맹세의 잿불", "중요한 약속을 종이에 쓰고 한쪽 사본만 태운다.", CulturalPracticeKind.Partnership, "material:paper", V20ContentEffectKind.WorldFlag),
         P("practice:demon-third-bell", "culture:demon-contract", "세 번째 종", "교대 종료를 세 번 확인한 뒤에야 작업장을 떠난다.", CulturalPracticeKind.WorkRest, "item:bell", V20ContentEffectKind.Mood),
-        P("practice:golem-core-polish", "culture:golem-core", "핵 광택일", "정기 정비 때 서로의 외장만 손질하고 핵은 본인이 점검한다.", CulturalPracticeKind.DailyRoutine, "component:maintenance-parts", V20ContentEffectKind.Health),
+        P("practice:golem-core-polish", "culture:golem-core", "핵 광택일", "정기 정비 때 서로의 외장만 손질하고 핵은 본인이 점검한다.", CulturalPracticeKind.DailyRoutine, "tool:maintenance-kit", V20ContentEffectKind.Health),
         P("practice:golem-memory-plaque", "culture:golem-core", "기억판 안치", "정지된 골렘의 핵 기록을 금속판에 요약해 보관한다.", CulturalPracticeKind.Funeral, "material:iron-ingot", V20ContentEffectKind.Trauma),
         P("practice:harpy-dawn-chorus", "culture:harpy-aerie", "새벽 합창", "밤 교대가 끝나는 시간에 높은 통로에서 하루의 소식을 노래한다.", CulturalPracticeKind.DailyRoutine, "food:dried-fruit", V20ContentEffectKind.Mood),
         P("practice:harpy-first-flight", "culture:harpy-aerie", "첫 비행의 깃", "성년식에서 안전줄을 매고 가장 높은 내부 비행로를 완주한다.", CulturalPracticeKind.ComingOfAge, "material:rope", V20ContentEffectKind.SkillExperience),

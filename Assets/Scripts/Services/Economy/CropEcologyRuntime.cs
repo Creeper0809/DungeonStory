@@ -51,7 +51,7 @@ public sealed class PhysicalSeedLotGateway : IPhysicalSeedLotGateway
         WorldItemStackSnapshot candidate = stock.GetAllStacks()
             .Where(value => value != null
                 && value.Quantity > 0
-                && !value.IsReserved
+                && value.AvailableQuantity > 0
                 && !value.Forbidden
                 && value.State is WorldItemStackState.Loose or WorldItemStackState.Stored
                 && string.Equals(value.ItemId, seedItemId, StringComparison.Ordinal))

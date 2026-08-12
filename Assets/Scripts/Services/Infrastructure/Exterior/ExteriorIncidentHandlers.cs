@@ -1005,7 +1005,7 @@ public sealed class CargoDamageExteriorIncidentHandler :
         return items.GetAllStacks()
             .Where(stack => stack != null
                 && stack.State == WorldItemStackState.Loose
-                && !stack.IsReserved
+                && stack.AvailableQuantity > 0
                 && !stack.HasUniqueMetadata
                 && !string.Equals(
                     stack.ItemId,

@@ -34,6 +34,15 @@ MonoBehaviour:
   lineageKind: 2
   growthEquipment: 0
   growthBaseStatMultiplier: 1
+  proficiency:
+    primaryProficiencyId: proficiency:crafting
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 3
+    minimumRiskRank: 2
+  effects: []
+  allowMythicInspiration: 1
   frontalBlockChance: 0.56
   slashDefense: 42
   pierceDefense: 40

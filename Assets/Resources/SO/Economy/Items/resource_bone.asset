@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 3
   features:
-  - rid: 7737211838068949784
-  - rid: 7737211838068949785
-  - rid: 7737211838068949786
+  - rid: 7737211905666712346
+  - rid: 7737211905666712347
+  - rid: 7737211905666712348
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949784
+    - rid: 7737211905666712346
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:husbandry:capture
-    - rid: 7737211838068949785
+    - rid: 7737211905666712347
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 5
         ingredientTags: 512
         sharedIntermediate: 0
-    - rid: 7737211838068949786
+    - rid: 7737211905666712348
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

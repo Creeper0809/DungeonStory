@@ -30,7 +30,6 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 1
-    axisContributions: []
   - nodeId: sensor-core
     displayName: "\uAC10\uC751 \uD575"
     parentNodeId: head
@@ -43,12 +42,11 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
-    axisContributions: []
   - nodeId: torso
     displayName: "\uC8FC\uC870 \uBAB8\uCCB4"
     parentNodeId: 
     kind: 4
-    functions: 3
+    functions: 9275
     maxHealth: 70
     capacityWeight: 1
     vital: 1
@@ -56,7 +54,6 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 1
     mapsToLegacyBodyPart: 1
-    axisContributions: []
   - nodeId: power-core
     displayName: "\uB3D9\uB825\uD575"
     parentNodeId: torso
@@ -69,7 +66,6 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
-    axisContributions: []
   - nodeId: arm:left
     displayName: "\uC67C\uCABD \uC791\uC5C5\uD314"
     parentNodeId: torso
@@ -82,7 +78,6 @@ MonoBehaviour:
     pairedGroupId: arms
     legacyBodyPart: 2
     mapsToLegacyBodyPart: 1
-    axisContributions: []
   - nodeId: arm:right
     displayName: "\uC624\uB978\uCABD \uC791\uC5C5\uD314"
     parentNodeId: torso
@@ -95,7 +90,6 @@ MonoBehaviour:
     pairedGroupId: arms
     legacyBodyPart: 3
     mapsToLegacyBodyPart: 1
-    axisContributions: []
   - nodeId: leg:left
     displayName: "\uC67C\uCABD \uC9C0\uC9C0\uAC01"
     parentNodeId: torso
@@ -108,7 +102,6 @@ MonoBehaviour:
     pairedGroupId: legs
     legacyBodyPart: 4
     mapsToLegacyBodyPart: 1
-    axisContributions: []
   - nodeId: leg:right
     displayName: "\uC624\uB978\uCABD \uC9C0\uC9C0\uAC01"
     parentNodeId: torso
@@ -121,4 +114,4 @@ MonoBehaviour:
     pairedGroupId: legs
     legacyBodyPart: 5
     mapsToLegacyBodyPart: 1
-    axisContributions: []
+  notApplicableCapacities: []

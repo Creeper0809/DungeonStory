@@ -21,6 +21,15 @@ public class AIWork : AIActionSet
     public override float MinimumDuration => minimumDuration;
     public override int InterruptPriority => workInterruptPriority;
 
+    public override IReadOnlyCollection<string> GetSemanticTags(
+        CharacterActor actor)
+    {
+        WorkTypeId resolved = TryResolveWorkTypeId(actor, out WorkTypeId workTypeId)
+            ? workTypeId
+            : WorkTypeId;
+        return CharacterWorkSemanticTags.Resolve(actor, resolved);
+    }
+
     public override void PrepareScoreContext(
         CharacterActor actor,
         in CharacterAiDecisionContext context)

@@ -21,10 +21,7 @@ MonoBehaviour:
   kind: 3
   deadlineDays: 6
   serviceRequirements:
-    items:
-    - itemDefinitionId: item:reinforced-restraint
-      amount: 4
-      consume: 1
+    items: []
     facilities:
     - buildingDefinitionId: building:circus-arena
       capabilityId: 
@@ -39,7 +36,7 @@ MonoBehaviour:
   successEffects:
   - kind: 9
     targetId: guest-service
-    amount: 80
+    amount: 267
     durationDays: 0
   - kind: 6
     targetId: requesting-faction

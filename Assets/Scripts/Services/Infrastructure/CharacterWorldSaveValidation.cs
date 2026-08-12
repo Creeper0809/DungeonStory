@@ -256,30 +256,46 @@ public static class CharacterWorldSaveValidation
         }
 
         if (!Enum.IsDefined(typeof(CharacterPotentialGrade), growth.potentialGrade)
-            || growth.allocatedGrowthPoints < 0
+            || !Enum.IsDefined(
+                typeof(CharacterTraitSelectionAuthorityOrigin),
+                growth.traitSelectionAuthorityOrigin)
+            || growth.traitSelectionAuthorityOrigin
+                == CharacterTraitSelectionAuthorityOrigin.None
+            || growth.traitSelectionAuthorityVersion
+                != CharacterGrowthState.CurrentTraitSelectionAuthorityVersion
             || growth.skillGenerationRevision < 0)
         {
             report.AddError($"{label} growth state contains an invalid enum or counter.");
         }
 
-        if (growth.initialBaseStats == null
-            || growth.levelGrowthStats == null
+        if (growth.startingProfile == null
+            || growth.startingProficiencies == null
             || growth.traitIds == null
             || growth.activeSkills == null
             || growth.passiveSkills == null
             || growth.drafts == null
             || growth.pendingRequestKeys == null
-            || growth.allocationRecords == null
             || growth.useLimits == null)
         {
             report.AddError($"{label} growth state contains a missing required component.");
             return;
         }
 
+        try
+        {
+            CharacterStartingProficiencyRules.Validate(
+                growth.startingProficiencies);
+        }
+        catch (InvalidOperationException exception)
+        {
+            report.AddError($"{label} {exception.Message}");
+        }
+
+        ValidateStartingProfile(growth, label, report);
+
         if (growth.activeSkills.Any(item => item == null)
             || growth.passiveSkills.Any(item => item == null)
-            || growth.drafts.Any(item => item == null)
-            || growth.allocationRecords.Any(item => item == null))
+            || growth.drafts.Any(item => item == null))
         {
             report.AddError($"{label} growth state contains a null list entry.");
         }
@@ -288,20 +304,65 @@ public static class CharacterWorldSaveValidation
         {
             report.AddError($"{label} growth state repeats a trait ID.");
         }
+        if (growth.traitIds.Count > 4)
+        {
+            report.AddError($"{label} growth state exceeds the four-trait limit.");
+        }
 
         ValidateStringIds(
             growth.pendingRequestKeys,
             "pending request",
             label,
             report);
-        foreach (CharacterGrowthAllocationRecord allocation in
-                 growth.allocationRecords.Where(item => item != null))
+    }
+
+    private static void ValidateStartingProfile(
+        CharacterGrowthState growth,
+        string label,
+        DungeonGameRestoreReport report)
+    {
+        CharacterStartingProfileState profile = growth.startingProfile;
+        profile.EnsureCollections();
+        if (!profile.prepared)
+            return;
+
+        CharacterProficiencyId primary = new(profile.primaryProficiencyId);
+        CharacterProficiencyId secondary = new(profile.secondaryProficiencyId);
+        bool knownCap = profile.proficiencyCap
+            is CharacterStartingProfileRules.YoungAdultCap
+            or CharacterStartingProfileRules.EstablishedAdultCap
+            or CharacterStartingProfileRules.VeteranAdultCap
+            or CharacterStartingProfileRules.ElderCap;
+        if (string.IsNullOrWhiteSpace(profile.originId)
+            || string.IsNullOrWhiteSpace(profile.originDisplayName)
+            || string.IsNullOrWhiteSpace(profile.historyId)
+            || string.IsNullOrWhiteSpace(profile.historyDisplayName)
+            || !primary.IsValid
+            || !secondary.IsValid
+            || primary == secondary
+            || !BuiltInCharacterProficiencyIds.All.Contains(primary)
+            || !BuiltInCharacterProficiencyIds.All.Contains(secondary)
+            || !Enum.IsDefined(typeof(CharacterStartingAgeBand), profile.ageBand)
+            || double.IsNaN(profile.biologicalAgeYears)
+            || double.IsInfinity(profile.biologicalAgeYears)
+            || profile.biologicalAgeYears < 0d
+            || !knownCap
+            || profile.proficiencyCap != CharacterStartingProfileRules
+                .ResolveAgeCap(profile.ageBand)
+            || profile.initialAgeConditionIds.Any(string.IsNullOrWhiteSpace)
+            || profile.initialAgeConditionIds.Count
+                != profile.initialAgeConditionIds.Distinct(StringComparer.Ordinal).Count()
+            || growth.startingProficiencies.Any(value =>
+                value != null
+                && (value.experience > profile.proficiencyCap
+                    || Math.Abs(
+                        value.learningMultiplier
+                        - CharacterProficiencySpecializationRules.Resolve(
+                            profile,
+                            new CharacterProficiencyId(value.proficiencyId)))
+                    > 0.0001f)))
         {
-            if (allocation.level < 1
-                || !Enum.IsDefined(typeof(CharacterStatType), allocation.statType))
-            {
-                report.AddError($"{label} contains an invalid growth allocation record.");
-            }
+            report.AddError($"{label} contains an invalid prepared starting profile.");
         }
     }
 

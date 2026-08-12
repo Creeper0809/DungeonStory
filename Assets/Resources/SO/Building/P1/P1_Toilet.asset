@@ -31,6 +31,26 @@ MonoBehaviour:
   objectName: "\uD654\uC7A5\uC2E4"
   sprite: {fileID: 21300000, guid: 4b1b786a5cfabf1e99bc00d62d551098, type: 3}
   icon: {fileID: 21300000, guid: 4b1b786a5cfabf1e99bc00d62d551098, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  deprecatedCompatibilityAsset: 1
+  useClassification: 0
+  researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
     - rid: 8800000000000000060
@@ -52,18 +72,6 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 8800000000000000060
-      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 24
-        repairWorkRequired: 12
-        cleanWorkRequired: 8
-        researchWorkRequired: 6
-        operateWorkRequired: 10
-        constructionMaterials:
-        - itemId: material:steel-ingot
-          amount: 1
     - rid: 7302562978982527675
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -76,10 +84,34 @@ MonoBehaviour:
           supportedWorkTypes: 4
           disabledWhenDamaged: 1
     - rid: 7302562985835495584
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
     - rid: 7302562985835495585
-      type: {class: BuildingSelfContainedRoomAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSelfContainedRoomAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSelfContainedRoomAbility
+    - rid: 8800000000000000060
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
+        constructionWorkRequired: 24
+        repairWorkRequired: 12
+        cleanWorkRequired: 8
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
+        constructionMaterials:
+        - itemId: material:steel-ingot
+          amount: 1

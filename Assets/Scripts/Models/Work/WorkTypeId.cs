@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 public readonly struct WorkTypeId : IEquatable<WorkTypeId>
 {
@@ -73,4 +74,13 @@ public static class BuiltInWorkTypeIds
         new WorkTypeId("work:plumbing");
     public static readonly WorkTypeId Dismantle =
         new WorkTypeId("work:dismantle");
+
+    public static readonly IReadOnlyList<WorkTypeId> All = new[]
+    {
+        Operate, Restock, Construct, Repair, Clean, Research, Guard,
+        Reception, Rescue, Rest, Craft, Haul, Hunt, Butcher, DrawWater,
+        Cook, Treat, Surgery, Refuel, Warden, Perform, Gather, Sow,
+        Harvest, Logging, Quarry, AnimalCare, GrandProject,
+        ThreatMitigation, Plumbing, Dismantle
+    };
 }

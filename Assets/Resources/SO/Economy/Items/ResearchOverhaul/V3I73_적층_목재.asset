@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uC801\uCE35 \uBAA9\uC7AC"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC801\uCE35 \uBAA9\uC7AC."
   stockCategory: 1
-  unitWeight: 2.4099998
+  unitWeight: 1.6
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 156
+  unitPrice: 17
   features:
-  - rid: 7737211838078124744
-  - rid: 7737211838078124745
+  - rid: 7737211905658585474
+  - rid: 7737211905658585475
+  - rid: 7737211905660420609
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124744
+    - rid: 7737211905658585474
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:forestry:treated
-    - rid: 7737211838078124745
+    - rid: 7737211905658585475
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 256
         sharedIntermediate: 1
+    - rid: 7737211905660420609
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.59419405

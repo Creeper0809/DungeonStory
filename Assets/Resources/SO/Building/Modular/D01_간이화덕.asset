@@ -34,26 +34,36 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: proficiency:food-production
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730538791823
-    - rid: 7737211730538791824
-    - rid: 7737211730538791825
-    - rid: 7737211730538791826
-    - rid: 7737211730538791827
-    - rid: 7737211730538791828
-    - rid: 7737211730538791829
-    - rid: 7737211730538791830
-    - rid: 7737211730538791831
-    - rid: 7737211730538791832
-    - rid: 7737211730538791833
-    - rid: 7737211838074978438
-    - rid: 7737211838074978439
-    - rid: 7737211838074978440
-    - rid: 7737211838074978441
-    - rid: 7737211838074978442
+    - rid: 7737211921440178487
+    - rid: 7737211921440178488
+    - rid: 7737211921440178489
+    - rid: 7737211921440178490
+    - rid: 7737211921440178491
+    - rid: 7737211921440178492
+    - rid: 7737211921440178493
+    - rid: 7737211921440178494
+    - rid: 7737211921440178495
+    - rid: 7737211921440178496
+    - rid: 7737211921440178497
   width: 1
   height: 1
   layer: 1
@@ -69,12 +79,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730538791823
+    - rid: 7737211921440178487
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: D01
-    - rid: 7737211730538791824
+    - rid: 7737211921440178488
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -83,19 +93,33 @@ MonoBehaviour:
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211730538791825
+    - rid: 7737211921440178489
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 19.9
-        repairWorkRequired: 10
-        cleanWorkRequired: 6.25
+        constructionProjectScale: 0
+        constructionWorkRequired: 128
+        repairWorkRequired: 32
+        cleanWorkRequired: 8
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: material:lumber
-          amount: 5
-    - rid: 7737211730538791826
+        - itemId: material:stone-block
+          amount: 6
+        - itemId: material:iron-ingot
+          amount: 2
+    - rid: 7737211921440178490
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -104,13 +128,13 @@ MonoBehaviour:
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
-          supportedWorkTypes: 536952845
+          supportedWorkTypes: 81933
           disabledWhenDamaged: 1
-    - rid: 7737211730538791827
+    - rid: 7737211921440178491
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211730538791828
+    - rid: 7737211921440178492
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -122,7 +146,7 @@ MonoBehaviour:
           - key: Cooking
             value: 2
           metrics: []
-    - rid: 7737211730538791829
+    - rid: 7737211921440178493
       type: {class: BuildingNeedRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingNeedRecoveryAbility
@@ -133,13 +157,13 @@ MonoBehaviour:
           hunger: 35
           excretion: 0
           hygiene: 0
-    - rid: 7737211730538791830
+    - rid: 7737211921440178494
       type: {class: BuildingProductionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionAbility
         outputCategory: 0
         amount: 4
-    - rid: 7737211730538791831
+    - rid: 7737211921440178495
       type: {class: BuildingCookingAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingCookingAbility
@@ -147,7 +171,7 @@ MonoBehaviour:
         cookedMeals: 2
         workSeconds: 1.1
         requiresFuel: 1
-    - rid: 7737211730538791832
+    - rid: 7737211921440178496
       type: {class: BuildingFuelConsumerAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingFuelConsumerAbility
@@ -155,52 +179,10 @@ MonoBehaviour:
         workSeconds: 0.8
         warmth: 8
         lightSafety: 6
-    - rid: 7737211730538791833
+    - rid: 7737211921440178497
       type: {class: BuildingTemperatureAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingTemperatureAbility
         roomTemperatureOffset: 4
         coldProtection: 6
         heatProtection: 1
-    - rid: 7737211838074978438
-      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingPowerConsumerAbility
-        demandPerSecond: 5
-        priority: 4
-        minimumSupplyFraction: 0.75
-    - rid: 7737211838074978439
-      type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingAutomationAbility
-        maximumMode: 2
-        assistedPowerDemand: 2
-        automaticPowerDemand: 5
-        assistedWorkMultiplier: 1.35
-        automaticWorkPerSecond: 1
-        automaticQualityCap: 0.75
-        maintenancePerGameHour: 1
-    - rid: 7737211838074978440
-      type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingConveyorPortAbility
-        mode: 2
-        destinationId: 
-        capacity: 4
-    - rid: 7737211838074978441
-      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingUtilityConnectionAbility
-        channels: 7
-        maxThroughput: 25
-        normallyOpen: 1
-    - rid: 7737211838074978442
-      type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProcessFluidAbility
-        workTypeIds:
-        - work:cook
-        cleanWaterPerCycle: 0.25
-        wastewaterPerCycle: 0.25
-        minimumQuality: 0
-        allowsManualWaterFallback: 1

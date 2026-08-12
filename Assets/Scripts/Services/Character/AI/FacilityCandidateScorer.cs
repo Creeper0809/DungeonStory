@@ -6,6 +6,7 @@ using UnityEngine;
 public static class FacilityCandidateScorer
 {
     private const int MaximumFullyScoredCandidates = 20;
+    private static readonly System.Predicate<BuildableObject> AcceptAnyCandidate = _ => true;
 
     [System.ThreadStatic]
     private static BuildableObject[] scoringShortlist;
@@ -23,7 +24,8 @@ public static class FacilityCandidateScorer
         FacilityRole.Mana,
         FacilityRole.Logistics,
         FacilityRole.Toilet,
-        FacilityRole.Hygiene
+        FacilityRole.Hygiene,
+        FacilityRole.Entertainment
     };
 
     public static List<BuildableObject> GetCandidates(
@@ -63,35 +65,18 @@ public static class FacilityCandidateScorer
             return null;
         }
 
-        BuildableObject bestBuilding = null;
-        CharacterAiUtilityBreakdown bestBreakdown = null;
-        float bestScore = float.MinValue;
-        int bestId = int.MaxValue;
-        foreach (BuildableObject building in candidates)
-        {
-            if (building == null)
-            {
-                continue;
-            }
-
-            float score = ScoreCandidateWithBreakdown(
-                actor,
-                building,
-                role,
-                searchResult,
-                scoringContext,
-                out CharacterAiUtilityBreakdown breakdown);
-            if (bestBuilding == null
-                || score > bestScore
-                || (Mathf.Approximately(score, bestScore) && building.id < bestId))
-            {
-                bestBuilding = building;
-                bestBreakdown = breakdown;
-                bestScore = score;
-                bestId = building.id;
-            }
-        }
-
+        TrySelectEquivalentAware(
+            actor,
+            candidates,
+            candidates.Count,
+            useThreadShortlist: false,
+            role,
+            searchResult,
+            scoringContext,
+            requirePositiveScore: false,
+            out BuildableObject bestBuilding,
+            out CharacterAiUtilityBreakdown bestBreakdown,
+            out float bestScore);
         RecordFacilityBreakdown(actor, bestBreakdown, bestScore);
         return bestBuilding;
     }
@@ -102,6 +87,18 @@ public static class FacilityCandidateScorer
         FacilityRole role)
     {
         return HasCandidate(actor, searchResult, role, null);
+    }
+
+    /// <summary>
+    /// Checks an actor-usable facility rather than the coarse role-presence index.
+    /// Primitive survival fallbacks use this path so an indexed role on an
+    /// unavailable or non-visitable building cannot suppress the fallback.
+    /// </summary>
+    public static bool HasUsableCandidate(
+        CharacterActor actor,
+        FacilityRole role)
+    {
+        return HasCandidate(actor, null, role, AcceptAnyCandidate);
     }
 
     public static bool HasCandidate(
@@ -262,47 +259,22 @@ public static class FacilityCandidateScorer
                 / Stopwatch.Frequency);
         }
 
-        float bestScore = float.MinValue;
-        CharacterAiUtilityBreakdown bestBreakdown = null;
-        int bestId = int.MaxValue;
         long loopStarted = recorder?.DetailedCollectionEnabled == true
             ? Stopwatch.GetTimestamp()
             : 0L;
         int shortlistCount = BuildScoringShortlist(actor, source);
-        for (int sourceIndex = 0; sourceIndex < shortlistCount; sourceIndex++)
-        {
-            BuildableObject building = source.Count <= MaximumFullyScoredCandidates
-                ? source[sourceIndex]
-                : scoringShortlist[sourceIndex];
-            if (building == null
-                || (searchResult != null
-                    && !searchResult.ContainsVisitableOccupant(building)))
-            {
-                continue;
-            }
-
-            float score = ScoreCandidateWithBreakdown(
-                actor,
-                building,
-                role,
-                searchResult,
-                scoringContext,
-                out CharacterAiUtilityBreakdown breakdown);
-            if (score <= 0f)
-            {
-                continue;
-            }
-
-            if (bestBuilding == null
-                || score > bestScore
-                || (Mathf.Approximately(score, bestScore) && building.id < bestId))
-            {
-                bestBuilding = building;
-                bestBreakdown = breakdown;
-                bestScore = score;
-                bestId = building.id;
-            }
-        }
+        bool selected = TrySelectEquivalentAware(
+            actor,
+            source,
+            shortlistCount,
+            source.Count > MaximumFullyScoredCandidates,
+            role,
+            searchResult,
+            scoringContext,
+            requirePositiveScore: true,
+            out bestBuilding,
+            out CharacterAiUtilityBreakdown bestBreakdown,
+            out float bestScore);
         ClearScoringShortlist(source, shortlistCount);
         if (loopStarted != 0L)
         {
@@ -318,7 +290,7 @@ public static class FacilityCandidateScorer
             RecordFacilityBreakdown(actor, bestBreakdown, bestScore);
         }
 
-        return bestBuilding != null;
+        return selected;
     }
 
     private static bool TrySelectBestFromCandidates(
@@ -334,13 +306,54 @@ public static class FacilityCandidateScorer
             return false;
         }
 
-        float bestScore = float.MinValue;
-        int bestId = int.MaxValue;
-        CharacterAiUtilityBreakdown bestBreakdown = null;
-        for (int index = 0; index < candidates.Count; index++)
+        bool selected = TrySelectEquivalentAware(
+            actor,
+            candidates,
+            candidates.Count,
+            useThreadShortlist: false,
+            role,
+            searchResult: null,
+            scoringContext,
+            requirePositiveScore: true,
+            out bestBuilding,
+            out CharacterAiUtilityBreakdown bestBreakdown,
+            out float bestScore);
+
+        if (bestBuilding != null)
         {
-            BuildableObject building = candidates[index];
-            if (building == null || building.isDestroy)
+            RecordFacilityBreakdown(actor, bestBreakdown, bestScore);
+        }
+
+        return selected;
+    }
+
+    private static bool TrySelectEquivalentAware(
+        CharacterActor actor,
+        IReadOnlyList<BuildableObject> source,
+        int count,
+        bool useThreadShortlist,
+        FacilityRole role,
+        GridPathSearchResult searchResult,
+        FacilityScoringContext scoringContext,
+        bool requirePositiveScore,
+        out BuildableObject selectedBuilding,
+        out CharacterAiUtilityBreakdown selectedBreakdown,
+        out float selectedScore)
+    {
+        selectedBuilding = null;
+        selectedBreakdown = null;
+        selectedScore = float.MinValue;
+        int selectedId = int.MaxValue;
+        int safeCount = Mathf.Min(count, useThreadShortlist
+            ? MaximumFullyScoredCandidates
+            : source?.Count ?? 0);
+
+        for (int index = 0; index < safeCount; index++)
+        {
+            BuildableObject building = useThreadShortlist
+                ? scoringShortlist[index]
+                : source[index];
+            if (!CanScoreSelectionCandidate(building, searchResult))
             {
                 continue;
             }
@@ -349,32 +362,112 @@ public static class FacilityCandidateScorer
                 actor,
                 building,
                 role,
-                null,
+                searchResult,
                 scoringContext,
                 out CharacterAiUtilityBreakdown breakdown);
-            if (score <= 0f)
+            if ((requirePositiveScore && score <= 0f)
+                || (selectedBuilding != null
+                    && score < selectedScore
+                    && !Mathf.Approximately(score, selectedScore)))
             {
                 continue;
             }
 
-            if (bestBuilding == null
-                || score > bestScore
-                || (Mathf.Approximately(score, bestScore)
-                    && building.id < bestId))
+            if (selectedBuilding == null
+                || score > selectedScore
+                || (Mathf.Approximately(score, selectedScore)
+                    && building.id < selectedId))
             {
-                bestBuilding = building;
-                bestBreakdown = breakdown;
-                bestScore = score;
-                bestId = building.id;
+                selectedBuilding = building;
+                selectedBreakdown = breakdown;
+                selectedScore = score;
+                selectedId = building.id;
             }
         }
 
-        if (bestBuilding != null)
+        if (selectedBuilding == null || actor == null)
         {
-            RecordFacilityBreakdown(actor, bestBreakdown, bestScore);
+            return selectedBuilding != null;
         }
 
-        return bestBuilding != null;
+        CharacterAiNaturalnessSettingsSO settings =
+            CharacterAiNaturalnessSettingsResolver.Require(actor);
+        float tolerance = settings.EquivalentFacilityUtilityTolerance;
+        float minimumSavings = settings.EquivalentFacilityMinimumTravelSavingsCells;
+        if (tolerance <= 0f || minimumSavings <= 0f)
+        {
+            return true;
+        }
+
+        BuildableObject scoreLeader = selectedBuilding;
+        CharacterAiUtilityBreakdown scoreLeaderBreakdown = selectedBreakdown;
+        float scoreLeaderScore = selectedScore;
+        float scoreLeaderTravel = GetEstimatedTravelCells(
+            actor,
+            scoreLeader,
+            searchResult);
+        BuildableObject nearestEquivalent = scoreLeader;
+        CharacterAiUtilityBreakdown nearestBreakdown = scoreLeaderBreakdown;
+        float nearestScore = scoreLeaderScore;
+        float nearestTravel = scoreLeaderTravel;
+        int nearestId = scoreLeader.id;
+
+        for (int index = 0; index < safeCount; index++)
+        {
+            BuildableObject building = useThreadShortlist
+                ? scoringShortlist[index]
+                : source[index];
+            if (!CanScoreSelectionCandidate(building, searchResult))
+            {
+                continue;
+            }
+
+            float score = ScoreCandidateWithBreakdown(
+                actor,
+                building,
+                role,
+                searchResult,
+                scoringContext,
+                out CharacterAiUtilityBreakdown breakdown);
+            if ((requirePositiveScore && score <= 0f)
+                || score + tolerance < scoreLeaderScore)
+            {
+                continue;
+            }
+
+            float travel = GetEstimatedTravelCells(actor, building, searchResult);
+            if (travel < nearestTravel
+                || (Mathf.Approximately(travel, nearestTravel)
+                    && (score > nearestScore
+                        || (Mathf.Approximately(score, nearestScore)
+                            && building.id < nearestId))))
+            {
+                nearestEquivalent = building;
+                nearestBreakdown = breakdown;
+                nearestScore = score;
+                nearestTravel = travel;
+                nearestId = building.id;
+            }
+        }
+
+        if (scoreLeaderTravel - nearestTravel >= minimumSavings)
+        {
+            selectedBuilding = nearestEquivalent;
+            selectedBreakdown = nearestBreakdown;
+            selectedScore = nearestScore;
+        }
+
+        return true;
+    }
+
+    private static bool CanScoreSelectionCandidate(
+        BuildableObject building,
+        GridPathSearchResult searchResult)
+    {
+        return building != null
+            && !building.isDestroy
+            && (searchResult == null
+                || searchResult.ContainsVisitableOccupant(building));
     }
 
     public static bool IsCandidate(
@@ -529,6 +622,9 @@ public static class FacilityCandidateScorer
         float affordabilityScore = GetAffordabilityScore(actor, building);
         float crowdScore = GetCrowdScore(actor, building);
         float distanceScore = GetDistanceScore(actor, building, searchResult);
+        float travelOpportunityPenalty = GetTravelOpportunityPenalty(
+            actor,
+            distanceScore);
         float noveltyScore = GetNoveltyScore(actor, building);
         float reputationBias = GetReputationBias(actor, building, scoringContext);
         float roomScore = scoringContext.GetRoomUtilityScore(building, matchedRole);
@@ -572,7 +668,8 @@ public static class FacilityCandidateScorer
             + fatigueScore * 0.02f
             + scheduleScore * 0.02f
             + cultureBias
-            + reputationBias;
+            + reputationBias
+            - travelOpportunityPenalty;
 
         float finalScore = ApplySpeciesAffinityBias(score, speciesAffinityBias);
         if (actor != null && !actor.ShouldCollectDetailedAiDiagnostics)
@@ -678,6 +775,9 @@ public static class FacilityCandidateScorer
             FacilityRole.Hygiene => Mathf.Max(
                 GetLowStatNeed(actor, CharacterCondition.HYGIENE),
                 GetExpeditionStressNeed(actor) * 0.75f),
+            FacilityRole.Entertainment => GetLowStatNeed(
+                actor,
+                CharacterCondition.FUN),
             _ => 0.5f
         };
     }
@@ -1067,6 +1167,37 @@ public static class FacilityCandidateScorer
         return 1f / (1f + bestEstimate);
     }
 
+    private static float GetTravelOpportunityPenalty(
+        CharacterActor actor,
+        float distanceScore)
+    {
+        if (actor == null || distanceScore <= 0f)
+        {
+            return 0f;
+        }
+
+        CharacterAiNaturalnessSettingsSO settings =
+            CharacterAiNaturalnessSettingsResolver.Require(actor);
+        float estimatedTravelCells = Mathf.Max(0f, (1f / distanceScore) - 1f);
+        float paidTravelCells = Mathf.Max(
+            0f,
+            estimatedTravelCells - settings.FreeFacilityTravelCells);
+        return Mathf.Min(
+            settings.MaximumFacilityTravelUtilityPenalty,
+            paidTravelCells * settings.FacilityTravelUtilityCostPerCell);
+    }
+
+    private static float GetEstimatedTravelCells(
+        CharacterActor actor,
+        BuildableObject building,
+        GridPathSearchResult searchResult)
+    {
+        float distanceScore = GetDistanceScore(actor, building, searchResult);
+        return distanceScore > 0f
+            ? Mathf.Max(0f, (1f / distanceScore) - 1f)
+            : float.PositiveInfinity;
+    }
+
     private static float GetNoveltyScore(CharacterActor actor, BuildableObject building)
     {
         if (actor == null || !actor.TryGetAbility(out AbilityShopping shopping))
@@ -1129,6 +1260,7 @@ public static class FacilityCandidateScorer
             FacilityRole.Rest => CharacterAiBranch.Rest,
             FacilityRole.Toilet => CharacterAiBranch.Toilet,
             FacilityRole.Hygiene => CharacterAiBranch.Hygiene,
+            FacilityRole.Entertainment => CharacterAiBranch.LeisureVisit,
             FacilityRole.Purchase => CharacterAiBranch.Shopping,
             FacilityRole.Training => CharacterAiBranch.Work,
             FacilityRole.Research => CharacterAiBranch.Work,
@@ -1150,6 +1282,7 @@ public static class FacilityCandidateScorer
             FacilityRole.Logistics => "물류",
             FacilityRole.Toilet => "화장실",
             FacilityRole.Hygiene => "위생",
+            FacilityRole.Entertainment => "여가",
             FacilityRole.Administration => "운영",
             FacilityRole.Security => "경비",
             _ => role.ToString()

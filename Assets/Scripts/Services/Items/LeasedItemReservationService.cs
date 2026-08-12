@@ -6,6 +6,7 @@ using DungeonStory.Foundation;
 public readonly struct LeasedItemReservation
 {
     public LeasedItemReservation(
+        string leaseId,
         string ownerId,
         string stackId,
         string expectedSignature,
@@ -14,6 +15,7 @@ public readonly struct LeasedItemReservation
         float expiresGameHour,
         float maximumGameHour)
     {
+        LeaseId = leaseId ?? string.Empty;
         OwnerId = ownerId ?? string.Empty;
         StackId = stackId ?? string.Empty;
         ExpectedSignature = expectedSignature ?? string.Empty;
@@ -23,6 +25,7 @@ public readonly struct LeasedItemReservation
         MaximumGameHour = maximumGameHour;
     }
 
+    public string LeaseId { get; }
     public string OwnerId { get; }
     public string StackId { get; }
     public string ExpectedSignature { get; }
@@ -54,14 +57,14 @@ public sealed class LeasedItemReservationService : ILeasedItemReservationService
     private const float MaximumLeaseHours = 6f;
 
     private readonly IWorldItemStackRuntime items;
-    private readonly IItemReservationService reservations;
+    private readonly IItemQuantityReservationService reservations;
     private readonly IGameClock clock;
     private readonly Dictionary<string, List<LeasedItemReservation>> byOwner =
         new(StringComparer.Ordinal);
 
     public LeasedItemReservationService(
         IWorldItemStackRuntime items,
-        IItemReservationService reservations,
+        IItemQuantityReservationService reservations,
         IGameClock clock)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
@@ -84,46 +87,43 @@ public sealed class LeasedItemReservationService : ILeasedItemReservationService
             failure = new DomainFailure(FailureCode.ApparelWorkOrderInvalid, owner);
             return false;
         }
-        Release(owner);
         Dictionary<string, WorldItemStackSnapshot> available = items.GetAllStacks()
             .Where(value => value != null)
             .ToDictionary(value => value.StackId, StringComparer.Ordinal);
-        List<string> ids = new(stacks.Count);
-        List<LeasedItemReservation> created = new(stacks.Count);
-        float now = GameHour;
+        List<ItemQuantityReservationRequest> requests = new(stacks.Count);
         for (int index = 0; index < stacks.Count; index++)
         {
             WorldItemReservedStackQuantity requested = stacks[index];
             if (!requested.IsValid
                 || !available.TryGetValue(requested.StackId, out WorldItemStackSnapshot stack)
                 || stack.Forbidden
-                || stack.Quantity < requested.Quantity
-                || stack.IsReserved && !string.Equals(
-                    stack.ReservedByPersistentId,
-                    owner,
-                    StringComparison.Ordinal))
+                || stack.AvailableQuantity < requested.Quantity)
             {
                 failure = new DomainFailure(
                     FailureCode.ApparelMaterialUnavailable,
                     requested.StackId);
                 return false;
             }
-            ids.Add(requested.StackId);
-            created.Add(new LeasedItemReservation(
-                owner,
-                requested.StackId,
-                stack.StackSignature,
+            requests.Add(new ItemQuantityReservationRequest(
+                (ItemStackId)requested.StackId,
                 requested.Quantity,
-                now,
-                now + ItemLeaseHours,
-                now + MaximumLeaseHours));
+                stack.StackSignature));
         }
-        if (!reservations.TryReserve(ids, owner))
+        if (!reservations.TryReserveBatch(
+                owner,
+                string.Empty,
+                ItemReservationPurpose.ProductionInput,
+                $"production:{owner}",
+                requests,
+                out IReadOnlyList<ItemQuantityLease> quantityLeases,
+                out failure))
         {
-            failure = new DomainFailure(FailureCode.ApparelItemReserved, owner);
             return false;
         }
-        byOwner.Add(owner, created);
+        List<LeasedItemReservation> created = quantityLeases
+            .Select(ToLegacyLease)
+            .ToList();
+        byOwner[owner] = created;
         leases = created;
         return true;
     }
@@ -140,36 +140,27 @@ public sealed class LeasedItemReservationService : ILeasedItemReservationService
             failure = new DomainFailure(FailureCode.ApparelReservationExpired, owner);
             return false;
         }
-        Dictionary<string, WorldItemStackSnapshot> current = items.GetAllStacks()
-            .Where(value => value != null)
-            .ToDictionary(value => value.StackId, StringComparer.Ordinal);
-        float now = GameHour;
         for (int index = 0; index < leases.Count; index++)
         {
             LeasedItemReservation lease = leases[index];
-            if (now > lease.ExpiresGameHour
-                || !current.TryGetValue(lease.StackId, out WorldItemStackSnapshot stack)
-                || stack.Quantity < lease.ExpectedMinimumQuantity
-                || !string.Equals(stack.StackSignature, lease.ExpectedSignature, StringComparison.Ordinal)
-                || !string.Equals(stack.ReservedByPersistentId, owner, StringComparison.Ordinal))
+            if (!reservations.Revalidate(
+                    lease.LeaseId,
+                    out ItemQuantityLease current,
+                    out failure))
             {
                 Release(owner);
-                failure = new DomainFailure(
-                    FailureCode.ApparelReservationExpired,
-                    lease.StackId);
                 return false;
             }
-            if (renewForTransportProgress && now < lease.MaximumGameHour)
+            if (renewForTransportProgress
+                && !reservations.Renew(
+                    lease.LeaseId,
+                    clock.Time + ItemLeaseHours * GameSecondsPerHour,
+                    out failure))
             {
-                leases[index] = new LeasedItemReservation(
-                    lease.OwnerId,
-                    lease.StackId,
-                    lease.ExpectedSignature,
-                    lease.ExpectedMinimumQuantity,
-                    lease.CreatedGameHour,
-                    Math.Min(lease.MaximumGameHour, now + ItemLeaseHours),
-                    lease.MaximumGameHour);
+                Release(owner);
+                return false;
             }
+            leases[index] = ToLegacyLease(current);
         }
         return true;
     }
@@ -177,14 +168,13 @@ public sealed class LeasedItemReservationService : ILeasedItemReservationService
     public void Release(string ownerId)
     {
         string owner = ownerId?.Trim() ?? string.Empty;
-        if (!byOwner.Remove(owner, out List<LeasedItemReservation> leases))
+        if (!byOwner.Remove(owner, out _))
         {
             return;
         }
-        foreach (LeasedItemReservation lease in leases)
-        {
-            reservations.Release(lease.StackId, owner);
-        }
+        reservations.ReleaseByOwner(
+            owner,
+            ItemReservationReleaseReason.Cancelled);
     }
 
     public void ReleaseExpired()
@@ -201,4 +191,18 @@ public sealed class LeasedItemReservationService : ILeasedItemReservationService
     }
 
     private float GameHour => Math.Max(0f, clock.Time / GameSecondsPerHour);
+
+    private static LeasedItemReservation ToLegacyLease(ItemQuantityLease lease)
+    {
+        ItemLeaseSlice slice = lease.slices?.FirstOrDefault();
+        return new LeasedItemReservation(
+            lease.leaseId,
+            lease.ownerOperationId,
+            slice?.stackId ?? string.Empty,
+            slice?.expectedStackSignature ?? string.Empty,
+            lease.remainingQuantity,
+            (float)(lease.createdAtGameSeconds / GameSecondsPerHour),
+            (float)(lease.expiresAtGameSeconds / GameSecondsPerHour),
+            (float)(lease.maximumExpiresAtGameSeconds / GameSecondsPerHour));
+    }
 }

@@ -59,7 +59,7 @@ MonoBehaviour:
   - id: culture:orc-vigil
     weight: 1.03
   - id: culture:slime-confluence
-    weight: 1.06
+    weight: 1.0600001
   - id: culture:vampire-nightcourt
     weight: 1.09
   assimilationDays: 120

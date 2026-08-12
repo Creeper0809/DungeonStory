@@ -11,6 +11,12 @@ public static class HaulPlanConstructionSafetyDebugScenarios
 {
     private const string ReportPath = "Temp/haul-plan-construction-safety.tsv";
     private const string LumberItemId = "material:lumber";
+    private static readonly IFacilityCandidateCache FacilityCandidateCache =
+        new FacilityCandidateCacheStore(
+            CharacterAiEditorTestDependencies.WorldRegistry,
+            frameWorkBudget: null);
+    private static readonly IRoomFacilityPolicy RoomFacilityPolicy =
+        new RoomFacilityPolicyService(RoomRegistry.EditorCache);
 
     [MenuItem("DungeonStory/Debug/Items/Run Haul Plan And Construction Safety Contracts")]
     public static void RunFromMenu()
@@ -163,7 +169,8 @@ public static class HaulPlanConstructionSafetyDebugScenarios
             int remaining = 10 - picked;
             Require(scenario.Items.GetAllStacks().Any(stack =>
                     stack.Quantity == remaining
-                    && string.IsNullOrWhiteSpace(stack.ReservedByPersistentId)),
+                    && stack.ReservedQuantity == 0
+                    && stack.AvailableQuantity == remaining),
                 "remaining stack was not released for another hauler");
 
             return $"reserved={reserved}; remaining={remaining}; load={scenario.Carry.GetCurrentWeight(scenario.Items.CatalogProvider):0.##}";
@@ -249,6 +256,18 @@ public static class HaulPlanConstructionSafetyDebugScenarios
             wallData = CreateBuildingData(99002, "테스트 벽", BuildingCategory.Wall, GridLayer.Building);
             siteObject = new GameObject("ConstructionSafetySite");
             ConstructionSite site = siteObject.AddComponent<ConstructionSite>();
+            site.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
+            site.ConstructBuildableObject(
+                new BuildingResearchWorkPortAdapter(new NoopBlueprintResearchWorkService()),
+                FacilityCandidateCache,
+                RoomFacilityPolicy,
+                combatEquipmentRuntime: null,
+                worldRegistry: null,
+                worldItemStackRuntime: null,
+                abilityRuntimeDispatcher: null,
+                gameClock: null,
+                paidFacilityContracts: null,
+                evolutionState: new FacilityEvolutionStateComponentFactory());
             site.SetGrid(grid);
             site.Initialization(wallData, new Vector2Int(5, 1));
             grid.SetAreaType(new Vector2Int(5, 1), GridCellAreaType.ExteriorPath);
@@ -317,6 +336,18 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 GameObject warehouseObject = new GameObject("HaulPlanWarehouse");
                 TestWarehouseBuilding warehouse = warehouseObject.AddComponent<TestWarehouseBuilding>();
                 BuildingSO warehouseData = CreateBuildingData(99001, "테스트 창고", BuildingCategory.Shop, GridLayer.Building);
+                warehouse.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
+                warehouse.ConstructBuildableObject(
+                    new BuildingResearchWorkPortAdapter(new NoopBlueprintResearchWorkService()),
+                    FacilityCandidateCache,
+                    RoomFacilityPolicy,
+                    combatEquipmentRuntime: null,
+                    worldRegistry: null,
+                    worldItemStackRuntime: null,
+                    abilityRuntimeDispatcher: null,
+                    gameClock: null,
+                    paidFacilityContracts: null,
+                    evolutionState: new FacilityEvolutionStateComponentFactory());
                 warehouse.SetGrid(grid);
                 warehouse.Initialization(warehouseData, new Vector2Int(9, 1));
                 grid.RegisterOccupant(warehouse, GridLayer.Building, warehouse.buildPoses, false);
@@ -341,9 +372,24 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 WorldItemRepository repository = new WorldItemRepository(
                     new GuidPersistentIdGenerator(),
                     new DungeonRuntimeAggregateRootStore());
+                warehouse.BindPhysicalStock(
+                    new PhysicalStockQuery(repository, itemCatalog));
+                ItemQuantityReservationService quantityReservations =
+                    new ItemQuantityReservationService(
+                        repository,
+                        EditorNullItemMarkerPresenter.Instance,
+                        new UnityGameClock());
                 IItemReservationService reservations = new ItemReservationService(
                     repository,
-                    EditorNullItemMarkerPresenter.Instance);
+                    EditorNullItemMarkerPresenter.Instance,
+                    quantityReservations);
+                IBufferStackAggregationService bufferAggregation =
+                    new BufferStackAggregationService(
+                        itemCatalog,
+                        repository,
+                        EditorNullItemMarkerPresenter.Instance,
+                        quantityReservations,
+                        quantityReservations);
                 IWorldItemSpawner spawner = new WorldItemSpawner(
                     itemCatalog,
                     repository,
@@ -361,7 +407,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                         pathBroker,
                         worldRegistry,
                         repository,
-                        reservations);
+                        quantityReservations);
                 WorldItemReadServices readServices = new WorldItemReadServices(
                     itemCatalog,
                     haulingSettings,
@@ -385,7 +431,11 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                         EditorNullItemMarkerPresenter.Instance,
                         gridProvider,
                         idRegistry,
-                        reservations));
+                        reservations,
+                        quantityReservations),
+                    quantityReservations: quantityReservations,
+                    quantityLeaseMutations: quantityReservations,
+                    bufferAggregation: bufferAggregation);
                 WorldItemStackRuntime items = WorldItemEditorTestFactory.Create(
                     gridProvider,
                     itemCatalog,
@@ -465,6 +515,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         actorObject.AddComponent<CharacterCarryInventory>();
         actorObject.AddComponent<AbilityHaul>();
         actorObject.GetComponent<CharacterIdentity>().SetPersistentId($"character:worker:{name}");
+        CharacterAiEditorTestDependencies.Inject(actorObject);
         lifecycle.ConstructCharacterLifecycle(gridProvider);
         actorObject.transform.position = grid.GetWorldPos(position);
         actorObject.SetActive(true);
@@ -531,6 +582,30 @@ public static class HaulPlanConstructionSafetyDebugScenarios
 
         public WarehouseInventory Inventory => inventory;
         public bool HasWarehouseInventory => true;
+
+        public void BindPhysicalStock(IStockQuery stockQuery)
+        {
+            inventory.BindPhysicalStock(
+                stockQuery,
+                RequirePersistentInstanceId(),
+                CharacterAiEditorTestDependencies.AuthoredGameplay);
+        }
+    }
+
+    private sealed class NoopBlueprintResearchWorkService : IBlueprintResearchWorkService
+    {
+        public bool HasResearchWorkFor(BuildableObject facility)
+        {
+            return false;
+        }
+
+        public BlueprintResearchWorkResult ApplyResearchWork(
+            CharacterActor researcher,
+            BuildableObject researchFacility,
+            float workSeconds)
+        {
+            return default;
+        }
     }
 
     private sealed class GridProvider : IGridSystemProvider

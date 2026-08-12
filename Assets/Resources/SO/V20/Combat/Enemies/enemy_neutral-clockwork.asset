@@ -28,7 +28,7 @@ MonoBehaviour:
   dexterity: 6
   moveSpeed: 3.5
   equipment:
-    weaponDefinitionId: weapon:warhammer
+    weaponDefinitionId: weapon:mace
     armorDefinitionId: armor:breastplate
     shieldDefinitionId: shield:iron
     ammunitionItemId: 

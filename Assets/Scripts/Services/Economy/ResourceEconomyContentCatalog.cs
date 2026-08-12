@@ -990,7 +990,7 @@ public sealed class ResourceUsageIndex :
         reservationCache.Clear();
         foreach (WorldItemStackSnapshot stack in itemRuntime.GetAllStacks())
         {
-            if (stack == null || !stack.IsReserved || stack.Quantity <= 0)
+            if (stack == null || !stack.HasReservations || stack.Quantity <= 0)
             {
                 continue;
             }

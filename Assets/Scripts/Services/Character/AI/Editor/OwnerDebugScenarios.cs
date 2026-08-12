@@ -92,9 +92,10 @@ public static class OwnerDebugScenarios
             return character.IsOwner
                 && !character.CanLeaveByDissatisfaction
                 && !character.CanRebel
-                && character.MaxHealth > 100f
+                && character.MaxHealth > 0f
                 && Mathf.Approximately(character.CurrentHealth, character.MaxHealth)
-                && character.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Guard) > 1f;
+                && character.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Guard) > 0f
+                && character.Progression.ResolveSelectedTraits().Count > 0;
         }
         finally
         {
@@ -112,7 +113,9 @@ public static class OwnerDebugScenarios
         {
             InitializeCharacter(character, ownerData);
             AIAction[] actions = character.ai.availableActions;
-            return actions.Any((action) => action.actionset is AIWork)
+            return character.TryGetAbility(out AbilityShopping _)
+                && actions.Any((action) => action.actionset is AIWork)
+                && actions.Any((action) => action.actionset is AIEat)
                 && actions.Any((action) => action.actionset is AIWait)
                 && !actions.Any((action) => action.actionset is AIExitDungeon);
         }
@@ -297,6 +300,7 @@ public static class OwnerDebugScenarios
         obj.AddComponent<CharacterActor>();
         obj.AddComponent<AbilityMove>();
         obj.AddComponent<AbilityWork>();
+        obj.AddComponent<AbilityShopping>();
         obj.AddComponent<AIBrain>();
         if (researchRuntime != null)
         {
@@ -319,12 +323,20 @@ public static class OwnerDebugScenarios
         CharacterActor actor = obj.AddComponent<CharacterActor>();
         obj.AddComponent<AbilityMove>();
         obj.AddComponent<AbilityWork>();
+        obj.AddComponent<AbilityShopping>();
         obj.AddComponent<AIBrain>();
 
         actor.PrepareForDetachedRestore();
         CharacterAiEditorTestDependencies.Inject(obj);
         actor.EnsureRuntimeState();
         actor.RefreshAbilityCache();
+        actor.Progression.ApplyPreparedIdentity(
+            data.characterName,
+            "debug:owner-restore",
+            data.traits.Select(trait => trait.id),
+            CharacterPotentialGrade.Ordinary,
+            generationSeed: data.id,
+            autoChooseDrafts: false);
         actor.Initialization(data);
         actor.SetLifecycleState(CharacterLifecycleState.Active);
         actor.Brain?.UseOwnerWorkActions();
@@ -338,6 +350,13 @@ public static class OwnerDebugScenarios
             ?.Invoke(character, null);
 
         character.RefreshAbilityCache();
+        character.Progression.ApplyPreparedIdentity(
+            data.characterName,
+            "debug:owner",
+            data.traits.Select(trait => trait.id),
+            CharacterPotentialGrade.Ordinary,
+            generationSeed: data.id,
+            autoChooseDrafts: false);
         character.Initialization(data);
         character.SetLifecycleState(CharacterLifecycleState.Active);
     }

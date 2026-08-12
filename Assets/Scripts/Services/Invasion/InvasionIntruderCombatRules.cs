@@ -6,15 +6,21 @@ internal static class InvasionIntruderCombatRules
     public static float EstimateStructureDamage(
         CharacterActor intruder,
         InvasionIntruderSettings settings,
-        float meleeDamageMultiplier)
+        float meleeDamageMultiplier,
+        ICharacterPerformanceQuery performance)
     {
         if (intruder == null)
         {
             return 1f;
         }
 
-        float attack = intruder.GetCharacterStat(CharacterStatType.Attack);
-        float strength = intruder.GetCharacterStat(CharacterStatType.Strength);
+        if (performance == null) throw new ArgumentNullException(nameof(performance));
+        float attack = 5f * performance.Evaluate(
+            intruder,
+            "performance:combat:melee-hit").Value;
+        float strength = 5f * performance.Evaluate(
+            intruder,
+            "performance:combat:melee-power").Value;
         return Mathf.Max(
             1f,
             (attack * 0.75f + strength * 0.45f)
@@ -28,11 +34,12 @@ internal static class InvasionIntruderCombatRules
         InvasionIntruderSettings settings,
         float meleeDamageMultiplier,
         float toughness,
-        bool enraged)
+        bool enraged,
+        ICharacterPerformanceQuery performance)
     {
         float damage = Mathf.Max(
             1f,
-            EstimateStructureDamage(intruder, settings, meleeDamageMultiplier)
+            EstimateStructureDamage(intruder, settings, meleeDamageMultiplier, performance)
             - Mathf.Max(0f, toughness) * 0.5f);
         return enraged ? damage * 1.25f : damage;
     }

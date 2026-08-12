@@ -70,7 +70,11 @@ public sealed class OperationsStaffContext
     public OperationsStaffContext(
         ICombatEquipmentMaintenanceRuntime maintenanceRuntime,
         IStaffWorkforceQueryService workforceQuery,
-        IGameplayFlowDiagnosticsQuery flowDiagnostics)
+        IGameplayFlowDiagnosticsQuery flowDiagnostics,
+        ISettlementLaborAccountingService settlementLabor,
+        ISettlementEmergencyReserveTargetQuery reserveTarget,
+        ISettlementAlertService settlementAlerts,
+        IEmergencyWorkAccountingService emergencyWork)
     {
         MaintenanceRuntime = maintenanceRuntime
             ?? throw new ArgumentNullException(nameof(maintenanceRuntime));
@@ -78,11 +82,23 @@ public sealed class OperationsStaffContext
             ?? throw new ArgumentNullException(nameof(workforceQuery));
         FlowDiagnostics = flowDiagnostics
             ?? throw new ArgumentNullException(nameof(flowDiagnostics));
+        SettlementLabor = settlementLabor
+            ?? throw new ArgumentNullException(nameof(settlementLabor));
+        ReserveTarget = reserveTarget
+            ?? throw new ArgumentNullException(nameof(reserveTarget));
+        SettlementAlerts = settlementAlerts
+            ?? throw new ArgumentNullException(nameof(settlementAlerts));
+        EmergencyWork = emergencyWork
+            ?? throw new ArgumentNullException(nameof(emergencyWork));
     }
 
     public ICombatEquipmentMaintenanceRuntime MaintenanceRuntime { get; }
     public IStaffWorkforceQueryService WorkforceQuery { get; }
     public IGameplayFlowDiagnosticsQuery FlowDiagnostics { get; }
+    public ISettlementLaborAccountingService SettlementLabor { get; }
+    public ISettlementEmergencyReserveTargetQuery ReserveTarget { get; }
+    public ISettlementAlertService SettlementAlerts { get; }
+    public IEmergencyWorkAccountingService EmergencyWork { get; }
 }
 
 public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryService
@@ -103,6 +119,10 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
     private readonly IStaffWorkforceQueryService workforceQuery;
     private readonly IGameplayFlowDiagnosticsQuery flowDiagnostics;
     private readonly IWasteProcessingQuery wasteProcessing;
+    private readonly ISettlementLaborAccountingService settlementLabor;
+    private readonly ISettlementEmergencyReserveTargetQuery reserveTarget;
+    private readonly ISettlementAlertService settlementAlerts;
+    private readonly IEmergencyWorkAccountingService emergencyWork;
 
     public OperationsFeatureQueryService(
         IOperationTabSummaryService operationSummary,
@@ -128,6 +148,10 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
         maintenanceRuntime = staff.MaintenanceRuntime;
         workforceQuery = staff.WorkforceQuery;
         flowDiagnostics = staff.FlowDiagnostics;
+        settlementLabor = staff.SettlementLabor;
+        reserveTarget = staff.ReserveTarget;
+        settlementAlerts = staff.SettlementAlerts;
+        emergencyWork = staff.EmergencyWork;
     }
 
     public OperationsFeatureSurfaceModel Capture(string selectedMaintenancePolicyId)
@@ -136,14 +160,32 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
         EquipmentMaintenancePolicyData selectedMaintenance =
             ResolveMaintenancePolicy(selectedMaintenancePolicyId);
         GameplayFlowDiagnosticsSnapshot flow = flowDiagnostics.Capture();
+        SettlementPopulationCapacitySnapshot populationCapacity =
+            regularCustomers.CapturePopulationCapacity();
+        SettlementPopulationAcceptance immigration =
+            regularCustomers.EvaluateImmigration();
         return new OperationsFeatureSurfaceModel
         {
             DaySummary = summary.HasGameData
                 ? $"Day {summary.Day} / {summary.Hour}:00 / 자금 {summary.HoldingMoney}"
                 : "운영 시계를 불러오지 못했습니다.",
             SettlementSummary = CreateSettlementSummary(settlement),
+            LaborSummary = CreateLaborSummary(
+                out IReadOnlyList<OperationsStatusRow> laborRows),
+            LaborRows = laborRows,
             Recruitment = CreateRecruitmentRows(out string recruitmentSummary),
             RecruitmentSummary = recruitmentSummary,
+            ImmigrationPolicyLabel = regularCustomers.ImmigrationPolicy.ToString(),
+            ImmigrationCapacityAccepted = immigration.Accepted,
+            ImmigrationCapacityDetail =
+                $"침상 여유 {populationCapacity.VacantSleepingSlotCount}/{populationCapacity.SleepingSlotCount}"
+                + $" · 식량 {populationCapacity.FoodSupplyDays}일"
+                + $" · 물 {populationCapacity.WaterSupplyDays}일"
+                + $" · 예비 {populationCapacity.EmergencyReserveCoverage:0.00}"
+                + $" · 인당 WU {populationCapacity.RollingPerCapitaNetWuIndex:0.00}"
+                + (immigration.Accepted
+                    ? " · 1명 수용 가능"
+                    : $" · 보류 [{immigration.FailureCode}]"),
             SurvivalSummary = CreateSurvivalSummary(out IReadOnlyList<OperationsStatusRow> survivalRows),
             SurvivalRows = survivalRows,
             WasteSummary = CreateWasteSummary(out IReadOnlyList<OperationsWastePolicyRow> wasteRows),
@@ -210,6 +252,62 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
                 .ToArray()
         };
     }
+
+    private string CreateLaborSummary(
+        out IReadOnlyList<OperationsStatusRow> rows)
+    {
+        SettlementLaborAccountingSnapshot labor = settlementLabor.Capture();
+        SettlementEmergencyReserveTargetSnapshot reserve =
+            reserveTarget.CaptureTarget();
+        SettlementAlertSnapshot alert = settlementAlerts.Capture();
+        EmergencyReserveSnapshot work = emergencyWork.CaptureSnapshot();
+        rows = new[]
+        {
+            new OperationsStatusRow
+            {
+                Index = 0,
+                Title = "오늘 WU",
+                Detail = $"실제 {FormatWu(labor.ActualLaborMilliWu)}"
+                    + $" / 산출 등가 {FormatWu(labor.OutputEquivalentMilliWu)}"
+                    + $" / 실현 성장 {FormatWu(labor.RealizedGrowthMilliWu)}"
+                    + $" / 보장 성장 {FormatWu(labor.GuaranteedGrowthMilliWu)}"
+            },
+            new OperationsStatusRow
+            {
+                Index = 1,
+                Title = "비용과 자동화",
+                Detail = $"자동화 {FormatWu(labor.DomainAutomationMilliWu)}"
+                    + $" / 손실 {FormatWu(labor.LossMilliWu)}"
+                    + $" / 필수 유지 {FormatWu(labor.EssentialMaintenanceMilliWu)}"
+                    + $" / 장비·시설 {FormatWu(labor.EquipmentFacilityMaintenanceMilliWu)}"
+            },
+            new OperationsStatusRow
+            {
+                Index = 2,
+                Title = "비상 예비 노동",
+                Detail = $"가용 {FormatWu(reserve.AvailableMilliWu)}"
+                    + $" / 목표 {FormatWu(reserve.TargetMilliWu)}"
+                    + $" / 커버리지 {reserve.Coverage:0.00}"
+                    + $" / 즉시 {FormatWu(work.InterruptImmediatelyMilliWu)}"
+                    + $" / 체크포인트 {FormatWu(work.InterruptAtCheckpointMilliWu)}"
+            },
+            new OperationsStatusRow
+            {
+                Index = 3,
+                Title = "위협 경보",
+                Detail = $"확정 {alert.CommittedLevel} / 요구 {alert.DesiredLevel}"
+                    + $" / Epoch {alert.AlertEpochId}"
+                    + $" / 사건 {alert.ActiveIncidentIds.Count}"
+                    + $" / 예비 상태 {alert.ReserveCoverageBand}"
+            }
+        };
+        return $"현재일 보장 성장 {FormatWu(labor.GuaranteedGrowthMilliWu)}"
+            + $" / 30일 인당 지수 {labor.RollingPerCapitaNetWuMedian:0.00}"
+            + $" / 경보 {alert.CommittedLevel}";
+    }
+
+    private static string FormatWu(long milliWu) =>
+        $"{milliWu / (float)EmergencyWuUnits.UnitsPerWu:0.0}";
 
     private string CreateWasteSummary(
         out IReadOnlyList<OperationsWastePolicyRow> rows)

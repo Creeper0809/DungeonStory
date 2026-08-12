@@ -47,6 +47,23 @@ public sealed class ResourceStockPolicyQuery : IResourceStockPolicyQuery
             .Select(stack => stack.Quantity));
     }
 
+    public EmergencyStockReadiness GetEmergencyReadiness()
+    {
+        ResourceStockPolicyData[] reserves = Policies
+            .Where(policy => policy != null
+                && policy.enabled
+                && policy.isEmergencyReserve)
+            .OrderBy(policy => policy.itemId, StringComparer.Ordinal)
+            .ToArray();
+        int shortages = reserves.Count(policy =>
+            CountOwned(policy.itemId) < policy.minimumStock);
+        return new EmergencyStockReadiness(
+            reserves.Length > 0,
+            reserves.Length > 0 && shortages == 0,
+            reserves.Length,
+            shortages);
+    }
+
     private ResourceStockPolicyAggregateState State =>
         aggregateRootStore.GetOrCreate(
             () => new ResourceStockPolicyAggregateState());

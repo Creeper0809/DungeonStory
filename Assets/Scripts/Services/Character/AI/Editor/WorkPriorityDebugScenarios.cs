@@ -372,6 +372,13 @@ public static class WorkPriorityDebugScenarios
                 new StaffWorkPriorityPanelUiFactory(
                     TMPKoreanFontEditorResolver.CreateService()),
                 new DungeonStory.Foundation.UnityUiClock());
+            panel.ConstructStaffWorkPriorityArcane(
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<ICharacterManaQuery>(),
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IArcaneOverchargeCommand>(),
+                OffenseEditorTestDependencies.CreateCombatEquipmentRuntime(),
+                CharacterAiEditorTestDependencies.NeutralPerformance);
             orc = CreateCharacter("Owner_Orc");
             worker = CreateRegularWorker(
                 "Assets/Resources/SO/Character/Customer_Vampire.asset");

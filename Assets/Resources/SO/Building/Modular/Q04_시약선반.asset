@@ -34,16 +34,30 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730834227260
-    - rid: 7737211730834227261
-    - rid: 7737211730834227262
-    - rid: 7737211730834227263
-    - rid: 7737211730834227264
-    - rid: 7737211838079696934
+    - rid: 7737211921440178656
+    - rid: 7737211921440178657
+    - rid: 7737211921440178658
+    - rid: 7737211921440178659
+    - rid: 7737211921440178660
   width: 1
   height: 1
   layer: 1
@@ -59,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730834227260
+    - rid: 7737211921440178656
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: Q04
-    - rid: 7737211730834227261
+    - rid: 7737211921440178657
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -73,19 +87,33 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211730834227262
+    - rid: 7737211921440178658
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 19.2
-        repairWorkRequired: 10
-        cleanWorkRequired: 6.25
+        constructionProjectScale: 0
+        constructionWorkRequired: 32
+        repairWorkRequired: 8
+        cleanWorkRequired: 4
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
         - itemId: material:lumber
-          amount: 3
-    - rid: 7737211730834227263
+          amount: 4
+        - itemId: component:rune-conductor
+          amount: 1
+    - rid: 7737211921440178659
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -100,17 +128,10 @@ MonoBehaviour:
           - key: Mana
             value: 2
           metrics: []
-    - rid: 7737211730834227264
+    - rid: 7737211921440178660
       type: {class: BuildingStorageAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingStorageAbility
         category: 3
         capacity: 12
         allCategories: 0
-    - rid: 7737211838079696934
-      type: {class: BuildingResearchCapacityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingResearchCapacityAbility
-        contributions:
-        - capability: 4
-          capacity: 1

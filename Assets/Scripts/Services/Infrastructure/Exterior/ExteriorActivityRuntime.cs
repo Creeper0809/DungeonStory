@@ -38,6 +38,8 @@ public interface IExteriorIncidentRuntime
     IReadOnlyList<ExteriorIncidentRuntimeState> IncidentStates { get; }
     bool TryStartIncident(ExteriorIncidentKind kind, string text = null);
     bool TryExecutePrimaryAction(string incidentId, out string message);
+    bool AutomaticIncidentChecksSuspended { get; }
+    void SetAutomaticIncidentChecksSuspended(bool suspended);
 }
 
 public interface IExteriorActivityRuntime
@@ -180,6 +182,7 @@ public sealed class ExteriorActivityRuntime :
     private float nextIncidentCheck;
     private int incidentSequence;
     private ExteriorActivityPublication activePublication;
+    private bool automaticIncidentChecksSuspended;
 
     private static DungeonStory.Exterior.ExteriorIncidentAggregate<
         ExteriorIncidentRuntimeState> CreateIncidentAggregate() => new(
@@ -235,6 +238,17 @@ public sealed class ExteriorActivityRuntime :
         .Select(zone => zone.PatrolReadiness)
         .DefaultIfEmpty(0f)
         .Average();
+    public bool AutomaticIncidentChecksSuspended =>
+        automaticIncidentChecksSuspended;
+
+    public void SetAutomaticIncidentChecksSuspended(bool suspended)
+    {
+        automaticIncidentChecksSuspended = suspended;
+        if (!suspended)
+        {
+            nextIncidentCheck = applicationAdapter.Time + IncidentCheckSeconds;
+        }
+    }
 
     public void Start()
     {
@@ -269,7 +283,7 @@ public sealed class ExteriorActivityRuntime :
 
         TickIncidentStates(applicationAdapter.DeltaTime);
 
-        if (now >= nextIncidentCheck)
+        if (!automaticIncidentChecksSuspended && now >= nextIncidentCheck)
         {
             TryStartRandomIncident();
             nextIncidentCheck = now + IncidentCheckSeconds;

@@ -8,6 +8,8 @@ using VContainer;
 
 public class OffenseExpeditionPanel : MonoBehaviour
 {
+    private const int MaximumPartySize = 5;
+
     private enum JourneyButtonStyle
     {
         Action,
@@ -74,7 +76,7 @@ public class OffenseExpeditionPanel : MonoBehaviour
         }
 
         headerText.text = target != null
-            ? $"전투 편성 / 대상: {target.title} / 필요 {target.requiredMembers}명 / 최대 3명"
+            ? $"전투 편성 / 대상: {target.title} / 필요 {target.requiredMembers}명 / 최대 {MaximumPartySize}명"
             : "원정 편성 / 선택된 대상 없음";
 
         foreach (CharacterActor member in runtime.GetAvailableMemberActors())
@@ -91,13 +93,13 @@ public class OffenseExpeditionPanel : MonoBehaviour
                     {
                         selectedMembers.Remove(captured);
                     }
-                    else if (selectedMembers.Count < 3)
+                    else if (selectedMembers.Count < MaximumPartySize)
                     {
                         selectedMembers.Add(captured);
                     }
                     else
                     {
-                        statusMessage = "원정대는 최대 3명입니다.";
+                        statusMessage = $"원정대는 최대 {MaximumPartySize}명입니다.";
                     }
 
                     Render();
@@ -162,7 +164,7 @@ public class OffenseExpeditionPanel : MonoBehaviour
         RenderEquipmentButtons();
 
         float selectedPower = target != null
-            ? OffenseExpeditionService.CalculatePartyPower(selectedMembers)
+            ? runtime.CalculatePartyPower(selectedMembers)
             : 0f;
         string detail = target != null
             ? $"{target.ToDetailText()}\n\n선택 인원: {selectedMembers.Count}/3"

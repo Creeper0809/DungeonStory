@@ -60,6 +60,7 @@ public sealed class WorkOrderRuntime :
     IWorkOrderWorkerPolicyCommand,
     IQualityTargetPipelineQuery,
     IQualityTargetPipelineCommand,
+    IConstructionProjectWorkforceRuntime,
     ITickable,
     IDungeonRestoreTransactionParticipant
 {
@@ -84,6 +85,8 @@ public sealed class WorkOrderRuntime :
     private readonly IBalanceWorkCalculator balanceWorkCalculator;
     private readonly IMaterialSalvageCalculator salvageCalculator;
     private readonly IFacilityCandidateCache facilityCandidateCache;
+    private readonly ICharacterPerformanceQuery performance;
+    private readonly IProjectWorkforceRuntime projectWorkforce;
     private GridBuildingPlacementService placementService;
     private readonly Dictionary<ConstructionSite, string> orderIdBySite =
         new Dictionary<ConstructionSite, string>();
@@ -137,6 +140,8 @@ public sealed class WorkOrderRuntime :
         balanceWorkCalculator = ResolveOptional<IBalanceWorkCalculator>();
         salvageCalculator = ResolveOptional<IMaterialSalvageCalculator>();
         facilityCandidateCache = ResolveOptional<IFacilityCandidateCache>();
+        performance = ResolveOptional<ICharacterPerformanceQuery>();
+        projectWorkforce = ResolveOptional<IProjectWorkforceRuntime>();
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
     }
@@ -196,8 +201,9 @@ public sealed class WorkOrderRuntime :
 
         if (!ordersById.Values.Any(order =>
                 order.workTypeId == BuiltInWorkTypeIds.Construct
-                && order.status == WorkOrderStatus.Ready
-                && !HasAssignedConstructionWorker(order.workOrderId)))
+                && (order.status == WorkOrderStatus.Ready
+                    || order.status == WorkOrderStatus.InProgress)
+                && HasAvailableAutomaticConstructionSlot(order.workOrderId)))
         {
             return;
         }
@@ -866,6 +872,102 @@ public sealed class WorkOrderRuntime :
         return completed;
     }
 
+    public bool TryJoinConstructionProject(
+        BuildableObject target,
+        CharacterActor worker,
+        out ProjectWorkerLease lease,
+        out string failureReason)
+    {
+        lease = null;
+        failureReason = string.Empty;
+        WorkOrderRecord order = FindOrder(target, BuiltInWorkTypeIds.Construct);
+        if (order == null || target?.BuildingData == null || worker == null)
+        {
+            failureReason = "건설 프로젝트 또는 작업자 권위를 확인할 수 없습니다.";
+            return false;
+        }
+        if (projectWorkforce == null)
+        {
+            failureReason = "건설 프로젝트 인력 서비스가 등록되지 않았습니다.";
+            return false;
+        }
+        if (!CharacterPersistentIdentity.TryGet(worker, out CharacterId workerId))
+        {
+            failureReason = "건설 작업자의 영속 ID를 확인할 수 없습니다.";
+            return false;
+        }
+
+        ProjectScale scale = target.BuildingData.GetConstructionProjectScale();
+        return projectWorkforce.TryJoin(
+            BuildConstructionProjectId(order.workOrderId),
+            workerId.Value,
+            scale,
+            SettlementLaborBalanceRules.GetMaximumWorkers(scale),
+            out lease,
+            out failureReason);
+    }
+
+    public bool UpdateConstructionWorkerRate(
+        BuildableObject target,
+        CharacterActor worker,
+        float wuPerSecond)
+    {
+        WorkOrderRecord order = FindOrder(target, BuiltInWorkTypeIds.Construct);
+        return order != null
+            && projectWorkforce != null
+            && CharacterPersistentIdentity.TryGet(worker, out CharacterId workerId)
+            && projectWorkforce.UpdateWorkerRate(
+                BuildConstructionProjectId(order.workOrderId),
+                workerId.Value,
+                wuPerSecond);
+    }
+
+    public float GetConstructionContributionMultiplier(
+        BuildableObject target,
+        CharacterActor worker)
+    {
+        WorkOrderRecord order = FindOrder(target, BuiltInWorkTypeIds.Construct);
+        return order != null
+            && projectWorkforce != null
+            && CharacterPersistentIdentity.TryGet(worker, out CharacterId workerId)
+                ? projectWorkforce.GetContributionMultiplier(
+                    BuildConstructionProjectId(order.workOrderId),
+                    workerId.Value)
+                : 0f;
+    }
+
+    public bool TryCaptureConstructionProject(
+        BuildableObject target,
+        out ProjectWorkforceSnapshot snapshot)
+    {
+        WorkOrderRecord order = FindOrder(target, BuiltInWorkTypeIds.Construct);
+        if (order == null || target?.BuildingData == null || projectWorkforce == null)
+        {
+            snapshot = default;
+            return false;
+        }
+
+        string projectId = BuildConstructionProjectId(order.workOrderId);
+        if (projectWorkforce.TryCapture(projectId, out snapshot))
+            return true;
+
+        ProjectScale scale = target.BuildingData.GetConstructionProjectScale();
+        snapshot = new ProjectWorkforceSnapshot(
+            projectId,
+            scale,
+            0,
+            SettlementLaborBalanceRules.GetMaximumWorkers(scale),
+            SettlementLaborBalanceRules.GetDefaultAutomaticWorkerLimit(scale),
+            0f,
+            SettlementLaborBalanceRules.GetWorkerContribution(scale, 0),
+            0f,
+            0f);
+        return true;
+    }
+
+    private static string BuildConstructionProjectId(string orderId) =>
+        $"construction:{orderId?.Trim() ?? string.Empty}";
+
     public bool RefreshMaterialsReady(ConstructionSite site)
     {
         WorkOrderRecord order = FindOrder(site, BuiltInWorkTypeIds.Construct);
@@ -935,15 +1037,19 @@ public sealed class WorkOrderRuntime :
         return true;
     }
 
-    private bool HasAssignedConstructionWorker(string orderId)
+    private bool HasAvailableAutomaticConstructionSlot(string orderId)
     {
         foreach (KeyValuePair<ConstructionSite, string> pair in orderIdBySite)
         {
             if (string.Equals(pair.Value, orderId, StringComparison.Ordinal)
                 && pair.Key != null
-                && pair.Key.ActiveWorker != null)
+                && !pair.Key.IsGridDestroyed
+                && pair.Key.TargetBuilding != null)
             {
-                return true;
+                ProjectScale scale = pair.Key.TargetBuilding.GetConstructionProjectScale();
+                int automaticLimit = SettlementLaborBalanceRules
+                    .GetDefaultAutomaticWorkerLimit(scale);
+                return pair.Key.OccupiedWorkerSlotCount < automaticLimit;
             }
         }
 
@@ -1236,7 +1342,7 @@ public sealed class WorkOrderRuntime :
             stack != null
             && stack.Quantity > 0
             && !stack.Forbidden
-            && string.IsNullOrWhiteSpace(stack.ReservedByPersistentId)
+            && stack.AvailableQuantity > 0
             && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal)
             && ((stack.State == WorldItemStackState.Loose
                     && string.IsNullOrWhiteSpace(stack.DestinationId))
@@ -2189,15 +2295,19 @@ public sealed class WorkOrderRuntime :
         return true;
     }
 
-    private static float GetConstructionQualitySkill(CharacterActor worker)
+    private float GetConstructionQualitySkill(CharacterActor worker)
     {
-        return worker == null
-            ? 50f
-            : Mathf.Clamp(
-                (worker.GetCharacterStat(CharacterStatType.Dexterity)
-                 + worker.GetCharacterStat(CharacterStatType.Strength)) * 5f,
-                0f,
-                100f);
+        if (worker == null) return 25f;
+        if (performance == null)
+            throw new InvalidOperationException(
+                "Construction quality requires the character performance query.");
+        CharacterPerformanceSnapshot snapshot = performance.Evaluate(
+            worker,
+            "performance:work:construct:quality");
+        if (!snapshot.IsApplicable)
+            throw new InvalidOperationException(
+                snapshot.Failure?.Message ?? "Construction quality is unavailable.");
+        return Mathf.Clamp(snapshot.Value * 58f, 0f, 100f);
     }
 
     private static float ResolveConstructionComplexityPenalty(WorkOrderRecord order)

@@ -120,8 +120,8 @@ public static class PlayerFairnessDebugScenarios
     {
         Require(DungeonExternalInfluenceSaveData.CurrentVersion == 3,
             "external.influence version is not V3");
-        Require(DungeonWildlifeSaveData.CurrentVersion == 3,
-            "wildlife.population version is not V3");
+        Require(DungeonWildlifeSaveData.CurrentVersion == 4,
+            "wildlife.population version is not V4");
         Require(DungeonCharacterEnvironmentSaveData.CurrentVersion == 5,
             "environment.exposure version is not V22 apparel revision 5");
 
@@ -144,7 +144,10 @@ public static class PlayerFairnessDebugScenarios
                 && restoredExternal.lastRumorMitigationDay == 7,
             "external influence fairness state did not round trip");
 
-        DungeonWildlifeSaveData wildlife = new();
+        DungeonWildlifeSaveData wildlife = new()
+        {
+            lastDiseaseVectorAbsoluteDay = 17
+        };
         wildlife.foodRaidOrders.Add(new WildlifeFoodRaidOrderSaveData
         {
             raidId = "raid:test",
@@ -155,7 +158,8 @@ public static class PlayerFairnessDebugScenarios
         DungeonWildlifeSaveData restoredWildlife =
             JsonUtility.FromJson<DungeonWildlifeSaveData>(
                 JsonUtility.ToJson(wildlife));
-        Require(restoredWildlife.foodRaidOrders.Count == 1
+        Require(restoredWildlife.lastDiseaseVectorAbsoluteDay == 17
+                && restoredWildlife.foodRaidOrders.Count == 1
                 && restoredWildlife.foodRaidOrders[0].state
                     == WildlifeFoodRaidOrderState.Approaching,
             "wildlife raid order did not round trip");

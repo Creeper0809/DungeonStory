@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using UnityEngine;
 
 public interface IStockQuery : IWarehousePhysicalStockQueryPort
 {
@@ -95,12 +96,15 @@ public sealed class PhysicalStockQuery : IStockQuery
         return new WorldItemStackSnapshot
         {
             StackId = record.stackId,
+            ContentRevision = repository.ItemStackVersion,
+            ReservationRevision = record.reservationRevision,
             ItemInstanceId = record.itemInstanceId,
             ItemId = record.itemId,
             DisplayName = definition.DisplayName,
             Description = definition.Description,
             StockCategory = definition.StockCategory,
             Quantity = record.quantity,
+            ReservedQuantity = ResolveReservedQuantity(record),
             UnitPrice = definition.UnitPrice,
             UnitWeight = definition.UnitWeight,
             Sprite = definition.Sprite,
@@ -108,6 +112,7 @@ public sealed class PhysicalStockQuery : IStockQuery
             Position = record.position,
             ReservedByPersistentId = record.reservedByPersistentId,
             DestinationId = record.destinationId,
+            AggregationCohortId = record.aggregationCohortId,
             SourceStorageDestinationId = record.sourceStorageDestinationId,
             HasDestinationPosition = record.hasDestinationPosition,
             DestinationPosition = record.destinationPosition,
@@ -125,6 +130,12 @@ public sealed class PhysicalStockQuery : IStockQuery
                 .ToArray()
         };
     }
+
+    private static int ResolveReservedQuantity(WorldItemStackRecord record) =>
+        Mathf.Clamp(
+            record.reservedQuantity,
+            0,
+            Mathf.Max(0, record.quantity));
 
     private string RequireItemId(string itemDefinitionId)
     {

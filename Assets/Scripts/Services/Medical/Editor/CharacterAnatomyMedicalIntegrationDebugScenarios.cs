@@ -22,7 +22,6 @@ public static class CharacterAnatomyMedicalIntegrationDebugScenarios
     {
         List<string> errors = new();
         CheckAdvancedPartMath(errors);
-        CheckActivityCaps(errors);
         CheckPredictivePrefetch(errors);
         CheckPhysicalFieldMedicalSupplies(errors);
         CheckFieldMedicalAndRescue(errors);
@@ -42,16 +41,6 @@ public static class CharacterAnatomyMedicalIntegrationDebugScenarios
             "1.35 efficiency at 80% health must produce 1.08 functional efficiency.", errors);
         Require(node.FunctionalEfficiency > 1f,
             "Functional efficiency must not clamp advanced parts to 1.0.", errors);
-    }
-
-    private static void CheckActivityCaps(List<string> errors)
-    {
-        DefaultAnatomyActivityProfileCatalog catalog =
-            new DefaultAnatomyActivityProfileCatalog();
-        Require(catalog.Get(AnatomyActivityId.Work).MaximumFactor == 1.65f,
-            "Work activity cap must be 1.65.", errors);
-        Require(catalog.Get(AnatomyActivityId.Overclock).MaximumFactor == 1.75f,
-            "Overclock activity cap must be 1.75.", errors);
     }
 
     private static void CheckPredictivePrefetch(List<string> errors)

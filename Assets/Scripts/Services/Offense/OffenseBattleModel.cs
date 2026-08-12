@@ -1,3 +1,4 @@
+// V25 combat outcome balance authority.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,6 +7,7 @@ using UnityEngine;
 public sealed class OffenseBattleSession
 {
     private const int MaxLogEntries = 60;
+    private const string UnarmedWeaponId = "combat:unarmed";
     private readonly List<OffenseBattleCombatant> combatants;
     private readonly IReadOnlyList<OffenseBattleCombatant> combatantsView;
     private readonly List<string> initiativeOrder = new List<string>();
@@ -395,6 +397,13 @@ public sealed class OffenseBattleSession
             return null;
         }
 
+        OffenseBattleCommand weaponRecovery =
+            CreateWeaponRecoveryCommand(actor, commandId);
+        if (weaponRecovery != null)
+        {
+            return weaponRecovery;
+        }
+
         List<OffenseBattleCombatant> targets = combatants
             .Where(target => target.Team == OffenseBattleTeam.Allies
                 && !target.IsDead
@@ -408,7 +417,13 @@ public sealed class OffenseBattleSession
         OffenseBattleCombatant target = targets.FirstOrDefault();
         if (target == null)
         {
-            return null;
+            return actor.Formation == OffenseFormationSlot.Front
+                ? null
+                : new OffenseBattleCommand(
+                    commandId,
+                    actor.PersistentId,
+                    OffenseBattleActionType.Advance,
+                    actor.PersistentId);
         }
 
         CharacterCombatAbilityDefinition bestAbility = actor.Abilities
@@ -449,6 +464,55 @@ public sealed class OffenseBattleSession
             actor.PersistentId,
             OffenseBattleActionType.BasicAttack,
             target.PersistentId);
+    }
+
+    public OffenseBattleCommand CreateWeaponRecoveryCommand(
+        OffenseBattleCombatant actor,
+        long commandId)
+    {
+        CombatWeaponSnapshot weapon = actor?.Weapon;
+        if (actor == null
+            || weapon == null
+            || !weapon.RequiresAmmo
+            || weapon.LoadedAmmo > 0)
+        {
+            return null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(weapon.InstanceId)
+            && combatEquipmentRuntime.HasCompatibleAmmunition(
+                actor.PersistentId,
+                weapon.InstanceId))
+        {
+            return new OffenseBattleCommand(
+                commandId,
+                actor.PersistentId,
+                OffenseBattleActionType.Reload,
+                actor.PersistentId);
+        }
+
+        CombatFallbackWeaponSelector selector =
+            new CombatFallbackWeaponSelector(combatEquipmentRuntime);
+        if (selector.TrySelect(
+                actor.PersistentId,
+                preferLoadedRanged: true,
+                out CombatWeaponSnapshot fallback)
+            && fallback != null)
+        {
+            return new OffenseBattleCommand(
+                commandId,
+                actor.PersistentId,
+                OffenseBattleActionType.SwitchWeapon,
+                actor.PersistentId,
+                fallback.InstanceId);
+        }
+
+        return new OffenseBattleCommand(
+            commandId,
+            actor.PersistentId,
+            OffenseBattleActionType.SwitchWeapon,
+            actor.PersistentId,
+            UnarmedWeaponId);
     }
 
     public float CalculateBasicDamage(OffenseBattleCombatant source, OffenseBattleCombatant target)
@@ -746,6 +810,8 @@ public sealed class OffenseBattleSession
                 return TrySetFireMode(actor, command.AbilityId, out result);
             case OffenseBattleActionType.DeployCover:
                 return TryDeployCover(actor, out result);
+            case OffenseBattleActionType.Advance:
+                return TryAdvance(actor, out result);
             default:
                 result = new OffenseBattleCommandResult(false, "지원하지 않는 행동입니다.");
                 return false;
@@ -831,7 +897,13 @@ public sealed class OffenseBattleSession
                     ? $"{target.DisplayName}이(가) 공격을 회피했습니다."
                     : $"{actor.DisplayName}의 공격이 빗나갔습니다.";
         AddLog(combatMessage);
-        result = new OffenseBattleCommandResult(true, combatMessage, damage);
+        result = new OffenseBattleCommandResult(
+            true,
+            combatMessage,
+            damage,
+            resolved.Hit,
+            resolved.ShieldBlocked,
+            resolved.CoverBlocked);
         return true;
     }
 
@@ -870,6 +942,22 @@ public sealed class OffenseBattleSession
         string instanceId,
         out OffenseBattleCommandResult result)
     {
+        if (actor != null
+            && string.Equals(
+                instanceId,
+                UnarmedWeaponId,
+                StringComparison.Ordinal))
+        {
+            actor.SetCombatEquipment(
+                CombatWeaponSnapshot.CreateUnarmed(),
+                actor.Armor,
+                actor.Shield);
+            result = new OffenseBattleCommandResult(
+                true,
+                $"{actor.DisplayName}이(가) 빈 원거리 무기를 내려놓고 맨손 전투로 전환했습니다.");
+            return true;
+        }
+
         string failureReason = string.Empty;
         if (actor == null
             || combatEquipmentRuntime == null
@@ -1165,6 +1253,28 @@ public sealed class OffenseBattleSession
                 if (!enemiesAlive) return OffenseBattleOutcome.Victory;
                 return OffenseBattleOutcome.InProgress;
         }
+    }
+
+    private bool TryAdvance(
+        OffenseBattleCombatant actor,
+        out OffenseBattleCommandResult result)
+    {
+        if (actor == null || actor.Formation == OffenseFormationSlot.Front)
+        {
+            result = new OffenseBattleCommandResult(
+                false,
+                "더 전진할 수 없습니다.");
+            return false;
+        }
+
+        actor.SetFormation((OffenseFormationSlot)((int)actor.Formation - 1));
+        string formation = OffenseFormationUtility.GetDisplayName(
+            actor.Formation);
+        AddLog($"{actor.DisplayName}이(가) {formation}으로 전진했습니다.");
+        result = new OffenseBattleCommandResult(
+            true,
+            $"{formation}으로 전진했습니다.");
+        return true;
     }
 
     private bool TryDeployCover(

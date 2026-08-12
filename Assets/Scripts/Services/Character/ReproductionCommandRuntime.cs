@@ -519,7 +519,7 @@ public sealed class ReproductionCommandRuntime : IReproductionCommand
                          .Where(value => value != null
                              && value.Quantity > 0
                              && !value.Forbidden
-                             && !value.IsReserved
+                             && value.AvailableQuantity > 0
                              && string.Equals(
                                  value.ItemId,
                                  itemId,
@@ -540,9 +540,11 @@ public sealed class ReproductionCommandRuntime : IReproductionCommand
         }
 
         if (result.Count > 0
-            && !reservations.TryReserve(
-                result.Select(value => value.StackId),
-                owner))
+            && !reservations.TryReserveQuantities(
+                result,
+                owner,
+                ItemReservationPurpose.Medical,
+                $"reproduction:{owner}:materials"))
         {
             selected = Array.Empty<ReservedItemConsumption>();
             failure = new DomainFailure(FailureCode.ItemTransferStackUnavailable);

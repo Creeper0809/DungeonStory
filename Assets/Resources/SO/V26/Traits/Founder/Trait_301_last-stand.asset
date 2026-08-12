@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d73e94ec113318588b25eed8f9f9ee0, type: 3}
+  m_Name: Trait_301_last-stand
+  m_EditorClassIdentifier: DungeonStory.Content::CharacterTraitSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 301
+  traitName: "\uC0AC\uC120 \uAC01\uC131"
+  description: "\uC8FD\uC74C \uC9C1\uC804\uC5D0 \uD1B5\uC99D\uC744 \uC78A\uACE0 \uD3ED\uBC1C\uC801\uC778
+    \uC804\uD22C\uB825\uC744 \uB0B4\uC9C0\uB9CC \uAE34 \uD0C8\uC9C4\uC744 \uCE58\uB978\uB2E4."
+  modifiers:
+    preferredFacilityRoles: 0
+    dislikedFacilityRoles: 0
+    preferredWorkTypes: 0
+    dislikedWorkTypes: 0
+  combatAbilities:
+    abilities: []
+  environmentalProtection:
+    comfortMinimumOffset: 0
+    comfortMaximumOffset: 0
+    safeMinimumOffset: 0
+    safeMaximumOffset: 0
+    coldExposureMultiplier: 1
+    heatExposureMultiplier: 1
+  selectionRarity: 3
+  polarity: 4
+  selectionFamilyId: extreme:combat
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
+  incompatibilityGroups: []
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:301:effect:0
+    definition: {fileID: 11400000, guid: 137c7667173fc054eb6777aec0aa16f2, type: 2}
+    value: 1.5
+    condition: {fileID: 11400000, guid: a4708e063af0bbf4c84bb791ed1ea8ad, type: 2}
+  - bindingId: trait:301:effect:1
+    definition: {fileID: 11400000, guid: 5efe462ac434ee74498e829584182490, type: 2}
+    value: 1.2
+    condition: {fileID: 11400000, guid: a4708e063af0bbf4c84bb791ed1ea8ad, type: 2}
+  - bindingId: trait:301:effect:2
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 0.5
+    condition: {fileID: 11400000, guid: d417e2762d362aa4aa6baa151ca29aa6, type: 2}
+  identityRules:
+  - rid: 7737211921986486480
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211921986486480
+      type: {class: LastStandRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: extreme:last-stand
+        priority: 100
+        healthThreshold: 0.2
+        aftermathDays: 2

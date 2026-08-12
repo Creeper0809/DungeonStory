@@ -24,8 +24,8 @@ MonoBehaviour:
   deadlineDays: 45
   completionRequirements:
     items:
-    - itemDefinitionId: item:lineage-seal
-      amount: 4
+    - itemDefinitionId: tool:administrative-seal
+      amount: 18
       consume: 1
     facilities: []
     research: []

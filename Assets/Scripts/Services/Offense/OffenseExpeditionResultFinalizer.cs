@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
 
@@ -25,12 +26,16 @@ public sealed class OffenseExpeditionResultFinalizer :
     private readonly OffenseRewardRuntime rewards;
     private readonly MetaProgressionRuntime metaProgression;
     private readonly IGameEventBus gameEventBus;
+    private readonly CharacterIdentityEventPublisher identityEvents;
+    private readonly IGameClock gameClock;
 
     public OffenseExpeditionResultFinalizer(
         OffenseSceneRuntimeReferences offenseRuntimes,
         ProgressionSceneRuntimeReferences progressionRuntimes,
         IGameEventBus gameEventBus,
-        IOffenseCampaignCommands campaign)
+        IOffenseCampaignCommands campaign,
+        CharacterIdentityEventPublisher identityEvents = null,
+        IGameClock gameClock = null)
     {
         offenseRuntimes = offenseRuntimes
             ?? throw new ArgumentNullException(nameof(offenseRuntimes));
@@ -46,6 +51,8 @@ public sealed class OffenseExpeditionResultFinalizer :
                 $"{nameof(OffenseExpeditionResultFinalizer)} requires a loaded {nameof(MetaProgressionRuntime)}.");
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.identityEvents = identityEvents;
+        this.gameClock = gameClock;
     }
 
     public OffenseExpeditionResult Finalize(
@@ -100,7 +107,34 @@ public sealed class OffenseExpeditionResultFinalizer :
                 ? EventAlertImportance.Medium
                 : EventAlertImportance.High,
             "offense");
+        PublishIdentityOutcome(expedition, result);
         return result;
+    }
+
+    private void PublishIdentityOutcome(
+        OffenseExpeditionRun expedition,
+        OffenseExpeditionResult result)
+    {
+        if (identityEvents == null)
+            return;
+        CharacterId[] participants = expedition.MemberActors
+            .Where(value => value != null)
+            .Select(value => new CharacterId(value.Identity?.PersistentId))
+            .Where(value => value.IsValid)
+            .Distinct()
+            .OrderBy(value => value.Value, StringComparer.Ordinal)
+            .ToArray();
+        if (participants.Length == 0)
+            return;
+        int day = gameClock == null
+            ? 0
+            : Mathf.Max(0, Mathf.FloorToInt(
+                gameClock.Time / GameCalendarRules.SecondsPerDay));
+        identityEvents.Publish(new ExpeditionOutcomeEvent(
+            expedition.ExpeditionId,
+            participants,
+            result.success ? "success" : "failure",
+            day));
     }
 
     private void AdvanceCampaign(

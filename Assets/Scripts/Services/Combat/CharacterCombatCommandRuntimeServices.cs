@@ -11,7 +11,11 @@ public sealed class CharacterCombatCommandCombatServices
         ICombatCoverQuery coverQuery,
         ICombatAffiliationService affiliation,
         ICharacterBodyHealthQuery bodyHealth,
-        ICombatAmmoResupplyRuntime ammoResupply)
+        ICharacterManaQuery mana,
+        ICharacterManaCommand manaCommands,
+        ICombatAmmoResupplyRuntime ammoResupply,
+        ExtremeTraitRuntime extremeTraits,
+        ICharacterPerformanceQuery performance)
     {
         Equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
         Resolution = resolution ?? throw new ArgumentNullException(nameof(resolution));
@@ -22,8 +26,15 @@ public sealed class CharacterCombatCommandCombatServices
         CoverQuery = coverQuery ?? throw new ArgumentNullException(nameof(coverQuery));
         Affiliation = affiliation ?? throw new ArgumentNullException(nameof(affiliation));
         BodyHealth = bodyHealth ?? throw new ArgumentNullException(nameof(bodyHealth));
+        Mana = mana ?? throw new ArgumentNullException(nameof(mana));
+        ManaCommands = manaCommands
+            ?? throw new ArgumentNullException(nameof(manaCommands));
         AmmoResupply = ammoResupply
             ?? throw new ArgumentNullException(nameof(ammoResupply));
+        ExtremeTraits = extremeTraits
+            ?? throw new ArgumentNullException(nameof(extremeTraits));
+        Performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
     }
 
     public ICombatEquipmentRuntime Equipment { get; }
@@ -33,7 +44,11 @@ public sealed class CharacterCombatCommandCombatServices
     public ICombatCoverQuery CoverQuery { get; }
     public ICombatAffiliationService Affiliation { get; }
     public ICharacterBodyHealthQuery BodyHealth { get; }
+    public ICharacterManaQuery Mana { get; }
+    public ICharacterManaCommand ManaCommands { get; }
     public ICombatAmmoResupplyRuntime AmmoResupply { get; }
+    public ExtremeTraitRuntime ExtremeTraits { get; }
+    public ICharacterPerformanceQuery Performance { get; }
 }
 
 public sealed class CharacterCombatCommandWorldServices

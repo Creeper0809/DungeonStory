@@ -15,20 +15,20 @@ public interface IOffenseFieldMobilityService
 public sealed class OffenseFieldMobilityService : IOffenseFieldMobilityService
 {
     private readonly IOffenseFieldMedicalRuntime fieldMedical;
-    private readonly IAnatomyEffectRuntime anatomyEffects;
+    private readonly ICharacterPerformanceQuery performance;
     private readonly IOffenseWorldSimulation world;
     private readonly IOffenseTravelRuntime travel;
 
     public OffenseFieldMobilityService(
         IOffenseFieldMedicalRuntime fieldMedical,
-        IAnatomyEffectRuntime anatomyEffects,
+        ICharacterPerformanceQuery performance,
         IOffenseWorldSimulation world,
         IOffenseTravelRuntime travel)
     {
         this.fieldMedical = fieldMedical
             ?? throw new ArgumentNullException(nameof(fieldMedical));
-        this.anatomyEffects = anatomyEffects
-            ?? throw new ArgumentNullException(nameof(anatomyEffects));
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.travel = travel ?? throw new ArgumentNullException(nameof(travel));
     }
@@ -53,7 +53,12 @@ public sealed class OffenseFieldMobilityService : IOffenseFieldMobilityService
                      value != null && !value.IsDead))
         {
             string characterId = actor.Identity?.PersistentId ?? string.Empty;
-            AnatomyActionAxisSnapshot axes = anatomyEffects.GetActionAxes(actor);
+            CharacterPerformanceSnapshot mobility = performance.Evaluate(
+                actor,
+                CharacterCompositePerformanceIds.MobilityExecution);
+            CharacterPerformanceSnapshot sustain = performance.Evaluate(
+                actor,
+                CharacterCompositePerformanceIds.SustainedExecution);
             FieldStabilizationState stabilization = stabilizations
                 .FirstOrDefault(state => state.active
                     && string.Equals(
@@ -66,8 +71,8 @@ public sealed class OffenseFieldMobilityService : IOffenseFieldMobilityService
                     characterId,
                     actor.Lifecycle?.CurrentState
                         == CharacterLifecycleState.Downed,
-                    axes.Locomotion,
-                    axes.Sustain,
+                    mobility.IsApplicable ? mobility.Value : 0f,
+                    sustain.IsApplicable ? sustain.Value : 0f,
                     stabilization != null,
                     stabilization?.locomotionFloor ?? 0f,
                     stabilization?.sustainFloor ?? 0f,

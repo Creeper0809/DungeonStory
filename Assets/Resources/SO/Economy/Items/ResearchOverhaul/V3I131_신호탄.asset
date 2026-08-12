@@ -26,28 +26,33 @@ MonoBehaviour:
   displayName: "\uC2E0\uD638\uD0C4"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC2E0\uD638\uD0C4."
   stockCategory: 7
-  unitWeight: 4.15
+  unitWeight: 0.15
   maxStack: 120
   sprite: {fileID: 0}
-  unitPrice: 272
+  unitPrice: 16
   features:
-  - rid: 7737211838074979315
-  - rid: 7737211838074979316
-  - rid: 7737211838074979317
+  - rid: 7737211905655964587
+  - rid: 7737211905655964588
+  - rid: 7737211905655964589
+  - rid: 7737211905660420401
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074979315
+    - rid: 7737211905655964587
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:signal-flare
-    - rid: 7737211838074979316
+    - rid: 7737211905655964588
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:defense:alliance-signals
-    - rid: 7737211838074979317
+    - rid: 7737211905655964589
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 512
         sharedIntermediate: 0
+    - rid: 7737211905660420401
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.5952279

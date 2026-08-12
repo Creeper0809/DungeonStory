@@ -27,23 +27,28 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uD2B8\uB77C\uC6B0\uB9C8
     \uCE58\uB8CC \uAFB8\uB7EC\uBBF8."
   stockCategory: 5
-  unitWeight: 3.97
+  unitWeight: 0.35
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 260
+  unitPrice: 82
   features:
-  - rid: 7737211838078124912
-  - rid: 7737211838078124913
+  - rid: 7737211905660420257
+  - rid: 7737211905660420258
+  - rid: 7737211905660420878
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124912
+    - rid: 7737211905660420257
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:trauma-medicine
-    - rid: 7737211838078124913
+    - rid: 7737211905660420258
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 0
         sharedIntermediate: 0
+    - rid: 7737211905660420878
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.5995151

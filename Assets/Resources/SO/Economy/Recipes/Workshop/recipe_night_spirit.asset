@@ -32,9 +32,19 @@ MonoBehaviour:
   - support:aging-barrel
   batchSupportTag: support:aging-barrel
   processKind: 1
+  flowRole: 0
+  processClass: 2
+  processClassAuthored: 1
   workTypeId: work:craft
+  proficiency:
+    primaryProficiencyId: proficiency:food-production
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
   requiredResearchId: research:cuisine:distilling-aging
-  requiredWork: 3
+  requiredWork: 34
   preparationWork: 3
   finishingWork: 2
   processingGameHours: 12

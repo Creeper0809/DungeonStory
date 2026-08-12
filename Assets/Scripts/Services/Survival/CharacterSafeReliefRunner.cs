@@ -6,6 +6,7 @@ using UnityEngine;
 
 internal sealed class CharacterSafeReliefRunner
 {
+    private const string IntentOwnerId = "survival:safe-relief";
     private const int MaximumStartsPerFrame = 2;
 
     private readonly IWorldItemStackRuntime itemStackRuntime;
@@ -69,12 +70,20 @@ internal sealed class CharacterSafeReliefRunner
         float now = gameClock.Time;
         if (now < deprivation.nextSafeReliefAttemptAt)
         {
+            StartDeferredRetry(
+                actor,
+                actorId,
+                deprivation.nextSafeReliefAttemptAt);
             status = "물을 마실 자리를 기다리는 중";
             return true;
         }
 
         if (!CanStartThisFrame())
         {
+            StartDeferredRetry(
+                actor,
+                actorId,
+                now + CharacterSafeDrinkPlanner.GetRetryDelay(actorId.Value));
             status = "급수 순서를 기다리는 중";
             return true;
         }
@@ -87,31 +96,79 @@ internal sealed class CharacterSafeReliefRunner
             diagnostics.SafeReliefPlanFailures++;
             deprivation.nextSafeReliefAttemptAt = now
                 + CharacterSafeDrinkPlanner.GetRetryDelay(actorId.Value);
+            StartDeferredRetry(
+                actor,
+                actorId,
+                deprivation.nextSafeReliefAttemptAt);
             status = "물을 마실 자리를 기다리는 중";
             return true;
         }
 
         RecordStart();
         RecordPlanDiagnostics(actor, plan);
-        runningActorIds.Add(actorId);
-        if (actor.Brain != null)
-        {
-            if (emergency)
-            {
-                actor.Brain.StopCurrentActionForReplan("갈증 비상 대응");
-            }
-
-            actor.Brain.BeginExternallyDrivenAction(
+        CharacterActionIntentKind intentKind = emergency
+            ? CharacterActionIntentKind.EmergencyNeed
+            : CharacterActionIntentKind.RoutineNeed;
+        if (actor.Brain == null
+            || !actor.Brain.TryBeginExternallyDrivenAction(
+                IntentOwnerId,
+                intentKind,
                 emergency ? "긴급 식수 확보" : "식수 이용",
                 "이동 중",
-                $"목표 ({plan.TargetPosition.x}, {plan.TargetPosition.y})");
+                $"목표 ({plan.TargetPosition.x}, {plan.TargetPosition.y})",
+                out CharacterActionIntentLease intentLease))
+        {
+            planner.Release(actorId.Value, plan.ApproachPosition);
+            deprivation.nextSafeReliefAttemptAt = now
+                + CharacterSafeDrinkPlanner.GetRetryDelay(actorId.Value);
+            status = "더 높은 우선순위 행동이 끝나기를 기다리는 중";
+            return true;
         }
 
-        actor.StartCoroutine(Run(actor, actorId, plan));
+        runningActorIds.Add(actorId);
+        actor.StartCoroutine(Run(actor, actorId, plan, intentLease));
         status = emergency
             ? "심한 갈증 때문에 식수를 찾음"
             : "일상적으로 식수를 이용함";
         return true;
+    }
+
+    private void StartDeferredRetry(
+        CharacterActor actor,
+        CharacterId actorId,
+        float retryAt)
+    {
+        if (actor == null || actor.IsDead || runningActorIds.Contains(actorId))
+        {
+            return;
+        }
+
+        runningActorIds.Add(actorId);
+        actor.StartCoroutine(WaitForRetry(actor, actorId, retryAt));
+    }
+
+    private IEnumerator WaitForRetry(
+        CharacterActor actor,
+        CharacterId actorId,
+        float retryAt)
+    {
+        try
+        {
+            while (actor != null
+                && !actor.IsDead
+                && gameClock.Time < retryAt)
+            {
+                yield return null;
+            }
+        }
+        finally
+        {
+            runningActorIds.Remove(actorId);
+            if (actor != null && !actor.IsDead)
+            {
+                actor.Brain?.RequestImmediateReplan(clearFailures: false);
+            }
+        }
     }
 
     public bool IsRunning(CharacterId actorId)
@@ -140,13 +197,18 @@ internal sealed class CharacterSafeReliefRunner
     private IEnumerator Run(
         CharacterActor actor,
         CharacterId actorId,
-        CharacterSafeDrinkPlan plan)
+        CharacterSafeDrinkPlan plan,
+        CharacterActionIntentLease intentLease)
     {
         float startedAt = gameClock.Time;
         try
         {
             yield return movement.MoveNear(actor, plan.ApproachPosition, 0, plan.Path);
-            if (actor == null || actor.IsDead || actor.GetNowXY() != plan.ApproachPosition)
+            if (actor == null
+                || actor.IsDead
+                || actor.Brain == null
+                || !actor.Brain.IsExternalIntentCurrent(intentLease)
+                || actor.GetNowXY() != plan.ApproachPosition)
             {
                 RecordMoveFailure(actor);
                 yield break;
@@ -154,7 +216,8 @@ internal sealed class CharacterSafeReliefRunner
 
             diagnostics.SafeReliefArrivals++;
             diagnostics.SafeReliefInteractionAttempts++;
-            if (TryConsumePlan(actor, plan))
+            if (actor.Brain.IsExternalIntentCurrent(intentLease)
+                && TryConsumePlan(actor, plan))
             {
                 diagnostics.SafeReliefSuccesses++;
             }
@@ -172,7 +235,9 @@ internal sealed class CharacterSafeReliefRunner
             stateStore.Ensure(actorId).nextSafeReliefAttemptAt =
                 gameClock.Time
                 + CharacterSafeDrinkPlanner.GetRetryDelay(actorId.Value);
-            actor?.Brain?.EndExternallyDrivenAction(clearFailures: true);
+            actor?.Brain?.EndExternallyDrivenAction(
+                intentLease,
+                clearFailures: true);
         }
     }
 
@@ -186,6 +251,12 @@ internal sealed class CharacterSafeReliefRunner
                 {
                     RecoverThirst(actor, 65f);
                     actor.ApplyMoodFactor("survival:clean-water", "깨끗한 물을 마심", 2f, 90f, 1);
+                    PublishWaterConsumed(
+                        actor,
+                        plan.TargetId,
+                        WorldWaterQuality.Clean,
+                        1f,
+                        string.Empty);
                     return true;
                 }
                 break;
@@ -198,6 +269,12 @@ internal sealed class CharacterSafeReliefRunner
                 {
                     RecoverThirst(actor, 65f);
                     actor.ApplyMoodFactor("survival:well-water", "우물에서 물을 마심", 1f, 90f, 1);
+                    PublishWaterConsumed(
+                        actor,
+                        facility.RequirePersistentInstanceId().Value,
+                        WorldWaterQuality.Clean,
+                        1f,
+                        string.Empty);
                     return true;
                 }
                 break;
@@ -231,12 +308,27 @@ internal sealed class CharacterSafeReliefRunner
         WorldWaterQuality quality,
         float consumed)
     {
-        events.Publish(new CharacterWaterConsumedEvent(
-            CharacterPersistentIdentity.Require(actor),
+        PublishWaterConsumed(
+            actor,
             source.SourceId,
             quality,
             consumed,
-            source.PathogenDiseaseId));
+            source.PathogenDiseaseId);
+    }
+
+    private void PublishWaterConsumed(
+        CharacterActor actor,
+        string sourceId,
+        WorldWaterQuality quality,
+        float consumed,
+        string pathogenDiseaseId)
+    {
+        events.Publish(new CharacterWaterConsumedEvent(
+            CharacterPersistentIdentity.Require(actor),
+            sourceId,
+            quality,
+            consumed,
+            pathogenDiseaseId));
     }
 
     private void RecordPlanDiagnostics(CharacterActor actor, CharacterSafeDrinkPlan plan)

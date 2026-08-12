@@ -8,6 +8,7 @@ using UnityEngine.Scripting.APIUpdating;
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonCombatEquipmentSaveData
 {
+    public int nextCraftSequence;
     public List<CharacterCombatLoadoutState> loadouts = new List<CharacterCombatLoadoutState>();
     public List<CombatEquipmentCraftOrderSaveData> craftOrders =
         new List<CombatEquipmentCraftOrderSaveData>();

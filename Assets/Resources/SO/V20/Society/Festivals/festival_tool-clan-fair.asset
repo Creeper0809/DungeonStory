@@ -24,8 +24,8 @@ MonoBehaviour:
   cultureId: culture:kobold-toolclan
   requiredBuildingDefinitionId: building:apprentice-workbench
   requiredItems:
-  - itemDefinitionId: component:mechanical-parts
-    amount: 8
+  - itemDefinitionId: component:machine-parts
+    amount: 2
   minimumParticipants: 6
   successOutcome:
     moodDelta: 6

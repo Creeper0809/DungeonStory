@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uC989\uD765 \uC81C\uC791\uC790"
   description: "\uBD80\uC871\uD55C \uC790\uC7AC\uB85C \uD574\uACB0\uCC45\uC744 \uCC3E\uC9C0\uB9CC
     \uD45C\uC900 \uC808\uCC28\uB97C \uB2F5\uB2F5\uD574\uD55C\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1.05
-    workSpeedMultiplier: 1.03
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,55 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 0
+  polarity: 1
+  selectionFamilyId: work-method
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: work:prototype
-    utilityDelta: 0.45
-  moodReactions:
-  - triggerTag: work:strict-procedure
-    moodDelta: -2
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: craft
-    multiplier: 1.35
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:224:effect:0
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 1.08
+    condition: {fileID: 11400000, guid: 240ff3f1afc27e345a6602a7e5b45980, type: 2}
+  - bindingId: trait:224:effect:1
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 1.03
+    condition: {fileID: 0}
+  - bindingId: trait:224:effect:2
+    definition: {fileID: 11400000, guid: ab46736f68b07c442bc3c27bbc87e7cc, type: 2}
+    value: 1.05
+    condition: {fileID: 0}
+  identityRules:
+  - rid: 7737211921986486448
+  - rid: 7737211921986486449
+  - rid: 7737211921986486450
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486448
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:prototype
+        priority: 0
+        behaviorTag: work:prototype
+        utilityDelta: 0.7
+    - rid: 7737211921986486449
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:strict-procedure
+        priority: 0
+        eventId: work:strict-procedure
+        moodDelta: -2
+        durationDays: 1
+    - rid: 7737211921986486450
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:substitute-success
+        priority: 0
+        eventId: work:substitute-success
+        moodDelta: 3
+        durationDays: 1

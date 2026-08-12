@@ -30,9 +30,19 @@ MonoBehaviour:
   requiredSupportTags: []
   batchSupportTag: 
   processKind: 0
+  flowRole: 1
+  processClass: 0
+  processClassAuthored: 1
   workTypeId: work:logging
+  proficiency:
+    primaryProficiencyId: proficiency:fieldwork
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
   requiredResearchId: research:forestry:logging
-  requiredWork: 10
+  requiredWork: 18
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

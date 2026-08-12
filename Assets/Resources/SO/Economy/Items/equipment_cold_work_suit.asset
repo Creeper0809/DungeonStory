@@ -27,27 +27,27 @@ MonoBehaviour:
   description: "8\xB0C \uB0C9\uC7A5\uC2E4 \uC0C1\uC2DC \uADFC\uBB34\uC6A9 \uC791\uC5C5\uBCF5."
   stockCategory: 1
   unitWeight: 0.9
-  maxStack: 40
+  maxStack: 1
   sprite: {fileID: 0}
   unitPrice: 42
   features:
-  - rid: 7737211838068949457
-  - rid: 7737211838068949458
-  - rid: 7737211838068949459
+  - rid: 7737211905666712201
+  - rid: 7737211905666712202
+  - rid: 7737211905666712203
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949457
+    - rid: 7737211905666712201
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:environment:cold-work
-    - rid: 7737211838068949458
+    - rid: 7737211905666712202
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 128
         sharedIntermediate: 0
-    - rid: 7737211838068949459
+    - rid: 7737211905666712203
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

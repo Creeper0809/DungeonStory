@@ -31,13 +31,33 @@ MonoBehaviour:
   objectName: "\uBC29\uD45C\uC9C0\uD310"
   sprite: {fileID: 21300000, guid: f41fc408a9df919418b30431f25eb0fd, type: 3}
   icon: {fileID: 21300000, guid: f41fc408a9df919418b30431f25eb0fd, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  deprecatedCompatibilityAsset: 0
+  useClassification: 0
+  researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730834227669
-    - rid: 7737211730834227670
-    - rid: 7737211730834227671
-    - rid: 7737211730834227672
-    - rid: 7737211730834227673
+    - rid: 7737211921440179051
+    - rid: 7737211921440179052
+    - rid: 7737211921440179053
+    - rid: 7737211921440179054
+    - rid: 7737211921440179055
   width: 1
   height: 1
   layer: 3
@@ -53,13 +73,13 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730834227669
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440179051
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: E09
-    - rid: 7737211730834227670
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440179052
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 85
@@ -67,19 +87,31 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7737211730834227671
+    - rid: 7737211921440179053
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 19.7
-        repairWorkRequired: 10
-        cleanWorkRequired: 6.25
+        constructionProjectScale: 1
+        constructionWorkRequired: 28
+        repairWorkRequired: 8
+        cleanWorkRequired: 4
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: material:stone-block
-          amount: 5
-    - rid: 7737211730834227672
+        - itemId: material:lumber
+          amount: 3
+    - rid: 7737211921440179054
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -88,8 +120,8 @@ MonoBehaviour:
           tags: []
           scores: []
           metrics: []
-    - rid: 7737211730834227673
-      type: {class: BuildingVentilationAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440179055
+      type: {class: BuildingVentilationAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingVentilationAbility
         hygieneRiskReduction: 3

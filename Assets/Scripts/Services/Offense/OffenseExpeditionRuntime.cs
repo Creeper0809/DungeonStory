@@ -58,6 +58,10 @@ public class OffenseExpeditionRuntime :
     private IGameMoneyAccount gameMoney;
     private IOffenseFieldMedicalRuntime fieldMedical;
     private IOffenseFieldMobilityService fieldMobility;
+    private ICharacterPerformanceQuery performance;
+    private BlueprintResearchRuntime expeditionResearchRuntime;
+    private BlueprintResearchState expeditionResearchState;
+    private bool enforceExpeditionAccess;
 
     public IReadOnlyList<OffenseExpeditionRun> ActiveExpeditions =>
         activeExpeditionsView ??= activeExpeditions.AsReadOnly();
@@ -135,10 +139,12 @@ public class OffenseExpeditionRuntime :
         IOffenseStrategicTravelEventHandler strategicTravelEvents,
         IOffenseExpeditionBattleCompletionHandler battleCompletionHandler,
         IGameMoneyAccount gameMoney,
+        ProgressionSceneRuntimeReferences progressionRuntimes,
         IExpeditionDepartureService departureService,
         ICombatEquipmentPickupRuntime equipmentPickupRuntime,
         IOffenseFieldMedicalRuntime fieldMedical,
-        IOffenseFieldMobilityService fieldMobility)
+        IOffenseFieldMobilityService fieldMobility,
+        ICharacterPerformanceQuery performance = null)
     {
         Construct(
             memberQuery,
@@ -158,6 +164,8 @@ public class OffenseExpeditionRuntime :
             ?? throw new ArgumentNullException(nameof(fieldMedical));
         this.fieldMobility = fieldMobility
             ?? throw new ArgumentNullException(nameof(fieldMobility));
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
         this.strategicDecisionEffects = strategicDecisionEffects
             ?? throw new ArgumentNullException(nameof(strategicDecisionEffects));
         this.strategicTargets = strategicTargets
@@ -170,6 +178,11 @@ public class OffenseExpeditionRuntime :
             ?? throw new ArgumentNullException(nameof(battleCompletionHandler));
         this.gameMoney = gameMoney
             ?? throw new ArgumentNullException(nameof(gameMoney));
+        expeditionResearchState = OffenseExpeditionAccessRules.RequireState(
+            progressionRuntimes,
+            nameof(OffenseExpeditionRuntime));
+        expeditionResearchRuntime = progressionRuntimes.BlueprintResearch;
+        enforceExpeditionAccess = true;
         this.strategicWorld = strategicWorld
             ?? throw new ArgumentNullException(nameof(strategicWorld));
         this.strategicTravel = strategicTravel
@@ -214,6 +227,20 @@ public class OffenseExpeditionRuntime :
     public IReadOnlyList<CombatEquipmentDefinitionSO> GetEquipmentDefinitions()
     {
         return equipmentRuntime?.Definitions ?? Array.Empty<CombatEquipmentDefinitionSO>();
+    }
+
+    public float CalculatePartyPower(IEnumerable<CharacterActor> members)
+    {
+        if (equipmentRuntime == null)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(OffenseExpeditionRuntime)} requires {nameof(ICombatEquipmentRuntime)} before calculating expedition power.");
+        }
+
+        return OffenseExpeditionService.CalculatePartyPower(
+            members,
+            equipmentRuntime,
+            performance);
     }
 
     public IReadOnlyDictionary<string, int> GetEquipmentInventory()
@@ -353,13 +380,27 @@ public class OffenseExpeditionRuntime :
         out OffenseExpeditionRun expedition,
         out string message)
     {
+        BlueprintResearchState currentResearchState =
+            expeditionResearchRuntime != null
+                ? expeditionResearchRuntime.State
+                : expeditionResearchState;
+        if (enforceExpeditionAccess
+            && !OffenseExpeditionAccessRules.IsUnlocked(currentResearchState))
+        {
+            expedition = null;
+            message = OffenseExpeditionAccessRules.BlockerMessage;
+            return false;
+        }
+
         return launchService.TryStart(
             new OffenseExpeditionLaunchDomain(
                 worldMap,
                 strategicTargets,
                 fieldMedical,
                 battleRuntime,
-                preparationService),
+                preparationService,
+                equipmentRuntime,
+                performance),
             new OffenseExpeditionLaunchInfrastructure(
                 gameMoney,
                 strategicTravel,

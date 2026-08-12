@@ -10,7 +10,8 @@ internal sealed class CharacterBreakdownActionPolicyDependencies
         IRandomStream breakdownRandom,
         ICharacterNeedBalanceRuntime needBalanceRuntime,
         IItemDefinitionCatalog itemCatalog,
-        ICharacterBodyHealthCommand bodyHealthCommands)
+        ICharacterBodyHealthCommand bodyHealthCommands,
+        ICharacterPerformanceQuery performance)
     {
         BreakdownRandom = breakdownRandom
             ?? throw new ArgumentNullException(nameof(breakdownRandom));
@@ -20,12 +21,15 @@ internal sealed class CharacterBreakdownActionPolicyDependencies
             ?? throw new ArgumentNullException(nameof(itemCatalog));
         BodyHealthCommands = bodyHealthCommands
             ?? throw new ArgumentNullException(nameof(bodyHealthCommands));
+        Performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
     }
 
     internal IRandomStream BreakdownRandom { get; }
     internal ICharacterNeedBalanceRuntime NeedBalanceRuntime { get; }
     internal IItemDefinitionCatalog ItemCatalog { get; }
     internal ICharacterBodyHealthCommand BodyHealthCommands { get; }
+    internal ICharacterPerformanceQuery Performance { get; }
 }
 
 internal sealed class CharacterBreakdownActionExecutionDependencies
@@ -61,6 +65,7 @@ internal sealed class CharacterBreakdownActionExecutionDependencies
 
 internal sealed class CharacterBreakdownActionRunner
 {
+    internal const string IntentOwnerId = "survival:breakdown";
     private const int AccidentSearchRadius = 32;
     private static readonly WaitForSeconds CannibalAttackDelay =
         new WaitForSeconds(0.75f);
@@ -83,12 +88,13 @@ internal sealed class CharacterBreakdownActionRunner
     private readonly CharacterDeprivationDiagnostics diagnostics;
     private readonly CharacterDeprivationConsequences consequences;
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
+    private readonly ICharacterPerformanceQuery performance;
     private readonly IGameEventBus events;
     private readonly HashSet<CharacterId> runningActorIds =
         new HashSet<CharacterId>();
-    private readonly Dictionary<CharacterBreakdownKind, Func<CharacterActor, IEnumerator>>
+    private readonly Dictionary<CharacterBreakdownKind, Func<CharacterActor, CharacterActionIntentLease, IEnumerator>>
         actionRoutines =
-            new Dictionary<CharacterBreakdownKind, Func<CharacterActor, IEnumerator>>();
+            new Dictionary<CharacterBreakdownKind, Func<CharacterActor, CharacterActionIntentLease, IEnumerator>>();
 
     public CharacterBreakdownActionRunner(
         CharacterBreakdownWorld world,
@@ -102,6 +108,7 @@ internal sealed class CharacterBreakdownActionRunner
         needBalanceRuntime = policy.NeedBalanceRuntime;
         itemCatalog = policy.ItemCatalog;
         bodyHealthCommands = policy.BodyHealthCommands;
+        performance = policy.Performance;
         stateStore = execution.StateStore;
         safeDrinkPlanner = execution.SafeDrinkPlanner;
         emergencyMovement = execution.EmergencyMovement;
@@ -135,15 +142,27 @@ internal sealed class CharacterBreakdownActionRunner
         }
 
         status = GetBreakdownLabel(state.breakdown.kind);
-        actor.Brain?.BeginExternallyDrivenAction(
-            "결핍 붕괴",
-            status,
-            "붕괴 행동이 끝날 때까지 유지");
-        Begin(actor, state.breakdown.kind);
+        if (actor.Brain == null
+            || !actor.Brain.TryBeginExternallyDrivenAction(
+                IntentOwnerId,
+                CharacterActionIntentKind.Breakdown,
+                "결핍 붕괴",
+                status,
+                "붕괴 행동이 끝날 때까지 유지",
+                out CharacterActionIntentLease intentLease))
+        {
+            status = "붕괴 행동 권위를 획득하지 못함";
+            return true;
+        }
+
+        Begin(actor, state.breakdown.kind, intentLease);
         return true;
     }
 
-    public void Begin(CharacterActor actor, CharacterBreakdownKind kind)
+    public void Begin(
+        CharacterActor actor,
+        CharacterBreakdownKind kind,
+        CharacterActionIntentLease intentLease)
     {
         if (!stateStore.TryGet(actor, out CharacterDeprivationState state)
             || state.breakdown == null
@@ -156,13 +175,33 @@ internal sealed class CharacterBreakdownActionRunner
         CharacterId actorId = CharacterPersistentIdentity.Require(actor);
         if (runningActorIds.Add(actorId))
         {
-            actor.Brain?.StopCurrentActionForReplan("결핍 붕괴");
             actor.StartCoroutine(RunBreakdownAction(
                 actor,
                 actorId,
                 kind,
-                state.breakdownGeneration));
+                state.breakdownGeneration,
+                intentLease));
         }
+    }
+
+    public bool TryBegin(
+        CharacterActor actor,
+        CharacterBreakdownKind kind)
+    {
+        if (actor?.Brain == null
+            || !actor.Brain.TryBeginExternallyDrivenAction(
+                IntentOwnerId,
+                CharacterActionIntentKind.Breakdown,
+                "결핍 붕괴",
+                GetBreakdownLabel(kind),
+                "붕괴 행동이 끝날 때까지 유지",
+                out CharacterActionIntentLease intentLease))
+        {
+            return false;
+        }
+
+        Begin(actor, kind, intentLease);
+        return true;
     }
 
     public void ReleaseActor(CharacterId actorId)
@@ -182,19 +221,47 @@ internal sealed class CharacterBreakdownActionRunner
         CharacterActor actor,
         CharacterId actorId,
         CharacterBreakdownKind kind,
-        int generation)
+        int generation,
+        CharacterActionIntentLease intentLease)
     {
         try
         {
-            if (actionRoutines.TryGetValue(kind, out Func<CharacterActor, IEnumerator> routine))
+            if (actionRoutines.TryGetValue(
+                    kind,
+                    out Func<CharacterActor, CharacterActionIntentLease, IEnumerator> routine))
             {
-                yield return routine(actor);
+                yield return routine(actor, intentLease);
+            }
+
+            // A violent impulse is one bounded episode, not a permanent owner of
+            // the actor.  It may damage property, assault somebody, or burn off
+            // the impulse by wandering, then it must release the actor so normal
+            // needs can recover.  Deprivation can build toward a later episode,
+            // but it cannot reissue the same breakdown every decision tick.
+            if (kind == CharacterBreakdownKind.ViolentImpulse
+                && actor != null
+                && !actor.IsDead
+                && stateStore.TryGetWritable(actor, out CharacterDeprivationState completed)
+                && completed.breakdown != null
+                && completed.breakdown.active
+                && completed.breakdownGeneration == generation)
+            {
+                consequences.EndBreakdown(
+                    actor,
+                    completed,
+                    "정신 붕괴 행동 완료",
+                    reduceCauseTo: 55f);
             }
         }
         finally
         {
             runningActorIds.Remove(actorId);
-            actor?.Brain?.EndExternallyDrivenAction(clearFailures: true);
+            if (actor?.Brain?.IsExternalIntentCurrent(intentLease) == true)
+            {
+                actor.Brain.EndExternallyDrivenAction(
+                    intentLease,
+                    clearFailures: true);
+            }
             if (actor != null
                 && !actor.IsDead
                 && stateStore.TryGet(actor, out CharacterDeprivationState current)
@@ -202,13 +269,15 @@ internal sealed class CharacterBreakdownActionRunner
                 && current.breakdown.active
                 && current.breakdownGeneration != generation)
             {
-                Begin(actor, current.breakdown.kind);
+                TryRunActive(actor, out _);
             }
         }
     }
 
 
-    private IEnumerator RunDesperateRelief(CharacterActor actor)
+    private IEnumerator RunDesperateRelief(
+        CharacterActor actor,
+        CharacterActionIntentLease intentLease)
     {
         if (!TryChooseAccidentPosition(actor, out Vector2Int target))
         {
@@ -216,7 +285,7 @@ internal sealed class CharacterBreakdownActionRunner
         }
 
         yield return emergencyMovement.MoveNear(actor, target, 0);
-        if (actor == null || actor.IsDead)
+        if (!CanCommit(actor, intentLease))
         {
             yield break;
         }
@@ -237,7 +306,11 @@ internal sealed class CharacterBreakdownActionRunner
     }
 
 
-    private IEnumerator RunDesperateDrink(CharacterActor actor, bool allowWaste, bool safeOnly = false)
+    private IEnumerator RunDesperateDrink(
+        CharacterActor actor,
+        CharacterActionIntentLease intentLease,
+        bool allowWaste,
+        bool safeOnly = false)
     {
         diagnostics.DesperateDrinkAttempts++;
         CharacterId actorId = CharacterPersistentIdentity.Require(actor);
@@ -255,8 +328,7 @@ internal sealed class CharacterBreakdownActionRunner
             try
             {
                 yield return emergencyMovement.MoveNear(actor, approach, 0, path);
-                if (actor != null
-                    && !actor.IsDead
+                if (CanCommit(actor, intentLease)
                     && actor.GetNowXY() == approach
                     && Manhattan(actor.GetNowXY(), waterStack.Position) <= 1)
                 {
@@ -309,8 +381,7 @@ internal sealed class CharacterBreakdownActionRunner
                 facilityApproach,
                 0,
                 facilityPath);
-            if (actor != null
-                && !actor.IsDead
+            if (CanCommit(actor, intentLease)
                 && waterFacility != null
                 && !waterFacility.IsGridDestroyed
                 && actor.GetNowXY() == facilityApproach
@@ -338,8 +409,7 @@ internal sealed class CharacterBreakdownActionRunner
         {
             int standDistance = source.TerrainType == GridCellTerrainType.DeepWater ? 1 : 0;
             yield return emergencyMovement.MoveNear(actor, source.Position, standDistance);
-            if (actor != null
-                && !actor.IsDead
+            if (CanCommit(actor, intentLease)
                 && Manhattan(actor.GetNowXY(), source.Position) <= standDistance
                 && world.TryDrink(
                     source.SourceId,
@@ -375,7 +445,9 @@ internal sealed class CharacterBreakdownActionRunner
             }
         }
 
-        if (!allowWaste || GetNeed(actor, CharacterCondition.EXCRETION) > 25f)
+        if (!CanCommit(actor, intentLease)
+            || !allowWaste
+            || GetNeed(actor, CharacterCondition.EXCRETION) > 25f)
         {
             yield break;
         }
@@ -406,13 +478,14 @@ internal sealed class CharacterBreakdownActionRunner
     }
 
 
-    private IEnumerator RunDesperateEat(CharacterActor actor)
+    private IEnumerator RunDesperateEat(
+        CharacterActor actor,
+        CharacterActionIntentLease intentLease)
     {
         if (TryFindEmergencyFood(actor, out WorldItemStackSnapshot food))
         {
             yield return emergencyMovement.MoveNear(actor, food.Position, 0);
-            if (actor != null
-                && !actor.IsDead
+            if (CanCommit(actor, intentLease)
                 && Manhattan(actor.GetNowXY(), food.Position) == 0
                 && world.TryConsumeStack(food.StackId, 1, out WorldItemStackSnapshot consumed))
             {
@@ -452,10 +525,14 @@ internal sealed class CharacterBreakdownActionRunner
             state.breakdown.targetGridY = victim.GetNowXY().y;
         }
 
-        while (actor != null && victim != null && !actor.IsDead && !victim.IsDead)
+        while (CanCommit(actor, intentLease)
+            && victim != null
+            && !victim.IsDead)
         {
             yield return emergencyMovement.MoveNear(actor, victim.GetNowXY(), 1);
-            if (actor == null || victim == null || actor.IsDead || victim.IsDead)
+            if (!CanCommit(actor, intentLease)
+                || victim == null
+                || victim.IsDead)
             {
                 break;
             }
@@ -465,7 +542,11 @@ internal sealed class CharacterBreakdownActionRunner
                 break;
             }
 
-            float damage = Mathf.Max(4f, actor.GetCharacterStat(CharacterStatType.Strength) * 1.2f);
+            float damage = Mathf.Max(
+                4f,
+                6f * performance.Evaluate(
+                    actor,
+                    "performance:combat:melee-power").Value);
             bodyHealthCommands.ApplyLegacyDamage(
                 victim,
                 damage,
@@ -477,7 +558,9 @@ internal sealed class CharacterBreakdownActionRunner
                     actor,
                     Mathf.Max(
                         1f,
-                        victim.GetCharacterStat(CharacterStatType.Strength) * 0.35f),
+                        1.75f * performance.Evaluate(
+                            victim,
+                            "performance:combat:melee-power").Value),
                     "필사적인 반격",
                     allowDeath: true);
             }
@@ -488,7 +571,8 @@ internal sealed class CharacterBreakdownActionRunner
         {
             yield return CorpseSpawnDelay;
             WorldItemStackSnapshot corpse = FindHumanoidCorpse(victim);
-            if (corpse != null
+            if (CanCommit(actor, intentLease)
+                && corpse != null
                 && world.TryConsumeStack(corpse.StackId, 1, out WorldItemStackSnapshot consumed))
             {
                 RecoverNeed(
@@ -502,7 +586,9 @@ internal sealed class CharacterBreakdownActionRunner
     }
 
 
-    private static IEnumerator RunCollapse(CharacterActor actor)
+    private IEnumerator RunCollapse(
+        CharacterActor actor,
+        CharacterActionIntentLease intentLease)
     {
         if (actor == null)
         {
@@ -517,7 +603,7 @@ internal sealed class CharacterBreakdownActionRunner
             sentiment: -0.65f,
             bubbleEligible: true));
         yield return CollapseDelay;
-        if (actor != null && !actor.IsDead)
+        if (CanCommit(actor, intentLease))
         {
             RecoverNeed(
                 actor,
@@ -529,7 +615,9 @@ internal sealed class CharacterBreakdownActionRunner
     }
 
 
-    private IEnumerator RunViolentImpulse(CharacterActor actor)
+    private IEnumerator RunViolentImpulse(
+        CharacterActor actor,
+        CharacterActionIntentLease intentLease)
     {
         if (actor == null)
         {
@@ -543,8 +631,7 @@ internal sealed class CharacterBreakdownActionRunner
         if (choice < vandalThreshold && TryFindVandalismTarget(actor, out BuildableObject building))
         {
             yield return emergencyMovement.MoveNear(actor, building.centerPos, 1);
-            if (actor != null
-                && !actor.IsDead
+            if (CanCommit(actor, intentLease)
                 && building != null
                 && !building.IsGridDestroyed
                 && !building.IsDamaged
@@ -572,14 +659,15 @@ internal sealed class CharacterBreakdownActionRunner
             if (victim != null)
             {
                 yield return emergencyMovement.MoveNear(actor, victim.GetNowXY(), 1);
-                if (actor != null
+                if (CanCommit(actor, intentLease)
                     && victim != null
-                    && !actor.IsDead
                     && !victim.IsDead
                     && Manhattan(actor.GetNowXY(), victim.GetNowXY()) <= 1)
                 {
                     float damage = Mathf.Clamp(
-                        2f + actor.GetCharacterStat(CharacterStatType.Strength) * 0.45f,
+                        2f + 2.25f * performance.Evaluate(
+                            actor,
+                            "performance:combat:melee-power").Value,
                         3f,
                         10f);
                     bodyHealthCommands.ApplyLegacyDamage(
@@ -615,7 +703,10 @@ internal sealed class CharacterBreakdownActionRunner
                 bubbleEligible: true));
         }
         yield return BreakdownIdleDelay;
-        actor.ChangesStat(CharacterCondition.FUN, 8f);
+        if (CanCommit(actor, intentLease))
+        {
+            actor.ChangesStat(CharacterCondition.FUN, 8f);
+        }
     }
 
 
@@ -636,7 +727,8 @@ internal sealed class CharacterBreakdownActionRunner
             if (candidate == null
                 || candidate.IsGridDestroyed
                 || candidate.IsDamaged
-                || candidate.IsGridMovement)
+                || candidate.IsGridMovement
+                || !candidate.CanApplyDamageRules)
             {
                 continue;
             }
@@ -738,7 +830,9 @@ internal sealed class CharacterBreakdownActionRunner
         if (WildlifeItemDefinitions.TryGetSpeciesIdFromCarcass(itemId, out _)) return 1;
         if (itemId == DarkSurvivalItemDefinitions.HumanoidCorpseItemId) return 2;
         if (itemId == DarkSurvivalItemDefinitions.HumanoidMeatItemId) return 3;
-        return definition.StockCategory == StockCategory.Food ? 4 : int.MaxValue;
+        return definition.TryGetFeature(out FoodItemFeature _)
+            ? 4
+            : int.MaxValue;
     }
 
     private bool IsUnsafeFood(WorldItemStackSnapshot stack)
@@ -1025,12 +1119,25 @@ internal sealed class CharacterBreakdownActionRunner
         actionRoutines[CharacterBreakdownKind.DesperateRelief] =
             RunDesperateRelief;
         actionRoutines[CharacterBreakdownKind.DesperateDrink] =
-            actor => RunDesperateDrink(actor, allowWaste: true);
+            (actor, lease) => RunDesperateDrink(
+                actor,
+                lease,
+                allowWaste: true);
         actionRoutines[CharacterBreakdownKind.DesperateEat] =
             RunDesperateEat;
         actionRoutines[CharacterBreakdownKind.Collapse] =
             RunCollapse;
         actionRoutines[CharacterBreakdownKind.ViolentImpulse] =
             RunViolentImpulse;
+    }
+
+    private static bool CanCommit(
+        CharacterActor actor,
+        in CharacterActionIntentLease intentLease)
+    {
+        return actor != null
+            && !actor.IsDead
+            && actor.Brain != null
+            && actor.Brain.IsExternalIntentCurrent(intentLease);
     }
 }

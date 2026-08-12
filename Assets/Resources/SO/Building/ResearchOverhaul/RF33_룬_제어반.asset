@@ -34,18 +34,33 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 3
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: proficiency:scholarship
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211838078124779
-    - rid: 7737211838078124780
-    - rid: 7737211838078124781
-    - rid: 7737211838078124782
-    - rid: 7737211838078124783
-    - rid: 7737211838078124784
-    - rid: 7737211838078124785
-    - rid: 7737211838078124786
+    - rid: 7737211905660420190
+    - rid: 7737211905660420191
+    - rid: 7737211905660420192
+    - rid: 7737211905660420193
+    - rid: 7737211905660420194
+    - rid: 7737211905660420195
+    - rid: 7737211905660420196
+    - rid: 7737211905660420197
   width: 1
   height: 1
   layer: 1
@@ -61,12 +76,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124779
+    - rid: 7737211905660420190
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF33
-    - rid: 7737211838078124780
+    - rid: 7737211905660420191
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -74,13 +89,13 @@ MonoBehaviour:
         - research-overhaul
         - research:industry:rune-automation
         - workstation:v3:rune-control
-    - rid: 7737211838078124781
+    - rid: 7737211905660420192
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v3:rune-control
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211838078124782
+    - rid: 7737211905660420193
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -88,43 +103,62 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211838078124783
+    - rid: 7737211905660420194
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
-        constructionCost: 208
-        maintenance: 3
+        constructionCost: 650
+        maintenance: 6
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211838078124784
+    - rid: 7737211905660420195
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
         settings:
-          roles: 80
+          roles: 4112
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
-          supportedWorkTypes: 17
+          supportedWorkTypes: 32785
           disabledWhenDamaged: 1
-    - rid: 7737211838078124785
+    - rid: 7737211905660420196
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211838078124786
+    - rid: 7737211905660420197
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 186
-        repairWorkRequired: 24
-        cleanWorkRequired: 8
+        constructionWorkRequired: 136
+        repairWorkRequired: 52
+        cleanWorkRequired: 12
         researchWorkRequired: 6
         operateWorkRequired: 12
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: component:machine-parts
-          amount: 7
-        - itemId: component:rune-bus-coupler
-          amount: 1
-        - itemId: tool:precision-gauge
-          amount: 1
+        - itemId: material:stone-block
+          amount: 16
+        - itemId: material:steel-ingot
+          amount: 10
+        - itemId: component:precision-parts
+          amount: 6
+        - itemId: component:rune-conductor
+          amount: 4
+        - itemId: component:mana-shield-plate
+          amount: 2
+        - itemId: resource:mana-crystal
+          amount: 4
+        - itemId: component:engineering-drawing
+          amount: 2

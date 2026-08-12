@@ -137,8 +137,6 @@ public static class FacilityCrimeRiskDebugScenarios
             characterData.characterName = "Crime Risk Scenario Actor";
             characterData.species = species;
             characterData.speciesTag = species.speciesTag;
-            characterData.baseStats = CharacterStatBlock.CreateDefault();
-
             actorObject = CharacterAiPlanDebugFixtures.CreateActorObject("Crime Risk Scenario Actor");
             CharacterActor actor = actorObject.GetComponent<CharacterActor>();
             actor.Initialize(characterData);

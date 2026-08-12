@@ -31,28 +31,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 9
   features:
-  - rid: 7737211838068949593
-  - rid: 7737211838068949594
-  - rid: 7737211838068949595
-  - rid: 7737211838068949596
+  - rid: 7737211905666712263
+  - rid: 7737211905666712264
+  - rid: 7737211905666712265
+  - rid: 7737211905666712266
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949593
+    - rid: 7737211905666712263
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:arrow-rune
-    - rid: 7737211838068949594
+    - rid: 7737211905666712264
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:arcane:advanced
-    - rid: 7737211838068949595
+    - rid: 7737211905666712265
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 1280
         sharedIntermediate: 0
-    - rid: 7737211838068949596
+    - rid: 7737211905666712266
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

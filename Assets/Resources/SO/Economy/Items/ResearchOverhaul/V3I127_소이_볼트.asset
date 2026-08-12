@@ -26,28 +26,33 @@ MonoBehaviour:
   displayName: "\uC18C\uC774 \uBCFC\uD2B8"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC18C\uC774 \uBCFC\uD2B8."
   stockCategory: 7
-  unitWeight: 4.0299997
+  unitWeight: 0.15
   maxStack: 120
   sprite: {fileID: 0}
-  unitPrice: 264
+  unitPrice: 22
   features:
-  - rid: 7737211838078124694
-  - rid: 7737211838078124695
-  - rid: 7737211838078124696
+  - rid: 7737211905658585429
+  - rid: 7737211905658585430
+  - rid: 7737211905658585431
+  - rid: 7737211905660420593
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124694
+    - rid: 7737211905658585429
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:incendiary-bolt
-    - rid: 7737211838078124695
+    - rid: 7737211905658585430
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:black-powder
-    - rid: 7737211838078124696
+    - rid: 7737211905658585431
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 512
         sharedIntermediate: 0
+    - rid: 7737211905660420593
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.58650106

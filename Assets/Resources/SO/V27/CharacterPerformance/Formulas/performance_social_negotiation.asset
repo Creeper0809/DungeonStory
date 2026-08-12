@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3492011b3dafa9042a1ad22895608b38, type: 3}
+  m_Name: performance_social_negotiation
+  m_EditorClassIdentifier: DungeonStory.Foundation::CharacterPerformanceFormulaDefinitionSO
+  formulaId: performance:social:negotiation
+  displayName: "\uD611\uC0C1"
+  domain: 4
+  resultChannel: 5
+  baseValue: 1
+  capacityInputs:
+  - capacityId: 0
+    weight: 0.45
+    role: 5
+    requiredThreshold: 0.1
+  - capacityId: 2
+    weight: 0.15
+    role: 1
+    requiredThreshold: 0.1
+  - capacityId: 11
+    weight: 0.4
+    role: 7
+    requiredThreshold: 0.1
+  primaryProficiencyId: proficiency:social
+  secondaryProficiencyId: 
+  secondaryProficiencyWeight: 0
+  gameplayEffectTargetId: 
+  executionWorkTypeId: 

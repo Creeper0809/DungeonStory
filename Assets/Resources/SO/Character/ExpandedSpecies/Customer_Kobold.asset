@@ -20,32 +20,6 @@ MonoBehaviour:
   characterName: "\uD2F0\uD06C"
   speciesTag: Kobold
   species: {fileID: 11400000, guid: 4ef04935a390a804a95843d1089d9cd6, type: 2}
-  baseStats:
-    entries:
-    - statId: stat:attack
-      value: 5
-    - statId: stat:shooting
-      value: 5
-    - statId: stat:evasion
-      value: 5
-    - statId: stat:sales
-      value: 5
-    - statId: stat:research
-      value: 6
-    - statId: stat:move-speed
-      value: 5
-    - statId: stat:strength
-      value: 5
-    - statId: stat:toughness
-      value: 4
-    - statId: stat:dexterity
-      value: 8
-    - statId: stat:cleaning
-      value: 5
-    - statId: stat:endurance
-      value: 5
-    - statId: stat:medical
-      value: 5
   traits: []
   defaultWorkPriorities:
     schemaVersion: 2
@@ -109,6 +83,8 @@ MonoBehaviour:
     - workTypeId: work:threat-mitigation
       priority: 1
     - workTypeId: work:plumbing
+      priority: 2
+    - workTypeId: work:dismantle
       priority: 2
     legacyOperate: 1
     legacyRestock: 2

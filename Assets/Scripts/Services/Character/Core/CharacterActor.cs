@@ -52,6 +52,7 @@ public class CharacterActor : SerializedMonoBehaviour,
     private CharacterCarryInventory carryInventory;
     private ICharacterSocialMemoryFactory socialMemoryFactory;
     private ICharacterRuntimeProfileFactory runtimeProfileFactory;
+    private CharacterMoodPolicyService moodPolicy;
     [SerializeField, ReadOnly] private CharacterActorRuntimeBridge runtimeBridge;
     [SerializeField, ReadOnly] private CharacterActorPresentationBridge presentationBridge;
     private bool runtimeStateInitialized;
@@ -176,12 +177,15 @@ public class CharacterActor : SerializedMonoBehaviour,
         IGameClock gameClock,
         ITmpKoreanFontService tmpKoreanFontService,
         ICharacterPresentationScheduler presentationScheduler,
-        ICharacterRuntimeProfileFactory runtimeProfileFactory)
+        ICharacterRuntimeProfileFactory runtimeProfileFactory,
+        CharacterMoodPolicyService moodPolicy)
     {
         this.runtimeProfileFactory = runtimeProfileFactory
             ?? throw new ArgumentNullException(nameof(runtimeProfileFactory));
         this.socialMemoryFactory = socialMemoryFactory
             ?? throw new ArgumentNullException(nameof(socialMemoryFactory));
+        this.moodPolicy = moodPolicy
+            ?? throw new ArgumentNullException(nameof(moodPolicy));
         NaturalnessSettings = (gameContentCatalog ?? throw new ArgumentNullException(nameof(gameContentCatalog))).RequireSingle<CharacterAiNaturalnessSettingsSO>();
         EnsureRuntimeState();
         if (identity.Data != null && identity.Profile == null)
@@ -682,12 +686,43 @@ public class CharacterActor : SerializedMonoBehaviour,
     public CharacterCarryInventory CarryInventory => RuntimeCarryInventory;
     public float GetConsumptionMultiplier() =>
         RuntimeStats != null ? RuntimeStats.GetConsumptionMultiplier() : 1f;
+    public GameplayEffectProjectionResult ProjectDetailedStat(
+        string targetId,
+        float baseValue,
+        IEnumerable<string> activeConditionIds = null) =>
+        RuntimeStats != null
+            ? RuntimeStats.ProjectDetailedStat(
+                targetId,
+                baseValue,
+                activeConditionIds)
+            : new GameplayEffectProjectionResult(
+                baseValue,
+                Array.Empty<GameplayEffectContribution>());
+    public float GetDetailedStatMultiplier(
+        string targetId,
+        IEnumerable<string> activeConditionIds = null) =>
+        RuntimeStats != null
+            ? RuntimeStats.GetDetailedStatMultiplier(
+                targetId,
+                activeConditionIds)
+            : 1f;
     public float GetStayDurationMultiplier() =>
         RuntimeStats != null ? RuntimeStats.GetStayDurationMultiplier() : 1f;
     public float GetCrowdSensitivityMultiplier() =>
         RuntimeStats != null ? RuntimeStats.GetCrowdSensitivityMultiplier() : 1f;
     public float GetWorkSpeedMultiplier(WorkTypeId workTypeId) =>
         RuntimeStats != null ? RuntimeStats.GetWorkSpeedMultiplier(workTypeId) : 1f;
+    public float GetWorkSpeedMultiplier(
+        WorkTypeId workTypeId,
+        BuildableObject target) =>
+        RuntimeStats != null
+            ? RuntimeStats.GetWorkSpeedMultiplier(workTypeId, target)
+            : 1f;
+    public float GetWorkContextMultiplier(WorkTypeId workTypeId) =>
+        RuntimeStats != null
+            ? RuntimeStats.GetWorkContextMultiplier(workTypeId)
+            : throw new InvalidOperationException(
+                "Character runtime stats are unavailable for work performance.");
     public float GetWorkPreferenceScore(WorkTypeId workTypeId) =>
         RuntimeStats != null ? RuntimeStats.GetWorkPreferenceScore(workTypeId) : 0.5f;
     public float GetFacilityPreferenceScore(FacilityRole roles) =>
@@ -717,21 +752,39 @@ public class CharacterActor : SerializedMonoBehaviour,
         : EmptyRoutine();
     public void ChangesStat(CharacterCondition condition, float value) =>
         RuntimeStats?.ChangesStat(condition, value);
+    [GameplayInternalOnly(
+        "Domain services submit mood impulses here so the injected mood policy can apply immunity and transforms.",
+        "RoomEnvironmentExperienceService")]
     public void ApplyMoodFactor(
         string id,
         string label,
         float value,
         float durationSeconds = 180f,
-        int maxStacks = 1) => RuntimeStats?.ApplyMoodFactor(
+        int maxStacks = 1)
+    {
+        if (moodPolicy == null)
+            throw new InvalidOperationException(
+                "CharacterMoodPolicyService must be injected before applying mood.");
+        moodPolicy.ApplySeconds(
+            this,
+            id,
+            value,
+            durationSeconds,
+            label,
+            maxStacks);
+    }
+
+    internal void ApplyResolvedMoodFactor(
+        string id,
+        string label,
+        float value,
+        float durationSeconds,
+        int maxStacks) => RuntimeStats?.ApplyResolvedMoodFactor(
             id,
             label,
             value,
             durationSeconds,
             maxStacks);
-    public int GetCharacterStat(CharacterStatType statType) =>
-        RuntimeStats != null ? RuntimeStats.GetCharacterStat(statType) : 5;
-    public int GetCharacterStat(string statId) =>
-        RuntimeStats != null ? RuntimeStats.GetCharacterStat(statId) : 0;
     public void ApplyDamage(float amount, string reason = "") =>
         RuntimeStats?.ApplyDamage(amount, reason);
     public void ApplyBodyDamage(float amount, string reason = "") =>

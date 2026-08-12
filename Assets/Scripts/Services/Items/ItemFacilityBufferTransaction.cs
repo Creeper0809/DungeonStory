@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEngine;
 
 /// <summary>
@@ -17,9 +18,17 @@ internal static class ItemFacilityBufferTransaction
         WorldItemRepository repository,
         IDungeonItemCatalogProvider catalogProvider,
         IItemMarkerPresenter markerPresenter,
+        IItemQuantityReservationService reservations,
+        IReservedItemTransferService reservedTransfers,
+        string ownerOperationId,
         out string failureReason)
     {
-        RequireDependencies(debugRules, repository, markerPresenter);
+        RequireDependencies(
+            debugRules,
+            repository,
+            markerPresenter,
+            reservations,
+            reservedTransfers);
         if (catalogProvider == null)
         {
             throw new ArgumentNullException(nameof(catalogProvider));
@@ -45,47 +54,34 @@ internal static class ItemFacilityBufferTransaction
             return true;
         }
 
-        Dictionary<StockCategory, int> available = new();
-        foreach (WorldItemStackRecord stack in repository.Records)
+        List<ReservedItemConsumption> selected = new();
+        foreach (KeyValuePair<StockCategory, int> pair in required
+                     .OrderBy(value => value.Key))
         {
-            if (!MatchesCategoryBuffer(
-                    stack,
-                    destination,
-                    catalogProvider,
-                    out StockCategory category))
-            {
-                continue;
-            }
-
-            available.TryGetValue(category, out int current);
-            available[category] = current + stack.quantity;
-        }
-
-        foreach (KeyValuePair<StockCategory, int> pair in required)
-        {
-            if (!available.TryGetValue(pair.Key, out int quantity)
-                || quantity < pair.Value)
+            if (!TrySelectAvailable(
+                    repository,
+                    reservations,
+                    pair.Value,
+                    stack => MatchesCategoryBuffer(
+                            stack,
+                            destination,
+                            catalogProvider,
+                            out StockCategory category)
+                        && category == pair.Key,
+                    selected))
             {
                 failureReason = "facility materials missing";
                 return false;
             }
         }
-
-        foreach (KeyValuePair<StockCategory, int> pair in required)
-        {
-            ConsumeMatching(
-                repository,
-                markerPresenter,
-                pair.Value,
-                stack => MatchesCategoryBuffer(
-                        stack,
-                        destination,
-                        catalogProvider,
-                        out StockCategory category)
-                    && category == pair.Key);
-        }
-
-        return true;
+        return TryReserveAndConsume(
+            destination,
+            ownerOperationId,
+            selected,
+            repository,
+            reservations,
+            reservedTransfers,
+            out failureReason);
     }
 
     internal static bool TryConsumeByItem(
@@ -94,9 +90,17 @@ internal static class ItemFacilityBufferTransaction
         IDungeonDebugRuleQuery debugRules,
         WorldItemRepository repository,
         IItemMarkerPresenter markerPresenter,
+        IItemQuantityReservationService reservations,
+        IReservedItemTransferService reservedTransfers,
+        string ownerOperationId,
         out string failureReason)
     {
-        RequireDependencies(debugRules, repository, markerPresenter);
+        RequireDependencies(
+            debugRules,
+            repository,
+            markerPresenter,
+            reservations,
+            reservedTransfers);
         failureReason = string.Empty;
         string destination = destinationId?.Trim() ?? string.Empty;
         if (destination.Length == 0)
@@ -118,74 +122,113 @@ internal static class ItemFacilityBufferTransaction
             return true;
         }
 
-        Dictionary<string, int> available =
-            new(StringComparer.Ordinal);
-        foreach (WorldItemStackRecord stack in repository.Records)
+        List<ReservedItemConsumption> selected = new();
+        foreach (KeyValuePair<string, int> pair in required
+                     .OrderBy(value => value.Key, StringComparer.Ordinal))
         {
-            if (!MatchesItemBuffer(stack, destination))
-            {
-                continue;
-            }
-
-            available.TryGetValue(stack.itemId, out int current);
-            available[stack.itemId] = current + stack.quantity;
-        }
-
-        foreach (KeyValuePair<string, int> pair in required)
-        {
-            if (!available.TryGetValue(pair.Key, out int quantity)
-                || quantity < pair.Value)
+            if (!TrySelectAvailable(
+                    repository,
+                    reservations,
+                    pair.Value,
+                    stack => MatchesItemBuffer(stack, destination)
+                        && string.Equals(
+                            stack.itemId,
+                            pair.Key,
+                            StringComparison.Ordinal),
+                    selected))
             {
                 failureReason = $"facility item missing: {pair.Key}";
                 return false;
             }
         }
-
-        foreach (KeyValuePair<string, int> pair in required)
-        {
-            ConsumeMatching(
-                repository,
-                markerPresenter,
-                pair.Value,
-                stack => MatchesItemBuffer(stack, destination)
-                    && string.Equals(
-                        stack.itemId,
-                        pair.Key,
-                        StringComparison.Ordinal));
-        }
-
-        return true;
+        return TryReserveAndConsume(
+            destination,
+            ownerOperationId,
+            selected,
+            repository,
+            reservations,
+            reservedTransfers,
+            out failureReason);
     }
 
-    private static void ConsumeMatching(
+    private static bool TrySelectAvailable(
         WorldItemRepository repository,
-        IItemMarkerPresenter markerPresenter,
+        IItemQuantityReservationService reservations,
         int requested,
-        Func<WorldItemStackRecord, bool> predicate)
+        Func<WorldItemStackRecord, bool> predicate,
+        ICollection<ReservedItemConsumption> selected)
     {
         int remaining = requested;
-        foreach (WorldItemStackRecord stack in repository.Records.ToArray())
+        foreach (WorldItemStackRecord stack in repository.Records
+                     .Where(value => value != null)
+                     .OrderBy(value => value.stackId, StringComparer.Ordinal))
         {
-            if (remaining <= 0)
-            {
-                break;
-            }
+            if (remaining <= 0) break;
             if (!predicate(stack))
+                continue;
+            int available = reservations.GetAvailableQuantity(
+                new ItemStackId(stack.stackId));
+            int take = Mathf.Min(remaining, available);
+            if (take <= 0) continue;
+            selected.Add(new ReservedItemConsumption(stack.stackId, take));
+            remaining -= take;
+        }
+        return remaining == 0;
+    }
+
+    private static bool TryReserveAndConsume(
+        string destinationId,
+        string ownerOperationId,
+        IReadOnlyList<ReservedItemConsumption> selected,
+        WorldItemRepository repository,
+        IItemQuantityReservationService reservations,
+        IReservedItemTransferService reservedTransfers,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string owner = ownerOperationId?.Trim() ?? string.Empty;
+        if (owner.Length == 0)
+        {
+            failureReason = "facility operation missing";
+            return false;
+        }
+        ItemQuantityReservationRequest[] requests = selected
+            .Where(value => value.IsValid)
+            .Select(value => new ItemQuantityReservationRequest(
+                new ItemStackId(value.StackId),
+                value.Quantity,
+                ItemStackSignature.Create(
+                    repository.RecordsById[value.StackId].itemId,
+                    repository.RecordsById[value.StackId].components)))
+            .ToArray();
+        if (!reservations.TryReserveBatch(
+                owner,
+                string.Empty,
+                ItemReservationPurpose.FacilityBuffer,
+                $"facility-buffer:{destinationId}",
+                requests,
+                out IReadOnlyList<ItemQuantityLease> leases,
+                out DomainFailure reserveFailure))
+        {
+            failureReason = reserveFailure.ToString();
+            return false;
+        }
+        foreach (ItemQuantityLease lease in leases)
+        {
+            if (reservedTransfers.TryConsumeReservedQuantity(
+                    lease.leaseId,
+                    lease.remainingQuantity,
+                    out DomainFailure consumeFailure))
             {
                 continue;
             }
-
-            int consumed = Mathf.Min(remaining, stack.quantity);
-            Vector2Int position = stack.position;
-            stack.quantity -= consumed;
-            remaining -= consumed;
-            repository.MarkChanged();
-            if (stack.quantity <= 0)
-            {
-                repository.Remove(stack);
-            }
-            markerPresenter.RefreshAt(position);
+            reservations.ReleaseByOwner(
+                owner,
+                ItemReservationReleaseReason.Cancelled);
+            failureReason = consumeFailure.ToString();
+            return false;
         }
+        return true;
     }
 
     private static bool MatchesCategoryBuffer(
@@ -222,10 +265,14 @@ internal static class ItemFacilityBufferTransaction
     private static void RequireDependencies(
         IDungeonDebugRuleQuery debugRules,
         WorldItemRepository repository,
-        IItemMarkerPresenter markerPresenter)
+        IItemMarkerPresenter markerPresenter,
+        IItemQuantityReservationService reservations,
+        IReservedItemTransferService reservedTransfers)
     {
         _ = debugRules ?? throw new ArgumentNullException(nameof(debugRules));
         _ = repository ?? throw new ArgumentNullException(nameof(repository));
         _ = markerPresenter ?? throw new ArgumentNullException(nameof(markerPresenter));
+        _ = reservations ?? throw new ArgumentNullException(nameof(reservations));
+        _ = reservedTransfers ?? throw new ArgumentNullException(nameof(reservedTransfers));
     }
 }

@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uD2BC\uD2BC\uD55C \uC704\uC7A5"
   description: "\uB0AF\uC120 \uBC30\uAE09\uC2DD\uC744 \uC798 \uBA39\uC9C0\uB9CC \uC624\uC5FC\uC744
     \uB300\uC218\uB86D\uC9C0 \uC54A\uAC8C \uC5EC\uAE34\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1.03
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,42 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 1
+  polarity: 1
+  selectionFamilyId: metabolism
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: food:unfamiliar
-    utilityDelta: 0.3
-  moodReactions:
-  - triggerTag: food:variety
-    moodDelta: 2
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: disease
-    multiplier: 0.8
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:211:effect:0
+    definition: {fileID: 11400000, guid: ffdcdf8e15e0089408a2b667a5ba6a76, type: 2}
+    value: 0.7
+    condition: {fileID: 0}
+  - bindingId: trait:211:effect:1
+    definition: {fileID: 11400000, guid: ab46736f68b07c442bc3c27bbc87e7cc, type: 2}
+    value: 1.03
+    condition: {fileID: 11400000, guid: 36c0223894b42224fbd60cf6de659c41, type: 2}
+  identityRules:
+  - rid: 7737211921986486463
+  - rid: 7737211921986486464
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486463
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:try-unfamiliar-food
+        priority: 0
+        behaviorTag: food:unfamiliar
+        utilityDelta: 0.45
+    - rid: 7737211921986486464
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:new-meal
+        priority: 0
+        eventId: food:new-meal
+        moodDelta: 2
+        durationDays: 1

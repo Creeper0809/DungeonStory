@@ -113,6 +113,8 @@ public static class ProductionWorkshopContentAssetBuilder
         PatchWorkstations();
         PatchLegacyRecipes();
         BuildNewRecipes();
+        V23RecipeProcessClassAuthoring.NormalizeRecipeWorkUnder(
+            "Assets/Resources/SO/Economy/Recipes");
     }
 
     private static void BuildItems()
@@ -200,6 +202,16 @@ public static class ProductionWorkshopContentAssetBuilder
         for (int index = 0; index < specs.Length; index++)
         {
             ItemSpec spec = specs[index];
+            ResourceIngredientTag authoredTags = spec.Tags;
+            if (spec.Id == "food:grape-syrup")
+                authoredTags |= ResourceIngredientTag.Sweet;
+            if (spec.Id == "material:brined-vegetable"
+                || spec.Id == "food:fermented-pickle"
+                || spec.Id == "material:salted-meat"
+                || spec.Id == "food:salted-meat-stew")
+            {
+                authoredTags |= ResourceIngredientTag.Salted;
+            }
             ResourceItemDefinitionSO asset =
                 GetOrCreate<ResourceItemDefinitionSO>(
                     $"{ItemRoot}/{Sanitize(spec.Id)}.asset");
@@ -210,19 +222,24 @@ public static class ProductionWorkshopContentAssetBuilder
                 "작업실의 다음 공정으로 실제 운반되는 물리 중간재.",
                 StockCategory.Food,
                 spec.Kind,
-                spec.Tags,
+                authoredTags,
                 spec.Price,
                 spec.Weight,
                 50,
                 spec.ResearchId);
             if (spec.Kind == ResourceItemKind.Food)
             {
+                (MealQualityTier quality, MealQualityBand qualityBand,
+                    MealServingRole servingRole, float nutrition, float mood,
+                    float freshness, bool preserved) = ResolveMeal(spec.Id);
                 asset.ConfigureMeal(
-                    MealQualityTier.Preserved,
-                    24f,
-                    2f,
-                    1440f,
-                    true);
+                    quality,
+                    nutrition,
+                    mood,
+                    freshness,
+                    preserved,
+                    qualityBand,
+                    servingRole);
             }
             if (spec.Id == "food:twilight-beer")
             {
@@ -264,6 +281,37 @@ public static class ProductionWorkshopContentAssetBuilder
             EditorUtility.SetDirty(asset);
         }
     }
+
+    private static (
+        MealQualityTier quality,
+        MealQualityBand qualityBand,
+        MealServingRole servingRole,
+        float nutrition,
+        float mood,
+        float freshness,
+        bool preserved) ResolveMeal(string itemId) => itemId switch
+    {
+        "food:malt-porridge" => (MealQualityTier.Simple, MealQualityBand.Simple,
+            MealServingRole.FullMeal, 40f, 2f, 360f, false),
+        "food:grape-syrup" => (MealQualityTier.Fine, MealQualityBand.Fine,
+            MealServingRole.Snack, 15f, 3f, 900f, true),
+        "food:fermented-pickle" => (MealQualityTier.Preserved, MealQualityBand.Simple,
+            MealServingRole.Snack, 15f, 2f, 1440f, true),
+        "food:fresh-curd" => (MealQualityTier.Fine, MealQualityBand.Decent,
+            MealServingRole.LightMeal, 25f, 3f, 240f, false),
+        "food:vegetable-pie" => (MealQualityTier.Fine, MealQualityBand.Decent,
+            MealServingRole.FullMeal, 50f, 5f, 450f, false),
+        "food:stuffed-mushroom" => (MealQualityTier.Fine, MealQualityBand.Decent,
+            MealServingRole.FullMeal, 50f, 5f, 360f, false),
+        "food:expedition-ration-pack" => (MealQualityTier.Preserved, MealQualityBand.Decent,
+            MealServingRole.FieldRation, 50f, 1f, 1800f, true),
+        "food:salted-meat-stew" => (MealQualityTier.Fine, MealQualityBand.Fine,
+            MealServingRole.FullMeal, 55f, 6f, 720f, true),
+        "food:preserved-vegetable" => (MealQualityTier.Preserved, MealQualityBand.Simple,
+            MealServingRole.FullMeal, 40f, 2f, 1440f, true),
+        _ => throw new InvalidOperationException(
+            $"Missing authored workshop meal profile for '{itemId}'.")
+    };
 
     private static void BuildSupportBuildings()
     {
@@ -522,6 +570,7 @@ public static class ProductionWorkshopContentAssetBuilder
                 workstation,
                 Array.Empty<string>(),
                 ProductionProcessKind.WorkOnly);
+            ApplyRecipeBalanceAuthority(recipe);
             EditorUtility.SetDirty(recipe);
         }
 
@@ -814,6 +863,7 @@ public static class ProductionWorkshopContentAssetBuilder
             wastewater,
             manualWater,
             ResolveSpoilage(inputs));
+        ApplyRecipeBalanceAuthority(recipe);
         EditorUtility.SetDirty(recipe);
     }
 
@@ -864,6 +914,7 @@ public static class ProductionWorkshopContentAssetBuilder
             cleanWater: water,
             wastewater: wastewater,
             allowManualWater: manualWater);
+        ApplyRecipeBalanceAuthority(recipe);
         EditorUtility.SetDirty(recipe);
     }
 
@@ -940,6 +991,7 @@ public static class ProductionWorkshopContentAssetBuilder
             WorkstationTagForFacility(facility),
             supports,
             ProductionProcessKind.WorkOnly);
+        ApplyRecipeBalanceAuthority(recipe);
         EditorUtility.SetDirty(recipe);
     }
 
@@ -974,6 +1026,7 @@ public static class ProductionWorkshopContentAssetBuilder
             finish,
             hours,
             failedBatchItemId: ResolveSpoilage(new[] { input }));
+        ApplyRecipeBalanceAuthority(recipe);
         EditorUtility.SetDirty(recipe);
     }
 
@@ -1002,6 +1055,7 @@ public static class ProductionWorkshopContentAssetBuilder
             WorkstationTagForFacility(facility),
             Array.Empty<string>(),
             ProductionProcessKind.WorkOnly);
+        ApplyRecipeBalanceAuthority(recipe);
         EditorUtility.SetDirty(recipe);
     }
 
@@ -1025,7 +1079,28 @@ public static class ProductionWorkshopContentAssetBuilder
             cleanWater: water,
             wastewater: wastewater,
             allowManualWater: manualWater);
+        ApplyRecipeBalanceAuthority(recipe);
         EditorUtility.SetDirty(recipe);
+    }
+
+    private static void ApplyRecipeBalanceAuthority(ProductionRecipeSO recipe)
+    {
+        ProductionFlowRole flowRole = recipe.Inputs.Count == 0
+            ? ProductionFlowRole.Source
+            : recipe.Outputs.Count == 0
+                ? ProductionFlowRole.Sink
+                : ProductionFlowRole.Transform;
+        recipe.ConfigureFlowRole(flowRole);
+        ProductionProcessClass processClass =
+            V23RecipeProcessClassAuthoring.Resolve(
+                recipe.WorkstationTag,
+                recipe.WorkTypeId.Value,
+                flowRole);
+        recipe.ConfigureProcessClass(processClass);
+        recipe.ConfigureBalanceWork(
+            V23BalanceWorkCalculator.CalculateRecipeBaseWork(
+                recipe,
+                processClass));
     }
 
     private static ProductionRecipeSO FindRecipe(string id)

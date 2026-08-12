@@ -27,23 +27,28 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC5F0\uD68C \uC6B4\uBC18
     \uC218\uB808."
   stockCategory: 1
-  unitWeight: 3.28
+  unitWeight: 3.15
   maxStack: 1
   sprite: {fileID: 0}
-  unitPrice: 214
+  unitPrice: 91
   features:
-  - rid: 7737211838078124682
-  - rid: 7737211838078124683
+  - rid: 7737211905660420132
+  - rid: 7737211905660420133
+  - rid: 7737211905660420826
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124682
+    - rid: 7737211905660420132
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:service:dining-operations
-    - rid: 7737211838078124683
+    - rid: 7737211905660420133
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 768
         sharedIntermediate: 0
+    - rid: 7737211905660420826
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.59820294

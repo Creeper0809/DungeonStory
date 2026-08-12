@@ -21,6 +21,7 @@ public class AbilityShopping : CharacterAbility
         new WaitForSeconds(0.5f);
 
     private int holdingMoney;
+    private bool spendingProjectionApplied;
     private readonly List<BuildableObject> mutableVisitedBuildings = new List<BuildableObject>();
     private IReadOnlyList<BuildableObject> visitedBuildingsView;
     private bool attemptedLooseItemTheftBeforeExit;
@@ -38,7 +39,14 @@ public class AbilityShopping : CharacterAbility
     public int lookAroundCount { get; private set; }
     public IReadOnlyList<BuildableObject> visitedBuilding =>
         visitedBuildingsView ??= ReadOnlyView.List(mutableVisitedBuildings);
-    public int HoldingMoney => holdingMoney;
+    public int HoldingMoney
+    {
+        get
+        {
+            EnsureSpendingProjection();
+            return holdingMoney;
+        }
+    }
     public ShoppingVisitOutcome LastVisitOutcome { get; private set; }
 
     [Inject]
@@ -72,13 +80,13 @@ public class AbilityShopping : CharacterAbility
         currentVisitTarget = null;
         LastVisitOutcome = ShoppingVisitOutcome.None;
         holdingMoney = data != null
-            ? Mathf.Max(0, Mathf.RoundToInt(
-                data.GetHoldingMoney(randomStream)
-                    * (actor?.Stats?.GetSpendingMultiplier() ?? 1f)))
+            ? Mathf.Max(0, data.GetHoldingMoney(randomStream))
             : 0;
+        spendingProjectionApplied = false;
     }
     public Stock DetermineBuyingItem(IReadOnlyList<Stock> stocks)
     {
+        EnsureSpendingProjection();
         if (stocks == null || stocks.Count == 0)
         {
             return new Stock(-1,0);
@@ -110,12 +118,14 @@ public class AbilityShopping : CharacterAbility
 
     public bool CanPay(Stock stock)
     {
+        EnsureSpendingProjection();
         return actor != null
             && (IsInternalStaffUse() || stock.cost <= holdingMoney);
     }
 
     public bool CanPayAmount(int amount)
     {
+        EnsureSpendingProjection();
         return actor != null
             && (IsInternalStaffUse()
                 || Mathf.Max(0, amount) <= holdingMoney);
@@ -123,6 +133,7 @@ public class AbilityShopping : CharacterAbility
 
     public IEnumerator PayForService(int amount)
     {
+        EnsureSpendingProjection();
         yield return PurchaseFeedbackDelay;
         if (!IsInternalStaffUse())
         {
@@ -202,10 +213,7 @@ public class AbilityShopping : CharacterAbility
     {
         if (!isActiveAndEnabled || !gameObject.activeInHierarchy)
         {
-            if (actor != null && actor.Brain != null)
-            {
-                actor.Brain.isBestActionEnd = true;
-            }
+            CompleteCurrentShoppingAction(null, clearFailures: false);
 
             return;
         }
@@ -228,10 +236,7 @@ public class AbilityShopping : CharacterAbility
                 reasonCode: "missing-destination",
                 sentiment: -0.7f,
                 bubbleEligible: true));
-            if (actor != null && actor.Brain != null)
-            {
-                actor.Brain.isBestActionEnd = true;
-            }
+            CompleteCurrentShoppingAction(action, clearFailures: false);
             yield break;
         }
 
@@ -250,27 +255,36 @@ public class AbilityShopping : CharacterAbility
                 reasonCode: "missing-movement-context",
                 bubbleEligible: true));
             action.ReleaseReservation(actor);
-            if (actor != null && actor.Brain != null)
-            {
-                actor.Brain.isBestActionEnd = true;
-            }
+            CompleteCurrentShoppingAction(action, clearFailures: false);
             yield break;
         }
 
         yield return move.MoveByCurrentBestActionPath();
-        GridCell destinationCell = grid.GetGridCell(grid.GetXY(transform.position));
-        if (destinationCell != null
-            && destinationCell.ContainsOccupant(action.destination)
+        if (actor == null
+            || actor.Brain == null
+            || actor.Brain.bestAction != action)
+        {
+            action.ReleaseReservation(actor);
+            yield break;
+        }
+        Vector2Int actorGridPosition = grid.GetXY(transform.position);
+        if (action.destination.ContainsGridPosition(actorGridPosition)
             && action.destination is IInteractable shop)
         {
             BeginVisitInteraction(action.destination);
             yield return shop.Interact(actor?.BuildingVisitor);
+            if (LastVisitOutcome == ShoppingVisitOutcome.InProgress)
+            {
+                SetVisitOutcome(
+                    action.destination,
+                    ShoppingVisitOutcome.Failed);
+            }
             action.ReleaseReservation(actor);
             if (LastVisitOutcome == ShoppingVisitOutcome.Abandoned)
             {
                 RegisterAvoidedVisit(action.destination);
             }
-            else
+            else if (LastVisitOutcome == ShoppingVisitOutcome.Completed)
             {
                 RegisterVisit(action.destination);
             }
@@ -287,10 +301,22 @@ public class AbilityShopping : CharacterAbility
                 bubbleEligible: true));
             action.ReleaseReservation(actor);
         }
-        if (actor != null && actor.Brain != null)
+        CompleteCurrentShoppingAction(action, clearFailures: true);
+    }
+
+    private void CompleteCurrentShoppingAction(
+        AIAction expectedAction,
+        bool clearFailures)
+    {
+        AIBrain brain = actor != null ? actor.Brain : null;
+        if (brain == null
+            || (expectedAction != null && brain.bestAction != expectedAction))
         {
-            actor.Brain.isBestActionEnd = true;
+            return;
         }
+
+        brain.isBestActionEnd = true;
+        brain.RequestImmediateReplan(clearFailures);
     }
 
     public void RegisterVisit(BuildableObject building)
@@ -351,6 +377,7 @@ public class AbilityShopping : CharacterAbility
         visitCount = Mathf.Max(0, savedVisitCount);
         lookAroundCount = Mathf.Max(0, savedLookAroundCount);
         holdingMoney = Mathf.Max(0, savedHoldingMoney);
+        spendingProjectionApplied = true;
         mutableVisitedBuildings.Clear();
     }
 
@@ -503,6 +530,7 @@ public class AbilityShopping : CharacterAbility
     }
     public IEnumerator BuyItem(RemainStock item, int purchaseCost)
     {
+        EnsureSpendingProjection();
         IShopStockCatalog catalog = shopStockCatalog
             ?? throw new InvalidOperationException($"{nameof(AbilityShopping)} requires {nameof(IShopStockCatalog)} injection.");
         if (catalog.TryGetSaleItem(item.id, out SaleItem iteminfo))
@@ -525,6 +553,22 @@ public class AbilityShopping : CharacterAbility
         {
             events.Onbuy(actor?.BuildingVisitor);
         }
+    }
+
+    private void EnsureSpendingProjection()
+    {
+        if (spendingProjectionApplied)
+        {
+            return;
+        }
+
+        float multiplier = actor?.Stats?.GetSpendingMultiplier()
+            ?? throw new InvalidOperationException(
+                "Shopping spending projection requires a live character stats authority.");
+        holdingMoney = Mathf.Max(
+            0,
+            Mathf.RoundToInt(holdingMoney * multiplier));
+        spendingProjectionApplied = true;
     }
 
     private void AddPurchasedItemToCarry(SaleItem itemInfo)

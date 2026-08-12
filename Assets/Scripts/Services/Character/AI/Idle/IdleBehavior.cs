@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public interface IIdleBehavior
@@ -121,6 +124,12 @@ public sealed class ShortChatIdleBehavior : IIdleBehavior
     public string DisplayName => "짧은 대화";
     public bool UsesMovement => false;
 
+    internal static bool HasPreferredIdentitySocialBehavior(
+        CharacterActor actor) =>
+        HasBehavior(actor, "social:reconcile")
+        || HasBehavior(actor, "social:encourage")
+        || HasBehavior(actor, "social:formal-etiquette");
+
     public bool CanRun(CharacterActor actor)
     {
         CharacterAiWorldSignalSnapshot signals = actor?.WorldSignalQuery?.Capture(
@@ -141,9 +150,135 @@ public sealed class ShortChatIdleBehavior : IIdleBehavior
             return false;
         }
 
+        CharacterActor target = SelectTarget(actor);
+        if (target == null)
+        {
+            failureReason = "대화할 실제 상대 없음";
+            return false;
+        }
+
+        bool reconcile = HasBehavior(actor, "social:reconcile")
+            && (actor.SocialMemory?.GetRelationshipSentiment(target) ?? 0f) < 0f;
+        bool encourage = !reconcile
+            && HasBehavior(actor, "social:encourage")
+            && (target.Stats?.Mood ?? 100f) < 55f;
+        bool formal = !reconcile
+            && !encourage
+            && HasBehavior(actor, "social:formal-etiquette")
+            && target.Identity?.IsOwner == true;
+
+        if (reconcile)
+        {
+            actor.SocialMemory?.RememberCharacterExperience(
+                target,
+                0.3f,
+                "자율 화해 대화");
+            target.SocialMemory?.RememberCharacterExperience(
+                actor,
+                0.3f,
+                "자율 화해 대화");
+            actor.AddActivity(CharacterActivityEvent.Create(
+                CharacterActivityKinds.Social,
+                CharacterActivityOutcomes.Responded,
+                $"{target.Identity?.DisplayName ?? target.name}에게 화해를 제안했다.",
+                actionId: "social:reconcile",
+                sentiment: 0.45f,
+                bubbleEligible: true));
+        }
+        else if (encourage)
+        {
+            target.ApplyMoodFactor(
+                "social:encouraged",
+                $"{actor.Identity?.DisplayName ?? actor.name}의 격려",
+                1f,
+                GameCalendarRules.SecondsPerDay,
+                1);
+            actor.AddActivity(CharacterActivityEvent.Create(
+                CharacterActivityKinds.Social,
+                CharacterActivityOutcomes.Responded,
+                $"{target.Identity?.DisplayName ?? target.name}을 격려했다.",
+                actionId: "social:encourage",
+                sentiment: 0.4f,
+                bubbleEligible: true));
+        }
+        else if (formal)
+        {
+            target.SocialMemory?.RememberCharacterExperience(
+                actor,
+                0.1f,
+                "공식 예절을 갖춘 대화");
+            actor.AddActivity(CharacterActivityEvent.Create(
+                CharacterActivityKinds.Social,
+                CharacterActivityOutcomes.Responded,
+                $"{target.Identity?.DisplayName ?? target.name}에게 공식 예절을 갖춰 인사했다.",
+                actionId: "social:formal-etiquette",
+                sentiment: 0.25f,
+                bubbleEligible: true));
+        }
+
         actor.GetAbility<AbilityMove>().StartWait(Mathf.Clamp(duration, 0.7f, 1.8f));
         return true;
     }
+
+    private static CharacterActor SelectTarget(CharacterActor actor)
+    {
+        if (actor?.WorldRegistry == null)
+            return null;
+
+        CharacterActor[] nearby = actor.WorldRegistry.Characters
+            .Where(candidate => candidate != null
+                && candidate != actor
+                && !candidate.IsDead
+                && Vector2Int.Distance(
+                    actor.GetNowXY(),
+                    candidate.GetNowXY()) <= 3f)
+            .OrderBy(candidate => candidate.Identity?.PersistentId,
+                StringComparer.Ordinal)
+            .ToArray();
+        if (nearby.Length == 0)
+            return null;
+
+        if (HasBehavior(actor, "social:reconcile"))
+        {
+            CharacterActor strained = nearby
+                .Where(candidate => (actor.SocialMemory?
+                    .GetRelationshipSentiment(candidate) ?? 0f) < 0f)
+                .OrderBy(candidate => actor.SocialMemory?
+                    .GetRelationshipSentiment(candidate) ?? 0f)
+                .FirstOrDefault();
+            if (strained != null)
+                return strained;
+        }
+        if (HasBehavior(actor, "social:encourage"))
+        {
+            CharacterActor discouraged = nearby
+                .Where(candidate => (candidate.Stats?.Mood ?? 100f) < 55f)
+                .OrderBy(candidate => candidate.Stats?.Mood ?? 100f)
+                .FirstOrDefault();
+            if (discouraged != null)
+                return discouraged;
+        }
+        if (HasBehavior(actor, "social:formal-etiquette"))
+        {
+            CharacterActor owner = nearby
+                .FirstOrDefault(candidate => candidate.Identity?.IsOwner == true);
+            if (owner != null)
+                return owner;
+        }
+        return nearby[0];
+    }
+
+    private static bool HasBehavior(CharacterActor actor, string behaviorTag) =>
+        (actor?.Progression?.ResolveSelectedTraits()
+            ?? Array.Empty<CharacterTraitSO>())
+        .Where(trait => trait != null)
+        .SelectMany(trait => trait.identityRules
+            ?? new List<CharacterIdentityRule>())
+        .OfType<BehaviorUtilityRule>()
+        .Any(rule => string.Equals(
+            rule.behaviorTag,
+            behaviorTag,
+            StringComparison.Ordinal));
 }
 
 public sealed class ShelterFromWeatherIdleBehavior : IIdleBehavior
@@ -357,7 +492,10 @@ public static class IdleBehaviorRunner
             return ShelterFromWeather;
         }
 
-        if (signals.NearbyCharacters > 0 && signals.SocialOpportunity >= 0.25f)
+        if (signals.NearbyCharacters > 0
+            && (signals.SocialOpportunity >= 0.25f
+                || ShortChatIdleBehavior
+                    .HasPreferredIdentitySocialBehavior(actor)))
         {
             return ShortChat;
         }

@@ -26,28 +26,33 @@ MonoBehaviour:
   displayName: "\uC0B0\uD0C4 \uD0C4\uC57D"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC0B0\uD0C4 \uD0C4\uC57D."
   stockCategory: 7
-  unitWeight: 4.12
+  unitWeight: 0.15
   maxStack: 120
   sprite: {fileID: 0}
-  unitPrice: 270
+  unitPrice: 18
   features:
-  - rid: 7737211838078124287
-  - rid: 7737211838078124288
-  - rid: 7737211838078124289
+  - rid: 7737211905658585858
+  - rid: 7737211905658585859
+  - rid: 7737211905658585860
+  - rid: 7737211905660420745
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124287
+    - rid: 7737211905658585858
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:scatter-cartridge
-    - rid: 7737211838078124288
+    - rid: 7737211905658585859
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:standard-ammunition
-    - rid: 7737211838078124289
+    - rid: 7737211905658585860
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 512
         sharedIntermediate: 0
+    - rid: 7737211905660420745
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6085475

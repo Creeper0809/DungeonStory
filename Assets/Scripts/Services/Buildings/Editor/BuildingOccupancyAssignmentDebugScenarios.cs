@@ -22,7 +22,7 @@ public static class BuildingOccupancyAssignmentDebugScenarios
         bool buildableOwnsNoReservationState = removedStateFields.All(name =>
             typeof(BuildableObject).GetField(name, InstanceFields) == null);
         bool collaboratorsOwnExpectedState =
-            typeof(BuildingOccupancy).GetField("currentUserCount", InstanceFields) != null
+            typeof(BuildingOccupancy).GetField("activeUsers", InstanceFields) != null
             && typeof(BuildingOccupancy).GetField("visitReservations", InstanceFields) != null
             && typeof(BuildingAssignment).GetField("workerReservation", InstanceFields) != null
             && typeof(BuildingAssignment).GetField("workerReservationUntil", InstanceFields) != null;

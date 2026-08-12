@@ -19,7 +19,8 @@ public sealed class CharacterNarrativeSaveSection :
         KinshipHouseholdSaveSection.Id,
         CharacterCareerSaveSection.Id
     };
-    protected override void ValidateRawPayload(string payloadJson) => RequireTopLevelArrayFields(payloadJson, "characters");
+    protected override void ValidateRawPayload(string payloadJson) =>
+        RequireTopLevelArrayFields(payloadJson, "characters", "identityStates");
     protected override CharacterNarrativeWorldSaveData CapturePayload() => persistence.Capture();
     protected override CharacterNarrativeAggregateState BuildRestoreCandidate(CharacterNarrativeWorldSaveData payload) => persistence.PrepareRestore(payload);
     protected override void PublishRestoreCandidate(CharacterNarrativeAggregateState candidate) => persistence.PublishRestore(candidate);

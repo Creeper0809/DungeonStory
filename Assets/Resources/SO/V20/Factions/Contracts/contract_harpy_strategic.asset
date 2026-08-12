@@ -23,8 +23,8 @@ MonoBehaviour:
   deadlineDays: 45
   completionRequirements:
     items:
-    - itemDefinitionId: item:weather-chart
-      amount: 4
+    - itemDefinitionId: tool:weather-observation-kit
+      amount: 6
       consume: 1
     facilities: []
     research: []

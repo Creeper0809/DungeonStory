@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uC0DD\uC2DD \uCE58\uB8CC\uC81C"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC0DD\uC2DD \uCE58\uB8CC\uC81C."
   stockCategory: 5
-  unitWeight: 3.9099998
+  unitWeight: 0.35
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 256
+  unitPrice: 64
   features:
-  - rid: 7737211838074979241
-  - rid: 7737211838074979242
+  - rid: 7737211905655964544
+  - rid: 7737211905655964545
+  - rid: 7737211905660420386
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074979241
+    - rid: 7737211905655964544
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:reproductive-medicine
-    - rid: 7737211838074979242
+    - rid: 7737211905655964545
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 0
         sharedIntermediate: 0
+    - rid: 7737211905660420386
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6012417

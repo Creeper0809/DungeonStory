@@ -30,9 +30,19 @@ MonoBehaviour:
   requiredSupportTags: []
   batchSupportTag: 
   processKind: 0
+  flowRole: 0
+  processClass: 4
+  processClassAuthored: 1
   workTypeId: work:craft
+  proficiency:
+    primaryProficiencyId: proficiency:crafting
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 3
+    minimumRiskRank: 0
   requiredResearchId: research:defense:ranged-positions
-  requiredWork: 8
+  requiredWork: 100
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uC885\uC774 \uD480\uCE60"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC885\uC774 \uD480\uCE60."
   stockCategory: 1
-  unitWeight: 1.75
+  unitWeight: 1.1
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 112
+  unitPrice: 13
   features:
-  - rid: 7737211838078124304
-  - rid: 7737211838078124305
+  - rid: 7737211905658585880
+  - rid: 7737211905658585881
+  - rid: 7737211905660420752
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124304
+    - rid: 7737211905658585880
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:milling
-    - rid: 7737211838078124305
+    - rid: 7737211905658585881
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1
         sharedIntermediate: 0
+    - rid: 7737211905660420752
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6100964

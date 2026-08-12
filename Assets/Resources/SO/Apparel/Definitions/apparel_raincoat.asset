@@ -38,5 +38,13 @@ MonoBehaviour:
   allowedMaterialTags: 3
   tailoringCoefficient: 1.08
   baseWeight: 1.1
+  allowMythicInspiration: 1
   requiredResearchId: research:textile:layered
   sprite: {fileID: 0}
+  proficiency:
+    primaryProficiencyId: proficiency:crafting
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0

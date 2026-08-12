@@ -120,6 +120,25 @@ public interface IWorkOrderRuntime
     int DebugCompleteAllOrders();
 }
 
+public interface IConstructionProjectWorkforceRuntime
+{
+    bool TryJoinConstructionProject(
+        BuildableObject target,
+        CharacterActor worker,
+        out ProjectWorkerLease lease,
+        out string failureReason);
+    bool UpdateConstructionWorkerRate(
+        BuildableObject target,
+        CharacterActor worker,
+        float wuPerSecond);
+    float GetConstructionContributionMultiplier(
+        BuildableObject target,
+        CharacterActor worker);
+    bool TryCaptureConstructionProject(
+        BuildableObject target,
+        out ProjectWorkforceSnapshot snapshot);
+}
+
 internal sealed class WorkOrderRecord
 {
     public string workOrderId = string.Empty;

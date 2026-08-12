@@ -62,8 +62,13 @@ MonoBehaviour:
   defenseAffinityTags:
   - "\uB0C9\uAE30"
   - "\uBD80\uC2DD"
-  strongWorkTypeIds: []
-  weakWorkTypeIds: []
+  strongWorkTypeIds:
+  - work:clean
+  - work:gather
+  weakWorkTypeIds:
+  - work:guard
+  - work:logging
+  - work:quarry
   shortDescription: "\uB300\uB7C9 \uBC29\uBB38/\uC800\uC18C\uBE44/\uCCAD\uC18C/\uC624\uC5FC
     \uAD00\uB9AC"
   description: "\uB0AE\uC740 \uC18C\uBE44\uC640 \uBE60\uB978 \uD68C\uC804\uC73C\uB85C
@@ -98,43 +103,74 @@ MonoBehaviour:
     mechanicTags:
     - "\uBB3C\uB958"
     - "\uBD80\uC2DD"
-  statBonus:
-    entries:
-    - statId: stat:attack
-      value: 0
-    - statId: stat:sales
-      value: 0
-    - statId: stat:research
-      value: 0
-    - statId: stat:move-speed
-      value: 1
-    - statId: stat:strength
-      value: 0
-    - statId: stat:toughness
-      value: -1
-    - statId: stat:dexterity
-      value: 0
-    - statId: stat:cleaning
-      value: 2
-    - statId: stat:endurance
-      value: 1
   modifiers:
-    consumptionMultiplier: 0.9
-    spendingMultiplier: 0.85
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1.05
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 0.8
-    moveSpeedMultiplier: 1.05
-    stayDurationMultiplier: 0.9
     preferredFacilityRoles: 5
     dislikedFacilityRoles: 8
     preferredWorkTypes: 10
     dislikedWorkTypes: 32
   combatAbilities:
     abilities: []
+  effects:
+  - bindingId: species:Slime:capacity_mental-maintenance
+    definition: {fileID: 11400000, guid: e824443ce8b009943965055bb5c84cce, type: 2}
+    value: 1
+    condition: {fileID: 0}
+  - bindingId: species:Slime:capacity_visual-discernment
+    definition: {fileID: 11400000, guid: 7294ccb39b7adea47aadcc65dde9b29e, type: 2}
+    value: 0.9
+    condition: {fileID: 0}
+  - bindingId: species:Slime:capacity_auditory-sensing
+    definition: {fileID: 11400000, guid: 7aceac644d3d00d4bb23b8b446cd20ec, type: 2}
+    value: 0.9
+    condition: {fileID: 0}
+  - bindingId: species:Slime:capacity_respiratory-exchange
+    definition: {fileID: 11400000, guid: bf0c7ee266c94734491fabbefc56f3bd, type: 2}
+    value: 1
+    condition: {fileID: 0}
+  - bindingId: species:Slime:capacity_power-circulation
+    definition: {fileID: 11400000, guid: c4320a922f47a944bac98c577c493f0b, type: 2}
+    value: 1.1
+    condition: {fileID: 0}
+  - bindingId: species:Slime:capacity_intake-processing
+    definition: {fileID: 11400000, guid: 798519265bdbcb44e8d7179997823082, type: 2}
+    value: 1.05
+    condition: {fileID: 0}
+  - bindingId: species:Slime:capacity_purification-processing
+    definition: {fileID: 11400000, guid: 9646fe5d20b2ffb4691924f2c54f043c, type: 2}
+    value: 1.15
+    condition: {fileID: 0}
+  - bindingId: species:Slime:capacity_vitality-response
+    definition: {fileID: 11400000, guid: e505e4d6c6b105d41920604fab29dd97, type: 2}
+    value: 1.15
+    condition: {fileID: 0}
+  - bindingId: species:Slime:capacity_physical-power
+    definition: {fileID: 11400000, guid: 3e6c3de3dbac42342ac392f653a710be, type: 2}
+    value: 0.8
+    condition: {fileID: 0}
+  - bindingId: species:Slime:capacity_precision-manipulation
+    definition: {fileID: 11400000, guid: 65206679fe515374e90ed42156a79020, type: 2}
+    value: 0.85
+    condition: {fileID: 0}
+  - bindingId: species:Slime:capacity_physical-mobility
+    definition: {fileID: 11400000, guid: f663257780e25da4985e8411e2d66bbd, type: 2}
+    value: 1.1
+    condition: {fileID: 0}
+  - bindingId: species:Slime:capacity_communication
+    definition: {fileID: 11400000, guid: ad0a376957a1b5b42bfbd2975864c730, type: 2}
+    value: 0.85
+    condition: {fileID: 0}
+  - bindingId: species:Slime:capacity_arcane-conduction
+    definition: {fileID: 11400000, guid: 650cb7f5e730c0b46bc5dc495f7d1586, type: 2}
+    value: 1.05
+    condition: {fileID: 0}
+  - bindingId: species:Slime:capacity_immune-defense
+    definition: {fileID: 11400000, guid: ba0a979776169d34597d6d5c9e4e2d8e, type: 2}
+    value: 1.15
+    condition: {fileID: 0}
+  - bindingId: species:Slime:character_spending
+    definition: {fileID: 11400000, guid: 7b3eb087dd06731449587320d5c7cb29, type: 2}
+    value: 0.85
+    condition: {fileID: 0}
   references:
     version: 2
     RefIds: []

@@ -19,12 +19,14 @@ public sealed class SurvivalWorkExecutionHandler :
     private readonly ISurvivalFoodQuery survivalRuntime;
     private readonly IProductionBillWorkExecution productionBills;
     private readonly IProcessFluidUseRuntime processFluids;
+    private readonly ICharacterSpeciesRechargeService golemRecharge;
     private readonly IReadOnlyDictionary<WorkTypeId, Func<BuildableObject, float>> workAmounts;
 
     public SurvivalWorkExecutionHandler(
         ISurvivalFoodQuery survivalRuntime,
         IProductionBillWorkExecution productionBills,
-        IProcessFluidUseRuntime processFluids)
+        IProcessFluidUseRuntime processFluids,
+        ICharacterSpeciesRechargeService golemRecharge)
     {
         this.survivalRuntime = survivalRuntime
             ?? throw new ArgumentNullException(nameof(survivalRuntime));
@@ -32,6 +34,8 @@ public sealed class SurvivalWorkExecutionHandler :
             ?? throw new ArgumentNullException(nameof(productionBills));
         this.processFluids = processFluids
             ?? throw new ArgumentNullException(nameof(processFluids));
+        this.golemRecharge = golemRecharge
+            ?? throw new ArgumentNullException(nameof(golemRecharge));
         workAmounts = new Dictionary<WorkTypeId, Func<BuildableObject, float>>
         {
             [BuiltInWorkTypeIds.DrawWater] = target =>
@@ -54,6 +58,9 @@ public sealed class SurvivalWorkExecutionHandler :
         out string reason)
     {
         reason = string.Empty;
+        if (workTypeId == BuiltInWorkTypeIds.Refuel
+            && target?.BuildingData?.GetAbility<BuildingGolemRechargeAbility>() != null)
+            return golemRecharge.IsRechargeAvailable(actor, target, out reason);
         if (workTypeId == BuiltInWorkTypeIds.Cook)
         {
             ProductionWorkAvailabilityResult availability =
@@ -81,6 +88,9 @@ public sealed class SurvivalWorkExecutionHandler :
         CharacterActor actor,
         BuildableObject target)
     {
+        if (workTypeId == BuiltInWorkTypeIds.Refuel
+            && target?.BuildingData?.GetAbility<BuildingGolemRechargeAbility>() != null)
+            return golemRecharge.GetRechargeUrgency(actor, target);
         return workTypeId.IsValid
             ? survivalRuntime.GetSurvivalWorkUrgency(target, workTypeId)
             : 0f;
@@ -88,6 +98,41 @@ public sealed class SurvivalWorkExecutionHandler :
 
     public IEnumerator Execute(WorkExecutionContext context, WorkExecutionResult result)
     {
+        if (context.WorkTypeId == BuiltInWorkTypeIds.Refuel
+            && context.Target?.BuildingData?
+                .GetAbility<BuildingGolemRechargeAbility>()
+                is BuildingGolemRechargeAbility rechargeAbility)
+        {
+            if (!golemRecharge.TryBeginRecharge(
+                    context.Actor,
+                    context.Target,
+                    out float completedWork,
+                    out _))
+            {
+                result.CompletedSuccessfully = false;
+                yield break;
+            }
+            bool applied = true;
+            bool completed = false;
+            yield return context.ExecutePersistentWorkAmount(
+                rechargeAbility.requiredWork,
+                completedWork,
+                "골렘 충전",
+                delta =>
+                {
+                    applied &= golemRecharge.TryApplyRechargeWork(
+                        context.Actor,
+                        context.Target,
+                        delta,
+                        out bool cycleCompleted,
+                        out _);
+                    completed |= cycleCompleted;
+                    return applied;
+                });
+            result.CompletedSuccessfully = applied && completed;
+            result.CompletionEffectsAlreadyApplied = completed;
+            yield break;
+        }
         if (context.WorkTypeId == BuiltInWorkTypeIds.Cook)
         {
             ProductionWorkBeginResult begin = productionBills.BeginWork(

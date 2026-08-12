@@ -5,6 +5,55 @@ using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer.Unity;
 
+public static class AutomationLaborAccountingRules
+{
+    public static float CalculateAcceptedWork(
+        ProductionBillSnapshot before,
+        ProductionBillSnapshot after,
+        ProductionWorkExecutionResult execution)
+    {
+        if (before == null || !execution.Succeeded)
+        {
+            return 0f;
+        }
+
+        float remainingBefore = Mathf.Max(
+            0f,
+            before.RequiredWork - before.CompletedWork);
+        if (execution.CycleCompleted
+            || execution.Outcome == ProductionBillOutcomeCode.ProcessingStarted)
+        {
+            return remainingBefore;
+        }
+
+        return after == null
+            ? 0f
+            : Mathf.Clamp(
+                after.CompletedWork - before.CompletedWork,
+                0f,
+                remainingBefore);
+    }
+
+    public static float CalculateNetAutomaticWork(
+        ProductionBillSnapshot before,
+        ProductionBillSnapshot after,
+        ProductionWorkExecutionResult execution,
+        float maintenanceBurdenWu)
+    {
+        if (float.IsNaN(maintenanceBurdenWu)
+            || float.IsInfinity(maintenanceBurdenWu)
+            || maintenanceBurdenWu < 0f)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maintenanceBurdenWu));
+        }
+
+        return Mathf.Max(
+            0f,
+            CalculateAcceptedWork(before, after, execution)
+                - maintenanceBurdenWu);
+    }
+}
+
 internal sealed class AutomationRuntime :
     IAutomationInfrastructureQuery,
     IAutomationInfrastructureCommand,
@@ -21,6 +70,7 @@ internal sealed class AutomationRuntime :
     private readonly IGameClock clock;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
+    private readonly ISettlementLaborAccountingService laborAccounting;
     private readonly AutomationStateSession stateSession;
     private IReadOnlyList<AutomationFacilitySnapshot> facilities =
         Array.Empty<AutomationFacilitySnapshot>();
@@ -37,6 +87,7 @@ internal sealed class AutomationRuntime :
         IProductionBillWorkExecution productionWork,
         IGameClock clock,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
+        ISettlementLaborAccountingService laborAccounting,
         IMilestoneGameplayModifierQuery milestoneModifiers = null)
     {
         this.buildings = buildings
@@ -53,6 +104,8 @@ internal sealed class AutomationRuntime :
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
         this.milestoneModifiers = milestoneModifiers
             ?? NeutralMilestoneGameplayModifierQuery.Instance;
+        this.laborAccounting = laborAccounting
+            ?? throw new ArgumentNullException(nameof(laborAccounting));
         stateSession = new AutomationStateSession(this.aggregateRootStore);
         projectedRestoreRevision =
             this.aggregateRootStore.PublishedRestoreRevision;
@@ -319,7 +372,57 @@ internal sealed class AutomationRuntime :
             return;
         }
 
+        RecordAutomaticWork(
+            facility,
+            facilityId,
+            bill,
+            execution,
+            maintenanceDrain);
+
         state.SetStatus(InfrastructureStatus.None);
+    }
+
+    private void RecordAutomaticWork(
+        BuildableObject facility,
+        string facilityId,
+        ProductionBillSnapshot before,
+        ProductionWorkExecutionResult execution,
+        float maintenanceBurdenWu)
+    {
+        if (before == null)
+        {
+            return;
+        }
+
+        ProductionBillSnapshot after = productionQuery
+            .GetBills(facility)
+            .FirstOrDefault(candidate => candidate.BillId == before.BillId);
+        float acceptedWork = AutomationLaborAccountingRules.CalculateNetAutomaticWork(
+            before,
+            after,
+            execution,
+            maintenanceBurdenWu);
+
+        if (acceptedWork <= 0f)
+        {
+            return;
+        }
+
+        string operationId =
+            $"automation:{projectedRestoreRevision}:{facilityId}:{before.BillId.Value}";
+        long sequence = unchecked((uint)clock.FrameCount);
+        EmergencyAccountingResult recorded = laborAccounting.Record(
+            new SettlementLaborContribution(
+                operationId,
+                sequence,
+                SettlementLaborContributionChannel.DomainAutomation,
+                EmergencyWuUnits.FromWu(acceptedWork),
+                before.WorkTypeId.Value));
+        if (!recorded.Success)
+        {
+            throw new InvalidOperationException(
+                $"{recorded.Code}: {recorded.Message}");
+        }
     }
 
     private void EnsureFacilities()

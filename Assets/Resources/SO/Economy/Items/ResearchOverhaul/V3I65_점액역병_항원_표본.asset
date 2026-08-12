@@ -27,28 +27,33 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC810\uC561\uC5ED\uBCD1
     \uD56D\uC6D0 \uD45C\uBCF8."
   stockCategory: 1
-  unitWeight: 2.17
+  unitWeight: 0.9
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 140
+  unitPrice: 9
   features:
-  - rid: 7737211838078124933
-  - rid: 7737211838078124934
-  - rid: 7737211838078124935
+  - rid: 7737211905658585571
+  - rid: 7737211905658585572
+  - rid: 7737211905658585573
+  - rid: 7737211905660420645
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124933
+    - rid: 7737211905658585571
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:pathogen-observation
-    - rid: 7737211838078124934
+    - rid: 7737211905658585572
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211838078124935
+    - rid: 7737211905658585573
       type: {class: PathogenSampleItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         diseaseId: disease:slime-blight
+    - rid: 7737211905660420645
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.57549703

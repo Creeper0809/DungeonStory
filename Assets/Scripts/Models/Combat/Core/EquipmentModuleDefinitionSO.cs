@@ -4,7 +4,7 @@ using UnityEngine.Scripting.APIUpdating;
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 [CreateAssetMenu(menuName = "DungeonStory/Combat/Equipment Module", order = 13)]
-public sealed class EquipmentModuleDefinitionSO : ScriptableObject
+public sealed class EquipmentModuleDefinitionSO : ScriptableObject, IGameplayEffectSource
 {
     public const string ResourcePath = "SO/Combat/EquipmentModules";
     [SerializeField] private string moduleId = string.Empty;
@@ -14,6 +14,7 @@ public sealed class EquipmentModuleDefinitionSO : ScriptableObject
     [SerializeField] private EquipmentEra minimumEra = EquipmentEra.Medieval;
     [Min(0f), SerializeField] private float powerPerGrade = 0.04f;
     [Min(0f), SerializeField] private float utilityPerGrade = 0.03f;
+    [SerializeField] private List<GameplayEffectBinding> effects = new();
 
     public string ModuleId => moduleId?.Trim() ?? string.Empty;
     public string DisplayName => string.IsNullOrWhiteSpace(displayName)
@@ -24,6 +25,10 @@ public sealed class EquipmentModuleDefinitionSO : ScriptableObject
     public EquipmentEra MinimumEra => minimumEra;
     public float PowerPerGrade => Mathf.Max(0f, powerPerGrade);
     public float UtilityPerGrade => Mathf.Max(0f, utilityPerGrade);
+    public GameplayEffectSourceRef SourceRef =>
+        new(GameplayEffectSourceKind.EquipmentModule, ModuleId);
+    public IReadOnlyList<GameplayEffectBinding> Effects =>
+        effects ??= new List<GameplayEffectBinding>();
 }
 
 public interface IEquipmentModuleCatalog

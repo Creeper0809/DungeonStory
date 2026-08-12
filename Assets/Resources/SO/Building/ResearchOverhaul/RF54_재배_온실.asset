@@ -34,19 +34,34 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 3
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: proficiency:food-production
+    secondaryProficiencyId: proficiency:fieldwork
+    primaryWeight: 0.8
+    combinationMode: 1
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211838078124828
-    - rid: 7737211838078124829
-    - rid: 7737211838078124830
-    - rid: 7737211838078124831
-    - rid: 7737211838078124832
-    - rid: 7737211838078124833
-    - rid: 7737211838078124834
-    - rid: 7737211838078124835
-    - rid: 7737211838078124836
+    - rid: 7737211905658585528
+    - rid: 7737211905658585529
+    - rid: 7737211905658585530
+    - rid: 7737211905658585531
+    - rid: 7737211905658585532
+    - rid: 7737211905658585533
+    - rid: 7737211905658585534
+    - rid: 7737211905658585535
+    - rid: 7737211905658585536
   width: 1
   height: 1
   layer: 1
@@ -62,12 +77,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124828
+    - rid: 7737211905658585528
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF54
-    - rid: 7737211838078124829
+    - rid: 7737211905658585529
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -75,13 +90,13 @@ MonoBehaviour:
         - research-overhaul
         - research:agriculture:greenhouse-horticulture
         - workstation:v19:greenhouse
-    - rid: 7737211838078124830
+    - rid: 7737211905658585530
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v19:greenhouse
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211838078124831
+    - rid: 7737211905658585531
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -89,7 +104,7 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211838078124832
+    - rid: 7737211905658585532
       type: {class: BuildingCropPlotAbility, ns: , asm: DungeonStory.Economy}
       data:
         abilityId: BuildingCropPlotAbility
@@ -101,16 +116,16 @@ MonoBehaviour:
         cycleSupplyInputs:
         - itemId: supply:greenhouse-nutrient
           amount: 1
-    - rid: 7737211838078124833
+    - rid: 7737211905658585533
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
-        constructionCost: 292
-        maintenance: 5
+        constructionCost: 260
+        maintenance: 2
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211838078124834
+    - rid: 7737211905658585534
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -121,19 +136,30 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 6291457
           disabledWhenDamaged: 1
-    - rid: 7737211838078124835
+    - rid: 7737211905658585535
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211838078124836
+    - rid: 7737211905658585536
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 249
-        repairWorkRequired: 24
-        cleanWorkRequired: 8
+        constructionWorkRequired: 136
+        repairWorkRequired: 21
+        cleanWorkRequired: 12
         researchWorkRequired: 6
         operateWorkRequired: 12
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
         - itemId: material:treated-lumber
           amount: 12

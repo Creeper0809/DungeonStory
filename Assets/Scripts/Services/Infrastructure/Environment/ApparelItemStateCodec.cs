@@ -108,7 +108,7 @@ public static class TextileBatchItemState
 
 public static class ApparelItemStateCodec
 {
-    public const int SchemaVersion = 2;
+    public const int SchemaVersion = 3;
 
     public static ItemInstanceComponentSaveData Create(ApparelInstanceState state)
     {
@@ -137,7 +137,14 @@ public static class ApparelItemStateCodec
                 Decimal("contamination", Mathf.Clamp(state.contamination, 0f, 100f)),
                 String("designated-wearer", state.designatedWearerCharacterId),
                 Integer("crafted-day", Math.Max(0, state.craftedAbsoluteDay)),
-                String("batch-hash", state.deterministicBatchHash.ToString("X16"))
+                String("batch-hash", state.deterministicBatchHash.ToString("X16")),
+                String("mythic-maker", state.mythicProvenance?.makerCharacterId),
+                Integer("mythic-trait", state.mythicProvenance?.sourceTraitId ?? 0),
+                Integer("mythic-original-quality", (int)(state.mythicProvenance?.originalQuality
+                    ?? CraftsmanshipQualityTier.Normal)),
+                String("mythic-roll-hash", (state.mythicProvenance?.fixedRollHash ?? 0UL).ToString("X16")),
+                Integer("mythic-created-day", Math.Max(0, state.mythicProvenance?.createdDay ?? 0)),
+                String("mythic-facility", state.mythicProvenance?.createdFacilityId)
             }
         };
     }
@@ -150,7 +157,8 @@ public static class ApparelItemStateCodec
         ItemInstanceComponentSaveData component = TextileBatchItemState.Find(
             components,
             ItemInstanceComponentIds.Apparel);
-        if (component == null || component.schemaVersion != SchemaVersion)
+        if (component == null || component.schemaVersion < 2
+            || component.schemaVersion > SchemaVersion)
         {
             return false;
         }
@@ -188,6 +196,38 @@ public static class ApparelItemStateCodec
             System.Globalization.NumberStyles.HexNumber,
             System.Globalization.CultureInfo.InvariantCulture,
             out ulong hash);
+        string mythicMaker = TextileBatchItemState.ReadString(component, "mythic-maker");
+        ulong.TryParse(
+            TextileBatchItemState.ReadString(component, "mythic-roll-hash"),
+            System.Globalization.NumberStyles.HexNumber,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out ulong mythicRollHash);
+        MythicProvenanceSaveData mythic = mythicMaker.Length == 0
+            ? null
+            : new MythicProvenanceSaveData
+            {
+                makerCharacterId = mythicMaker,
+                sourceTraitId = TextileBatchItemState.ReadInteger(component, "mythic-trait", 0),
+                originalQuality = (CraftsmanshipQualityTier)TextileBatchItemState.ReadInteger(
+                    component,
+                    "mythic-original-quality",
+                    (int)CraftsmanshipQualityTier.Normal),
+                fixedRollHash = mythicRollHash,
+                createdDay = Math.Max(0, TextileBatchItemState.ReadInteger(
+                    component,
+                    "mythic-created-day",
+                    0)),
+                createdFacilityId = TextileBatchItemState.ReadString(component, "mythic-facility")
+            };
+        bool isMythic = craftsmanshipQuality == (int)CraftsmanshipQualityTier.Mythic;
+        if (isMythic != (mythic != null)
+            || (mythic != null
+                && (mythic.sourceTraitId != MythicCraftInspirationRules.SourceTraitId
+                    || !Enum.IsDefined(typeof(CraftsmanshipQualityTier), mythic.originalQuality)
+                    || mythic.originalQuality == CraftsmanshipQualityTier.Mythic)))
+        {
+            return false;
+        }
         state = new ApparelInstanceState
         {
             apparelDefinitionId = apparelId,
@@ -216,7 +256,8 @@ public static class ApparelItemStateCodec
             craftedAbsoluteDay = Math.Max(
                 0,
                 TextileBatchItemState.ReadInteger(component, "crafted-day", 0)),
-            deterministicBatchHash = hash
+            deterministicBatchHash = hash,
+            mythicProvenance = mythic
         };
         return true;
     }

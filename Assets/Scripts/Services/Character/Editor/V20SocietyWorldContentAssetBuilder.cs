@@ -30,22 +30,22 @@ public static class V20SocietyWorldContentAssetBuilder
 
     private static readonly FestivalSpec[] Festivals =
     {
-        F("festival:sprout","새싹제","첫 파종과 겨울 비축의 끝을 함께 기념한다.",Season.Spring,15,"","building:festival-common-hall","item:seed-lot-grain",12,8,false),
-        F("festival:high-sun","고일제","가장 긴 작업일 뒤 차가운 음료와 공연으로 여름 피로를 푼다.",Season.Summer,15,"","building:festival-common-hall","food:twilight-beer",10,8,false),
+        F("festival:sprout","새싹제","첫 파종과 겨울 비축의 끝을 함께 기념한다.",Season.Spring,15,"","building:festival-common-hall","seed-lot:twilight-grain",12,8,false),
+        F("festival:high-sun","고일제","가장 긴 작업일 뒤 차가운 음료와 공연으로 여름 피로를 푼다.",Season.Summer,15,"","building:festival-common-hall","food:twilight-beer",8,8,false),
         F("festival:storage","저장제","창고를 점검하고 첫 보존식을 나누며 겨울 준비를 선언한다.",Season.Autumn,25,"","building:festival-common-hall","food:preserved-ration",16,10,false),
-        F("festival:long-night-memorial","긴밤 추모제","한 해의 사망자를 함께 기억하고 남은 슬픔을 결의로 바꾼다.",Season.Winter,30,"","workstation:v19:memorial-room","item:candle",20,10,true),
+        F("festival:long-night-memorial","긴밤 추모제","한 해의 사망자를 함께 기억하고 남은 슬픔을 결의로 바꾼다.",Season.Winter,30,"","workstation:v19:memorial-room","craft:candle",12,10,true),
         F("festival:frontier-map-night","지도에 불을 밝히는 밤","개척자들이 귀환 경로와 미귀환자의 이름을 지도에 남긴다.",Season.Spring,22,"culture:adventurer-frontier","building:expedition-map-room","material:paper",8,6,false),
         F("festival:pack-first-hunt","무리의 첫사냥","수인 무리가 공동 사냥과 고기 분배로 새 계절의 결속을 확인한다.",Season.Autumn,8,"culture:beastkin-pack","building:festival-common-hall","resource:meat",18,8,false),
         F("festival:ash-oath","재의 맹세일","악마들이 지난 계약을 검토하고 지킬 약속만 다시 봉인한다.",Season.Winter,12,"culture:demon-contract","building:faction-audience-hall","material:paper",12,6,false),
-        F("festival:core-resonance","핵 공명일","골렘들이 정비된 핵의 주파수를 맞추고 기억판을 교환한다.",Season.Summer,6,"culture:golem-core","building:rune-tuning-room","component:maintenance-parts",10,5,false),
-        F("festival:open-sky-chorus","열린 하늘 합창","하피가 높은 통로를 비우고 계절 바람의 변화를 합창으로 기록한다.",Season.Spring,10,"culture:harpy-aerie","building:weather-observation-tower","food:dried-fruit",10,6,false),
-        F("festival:tool-clan-fair","도구씨족 품평회","코볼트 씨족이 수리한 도구를 전시하고 가장 유용한 개선을 뽑는다.",Season.Autumn,18,"culture:kobold-toolclan","building:apprentice-workbench","component:mechanical-parts",8,6,false),
-        F("festival:spore-bloom","포자 개화제","균사체가 배양 정원의 향과 포자를 섞어 공동 기억을 갱신한다.",Season.Spring,25,"culture:myconid-grove","building:cave-growing-rack","food:cultured-mushroom",14,6,false),
+        F("festival:core-resonance","핵 공명일","골렘들이 정비된 핵의 주파수를 맞추고 기억판을 교환한다.",Season.Summer,6,"culture:golem-core","building:rune-tuning-room","tool:maintenance-kit",2,5,false),
+        F("festival:open-sky-chorus","열린 하늘 합창","하피가 높은 통로를 비우고 계절 바람의 변화를 합창으로 기록한다.",Season.Spring,10,"culture:harpy-aerie","building:weather-observation-tower","resource:night-grape",10,6,false),
+        F("festival:tool-clan-fair","도구씨족 품평회","코볼트 씨족이 수리한 도구를 전시하고 가장 유용한 개선을 뽑는다.",Season.Autumn,18,"culture:kobold-toolclan","building:apprentice-workbench","component:machine-parts",2,6,false),
+        F("festival:spore-bloom","포자 개화제","균사체가 배양 정원의 향과 포자를 섞어 공동 기억을 갱신한다.",Season.Spring,25,"culture:myconid-grove","building:cave-growing-rack","resource:cave-mushroom",14,6,false),
         F("festival:weapon-vigil","무기 철야제","오크들이 밤새 무기를 손질하며 승리와 실수를 같은 무게로 말한다.",Season.Winter,20,"culture:orc-vigil","building:armory","material:charcoal",12,8,true),
         F("festival:clear-confluence","맑은 합류제","슬라임 가구가 깨끗한 수조에서 색과 기억을 나눈다.",Season.Summer,20,"culture:slime-confluence","building:clean-water-reservoir","resource:clean-water",24,8,false),
-        F("festival:blood-lantern","혈향 등불제","뱀파이어가 동의받은 혈향 촛불로 생존자와 사망자의 이름을 밝힌다.",Season.Autumn,30,"culture:vampire-nightcourt","workstation:v19:memorial-room","item:candle",16,6,true),
-        F("festival:many-tables","열 문화의 식탁","서로의 금기를 표시한 열 개의 작은 식탁을 돌며 대체식을 나눈다.",Season.Summer,28,"","building:festival-common-hall","food:festival-sampler",20,20,false),
-        F("festival:dungeon-accord-day","던전 협약 기념일","세력 사절과 직원이 공동 방어·구호 계약의 이행을 공개 점검한다.",Season.Autumn,12,"","building:faction-audience-hall","item:faction-accord-banner",6,12,false)
+        F("festival:blood-lantern","혈향 등불제","뱀파이어가 동의받은 혈향 촛불로 생존자와 사망자의 이름을 밝힌다.",Season.Autumn,30,"culture:vampire-nightcourt","workstation:v19:memorial-room","craft:candle",8,6,true),
+        F("festival:many-tables","열 문화의 식탁","서로의 금기를 표시한 열 개의 작은 식탁을 돌며 대체식을 나눈다.",Season.Summer,28,"","building:festival-common-hall","food:lavish-vegan",8,20,false),
+        F("festival:dungeon-accord-day","던전 협약 기념일","세력 사절과 직원이 공동 방어·구호 계약의 이행을 공개 점검한다.",Season.Autumn,12,"","building:faction-audience-hall","craft:dreamweave-ritual-banner",1,12,false)
     };
 
     private static readonly WorldSpec[] Worlds =

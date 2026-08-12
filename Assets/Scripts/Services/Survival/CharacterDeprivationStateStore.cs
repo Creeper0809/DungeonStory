@@ -148,7 +148,9 @@ public sealed class CharacterDeprivationAuthorityDependencies
     public CharacterDeprivationAuthorityDependencies(
         IItemDefinitionCatalog itemCatalog,
         CharacterDeprivationStateStore stateStore,
-        ICharacterBodyHealthCommand bodyHealthCommands)
+        ICharacterBodyHealthCommand bodyHealthCommands,
+        ICharacterPerformanceQuery performance,
+        CharacterPrimitiveSurvivalDependencies primitiveSurvival)
     {
         ItemCatalog = itemCatalog
             ?? throw new ArgumentNullException(nameof(itemCatalog));
@@ -156,11 +158,17 @@ public sealed class CharacterDeprivationAuthorityDependencies
             ?? throw new ArgumentNullException(nameof(stateStore));
         BodyHealthCommands = bodyHealthCommands
             ?? throw new ArgumentNullException(nameof(bodyHealthCommands));
+        Performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
+        PrimitiveSurvival = primitiveSurvival
+            ?? throw new ArgumentNullException(nameof(primitiveSurvival));
     }
 
     public IItemDefinitionCatalog ItemCatalog { get; }
     public CharacterDeprivationStateStore StateStore { get; }
     public ICharacterBodyHealthCommand BodyHealthCommands { get; }
+    public ICharacterPerformanceQuery Performance { get; }
+    public CharacterPrimitiveSurvivalDependencies PrimitiveSurvival { get; }
 
     internal CharacterBreakdownActionRunner CreateBreakdownActionRunner(
         CharacterBreakdownWorld world,
@@ -178,7 +186,8 @@ public sealed class CharacterDeprivationAuthorityDependencies
                 breakdownRandom,
                 needBalanceRuntime,
                 ItemCatalog,
-                BodyHealthCommands),
+                BodyHealthCommands,
+                Performance),
             new CharacterBreakdownActionExecutionDependencies(
                 StateStore,
                 safeDrinkPlanner,
@@ -187,6 +196,25 @@ public sealed class CharacterDeprivationAuthorityDependencies
                 consequences,
                 events));
     }
+}
+
+public sealed class CharacterPrimitiveSurvivalDependencies
+{
+    public CharacterPrimitiveSurvivalDependencies(
+        IFieldMealConsumptionCommand fieldMeals,
+        IItemQuantityReservationService quantityReservations,
+        IReservedItemTransferService reservedTransfers)
+    {
+        FieldMeals = fieldMeals ?? throw new ArgumentNullException(nameof(fieldMeals));
+        QuantityReservations = quantityReservations
+            ?? throw new ArgumentNullException(nameof(quantityReservations));
+        ReservedTransfers = reservedTransfers
+            ?? throw new ArgumentNullException(nameof(reservedTransfers));
+    }
+
+    public IFieldMealConsumptionCommand FieldMeals { get; }
+    public IItemQuantityReservationService QuantityReservations { get; }
+    public IReservedItemTransferService ReservedTransfers { get; }
 }
 
 public sealed class CharacterDeprivationStateStore

@@ -34,22 +34,36 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: proficiency:food-production
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730834227589
-    - rid: 7737211730834227590
-    - rid: 7737211730834227592
-    - rid: 7737211730834227593
-    - rid: 7737211730834227594
-    - rid: 7737211730834227595
-    - rid: 7737211730834227596
-    - rid: 7737211730834227597
-    - rid: 7737211730834227598
-    - rid: 7737211730834227599
-    - rid: 7737211838074978927
-    - rid: 7737211838074978928
+    - rid: 7737211921440178979
+    - rid: 7737211921440178980
+    - rid: 7737211921440178981
+    - rid: 7737211921440178982
+    - rid: 7737211921440178983
+    - rid: 7737211921440178984
+    - rid: 7737211921440178985
+    - rid: 7737211921440178986
+    - rid: 7737211921440178987
+    - rid: 7737211921440178988
+    - rid: 7737211921440178989
   width: 1
   height: 1
   layer: 1
@@ -65,18 +79,24 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730834227589
+    - rid: 7737211921440178979
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: D12
-    - rid: 7737211730834227590
+    - rid: 7737211921440178980
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - brewery
-    - rid: 7737211730834227592
+    - rid: 7737211921440178981
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:tavern-brewery
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211921440178982
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -85,34 +105,48 @@ MonoBehaviour:
         maintenance: 4
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7737211730834227593
+    - rid: 7737211921440178983
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 20.4
-        repairWorkRequired: 10
-        cleanWorkRequired: 6.25
+        constructionProjectScale: 1
+        constructionWorkRequired: 128
+        repairWorkRequired: 32
+        cleanWorkRequired: 8
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: material:stone-block
-          amount: 6
-    - rid: 7737211730834227594
+        - itemId: material:treated-lumber
+          amount: 4
+        - itemId: material:iron-ingot
+          amount: 1
+    - rid: 7737211921440178984
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
         settings:
-          roles: 1
+          roles: 2048
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
           supportedWorkTypes: 13
           disabledWhenDamaged: 1
-    - rid: 7737211730834227595
+    - rid: 7737211921440178985
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211730834227596
+    - rid: 7737211921440178986
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -127,55 +161,22 @@ MonoBehaviour:
           - key: Luxury
             value: 3
           metrics: []
-    - rid: 7737211730834227597
-      type: {class: BuildingNeedRecoveryAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440178987
+      type: {class: BuildingRecreationalSubstanceServiceAbility, ns: , asm: Assembly-CSharp}
       data:
-        abilityId: BuildingNeedRecoveryAbility
-        recovery:
-          sleep: 0
-          mood: 6
-          fun: 8
-          hunger: 12
-          excretion: 0
-          hygiene: 0
-    - rid: 7737211730834227598
+        abilityId: BuildingRecreationalSubstanceServiceAbility
+        funRecovery: 8
+        facilitySentiment: 0.25
+    - rid: 7737211921440178988
       type: {class: BuildingServiceAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingServiceAbility
         capacity: 1
         contributesStockCategory: 1
         stockCategory: 0
-    - rid: 7737211730834227599
+    - rid: 7737211921440178989
       type: {class: BuildingMercenaryHiringAbility, ns: , asm: DungeonStory.Economy}
       data:
         abilityId: BuildingMercenaryHiringAbility
         rolePremium: 0
         minimumCandidateSatisfaction: 65
-    - rid: 7737211838074978927
-      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionWorkstationAbility
-        workstationTag: workstation:tavern-brewery
-        stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211838074978928
-      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionBufferAbility
-        defaultBatchCapacity: 4
-        outputCapacities:
-        - itemId: material:lead-ingot
-          capacity: 24
-        - itemId: material:lead-shot
-          capacity: 96
-        - itemId: material:black-powder
-          capacity: 48
-        - itemId: material:paper
-          capacity: 64
-        - itemId: ammo:paper-cartridge
-          capacity: 120
-        - itemId: component:machine-parts
-          capacity: 16
-        - itemId: component:precision-parts
-          capacity: 16
-        allowOverflowDump: 1
-        overflowOffset: {x: 1, y: 0}

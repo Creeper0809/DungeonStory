@@ -5,7 +5,9 @@ public sealed class AIHaul : AIActionSet
     private static readonly CharacterAiActionDescriptor ActionDescriptor = new CharacterAiActionDescriptor(
         CharacterAiBranch.Work,
         "운반",
-        CharacterAiActionTags.Work);
+        CharacterAiActionTags.Work,
+        "work:haul",
+        "work:heavy-haul");
 
     public override CharacterAiActionDescriptor Descriptor => ActionDescriptor;
     public override bool RequiresDestination => false;

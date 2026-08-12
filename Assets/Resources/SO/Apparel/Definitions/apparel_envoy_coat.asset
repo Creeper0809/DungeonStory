@@ -38,5 +38,13 @@ MonoBehaviour:
   allowedMaterialTags: 1
   tailoringCoefficient: 1.08
   baseWeight: 0.9
+  allowMythicInspiration: 1
   requiredResearchId: research:textile:tailoring
   sprite: {fileID: 0}
+  proficiency:
+    primaryProficiencyId: proficiency:crafting
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0

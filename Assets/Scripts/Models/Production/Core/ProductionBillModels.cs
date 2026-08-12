@@ -127,6 +127,7 @@ public sealed class ProductionBillSaveData
     public List<string> allowedWorkerIds = new List<string>();
     public WorkerSelectionPolicySaveData workerPolicy =
         WorkerSelectionPolicySaveData.Anyone(WorkerCandidateSortMode.Fastest);
+    public string emergencyWorkerId = string.Empty;
     public List<CraftContributionSaveData> workerContributions = new();
     public bool hasPendingModeTransition;
     public ProductionOrderMode pendingMode;
@@ -155,7 +156,7 @@ public sealed class ProductionSelectedSupplySaveData
 [Serializable]
 public sealed class DungeonProductionBillSaveData
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 7;
 
     public int version = CurrentVersion;
     public int nextBillSequence = 1;
@@ -191,6 +192,7 @@ public sealed class ProductionBillSnapshot
     public WorkerSelectionPolicySaveData WorkerPolicy { get; set; } =
         WorkerSelectionPolicySaveData.Anyone(
             WorkerCandidateSortMode.Fastest);
+    public string EmergencyWorkerId { get; set; } = string.Empty;
     public string MaterialDestinationId { get; set; } = string.Empty;
     public DomainFailure BlockedFailure { get; set; } = DomainFailure.None;
     public int PrefetchBatchCount { get; set; } = 1;
@@ -271,14 +273,19 @@ public static class ProductionMaterialPrefetchPolicy
 
 public readonly struct ProductionWorkAvailabilityResult
 {
-    public ProductionWorkAvailabilityResult(bool available, DomainFailure failure)
+    public ProductionWorkAvailabilityResult(
+        bool available,
+        DomainFailure failure,
+        ProductionBillSnapshot bill = null)
     {
         Available = available;
         Failure = failure;
+        Bill = bill;
     }
 
     public bool Available { get; }
     public DomainFailure Failure { get; }
+    public ProductionBillSnapshot Bill { get; }
 }
 
 public readonly struct ProductionWorkBeginResult

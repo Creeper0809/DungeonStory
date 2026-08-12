@@ -37,8 +37,189 @@ public static class SurvivalDebugScenarios
         Run("consumables_save_payload", VerifyConsumablesSavePayload, errors);
         Run("consumables_typed_failures", VerifyConsumablesTypedFailures, errors);
         Run("consumables_physical_exactly_once", VerifyConsumablesPhysicalExactlyOnce, errors);
+        Run("meal_four_second_commit_and_spoil_abort", VerifyMealFourSecondCommitAndSpoilAbort, errors);
+        Run("tavern_recreational_substance_service", VerifyTavernRecreationalSubstanceService, errors);
         Run("consumables_strict_restore", VerifyConsumablesStrictRestore, errors);
         return errors;
+    }
+
+    private static string VerifyMealFourSecondCommitAndSpoilAbort()
+    {
+        const string FoodId = "food:preserved-ration";
+        GameObject actorObject = new("MealActionActor");
+        GameObject facilityObject = new("MealActionFacility");
+        BuildingSO buildingData = null;
+        WorldItemStackRuntime items = null;
+        ICharacterAiWorldRegistry world = CharacterAiEditorTestDependencies.WorldRegistry;
+        CharacterActor actor = null;
+        BuildableObject facility = null;
+        try
+        {
+            actor = actorObject.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(actorObject);
+            actor.EnsureRuntimeState();
+            actor.Identity.SetPersistentId("character:meal-action-test");
+            world.RegisterCharacter(actor);
+            world.RegisterCharacterLifetime(actor);
+
+            facility = facilityObject.AddComponent<BuildableObject>();
+            CharacterAiEditorTestDependencies.Inject(facility);
+            buildingData = ScriptableObject.CreateInstance<BuildingSO>();
+            buildingData.id = 99142;
+            buildingData.objectName = "Meal action fixture";
+            buildingData.width = 1;
+            buildingData.height = 1;
+            buildingData.category = BuildingCategory.Shop;
+            buildingData.Facility = new FacilityData
+            {
+                roles = FacilityRole.Meal,
+                capacity = 1
+            };
+            facility.Initialization(buildingData, Vector2Int.zero);
+            world.RegisterBuilding(facility);
+
+            items = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
+                out _,
+                out _,
+                out ItemQuantityReservationService reservations,
+                out IReservedItemTransferService reservedTransfers);
+            IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
+                new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+            GameEventBus eventBus = new();
+            CharacterConsumablesApplicationPorts ports = new(
+                itemCatalog,
+                items,
+                world,
+                eventBus,
+                EmptyCombatCommands.Instance,
+                CharacterAiEditorTestDependencies.NeutralPerformance,
+                quantityReservations: reservations,
+                reservedTransfers: reservedTransfers);
+            MutableConsumablesClock clock = new();
+            CharacterConsumablesRuntime runtime = new(
+                ports,
+                ports,
+                ports,
+                clock,
+                new RandomStreamProvider(4204),
+                new DungeonRuntimeAggregateRootStore(),
+                DefaultCharacterNeedBalanceRuntime.Instance);
+            string destination =
+                $"facility-input:meal:{facility.RequirePersistentInstanceId().Value}";
+
+            Require(items.SpawnItemAt(
+                    FoodId,
+                    1,
+                    Vector2Int.zero,
+                    WorldItemStackState.FacilityBuffer,
+                    destination,
+                    out int firstSpawned)
+                && firstSpawned == 1,
+                "meal action fixture failed to spawn first serving");
+            WorldItemStackSnapshot firstStack = items.GetAllStacks().Single(stack =>
+                stack.ItemId == FoodId);
+            ConsumeMealCommand firstCommand = new(
+                new ConsumableOperationId("consumable-operation:meal-action-success"),
+                CharacterPersistentIdentity.Require(actor),
+                facility.RequirePersistentInstanceId(),
+                new ItemStackId(firstStack.StackId));
+            Require(!runtime.TryConsumeMeal(firstCommand, out CharacterConsumablesMealResult pending)
+                && pending.FailureCode == CharacterConsumablesFailureCode.DeliveryPending
+                && items.GetAllStacks().Single(stack => stack.StackId == firstStack.StackId).ReservedQuantity == 1,
+                "meal was not held as a four-second reserved action");
+            DungeonCharacterConsumablesSaveData activeSave = runtime.Capture();
+            Require(activeSave.activeMealPlans.Count == 1
+                && activeSave.activeMealPlans[0].planId == firstCommand.OperationId.Value,
+                "active MealPlan was not captured without a runtime lease ID");
+            CharacterConsumablesRuntime restoredRuntime = new(
+                ports,
+                ports,
+                ports,
+                clock,
+                new RandomStreamProvider(4204),
+                new DungeonRuntimeAggregateRootStore(),
+                DefaultCharacterNeedBalanceRuntime.Instance);
+            restoredRuntime.PublishRestoreCandidate(
+                restoredRuntime.BuildRestoreCandidate(activeSave));
+            runtime = restoredRuntime;
+            clock.Advance(3.9f);
+            runtime.Tick();
+            Require(items.GetAllStacks().Any(stack => stack.StackId == firstStack.StackId),
+                "meal committed before four seconds elapsed");
+            clock.Advance(0.2f);
+            runtime.Tick();
+            Require(!items.GetAllStacks().Any(stack => stack.StackId == firstStack.StackId)
+                && runtime.Capture().completedOperations.Count == 1,
+                "meal did not commit exactly once after four seconds");
+
+            Require(items.SpawnItemAt(
+                    FoodId,
+                    1,
+                    Vector2Int.zero,
+                    WorldItemStackState.FacilityBuffer,
+                    destination,
+                    out int secondSpawned)
+                && secondSpawned == 1,
+                "meal action fixture failed to spawn spoil serving");
+            WorldItemStackSnapshot secondStack = items.GetAllStacks().Single(stack =>
+                stack.ItemId == FoodId);
+            ConsumeMealCommand spoilCommand = new(
+                new ConsumableOperationId("consumable-operation:meal-action-spoil"),
+                CharacterPersistentIdentity.Require(actor),
+                facility.RequirePersistentInstanceId(),
+                new ItemStackId(secondStack.StackId));
+            Require(!runtime.TryConsumeMeal(spoilCommand, out CharacterConsumablesMealResult spoilPending)
+                && spoilPending.FailureCode == CharacterConsumablesFailureCode.DeliveryPending,
+                "spoil action did not begin");
+            ItemInstanceComponentSaveData freshness = secondStack.Components
+                .FirstOrDefault(component =>
+                component != null
+                && component.componentTypeId == ItemInstanceComponentIds.Freshness)
+                ?.Clone()
+                ?? new ItemInstanceComponentSaveData
+                {
+                    componentTypeId = ItemInstanceComponentIds.Freshness,
+                    schemaVersion = 2,
+                    affectsStacking = true,
+                    values = new List<ItemStateValueSaveData>()
+                };
+            freshness.values ??= new List<ItemStateValueSaveData>();
+            ItemStateValueSaveData remaining = freshness.values.FirstOrDefault(value =>
+                value != null && value.key == "remaining-seconds");
+            if (remaining == null)
+            {
+                remaining = new ItemStateValueSaveData { key = "remaining-seconds" };
+                freshness.values.Add(remaining);
+            }
+            remaining.kind = ItemStateValueKind.Decimal;
+            remaining.decimalValue = 0d;
+            Require(items.TrySetInstanceComponent(secondStack.StackId, freshness),
+                "meal action fixture failed to apply spoiled freshness state");
+            clock.Advance(4.1f);
+            runtime.Tick();
+            WorldItemStackSnapshot spoiled = items.GetAllStacks().Single(stack =>
+                stack.StackId == secondStack.StackId);
+            Require(spoiled.Quantity == 1
+                && spoiled.ReservedQuantity == 0
+                && runtime.Capture().completedOperations.Count == 1,
+                "spoiled meal was consumed, leaked its lease, or recorded completion");
+            return "pending=3.9s; committed=4.1s; spoiled=abort; leaseReleased=True";
+        }
+        finally
+        {
+            items?.Dispose();
+            if (actor != null)
+            {
+                world.UnregisterCharacter(actor);
+                world.UnregisterCharacterLifetime(actor);
+            }
+            if (facility != null)
+                world.UnregisterBuilding(facility);
+            UnityEngine.Object.DestroyImmediate(actorObject);
+            UnityEngine.Object.DestroyImmediate(facilityObject);
+            if (buildingData != null)
+                UnityEngine.Object.DestroyImmediate(buildingData);
+        }
     }
 
     private static void Run(string name, Func<string> scenario, List<string> errors)
@@ -55,7 +236,7 @@ public static class SurvivalDebugScenarios
 
     private static string VerifySaveContract()
     {
-        Require(DungeonGameSaveData.CurrentVersion == 23, "game save version is not V23");
+        Require(DungeonGameSaveData.CurrentVersion == 24, "game save version is not V24");
         DungeonGameSaveData save = new DungeonGameSaveData();
         DungeonSaveSectionPayload.Write(
             save,
@@ -872,14 +1053,16 @@ public static class SurvivalDebugScenarios
                 itemRuntime,
                 world,
                 new GameEventBus(),
-                EmptyCombatCommands.Instance);
+                EmptyCombatCommands.Instance,
+                CharacterAiEditorTestDependencies.NeutralPerformance);
             CharacterConsumablesRuntime core = new CharacterConsumablesRuntime(
                 ports,
                 ports,
                 ports,
                 new UnityGameClock(),
                 new RandomStreamProvider(90210),
-                new DungeonRuntimeAggregateRootStore());
+                new DungeonRuntimeAggregateRootStore(),
+                DefaultCharacterNeedBalanceRuntime.Instance);
             CharacterConsumablesCompatibilityAdapter runtime =
                 new CharacterConsumablesCompatibilityAdapter(core);
             runtime.SetPolicy(
@@ -975,6 +1158,129 @@ public static class SurvivalDebugScenarios
         }
     }
 
+    private static string VerifyTavernRecreationalSubstanceService()
+    {
+        const string actorId = "character:tavern-recreation-fixture";
+        const string beverageId = "food:twilight-beer";
+        GameObject actorObject = new GameObject("TavernRecreationActor");
+        GameObject facilityObject = new GameObject("TavernRecreationFacility");
+        WorldItemStackRuntime itemRuntime = null;
+        CharacterActor actor = null;
+        Facility facility = null;
+        ICharacterAiWorldRegistry world = CharacterAiEditorTestDependencies.WorldRegistry;
+        try
+        {
+            BuildingSO d12 = AssetDatabase.LoadAssetAtPath<BuildingSO>(
+                "Assets/Resources/SO/Building/Modular/D12_술음료장.asset");
+            BuildingRecreationalSubstanceServiceAbility service =
+                d12?.GetAbility<BuildingRecreationalSubstanceServiceAbility>();
+            Require(d12 != null
+                    && service?.IsValid == true
+                    && d12.Facility.SupportsRole(FacilityRole.Entertainment)
+                    && !d12.Facility.SupportsRole(FacilityRole.Meal)
+                    && d12.GetAbility<BuildingNeedRecoveryAbility>() == null,
+                "D12 is not authored as an entertainment-only physical beverage service");
+
+            actor = actorObject.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(actorObject);
+            actor.EnsureRuntimeState();
+            actor.Identity.SetPersistentId(new CharacterId(actorId));
+            world.RegisterCharacter(actor);
+            world.RegisterCharacterLifetime(actor);
+
+            facility = facilityObject.AddComponent<Facility>();
+            CharacterAiEditorTestDependencies.Inject(facility);
+            facility.Initialization(d12, new Vector2Int(4, 4));
+
+            itemRuntime = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture();
+            IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
+                new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+            CharacterConsumablesApplicationPorts ports = new CharacterConsumablesApplicationPorts(
+                itemCatalog,
+                itemRuntime,
+                world,
+                new GameEventBus(),
+                EmptyCombatCommands.Instance,
+                CharacterAiEditorTestDependencies.NeutralPerformance);
+            CharacterConsumablesRuntime core = new CharacterConsumablesRuntime(
+                ports,
+                ports,
+                ports,
+                new UnityGameClock(),
+                new RandomStreamProvider(154),
+                new DungeonRuntimeAggregateRootStore(),
+                DefaultCharacterNeedBalanceRuntime.Instance);
+            CharacterConsumablesCompatibilityAdapter runtime =
+                new CharacterConsumablesCompatibilityAdapter(core);
+            BuildingInstanceId facilityId = facility.RequirePersistentInstanceId();
+            string destination = CharacterConsumablesRuntime
+                .GetRecreationalSubstanceDestinationId(facilityId);
+
+            runtime.SetPolicy(
+                actor,
+                "substance:twilight-beer",
+                SubstancePolicyMode.MoodThreshold,
+                moodThreshold: 100f);
+            Require(itemRuntime.SpawnItemAt(
+                    beverageId,
+                    1,
+                    facility.centerPos,
+                    WorldItemStackState.FacilityBuffer,
+                    destination,
+                    out int spawned)
+                && spawned == 1,
+                "fixture could not author one physical tavern beverage");
+            Require(runtime.TryConsumeAtFacility(actor, facility, out SubstanceUseResult served)
+                    && served.Success
+                    && served.ItemDefinitionId.Value == beverageId
+                    && runtime.GetState(actor, "substance:twilight-beer").activeSeconds > 0f
+                    && runtime.GetWorkSpeedMultiplier(actor) < 1f,
+                $"tavern beverage did not use the substance authority: {served.FailureCode}");
+            int remainingAfterSuccess = itemRuntime.GetAllStacks()
+                .Where(stack => stack.ItemId == beverageId)
+                .Sum(stack => stack.Quantity);
+            Require(remainingAfterSuccess == 0,
+                "successful tavern service did not consume exactly one physical beverage");
+
+            runtime.SetPolicy(
+                actor,
+                "substance:twilight-beer",
+                SubstancePolicyMode.Forbidden);
+            Require(itemRuntime.SpawnItemAt(
+                    beverageId,
+                    1,
+                    facility.centerPos,
+                    WorldItemStackState.FacilityBuffer,
+                    destination,
+                    out spawned)
+                && spawned == 1,
+                "fixture could not respawn the policy-failure beverage");
+            Require(!runtime.TryConsumeAtFacility(actor, facility, out SubstanceUseResult forbidden)
+                    && forbidden.FailureCode == CharacterConsumablesFailureCode.PolicyForbidden
+                    && itemRuntime.GetAllStacks()
+                        .Where(stack => stack.ItemId == beverageId)
+                        .Sum(stack => stack.Quantity) == 1,
+                "forbidden tavern use consumed stock or returned the wrong typed failure");
+
+            return $"D12=entertainment; item=1->0; policy=preserved; fun={service.funRecovery:0.#}; substance=active";
+        }
+        finally
+        {
+            if (facility != null)
+            {
+                world.UnregisterBuilding(facility);
+            }
+            if (actor != null)
+            {
+                world.UnregisterCharacter(actor);
+                world.UnregisterCharacterLifetime(actor);
+            }
+            itemRuntime?.Dispose();
+            UnityEngine.Object.DestroyImmediate(facilityObject);
+            UnityEngine.Object.DestroyImmediate(actorObject);
+        }
+    }
+
     private static string VerifyConsumablesStrictRestore()
     {
         GameObject actorObject = new GameObject("ConsumablesRestoreActor");
@@ -998,14 +1304,16 @@ public static class SurvivalDebugScenarios
                 itemRuntime,
                 world,
                 new GameEventBus(),
-                EmptyCombatCommands.Instance);
+                EmptyCombatCommands.Instance,
+                CharacterAiEditorTestDependencies.NeutralPerformance);
             CharacterConsumablesRuntime runtime = new CharacterConsumablesRuntime(
                 ports,
                 ports,
                 ports,
                 new UnityGameClock(),
                 new RandomStreamProvider(7),
-                root);
+                root,
+                DefaultCharacterNeedBalanceRuntime.Instance);
             CharacterConsumablesCompatibilityAdapter compatibility =
                 new CharacterConsumablesCompatibilityAdapter(runtime);
             compatibility.SetPolicy(actor, CharacterDietPolicyKind.Vegan);
@@ -1017,14 +1325,16 @@ public static class SurvivalDebugScenarios
                     itemRuntime,
                     world,
                     new GameEventBus(),
-                    EmptyCombatCommands.Instance);
+                    EmptyCombatCommands.Instance,
+                    CharacterAiEditorTestDependencies.NeutralPerformance);
             CharacterConsumablesRuntime restoredRuntime = new CharacterConsumablesRuntime(
                 restoredPorts,
                 restoredPorts,
                 restoredPorts,
                 new UnityGameClock(),
                 new RandomStreamProvider(7),
-                new DungeonRuntimeAggregateRootStore());
+                new DungeonRuntimeAggregateRootStore(),
+                DefaultCharacterNeedBalanceRuntime.Instance);
             restoredRuntime.PublishRestoreCandidate(
                 restoredRuntime.BuildRestoreCandidate(valid));
             Require(JsonUtility.ToJson(restoredRuntime.Capture()) == validJson,
@@ -1203,7 +1513,8 @@ public static class SurvivalDebugScenarios
                     ports,
                     new UnityGameClock(),
                     new RandomStreamProvider(8),
-                    captureRoot);
+                    captureRoot,
+                    DefaultCharacterNeedBalanceRuntime.Instance);
             captureRuntime.PublishRestoreCandidate(
                 runtime.BuildRestoreCandidate(validWatermark));
             System.Reflection.PropertyInfo writeStateProperty =
@@ -1517,6 +1828,21 @@ public static class SurvivalDebugScenarios
         public float Time => 0f;
         public int FrameCount => 0;
         public bool IsPaused => false;
+    }
+
+    private sealed class MutableConsumablesClock : IGameClock
+    {
+        public float DeltaTime { get; private set; }
+        public float Time { get; private set; }
+        public int FrameCount { get; private set; }
+        public bool IsPaused => false;
+
+        public void Advance(float seconds)
+        {
+            DeltaTime = Mathf.Max(0f, seconds);
+            Time += DeltaTime;
+            FrameCount++;
+        }
     }
 
     private sealed class FixedClimateQuery : IClimateQuery

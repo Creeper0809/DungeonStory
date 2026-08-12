@@ -24,8 +24,8 @@ MonoBehaviour:
   cultureId: 
   requiredBuildingDefinitionId: building:faction-audience-hall
   requiredItems:
-  - itemDefinitionId: item:faction-accord-banner
-    amount: 6
+  - itemDefinitionId: craft:dreamweave-ritual-banner
+    amount: 1
   minimumParticipants: 12
   successOutcome:
     moodDelta: 6

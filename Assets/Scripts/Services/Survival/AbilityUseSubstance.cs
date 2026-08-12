@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -89,6 +90,18 @@ public sealed class AbilityUseSubstance : MonoBehaviour
 
     private IEnumerator UseRoutine()
     {
+        if (request.UseClass == SubstanceUseClass.Recreational
+            && TryFindRecreationalVenue(out Facility venue))
+        {
+            actor.Brain?.SetActionPhase(
+                $"{venue.BuildingData?.objectName ?? venue.name}에서 음료 즐기기",
+                venue,
+                request.Reason);
+            yield return venue.Interact(actor.BuildingVisitor);
+            Finish();
+            yield break;
+        }
+
         CharacterCarryInventory inventory =
             CharacterCarryInventory.Ensure(actor);
         if (inventory == null || Items == null || Substances == null)
@@ -170,6 +183,25 @@ public sealed class AbilityUseSubstance : MonoBehaviour
 
         yield return null;
         Finish();
+    }
+
+    private bool TryFindRecreationalVenue(out Facility venue)
+    {
+        venue = actor?.WorldRegistry?.Buildings
+            ?.OfType<Facility>()
+            .Where(candidate => candidate != null
+                && !candidate.isDestroy
+                && candidate.BuildingData?
+                    .GetAbility<BuildingRecreationalSubstanceServiceAbility>()?
+                    .IsValid == true
+                && candidate.CanVisit(actor.BuildingVisitor, out _))
+            .OrderBy(candidate => Vector2Int.Distance(
+                actor.GetNowXY(),
+                candidate.centerPos))
+            .ThenBy(candidate => candidate.RequirePersistentInstanceId().Value,
+                System.StringComparer.Ordinal)
+            .FirstOrDefault();
+        return venue != null;
     }
 
     private IEnumerator MoveToPickup(

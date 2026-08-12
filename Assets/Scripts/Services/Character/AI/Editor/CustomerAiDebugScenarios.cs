@@ -32,7 +32,7 @@ public static class CustomerAiDebugScenarios
         RunScenario("종족 선호가 거리보다 우선 가능", VerifySpeciesPreferenceCanBeatDistance, errors);
         RunScenario("뱀파이어는 마나/연구 선호", VerifyVampireSelectsManaOrResearch, errors);
         RunScenario("이용 불가 시설 제외", VerifyUnavailableFacilitiesAreExcluded, errors);
-        RunScenario("Unstaffed shop allows self-service checkout", VerifyUnstaffedShopAllowsSelfServiceCheckout, errors);
+        RunScenario("무인 상점 셀프 계산과 직원 위험 감소", VerifyUnstaffedShopAllowsSelfServiceCheckout, errors);
         RunScenario("Checkout patience stages scale by personality and queue", VerifyCheckoutPatienceStages, errors);
         RunScenario("Abandoned checkout preserves another shopping attempt", VerifyAbandonedCheckoutPreservesVisit, errors);
         RunScenario("Abandoned checkout creates personal facility memory", VerifyCheckoutComplaintCreatesFacilityMemory, errors);
@@ -431,14 +431,17 @@ public static class CustomerAiDebugScenarios
         GridPathSearchResult searchResult = world.Grid.SearchPath(Vector2Int.zero);
 
         int stockBefore = shop != null ? shop.CurrentStock : -1;
+        string workerReason = string.Empty;
         bool waitsWithoutWorker = shop != null
             && !shop.HasServingWorker
-            && !shop.CanServeCustomer(customer.BuildingVisitor, out string workerReason)
+            && !shop.CanServeCustomer(customer.BuildingVisitor, out workerReason)
             && workerReason == "직원 없음";
-        bool candidateWithoutWorker = shopping.CanBuyFrom(shop, out _)
-            && FacilityCandidateScorer
-            .GetCandidates(CharacterActor.From(customer), searchResult, CharacterVisitPolicy.CustomerInterestRoles)
-            .Contains(general);
+        string shoppingReason = string.Empty;
+        bool excludedWithoutWorker = !shopping.CanBuyFrom(shop, out shoppingReason)
+            && shoppingReason == "직원 없음"
+            && !FacilityCandidateScorer
+                .GetCandidates(CharacterActor.From(customer), searchResult, CharacterVisitPolicy.CustomerInterestRoles)
+                .Contains(general);
         bool noSelfCheckout = shop != null && shop.CurrentStock == stockBefore;
 
         world.StaffShop(general);
@@ -449,10 +452,20 @@ public static class CustomerAiDebugScenarios
                 .GetCandidates(CharacterActor.From(customer), searchResult, CharacterVisitPolicy.CustomerInterestRoles)
                 .Contains(general);
 
-        return waitsWithoutWorker
-            && candidateWithoutWorker
+        bool valid = waitsWithoutWorker
+            && excludedWithoutWorker
             && noSelfCheckout
             && availableWithWorker;
+        if (!valid)
+        {
+            Debug.LogError(
+                $"Required-worker shop diagnostic: waits={waitsWithoutWorker}, "
+                + $"workerReason={workerReason}, excluded={excludedWithoutWorker}, "
+                + $"shoppingReason={shoppingReason}, noCheckout={noSelfCheckout}, "
+                + $"availableWithWorker={availableWithWorker}, "
+                + $"hasWorker={shop?.HasServingWorker.ToString() ?? "null"}");
+        }
+        return valid;
     }
 
     private static bool VerifyUnstaffedShopAllowsSelfServiceCheckout()
@@ -475,9 +488,10 @@ public static class CustomerAiDebugScenarios
         float calmCrimeChance = shop != null
             ? shop.GetCheckoutCrimeChance(calmCustomer.BuildingVisitor, 1, selfServiceCost)
             : 0f;
+        string workerReason = string.Empty;
         bool availableWithoutWorker = shop != null
             && !shop.HasServingWorker
-            && shop.CanServeCustomer(customer.BuildingVisitor, out string workerReason)
+            && shop.CanServeCustomer(customer.BuildingVisitor, out workerReason)
             && string.IsNullOrEmpty(workerReason);
         bool candidateWithoutWorker = shopping.CanBuyFrom(shop, out _)
             && FacilityCandidateScorer
@@ -498,16 +512,27 @@ public static class CustomerAiDebugScenarios
             && FacilityCandidateScorer
                 .GetCandidates(CharacterActor.From(customer), searchResult, CharacterVisitPolicy.CustomerInterestRoles)
                 .Contains(general);
-        bool workerImprovesPrice = selfServiceCost > 0 && staffedCost > selfServiceCost;
+        bool authoredPriceStaysStable = selfServiceCost > 0 && staffedCost == selfServiceCost;
         bool workerReducesCrime = unstaffedCrimeChance > staffedCrimeChance;
         bool customerContextRaisesCrime = unstaffedCrimeChance > calmCrimeChance;
 
-        return availableWithoutWorker
+        bool valid = availableWithoutWorker
             && candidateWithoutWorker
             && availableWithWorker
-            && workerImprovesPrice
+            && authoredPriceStaysStable
             && workerReducesCrime
             && customerContextRaisesCrime;
+        if (!valid)
+        {
+            Debug.LogError(
+                $"Self-service shop diagnostic: unstaffed={availableWithoutWorker}, "
+                + $"candidate={candidateWithoutWorker}, staffed={availableWithWorker}, "
+                + $"cost={selfServiceCost}->{staffedCost}, priceStable={authoredPriceStaysStable}, "
+                + $"crime={unstaffedCrimeChance:0.###}->{staffedCrimeChance:0.###}, "
+                + $"calmCrime={calmCrimeChance:0.###}, workerReduces={workerReducesCrime}, "
+                + $"contextRaises={customerContextRaisesCrime}, reason={workerReason}");
+        }
+        return valid;
     }
 
     private static bool VerifyCheckoutPatienceStages()

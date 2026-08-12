@@ -7,14 +7,32 @@ using UnityEngine;
 public enum AnatomyFunction
 {
     None = 0,
-    Core = 1 << 0,
-    Consciousness = 1 << 1,
-    Sight = 1 << 2,
-    Breathing = 1 << 3,
-    Digestion = 1 << 4,
-    Filtration = 1 << 5,
-    Manipulation = 1 << 6,
-    Mobility = 1 << 7
+    PowerCirculation = 1 << 0,
+    MentalMaintenance = 1 << 1,
+    VisualDiscernment = 1 << 2,
+    RespiratoryExchange = 1 << 3,
+    IntakeProcessing = 1 << 4,
+    PurificationProcessing = 1 << 5,
+    PrecisionManipulation = 1 << 6,
+    PhysicalMobility = 1 << 7,
+    AuditorySensing = 1 << 8,
+    VitalityResponse = 1 << 9,
+    PhysicalPower = 1 << 10,
+    Communication = 1 << 11,
+    ArcaneConduction = 1 << 12,
+    ImmuneDefense = 1 << 13,
+
+    // Stable authored anatomy vocabulary retained for existing profiles.
+    // These are aliases of the 14 functional-capacity producers, not a
+    // second performance or action-axis system.
+    Core = PowerCirculation,
+    Consciousness = MentalMaintenance,
+    Sight = VisualDiscernment,
+    Breathing = RespiratoryExchange,
+    Digestion = IntakeProcessing,
+    Filtration = PurificationProcessing,
+    Manipulation = PrecisionManipulation,
+    Mobility = PhysicalMobility
 }
 
 public enum AnatomyNodeKind
@@ -32,28 +50,6 @@ public enum SurgicalPartKind
     Prosthetic = 1,
     Implant = 2,
     ArcaneGraft = 3
-}
-
-public enum AnatomyActionAxisId
-{
-    Awareness = 0,
-    Handling = 1,
-    Locomotion = 2,
-    Sustain = 3,
-    Recovery = 4
-}
-
-public enum AnatomyActivityId
-{
-    Movement = 0,
-    Accuracy = 1,
-    Evasion = 2,
-    Work = 3,
-    Carry = 4,
-    MeleePower = 5,
-    Treatment = 6,
-    Recovery = 7,
-    Overclock = 8
 }
 
 public enum PartRecoveryPolicy
@@ -76,111 +72,6 @@ public enum AnatomyConditionKind
 }
 
 [Serializable]
-public sealed class AnatomyNodeAxisContribution
-{
-    [SerializeField] private AnatomyActionAxisId axis;
-    [SerializeField, Min(0f)] private float weight;
-
-    public AnatomyNodeAxisContribution()
-    {
-    }
-
-    public AnatomyNodeAxisContribution(AnatomyActionAxisId axis, float weight)
-    {
-        this.axis = axis;
-        this.weight = Mathf.Max(0f, weight);
-    }
-
-    public AnatomyActionAxisId Axis => axis;
-    public float Weight => Mathf.Max(0f, weight);
-}
-
-[Serializable]
-public sealed class AnatomyActivityProfile
-{
-    [SerializeField] private AnatomyActivityId activity;
-    [SerializeField] private List<AnatomyNodeAxisContribution> axisWeights = new();
-    [SerializeField, Min(0.1f)] private float maximumFactor = 1f;
-
-    public AnatomyActivityProfile()
-    {
-    }
-
-    public AnatomyActivityProfile(
-        AnatomyActivityId activity,
-        float maximumFactor,
-        params AnatomyNodeAxisContribution[] weights)
-    {
-        this.activity = activity;
-        this.maximumFactor = Mathf.Max(0.1f, maximumFactor);
-        axisWeights = (weights ?? Array.Empty<AnatomyNodeAxisContribution>())
-            .Where(item => item != null && item.Weight > 0f)
-            .ToList();
-    }
-
-    public AnatomyActivityId Activity => activity;
-    public IReadOnlyList<AnatomyNodeAxisContribution> AxisWeights => axisWeights;
-    public float MaximumFactor => Mathf.Max(0.1f, maximumFactor);
-}
-
-public readonly struct AnatomyActionAxisSnapshot
-{
-    public AnatomyActionAxisSnapshot(
-        float awareness,
-        float handling,
-        float locomotion,
-        float sustain,
-        float recovery)
-    {
-        Awareness = Mathf.Max(0f, awareness);
-        Handling = Mathf.Max(0f, handling);
-        Locomotion = Mathf.Max(0f, locomotion);
-        Sustain = Mathf.Max(0f, sustain);
-        Recovery = Mathf.Max(0f, recovery);
-    }
-
-    public float Awareness { get; }
-    public float Handling { get; }
-    public float Locomotion { get; }
-    public float Sustain { get; }
-    public float Recovery { get; }
-
-    public float Get(AnatomyActionAxisId axis)
-    {
-        return axis switch
-        {
-            AnatomyActionAxisId.Awareness => Awareness,
-            AnatomyActionAxisId.Handling => Handling,
-            AnatomyActionAxisId.Locomotion => Locomotion,
-            AnatomyActionAxisId.Sustain => Sustain,
-            AnatomyActionAxisId.Recovery => Recovery,
-            _ => 1f
-        };
-    }
-}
-
-public readonly struct AnatomyActivityFactorSnapshot
-{
-    public AnatomyActivityFactorSnapshot(
-        AnatomyActivityId activity,
-        float rawFactor,
-        float appliedFactor,
-        float cap)
-    {
-        Activity = activity;
-        RawFactor = Mathf.Max(0f, rawFactor);
-        AppliedFactor = Mathf.Max(0f, appliedFactor);
-        Cap = Mathf.Max(0.1f, cap);
-    }
-
-    public AnatomyActivityId Activity { get; }
-    public float RawFactor { get; }
-    public float AppliedFactor { get; }
-    public float Cap { get; }
-    public bool IsCapped => RawFactor > AppliedFactor + 0.0001f;
-}
-
-[Serializable]
 public sealed class AnatomyNodeDefinition
 {
     [SerializeField] private string nodeId = string.Empty;
@@ -195,7 +86,6 @@ public sealed class AnatomyNodeDefinition
     [SerializeField] private string pairedGroupId = string.Empty;
     [SerializeField] private CombatBodyPart legacyBodyPart;
     [SerializeField] private bool mapsToLegacyBodyPart;
-    [SerializeField] private List<AnatomyNodeAxisContribution> axisContributions = new();
 
     public string NodeId => nodeId?.Trim() ?? string.Empty;
     public string DisplayName => string.IsNullOrWhiteSpace(displayName)
@@ -204,6 +94,28 @@ public sealed class AnatomyNodeDefinition
     public string ParentNodeId => parentNodeId?.Trim() ?? string.Empty;
     public AnatomyNodeKind Kind => kind;
     public AnatomyFunction Functions => functions;
+    public AnatomyFunction ExpandedFunctions
+    {
+        get
+        {
+            AnatomyFunction expanded = functions;
+            if ((functions & AnatomyFunction.MentalMaintenance) != 0)
+            {
+                expanded |= AnatomyFunction.AuditorySensing
+                    | AnatomyFunction.Communication;
+            }
+            if ((functions & AnatomyFunction.PowerCirculation) != 0)
+            {
+                expanded |= AnatomyFunction.VitalityResponse
+                    | AnatomyFunction.ArcaneConduction;
+            }
+            if ((functions & AnatomyFunction.PurificationProcessing) != 0)
+            {
+                expanded |= AnatomyFunction.VitalityResponse;
+            }
+            return expanded;
+        }
+    }
     public float MaxHealth => Mathf.Max(1f, maxHealth);
     public float CapacityWeight => Mathf.Clamp01(capacityWeight);
     public bool Vital => vital;
@@ -211,8 +123,13 @@ public sealed class AnatomyNodeDefinition
     public string PairedGroupId => pairedGroupId?.Trim() ?? string.Empty;
     public bool MapsToLegacyBodyPart => mapsToLegacyBodyPart;
     public CombatBodyPart LegacyBodyPart => legacyBodyPart;
-    public IReadOnlyList<AnatomyNodeAxisContribution> AxisContributions =>
-        axisContributions;
+
+#if UNITY_EDITOR
+    public void AddFunctions(AnatomyFunction addedFunctions)
+    {
+        functions |= addedFunctions;
+    }
+#endif
 
     public AnatomyNodeDefinition()
     {
@@ -230,8 +147,7 @@ public sealed class AnatomyNodeDefinition
         bool removable,
         string pairedGroupId = "",
         CombatBodyPart legacyBodyPart = default,
-        bool mapsToLegacyBodyPart = false,
-        IEnumerable<AnatomyNodeAxisContribution> contributions = null)
+        bool mapsToLegacyBodyPart = false)
     {
         this.nodeId = nodeId?.Trim() ?? string.Empty;
         this.displayName = displayName?.Trim() ?? string.Empty;
@@ -245,34 +161,6 @@ public sealed class AnatomyNodeDefinition
         this.pairedGroupId = pairedGroupId?.Trim() ?? string.Empty;
         this.legacyBodyPart = legacyBodyPart;
         this.mapsToLegacyBodyPart = mapsToLegacyBodyPart;
-        axisContributions = (contributions ?? Array.Empty<AnatomyNodeAxisContribution>())
-            .Where(item => item != null && item.Weight > 0f)
-            .ToList();
-    }
-
-    public float GetAxisContribution(AnatomyActionAxisId axis)
-    {
-        float explicitWeight = axisContributions?
-            .Where(item => item != null && item.Axis == axis)
-            .Sum(item => item.Weight) ?? 0f;
-        if (explicitWeight > 0f)
-        {
-            return explicitWeight;
-        }
-
-        AnatomyFunction mappedFunctions = axis switch
-        {
-            AnatomyActionAxisId.Awareness =>
-                AnatomyFunction.Consciousness | AnatomyFunction.Sight,
-            AnatomyActionAxisId.Handling => AnatomyFunction.Manipulation,
-            AnatomyActionAxisId.Locomotion => AnatomyFunction.Mobility,
-            AnatomyActionAxisId.Sustain =>
-                AnatomyFunction.Core | AnatomyFunction.Breathing,
-            AnatomyActionAxisId.Recovery =>
-                AnatomyFunction.Digestion | AnatomyFunction.Filtration,
-            _ => AnatomyFunction.None
-        };
-        return (functions & mappedFunctions) != 0 ? CapacityWeight : 0f;
     }
 }
 
@@ -286,7 +174,8 @@ public sealed class AnatomyProfileDefinition
             source?.DisplayName,
             source?.AnatomyFamily,
             source?.SpeciesIds,
-            source?.Nodes)
+            source?.Nodes,
+            source?.NotApplicableCapacities)
     {
     }
 
@@ -295,7 +184,8 @@ public sealed class AnatomyProfileDefinition
         string displayName,
         string anatomyFamily,
         IEnumerable<string> speciesIds,
-        IEnumerable<AnatomyNodeDefinition> nodes)
+        IEnumerable<AnatomyNodeDefinition> nodes,
+        IEnumerable<AnatomyFunctionalCapacityNotApplicable> notApplicable = null)
     {
         ProfileId = profileId?.Trim() ?? string.Empty;
         DisplayName = string.IsNullOrWhiteSpace(displayName)
@@ -313,6 +203,10 @@ public sealed class AnatomyProfileDefinition
             .Where(node => node != null && !string.IsNullOrWhiteSpace(node.NodeId))
             .ToArray();
         byId = Nodes.ToDictionary(node => node.NodeId, StringComparer.Ordinal);
+        NotApplicableCapacities = (notApplicable
+                ?? Array.Empty<AnatomyFunctionalCapacityNotApplicable>())
+            .Where(value => value != null)
+            .ToDictionary(value => value.CapacityId, value => value.Reason);
     }
 
     public string ProfileId { get; }
@@ -320,11 +214,20 @@ public sealed class AnatomyProfileDefinition
     public string AnatomyFamily { get; }
     public IReadOnlyList<string> SpeciesIds { get; }
     public IReadOnlyList<AnatomyNodeDefinition> Nodes { get; }
+    public IReadOnlyDictionary<CharacterFunctionalCapacityId, string>
+        NotApplicableCapacities { get; }
 
     public bool TryGetNode(string nodeId, out AnatomyNodeDefinition node)
     {
         return byId.TryGetValue(nodeId?.Trim() ?? string.Empty, out node);
     }
+
+    public bool TryGetNotApplicableReason(
+        CharacterFunctionalCapacityId capacityId,
+        out string reason) => NotApplicableCapacities.TryGetValue(
+            capacityId,
+            out reason)
+        && !string.IsNullOrWhiteSpace(reason);
 }
 
 [Serializable]
@@ -367,6 +270,43 @@ public readonly struct AnatomyHealthSnapshot
     public AnatomyHealthSnapshot(
         string profileId,
         IReadOnlyList<AnatomyNodeHealthState> nodes,
+        float mentalMaintenance,
+        float visualDiscernment,
+        float auditorySensing,
+        float respiratoryExchange,
+        float powerCirculation,
+        float intakeProcessing,
+        float purificationProcessing,
+        float vitalityResponse,
+        float physicalPower,
+        float precisionManipulation,
+        float physicalMobility,
+        float communication,
+        float arcaneConduction,
+        float immuneDefense)
+    {
+        ProfileId = profileId ?? string.Empty;
+        Nodes = nodes ?? Array.Empty<AnatomyNodeHealthState>();
+        MentalMaintenance = RequireCapacity(mentalMaintenance, nameof(mentalMaintenance));
+        VisualDiscernment = RequireCapacity(visualDiscernment, nameof(visualDiscernment));
+        AuditorySensing = RequireCapacity(auditorySensing, nameof(auditorySensing));
+        RespiratoryExchange = RequireCapacity(respiratoryExchange, nameof(respiratoryExchange));
+        PowerCirculation = RequireCapacity(powerCirculation, nameof(powerCirculation));
+        IntakeProcessing = RequireCapacity(intakeProcessing, nameof(intakeProcessing));
+        PurificationProcessing = RequireCapacity(purificationProcessing, nameof(purificationProcessing));
+        VitalityResponse = RequireCapacity(vitalityResponse, nameof(vitalityResponse));
+        PhysicalPower = RequireCapacity(physicalPower, nameof(physicalPower));
+        PrecisionManipulation = RequireCapacity(precisionManipulation, nameof(precisionManipulation));
+        PhysicalMobility = RequireCapacity(physicalMobility, nameof(physicalMobility));
+        Communication = RequireCapacity(communication, nameof(communication));
+        ArcaneConduction = RequireCapacity(arcaneConduction, nameof(arcaneConduction));
+        ImmuneDefense = RequireCapacity(immuneDefense, nameof(immuneDefense));
+    }
+
+    [Obsolete("Use the 14-capacity constructor.")]
+    public AnatomyHealthSnapshot(
+        string profileId,
+        IReadOnlyList<AnatomyNodeHealthState> nodes,
         float consciousness,
         float sight,
         float breathing,
@@ -374,27 +314,81 @@ public readonly struct AnatomyHealthSnapshot
         float filtration,
         float manipulation,
         float mobility)
+        : this(
+            profileId,
+            nodes,
+            consciousness,
+            sight,
+            consciousness,
+            breathing,
+            1f,
+            digestion,
+            filtration,
+            filtration,
+            mobility,
+            manipulation,
+            mobility,
+            consciousness,
+            1f,
+            filtration)
     {
-        ProfileId = profileId ?? string.Empty;
-        Nodes = nodes ?? Array.Empty<AnatomyNodeHealthState>();
-        Consciousness = Mathf.Clamp01(consciousness);
-        Sight = Mathf.Clamp01(sight);
-        Breathing = Mathf.Clamp01(breathing);
-        Digestion = Mathf.Clamp01(digestion);
-        Filtration = Mathf.Clamp01(filtration);
-        Manipulation = Mathf.Clamp01(manipulation);
-        Mobility = Mathf.Clamp01(mobility);
     }
 
     public string ProfileId { get; }
     public IReadOnlyList<AnatomyNodeHealthState> Nodes { get; }
-    public float Consciousness { get; }
-    public float Sight { get; }
-    public float Breathing { get; }
-    public float Digestion { get; }
-    public float Filtration { get; }
-    public float Manipulation { get; }
-    public float Mobility { get; }
+    public float MentalMaintenance { get; }
+    public float VisualDiscernment { get; }
+    public float AuditorySensing { get; }
+    public float RespiratoryExchange { get; }
+    public float PowerCirculation { get; }
+    public float IntakeProcessing { get; }
+    public float PurificationProcessing { get; }
+    public float VitalityResponse { get; }
+    public float PhysicalPower { get; }
+    public float PrecisionManipulation { get; }
+    public float PhysicalMobility { get; }
+    public float Communication { get; }
+    public float ArcaneConduction { get; }
+    public float ImmuneDefense { get; }
+
+    [Obsolete("Use MentalMaintenance.")] public float Consciousness => MentalMaintenance;
+    [Obsolete("Use VisualDiscernment.")] public float Sight => VisualDiscernment;
+    [Obsolete("Use RespiratoryExchange.")] public float Breathing => RespiratoryExchange;
+    [Obsolete("Use IntakeProcessing.")] public float Digestion => IntakeProcessing;
+    [Obsolete("Use PurificationProcessing.")] public float Filtration => PurificationProcessing;
+    [Obsolete("Use PrecisionManipulation.")] public float Manipulation => PrecisionManipulation;
+    [Obsolete("Use PhysicalMobility.")] public float Mobility => PhysicalMobility;
+
+    public float Get(CharacterFunctionalCapacityId capacityId) => capacityId switch
+    {
+        CharacterFunctionalCapacityId.MentalMaintenance => MentalMaintenance,
+        CharacterFunctionalCapacityId.VisualDiscernment => VisualDiscernment,
+        CharacterFunctionalCapacityId.AuditorySensing => AuditorySensing,
+        CharacterFunctionalCapacityId.RespiratoryExchange => RespiratoryExchange,
+        CharacterFunctionalCapacityId.PowerCirculation => PowerCirculation,
+        CharacterFunctionalCapacityId.IntakeProcessing => IntakeProcessing,
+        CharacterFunctionalCapacityId.PurificationProcessing => PurificationProcessing,
+        CharacterFunctionalCapacityId.VitalityResponse => VitalityResponse,
+        CharacterFunctionalCapacityId.PhysicalPower => PhysicalPower,
+        CharacterFunctionalCapacityId.PrecisionManipulation => PrecisionManipulation,
+        CharacterFunctionalCapacityId.PhysicalMobility => PhysicalMobility,
+        CharacterFunctionalCapacityId.Communication => Communication,
+        CharacterFunctionalCapacityId.ArcaneConduction => ArcaneConduction,
+        CharacterFunctionalCapacityId.ImmuneDefense => ImmuneDefense,
+        _ => throw new ArgumentOutOfRangeException(nameof(capacityId), capacityId, null)
+    };
+
+    private static float RequireCapacity(float value, string parameterName)
+    {
+        if (float.IsNaN(value) || float.IsInfinity(value) || value < 0f)
+        {
+            throw new ArgumentOutOfRangeException(
+                parameterName,
+                value,
+                "Functional capacity must be finite and non-negative.");
+        }
+        return value;
+    }
 }
 
 public interface IAnatomyProfileCatalog

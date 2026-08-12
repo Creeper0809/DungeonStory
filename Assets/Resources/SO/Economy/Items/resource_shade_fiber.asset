@@ -28,27 +28,27 @@ MonoBehaviour:
     \uC6D0\uB8CC."
   stockCategory: 1
   unitWeight: 0.12
-  maxStack: 200
+  maxStack: 75
   sprite: {fileID: 0}
   unitPrice: 2
   features:
-  - rid: 7737211838068949382
-  - rid: 7737211838068949383
-  - rid: 7737211838068949384
+  - rid: 7737211905666711848
+  - rid: 7737211905666711849
+  - rid: 7737211905666711850
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949382
+    - rid: 7737211905666711848
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:textile:fiber
-    - rid: 7737211838068949383
+    - rid: 7737211905666711849
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 0
         ingredientTags: 129
         sharedIntermediate: 0
-    - rid: 7737211838068949384
+    - rid: 7737211905666711850
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using DungeonStory.Foundation;
 using UnityEngine;
 
@@ -12,6 +13,9 @@ public sealed class WorkDutyController
     private float offDutyStartedAt = float.NegativeInfinity;
     private bool restProtectionActive;
     private float restProtectionStartedAt = float.NegativeInfinity;
+    private CharacterCondition? routineNeedBlockingWorkStart;
+    private BuildableObject routineNeedResumeTarget;
+    private WorkTypeId routineNeedResumeWorkTypeId;
 
     public WorkDutyController(
         AbilityWork work,
@@ -25,6 +29,9 @@ public sealed class WorkDutyController
     public AbilityWork.DutyState CurrentState => dutyState;
     public bool IsOffDuty => dutyState == AbilityWork.DutyState.OffDuty;
     public bool LastWorkRunCompleted { get; private set; }
+    public bool LastWorkRunInterruptedForRoutineNeed { get; private set; }
+    internal BuildableObject RoutineNeedResumeTarget => routineNeedResumeTarget;
+    internal WorkTypeId RoutineNeedResumeWorkTypeId => routineNeedResumeWorkTypeId;
     private float Now => RequireGameClock().Time;
 
     public void InitializeWorkerCondition(CharacterSO data)
@@ -112,6 +119,11 @@ public sealed class WorkDutyController
             }
 
             return true;
+        }
+
+        if (HasRoutinePhysiologicalNeed())
+        {
+            return false;
         }
 
         if (work.HasUrgentPriorityTarget())
@@ -277,7 +289,8 @@ public sealed class WorkDutyController
         float fun = 0f,
         float hunger = 0f,
         float excretion = 0f,
-        float hygiene = 0f)
+        float hygiene = 0f,
+        IReadOnlyList<string> activeConditionIds = null)
     {
         CharacterStats stats = GetWorkerStats();
         if (stats == null) return;
@@ -287,7 +300,8 @@ public sealed class WorkDutyController
             stats.RecoverNeed(
                 CharacterCondition.SLEEP,
                 sleep,
-                CharacterNeedRecoverySource.Rest);
+                CharacterNeedRecoverySource.Rest,
+                activeConditionIds);
         }
         if (mood != 0f)
         {
@@ -322,12 +336,11 @@ public sealed class WorkDutyController
         }
     }
 
-    public void ApplyWorkFatigueTick()
+    public void ApplyWorkFatigueTick(float elapsedGameSeconds = 1f)
     {
-        CharacterStats stats = GetWorkerStats();
-        if (stats == null) return;
+        if (!ApplyWorkNeedDepletion(elapsedGameSeconds)) return;
 
-        stats.ApplyWorkNeedDepletion();
+        CharacterStats stats = GetWorkerStats();
         stats.ApplyMoodFactor(
             "work:fatigue",
             "계속된 작업",
@@ -336,17 +349,32 @@ public sealed class WorkDutyController
             8);
     }
 
+    internal bool ApplyWorkNeedDepletion(float elapsedGameSeconds)
+    {
+        CharacterStats stats = GetWorkerStats();
+        if (stats == null)
+        {
+            return false;
+        }
+
+        stats.ApplyWorkNeedDepletion(elapsedGameSeconds);
+        return true;
+    }
+
     public IEnumerator CheckActionWork(int runId)
     {
         CharacterActor actor = work.WorkerActor;
         string endReason = string.Empty;
         float startedAt = Now;
+        float lastFatigueAppliedAt = startedAt;
         float routineShiftSeconds = work.RoutineOperateShiftSeconds
             * work.GetWorkEnvironmentDurationMultiplier(work.AssignedWorkTypeId);
         LastWorkRunCompleted = false;
         while (work.CanContinueWorkRun(runId) && actor != null && actor.Brain != null)
         {
-            ApplyWorkFatigueTick();
+            float currentTime = Now;
+            ApplyWorkFatigueTick(Mathf.Max(0f, currentTime - lastFatigueAppliedAt));
+            lastFatigueAppliedAt = currentTime;
             if (!CanContinueAssignedWork(out string stopReason))
             {
                 endReason = stopReason;
@@ -410,21 +438,51 @@ public sealed class WorkDutyController
             return true;
         }
 
-        if (work.HasUrgentPriorityTarget())
-        {
-            return false;
-        }
-
         float hunger = GetStat(CharacterCondition.HUNGER, 100f);
         if (hunger <= work.HungerWorkInterruptThreshold)
         {
+            RememberRoutineNeedInterruption(CharacterCondition.HUNGER);
             interruptReason = "식사 필요";
             return true;
         }
 
         if (ShouldUseRestProtection())
         {
+            RememberRoutineNeedInterruption(CharacterCondition.SLEEP);
             interruptReason = "휴식 필요";
+            return true;
+        }
+
+        if (ShouldInterruptForRoutineNeed(
+                CharacterCondition.SLEEP,
+                "휴식 필요",
+                out interruptReason)
+            || ShouldInterruptForRoutineNeed(
+                CharacterCondition.THIRST,
+                "음수 필요",
+                out interruptReason)
+            || ShouldInterruptForRoutineNeed(
+                CharacterCondition.EXCRETION,
+                "배변 필요",
+                out interruptReason)
+            || ShouldInterruptForRoutineNeed(
+                CharacterCondition.HYGIENE,
+                "위생 필요",
+                out interruptReason))
+        {
+            return true;
+        }
+
+        if (work.HasUrgentPriorityTarget())
+        {
+            return false;
+        }
+
+        if (ShouldInterruptForRoutineNeed(
+                CharacterCondition.FUN,
+                "여가 필요",
+                out interruptReason))
+        {
             return true;
         }
 
@@ -442,6 +500,101 @@ public sealed class WorkDutyController
         }
 
         return false;
+    }
+
+    internal bool HasRoutinePhysiologicalNeed()
+    {
+        if (!routineNeedBlockingWorkStart.HasValue)
+        {
+            return false;
+        }
+
+        CharacterCondition condition = routineNeedBlockingWorkStart.Value;
+        if (!CharacterNeedAiThresholds.IsSatisfied(work.WorkerActor, condition))
+        {
+            return true;
+        }
+
+        routineNeedBlockingWorkStart = null;
+        return false;
+    }
+
+    private bool ShouldInterruptForRoutineNeed(
+        CharacterCondition condition,
+        string reason,
+        out string interruptReason)
+    {
+        interruptReason = string.Empty;
+        if (CharacterNeedAiThresholds.GetRoutineUtility(
+                work.WorkerActor,
+                condition) <= 0f)
+        {
+            return false;
+        }
+
+        RememberRoutineNeedInterruption(condition);
+        interruptReason = reason;
+        return true;
+    }
+
+    internal void BeginWorkRun()
+    {
+        LastWorkRunCompleted = false;
+        LastWorkRunInterruptedForRoutineNeed = false;
+    }
+
+    internal bool NotifyRoutineNeedServiceCompleted()
+    {
+        if (routineNeedResumeTarget == null
+            || !routineNeedResumeWorkTypeId.IsValid
+            || HasRoutinePhysiologicalNeed())
+        {
+            return false;
+        }
+
+        BuildableObject resumeTarget = routineNeedResumeTarget;
+        WorkTypeId resumeWorkTypeId = routineNeedResumeWorkTypeId;
+        ClearRoutineNeedResumeIntent();
+        if (resumeTarget == null
+            || resumeTarget.isDestroy
+            || !work.WorkPriorities.IsEnabled(resumeWorkTypeId))
+        {
+            return false;
+        }
+
+        work.AssignWork(resumeTarget, resumeWorkTypeId);
+        AIBrain brain = work.WorkerActor?.Brain;
+        brain?.PreferWorkActionOnNextDecision(
+            resumeWorkTypeId,
+            persistenceSeconds: 30f);
+        work.WorkerActor?.AddActivity(CharacterActivityEvent.Work(
+            resumeWorkTypeId,
+            CharacterActivityOutcomes.Returned,
+            "생리 욕구를 해결해 중단했던 작업으로 복귀 준비",
+            resumeTarget,
+            reasonCode: "routine-need-resume"));
+        return true;
+    }
+
+    private void RememberRoutineNeedInterruption(CharacterCondition condition)
+    {
+        routineNeedBlockingWorkStart = condition;
+        LastWorkRunInterruptedForRoutineNeed = true;
+        BuildableObject target = work.assignedShop;
+        WorkTypeId workTypeId = work.AssignedWorkTypeId;
+        if (target == null || target.isDestroy || !workTypeId.IsValid)
+        {
+            return;
+        }
+
+        routineNeedResumeTarget = target;
+        routineNeedResumeWorkTypeId = workTypeId;
+    }
+
+    private void ClearRoutineNeedResumeIntent()
+    {
+        routineNeedResumeTarget = null;
+        routineNeedResumeWorkTypeId = default;
     }
 
     private bool ShouldEndRoutineWorkShift(float startedAt, float routineShiftSeconds, out string reason)

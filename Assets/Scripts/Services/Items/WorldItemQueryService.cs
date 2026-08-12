@@ -128,7 +128,7 @@ public sealed class WorldItemQueryService : IWorldItemQueryService
                 && IsVisibleState(stack.state, includeStored))
             .Select(CreateSnapshot)
             .OrderBy(GetStateSortOrder)
-            .ThenBy(stack => stack.IsReserved ? 1 : 0)
+            .ThenBy(stack => stack.IsFullyReserved ? 1 : 0)
             .ThenByDescending(stack => stack.TotalValue)
             .ThenBy(stack => stack.DisplayName, StringComparer.Ordinal)
             .ToArray();
@@ -279,7 +279,7 @@ public sealed class WorldItemQueryService : IWorldItemQueryService
         return stack != null
             && stack.quantity > 0
             && !stack.forbidden
-            && string.IsNullOrWhiteSpace(stack.reservedByPersistentId);
+            && stack.quantity - stack.reservedQuantity > 0;
     }
 
     private static bool IsConsumableStock(WorldItemStackRecord stack)
@@ -318,12 +318,18 @@ public sealed class WorldItemQueryService : IWorldItemQueryService
         return new WorldItemStackSnapshot
         {
             StackId = stack.stackId,
+            ContentRevision = repository.ItemStackVersion,
+            ReservationRevision = stack.reservationRevision,
             ItemInstanceId = stack.itemInstanceId,
             ItemId = stack.itemId,
             DisplayName = definition.DisplayName,
             Description = definition.Description,
             StockCategory = definition.StockCategory,
             Quantity = Mathf.Max(0, stack.quantity),
+            ReservedQuantity = Mathf.Clamp(
+                stack.reservedQuantity,
+                0,
+                Mathf.Max(0, stack.quantity)),
             UnitPrice = definition.UnitPrice,
             UnitWeight = definition.UnitWeight,
             Sprite = definition.Sprite,
@@ -332,6 +338,7 @@ public sealed class WorldItemQueryService : IWorldItemQueryService
             ReservedByPersistentId =
                 stack.reservedByPersistentId ?? string.Empty,
             DestinationId = stack.destinationId ?? string.Empty,
+            AggregationCohortId = stack.aggregationCohortId ?? string.Empty,
             SourceStorageDestinationId =
                 stack.sourceStorageDestinationId ?? string.Empty,
             HasDestinationPosition = stack.hasDestinationPosition,

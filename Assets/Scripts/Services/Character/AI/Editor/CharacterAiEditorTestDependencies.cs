@@ -39,10 +39,21 @@ internal static class CharacterAiEditorTestDependencies
         new RandomStreamProvider(rootSeed: 9173);
     private static readonly IPersistentIdGenerator PersistentIds =
         new GuidPersistentIdGenerator();
+    private static readonly DungeonRuntimeAggregateRootStore ItemRuntimeState =
+        new DungeonRuntimeAggregateRootStore();
+    private static readonly IDungeonItemCatalogProvider ItemCatalog =
+        new ResourceDungeonItemCatalogProvider(
+            new ResourceItemDefinitionCatalog(GameContent));
+    private static readonly IItemHaulingSettingsProvider HaulingSettings =
+        new ResourceItemHaulingSettingsProvider(
+            GameContent,
+            new EditorDungeonUserSettingsService(),
+            ItemRuntimeState);
+    private static readonly CharacterCarryInventoryRegistry CarryInventories = new();
     private static readonly WorldItemRepository PhysicalItems =
         new WorldItemRepository(
             PersistentIds,
-            new DungeonRuntimeAggregateRootStore());
+            ItemRuntimeState);
     private static readonly IStockQuery StockQuery =
         new PhysicalStockQuery(
             PhysicalItems,
@@ -76,8 +87,9 @@ internal static class CharacterAiEditorTestDependencies
                 GameEvents,
                 FrameWorkBudget,
                 new ResourceAnatomyProfileCatalog(GameContent),
-                new DefaultAnatomyActivityProfileCatalog(),
                 new DungeonRuntimeAggregateRootStore()));
+    private static readonly ICharacterSpeciesCommand SpeciesCommands =
+        new EditorNoCharacterSpeciesCommand();
     private static readonly IFacilityCandidateCache FacilityCandidates =
         new FacilityCandidateCacheStore(WorldRegistry, frameWorkBudget: null);
     private static readonly IRoomFacilityPolicy RoomPolicy =
@@ -300,6 +312,7 @@ internal static class CharacterAiEditorTestDependencies
         PathSearchBroker.BeginFrame(int.MaxValue, enforceBudget: false);
         WorkExecutionHandlerRegistry workRegistry =
             CreateWorkRegistry(blueprintResearch);
+        EnsureCharacterProgression(actorObject);
 
         foreach (CharacterAbility ability in actorObject.GetComponents<CharacterAbility>())
         {
@@ -333,17 +346,34 @@ internal static class CharacterAiEditorTestDependencies
             GameClock, frameWorkBudget: null);
         actorObject.GetComponent<CharacterVisual>()?.ConstructCharacterVisual(GameClock);
 
-        actorObject.GetComponent<AbilityWork>()?.ConstructAbilityWork(
-            blueprintResearch,
-            staffDiscontent,
-            FloatingIcons,
-            new ActiveWorkGridResolver(),
-            FacilityCandidates,
-            null,
-            workPolicyRegistry: workRegistry,
-            gameClock: GameClock, exteriorZoneQuery: null, workExecutionHandlerRegistry: workRegistry, workOrderRuntime: WorkOrders, workAmountCalculator: WorkAmounts, captiveLaborQuery: null, defenseEngagementRuntime: null, roomEnvironmentExperienceService: RoomExperience, paidFacilityContracts: PaidFacilities, environmentWorkPolicy: EnvironmentWork, characterEnvironment: NoCharacterEnvironmentWorkContext.Instance, environmentalWorkwearCommands: NoEnvironmentalWorkwearCommand.Instance,
-            needDefinitionCatalog: AuthoredGameplay,
-            debugRules: DisabledDungeonDebugRuleQuery.Instance);
+        AbilityWork abilityWork = actorObject.GetComponent<AbilityWork>();
+        if (abilityWork != null)
+        {
+            abilityWork.ConstructAbilityWork(
+                blueprintResearch,
+                staffDiscontent,
+                FloatingIcons,
+                new ActiveWorkGridResolver(),
+                FacilityCandidates,
+                null,
+                workPolicyRegistry: workRegistry,
+                gameClock: GameClock, exteriorZoneQuery: null, workExecutionHandlerRegistry: workRegistry, workOrderRuntime: WorkOrders, workAmountCalculator: WorkAmounts, captiveLaborQuery: null, defenseEngagementRuntime: null, roomEnvironmentExperienceService: RoomExperience, paidFacilityContracts: PaidFacilities, environmentWorkPolicy: EnvironmentWork, characterEnvironment: NoCharacterEnvironmentWorkContext.Instance, environmentalWorkwearCommands: NoEnvironmentalWorkwearCommand.Instance,
+                needDefinitionCatalog: AuthoredGameplay,
+                debugRules: DisabledDungeonDebugRuleQuery.Instance);
+            abilityWork.ConstructPerformance(
+                NeutralPerformance,
+                new CharacterWorkPerformanceContextResolver(
+                    NeutralProficiencies,
+                    GameCalendar,
+                    combatEquipment: null),
+                BodyHealth.Value,
+                SpeciesCommands);
+            abilityWork.ConstructProficiencyProgression(
+                NeutralProficiencies,
+                NeutralProficiencies,
+                GameCalendar,
+                combatEquipmentRuntime: null);
+        }
 
         actorObject.GetComponent<AbilityShopping>()?.ConstructAbilityShopping(
             ShopStock,
@@ -370,7 +400,6 @@ internal static class CharacterAiEditorTestDependencies
                 new NeutralSocialReputationBiasService(),
                 RoomPolicy));
 
-        EnsureCharacterProgression(actorObject);
         actorObject.GetComponent<CharacterActor>()?.ConstructCharacterActor(
             GridSystem,
             scheduling,
@@ -382,7 +411,7 @@ internal static class CharacterAiEditorTestDependencies
             WorldRegistry,
             WorldSignalQuery,
             FrameWorkBudget,
-            new CharacterCarryInventoryRegistry(),
+            CarryInventories,
             new CharacterIdRegistryAdapter(
                 WorldRegistry,
                 new DungeonStory.Characters.CharacterIdRegistry(
@@ -398,7 +427,20 @@ internal static class CharacterAiEditorTestDependencies
             GameClock,
             tmpKoreanFontService: null,
             presentationScheduler: null,
-            runtimeProfileFactory: new CharacterRuntimeProfileFactory(GameContent));
+            runtimeProfileFactory: new CharacterRuntimeProfileFactory(GameContent),
+            moodPolicy: new CharacterMoodPolicyService(
+                new CharacterIdentityRuleRouter(),
+                new CharacterPersistentNeedRuntime(
+                    new CharacterIdentityStateStore(),
+                    GameClock)));
+
+        // Editor scenarios construct actors without a world item runtime. Carry
+        // inventory is still part of the AI decision snapshot, so the fixture must
+        // provide the same typed catalog/settings authority as a live world.
+        actorObject.GetComponent<CharacterCarryInventory>()?.Configure(
+            ItemCatalog,
+            HaulingSettings,
+            CarryInventories);
 
     }
 
@@ -463,6 +505,11 @@ internal static class CharacterAiEditorTestDependencies
             new CharacterProgressionProfileProjector(
                 GameContent,
                 new CharacterRuntimeProfileFactory(GameContent)));
+        progression.GrowthState.traitSelectionAuthorityVersion =
+            CharacterGrowthState.CurrentTraitSelectionAuthorityVersion;
+        progression.GrowthState.traitSelectionAuthorityOrigin =
+            CharacterTraitSelectionAuthorityOrigin.PreparedSelection;
+        progression.GrowthState.traitIds ??= new List<int>();
     }
 
     internal static void InjectCharacterStats(
@@ -482,16 +529,22 @@ internal static class CharacterAiEditorTestDependencies
             new CharacterStatsProjectionService(
                 staffDiscontent,
                 metaProgression,
-                NeutralCharacterPhysicalCapacityQuery.Instance,
                 NoCharacterDeprivationBoundary.Instance,
                 NeutralCharacterSubstanceRuntime.Instance,
-                NeutralSurgicalAugmentationQuery.Instance,
                 NeutralCharacterEnvironmentStatusQuery.Instance,
                 NeutralExternalCombatInfluenceQuery.Instance,
                 NeutralContentWorkDelayQuery.Instance,
                 NeutralDiseaseSymptomEffectQuery.Instance,
                 NeutralCharacterCombatSpecialStatusQuery.Instance,
-                NeutralCombatEquipmentBurdenQuery.Instance);
+                NeutralCombatEquipmentBurdenQuery.Instance,
+                GameCalendar,
+                sharedEffects: new CharacterDerivedStatsSnapshotProjector(
+                    GameContent,
+                    EditorNoEquipmentGameplayEffects.Instance,
+                    EditorNoTransientGameplayEffects.Instance,
+                    new ExtremeTraitRuntime(new CharacterIdentityStateStore()),
+                    gameClock),
+                performance: NeutralPerformance);
         stats.ConstructCharacterStats(
             gameClock,
             needDefinitions,
@@ -501,7 +554,14 @@ internal static class CharacterAiEditorTestDependencies
                 DefaultCharacterNeedBalanceRuntime.Instance,
                 debugRules),
             new CharacterMoodStateService(gameClock, needDefinitions),
-            new CharacterStatsMaintenanceSchedule());
+            new CharacterStatsMaintenanceSchedule(),
+            GameEvents,
+            NeutralPerformance,
+            new CharacterWorkPerformanceContextResolver(
+                NeutralProficiencies,
+                GameCalendar,
+                combatEquipment: null),
+            combatEquipment: null);
         stats.ConstructCharacterVitals(
             new CharacterStatsVitalsService(
                 BodyHealth.Value,
@@ -509,6 +569,168 @@ internal static class CharacterAiEditorTestDependencies
                 GameEvents,
                 new CharacterDeathEventFactory(WorldRegistry, GameCalendar),
                 new NoopOwnerRunLifecycleService()));
+    }
+
+    public static ICharacterPerformanceQuery NeutralPerformance { get; } =
+        new EditorNeutralCharacterPerformanceQuery();
+
+    private static EditorNeutralCharacterProficiencyQuery NeutralProficiencies { get; } =
+        new EditorNeutralCharacterProficiencyQuery();
+
+    private sealed class EditorNeutralCharacterProficiencyQuery :
+        ICharacterProficiencyQuery,
+        ICharacterProficiencyCommand
+    {
+        public bool TryGetProficiency(
+            CharacterId characterId,
+            CharacterProficiencyId proficiencyId,
+            long absoluteHour,
+            out CharacterProficiencySnapshot snapshot)
+        {
+            snapshot = default;
+            return false;
+        }
+
+        public IReadOnlyList<CharacterProficiencySnapshot> GetAllProficiencies(
+            CharacterId characterId,
+            long absoluteHour) => Array.Empty<CharacterProficiencySnapshot>();
+
+        public long AddApprovedWork(
+            CharacterId characterId,
+            ProficiencyWorkProfile profile,
+            float approvedWork,
+            float difficultyMultiplier,
+            ProficiencyWorkOutcome outcome,
+            float learningMultiplier,
+            float repetitionMultiplier,
+            long absoluteHour) => 0L;
+
+        public long AddDirectExperience(
+            CharacterId characterId,
+            CharacterProficiencyId proficiencyId,
+            float experience,
+            long absoluteHour,
+            bool applyLearningMultiplier = true) => 0L;
+
+        public long AddCombatExperience(
+            CharacterId characterId,
+            CharacterProficiencyId proficiencyId,
+            float experience,
+            bool training,
+            string stableAwardKey,
+            long absoluteHour) => 0L;
+
+        public void RecordPractice(
+            CharacterId characterId,
+            CharacterProficiencyId proficiencyId,
+            long absoluteHour)
+        {
+        }
+    }
+
+    private sealed class EditorNoCharacterSpeciesCommand :
+        ICharacterSpeciesCommand
+    {
+        public bool RepairIntegrity(
+            CharacterId characterId,
+            float amount,
+            out DomainFailure failure)
+        {
+            failure = DomainFailure.None;
+            return characterId.IsValid && amount >= 0f;
+        }
+
+        public bool RecordCompletedWork(
+            CharacterId characterId,
+            string workTypeId,
+            float completedWork,
+            out DomainFailure failure)
+        {
+            failure = DomainFailure.None;
+            return characterId.IsValid
+                && !string.IsNullOrWhiteSpace(workTypeId)
+                && completedWork >= 0f;
+        }
+    }
+
+    private sealed class EditorNeutralCharacterPerformanceQuery :
+        ICharacterPerformanceQuery
+    {
+        public CharacterFunctionalCapacitySnapshot GetFunctionalCapacities(
+            CharacterActor actor) => new(
+            Enum.GetValues(typeof(CharacterFunctionalCapacityId))
+                .Cast<CharacterFunctionalCapacityId>()
+                .Select(id => new CharacterFunctionalCapacityValue(
+                    id,
+                    true,
+                    1f,
+                    string.Empty,
+                    Array.Empty<CharacterPerformanceContributionTrace>()))
+                .ToArray());
+
+        public CharacterPerformanceSnapshot Evaluate(
+            CharacterActor actor,
+            string formulaId,
+            float contextFactor = 1f,
+            GameplayEffectContext effectContext = null) => Neutral(
+            formulaId,
+            contextFactor);
+
+        public CharacterPerformanceSnapshot Evaluate(
+            CharacterActor actor,
+            string formulaId,
+            CharacterPerformanceEvaluationContext context) => Neutral(
+            formulaId,
+            context?.ContextFactor ?? 1f);
+
+        public CharacterPerformanceSnapshot EvaluateWork(
+            CharacterActor actor,
+            WorkTypeId workTypeId,
+            CharacterPerformanceResultChannel resultChannel,
+            CharacterPerformanceEvaluationContext context) => Neutral(
+            $"{workTypeId.Value}:{resultChannel}",
+            context?.ContextFactor ?? 1f);
+
+        public IReadOnlyList<CharacterPerformanceSnapshot> EvaluateDomain(
+            CharacterActor actor,
+            CharacterPerformanceFormulaDomain domain) =>
+            Array.Empty<CharacterPerformanceSnapshot>();
+
+        private static CharacterPerformanceSnapshot Neutral(
+            string formulaId,
+            float contextFactor) => new()
+            {
+                FormulaId = formulaId?.Trim() ?? string.Empty,
+                DisplayName = formulaId?.Trim() ?? string.Empty,
+                BaseValue = 1f,
+                FunctionalCapacityFactor = 1f,
+                ProficiencyFactor = 1f,
+                GameplayEffectFactor = 1f,
+                ContextFactor = contextFactor,
+                WeightedCapacityValue = 1f,
+                BottleneckCap = 1f,
+                Value = contextFactor,
+                IsApplicable = true,
+                Contributions = Array.Empty<CharacterPerformanceContributionTrace>()
+            };
+    }
+
+    private sealed class EditorNoEquipmentGameplayEffects :
+        ICharacterEquipmentGameplayEffectSourceQuery
+    {
+        public static readonly EditorNoEquipmentGameplayEffects Instance = new();
+        public IReadOnlyList<IGameplayEffectSource> GetEquipmentSources(
+            CharacterActor actor) => Array.Empty<IGameplayEffectSource>();
+    }
+
+    private sealed class EditorNoTransientGameplayEffects :
+        ICharacterTransientGameplayEffectSourceQuery
+    {
+        public static readonly EditorNoTransientGameplayEffects Instance = new();
+        public IReadOnlyList<IGameplayEffectSource> GetStatusSources(
+            CharacterActor actor) => Array.Empty<IGameplayEffectSource>();
+        public IReadOnlyList<IGameplayEffectSource> GetCompletedResearchSources(
+            CharacterActor actor) => Array.Empty<IGameplayEffectSource>();
     }
 
     public static void Inject(SocialReputationRuntime runtime)
@@ -998,6 +1220,10 @@ internal static class CharacterAiEditorTestDependencies
             if (!ownerObject.TryGetComponent(out AbilityWork _))
             {
                 ownerObject.AddComponent<AbilityWork>();
+            }
+            if (!ownerObject.TryGetComponent(out AbilityShopping _))
+            {
+                ownerObject.AddComponent<AbilityShopping>();
             }
             if (!ownerObject.TryGetComponent(out AIBrain _))
             {
@@ -1515,6 +1741,8 @@ internal static class CharacterAiEditorTestDependencies
         IRoomEnvironmentExperienceService
     {
         public bool Apply(RoomEnvironmentExperienceEvent eventType) => false;
+        public IReadOnlyList<string> GetActiveConditionIds(
+            BuildableObject facility) => Array.Empty<string>();
     }
 
     private sealed class EditorSafeEnvironmentWorkPolicy : IEnvironmentWorkPolicy

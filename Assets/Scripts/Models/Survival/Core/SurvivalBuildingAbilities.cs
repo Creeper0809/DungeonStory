@@ -79,6 +79,19 @@ public sealed class BuildingFuelConsumerAbility :
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+[BuildingAbilityDisplayName("골렘 충전")]
+public sealed class BuildingGolemRechargeAbility :
+    BuildingAbility,
+    IBuildingWorkCompletionAbility
+{
+    public string materialItemId = "resource:mana-crystal";
+    [Min(1)] public int materialQuantity = 1;
+    [Min(0.1f)] public float requiredWork = 100f;
+    [Min(0.1f)] public float restoredCharge = 50f;
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 [BuildingAbilityDisplayName("온도 조절")]
 public sealed class BuildingTemperatureAbility : BuildingAbility
 {

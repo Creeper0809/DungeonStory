@@ -266,7 +266,10 @@ public static class CharacterSkillRuntimeEffects
     public static float GetRevenueMultiplier(CharacterActor actor)
     {
         float bonus = GetManagementModuleTotal(actor, "revenue", CharacterSkillTrigger.WorkCompleted);
-        return 1f + Mathf.Clamp(bonus, 0f, 3f);
+        return 1f + Mathf.Clamp(
+            bonus,
+            0f,
+            GoldEconomyBalanceRules.MaximumWorkerRevenuePremium - 1f);
     }
 
     public static float ApplyPositiveRelationshipBonus(CharacterActor actor, float sentiment)
@@ -328,7 +331,10 @@ public static class CharacterSkillRuntimeEffects
             return;
         }
 
-        float attack = Mathf.Max(1f, defender.GetCharacterStat(CharacterStatType.Attack));
+        float attack = Mathf.Max(
+            1f,
+            5f * defender.Stats.EvaluatePerformance(
+                "performance:combat:melee-power").Value);
         float damage = 0f;
         foreach (CharacterSkillModuleSelection selection in skill.modules ?? new List<CharacterSkillModuleSelection>())
         {

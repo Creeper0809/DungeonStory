@@ -1,5 +1,422 @@
 # DungeonStory Active Plan
 
+## Phase 157 - Single worker-intent authority and live WU recovery (in progress)
+
+- [x] Inventory the competing character action owners. Routine safe relief, emergency relief, primitive survival, deprivation breakdown and direct movement previously mutated one `AIBrain` through unrelated booleans/coroutines.
+- [x] Add a typed external intent lease with owner ID, priority kind and monotonic epoch; only the current lease can update presentation, commit physical effects or end the action.
+- [x] Route safe relief, primitive survival and breakdown runners through the lease authority; deferred retry no longer locks the actor while waiting.
+- [x] Make violent breakdown a bounded episode. Completion clears the active breakdown and lowers its cause below the retrigger threshold instead of reissuing the same action every decision tick.
+- [x] Protect direct player movement from autonomous external intents: manual mode retires the prior external owner and new external intent acquisition is rejected until the command ends.
+- [x] Add intent diagnostics to the five-day report: owner/kind/epoch, transitions, preemptions, rejected acquisitions and stale completions.
+- [x] Fix editor AI fixture composition so carry inventory receives the same typed catalog/settings authority as a live world; focused naturalness and deprivation authority regressions pass through Unity MCP.
+- [ ] Repair ordinary work resumption/parallel assignment after routine needs. The latest clean no-breakdown sample proves collision-free intent state, but only one construction worker remained active and measured labor fell to 4.175 WU/adult-day.
+- [ ] Re-run the isolated five-day sample until exact physical needs, multi-worker construction, intent diagnostics and Console 0/0 all pass together. Only then re-author the provisional 20-WU baseline if the stable mean differs materially.
+
+### Phase 157 intent authority record
+
+- Authority: at most one externally driven action lease per actor. An owner is identified by a stable string and an epoch; priority is `RoutineNeed < EmergencyNeed < ProtectedAction < Breakdown`, while a manual command excludes all autonomous external acquisition.
+- Commit rule: a coroutine may only consume an item, recover a need, damage a target, update debug state or end the action when its exact lease is still current.
+- Retry rule: waiting for a future facility/stock retry is not an action and owns no actor lock.
+- Breakdown rule: violent impulse is one bounded episode. Persistent deprivation may cause a later new episode through the normal burden/check interval, never by leaving `breakdown.active` true after the routine ends.
+- Player rule: direct movement cancels/retires the current autonomous external owner and remains immune to stale autonomous completion until it ends.
+- Current evidence: focused AI naturalness and deprivation-authority suites pass; Unity compile and edit-mode Console Warning/Error are 0/0. First instrumented five-day run exposed 29/83 repeated breakdown transitions; after the bounded-episode fix the next run had 4/4/4 transitions, zero preemptions/rejections/stale completions at end, and no active breakdown.
+- Remaining evidence: stable parallel construction and five-day labor/cadence pass. Balance remains `기준 배정`, not complete.
+
+## Phase 147 - V26 whole-game balance continuation (in progress)
+
+- [x] Audit the current new-game three-founder random proficiency/reroll system end to end before changing initial balance: generation distribution, species/trait/owner modifiers, reroll scope and limits, UI preview/commit, deterministic seed behavior, and save authority. The current system has unlimited employee full rerolls, restartable partial limits, no role/total-XP constraint, non-isolated group rerolls, a preparation RNG not directly reseeded from the new run seed, and globally rollable traits.
+- [ ] Replace the flat founder packet with age-bound starting profiles: four subgrades inside every major proficiency rank, explicit primary/secondary specializations, independently authored origin and past-history bonuses, species-relative starting age, age-based proficiency caps, and optional initial age conditions projected through the existing life/health authority. Implementation, age-health retuning, 18,000-profile deterministic audit, 20,000-roster no-reroll coverage audit, strict character-save round trip and runtime catalog pass; preparation-scene visual verification and full-world round trip remain.
+- [x] Replace the fixed three-trait founder roll with a weighted 1-4 trait identity: 15/40/35/10% count weights, mandatory mutually-exclusive trait families, lower weights for strong net-positive traits, species eligibility, four-trait UI/save support and a deterministic distribution audit. Retuned dominant legacy traits; Fast Learner now grants x1.30 approved-work XP. The 100,000-profile Unity MCP audit passed at 15.203/40.029/34.664/10.104%, mean 2.397, 56/56 reachable, zero family/species leaks, four-trait save round trip and Console 0/0.
+- [x] Inventory and evaluate all 56 founder traits against one common rubric: live authored mechanics, rarity/family, operational strength, real downside, same-family competition and implementation gaps. The full report covers 56/56 traits with ratings S3/A8/B10/C5/D22/F8 and identifies the rolled-trait behavior/mood authority mismatch plus unused event-weight path. No gameplay value changed.
+- [x] Add a real-time playtime axis to the industrial checkpoints using the authoritative 180-second day and x1~x5 speed range. The table separates pause-exclusive simulation time from a provisional effective-speed playtime band that still requires observed calibration.
+- [x] Re-certify the V26 nine-proficiency mapping across all 31 work types and authored building/recipe/equipment/apparel content. Current audit covers 419 buildings, 354 recipes, 61 combat equipment definitions and 56 apparel definitions; focused aggregate, 100,000-sample quality, 960-day decay and 2,000-resident allocation probes pass.
+- [x] Re-run the current full-world save round trip after the single-authority proficiency change. Latest gate passed registered/captured/post `68/68/68`, canonical baseline restoration, character progression contracts, and Console 0/0 after removing read-side loadout creation.
+- [x] Trace the authoritative invasion scheduling, threat growth, expedition unlock and warning paths against the intended day 1-10 settlement / day 10-30 rehearsal-combat cadence.
+- [x] Implement a deterministic early-game non-forced-combat contract without suppressing player-initiated training or later invasion pressure. World-map planning remains open; actual launch requires authored field-rations research at both UI and direct runtime boundaries.
+- [x] Run focused pacing and direct-launch-bypass probes, compile, confirm Console 0/0, and update balance evidence.
+- [x] Make expedition readiness use the same equipped weapon, armor and shield authority as actual combat, with proficiency remaining the primary power source and loadout contribution capped.
+- [ ] Audit population growth, proficiency growth and equipment acquisition together against settlement labor capacity and threat scaling across 1/30/120/240/400/960-day checkpoints.
+- [x] Generate a non-circular checkpoint report from the proficiency projection, actual authored equipment snapshots and authored campaign requirements; do not derive resident power from the target requirement being tested. Six checkpoints pass and the report is at `Artifacts/QA/v26-population-power-checkpoints.md`.
+- [x] Cap successful guest/mercenary recruitment to one resident per 10 absolute days, persist the successful recruitment day, and give late recruits a two-specialization proficiency floor without granting Expert/Master ranks.
+- [x] Run the actual-rule 256-seed 1~960-day population/labor policy envelope with reproduction success, adulthood delay, regular recruitment cadence, natural mortality and proficiency-derived daily EWU.
+- [ ] Extend the long-horizon population probe with captive recruitment, faction joiners, golem assembly and actual housing/food/medical capacity before treating the day-960 target as complete.
+- [x] Measure checkpoint loadout production throughput against combat-ready headcount using live equipment BOM, direct craft WU, embedded work, research access and quality-attempt cost; expedition-party, new-slot and full-reserve envelopes now pass/report separately across all six checkpoints.
+
+### Phase 147 balance record
+
+- Target authority: `balance:early-settlement-combat-cadence-v26`.
+- Growth stage: day 1-10 survival settlement, day 10-30 first warning and rehearsal invasion.
+- Physical/economic constraint: the peace window changes scheduling only; it creates no resources, removes no invasion cost and does not reduce later threat accumulation without an authored catch-up rule.
+- Player decision: training and voluntary preparation remain available; external combat and hostile invasion must not be the optimal or mandatory first-day action.
+- Exploit boundary: saving, pausing, changing scenes or withholding a trigger cannot reset the absolute-day gate.
+- Save authority: absolute calendar and existing invasion scheduler state; no parallel timer.
+- Required evidence: authored threshold audit, day-boundary deterministic probe, warning lead-time probe, save/reload invariance and Console 0/0.
+
+### Phase 147 founder-profile balance record
+
+- Target authority: `balance:founder-age-background-proficiency-v26`.
+- Growth stage: new-game owner plus two selected staff before day 1; later work, training and mentorship retain the existing proficiency authority.
+- Physical/economic constraint: starting experience represents work already performed before arrival and creates no material, item, research or completed work order. It only changes the speed, quality, accident and combat projections of the selected founders.
+- Player decision: compare age and health risk against primary/secondary specialization, origin and past history instead of rerolling nine unrelated numbers.
+- Exploit boundary: every proficiency is capped by the rolled species-relative age band; no founder may start at Technician or above, and origin/history bonuses cannot bypass the cap. Identity and aptitude rerolls must regenerate the whole dependent profile together rather than preserve the best cross-group pieces.
+- Reroll policy: unlimited manual reroll is an accepted player-side optimization and is not a balance-completion blocker. All expected-value and milestone evidence uses the clearly labelled no-reroll natural distribution.
+- Revised age-health target: because specialization now accelerates future learning and unlimited manual reroll is accepted, Elder incidence rises to 65-80% with any condition and 25-45% with multiple conditions. At the 5% Elder weight this keeps a healthy Elder with one specified primary specialization near 1% per seven-candidate natural roster.
+- Specialization growth target: primary proficiency earns x1.50 XP, secondary earns x1.20 XP and all others earn x1.00. The factor applies to approved work, combat, training and mentorship/direct learning before existing daily caps; initial packets and campaign catch-up floors are not learning events and are not multiplied.
+- Save authority: the existing character growth state stores the prepared profile and starting proficiency packet; the existing character-life Aggregate owns biological age and age conditions after publication. No parallel current-proficiency or health cache is introduced.
+- Required evidence: exact IV/III/II/I boundaries for all five major ranks, primary > secondary > unrelated expected XP, x1.50/x1.20/x1.00 learning across work/direct/combat paths with unchanged caps, monotonic age caps, all nine specializations represented by authored histories, deterministic generation, initial-life publication, strict save round trip, owner-plus-six candidate selection coverage, preparation UI projection, compile and Console 0/0.
+
+### Phase 147 founder-trait balance record
+
+- Target authority: `balance:founder-weighted-traits-v26`.
+- Growth stage: new-game owner and staff identity generation; later trait state continues to use the existing character growth/save authority.
+- Physical/economic constraint: traits create no items, materials, research or completed WU. Their speed, learning, consumption, combat, accident, mood and behavior effects must be paid through the normal simulation paths.
+- Player decision: accept fewer coherent traits or reroll for a rarer high-upside identity; a fourth trait increases breadth rather than guaranteeing another strong effect.
+- Count target: 1/2/3/4 trait weights are 15/40/35/10%, for an expected 2.40 traits per naturally generated adult.
+- Rarity target: common/uncommon/rare/exceptional selection weights are 100/55/25/10 before eligibility. Strong net-positive traits must be rare or exceptional; mixed and drawback traits may remain common/uncommon.
+- Exploit boundary: every trait has one authored family and no generated identity may contain two traits from the same family. Explicit pair conflicts and species eligibility are enforced in addition to family exclusion. Unlimited manual reroll remains accepted, while all reported rates use the no-reroll natural distribution.
+- Distinctiveness target: every trait needs at least one operational modifier or behavior/mood/event consequence. Fast Learner modifies earned XP, strong legacy multipliers receive an explicit downside or reduced magnitude, and species-named traits cannot roll outside their eligible species.
+- Save authority: existing `CharacterGrowthState.traitIds`; selection metadata remains authored definition data and is not copied into saves. The saved maximum expands from three to four IDs without a parallel trait state.
+- Required evidence: deterministic 100,000-profile count/rarity/family audit, all 56 general traits reachable, no duplicate ID/family/pair conflict, species filter proof, learning-path proof, four-trait save/UI projection, compile and Console 0/0.
+
+### Phase 147 loadout-power balance record
+
+- Target authority: `balance:expedition-loadout-power-v26`.
+- Growth stage: day 10 through EndlessAge; the same projection is used at every checkpoint while proficiency, health and equipment inputs change.
+- Physical/economic constraint: only equipment physically assigned to the selected character contributes. Material, quality, durability and ammunition readiness change the contribution; no inventory-wide or definition-only bonus is allowed.
+- Player decision: roster experience and equipment investment are complementary. Better gear improves readiness, but cannot replace trained residents or expand the five-member party cap.
+- Exploit boundary: total loadout contribution is capped at 60% of current character power; weapon/armor/shield subcaps are 35%/30%/15%. Broken, missing or unloaded equipment cannot report full value, and UI preview and committed expedition power must call the same query.
+- Save authority: existing character proficiency/health state, combat equipment instances/loadouts and expedition snapshot. No new saved power stat or cache is introduced.
+- Required evidence: unarmed < early loadout < advanced loadout, quality/durability/ammunition monotonicity, contribution cap, production UI/launch call-path identity, focused deterministic probe, compile and Console 0/0.
+
+### Phase 147 population-power checkpoint record
+
+- Target authority: `balance:population-power-checkpoints-v26`.
+- Growth stage: absolute days 1/30/120/240/400/960, separating total population, working adults, dependents and combat-ready adults.
+- Physical/economic constraint: births remain dependents until species adulthood; early worker growth therefore comes from recruitment, captivity conversion and constructed golems, while every combat-ready resident also consumes housing, food, training time and a physically produced loadout.
+- Player decision: expand dependents for long-term continuity, recruit adults for near-term labor, or divert trained adults and equipment from defense/production into expeditions.
+- Exploit boundary: party size remains five; population outside the selected party provides reserve depth rather than additive expedition power. Checkpoint power is computed before reading the target requirement and cannot be reverse-authored from it.
+- Save authority: existing population/life-stage, proficiency, equipment-loadout, research and campaign aggregates. The checkpoint table and derived power are QA reports, not saved gameplay state.
+- Required evidence: authored adult-age delays, recruitment/reproduction entry paths, actual equipment definition snapshots, proficiency-only base power, loadout caps, campaign member/power requirements and a generated 1/30/120/240/400/960-day report.
+- Focused supporting evidence: `V19LifeSimulationDebugScenarios` passed 200,000 aging samples and 4/6 daily aging; `RegularCustomerDebugScenarios` and `CharacterPopulationDebugScenarios` passed recruitment activation, identity, save and bounded non-staff population. These do not replace date-indexed throughput telemetry.
+
+### Phase 147 recruitment-throughput record
+
+- Target authority: `balance:regular-recruitment-throughput-v26`.
+- Growth stage: day 1~960; one successful general recruitment every 10 absolute days across both employee and mercenary paths.
+- Physical/economic constraint: recruited adults still consume housing, food, wages, equipment and training capacity; the pacing rule creates no residents or resources.
+- Player decision: accept the current suitable specialist or keep the global slot for a later candidate.
+- Exploit boundary: candidate switching, save/load and employee/mercenary path switching do not reset the last successful recruitment day.
+- Save authority: `DungeonRegularCustomerRecordSaveData.recruitedAbsoluteDay` in the existing regular-customer section; proficiency floors use the existing character narrative aggregate.
+- Required evidence: day 1/10/11 boundary, save/restore identity, catch-up floor matrix and later multi-seed population simulation.
+
+### Phase 147 population-labor multi-seed record
+
+- Target authority: `balance:population-labor-multiseed-v26`.
+- Growth stage: absolute days 1/30/120/240/400/960 across conservative, balanced and expansion policy envelopes.
+- Physical/economic constraint: the audit uses authored adulthood, reproduction phases, base success, natural age-condition onset, regular-recruit cooldown and proficiency work rates. It assumes safe housing/health/nutrition and therefore remains an upper envelope before physical capacity.
+- Player decision: recruit adults now, accept reproduction for later continuity, or preserve labor and housing capacity.
+- Exploit boundary: every non-golem profile must begin with `Attempt`; base success cannot be bypassed, births cannot skip dependent time and regular recruitment cannot run faster than the saved 10-day global cadence.
+- Save authority: existing life, reproduction, regular-customer and character-proficiency aggregates; the generated report is not saved gameplay state.
+- Result: balanced median total population is 3/5/11/20/30/64; conservative day 960 is 33 and expansion is 100. The balanced day-960 shortfall of 16 requires physical captive/faction/golem inflow at roughly one adult per 60 days rather than an implicit birth-rate buff.
+- Evidence: `SettlementPopulationLaborSimulationDebugScenarios`, 3 policies × 3 starter species × 256 seeds × 960 days, `Artifacts/QA/v26-population-labor-multiseed.md`.
+
+### Phase 147 equipment-readiness throughput record
+
+- Target authority: `balance:equipment-readiness-throughput-v26`.
+- Growth stage: absolute days 1/30/120/240/400/960, using the checkpoint loadouts already selected without deriving costs from campaign requirements.
+- Physical/economic constraint: every ready slot requires a physical weapon and minimum protective equipment. The audit uses live default-material BOM, upstream EWU, direct craft WU, research gates and quality-attempt pressure; it creates no free equipment or abstract stock.
+- Player decision: equip the minimum expedition party first, outfit newly combat-ready residents, or refresh the wider reserve with contemporary equipment while preserving labor for survival, research and construction.
+- Exploit boundary: existing equipment remains physical reserve stock; the audit reports a conservative full-reserve refresh separately and does not assume discarded gear vanishes, upgrades itself or supplies free salvage. Quality targets cannot be injected without their expected repeat cost.
+- Capacity comparison: period labor uses 99 WU per working adult per day and the baseline 35% lower growth/production allocation. Direct workstation pressure and total embedded-work pressure are reported separately.
+- Save authority: existing equipment definitions, recipes, materials, research and combat-ready population targets. The generated throughput report is QA evidence and is not saved gameplay state.
+- Required evidence: all loadout definitions and physical BOM resolve; checkpoint research is reachable; direct and embedded work are finite; expedition-party and new-ready-slot envelopes fit their windows; full-reserve pressure is visible; compile and Console 0/0.
+- Result: the manufacturable party loadouts retain non-circular power ratios 1.26/1.52/1.55/1.83/1.56 at days 30/120/240/400/960. Party equipment consumes 32.5%/24.2%/75.6%/90.9%/27.1% of the conservative period production floor; newly ready slots consume 0%/2.3%/2.0%/2.3%/1.1%. Research/equipment validation passes with zero stale absorbed research IDs.
+
+### Phase 147 error log
+
+- Reflection confirmed the V26 builder type was not loaded. A Unity MCP project-data diagnostic then took roughly 158 minutes before returning, although it confirmed the new script and generated `.meta` exist in the project. No mutation occurred during the wait. Further diagnostics avoid the heavy project-data endpoint and inspect the MonoScript/compiler state directly.
+- The Unity menu retry reported that the V26 builder menu was not registered even though the refresh command itself compiled and Console had no entries. No builder mutation occurred. The next diagnostic inspects loaded assemblies for the type and invokes it through reflection if present, avoiding both compile-time Editor assembly references and menu registration assumptions.
+- The first Unity MCP invocation of `V26FounderTraitContentBuilder.Build()` failed because the dynamic command assembly cannot directly reference the project's Editor-only default assembly. No assets were created; the retry uses Unity's registered menu item through `EditorApplication.ExecuteMenuItem` instead of a compile-time type reference.
+- A guessed `Assets/Scripts/Content/CharacterSpeciesSO.cs` read failed after `rg` identified the actual file under `Assets/Scripts/Models/Species/Core`. No mutation occurred; the confirmed file was then read directly.
+- A combined trait-authority/starting-proficiency search returned exit code 1 after useful results because one broad branch had no matches and the output was truncated at 300 lines. No mutation occurred; follow-up inspection uses confirmed symbols and bounded files only.
+
+- The first Elder founder health tuning multiplied the natural per-birthday onset probability by 12. The 18,000-profile audit produced only 13.8% Elders with any condition but 10.9% with multiple conditions, showing undesirable correlation and missing the 25-45% incidence target. It was replaced with an explicit age-progressive accumulated starting-burden distribution; published conditions still use the existing CharacterLife authority.
+- A snapshot/random-provider discovery command included a nonexistent guessed `Assets/Scripts/Foundation` directory, so the final `rg` returned exit code 1 after the requested confirmed-file content was printed. No mutation occurred; the provider was then opened at its actual `Assets/Scripts/Services/Foundation/Random` path.
+- A combined founder skill/UI/persistence inspection returned exit code 1 after its useful bounded source output because the trailing broad `rg` pipeline had unmatched/overflowing branches. No file changed; subsequent persistence inspection uses only confirmed files and exact symbols.
+- A founder-reroll search combined an invalid Windows wildcard path (`Assets/Scripts/Models/Character*`) with a nonexistent guessed settings directory, so `rg` returned exit code 1 after producing partial matches. No file changed; the retry used confirmed source and asset paths.
+- The first playtime arithmetic check piped a bare PowerShell `foreach` block and failed with `EmptyPipeElement`; it changed no files. The retry collected rows into an array, confirmed all six values, and `git diff --check` passed.
+- The first industrial-playtime documentation patch expected the wrong `findings.md` title and was rejected atomically by `apply_patch`; no file changed. The retry used the actual `DungeonStory Current Findings` heading.
+- The first Unity MCP refresh command resolved `CompilationPipeline` inside the command runner namespace and failed before execution. No project asset was changed by that command; the retry uses the fully qualified `UnityEditor.Compilation.CompilationPipeline` type.
+- The first project compilation after adding the production research dependency exposed one explicit 23-argument Editor fixture call. The fixture now supplies an authored completed field-rations research state; production enforcement remains fail-closed and lightweight unit constructors remain unchanged.
+- The first combined focused-run command assumed the legacy pacing probe returned text, but it returns `void`; the command failed before execution. The retry invokes it separately and logs a completion marker.
+- Final `git status`/`git diff --check` hit the repository's existing Git LFS temp permission failure under `.git/lfs/tmp`. No file operation was attempted; status verification is retried read-only with the LFS clean filter disabled.
+- The first clean compile of equipment-aware expedition power used `CharacterActor.PersistentId`, but the authoritative ID is `CharacterActor.Identity.PersistentId`. Compilation stopped before execution and changed no runtime state; the query now resolves the existing identity component exactly like `OffenseExpeditionRuntime`.
+- A read-only equipment discovery command passed Windows wildcard paths directly to `rg`, which rejects those path arguments. It changed nothing; the retry searches the equipment directory with `-g` filters.
+- The first checkpoint invocation attempted reflection through the Unity command runner, whose current safety policy rejects `System.Reflection`; nothing executed. The retry calls the compiled public audit entry point directly.
+- The first checkpoint run found day-1 dagger plus shield projected above the day-30 set because the very fast dagger cycle dominated the readiness score. The day-1 baseline now uses the authored two-handed spear and cloth hood without a shield, matching an actual starting loadout and the no-external-expedition phase; campaign requirements were not used to choose the replacement.
+- The next checkpoint run found the day-400 matchlock-pistol profile below the day-240 melee profile because reload time is intentionally penalized. The general progression checkpoint now uses the powered gauntlet/harness/shield package unlocked by the authored mature-industry cadence; firearm readiness remains a separate ammunition and formation role rather than the universal progression baseline.
+- A clean compilation exposed two earlier incremental-build gaps: the late-recruit catch-up rule lived in a later services assembly while its pure test lived in the recruitment model assembly, and the activation service requested a nonexistent `IGameCalendarQuery` instead of the existing `IGameCalendar`. The pure rule now lives with the recruitment model and the activation service uses the existing calendar contract.
+- The first population simulator run used noncanonical process and character ID prefixes, so the reproduction constructor rejected the first attempted process before any live-world mutation. The simulator now uses `reproduction:` and `character:` IDs and its deterministic rerun passes.
+- The first equipment-throughput inspection command referenced the private `V23BalanceAudit.EditorContentSource`, so Unity MCP dynamic compilation stopped before execution. No project asset or runtime state changed; the retry moved to the public root content catalog.
+- The public-root dynamic inspection still could not compile Odin-backed recipe/material generic calls because the Unity MCP command assembly does not reference `Sirenix.Serialization`. No project asset or runtime state changed; the throughput audit will run as a normal project Editor scenario through Unity MCP instead of duplicating or bypassing the catalog.
+- The first compiled throughput report passed `content.GetAll<ItemDefinitionSO>()` to the EWU calculator, but the public catalog's generic method reads the domain catalog while root item definitions live under `content.Items.Definitions`. This made four late equipment items appear unresolved even though the authoritative V23 audit reports zero unresolved items. The audit now uses the root item-definition authority.
+- Re-running the full V23 audit through Unity MCP confirmed `unresolved_items=0` but failed on pre-existing guest reward, market recovery and one retail-price calibration set outside the equipment-throughput scope. No balance assets were rewritten by the audit; keep this evidence separate from the current equipment-capacity diagnosis.
+- A normal `git status` retried during the continuation again hit the existing `.git/lfs/tmp` permission failure before it could report status. No file mutation came from Git; targeted read-only status continued with the LFS clean filter disabled.
+- The first manufacturable day-30 candidate combined the authored two-handed spear with a wood shield. The real loadout authority rejected it with `equipment.loadout.insufficient_hands`; no asset was changed by the failed audit, and the party checkpoint now uses the one-handed non-growth falchion.
+- The first split throughput run correctly exposed 22 stale `requiredResearchId` values that still named V21-absorbed research projects. A read-only Unity MCP census bounded the scope, then the same consolidation authority normalized exactly 11 item/recipe pairs; the final full census reports zero stale IDs.
+- A PowerShell discovery command passed two wildcard strings to the single-string `-Filter` parameter and failed without mutation. The retry filtered the enumerated asset list with `Where-Object`.
+
+## Phase 146 - V25 narrative AI workspace extraction (in progress)
+
+- [x] Inventory every V25 training source, generated artifact, notebook, launcher, report, and game-runtime integration that currently lives under DungeonStory.
+- [x] Classify files as standalone AI workspace, game-runtime contract, generated artifact, or compatibility bridge; identify all hard-coded paths before moving anything.
+- [x] Choose and verify an explicit destination outside the Unity project, then move only the standalone training workspace while preserving Git history and Colab/Drive resume paths.
+- [ ] Replace cross-workspace dependencies with a small versioned export/import contract and keep Unity MCP configuration out of the AI workspace.
+- [ ] Verify training/reviewer commands from the new workspace and verify the Unity project still compiles against the retained runtime contract.
+
+### Phase 146 handoff
+
+- Created `tools/v25_narrative_training/HANDOFF.md` as the migration-safe authority that travels with the AI tooling directory.
+- It records the exact SFT rejection evidence, Colab/Drive run, generator root causes, dirty-file boundaries, standalone/runtime classification, migration procedure and the first tasks for the new Codex session.
+- Moved the verified workspace to `F:\01_Programming\01_Project\02_Unity\DungeonStoryNarrativeAI`; the handoff now lives at that workspace root and records the completed move.
+- Added explicit sibling-content resolution to the standalone dataset builder, verifier and human-review merger so they no longer treat the AI workspace as the Unity content root.
+
+### Phase 146 safety notes
+
+- No files will be moved until the destination is resolved to an explicit absolute path and every moved source is confirmed to be inside the intended AI subtree.
+- The active Codex thread keeps already-loaded MCP tools until a new session is opened; moving files or changing `.codex/config.toml` cannot detach MCP from this existing thread.
+
+### Phase 146 error log
+
+- The first parallel inventory batch was aborted because a PowerShell `foreach` block was piped directly to `Format-Table`, producing `EmptyPipeElement`. No files changed and the other read-only results were suppressed. The retry assigns rows to a variable before formatting and runs each independent inventory command sequentially.
+- The first planning-ledger update expected the heading `# DungeonStory Findings`, but the file uses `# DungeonStory Current Findings`; the combined patch was atomically rejected. No planning file changed in that attempt, and the retry uses each exact document heading.
+- The first copy-verification script used unavailable `[System.IO.Path]::GetRelativePath` on the installed PowerShell/.NET runtime and therefore reported synthetic missing paths. No source was removed; the compatible substring-based retry verified 103 files with zero mismatches before deletion.
+- The first root-entry copy command again piped a `foreach` block directly into `Format-Table`, causing a parse-time `EmptyPipeElement`. Nothing executed; the retry collected rows before formatting and verified all three copied root files.
+- The first standalone reviewer run passed the full corpus verification but failed one merger test because `apply_human_review.py` still used the AI workspace as the source-asset root. Adding the same explicit sibling `--content-root` contract made all six reviewer tests pass.
+
+## Phase 145 - V25 SFT data remediation design (in progress)
+
+- [ ] Trace BubbleLine schema contamination, Korean particle errors, malformed compound names, and repeated prose skeletons to their exact generator functions.
+- [ ] Define deterministic generator changes, profile-isolated validation, dataset rebuild rules, and pre-training acceptance gates.
+- [ ] Define the smallest retraining/quality sequence that avoids wasting A100 time or promoting a collapsed SFT candidate into DPO.
+
+### Phase 145 error log
+
+- The planning-session `git diff --stat` check invoked Git LFS clean filtering and failed on `.git/lfs/tmp/...` with access denied while examining an unrelated image. No files changed. Retry read-only status with LFS filters disabled and keep V25 inspection scoped to narrative tooling.
+- The first scoped PowerShell `rg` command had an unterminated quoted pattern caused by an escaped `line\"` alternative. No search ran and no files changed. Split the file listing and fixed-phrase search into quoting-safe commands.
+
+## V25 held-out QA browser injection note
+
+- The first attempt to paste the Colab evaluation cell through an inline JavaScript template was rejected before browser execution with `Illegal Unicode escape sequence`. No Colab cell content or model artifact changed. The evaluation code is now stored as a repository Python script and will be injected from the file verbatim.
+- The first smoke execution stopped before model loading with `BadGzipFile: Not a gzipped file (b've')`. The Colab clone contains a Git LFS pointer for the held-out archive, not the archive bytes. No model inference or QA artifact was produced; materialize that one LFS object and rerun.
+- After materialization, the second smoke execution stopped before model loading with `KeyError: 'profile'`. The held-out record contract uses a different profile field name than the first evaluator draft assumed. Inspect the actual keys, patch the reusable evaluator, and rerun; no inference artifact exists yet.
+- The first contract-inspection cell was appended to the preceding LFS verification cell by Colab editor focus behavior and produced a `SyntaxError` at `)import gzip`. It changed no files or model state. Reuse the explicit empty cell instead of the last editor locator.
+- A read-only attempt to call `inputValue()` on Colab's browser locator failed because that locator wrapper does not expose the method. No page or file changed; use the known empty second-to-last cell identified in the DOM snapshot.
+
+## Phase 144 retail-search note
+
+- The combined SaleItem search returned exit code 1 because the optional resource filename filter ended without a complete type match; valid source output still identified the single modular-shop sale item path. No mutation occurred. Continue with exact `SaleItem` declaration and builder method.
+
+## Phase 144 service-search note
+
+- The combined service settlement search produced useful shop/meal findings but exceeded the direct output budget and was truncated. No mutation occurred. Further tracing will use exact revenue-event emission sites and bounded source ranges.
+
+## Phase 144 work-authority search note
+
+- A broad recipe-work search piped into `Select-Object -First` returned exit code 1 after the downstream consumer closed the pipe. It made no changes and repeated a known search anti-pattern. Continue with exact `ProductionRecipeSO` and V23 builder filenames only.
+
+## Phase 144 inspection-output note
+
+- The first material-profile search was too broad and its output was truncated after matching unrelated `UnitPrice` usages. It changed nothing. Exact authority files are now known: `MaterialEconomicProfileSO.cs` and `V23BalanceWorkCalculator.cs`.
+
+## Phase 144 market-calibration feedback loop
+
+- After market calibration, the audit reported widespread recipe-work mismatches. Compilation succeeded; the failure is a real circular authority: changing `UnitPrice` altered material economic profiles used by `V23BalanceWorkCalculator`, which changed calculated recipe work. Do not rerun the calibrator until `IntrinsicValue`/handling difficulty is decoupled from market price or the calibrated work is reauthored from a stable material authority.
+
+## Phase 144 command-escaping note
+
+- A targeted file read did not execute because the JavaScript workdir string contained an unescaped `\01` sequence and was rejected as an octal escape. No tool or file mutation occurred; reuse the fully escaped workspace path.
+
+## Phase 144 builder-search note
+
+- The builder search included a nonexistent optional `Assets/Scripts/Services/Equipment` directory and returned exit code 1 after yielding valid results from the rest of the tree. No mutation occurred; use the located Research and V22 builder files directly.
+
+## Phase 144 targeted-search note
+
+- A targeted combined search returned exit code 1 because the optional `ConfigureCore` pattern was absent from the crop builder; it still located `V23EmbeddedWorkValueCalculator.cs`. No files changed. Inspect that exact file and the seed asset creation method separately.
+
+## Phase 144 market-audit recovery notes
+
+- The first market audit correctly failed because 14 market-eligible definitions have no positive EWU: two unique/special items and twelve seed lots. This is a real authority mismatch, not a compile failure; they must be explicitly non-market or receive an acquisition-value authority.
+- The first PowerShell summary regex did not match the generated `SALE_EWU` formatting and returned no parsed rows. It changed nothing; inspect a small exact sample before revising the parser.
+
+## Phase 144 diagnostics added 2026-08-09
+
+- A broad PowerShell search for `ResourceItemDefinitionSO` and surplus-sale policy exceeded the 10-second limit. It still returned the class-level `MarketSaleRate` evidence, but asset discovery was incomplete; continue with exact source paths and catalog audits.
+- The first planning-log patch in this continuation expected an obsolete `## Errors / Recovery Log` heading and failed without changing files. Subsequent log updates anchor at the stable document titles.
+
+## Phase 144 - Whole-game live balance calibration (in progress)
+
+> Apply the authoritative theoretical baseline to live catalogs and runtime formulas, beginning with dependency-ordered economy/progression foundations and ending with cross-system simulation evidence.
+
+- [ ] Inventory every current balance authority, generated catalog, formula, verifier, and report; classify each subsystem as measured, contradictory, incomplete, or missing.
+- [ ] Establish a machine-readable baseline/audit layer that compares live facilities, items, recipes, equipment, apparel, research, agriculture, medicine, combat, events, factions, and milestones against the authority document.
+- [ ] Rebalance upstream foundations first: time/labor, construction BOM/work, raw production, processing, logistics, maintenance, and recovery loops.
+- [ ] Rebalance progression and survival: research pacing, food/water/temperature, agriculture/livestock, apparel, medicine, aging, population, and gold/service economy.
+- [ ] Rebalance conflict and long-term systems: equipment, ammunition, defense, expeditions, encounters, captivity, factions, events, milestones, and EndlessAge pressure.
+- [ ] Run deterministic economy/progression/combat/population simulations, remove dominant or positive-value loops, and regenerate authoritative evidence reports.
+- [ ] Verify catalog coverage, Unity compilation, focused PlayMode scenarios, save invariants, and document the remaining human-playtest-only gates without overstating completion.
+
+### Phase 144 fixed constraints
+
+- Follow `docs/game-design/whole-game-balance-baseline.md` and the root `AGENT.md` balance gate for every changed value.
+- Preserve research `180 / 138,824`, V20 pure-new `450`, save sections `68`, and other explicit content-count contracts unless the user separately changes them.
+- Do not balance by research order, asset index, arbitrary rarity inflation, fake sinks, or abstract stock copies.
+- Apply patches upstream to downstream; do not hide a broken input economy by changing only rewards, milestone dates, or encounter strength.
+- Formula coverage and passing catalog validation are necessary but not sufficient evidence of balance.
+- Preserve active Colab training and unrelated working-tree changes.
+
+### Phase 144 errors
+
+- After the finite-ammo recovery regression passed, the full outcome probe still reported the same 17 stalled samples. This proves the empty-weapon fallback itself works but is not the remaining stall source. Do not repeat that fix; inspect the exact stalled encounters and terminal objective conditions next.
+- The first combined post-decoupling combat run passed the static 36-encounter audit but the outcome probe hard-failed on 17 stalled battles. Finite magazines exposed a real missing fallback: ranged-only combatants with empty magazines and no reserve repeatedly guard because they cannot reload, switch weapons or use unarmed attacks. The generated outcome report is diagnostic only and no balance value will be accepted until the stall path is fixed.
+- The first probe-equipment lookup passed a wildcarded asset path directly to `rg`; the bounded source range succeeded, but the optional asset glob made the command exit 1. No files changed; equipment IDs were already confirmed in the builder and no retry is needed.
+- The first offense-target asset search guessed nonexistent `Assets/Resources/SO/Offense` and optional V20 subpaths, so the second search exited 1 after the first command correctly located `Assets/Resources/SO/Content/OffenseCampaignCatalog.asset`. No files changed; subsequent inspection uses that exact catalog path.
+- The first Unity refresh command referenced `CompilationPipeline` without a fully qualified name inside the MCP-generated `Unity.AI...` namespace, so it resolved as `Unity.CompilationPipeline` and failed dynamic compilation before execution. No project state changed; the retry uses `UnityEditor.Compilation.CompilationPipeline` explicitly.
+- The first combat-diagnostics progress update expected the obsolete heading `# DungeonStory Progress Log`; the file uses `# DungeonStory Progress`, so the patch was rejected atomically. No progress or gameplay file changed in that attempt; the retry uses the exact heading.
+- A broad tranquilizer search piped into `Select-Object -First` returned exit code 1 when the downstream reader closed after enough matches. It still exposed the exact ammunition profile and crossbow asset paths; no files changed. Further inspection uses those exact files without a truncating pipeline.
+- A combined context-restoration read of `task_plan.md`, `progress.md`, and `findings.md` exceeded the direct output budget and was truncated after useful plan data. No project content changed; subsequent recovery and combat inspection use bounded ranges and exact files only.
+
+- Converting authored daily procurement unit cost from int to float exposed two ShopFeatureSurfacePresenter locals typed as int (CS0266 at lines 269 and 402). The dynamic command again ran the previous assembly, so its truncated-price report was discarded. The UI calculations must preserve float unit cost and round only final gold totals.
+
+- The first procurement-EWU audit source used `goldPerEwu` inside a method that already had a local array with the same name, causing CS0136 after Unity refreshed. The command had executed the previous compiled audit, so that report was discarded. The local was renamed before regenerating evidence.
+
+- A targeted candidate-ID search guessed a standalone `PhysicalItemIds.cs` path that does not exist and used broad symbol alternatives over all scripts, producing noisy truncated output. No files changed. Exact item IDs were already established by the Unity catalog inspection; subsequent searches use their known asset paths directly.
+
+- The first read-only Unity candidate inspection imported `System.Reflection`, which the MCP command sandbox forbids. It failed before execution and changed no assets. The retry uses `SerializedObject` over untyped Unity objects instead of reflection.
+
+- The first focused market search used the guessed path `Economy/Planning/AutoProcurementRuntime.cs`; the file actually lives under `Economy/Treasury`. The companion repository-wide scoped search still found the relevant lines. No files changed; all further inspection uses the discovered exact path.
+
+- A combined findings/progress patch omitted a terminating hunk context before the second file header and was rejected before changing either file. The retry applies each planning-file update as a separate valid hunk.
+
+- Another planning-log patch omitted the required space in two `Update File:` headers and was rejected before any change. The corrected patch uses valid headers; no gameplay/source files were affected.
+
+- A planning-log patch had a malformed `*** Update File:progress.md` header and was rejected before changing any file. The corrected patch uses the required space after `Update File:`.
+
+- A parallel inspection batch was suppressed because the current generated report has no `LOW_WORK` rows yet and fixed-string `rg` returned exit 1. No files changed. The retry handles absent matches explicitly and inspects the `m06` asset independently.
+
+- Three asset-field inventory commands used `rg -h`, which means help in the installed ripgrep version rather than "hide filenames"; they returned help text instead of recipe tags. No files changed. The retry uses `rg --no-filename` and fixed-string patterns.
+
+- A compound helper-location search returned exit 1 because one optional symbol (`ConfigureRecipe`) does not exist, although it successfully returned all needed `RecipeSpec`, `Source*`, `CreateBatch` and `CreateRecipe` line numbers. No files changed; subsequent inspection uses those exact ranges instead of repeating the absent-symbol search.
+
+- Disabling LFS filters through per-command Git config did not stop the existing Git LFS process filter; the read-only diff summary again timed out on `.git/lfs/tmp` access. No content changed. Further balance work will use scoped source/catalog inspection and `git status --short` rather than another whole-worktree diff until the LFS lock clears.
+
+- The session catch-up `git diff --stat` triggered Git LFS clean-filter access to `.git/lfs/tmp` and failed with access denied on a generated image, suppressing the companion search outputs. No content changed; the retry disables LFS filtering for this read-only diff summary and runs source searches separately.
+
+- A context-restoration range command treated multiple `Phase 143` matches as one line-number scalar, causing a PowerShell subtraction error and suppressing the parallel read output. No project content changed; the retry uses the first matching heading explicitly and separates catch-up from bounded reads.
+
+- A planning-log patch assumed `findings.md` and `progress.md` began with generic `# Findings` / `# Progress` headings; their actual headings differ, so the patch failed without changing files. The retry will inspect only the first lines and patch against the real headings.
+
+- Two initial bounded `rg` inventory commands produced useful output but exited 1 after `Select-Object -First` closed the pipeline. No files changed; subsequent audits will avoid this bounded-pipeline pattern or explicitly separate discovery from limiting.
+- A targeted search included a guessed `Assets/Scripts/Services/Apparel/Editor` path that does not exist; other requested paths returned valid evidence. Directory discovery will precede subsequent scoped searches.
+- A literal search for `new FacilitySpec(` was over-escaped as a regular expression and failed with an unclosed-group parse error. No files changed; fixed-string search will be used for this literal.
+- The first Unity MCP regeneration command assumed `ResearchOverhaulContentAssetBuilder` lived in `DungeonStory.Services.Research.Editor`; the editor builder is intentionally in the global namespace, so the dynamic command failed to compile before execution. No project assets changed; retry without the namespace import.
+- A parallel negative-ID/`BuildingSO` path discovery batch returned exit 1 without useful output because the `rg --` argument placement caused the file globs to be treated incorrectly and the filename filter found no exact suffix match. No files changed; rerun as separate, simpler fixed-string/path queries.
+- A PowerShell `rg` call passed `*` wildcards inside literal Windows path arguments while checking research-overhaul item IDs; Windows rejected those path strings. Partial unrelated rune-item output was ignored. No files changed; query the containing directory and filter filenames instead.
+- A combined modular-builder symbol search again over-escaped a literal parenthesis and failed with an unclosed-group regex error; the parallel batch suppressed the companion snippet output. No files changed; use fixed-string searches or inspect the known line range independently.
+- A P1 defense builder symbol search passed `new(` to `Select-String` without `-SimpleMatch`, causing another unmatched-parenthesis regex error and suppressing its parallel snippet. No files changed; retry with exact known ranges and simple literal patterns.
+- A duplicate-helper check searched `RoundTo(` with an over-escaped regex and failed; no files changed. Use `rg -F` for literal method names containing parentheses.
+
+
+## Phase 143 - Authoritative balance baseline and agent enforcement (completed)
+
+> Persist the approved whole-game theoretical balance framework in one authoritative project document and require future content/value changes to consult and validate against it.
+
+- [x] Audit the existing root `AGENT.md` instruction structure and current design-document authority boundaries.
+- [x] Create one dedicated balance baseline authority covering common units, target bands, subsystem rules, validation matrices, and change-control expectations.
+- [x] Add a concise mandatory workflow to `AGENT.md` for new or changed facilities, items, recipes, equipment, apparel, research, events, factions, combat encounters, milestones, and balance values.
+- [x] Link the new authority from the main game-design document without duplicating ownership.
+- [x] Verify links, terminology, Markdown structure, and scoped diffs; record completion evidence.
+
+### Phase 143 enforcement hardening - 2026-08-09
+
+- [x] Add the conventional root `AGENTS.md` auto-discovery entrypoint without duplicating the full authority in `AGENT.md`.
+- [x] Require future gameplay-content and numerical changes to consult the balance baseline and produce mandatory balance evidence before completion claims.
+
+### Phase 143 fixed constraints
+
+- `docs/DungeonStory_Game_Design_and_Implementation.md` remains the overall game-design authority; the new document is the detailed numerical/theoretical balance authority.
+- `AGENT.md` must require consultation and evidence, not merely recommend it.
+- New gameplay content may not bypass physical BOM, work, execution, save ownership, cross-system trade-offs, or balance audit coverage.
+- Generated reports are evidence, not hand-edited authority.
+- Preserve active Colab training and unrelated working-tree changes.
+
+
+## Phase 142 - Theoretical whole-game balance framework (completed)
+
+> Establish a coherent theoretical baseline for every gameplay economy before changing live values: time, labor, resources, risk, recovery, information, progression, combat, social systems, generations, and endless pressure.
+
+- [x] Inventory the current authoritative time, labor, economy, research, combat, survival, event, faction, milestone, apparel, quality, and performance contracts.
+- [x] Define common balance currencies and reference units that let different systems be compared without flattening their distinct roles.
+- [x] Define target bands by run phase and difficulty, including expected surplus, failure pressure, recovery cost, variance, and player decision cadence.
+- [x] Specify subsystem formulas, cross-system exchange rates, anti-dominance constraints, and exploit-prevention invariants.
+- [x] Specify deterministic simulation matrices, telemetry, acceptance thresholds, and a safe order for applying future value patches.
+- [x] Deliver a complete design proposal and record the approved balance authority boundary.
+
+### Phase 142 fixed constraints
+
+- This phase designs theoretical baselines only; it does not silently rebalance live content values.
+- A shared reference unit may compare costs, but each system must preserve its own qualitative trade-offs and physical resource constraints.
+- Balance targets use bands and distributions, not a single exact outcome or guaranteed win rate.
+- All assumptions must be testable by deterministic probes and later human playtests.
+- Existing active Colab training and unrelated working-tree changes must be preserved.
+
+### Phase 142 errors
+
+- The first context-restoration command used the skill documentation's legacy `.claude` script path, but this installation is under `.codex`; the planning files were read successfully before the missing-script error. The retry uses the actual installed skill path and does not repeat the bad path.
+
+## Phase 141 - Gameplay integration and balance evidence audit (completed)
+
+> Determine whether the implemented systems are actually exposed through normal gameplay and whether current balance claims are supported by runtime evidence rather than formulas alone.
+
+- [x] Inventory authoritative balance validators, probes, PlayMode scenarios, and generated balance reports.
+- [x] Compare completed evidence against the design document's explicit remaining product gates.
+- [x] Identify unverified cross-system loops, economy exploits, progression pacing, combat outcomes, and player-facing UX gaps.
+- [x] Produce a prioritized completion verdict and the smallest next validation program.
+
+### Phase 141 fixed constraints
+
+- Do not equate catalog completeness, formula assignment, or deterministic unit tests with fun or live balance.
+- Do not change gameplay values during this audit; report evidence and gaps first.
+- Preserve the active Colab SFT run and unrelated working-tree changes.
+
+## Phase 140 - Colab Pro full SFT migration (in progress)
+
+> Move the V25 QLoRA workload away from the unstable local Windows GPU path, connect Google Drive checkpoints, validate that the exact training pipeline enters real optimization, and run the explicitly authorized full SFT with visible progress.
+
+- [x] Verify the signed-in Colab session and select a supported L4/A100-class GPU runtime.
+- [x] Add a reproducible Colab notebook that fetches only the required Git/LFS corpus and writes all checkpoints/evidence to Google Drive.
+- [x] Run environment, dataset, CUDA capability, and storage preflight checks.
+- [x] Run the corrected canary long enough to verify model download, 4-bit loading, GPU allocation, and sustained optimization; stop it at the user's explicit request before checkpoint-20.
+- [x] Obtain the explicit full-run decision and launch the 38,000-record × 2 epoch SFT with unbuffered visible output in a clean Drive directory.
+- [ ] Monitor full-run checkpoints and verify final adapter/training evidence when the run completes.
+
+### Phase 140 fixed constraints
+
+- Never upload or resume the corrupt local `checkpoint-20`.
+- Do not use a T4 runtime; require compute capability 8.0 or newer.
+- Keep canary and full-run outputs separate so test scheduler state cannot contaminate the real run.
+- Persist checkpoints and training evidence under Google Drive, not ephemeral `/content` storage.
+- Do not begin the full SFT merely because the canary passes; Colab compute consumption remains an explicit user decision.
+- The user explicitly authorized the full SFT on 2026-08-09 after the corrected canary sustained real training for more than 26 minutes.
+
+### Phase 140 errors
+
+- The first automated click on Colab's Drive authorization button found no matching control because the transient prompt disappeared between snapshot and action. No permission choice was made by that failed click; the next step inspects the running cell and any newly opened authorization surface instead of repeating it blindly.
+- Re-inspection of the still-running Drive mount caused two browser-control timeouts while the Colab runtime itself remained alive. Because Google requires an account-scoped Drive consent action and the transient consent control is no longer exposed to automation, the user must stop/re-run cell 2 and press `Google Drive에 연결` once.
+
+- The first canary click created its output directory before visible output appeared. The later forced retry reused that path and correctly failed closed with `FileExistsError`; no training or checkpoint write occurred. The notebook now selects a new `-retryN` directory without deleting or overwriting the earlier path.
+
 ## Phase 139 - Repair and publish the unpushed main commit (complete)
 
 > Preserve local training artifacts, remove derived checkpoints that violate GitHub blob limits from Git tracking, repair ephemeral broken refs, and publish the existing work to `origin/main`.
@@ -912,6 +1329,23 @@ physical production and meals -> persistent characters/items/equipment
 
 ## Errors Encountered
 
+- 2026-08-09: 전투 콘텐츠 검색에 존재하지 않는 `Assets/Scripts/Content`를 포함해 `rg`가 유효 결과를 출력한 뒤 exit 1을 반환했다. 이후 실제 `Assets/Scripts/Services/Offense`와 에셋 루트를 사용한다.
+- 2026-08-09: `encounter_01~06`도 V20 폴더에 있다고 추정해 읽었으나 기존 6개는 `Assets/Resources/SO/Offense/Encounters`에 있고 V20 폴더에는 07~36만 있다. ID 검색으로 실제 루트를 분기한다.
+- 2026-08-09: Unity `ManageScript`의 `newText`에 `\\n`을 전달했더니 실제 줄바꿈이 아니라 문자 `\\n`이 삽입되어 `using System;`이 주석에 포함됐고 기본 어셈블리 컴파일이 실패했다. 즉시 `apply_patch`로 실제 개행으로 교정한다. 이 강제 컴파일 덕분에 이전 일반 요청이 갱신되지 않았던 사실과 함께 `ICombatEquipmentRuntime`→fallback 포트 변환 오류도 드러났다.
+- 2026-08-09: Unity `ManageScript.apply_text_edits`로 즉시 재임포트를 유도할 때 SHA 사전조건 없이 호출해 `precondition_required`가 반환됐다. 도구가 돌려준 현재 SHA를 넣어 동일한 원자 편집을 재시도한다.
+- 2026-08-09: 동적 진단 어셈블리 버전을 `System.Reflection`으로 확인하려 했으나 Unity MCP가 해당 네임스페이스를 승인하지 않아 거부했다. 소스에 진단 버전 표식을 넣고 보고서 헤더로 확인한다.
+- 2026-08-09: `findings.md`의 `## Combat Outcome Calibration` 제목을 추정해 패치했으나 실제 제목과 달라 실패했다. 문서 끝부분과 실제 제목을 확인한 뒤 정확한 위치에 추가한다.
+- 2026-08-09: `OffenseBattleModel.ResolveOutcome`와 결과 프로브 범위를 한 호출에서 함께 읽으려다 도구 출력이 컨텍스트 한도를 초과해 잘렸다. 이후에는 50~80행 이하의 좁은 범위를 파일별로 따로 읽는다.
+
+- 2026-08-09: Ordered V23 recipe rebuild stopped during workshop normalization because `recipe:ammo:armor-piercing-cartridge` was an existing research-overhaul asset without an authored process class. Cause: the first builder normalized the shared recipe root before later builders had migrated their owned assets. Required fix: normalize only each builder's owned recipes during migration, then run the full-root fail-loud audit after all builders complete; do not add a fallback process.
+- 2026-08-09: The second ordered rebuild stopped at research recipe tag `workstation:v3:subterranean` (`work:craft`, Transform) because no exact process-class mapping existed. This is the intended fail-loud behavior; inspect the owned recipe definitions and assign a semantic process explicitly rather than using substring inference.
+- 2026-08-09: The third ordered rebuild successfully rebuilt resource/workshop, research, and apparel recipes, then `SurgeryContentAssetBuilder.RebuildAll()` triggered the broader research-project consumer validator. It reported four produced items with zero real consumers: `component:factory-installation-plan`, `component:paper-paste`, `component:rune-bus-coupler`, and `tool:precision-gauge`. These are genuine production-graph defects, not recipe-process errors; they must receive real gameplay consumers or be reclassified/removed before the full gate can pass.
+- 2026-08-09: Wiring `component:factory-installation-plan` through research-project ID failed because V21 consolidates `research:industry:factory-layout` into `research:industry:powered-tools`, so the original project is absent from the 180-node survivor dictionary. Fix must target the exact facility semantic tag rather than broad survivor-project unlocks, otherwise the component would incorrectly be added to every facility in the merged package.
+- 2026-08-09: A broad EWU/source search returned useful matches but exited with code 1 because one combined search branch had no matches. No project mutation occurred; use narrower scoped searches instead of treating optional absence as a command failure.
+- 2026-08-09: Initial EWU audit left 160+ items unresolved because crop, livestock, disease-sample, combat-loot, and other non-recipe domains are legitimate physical acquisition sources outside `ProductionRecipeSO`. The calculator must seed only leaf items with no recipe producer using an explicit non-market acquisition-work formula and report those seeds separately. The same run found medical facilities 9509/9510 at 86.6%/85.6% dismantle EWU because specialized medical facilities were incorrectly using the general-facility salvage class.
+- 2026-08-09: External EWU seeding resolved all production items, but medical facilities 9509/9510/9512/9513 still exceeded the 85% salvage cap. Cause: their effective-use classification is a workstation/service classification, so construction-class-only salvage routing does not identify the medical domain. The fix must use an authored medical semantic/ability marker or add one in the medical builder, not numeric ID ranges or asset paths.
+- 2026-08-09: A combined medical-facility search returned the required ability evidence but exited code 1 because the optional helper-signature branch had no exact match. No mutation occurred. Use the discovered authored medical/surgical abilities for classification and avoid optional multi-pattern commands.
+
 | Error | Attempt | Resolution |
 |---|---|---|
 | Single-battle campaign became unwinnable at stage 3 | Direct Normal playthrough | Rejected the thin-loop balance patch; redesign offense around persistent multi-node expedition progression and dungeon support. |
@@ -1715,3 +2149,577 @@ Phase 124 validation errors:
 - The ten-year campaign test then exposed an event-queue bug: emergency candidates did not consume ordinary capacity and could be admitted more than once. Ordinary and emergency capacities are now independent (`1/2` ordinary by era plus exactly one emergency), with exact restore validation.
 - Society recurrence is now scoped correctly: per-character and per-generation keys are persisted separately from once-per-run completions, and a three-day category cooldown prevents same-category event spam.
 - The full-world request entered Unity's full domain-reload path and left the Editor main thread nonresponsive before PlayMode. Restored project-local Enter Play Mode Options to disable domain reload (`enabled=1`, `options=1`); do not force-kill the user's Editor. A restart is required before the 68/68/68 gate can be rerun.
+### 2026-08-09 기준 문서 최종 확인 중 진단 오류
+
+- PowerShell 기본 출력 인코딩으로 `AGENTS.md`, `AGENT.md`, 전역 밸런스 기준 문서의 한글이 mojibake로 표시되었다. 파일 손상 여부는 UTF-8 바이트 기준으로 다시 확인한다.
+- `git status --short` 실행 중 `.git/lfs/tmp` 접근 거부로 LFS clean filter가 실패했다. 기준 문서 연결 검증과는 분리해 다루며, 사용자 파일을 변경하거나 LFS 임시 데이터를 삭제하지 않는다.
+# 오류 기록 2026-08-09
+
+- 서비스 가격 경로 병렬 검색 중 존재하지 않는 `Assets/Scripts/Services/Visitor` 경로를 포함해 `rg`가 종료 코드 2를 반환했다. 유효한 `SaleItem`/가격 배율 결과는 보존하고, 이후 실제 존재하는 `Buildings`, `Models`, 전체 `Assets/Scripts` 범위로 좁혀 재검색한다.
+- `SaleItem` 에셋을 찾기 위해 모든 `.asset`에서 일반 `MonoBehaviour` 문자열까지 포함한 검색은 범위가 지나치게 넓었고, 병렬 호출 중 한 명령의 종료 코드 1 때문에 다른 유효 출력도 묶여 반환되지 않았다. 타입 기반 Unity 에셋 조회 또는 해당 스크립트 GUID 역참조로 대체한다.
+- `ShopInventoryRuntime`과 revenue 문자열을 묶은 검색에서 `Get-Content` 경로는 수정되어 성공했지만, 선택적 `rg`가 일치 항목 없음으로 종료 코드 1을 반환했다. 조회된 런타임 내용은 유효하며 이후 선택적 검색은 종료 코드에 의존하지 않도록 분리한다.
+# 오류 기록 2026-08-09 소매 감사
+
+- 소매 감사 첫 실행은 장검·나무 방패의 장비 아이템 ID가 일반 생산 레시피 EWU 그래프에 직접 연결되지 않아 양의 EWU를 찾지 못했고, 장검의 최대 프리미엄 마진이 반올림으로 35.1%가 되어 실패했다. 장비 정의의 BOM+제작 작업량을 장비 아이템 EWU로 투영하고, 프리미엄 상단은 반올림 허용 오차 또는 가격 내림 규칙으로 정리한다.
+- 장비 EWU 연결 탐색에서 `equipment-item:*` 문자열이 에셋 YAML에 직접 나타나지 않아 선택적 검색이 종료 코드 1을 반환했다. 장비 아이템은 `ItemDefinitionSO.EquipmentId` 역참조와 전투 장비 정의 카탈로그로 연결한다.
+- 장비 정의 조회는 유효한 장검/방패 `itemId`와 `equipmentId`를 찾았지만, 마지막 선택적 속성 검색이 일치 없음으로 종료 코드 1을 반환했다. 필요한 연결은 `CombatEquipmentDefinitionSO.ItemId`로 충분하다.
+- `V23EmbeddedWorkValueCalculator.cs`를 고정 경로로 읽으려 한 호출은 실제 파일 위치가 달라 출력 없이 종료됐다. 먼저 `rg --files`로 선언 파일을 찾은 뒤 읽는다.
+- 서비스실 코드 병렬 조회에서 선택적 패턴 검색 하나가 종료 코드 1을 반환해 다른 파일 출력이 묶여 유실됐다. 확인된 핵심 가격·시간 경로는 유효하며, `ServiceRoomAbilities`, `CreateContract`, 에셋 빌더를 고정 범위로 나눠 읽는다.
+- 서비스 모델 검색에 Windows 경로 와일드카드 `Assets/Scripts/Models/Service*`를 직접 넘겨 종료 코드 1이 발생했다. 고정된 서비스실 경로만 사용한다.
+- 계약 검색에 Windows에서 유효하지 않은 와일드카드 경로 `Services/Faction*`, `Models/Faction*`를 사용해 종료 코드 1이 발생했고 병렬 출력이 유실됐다. 실제 존재하는 `Services/Run`, `Models/Run`, 전체 `Assets/Scripts` 범위로 재조회한다.
+# 오류 기록 2026-08-09 생산 경제 회귀
+
+- `ProductionEconomyDebugScenarios.RunAll()`은 물리 생산 청구서 시나리오에서 `WorkOrderWorkerIneligible`로 실패했다. 계약 보상 변경과 직접 관련된 계산 오류가 아니라 V23 작업자 정책 이후 테스트 작업자/주문 조건이 맞지 않는 회귀 픽스처 문제다. 해당 시나리오의 정책·작업자 설정을 확인해 실제 런타임 계약에 맞춘다.
+- 생산 회귀 테스트의 작업자 픽스처 검색은 실제 fake worker 선언이 없어 선택적 `rg`가 종료 코드 1을 반환했다. `BeginWork`의 작업자 타입과 자격 판정 어댑터를 직접 읽어 최소 유효 테스트 작업자를 구성한다.
+- null 작업자를 실제 `CharacterActor`로 바꾼 뒤 회귀 테스트는 한 단계 진행했지만, 테스트 캐릭터에 `CharacterStatsProjectionService`가 주입되지 않아 실패했다. 게임 런타임은 컨테이너가 주입하므로 제품 버그가 아니라 에디터 픽스처 주입 누락이다. 기존 `CharacterAiEditorTestDependencies`의 캐릭터 주입 경로를 적용한다.
+- 작업자 주입 후 생산 회귀는 다음 단계까지 진행했으나 테스트 레시피 두 개가 V23의 필수 `ProductionProcessClass`를 작성하지 않아 실패했다. 실제 카탈로그 354개는 모두 작성되어 통과한 상태이며, 테스트 레시피에 제분/발효에 맞는 공정 분류를 명시한다.
+- 테스트 레시피 공정 분류 패치는 발효 레시피 `ConfigureWorkshop`의 실제 인자 구성이 예상과 달라 적용되지 않았다. 정확한 두 호출부를 다시 읽고 좁은 앵커로 수정한다.
+### Error log — 2026-08-09
+
+- A combined inspection command used a Windows-invalid wildcard path (`Assets/Scripts/Content/V20*`) with `rg`, causing exit code 1 after the useful file excerpt was printed. Resolved by reading `V20AuthoredContentContracts.cs` directly; no project state changed.
+- The first authored-contract report patch referenced a not-yet-existing `GoldEconomyBalanceRules.WorkUnitsPerWorkerDay` constant. Repository search confirmed no such shared constant exists; the report was corrected to use the authoritative 99 WU/WD value locally pending a later shared time-baseline refactor.
+- A multi-file legacy-ID patch failed atomically because the Korean description text in `V20SocietyWorldContentAssetBuilder.cs` did not exactly match the assumed wording. No file was changed. Resolution: patch only the stable ASCII ID fragments in smaller, independently verifiable edits.
+- A multi-file cooldown patch reported failure at a later context while earlier file hunks had already applied. Verified actual filesystem state: definition, snapshot and builder cooldown fields/mappings are present; runtime enforcement is not. Resolution: treat `apply_patch` as potentially partially applied across files, inspect all touched targets, then patch the missing runtime hunk separately.
+- Guest-request repricing correctly failed fast on legacy nonphysical ID `food:luxury-feast`. The builder stopped before catalog publication. Resolution: trace all 14 request IDs to registered physical items, correct the manifest, then rebuild and rerun the premium-margin audit.
+## 오류 기록 - 2026-08-09
+
+- `V23BalanceAudit.cs`의 위치를 확인하는 검색에 존재하지 않는 `Assets/Scripts/Editor/V23BalanceAudit.cs`를 함께 넘겨 검색 명령이 종료 코드 1을 반환했다. 실제 파일은 `Assets/Scripts/Services/Economy/Editor/V23BalanceAudit.cs`이며, 이후 정확한 경로만 사용한다.
+- `GoldEconomyBalanceRules`를 읽을 때 요약에 적힌 파일명을 `Assets/Scripts/Services/Buildings/SO/StockCategoryCatalog.cs`로 추정했으나 실제 경로와 달라 검색이 실패했다. `rg --files`/정의 검색으로 실제 위치를 먼저 확정한다.
+- `ResourceStockPolicyRuntime.cs`를 Economy 루트에 있다고 가정한 명시 경로가 틀려 검색 종료 코드 1이 발생했다. 실제 파일은 `Assets/Scripts/Services/Economy/Planning/ResourceStockPolicyRuntime.cs`다.
+- `FacilityDebugScenarios.cs`의 깨진 한글 표시 문자열을 패치 문맥으로 사용해 검증 시나리오 삽입이 실패했다. 이후 인코딩 영향을 받지 않는 메서드 호출명과 메서드 선언을 앵커로 사용한다.
+- 구매 원자성 수정 후 전체 `FacilityDebugScenarios`를 실행했으나 새 부분 정산 검사가 아니라 기존 `운영일 납품 제안` 시나리오가 실패했다. V23 감사는 명령 중 먼저 생성되었을 수 있으나 전체 명령은 실패로 처리됐다. 일일 제안의 현재 카탈로그 기대와 테스트의 낡은 조건을 추적한 뒤 재실행한다.
+- 일일 납품 테스트의 `Weapon` 기대를 현재 구체 조달 카테고리인 `Ammunition`으로 고쳤지만 시나리오는 여전히 실패했다. 실제 `CharacterAiEditorTestDependencies.AuthoredGameplay`가 반환하는 제안 목록과 가격을 Unity에서 직접 출력해 남은 불일치를 확인한다.
+- Unity 동적 명령에서 `CharacterAiEditorTestDependencies`가 internal이라 직접 접근하는 진단 스크립트가 컴파일 실패했다. 편집기 테스트 파일 내부에 일시적 진단 API를 추가하지 않고, 소스의 `AuthoredGameplay` 구성과 기본 배수를 직접 추적한다.
+- internal 카탈로그를 읽기 위한 Unity 동적 리플렉션 진단은 MCP의 `System.Reflection` 보안 제한으로 거부됐다. `FacilityDebugScenarios`에 좁은 내부 진단 문자열 메서드를 추가해 같은 값을 안전하게 노출한다.
+- 진단 메서드 추가 직후 동적 명령을 컴파일했으나 Unity 스크립트 어셈블리가 아직 재컴파일되지 않아 새 메서드를 찾지 못했다. 스크립트 에셋을 명시적으로 Import한 뒤 Unity 컴파일 완료를 기다리고 재시도한다.
+- 스크립트 Import 성공 뒤에도 동적 명령이 이전 `FacilityDebugScenarios` 어셈블리를 참조했다. 콘솔 컴파일 오류 또는 도메인 리로드 정체 여부를 먼저 확인하며, 같은 명령을 반복하지 않는다.
+- 동적 명령에서 `CompilationPipeline.RequestScriptCompilation()`이 생성 namespace의 이름 해석과 충돌해 `Unity.CompilationPipeline`로 잘못 해석되어 컴파일 실패했다. 완전 수식 이름 `UnityEditor.Compilation.CompilationPipeline`을 사용한다.
+- 완전 수식 컴파일 요청은 성공했지만 5초 뒤에도 e6 Unity MCP 인스턴스의 동적 명령은 이전 편집기 어셈블리를 참조했다. 도메인 리로드 뒤 활성 MCP 인스턴스가 바뀌었을 가능성이 있으므로 연결된 두 Unity 엔드포인트의 프로젝트 정보를 비교한다.
+- f764 보조 Unity MCP도 동일하게 이전 `FacilityDebugScenarios` 어셈블리를 참조했다. 연결 선택 문제가 아니라 스크립트 컴파일/리로드가 아직 완료되지 않은 상태다. CleanBuildCache 컴파일을 요청하고 충분히 기다린 뒤 콘솔과 API를 재확인한다.
+- CleanBuildCache 요청과 20초 대기 후에도 MCP 동적 컴파일러가 이전 편집기 어셈블리를 참조했다. Console에는 오류가 없다. Unity 편집기 도메인 리로드가 MCP 세션에 반영되지 않는 환경 문제로 기록하고, 로컬 C# 프로젝트 빌드와 정적 검증을 병행한다.
+- `dotnet build DungeonStory.sln --no-restore`는 이 PC에 .NET SDK가 설치되어 있지 않아 실행할 수 없었다. 새 의존성을 설치하지 않고, 설치된 MSBuild 존재 여부를 확인하고 없으면 Unity 컴파일 재연결을 최종 검증 경로로 유지한다.
+- PATH에서 `MSBuild.exe`를 찾지 못했다. Unity 6000.3.8f1에 포함된 빌드 런타임이 있으면 그것을 사용하고, 없으면 외부 빌드는 생략한다.
+2026-08-09 오류: `git status --short`가 Git LFS 임시 파일(`.git/lfs/tmp/...`) 쓰기 권한 부족으로 실패했다. 이번 작업은 Git 변경 명령 없이 파일 단위 검증을 계속한다.
+2026-08-09 오류: `Assets/Scripts/Services/Economy/Runtime/ResourceStockPolicyRuntime.cs` 경로를 가정한 조회가 실패했다. 파일 위치를 `rg --files`로 다시 확인한다.
+2026-08-09 오류: 목적지·등록 전역 검색 결과가 488행 이상으로 잘려 핵심 구현을 식별하기 어려웠다. 이후 `ItemTransferService.TryRequestItemDelivery`와 등록 파일의 좁은 범위만 조회한다.
+2026-08-09 오류: 의복 물리 정의를 `apparel-item:` 접두사로 찾는 검색이 결과 없음(exit 1)으로 결합 조회를 실패시켰다. 실제 ApparelDefinitionSO.PhysicalItemId 값을 먼저 확인한다.
+2026-08-09 참고: `Assets`/`docs` 아래 추가 AGENT(S).md 검색은 결과 없음(exit 1)이었다. 루트 지침만 적용한다.
+2026-08-09 오류: ResourceStockPolicyRuntime 대규모 패치가 `IsOutboundDestination` 실제 구현 문맥 불일치로 전체 거부됐다. 파일을 범위별로 다시 읽고 작은 패치로 분할한다.
+2026-08-09 참고: `ICombatEquipmentRuntime` 직접 구현체 패턴 검색이 결과 없음(exit 1)으로 결합 검색이 실패했다. 실제 구현체와 테스트 대역 누락은 Unity 컴파일 및 `: ICombatEquipmentRuntime` 일반 검색으로 확인한다.
+2026-08-09 오류: Unity MCP 동적 명령에서 `CompilationPipeline.RequestScriptCompilation`이 래퍼 네임스페이스 때문에 `Unity.CompilationPipeline`로 잘못 해석되어 CS0234가 발생했다. `UnityEditor.Compilation.CompilationPipeline` 완전 수식명으로 재시도한다.
+2026-08-09 오류: Unity clean compile 후 기존 구매 정산 테스트 9곳에서 `StockSupplyService.CalculateSettledDeliveryCost` 누락 CS0117이 발생했다. 소스에 메서드가 실제로 존재하는지와 클래스 경계를 확인해 선행 컴파일 오류부터 수정한다.
+2026-08-09 참고: V23 감사와 물리 아이템 시나리오 결합 조회 중 한 검색이 결과 없음(exit 1)으로 실패했다. 물리 아이템 시나리오 구조는 확인됐고 V23 감사는 별도로 읽는다.
+2026-08-09 오류: V23 감사 뒤 전체 PhysicalItemDebugScenarios 실행에서 기존 시나리오 3건이 실패했다: facility_delivery_buffer 다중 매치, physical_craft_material_gate 조기 작업 가능, equipment_module_physical_authority 모듈 누락. 신규 시나리오 자체 실패는 보고되지 않았다. 각각 신규 배송 변경의 회귀인지 기존 전체 시나리오 상태 오염인지 분리 실행한다.
+# 2026-08-09 진행 중 오류 기록
+
+- `TryRouteStackToDestination` 검색·출력 범위가 도구 출력 한계로 잘렸다. 품질 미달 고유 장비의 시장 도착·소비 시나리오를 완성하기 전에 좁은 범위로 다시 확인한다.
+- 전체 물리 계약 실행에서 기존 3개 시나리오가 실패했다. `HasPendingWork`의 재료 게이트 누락은 실제 결함으로 확인했으며, 복수 스택 전달 검증과 모듈 로컬 버퍼 실패는 추가 조사한다.
+- 인터페이스 위치를 함께 찾던 `rg`가 일치 항목 부족으로 종료 코드 1을 반환했다. 필요한 `HasLocalStack` 본문은 정상 확인했으며 검색 범위를 분리한다.
+- `NormalizeModuleDestination` 검색은 해당 메서드가 없어 종료 코드 1을 반환했다. 생성 코드는 전달받은 destinationId를 Trim만 하며 별도 재작성하지 않는다.
+- 수정 후 전체 물리 계약은 4개 관련 시나리오 중 시설 전달, 제작 재료 게이트, 품질 미달 고유품 판매가 통과했고 `equipment_module_physical_authority` 1건만 `EquipmentModuleMissing`으로 남았다.
+- 내구 도구 정의 검색 명령은 출력 파이프의 종료 코드 1을 반환했지만 관련 사용 코드는 읽혔다. 모듈 실패 원인은 모듈 부재가 아니라 감정에 필요한 시험편·검사 게이지·룬 렌즈를 시나리오가 지급하지 않은 오래된 테스트 계약으로 확인했다.
+- 물류·생존 검증기 전체 검색이 출력 한계/파이프 종료로 코드 1을 반환했다. 핵심 진입점은 좁혀서 `Batch B`, `Batch C`, `NeedBalanceCalibrationScenario`로 확인했다.
+- `BatchCProductionInfrastructureAuthorityDebugScenarios`는 현재 V23과 맞지 않는 여러 고정 구버전 계약 때문에 실패했다: 저장 루트 V21 기대, ProductionBill V5 기대(실제 V6), 작업복 3개 기대(실제 4개), 산업 프로젝트 46개 기대(실제 31개), 고정 작업 타입 30개 기대(실제 31개), 구형 로컬라이제이션 키 집합, 오래된 아키텍처 보고서 등. 균형 수치와 구버전 검증 부채를 분리해 다룬다.
+- 최신 `IndustrialInfrastructureStressProbe`도 10K 토폴로지는 만들었지만 2,000개 화물 경로 일부가 실패했다. 컨베이어 출력 포트 연결 규칙과 스트레스 픽스처의 포트 방향을 조사한다.
+- 컨베이어 스트레스 크기를 2x1부터 100x100까지 줄여도 모두 실패했다. 대규모 성능 문제가 아니라 경로 성공 판정 또는 기본 그래프 계약의 논리 오류다.
+- 최소 2x1 진단 결과 `success=0/1`, `NoRoute`, 경로 길이 0이다. 경로 길이 비교가 아니라 그래프 연결 자체가 생성되지 않는다.
+- 컨베이어 능력/노드 정의 검색은 두 번째 패턴이 일치하지 않아 종료 코드 1을 반환했지만 능력 필드는 확인했다.
+### 2026-08-09 validation note
+
+- A broad infection/disease/epidemic scenario search produced more output than the tool context could retain. Treat that attempt as inconclusive; repeat it with file-only and domain-limited searches before selecting focused probes.
+- Unity MCP rejected a temporary focused industrial runner because dynamic commands may not import `System.Reflection`. Do not bypass the guard; expose an explicit source-level focused entry point that calls the existing private checks instead.
+- Focused industrial contracts exposed a current content defect: `장기 재생 수술실` supports surgery but lacks `BuildingProcessFluidAbility`, so sanitation/process-fluid validation stops before the remaining contracts. Inspect the asset/builder and add the missing clean-water/wastewater authority if consistent with its domain role.
+- The first search for the organ-regeneration facility was too broad and truncated because numeric ID `8868` matched generated catalogs. Subsequent investigation must target the exact building asset and the research-overhaul builder methods only.
+- A V23 audit rerun command incorrectly assumed `V23BalanceAudit.Generate()` returned a string; it returns `void`. The dynamic command failed compilation before execution and made no project change. Rerun it as a void call and read its generated report separately.
+- After regenerating research-overhaul assets, the V23 audit failed broadly: generated item prices and guest/retail rewards reverted to their pre-calibration values. This is builder-order drift, not evidence that the prior economic formulas were wrong. Find and rerun the authoritative V23 balance authoring step, then ensure future research regeneration invokes or preserves it before auditing.
+- Focused `PlayerFairnessDebugScenarios` currently fails only because its fixture asserts `DungeonWildlifeSaveData.CurrentVersion == 3`. Inspect the actual current wildlife save contract and update the stale fixture if the version bump is intentional and covered by strict restore validation.
+- A focused environment command incorrectly assumed `EnvironmentalFieldDebugScenarios.RunAll()` returned `bool`; it returns `void`. Compilation failed before execution. Rerun it as a void call.
+- Focused environmental contracts failed in two places: the fixture still expects 3 authored workwear definitions although V22/V23 has 4, and a valid empty character-environment payload does not pass/publish. Update the stale count, then inspect the strict payload validation to determine whether the empty-payload failure is a fixture omission or a real restore defect.
+- After updating V5 arrays and the count, the environmental suite advances but cannot resolve `equipment:cold-work-suit` as a unique item through its legacy `Assets/Resources/SO/Economy/Items` lookup. Inspect the current item catalog/path and update the fixture to use the root physical item authority rather than assuming the old folder.
+## 작업 중 오류 기록 (2026-08-09 추가)
+
+- 전투·원정·캠페인 디버그 시나리오의 공개 진입점을 여러 대형 파일에서 한 번에 검색해 출력이 컨텍스트 한도를 초과했다. 이후 파일별 제한 검색으로 전환한다.
+- 전투·원정·캠페인 Editor 폴더에서 Monte Carlo·승률·백분위·대규모 시드 프로브 명칭을 검색했으나 일치 파일이 없어 `rg`가 종료 코드 1을 반환했다. 이는 도구 실패가 아니라 해당 검증기의 부재 증거로 기록한다.
+- 전투·원정·캠페인 집중 계약 실행에서 `CombatSystemDebugScenarios`가 `qa:combat-craft`, `qa:building-craft` 주문의 작업량 계약 위반으로 실패했고 탄약 소비 권위 시나리오도 실패했다. V23 작업량 권위 변경과 오래된 전투 픽스처의 불일치인지 실제 런타임 회귀인지 분리 진단한다.
+- 탄약 소비 검증 메서드를 `private static void`로 가정해 검색했으나 실제 시그니처가 달라 일치하지 않았다. 메서드명 자체로 다시 제한 검색한다.
+- Unity 탄약 권위 덤프 동적 명령이 제네릭 메서드 그룹 추론과 잘못 가정한 `CombatWeaponSO.DefinitionId` 때문에 컴파일되지 않았다. 명시 람다와 실제 ID 프로퍼티를 확인한 뒤 재실행한다.
+- 장비 정의 파일명을 추정해 제한 검색했으나 두 추정 경로가 존재하지 않아 `rg`가 오류를 반환했다. 클래스 선언 위치를 먼저 검색해 실제 파일을 사용한다.
+- 수정한 Unity 탄약 덤프도 동적 명령 어셈블리에 Sirenix.Serialization 참조가 없어 `ResourceItemDefinitionSO`를 직접 로드하는 지점에서 컴파일되지 않았다. 프로젝트 내부 검증 클래스를 보강하거나 YAML/기존 카탈로그 API를 통해 우회한다.
+- `ResourceItemDefinitionSO` 위치와 필드를 찾는 검색을 잘못된 추정 경로 및 넓은 `Assets/Scripts/Models` 범위로 함께 실행해 출력이 다시 잘렸다. 확인된 실제 파일 `Assets/Scripts/Models/Economy/Content/ResourceItemDefinitionSO.cs`만 읽는다.
+- `ResourceGameContentCatalog.GetAll<ResourceItemDefinitionSO>()` 우회도 동적 명령 어셈블리의 Sirenix 참조 부재 때문에 컴파일되지 않았다. 동적 덤프 대신 프로젝트에 이미 컴파일되는 검증 코드를 현재 권위 계약으로 직접 수정한다.
+- 단검 정의의 `RequiredCraftWork`를 사용하도록 픽스처를 바꾼 뒤에도 두 복원 주문이 `invalid work`로 실패했다. V23 저장 계약에 추가된 작업량 캡처/기여 필드 또는 작업량 정수 정규화 조건을 확인한다.
+- `CraftQualityRollSaveData` 검색은 필요한 선언을 찾았지만 PowerShell 파이프 실행이 종료 코드 1로 보고됐다. 출력 자체에서 필드 계약은 확인했으므로 제한된 직접 파일 조회로 후속 검증한다.
+- 픽스처에 품질 롤을 추가한 직후 Unity 동적 명령이 임시 `AssistantRunCommand` DLL 또는 종속성을 로드하지 못했다. 코드 계약 실패가 아닌 에디터 재컴파일 경합으로 보고 컴파일 안정화 후 재실행한다.
+- Offense Editor 시나리오에서 문자열 `new EnemyEncounterFactory`를 검색했으나 target-typed `new(...)` 또는 별도 팩토리 헬퍼를 사용해 일치하지 않았다. 타입명 전체 참조로 다시 찾는다.
+- `EnemyCombatContentCatalog`을 별도 파일로 추정해 생성자 검색했으나 실제로는 `EnemyIndividualRuntime.cs`에 함께 선언되어 한 경로가 없었다. 확인된 파일만 제한해서 읽는다.
+- 기본 공격 처리 검색은 유효한 결과를 출력했지만 PowerShell 파이프가 종료 코드 1로 보고됐다. 필요한 전투 공식과 공개 미리보기 API는 확인했으며 이후 직접 범위 조회를 사용한다.
+- 최초 전투 콘텐츠 예산 프로브가 116건 실패했다. 보고서를 통해 실제 이상치와 프로브의 보상 ID 해석 오류를 분리한 뒤 게이트를 확정한다.
+- `offense:unappraised-loot` 참조 검색은 실제 정의·감정 조합식·소비 경로를 찾았지만 PowerShell 파이프가 종료 코드 1로 보고됐다. 보상 ID 자체는 유효하고, 프로브의 ItemDefinition 수집 방식이 루트 카탈로그의 구체 하위 타입을 빠뜨린 것으로 진단한다.
+- 전투 예산 프로브의 아이템 수집·강도 밴드 수정 패치를 한 번에 적용했으나 하단 `ParseEncounterNumber` 주변 문맥이 달라 전체 패치가 거부됐다. 파일을 구간별로 읽고 작은 패치로 나눈다.
+- 캠페인 기준으로 전환하던 전투 예산 프로브 패치가 중간에 끊겨 호출부와 메서드 시그니처, 이전 `strengthMedians` 참조가 동시에 남았다. 파일 전체를 다시 읽고 한 번의 일관된 패치로 복구했다.
+- 캠페인 카탈로그와 목표 ID를 프로젝트 전체에서 한 번에 찾는 검색이 10초 제한을 초과했다. 결과에 실제 파일 위치가 포함됐으므로 이후 `OffenseCampaignCatalogSO.cs`, 해당 에셋과 보상 서비스만 직접 조회한다.
+- 첫 전략 콘텐츠 밸런스 감사가 9건 실패했다. 보고서를 읽어 실제 계약/장 비용 불균형과 감사식의 잘못된 가정을 분리한 뒤 콘텐츠 또는 밴드를 교정한다.
+- Windows 경로에 `Equipment*` 와일드카드를 직접 넘긴 검색 한 구간이 잘못된 경로 구문으로 오류를 냈다. 필요한 계보 인장 생성·클레임 참조는 다른 명시 경로 검색에서 확보했으므로 이후 실제 파일만 조회한다.
+- 전략 보고서 발췌와 함께 실행한 `git status --short`가 `.git/lfs/tmp` 접근 거부로 종료 코드 1을 반환했다. 보고서 조회는 성공했으며 Git 상태 문제는 밸런스 런타임 검증과 분리한다.
+- 계절 사건 빌더 조회와 후속 시나리오 검색을 한 명령에 묶었는데, 빌더 조회는 성공하고 두 번째 검색이 일치 항목 없음으로 종료 코드 1을 반환했다. 기존 별도 계절 밸런스 시나리오는 없다는 증거로 취급한다.
+- 축제 정의 위치 검색은 실제 파일이 `Assets/Scripts/Models/Species/Core`에 있음을 찾았지만 이어서 추정한 `Assets/Scripts/Content` 경로를 읽어 실패했다. 확인된 실제 경로만 다시 읽는다.
+- 계절·축제·서비스 강도 게이트의 첫 실행이 16건 실패했다. 실제 보고서 분포를 읽어 기준 밴드가 과도한지, 특정 축제 투입량이 비정상인지 분리한다.
+- 축제 미해석 물품 검색에서 존재하지 않는 추정 폴더 `Assets/Resources/SO/V22`를 함께 넘겨 종료 코드 1이 발생했다. 실제 경제 아이템·레시피 결과는 확보했으며 확인된 경로만 사용한다.
+- 축제 빌더의 여러 행을 한 번에 교체한 패치가 파일의 현재 줄 문맥과 일치하지 않아 전체 거부됐다. 정확한 현재 행을 다시 읽고 작은 ID/수량 치환 패치로 나눈다.
+- 축제 에셋 재생성 후 전략 감사가 16건에서 4건으로 줄었지만 아직 실패했다. 남은 네 축제의 실제 EWU/참가자 분포를 확인해 수량 또는 허용 상한을 교정한다.
+- 밸런스 기준 문서와 작업 계획을 한 번에 넓게 조회해 출력이 컨텍스트 한도를 넘었다. 이후 전투·전략·이정표 범위만 줄 단위로 나누어 읽는다.
+- 오류 기록을 먼저 추가하려던 `apply_patch`가 내용 없는 hunk라 거부됐다. 파일에는 변화가 없었고, 실제 오류 기록 문맥을 확인한 뒤 정상 패치로 다시 추가했다.
+- `findings.md` 갱신을 시작하며 다시 내용 없는 hunk를 보낸 패치가 거부됐다. 파일 변화는 없으며 이후에는 확인한 마지막 문맥과 실제 추가 내용을 포함해 패치한다.
+- Unity MCP 도구 이름을 찾는 첫 필터가 모든 Unity 도구 설명까지 출력해 컨텍스트 한도를 넘었다. 이후 이름만 추출하고 `Unity_RunCommand`, `Unity_ReadConsole`로 범위를 제한한다.
+- 최종 검증 진입점 검색에서 `V23BalanceAudit.cs`의 경로를 잘못 추정해 결합 명령이 종료 코드 1로 중단됐다. 실제 파일 위치를 `rg --files`로 확인하고, 저장 러너 조회는 별도 명령으로 다시 수행한다.
+- 빈 PlayMode에서 `DungeonGameSaveDebugScenarios.RunFullGameRoundTrip()`을 직접 호출하자 시작 주인 Aggregate가 준비되지 않아 `Owner runtime is missing`으로 중단됐다. 부분 변경은 러너의 baseline/finally 범위 전 단계에서 발생하지 않았다. 전용 `DungeonFullWorldRoundTripPlayModeFacade`가 준비하는 씬·시드·주인을 사용해 재실행한다.
+- 전용 전체 월드 왕복은 68/68/68, baselineRestored=True, canonicalBaselineMatched=True까지 도달했지만 V23 이전 테스트 계약 두 곳 때문에 최종 실패했다: `CharacterProgressionSavePlayModeFacade`의 구형 성장 저장 거부 문구 기대와 `qa-save-craft-order`의 오래된 작업량/품질 저장 픽스처. 현재 저장 권위에 맞춰 테스트 데이터를 교정한 뒤 재실행한다.
+- 첫 픽스처 교정 후 캐릭터 진행 저장 계약은 통과했지만 장비 저장 캡처 검증이 여전히 구형 고정 작업량 `6.75/10`을 기대해 실패했다. 런타임은 정상적으로 68/68/68과 기준선 복원을 유지했다. 검증도 에셋 기반 작업량·진행값을 비교하도록 교정한다.
+- 실제 전투 승률 프로브 API 검색을 서비스·모델 여러 경로에 넓게 걸어 한 경로의 불일치로 종료 코드 1이 발생하고 출력도 과도했다. 확인된 핵심 파일 `OffenseBattleModel.cs`, `OffenseBattleContracts.cs`, 기존 전투 시나리오만 범위별로 읽는다.
+- 전투 장비 정의 파일을 `Models/Combat/Core/CombatEquipmentDefinitionSO.cs`로 추정해 조회했으나 실제 경로가 달라 결합 명령이 실패했다. 클래스 선언 위치를 먼저 찾아 확인된 파일만 읽는다.
+- 장비 ID 목록 추출에서 GNU grep식 `rg -h`를 사용해 ripgrep 도움말이 출력됐다. `-h`를 쓰지 않고 경로 포함 결과에서 ID만 읽는다.
+- 새 실제 전투 결과 프로브를 추가한 직후 동적 명령이 아직 재컴파일 전 어셈블리를 참조해 타입을 찾지 못했다. Unity Console의 실제 스크립트 컴파일 오류를 먼저 확인하고, 에셋 import/도메인 리로드 뒤 실행한다.
+- 전투 결과 프로브의 컴파일 상태를 확인하려고 Unity Console 오류·경고 전체를 한 번에 요청해 출력이 컨텍스트 한도를 초과했다. 이후 최근 20건과 파일명 필터만 사용해 실제 컴파일 오류를 좁힌다.
+- 전투 결과 프로브의 첫 실제 실행은 1,152회 중 114회가 종료되지 않아 게이트에서 중단됐다. 보고서상 원인은 단순 난이도 과다가 아니라 보호 목표 NPC 부재, 생포용 비살상 준비 누락, 사거리 밖에서 이동 행동이 없는 프로브 AI가 섞여 있으므로 수치 조정 전에 목표/행동 픽스처를 실제 플레이 계약과 맞춘다.
+- 진정 탄약과 전투 스냅샷을 함께 찾던 결합 검색은 첫 검색 결과는 확보했지만 두 번째 클래스 위치 불일치로 종료 코드 1을 반환했다. 확인된 석궁 호환 진정 다트를 사용하고 스냅샷 선언은 클래스명 전역 검색으로 따로 찾는다.
+- 원정 전투력 공식과 캠페인 에셋을 한 명령에서 읽을 때 추정한 캠페인 에셋 경로가 틀려 두 번째 조회가 실패했다. 실제 에셋은 `Assets/Resources/SO/Content/OffenseCampaignCatalog.asset`임을 확인했다.
+- 전투력 배율 스윕 추가 직후 Unity 동적 명령 DLL이 재컴파일 경합 중 로드되지 않았다. 프로젝트 코드 오류로 단정하지 않고 에디터 컴파일 완료와 Console을 확인한 뒤 스윕만 다시 실행한다.
+#### Phase 145 V25 nine-proficiency progression and decay integration
+
+- [x] Establish the nine canonical proficiency definitions and map all authored work/content to an explicit primary or composite proficiency.
+- [x] Replace routine generic-level XP with contribution-based proficiency XP, quality/speed/safety projections, combat practice, anti-repeat rules, and lazy expert/master decay.
+- [x] Extend persistent character narrative and mentorship state without increasing the 68-section save contract.
+- [x] Connect mentorship assignment, character proficiency presentation, worker filtering, and explicit failure reasons to normal gameplay UI.
+- [x] Update the whole-game balance baseline, comprehensive design document, generated mapping evidence, and focused deterministic validation.
+
+Phase 145 implementation contract:
+- Immutable proficiency definitions belong to authored content/catalog authority; mutable XP, decay clocks, and mentorship assignments belong to runtime aggregates and save DTOs.
+- Accepted work contribution is the only routine-work XP authority. Waiting, cancellation, missing materials, idle guard duty, and failed paths award zero proficiency XP.
+- Existing unrelated dirty worktree changes are preserved. No bulk asset rebuild or unrelated formatting pass is allowed.
+- Research 180/138,824, V20 net-new 450, and save section count 68 remain unchanged.
+
+Phase 145 validation errors:
+- Initial `git status --short; git diff --stat` invoked the Git LFS clean filter and failed because `.git/lfs/tmp` was not writable in the sandbox. It changed no tracked file. Subsequent read-only status checks will disable the LFS filter locally per command and all edits remain scoped to proficiency files.
+- A discovery batch guessed `Assets/Scripts/Content/V20AuthoredContentSO.cs` and ended after that missing optional path. The authoritative base is `Assets/Scripts/Content/V20AuthoredContentContracts.cs`; no mutation occurred.
+
+Phase 145 final evidence:
+- Nine canonical proficiencies and all 31 work kinds have one explicit proficiency or intentional no-XP mapping.
+- Authored mappings cover 419 buildings, 354 recipes, 61 combat equipment definitions, and 56 apparel definitions.
+- The 100,000-sample quality probe, 960-day progression/decay simulation, and 2,000-resident lazy-settlement probe passed; the latter measured `0.459ms`, `0B`, and no hourly global resident scan.
+- Mentorship conditions, daily limits, both 30 WU contributions, save restoration, and both target-resolution pointer flows passed.
+- The final full-world gate passed `68/68/68`, canonical and live baseline restoration, and Unity Console Error 0 / Warning 0.
+
+#### Phase 146 proficiency-derived detailed performance authority
+
+- [x] Inventory every read/write/save/content path for the legacy twelve independently rolled and level-grown character stats.
+- [x] Make the nine proficiencies plus innate proficiency aptitude the only persistent progression authority and define deterministic work-speed, quality, accident-risk, and compatibility projections.
+- [x] Remove routine creation and level-growth writes to independent stat blocks; retain the serialized legacy block only as a non-authoritative compatibility boundary.
+- [x] Route work speed, construction/equipment/apparel quality, active-work accident risk, surgery compatibility reads, and worker eligibility through the proficiency authority without dual counting.
+- [x] Update character UI, worker selection, save rejection/versioning, documentation, and focused deterministic validation.
+- [ ] Re-run the 31-work/content mapping, 100,000 quality sample, progression/decay, 2,000-character performance, target-resolution UI, and final 68/68/68 Console 0/0 gates.
+
+Phase 146 structure contract:
+- Immutable authority: the existing nine `ProficiencyDefinitionSO` assets and explicitly authored proficiency-to-performance projection rules.
+- Mutable authority: current/lifetime proficiency milli-XP, practice/decay clocks, mentorship, and innate proficiency aptitudes on the character narrative/progression aggregate.
+- Derived-only effects: work speed, completion quality, accident risk, and combat/service/research/medical outcomes. The twelve legacy numeric labels exist only inside a compatibility adapter for old consumers; they are never independently rolled, level-grown, saved as progression authority, or presented as a second player-facing system.
+- Commands: approved work contribution, combat evidence, mentorship, and explicit life/content effects are the only proficiency mutations.
+- Queries: UI, AI, work execution, combat, and quality systems read detailed performance through one projection service that combines proficiency, species/body, traits, equipment, health, fatigue, mood, and environment without mutating state.
+- Save boundary: derived values and caches are not saved. The relevant existing section version is raised and pre-refactor development saves are explicitly rejected; total section count stays 68.
+- Failure policy: missing proficiency definitions or projection mappings fail catalog validation and surface an exact unavailable reason; no silent neutral-stat fallback is introduced.
+- Balance status: this phase targets formula/simulation verification only. Cross-domain live-play calibration remains separate until representative long-run telemetry exists.
+
+Phase 146 validation errors:
+- The first broad PowerShell discovery command ended with exit code 1 because a Windows `rg` argument used the literal wildcard path `CharacterNarrative*`. Earlier portions completed and changed no files; subsequent searches use directory plus `--glob` filters.
+
+#### Phase 147 founder trait roster expansion to exactly 100
+
+- [x] Inventory the live trait authority, current builder, save/UI projection, and focused distribution audit.
+- [x] Define the final 100-trait manifest: retained identity traits, natural proficiency tradeoffs, simple positive traits, simple negative traits, and seven extreme traits.
+- [x] Implement the shared data/runtime additions needed for proficiency deltas, polarity, identity effects, deterministic extreme triggers, strict identity-state persistence, and exact-count validation.
+- [x] Build/index exactly 100 trait assets through Unity MCP without mouse input and retire development trait IDs without reusing their meanings.
+- [x] Re-run deterministic distribution, family/species collision, shared-effect source, identity-state, Mythic, compilation, PlayMode, and founder production-impact verification after the latest runtime wiring. The 100k/1m audit, 10k-party bottom-up audit, equipment-readiness audit, compile, and 68/68/68 full-world gate pass.
+- [x] Update the whole-game balance baseline, findings, and progress with the implementation contract and current unverified state; report balance complete only after the Unity MCP gates pass.
+
+Phase 147 decisions:
+- The final catalog count is exactly 100, including seven extreme traits.
+- Natural proficiency tradeoffs raise one proficiency and lower a narratively related weakness; mirrored A/B pairs and rigid equal deltas are forbidden.
+- Simple positive and simple negative traits are both expanded. Negative traits are weighted to form a meaningful minority without a forced negative slot.
+- Existing 1/2/3/4 trait-count weights 15/40/35/10, unlimited manual reroll, family exclusion, species eligibility, and age proficiency caps remain authoritative.
+- Unity asset generation and all Unity execution use Unity MCP only.
+
+Phase 147 errors:
+- Initial `git status --short; git diff --stat` invoked the Git LFS clean filter and failed because `.git/lfs/tmp` was not writable. No tracked file was changed; do not repeat the same status command.
+- The first planning-file status patch used a stale checklist anchor and failed without changing files. Subsequent notes append under the stable Phase 147 headings.
+- Unity MCP Console exposed four real compiler errors: `DungeonStory.Combat` could not see `IGameplayEffectSource`, `GameplayEffectSourceRef`, or `GameplayEffectBinding` because the contracts were authored in the predefined assembly. Move the dependency-free contracts to `DungeonStory.Foundation` and leave the higher-level projector outside that asmdef.
+- The clean rebuild exposed two more errors hidden as Console `Log`: Foundation cannot inherit Economy's `DataScriptableObject` without a cycle. The effect/condition definitions retain their own stable numeric ID while inheriting directly from `ScriptableObject`; they remain normal catalogued SO content and do not create a reverse dependency.
+- The next clean compile showed `CharacterTraitSO` could not see `CharacterIdentityRule` for the same asmdef reason. The dependency-free polymorphic rule payload definitions move to Foundation; runtime routers/state remain in the higher Character service.
+- Splitting the projector exposed `GameplayEffectContribution.Definition` as assembly-internal. It is runtime trace data, so the definition reference is made publicly readable/writable across Foundation and the higher projector assembly.
+- The builder ran, but Unity warned that effect/condition SOs had no matching script asset because both were declared in `GameplayEffectContracts.cs`. Split each UnityEngine.Object-derived type into a same-named file and let the builder replace only malformed generated V26 assets before rerunning.
+- Starting-XP compilation found the validator accepts `IReadOnlyList` rather than `IList`; pass a deterministic array snapshot after mutation.
+- Identity event compilation exposed that `CharacterId` intentionally has no `==`/`!=` operators; deterministic event filtering now uses value equality.
+- Adding identity state to narrative save version 7 initially broke editor fixtures using the two-argument runtime constructor. Optional compatibility injection preserves those focused fixtures while live DI supplies the authoritative identity store and content catalog.
+- Unity MCP stopped answering editor, console, and command calls after the Unity Licensing Client disconnected. No shell/editor restart or non-MCP Unity execution was used. Static source work continued, but the latest changes remain explicitly uncompiled and unaudited until MCP recovers.
+- After MCP recovery, the first dynamic refresh command failed only inside the command assembly because `CompilationPipeline` resolved through the injected `Unity.*` namespace instead of `UnityEditor.Compilation`. No project mutation or project compile occurred; retry with an explicit `global::UnityEditor.Compilation.CompilationPipeline` qualifier.
+- The recovered Unity compile exposed two project errors logged as Console `Log`: an anonymous object assigned to `CombatEquipmentRuntimeState`, and a conditionally assigned `ExtremeRiskResolution` read after short-circuiting. Instantiate the real runtime state and initialize the out payload before the guarded miracle-surgery call, then rerun the full compile.
+- The next compile passed the two runtime fixes and exposed one stale Editor fixture constructing `ProductionBillSceneFacade` with the old four-argument signature. Supply isolated identity/extreme dependencies in the deterministic production fixture; live DI remains unchanged.
+- The first recovered full-world round-trip run stalled before writing a report because `CharacterTransientGameplayEffectSourceQuery` requested unregistered concrete `BlueprintResearchRuntime`; scene injection then emitted repeated character/grid errors. Stop the failed PlayMode through Unity MCP and depend on the registered `IBlueprintResearchStateService` instead, preserving the research aggregate as state authority.
+- After the DI fix, the full-world gate reached 68/68/68 but failed baseline restoration because the derived-stat read path called mutating `GetActiveProfileSnapshot`, creating saved default loadouts for transient QA/preparation characters. Add a non-mutating `TryGetActiveProfileSnapshot` query and use it for effect projection so read-only stat calculation cannot create combat state.
+- The founder-industry audit correctly found zero no-research output because every authored gathering/production/apparel route is research-gated and Day 1 is explicitly starting-stock-only. The report still lacked the cost of leaving that state; add actual scholarship plus ResearchSpeed trait projection and minimum prerequisite-closure WU/days for the first raw/intermediate/food/finished/apparel unlock.
+
+Phase 147 final direct-order and regression evidence:
+- The staff work-priority surface previews trait-driven direct-order costs before a cleaning-priority downgrade. Trait 245 displays mood -2 / stress +3; clean `Off -> Priority1` and non-clean changes remain free.
+- The cost is applied only after the player-facing priority mutation succeeds. The deterministic V26 audit verifies preview values, trigger policy, the resulting mood factor, and lifecycle stress.
+- The final V26 audit remains PASS at 100 traits, 100,000 rerolls, 27.9204% negative slots, 0.9618% extreme slots, 0 multi-extreme results, and 3.0083% Mythic across 1,000,000 eligible rolls; normal Mythic remains 0.
+- The P1 work-priority UI scenarios pass, and the final full-world PlayMode gate passes 68/68/68 with canonical baseline restoration and Unity Console Warning 0 / Error 0.
+
+#### Phase 148 founder trait vector and daily-schedule balance simulation
+
+- [x] Inventory the authoritative base workday, work-speed, food-consumption, accident exposure, successful-work XP, research prerequisite and equipment BOM/work formulas used by the current founder baseline.
+- [x] Define and execute the first deterministic non-scalar trait projection: WU throughput, consumption index, expected accident count/damage, earned-XP multiplier and event/state-only identity outcomes remain separate axes.
+- [ ] Simulate at least 10,000 naturally rolled three-founder parties under explicit balanced and research-focus daily schedules, reporting p10/median/p90 rather than only a mean ceiling.
+- [x] Quantify the first 36-WU research unlock, essential-industry capacity, food demand, expected accident/damage exposure and trait-only gap between no-reroll, practical reroll and extreme bounds.
+- [ ] Add exact accident-time lost WU, real meal/sleep/movement/mood interruption, founder proficiency growth at each readiness checkpoint and quality-value yield to the p10/median/p90 day-schedule simulation.
+- [x] Run compilation and deterministic audits through Unity MCP, verify Console 0/0, and record the current formulas, limitations and evidence in the baseline, findings and progress.
+
+Phase 148 implementation contract:
+- WU remains physical approved work, not a universal trait score. Only actual speed effects modify WU throughput.
+- Time/need traits modify available daily work time; consumption traits modify physical food demand; accident traits modify expected lost work/material; quality traits modify output-quality distribution; identity and extreme rules remain event/state outcomes.
+- The simulation must use the same founder generation, proficiency caps, trait selector, shared-effect bindings, and typed identity-rule definitions as live content. It may not assign hand-authored trait scores.
+- Average-only success is insufficient. Report natural party p10/median/p90 and expose impossible or assumption-dependent paths explicitly.
+- This phase changes no gameplay numbers unless the measured result demonstrates a concrete violation and the user approves the correction target.
+
+Phase 148 errors:
+- The first broad need/time authority search returned useful matches but exceeded the output limit and ended with exit code 1. Subsequent reads are restricted to `NeedBalanceCalibrationScenario`, projection services, and exact trait builder ranges.
+- A discovery read assumed the planned `GameplayEffectConditionEvaluator.cs` path, but the live condition context is implemented inside `GameplayEffectContracts.cs`; the missing optional file changed nothing.
+
+#### Phase 149 founder-trait end-to-end connection closure (completed)
+
+- [x] Add an explicit AGENT.md completion gate that forbids accepting definition/projection-only gameplay effects and requires producer -> authority -> condition -> consumer -> save/UI/test evidence for every authored binding and identity rule.
+- [x] Inventory every founder-trait effect target, condition ID, identity event/rule, runtime command, public runtime API and serialized field; classify every endpoint as producer, projector, consumer, adapter, persistence, migration or audit and record every orphan in `Artifacts/QA/v26-founder-trait-connectivity-audit.md`.
+- [x] Make the canonical derived-stat projection the only trait/equipment/species/status/research numeric authority and expose typed/named queries for every authored target.
+- [x] Connect hunger/food demand, accident execution, temperature exposure, quality, salvage, haul capacity, fatigue, recovery, food poisoning, relationship recovery, negative mood duration and every retained custom target to their owning runtime systems.
+- [x] Replace the coarse AI prefix matcher with exact action semantics supplied by real AI actions/work candidates; connect autonomous restrictions and direct-order consequences without silent fallback.
+- [x] Connect typed identity event publishers/subscribers, persistent deprivation clocks, mood durations, product/work/social/health/expedition events, and all extreme-trait player/automatic command paths.
+- [x] Add deterministic source-to-consumer coverage audits that enumerate all 100 traits plus every related public API and serialized field on every run, and fail for an unconsumed target, never-emitted condition, unreachable identity event, missing caller, duplicated authority or dead serialized field.
+- [x] Rebuild assets, compile, inspect Console and run all focused/full regression gates through Unity MCP only; then rerun the founder WU/industry/readiness simulation using live effects.
+
+Phase 149 fixed constraints:
+- A serialized value is not implemented until a live producer supplies its context and a real domain consumer changes authoritative state or outcome.
+- `CharacterGrowthState.traitIds` remains the sole selected-trait authority; definition SOs contain authored content only and no mutable runtime state.
+- Every numeric trait effect must project into a named detailed stat. Facilities and work executors may consume typed query methods, but may not inspect trait IDs or bindings directly.
+- Identity rules remain event/state behavior and are not collapsed into WU. Their event publishers, state keys, save/restore and observable consequence must all be proven.
+- No mouse input is permitted. Unity refresh, asset build, compile, Console and tests use Unity MCP only.
+- Existing dirty-worktree changes are preserved. Phase 149 edits are limited to the trait/effect/consumer/audit/agent-guidance paths required by this objective.
+
+Phase 149 error log:
+- Session catch-up reported 73 unsynced messages and a very large pre-existing dirty worktree. The target trait/effect files are existing Phase 147 changes or untracked additions; unrelated assets and generated training deletions must not be touched.
+- Two combined planning-file patches used stale findings anchors and failed atomically without changing files. Subsequent planning updates patch each file independently at a stable end-of-file anchor.
+- Unity Console의 컴파일 진단이 `Error`가 아니라 `Log` 유형으로 기록될 수 있음을 재확인했다. 이후 모든 컴파일 게이트는 `All` 유형과 `Assets/Scripts` 진단을 함께 검사한다.
+- 최초 동적 API 감사는 `CharacterTraitSO`가 속한 어셈블리만 탐색해 다른 런타임 어셈블리의 `ArcaneOverchargeCommandRuntime` 타입을 찾지 못했다. `DungeonStory*`와 `Assembly-CSharp*` 전체 로드 어셈블리에서 타입을 해석하도록 수정했다.
+- 추상 어댑터의 `Start` 의도 속성이 override 리플렉션에서 안정적으로 계승되지 않았다. 실제 파생 어댑터 13개의 `Start`에 의도 속성을 직접 부여했다.
+- PowerShell에서 지원되지 않는 `??` 연산자를 사용한 읽기 전용 진단 명령이 실패했다. 파일 변경은 없었고 이후 명시적 null 분기로 교체했다.
+- Unity 동적 명령의 `CompilationPipeline` 이름이 프로젝트 타입과 UnityEditor 타입 사이에서 모호했다. `UnityEditor.Compilation.CompilationPipeline` 완전 수식 이름을 사용했다.
+- 전수 결과를 읽는 PowerShell 명령에서 `Select-Object -Index 130..175`를 배열로 감싸지 않아 읽기 전용 조회가 실패했다. 코드·에셋 변경은 없었고 이후 고정 범위 배열 또는 `Get-Content` 인덱싱을 사용한다.
+
+Phase 149 connection closure progress:
+- [x] `state:emergency-stocked`와 `stockpile:emergency-ready/shortage`를 품목별 저장 정책의 명시적 비상 지정, 기존 최소 재고, 실제 월드 스택, 창고 UI 명령, 일일 정체성 기분 판정에 연결했다.
+- [x] `work:substitute-material`, `state:insulted`, `state:ritual-fasting`, `state:ritual-fast-ended`를 실제 명령·상태·소비자에 연결한다.
+- [x] `consume:luxury`, 호화/기본 생활 지속 욕구, 장기 냉기·불쾌 온도·부패 오염 사건을 실제 식사 후보·식사 결과·환경 노출에 연결한다.
+- [x] 정체성 사건, AI 의미 태그, 조건, 수치 target, 극한형 명령, snapshot/UI/구형 권위 경계와 자동 고아 감사를 모두 실제 실행 경로에 연결했다. 최종 manifest는 rows 541, targets 45, conditions 45, identity 63, behaviors 38, needs 9, extremes 7, publicApis 104, helperMethods 77, serializedFields 126, orphans 0이다.
+- [x] 효과·정체성 범위의 public API 104개를 매 실행마다 동적으로 열거한다. 상태 변경·생명주기 함수는 `GameplayEntryPoint`, `GameplayInternalOnly`, `GameplayMigrationOnly` 중 정확히 하나의 의도 속성과 허용 호출 증거를 요구한다.
+- [x] 같은 범위의 private/internal/protected helper도 동적으로 열거해 선언 외 호출·delegate 구독·내부 교차 파일 참조가 없는 죽은 함수를 실패시킨다.
+- [x] 정체성 규칙 및 핵심 런타임·정의의 public 직렬화 필드 126개를 동적으로 열거한다. 실제 소비자가 없는 공용 effect parameter를 제거하고, 구형 mood reaction은 사유와 제거 조건이 있는 migration-only로 고정했다.
+- [x] 극한형 규칙에 중복 직렬화된 전투·이동·작업·사고·피로·회복·수확·마력 배율을 제거했다. 공용 수치 권위는 `GameplayEffectBinding`만 남기고 정체성 규칙은 발동·확률·비용·상태만 소유한다.
+- [x] 신화 3%와 최소 제작 기여율 60%를 우회하던 하드코딩을 제거했다. 장비·의복 완성 판정이 선택된 특성 300 규칙의 authored 값을 직접 읽으며 0%/100% 경계 검증을 통과한다.
+- [x] 사선 각성 전투력의 규칙 직접 곱과 공용 effect 곱 이중 적용을 제거했다. 전투력은 공용 투영 한 번, 임계 체력·통증 무시는 정체성 상태 한 번만 적용한다.
+- [x] 동일 시드의 무특성 대조군과 자연 특성군을 다시 계산하고, 6개 장비 준비 체크포인트를 자연 창립자 제작·연구 속도로 재계산했다.
+- [x] 숨은 전체 저장 회귀 의존성(소유자 선행 생성, 비영속 침입 피해 대상)과 적 2종의 3손 장비 조합을 수정한 뒤 공식 Full World PlayMode 68/68/68, Console 0/0을 통과했다.
+
+#### Phase 150 disease detailed-stat separation (completed)
+
+- [x] Define four independent shared-effect targets: disease resistance, disease recovery speed, immunity gain, and immunity retention; keep `character:recovery-speed` limited to HP/wound healing.
+- [x] Route infection probability, active-disease duration, vaccine/recovery immunity gain, and daily immunity decay through the canonical character derived-stat projection without reading trait IDs.
+- [x] Persist deterministic per-infection recovery timing and immunity contracts without saving derived effect caches; preserve old population-health save compatibility.
+- [x] Author the four effect-definition SOs and assign deliberate founder-trait values without changing the 100-trait count or physical BOM/WU.
+- [x] Extend source-to-consumer and deterministic disease audits for neutral/positive boundaries, save round trip, and no double application.
+- [x] Rebuild content, compile, run focused trait/disease audits and official 68/68/68 full-world regression using Unity MCP only; update balance evidence.
+
+Phase 150 fixed constraints:
+- Disease resistance is an infection-susceptibility divisor; higher is better and it may not alter exposure hours or environment authority.
+- Disease recovery speed changes non-chronic active disease duration, never instant-cures chronic conditions, and is fixed deterministically when infection begins.
+- Immunity gain scales vaccine and completed-disease immunity awards; immunity retention divides daily immunity decay. Both remain clamped to the existing 0..100 immunity domain.
+- `character:recovery-speed` continues to affect only aggregate/body healing and does not silently alias any disease stat.
+- No new item, BOM, WU, facility, research unlock or free medical outcome is introduced.
+- All Unity asset creation, compilation, console inspection and tests use Unity MCP without mouse input.
+
+#### Phase 151 unified character capacities and performance (in progress)
+
+- [x] Add the 13 functional-capacity definitions, five composite performance indicators, deterministic formula contracts and contribution traces.
+- [x] Build one vertical slice from anatomy/proficiency/shared effects through a live work executor and character detail UI.
+- [x] Author all 31 work performance profiles with primary proficiency plus at most one 20% secondary proficiency and explicit required/bottleneck capacities.
+- [x] Route combat, surgery, treatment, recovery, disease, survival and social outcomes through the single performance query.
+- [x] Remove the 12 legacy `CharacterStatType` surfaces, projections, serialized authoring and direct consumers without leaving a dual authority.
+- [x] Add the explicit legacy-save rejection boundary and rebuild authored ScriptableObject catalogs.
+- [x] Replace symbol-presence-only connectivity checks with structural mapping plus live authoritative-state execution evidence. The focused live audit currently proves 11 formula endpoints across 12 consumers, including a forced work accident that damages and restores an anatomy node.
+- [x] Run the full character-summary UI matrix and 68-section whole-world round-trip regression through Unity MCP.
+- [ ] Add real daily-schedule movement/meal/sleep and policy-grounded injury/disease lost-WU to the deterministic founder/readiness calculation.
+
+Phase 151 fixed constraints:
+- Healthy baseline is `1.0 = 100%`; functional capacities have no global upper cap and reject negative or non-finite authored/projected values.
+- Non-applicable capacities are excluded and weights are renormalized. Arcane conduction is applicable and visible for every character.
+- Required applicable capacities below 10% fail explicitly; autonomous and direct commands receive the same physical failure reason.
+- Formula data is authored in ScriptableObjects. Runtime health, proficiency and identity state remain in their existing aggregates; projected capacities and performance snapshots are never saved.
+- Existing dirty-worktree changes are preserved. Unity asset generation, compile, console and tests use Unity MCP only.
+
+Phase 151 verified evidence:
+- V27 structural audit PASS: 13 capacities, 107 formulas, 30 work-speed mappings, 30 accident mappings, five composites, ten species/anatomy profiles, and uncapped 250% capacity.
+- V25 authored mapping PASS: 419 buildings, all 125 operate facilities, 354 recipes, 61 equipment definitions and 56 apparel definitions. Missing facility proficiency no longer falls back from command kind.
+- Legacy declaration/call/serialization/UI source audit is zero; the architecture ratchet now requires the deleted catalog to remain absent and the new Query/contracts to exist.
+- V27 live/save audits pass for all 107 formula projections and V24 round trip with explicit `LegacyCharacterStatSchema` rejection.
+- V27 live consumer audit PASS: 11 formulas / 12 consumers. Work accidents now damage an actual anatomy node rather than only a detached vitality surface.
+- Character summary/medical UI matrix PASS at 1600x900 and 900x1600 with captured errors/warnings 0/0.
+- Full-world round trip PASS: registered/captured/restored 68/68/68, baseline restored, canonical baseline matched, progression contracts true, Console warnings/errors 0/0.
+- Capacity-aware 10,000-party founder audit PASS. No-reroll p10/median/p90 essential-industry throughput is 266.508 / 272.746 / 279.774 WU/day; median accident exposure is 0.324 events/day.
+- Equipment-readiness audit PASS at six checkpoints. Minimum-kit supply exceeds lower-bound new-ready demand by 40.216x, 48.436x, 42.121x and 93.481x in the non-zero demand windows; completion crosses at Day 32.238, 122.478, 243.799 and 405.991.
+
+Phase 151 remaining balance boundary:
+- `밸런스 완료` is still forbidden. The present result is `밸런스 기준 배정 / 구조·연결 검증 통과` because the founder schedule still uses gross 99-WU availability and representative formulas for aggregate production regimes.
+- Exact injury/disease lost WU needs an authored treatment/rest/exposure policy. The runtime now projects disease symptom work loss and anatomy damage, but inventing treatment delay or epidemic exposure cadence would create fake absolute loss numbers.
+
+Phase 151 regression fixes discovered by the final gate:
+- Detached staff restore candidates previously started AI work selection during `CharacterActor.Initialize`, before saved proficiencies were restored. `AbilityWork` now defers initial assignment for detached restore candidates; `ApplyActorState` restores authorities and requests the replan.
+- The progression regression still expected the V23 compatibility string after the save root advanced to V24. It now asserts the authoritative `PreV24IncompatibilityReason` containing `LegacyCharacterStatSchema`.
+
+#### Phase 152 14-capacity correction and end-to-end consumption (completed: structure and connection gate)
+
+- [x] Replace `resource-efficiency` as a foundational capacity with derived performance results, and add `physical-power` plus `immune-defense` so the foundational catalog contains exactly 14 capacities.
+- [x] Author real anatomy producers for both new capacities across all ten character species, with explicit N/A allowed only when the species truly does not require the function.
+- [x] Rebuild composite and domain formulas so hauling, force work, melee power, disease resistance/recovery, immunity gain/retention, nutrition/resource use, temperature and fatigue consume the correct independent inputs.
+- [x] Update every runtime consumer and character-detail UI row to use the canonical performance Query; remove stable-ID, enum, asset and formatter remnants of foundational `resource-efficiency`.
+- [x] Extend structural, live-consumer, save/recompute and species audits to require 14/14 capacity definitions, actual producer coverage, result change, UI visibility and zero orphan consumers.
+- [x] Rebuild ScriptableObject assets, compile, run focused V27 audits, UI matrix and official 68-section full-world regression through Unity MCP only.
+
+Phase 152 completion evidence:
+- V27 structural/live audits: 14 capacity definitions, 107 performance formulas, 10/10 character anatomy profiles with physical-power and immune-defense producers, zero obsolete foundational resource-efficiency references.
+- Causal consumer slice: a reversible 20-point anatomy burden lowers physical power and therefore haul capacity/melee power; the same burden lowers immune defense and therefore disease resistance/immunity gain.
+- Character summary/medical UI matrix: `RESULT=PASS` at 1600x900 and 900x1600, including detailed stats, proficiencies, mentorship and surgery; captured Error/Warning 0/0.
+- Official full-world PlayMode round trip: `RESULT=PASS`, sections 68/68/68, baseline restored and canonical baseline matched, Error/Warning 0/0.
+- Status is `밸런스 기준 배정 / 구조·연결 검증 통과`; all-species quantitative role and injury/disease comparison remains the next balance phase.
+
+Phase 152 structure contract:
+- Content authority: `CharacterFunctionalCapacityDefinitionSO`, `CharacterPerformanceFormulaDefinitionSO`, anatomy profile assets and their root catalogs remain the only authored definitions.
+- Runtime authority: anatomy node health, population disease/immunity state, proficiency aggregate and selected effect sources remain the only mutable authorities. Capacity/performance snapshots are derived and never saved.
+- Query authority: `ICharacterPerformanceQuery` is the only public calculation path for UI, AI, work, combat, medical and survival consumers.
+- Identifier transition: remove `capacity:resource-efficiency`; add stable IDs `capacity:physical-power` and `capacity:immune-defense`. Missing, duplicate or stale IDs fail content/audit execution without fallback.
+- Formula boundary: neural reaction remains a composite of mental/sensory/manipulation/mobility inputs; temperature regulation and resource efficiency remain final results derived from applicable capacities plus species/trait/equipment/environment effects.
+- Save boundary: no new mutable save field is introduced. Existing V24 authority restores first, then all 14 capacities and downstream results are recomputed.
+- Balance boundary: this is `밸런스 기준 배정 / 구조·연결 검증` until all-species quantitative role and injury/disease simulations are completed; no species multiplier or BOM/WU value changes in this phase.
+- Failure policy: a species without a required producer, a formula without a live consumer, an obsolete resource-efficiency capacity reference, or a consumer bypassing the Query fails loudly and blocks completion.
+
+Phase 152 errors:
+- The first Unity MCP refresh command resolved `CompilationPipeline` against the dynamic command namespace and failed to find `RequestScriptCompilation`; no project code executed. Retry uses the fully qualified `UnityEditor.Compilation.CompilationPipeline` type, matching the previously documented Unity MCP ambiguity.
+- A combined constants/builder/causality patch used a stale exact builder line and failed atomically; no file changed. The change is split into contracts, exact builder replacements, call site and helper insertion after re-reading stable anchors.
+- A read-only PowerShell audit command used double-quoted regex text containing escaped C# quotes and failed before `rg` ran. No files changed; subsequent searches use single-quoted regex literals.
+- The first focused PlayMode audit entered a scene with no active character, so its fallback fixture executed and exposed an existing stale dependency: `CharacterAiEditorTestDependencies.InjectCharacterStats` passed null for the now-required performance Query. The command stopped before the new causality slice ran. Fix the fixture to provide its deterministic performance test double, recompile, and rerun from a clean PlayMode state.
+- The second focused audit reached the new causality slice and successfully damaged the selected `core`, but its cleanup assumed every anatomy uses biological `TryHealNode`; a maintenance-only construct rejected that restore. PlayMode was stopped to discard the runtime mutation. Cleanup must branch through the node's authored recovery policy and use `TryMaintainNode` for maintenance-only/replacement bodies.
+- After cleanup was made state-aware, the audit exposed the real issue: `TryDamageNode(core)` returned true but the next anatomy Query showed no physical-power reduction. This indicates an anatomy synchronization path is overwriting or failing to project damage on the selected non-legacy node. Diagnose and correct the authority synchronization rather than weakening the causality assertion.
+- Replacing destructive injury with the real saved node-burden command produced stable physical-power and immune-defense causality and let the focused live/consumer audit pass. Running the save audit immediately afterward failed on the consumer audit's temporary relationship-memory key (`actor:character:*`), not on capacity state. Stop PlayMode and run save validation in an isolated fresh session, then use the official full-world gate as the final persistence authority.
+
+#### Phase 153 dungeon-species capacity allocation and upkeep closure (in progress)
+
+- [x] Add 14 explicit capacity multipliers to each of the nine dungeon species and apply them between anatomy efficiency and performance formulas.
+- [x] Remove species-wide work, research, combat, movement and accident multipliers while retaining authored social/economic effects.
+- [x] Connect strong/weak work IDs to XP gain and autonomous utility without blocking direct orders.
+- [x] Apply species sleep-rate multipliers exactly once and update Orc hunger/thirst costs.
+- [x] Complete the Golem recharge vertical slice with a real mana-crystal reservation, 100 WU progress, AI/direct execution, cancellation safety and save round trip.
+- [x] Route Golem work wear through saved anatomy burden and existing construct maintenance instead of a second performance multiplier. Integrity <=50 now exposes and consumes the existing power-core maintenance suggestion (26 WU, one lumber, 30 repair).
+- [x] Rebuild content, run structural/causal/UI/save/full-world gates, then run equal-skill, natural-person, upkeep and injury/disease deterministic audits.
+- [ ] Convert the existing injury/disease condition distributions into absolute treatment WU, recovery time, work-unavailable rate and death rate only after a live policy-grounded medical schedule exists; do not infer these values from static modifiers.
+
+Phase 153 current evidence:
+- PASS: structural 14 capacities / 107 formulas / 9x14 explicit species bindings; live 140 capacity projections; 11 live formula consumers; focused V3 wear/recharge save round trip; 100,000 natural-person samples; 9x10,000 damage/disease condition samples; neutral-fit 0.963~1.018; representative roles 1.075~1.115; aptitude-aware Pareto dominance 0; Golem 30-day net 0.965.
+- PASS: official strict save-section regression (`68 strict save sections`).
+- PASS: fresh synchronous final acceptance 33/33, final PlayMode acceptance 7/7 with 32 fresh captures, persistence restoration, and Console Warning/Error/Exception/Assert 0/0. The last live defects were a stale research-state reference after restore, a missing resonance-tuning support facility in the UI fixture, and an invalid rest-speed query in AI candidate scoring.
+- OPEN: treatment-WU/death-rate conversion remains intentionally unreported until a policy-grounded live medical simulation exists. This is the remaining balance-evidence boundary, not an implementation or full-regression failure.
+
+#### Phase 154 tavern physical recreation connection (completed)
+
+- [x] Audit meal mood, substance mood/tolerance/addiction/overdose, D12 facility recovery and physical facility-buffer authorities.
+- [x] Add an authored recreational-substance service ability to D12 and remove its free hunger/mood recovery.
+- [x] Consume exactly one eligible recreational-substance stack from the D12 input buffer through the existing substance policy/runtime authority.
+- [x] Apply venue fun recovery and social facility-memory/activity only after successful physical consumption; never duplicate the drink's authored mood effect.
+- [x] Route automatic recreational substance use through an available D12 venue while preserving direct pickup as the no-venue fallback.
+- [x] Rebuild the D12 ScriptableObject via Unity MCP and pass focused policy/stock/effect/save checks plus the full regression gate.
+
+Phase 154 completion evidence:
+- D12 is authored as `Entertainment` with `BuildingRecreationalSubstanceServiceAbility(fun=8, sentiment=0.25)` and no legacy need-recovery ability.
+- Focused deterministic audit: `[Survival] tavern_recreational_substance_service: D12=entertainment; item=1->0; policy=preserved; fun=8; substance=active`.
+- Fresh synchronous final acceptance passes 33/33. Final PlayMode acceptance passes 7/7 with 32 fresh captures, persistence restored, and Console Warning/Error/Exception/Assert 0/0.
+- This closes the physical tavern/substance connection only. The project-wide treatment-WU/recovery/death balance evidence boundary remains open.
+
+Phase 154 fixed constraints:
+- Physical BOM is one authored beverage item per successful use. Failed policy, missing stock, cancelled movement and repeated commands must not consume or duplicate an item.
+- The beverage runtime remains authoritative for mood, duration, tolerance, addiction, overdose, work speed and combat modifiers. The venue adds fun only and records a social/facility experience; it does not add free nutrition or a second beverage mood bonus.
+- Tavern stock uses a facility-scoped destination ID and only that buffer is eligible. Global stored/loose stock may be requested for delivery but cannot be consumed remotely.
+- D12 is an entertainment/recreation venue, not a hunger meal candidate. Ordinary food facilities continue to use the existing meal path unchanged.
+- Mutable substance state and physical item stacks remain in their existing save authorities; the new building ability is immutable authored content and introduces no runtime save field.
+
+#### Phase 155 daily time budget and technology-dependent net WU (in progress)
+
+- [ ] Audit the live clock, need decay, sleep, meal, hygiene/toilet, recreation, movement, queueing and work-progress authorities; establish whether the current gross `99 WU/adult/day` already includes any of them.
+- [ ] Produce an approval table for every neutral-adult primitive: decay, routine/emergency threshold, recovery, visit frequency, service duration, travel distance, queue capacity and non-work policy.
+- [ ] Define deterministic daily-schedule policies for the no-research, early, mid and late technology checkpoints using actual authored facilities, research unlocks and interaction durations.
+- [ ] Separate time availability from work efficiency: calculate clock hours spent on needs/travel/queues and apply capacity, proficiency, trait, species, equipment, facility and research multipliers only to active work.
+- [ ] Charge research construction and operation as real opportunity cost before granting downstream time, movement, consumption or work-efficiency benefits.
+- [ ] Produce per-person and three-founder p10/median/p90 reports for net work hours, net WU, essential-industry throughput and real playtime at each checkpoint.
+- [ ] Add deterministic/live execution evidence and update the equipment-readiness crossover calculation with net rather than gross WU.
+
+Phase 155 current design scope approved by user:
+- Fix the complete chain in order: neutral healthy adult -> need rules -> facility service time -> reference travel/queue -> no-research schedule -> active work time -> net WU -> technology schedules -> species/proficiency/trait distribution -> first-party p10/median/p90.
+- First deliverable is a complete authored-value proposal and calculated schedule table. Do not mutate runtime/content values until the user reviews that proposal.
+
+Phase 155 fixed constraints:
+- `24h - sleep - meals - hygiene/toilet - recreation - movement - queue/wait - illness/injury care = active-work clock time`; no category may be hidden inside both the time budget and a WU multiplier.
+- Need recovery amount changes visit frequency; service speed changes visit duration; layout and facility capacity change travel/queue time. These are distinct channels.
+- Work-speed technology changes WU produced per active work hour. Automation changes required worker attention or parallel capacity, not the length of the day.
+- Research benefits start only after their actual research WU, prerequisite, facility and construction costs are paid. A checkpoint cannot receive a technology's benefit retroactively.
+- Report both game day and estimated real playtime, and keep average days separate from shortage, injury and crisis tails.
+- Existing gross 99-WU reports remain historical evidence until the daily schedule replaces them; they must not be silently relabeled as net output.
+
+Phase 155 errors:
+- The first parallel source-search wrapper assumed shell results exposed an `output` property and failed while formatting already-completed read-only results. No files changed. Subsequent searches print each returned result directly.
+- A broad `rg | Select-Object` search returned exit code 1 after truncation and suppressed the two parallel line-range reads. No files changed. Continue with direct reads of the discovered `NeedBalanceCalibrationScenario` and narrow authority files instead of repeating the broad pipeline.
+- A narrow FUN search included a nonexistent `Assets/Scripts/Models/Character` path, causing rg exit 1 and suppressing its parallel result. No files changed. The authoritative file was still located at `Services/Character/Core/CharacterNeedStateService.cs`; read it directly.
+- A follow-up broad `fun` search matched `demolitionRefundRate` across content and exited after truncation, again suppressing the paired direct read. No files changed. Stop broad text searching; the already-proven schedule/FUN gap is sufficient to define the next implementation boundary.
+- The first relevant-facility asset audit guessed three D01/D02/D04 Korean filenames incorrectly. Existing matched assets still showed the common 1.5-second use duration and capacities, but rg exited 1 and suppressed the paired AI read. Resolve exact paths with `rg --files` and then read the AI source separately.
+- The first movement search repeated a nonexistent `Assets/Scripts/Models/Character` scope and suppressed its paired schedule result. No files changed. Use the known `AbilityMove.cs` directly and locate schedule declarations with a separate `rg -l` call.
+- The need-definition/mood search again included the nonexistent Models/Character folder. No files changed. Restrict all remaining searches to known existing roots (`Assets/Scripts`, `Assets/Resources/SO`) and direct line ranges.
+- The authored-need record search returned no match in the guessed asset/json patterns and caused the combined search call to exit 1. No files changed. Locate the configured `GameContentCatalogSO` asset first, then inspect its serialized need list directly.
+
+Phase 153 structure contract:
+- Content authority: `CharacterSpeciesSO` owns immutable capacity bindings, need multipliers and strong/weak work IDs; `GameplayEffectDefinitionSO` owns capacity target and stacking rules; authored facility capability and procedure assets own recharge/maintenance requirements.
+- Runtime authority: anatomy node health/burden owns physical degradation; `CharacterSpeciesRuntime` owns charge and recharge-order state; proficiency aggregate owns XP. Capacity/performance snapshots remain derived and unsaved.
+- Command authority: recharge can only begin/advance/complete through a validated recharge order that reserves a physical mana crystal and a capable facility. Arbitrary raw recharge is internal-only. Existing surgery/maintenance commands remain the only construct burden repair path.
+- Query authority: `ICharacterPerformanceQuery.GetFunctionalCapacities()` applies anatomy efficiency followed by capacity-target effects and provides contribution trace. AI and XP affinity queries consume the resolved species definition and actual `WorkTypeId`.
+- Identifier boundary: nine dungeon species are Slime, Orc, Vampire, Beastkin, Demon, Kobold, Myconid, Harpy and Golem. Adventurer/Human is the 100% comparator only.
+- Save boundary: capacity and aptitude outputs are recomputed. Recharge order authority saves character, facility, reserved stack, accumulated WU and completion state atomically; anatomy burden continues through the existing health save section.
+- Failure policy: missing/duplicate capacity binding, broad legacy species multiplier, unavailable facility/item, invalid reservation, duplicate completion or unknown saved order fails explicitly without free recharge or fallback work.
+- Balance boundary: capacity values are fixed at 80-125%; upkeep can justify at most +5% raw mean. Completion requires the approved role bands, zero Pareto dominance, Golem effective WU <=105%, and deterministic multi-seed evidence.
+
+#### Phase 156 shared quantity leases, buffer aggregation, ownership restore, and meal dispatch (implementation and Editor performance gate complete; Player authority pending)
+
+- [x] Add the slice-based item quantity lease ledger, cached per-stack reserved totals, atomic single/batch reservation, renewal, release, revalidation, extraction and consumption APIs.
+- [x] Change world-stack snapshots and every physical-item availability consumer from whole-stack owner strings to `TotalQuantity / ReservedQuantity / AvailableQuantity`, retaining the old string only as an empty compatibility field.
+- [x] Add pickup-time child stack identity and quantity-conserving partial extraction; extend carried-item persistence with carried/source stack and owner-operation IDs.
+- [x] Implement Meal/ProductionInput-only buffer aggregation with cohort/signature/freshness compatibility, max-stack repacking and atomic Lease Slice retargeting.
+- [x] Migrate hauling, storage, conveyor, production, construction, medical, equipment, trade, waste and direct-order item consumers to quantity leases without silent fallback.
+- [x] Implement authored meal quality/serving roles, 115 satiety cap, actual nutrition projection, base-mood quality choice, snack cooldown and exactly-once meal mood.
+- [x] Add region-first bounded meal routing, seat-plus-food transaction, carried/buffer spoilage invalidation and begin/commit double validation.
+- [x] Persist reservation claim hints on task intents, add the save mutation barrier and restore grandfather claims atomically before any priority scheduling or new AI.
+- [x] Add item/buffer/task/restore diagnostics and deterministic structural, conservation, contention, save-round-trip, spoilage and path-budget audits.
+- [ ] Close the dedicated performance gate: the baseline-relative Editor increment, absolute runaway guard and retained-heap soak now pass through Unity MCP. The separate Player steady-state average/p95/max measurement remains required before final performance authority is complete.
+- [x] Update the balance authority and rerun Unity-MCP-only compilation, focused scenarios, PlayMode, 68/68/68 world save and Console 0/0.
+- [ ] Recalculate Phase 155 technology-stage net WU from the stabilized live meal/logistics timings; this remains a separate balance task and is not part of Phase 156 structural completion.
+
+Phase 156 fixed constraints:
+- Reservation creates no physical child stack. A child exists only while an exact leased quantity is physically in transit.
+- A lease owns one or more slices, never a durable raw stack ID. Aggregation may retarget or split slices without changing lease identity or total reserved quantity.
+- Single-operation retries are idempotent. Batch reservation, extraction/aggregation mutation, save capture and grandfather restore are all-or-nothing.
+- Only Meal and ProductionInput cohorts aggregate active leased stacks. Loose, carried, cross-facility, cross-cohort, unique, incompatible-quality/contamination/preservation/freshness stacks never merge.
+- The runtime lease ledger, TTLs and indices are derived and unsaved. New saves persist exact ownership hints; restore rebinds all valid prior owners before priority competition and fails rather than substituting a same-item stack.
+- Nutrition, mood and cooldown apply only after physical quantity consumption commits. Rotten/invalid food aborts fail-soft without consuming the item or leaving an actor/seat deadlock.
+- Hot paths use indexed lookup and bounded queues; they may not scan all world stacks or allocate LINQ collections per candidate.
+- Unity assets, editor commands, compilation, Console, PlayMode, save and profiling evidence use Unity MCP only and never mouse input.
+
+Phase 156 implementation boundary:
+- Preserve current user changes in the dirty worktree. Read overlapping diffs before every edit and keep compatibility wrappers only while live consumers are migrated.
+- Phase 155 remains open and must use the new live meal/logistics timing rather than the historical gross 99-WU assumption after Phase 156 stabilizes.
+- Do not report balance completion until quantity conservation, ownership restoration, food cadence/path/spoilage, memory bounds and full-world regression all pass.
+
+Phase 156 current evidence:
+- Unity MCP physical-item contracts contain 33 result rows and pass the active-ownership vertical slices: pickup retargets the original Lease to a `Carried/InTransit` physical child, compatible buffer deposit retargets the same Lease to the canonical stack, and exact consumption removes only its reserved quantity.
+- The 100-owner stress contract reserves one 100-unit source without creating children, then performs 100 real pickups and deposits. `MaxStack=75` leaves exactly two physical buffer stacks, all 100 Lease quantities remain independently consumable, and completion leaves zero carried/in-transit dust stacks.
+- The aggregation budget processes 64 arrivals in the current tick and defers the remaining 36 without loss. Meal routing uses the shared bounded path broker, at most eight exact candidates and a 2,048-node frame budget.
+- A save captured while one quantity is carried stores origin and preferred physical stack separately. Restore recreates the same owner/stack/quantity before AI scheduling, and the restored claim remains consumable without changing the source remainder.
+- Item-pile PlayMode diagnostics show available/reserved quantity, Lease/Slice count, cohort, physical/theoretical buffer stacks, pending aggregation and latest Grandfather restore statistics.
+- Synchronous final acceptance passes 33/33. Official final PlayMode acceptance passes 7/7 with 32 fresh captures, strict world save `68/68/68`, baseline restoration and Console Warning/Error/Exception/Assert `0/0/0/0`.
+- The first corrected-policy soak isolated a real idle hot path: healthy full-mana actors rebuilt the full 14-capacity/performance contribution graph every frame. Gating mana evaluation to blocked or depleted mana reduced the normal x1 profile from `3,881.6 KB/frame` average and `9,852.4 KB` p95 to `309.4 KB/frame` and `373.9 KB`, while the live 11-formula consumer audit still passed.
+- The next soak found a periodic p95 spike because `FirstRunObjectiveRuntime` captured the collection-backed offense campaign four times per second even while an earlier onboarding milestone was unresolved. Mirroring the resolver's early-return gates reduced the official x1 Editor increment from `479.1 KB/frame` average and `2,518.0 KB` p95 to `280.0 KB/frame` and `281.2 KB`; the 512 KB / 2 MB budgets now pass without moving the thresholds.
+- The final Unity MCP release soak passes reservation/facility/item invariants, frame p95 `42.81 ms`, retained Mono growth `19.40 MB`, Editor runaway average/max `1,011.6/70,669.6 KB`, save reload with 138 buildings and 3 characters, Console 0/0, and `RESULT=PASS`. A 512-combination resolver contract proves the offense snapshot gate matches every early-return combination.
+- The replacement GC policy is fixed before rerun: Editor incremental average/p95 `512 KB / 2 MB`, Editor runaway average/max `16 MB / 256 MB`, Player steady average/p95/max `32 KB / 128 KB / 2 MB`, retained Mono growth `64 MB`. Release soak now captures 30 warmup + 120 paused-world baseline frames and evaluates active-minus-baseline rather than moving the old absolute threshold upward.
+- The same policy now drives the common performance report: Editor reports require all 120 baseline samples and compare average/p95 deltas plus runaway guards; Player reports require absolute average/p95/max; retained Mono uses the shared 64 MB bound. Save/load and explicit bulk aggregation are excluded from steady-state samples and retain separate post-operation heap/entity-conservation gates. Unity MCP compilation, live-consumer audit, release soak and Console verification pass; a standalone Player measurement harness/run remains open.
+
+#### Phase 157 technology-stage WU, project caps, emergency labor, alert hysteresis and population flow (in progress)
+
+- [x] Define the authoritative 180-second day, 99-WU neutral baseline, actual/output-equivalent/realized-growth/guaranteed-growth channels and technology ROI contracts without double-counting time and throughput. All live character work loops now feed approved work through one accounting gate, and automatic production records only the bill progress physically accepted by the production authority. Physical loss producers remain open.
+- [x] Add project worker caps and the approved deterministic contribution curves for facilities, landmarks and 1/2/4-person research; expose marginal completion-time evidence. Research and grand-project execution are connected. Ordinary facilities author Small/Medium/Industrial 2/3/4 caps, parallel reservations, automatic slot filling, diminished project contribution with raw-labor accounting and marginal UI. The focused Unity MCP PlayMode vertical consumed two units from a physical lumber stack (4 -> 2), delivered the exact construction BOM, joined three live founders to an Industrial project, and accepted exactly 2.60 WU from the 1.00/0.85/0.75 curve with maximum/automatic cap 4; `Artifacts/QA/construction-project-playmode-report.txt` passes with captured Warning/Error 0/0.
+- [x] Assign one validated `EmergencyWorkFlags` contract to all 31 work types. Stricter facility/recipe/stage reclassification is exposed by the runtime API and remains to be authored at individual stage consumers.
+- [x] Implement fixed-point milli-WU emergency accounting with idempotent register/progress/reclassify/remove, O(1) snapshots and deterministic ground-truth reconciliation; connect it to actual approved work progress and every central run termination path.
+- [x] Add incident-ID aggregation, desired/committed threat levels, immediate escalation, two-game-hour staged downgrade hysteresis, alert epochs and reserve-coverage Schmitt thresholds.
+- [ ] Preserve suspended work progress, material leases and reservations through alert transitions; throttle return planning to four characters per tick and prevent repeated context switches in one epoch. Work-order, persistent, captivity and repair-domain progress now suspend at safe checkpoints and resume by saved work/target authority; local one-shot loops still finish rather than suspend, and explicit item-Lease identity evidence remains open.
+- [x] Rebuild accounting before saves/restores and reconcile at day end, capture, restore and qualified Red escalation; reject invalid ground truth rather than silently repairing it.
+- [x] Add non-mutating disaster shadow simulations and the Day-120 six-worker essential-maintenance regression.
+- [x] Remove population-count progress gates, introduce per-capita 30-day productivity conditions and connect relationship/capacity-based settlement intent without target-population correction.
+- [x] Add labor, alert, reserve, project marginal-efficiency and reconciliation diagnostics to runtime UI. Unity visual observation remains part of the final MCP gate.
+- [ ] Recalculate no-research/early/mid/late net WU and first-founder p10/median/p90 from live schedule/logistics, then run deterministic multi-seed, save, performance and official world regressions through Unity MCP. The deterministic authority pass now covers six technology stages and natural/compromise/upper founder p10/median/p90 in `Artifacts/QA/phase157-technology-founder-wu.md`; remaining closure is the live need/facility/queue/travel/work trace plus multi-seed, save, performance and official world regressions.
+  - Live trace continuation (2026-08-12): all three long-running work execution loops now apply need depletion using elapsed game time and can yield to hunger, thirst, sleep, excretion and hygiene. Physical water consumption reached 3/3 founders in repeated MCP runs. Shopping completion now requests an immediate guarded replan instead of leaving an ended action resident.
+  - AI forward-progress continuation: the adaptive scheduler was observed at decision budget 0 with 73 starved decisions for only three actors. It now guarantees at least one decision and one path-search slot per frame; the next trace reduced starved decisions to 1 and produced live construction activity for all three founders.
+  - Five-day live trace gate (2026-08-12): the verifier now warms up for 130 game seconds and measures 900 game seconds / five complete day rollovers. It derives meal cadence from the selected food's actual nutrition, observes physical meal and water events, accumulates central labor across daily resets, and compares physical construction progress against output-equivalent rather than raw labor. The final Unity MCP run passes with 17 meals, 14 water events, `1.133/0.933` visits per actor-day, `73.419` actual/output WU, physical construction delta `73.418`, Console Warning/Error `0/0`, and `RESULT=PASS`.
+  - Still open: the live founders produced only `4.895 actual WU / actor-day`, far below the authored neutral target of 99 WU. The five-day activity trace attributes 510-599 of 900 seconds per actor to idle/other, 79-162 seconds to active work, and unexpectedly long meal/drink action windows. Before technology-stage or founder-distribution balance is accepted, separate true AI idle, facility session time, need-action travel/queue and character performance coefficients, then rerun the same five-day gate.
+
+Phase 157 fixed constraints:
+- Work time and work performance remain separate channels. Need, travel, queue and interruption time may not also appear as a throughput multiplier.
+- Reserve workers perform ordinary interruptible work in peace. Planning uses guaranteed growth WU; completed production uses realized growth WU.
+- Automation output remains domain-bound and is credited only after physical inputs, fuel, hauling, maintenance, failures and spoilage.
+- Runtime population never receives hidden correction toward checkpoint medians. Technology and milestones use per-capita productivity/service/coverage authorities, not headcount.
+- Emergency hot paths are allocation-free incremental lookups after warm-up. Only day-end, capture, restore, qualified Red escalation and explicit developer audit may perform O(n) reconciliation.
+- Threat alert and reserve coverage are independent state machines. Reserve vulnerability never causes weapon changes.
+- Escalation is immediate; Red->Amber and Amber->Green each require two game hours of resolved conditions. Alert state, epoch, active incidents and suspended work survive save/restore.
+- Balance completion remains forbidden until live consumers, UI observation, deterministic shadow scenarios, performance budgets, save round trip, Console 0/0 and official 68/68/68 all pass through Unity MCP.
+
+Phase 157 recovery note:
+- `planning-with-files` session catchup found six unsynced messages but its console print failed under Windows CP949 on an em dash (`UnicodeEncodeError`). No project file was changed by the script. Current `task_plan.md`, `findings.md`, `progress.md` and git diff remain the recovery authority.
+- New bottom-up gate: before treating the neutral-facility five-day result as a starting balance, audit and then simulate a true new run with only the actual starter shell and starter supplies. Measure time-to-first food/water/sleep/toilet/hygiene/recreation service, construction BOM/WU feasibility and death/soft-lock conditions.
+- Static preflight status: failed. The actual category-based grant supplies vinegar/restraints instead of edible rations/construction materials, the fallback shell has no survival facility, the three-person minimum service set costs about 924 WU plus unavailable exact materials, and onboarding prioritizes room/research rather than survival. Do not run or interpret the true-start five-day balance sample until the loadout authority and primitive survival transition are explicitly redesigned and implemented.
+- True-start continuation (2026-08-12): the starter grant is now explicit (`24` preserved rations, `30` clean water, lumber `15`, cloth `9`, candles `10`, resin balm `5`, sewing supplies and underwear), vinegar is no longer accepted as emergency food, and primitive field-meal/floor-rest/latrine/bucket-wash actions exist. A five-day Unity run proves physical starter-stack conservation after fixing carried-to-warehouse identity transfer, but the primitive AI gate is still open: normal eating uses a later warehouse/meal candidate, toilet/hygiene are not selected before their needs collapse, and the existing verifier's fixed primitive-count assertions do not match authored need cadence.
+- [x] Make routine survival needs preempt or suspend ordinary work at the authored thresholds and guarantee emergency forward progress for hunger, sleep, excretion and hygiene, not thirst alone.
+- [x] Separate a natural five-day starter survival gate from focused primitive fallback proofs. Natural evidence measures deaths, breakdowns, physical food/water conservation and actual need outcomes; focused evidence proves each primitive command, event, cost and recovery without a starter service foundation.
+- [x] Prevent coarse/stale facility-role presence from suppressing fallback actions. Primitive actions remain eligible from their own physical preconditions, and emergency tie ordering selects the primitive action before an unresolved facility action.
+- [x] Re-run the starter survival gates through Unity MCP with Console Warning/Error 0/0.
+- [ ] Resume Phase 157 downstream technology-stage net-WU recalculation from the now-proven true-start survival cadence; Phase 157 remains open until that trace and the broader official gates pass.
+- [ ] Correct the neutral-facility daily-routine trace before downstream recalculation: recreation currently completes `0.200/actor-day` and actual labor is `12.811 WU/actor-day`. The first confirmed defect is `LeisureVisit` receiving Idle rather than Leisure group priority; compact-layout travel, idle decomposition, food/water commit consistency and peak construction workforce evidence remain after that fix.
+  - 2026-08-12 recovery evidence: exact three-founder isolation, distinct starting cells, physical food/water event conservation, and live industrial workforce contribution now work. The best stable five-day run reached meals/drinks/toilet `1.0/0.8/0.6` per actor-day, peak workers `3` / effective `2.6`, and `19.882 actual WU/actor-day` with Console `0/0`; hygiene `0.467` and recreation `0.533` still miss the cadence gate, while need/other travel remain excessive.
+  - Shared meal authority now reads hunger routine/emergency thresholds from `ICharacterNeedBalanceRuntime`, and the authored asset uses approved `50/20`; the prior independent physical-consumption threshold is removed.
+  - A stronger global facility travel penalty was tested and rejected because it caused cadence regression, two deprivation breakdowns, and console errors. Source/asset are restored to the last stable `4 free cells / 0.015 per cell / 0.35 max`. Next implementation must prefer a nearby roughly-equivalent candidate without making distant valid facilities unavailable.
+  - Do not resume downstream technology/founder WU calibration until the neutral trace reaches stable cadence without breakdown, central output matches the physical project, and work/need/other-travel/idle decomposition is credible.
+
+Phase 157 current errors:
+- Unity compile attempt 1 after adding the workforce gate failed with `CS0117` because `ProjectScale.Industrial` is not a canonical enum member. Resolve against the existing enum rather than adding an alias or fallback.
+# 2026-08-12 measured WU baseline correction
+
+- [x] Treat `99 WU/adult-day` as the historical 100-second schedule envelope, not live output authority.
+- [x] Use the clean five-day neutral-facility observation (`19.882 WU/adult-day`) as the provisional measured baseline and round the authored audit baseline to `20 WU/adult-day`.
+- [x] Rescale technology checkpoints from `99→198` to `20→40` while preserving the `1.00→2.00` output-equivalent progression index.
+- [x] Migrate direct fixed-99 consumers in settlement labor, faction contracts, research-day reporting, founder distribution reporting, population simulation, and equipment-readiness reporting.
+- [x] Compile and run `PHASE157_EMERGENCY_LABOR` through Unity MCP: `liveBaseline=20WU`, `endless=2.00x`, Console Warning/Error `0/0`.
+- [ ] Repair the still-failing five-day routine trace (meal/drink/toilet/recreation cadence and occasional deprivation breakdown) before promoting 20 WU from provisional live calibration to final multi-seed balance.
+- [ ] Recalculate every legacy baseline record still documenting 99-WU results; do not silently relabel old numeric outputs as 20-WU evidence.
+# 2026-08-12 AI intent arbitration consolidation
+
+- [ ] Inventory every authority that can interrupt, begin, cancel, or resume worker actions.
+- [ ] Define one explicit worker-intent state machine and deterministic transition table.
+- [ ] Route routine needs, emergency needs, direct orders, protected actions, and work resume through the single arbiter.
+- [ ] Make facility/item reservation ownership follow the active intent epoch; stale completions must not mutate current AI state.
+- [ ] Add focused conflict regressions: simultaneous needs, reservation failure, emergency escalation, service completion, stale coroutine completion, and work resume.
+- [ ] Compile and run focused Unity MCP scenarios, then repeat the isolated five-day trace.
+- [ ] Accept the 20-WU baseline only when multi-day needs remain sustainable without breakdown or action thrashing.
+
+## AI arbitration contract
+
+- Authority: exactly one `CharacterActionIntent` per worker, owned by the worker AI arbiter.
+- States: `Idle`, `Work`, `RoutineNeed`, `EmergencyNeed`, `ProtectedAction`, `DirectOrder`, `Breakdown`.
+- Transition order: physical impossibility/death → breakdown → protected action → direct order → emergency need → current safe checkpoint → routine need → work/idle.
+- A request does not directly stop an action. It submits a typed intent request; the arbiter either rejects, defers, or commits one transition with a monotonic epoch.
+- Movement, facility use, item leases, and work suspension carry the committed epoch. Completion from an older epoch is ignored and cleans up only its own reservations.
+- Routine service stores one suspended work intent and resumes it only after the same committed routine intent succeeds. Failure re-enters arbitration; it does not silently choose another service.
+- Balance status remains `밸런스 기준 배정` until the five-day live trace is sustainable.

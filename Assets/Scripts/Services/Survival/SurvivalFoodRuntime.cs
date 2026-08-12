@@ -55,7 +55,8 @@ public sealed partial class SurvivalFoodRuntime :
         IGameClock gameClock,
         IWorldThreatModifierQuery worldThreatModifiers,
         ISurvivalServiceSessionCapability serviceSessionRuntime,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        ICharacterCarryInventoryRegistry carryInventories = null)
     {
         _ = dependencies ?? throw new ArgumentNullException(nameof(dependencies));
         this.speciesCatalog = speciesCatalog ?? throw new ArgumentNullException(nameof(speciesCatalog));
@@ -83,7 +84,8 @@ public sealed partial class SurvivalFoodRuntime :
         spoilageRuntime = new SurvivalFoodSpoilageRuntime(
             this.itemStackRuntime,
             this.itemCatalog,
-            stockRuntime);
+            stockRuntime,
+            carryInventories);
         overviewCache = new SurvivalFoodOverviewCache(
             this.gameClock,
             this.worldRegistry,
@@ -200,6 +202,7 @@ public sealed partial class SurvivalFoodRuntime :
     private void ProcessDailySurvival(int day)
     {
         EnsureStateLists();
+        PublishMissedMealEvents(day);
         AnnounceDangerousWeatherIfChanged();
         spoilageRuntime.Process(
             state,
@@ -601,6 +604,13 @@ public sealed partial class SurvivalFoodRuntime :
         bool policyViolation,
         bool contaminated)
     {
+        bool unfamiliar = !string.IsNullOrWhiteSpace(itemId)
+            && !state.mealLedger.Any(entry => entry != null
+                && string.Equals(
+                    entry.characterId,
+                    consumer.Identity?.PersistentId,
+                    StringComparison.Ordinal)
+                && string.Equals(entry.itemId, itemId, StringComparison.Ordinal));
         long nextMealSequence = mealSequence;
         mealLedger.Record(
             state,
@@ -615,8 +625,69 @@ public sealed partial class SurvivalFoodRuntime :
             policyViolation,
             contaminated);
         mealSequence = nextMealSequence;
+        if (CharacterPersistentIdentity.TryGet(consumer, out CharacterId characterId))
+        {
+            string[] mealTags = ResolveMealIdentityTags(
+                itemId,
+                quality,
+                unfamiliar);
+            gameEventBus.Publish(new MealConsumedEvent(
+                characterId,
+                string.IsNullOrWhiteSpace(itemId) ? "meal:facility-stock" : itemId,
+                mealTags,
+                wasSufficient: true,
+                CharacterCommandOrigin.Autonomous,
+                Mathf.Max(
+                    0,
+                    Mathf.FloorToInt(
+                        gameClock.Time / GameCalendarRules.SecondsPerDay))));
+        }
         RefreshCurrentDayFoodSummary();
         InvalidateOverviewCache();
+    }
+
+    private string[] ResolveMealIdentityTags(
+        string itemId,
+        MealQualityTier quality,
+        bool unfamiliar)
+    {
+        if (string.IsNullOrWhiteSpace(itemId)
+            || !itemCatalog.TryGet(
+                (ItemDefinitionId)itemId,
+                out ItemDefinitionSO definition)
+            || definition is not ResourceItemDefinitionSO resource)
+        {
+            return Array.Empty<string>();
+        }
+
+        List<string> tags = new(4);
+        if (quality == MealQualityTier.Lavish)
+            tags.Add("luxury");
+        ResourceIngredientTag authoredTags = resource.IngredientTags;
+        if ((authoredTags & ResourceIngredientTag.Sweet) != 0)
+            tags.Add("sweet");
+        if ((authoredTags & ResourceIngredientTag.Salted) != 0)
+            tags.Add("salted");
+        if (unfamiliar)
+            tags.Add("unfamiliar");
+        return tags.ToArray();
+    }
+
+    private void PublishMissedMealEvents(int currentDay)
+    {
+        int completedDay = Math.Max(0, currentDay - 1);
+        if (completedDay <= 0)
+            return;
+        foreach (CharacterActor actor in GetSurvivalConsumers())
+        {
+            if (!CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId)
+                || GetMealsConsumed(characterId.Value, completedDay) > 0)
+                continue;
+            gameEventBus.Publish(new MealMissedEvent(
+                characterId,
+                consecutiveMisses: 1,
+                currentDay));
+        }
     }
 
     private void AnnounceDangerousWeatherIfChanged()

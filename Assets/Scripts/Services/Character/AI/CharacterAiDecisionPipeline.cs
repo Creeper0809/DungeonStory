@@ -57,13 +57,20 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
 
     public CharacterAiDecisionPipeline(
         ICharacterDeprivationQuery deprivationQuery,
-        ICharacterDeprivationCommand deprivationCommands)
+        ICharacterDeprivationCommand deprivationCommands,
+        ICharacterWorldQuery characterWorld = null,
+        CharacterIdentityEventPublisher identityEvents = null,
+        IGameCalendar calendar = null)
     {
         this.deprivationQuery = deprivationQuery
             ?? throw new ArgumentNullException(nameof(deprivationQuery));
         this.deprivationCommands = deprivationCommands
             ?? throw new ArgumentNullException(nameof(deprivationCommands));
-        macroDecisions = new CharacterAiMacroDecisionRunner(RunSelectedAction);
+        macroDecisions = new CharacterAiMacroDecisionRunner(
+            RunSelectedAction,
+            characterWorld,
+            identityEvents,
+            calendar);
     }
 
     public CharacterAiDecisionTickResult RunRootDecision(CharacterActor actor)
@@ -189,20 +196,6 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             status,
             "Run Deprivation Breakdown",
             status);
-        if (actor.Brain?.IsExternallyDrivenActionActive == true)
-        {
-            actor.Brain.UpdateExternallyDrivenAction(
-                "결핍 붕괴",
-                status,
-                "붕괴 행동이 끝날 때까지 유지");
-        }
-        else
-        {
-            actor.Brain?.BeginExternallyDrivenAction(
-                "결핍 붕괴",
-                status,
-                "붕괴 행동이 끝날 때까지 유지");
-        }
         return CharacterAiDecisionRules.Result(true, CharacterAiBranch.DeprivationBreakdown, "Run Deprivation Breakdown", status, blackboard);
     }
 
@@ -212,7 +205,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             && actor.Brain != null
             && actor.Brain.CanContinueCurrentAction(out _)
             && !actor.Brain.ShouldStopCurrentActionForReplan(out _)
-            && !ShouldInterruptForSafeEmergencyRelief(actor, out _);
+            && !ShouldInterruptForSurvivalEmergency(actor, out _);
     }
 
     public bool CanInterruptCurrentAction(CharacterActor actor)
@@ -220,7 +213,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         return actor != null
             && actor.Brain != null
             && (actor.Brain.ShouldStopCurrentActionForReplan(out _)
-                || ShouldInterruptForSafeEmergencyRelief(actor, out _));
+                || ShouldInterruptForSurvivalEmergency(actor, out _));
     }
 
     public bool HasContinuableCurrentAction(CharacterActor actor)
@@ -321,7 +314,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             CharacterAiInterruptReason.CurrentActionStopped;
         if (!actor.Brain.ShouldStopCurrentActionForReplan(out string stopReason))
         {
-            if (!ShouldInterruptForSafeEmergencyRelief(actor, out stopReason))
+            if (!ShouldInterruptForSurvivalEmergency(actor, out stopReason))
             {
                 return CharacterAiDecisionRules.Result(false, CharacterAiBranch.InterruptCheck, "Interrupt Check", "Current action does not need replan.", blackboard);
             }
@@ -341,15 +334,56 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         return CharacterAiDecisionRules.Result(true, CharacterAiBranch.InterruptCheck, "Interrupt Check", stopReason, blackboard);
     }
 
-    private bool ShouldInterruptForSafeEmergencyRelief(
+    private bool ShouldInterruptForSurvivalEmergency(
         CharacterActor actor,
         out string reason)
     {
         reason = string.Empty;
-        return actor != null
-            && actor.Brain != null
-            && deprivationQuery.NeedsSafeEmergencyRelief(actor, out reason)
-            && actor.Brain.CanInterruptCurrentActionForSurvivalEmergency(out _);
+        if (actor == null
+            || actor.Brain == null
+            || !actor.Brain.CanInterruptCurrentActionForSurvivalEmergency(out _))
+        {
+            return false;
+        }
+
+        if (deprivationQuery.NeedsSafeEmergencyRelief(actor, out reason))
+        {
+            return true;
+        }
+
+        if (CharacterNeedAiThresholds.IsEmergency(actor, CharacterCondition.HUNGER)
+            && (deprivationQuery.NeedsPrimitiveMeal(actor, out _)
+                || FacilityCandidateScorer.HasUsableCandidate(actor, FacilityRole.Meal)))
+        {
+            reason = "Emergency hunger relief is available.";
+            return true;
+        }
+
+        if (CharacterNeedAiThresholds.IsEmergency(actor, CharacterCondition.SLEEP)
+            && (deprivationQuery.NeedsPrimitiveRest(actor, out _)
+                || FacilityCandidateScorer.HasUsableCandidate(actor, FacilityRole.Rest)))
+        {
+            reason = "Emergency sleep relief is available.";
+            return true;
+        }
+
+        if (CharacterNeedAiThresholds.IsEmergency(actor, CharacterCondition.EXCRETION)
+            && (deprivationQuery.NeedsPrimitiveRelief(actor, out _)
+                || FacilityCandidateScorer.HasUsableCandidate(actor, FacilityRole.Toilet)))
+        {
+            reason = "Emergency excretion relief is available.";
+            return true;
+        }
+
+        if (CharacterNeedAiThresholds.IsEmergency(actor, CharacterCondition.HYGIENE)
+            && (deprivationQuery.NeedsPrimitiveWash(actor, out _)
+                || FacilityCandidateScorer.HasUsableCandidate(actor, FacilityRole.Hygiene)))
+        {
+            reason = "Emergency hygiene relief is available.";
+            return true;
+        }
+
+        return false;
     }
 
     public CharacterAiDecisionTickResult SelectJobGiverAction(
@@ -1091,6 +1125,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         AddUniqueJobGiver(catalog.Toilet);
         AddUniqueJobGiver(catalog.Hygiene);
         AddUniqueJobGiver(catalog.Rest);
+        AddUniqueJobGiver(catalog.Recreation);
 
         if (context.IsWorker)
         {
@@ -1133,6 +1168,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             CharacterAiBranch.Hygiene => CharacterAiBranch.SurvivalNeeds,
             CharacterAiBranch.ExitDungeon => CharacterAiBranch.SurvivalNeeds,
             CharacterAiBranch.Work => CharacterAiBranch.DutyWork,
+            CharacterAiBranch.LeisureVisit => CharacterAiBranch.LeisureVisit,
             CharacterAiBranch.Shopping => CharacterAiBranch.LeisureVisit,
             CharacterAiBranch.LookAround => CharacterAiBranch.LeisureVisit,
             CharacterAiBranch.Wait => CharacterAiBranch.Idle,

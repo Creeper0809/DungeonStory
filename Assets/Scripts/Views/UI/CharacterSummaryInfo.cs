@@ -127,6 +127,7 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
             return;
         }
 
+        shellPresenter.HandleCharacterSelection(nextActor);
         UnbindCharacter();
 
         shellPresenter.Open(

@@ -20,7 +20,7 @@ MonoBehaviour:
   sourceNote: V20 content-density expansion; hand-authored Korean source revision
     1.
   startingSkills:
-  - skillId: service
+  - skillId: proficiency:social
     experience: 75
   startingEffects:
   - kind: 1

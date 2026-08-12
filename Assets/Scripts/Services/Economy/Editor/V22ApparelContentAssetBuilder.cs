@@ -163,6 +163,8 @@ public static class V22ApparelContentAssetBuilder
         WireExistingResearchUnlocks();
         GameContentCatalogAssetBuilder.ReindexItemDefinitions();
         GameContentCatalogAssetBuilder.ReindexV22ApparelDefinitions();
+        V23RecipeProcessClassAuthoring.NormalizeRecipeWorkUnder(RecipeRoot);
+        V23MarketValueCalibrator.Apply();
         AssetDatabase.SaveAssets();
     }
 
@@ -311,6 +313,18 @@ public static class V22ApparelContentAssetBuilder
                     && string.Equals(value.ItemId, spec.ItemId, StringComparison.Ordinal));
             if (existing != null)
             {
+                existing.Configure(
+                    existing.ItemId,
+                    existing.DisplayName,
+                    existing.Description,
+                    existing.StockCategory,
+                    existing.Kind,
+                    existing.IngredientTags,
+                    existing.UnitPrice,
+                    existing.UnitWeight,
+                    1,
+                    existing.RequiredResearchId);
+                EditorUtility.SetDirty(existing);
                 continue;
             }
             ResourceItemDefinitionSO item = GetOrCreate<ResourceItemDefinitionSO>(
@@ -510,6 +524,13 @@ public static class V22ApparelContentAssetBuilder
             workstationTag,
             Array.Empty<string>(),
             ProductionProcessKind.WorkOnly);
+        recipe.ConfigureFlowRole(ProductionFlowRole.Transform);
+        recipe.ConfigureProcessClass(
+            ProductionProcessClass.SpinningWeavingWoodworking);
+        recipe.ConfigureBalanceWork(
+            V23BalanceWorkCalculator.CalculateRecipeBaseWork(
+                recipe,
+                ProductionProcessClass.SpinningWeavingWoodworking));
         EditorUtility.SetDirty(recipe);
     }
 
@@ -787,6 +808,8 @@ public static class V22ApparelContentAssetBuilder
                 existing.UnitWeight,
                 maxStack,
                 existing.Sprite);
+            if (seed)
+                existing.ConfigureMarketSaleRate(0f);
             EditorUtility.SetDirty(existing);
             return;
         }
@@ -805,6 +828,8 @@ public static class V22ApparelContentAssetBuilder
             seed ? .02f : .08f,
             maxStack,
             "research:textile:fiber");
+        if (seed)
+            item.ConfigureMarketSaleRate(0f);
         EditorUtility.SetDirty(item);
     }
 

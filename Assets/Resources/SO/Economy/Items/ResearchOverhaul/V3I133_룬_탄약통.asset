@@ -26,28 +26,33 @@ MonoBehaviour:
   displayName: "\uB8EC \uD0C4\uC57D\uD1B5"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uB8EC \uD0C4\uC57D\uD1B5."
   stockCategory: 7
-  unitWeight: 4.21
+  unitWeight: 0.15
   maxStack: 120
   sprite: {fileID: 0}
-  unitPrice: 276
+  unitPrice: 25
   features:
-  - rid: 7737211838078124243
-  - rid: 7737211838078124244
-  - rid: 7737211838078124245
+  - rid: 7737211905658585172
+  - rid: 7737211905658585173
+  - rid: 7737211905658585174
+  - rid: 7737211905660420468
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124243
+    - rid: 7737211905658585172
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:rune-cartridge
-    - rid: 7737211838078124244
+    - rid: 7737211905658585173
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:rune-module-tuning
-    - rid: 7737211838078124245
+    - rid: 7737211905658585174
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 1024
         sharedIntermediate: 0
+    - rid: 7737211905660420468
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.59200007

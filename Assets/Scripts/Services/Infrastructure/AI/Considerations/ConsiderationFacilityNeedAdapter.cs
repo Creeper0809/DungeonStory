@@ -31,13 +31,30 @@ public class ConsiderationFacilityNeed : Consideration
             hasWorkRole: mayIgnoreVisitBudget,
             visitCount: hasShopping ? shopping.visitCount : 0,
             facilityNeed: hasCandidate
-                ? FacilityCandidateScorer.GetNeedScore(actor, role)
+                ? GetFacilityNeed(actor, role)
                 : 0f,
             hasCandidate: hasCandidate);
         return DungeonStory.AI.ConsiderationFacilityNeed.Score(
             snapshot,
             minimumScoreWhenAvailable,
             mayIgnoreVisitBudget);
+    }
+
+    private static float GetFacilityNeed(
+        CharacterActor actor,
+        FacilityRole role)
+    {
+        // Recreation has an authored need threshold/resume curve.  Its job giver
+        // and action consideration must read the same authority or a candidate can
+        // be selected by one layer and suppressed (or repeated) by the other.
+        if (role == FacilityRole.Entertainment)
+        {
+            return CharacterNeedAiThresholds.GetRoutineUtility(
+                actor,
+                CharacterCondition.FUN);
+        }
+
+        return FacilityCandidateScorer.GetNeedScore(actor, role);
     }
 
     private static bool CanEvaluateWithoutVisitBudget(CharacterActor actor, FacilityRole role)
@@ -47,8 +64,10 @@ public class ConsiderationFacilityNeed : Consideration
             return false;
         }
 
-        return (role & FacilityRole.Rest) != 0
+        return (role & FacilityRole.Meal) != 0
+            || (role & FacilityRole.Rest) != 0
             || (role & FacilityRole.Hygiene) != 0
-            || (role & FacilityRole.Toilet) != 0;
+            || (role & FacilityRole.Toilet) != 0
+            || (role & FacilityRole.Entertainment) != 0;
     }
 }

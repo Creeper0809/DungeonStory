@@ -30,14 +30,14 @@ MonoBehaviour:
   unitWeight: 1.8
   maxStack: 1
   sprite: {fileID: 0}
-  unitPrice: 180
+  unitPrice: 151
   features:
   - rid: 7737211673752633529
   references:
     version: 2
     RefIds:
     - rid: 7737211673752633529
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 0

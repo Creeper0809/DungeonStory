@@ -46,7 +46,7 @@ MonoBehaviour:
     excludedFlags: []
   completionRewards:
   - kind: 3
-    targetId: research
+    targetId: proficiency:scholarship
     amount: 100
     durationDays: 0
   relatedEventWeights:

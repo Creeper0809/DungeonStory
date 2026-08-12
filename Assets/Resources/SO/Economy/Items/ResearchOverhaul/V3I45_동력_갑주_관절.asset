@@ -27,23 +27,28 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uB3D9\uB825 \uAC11\uC8FC
     \uAD00\uC808."
   stockCategory: 1
-  unitWeight: 1.5699999
+  unitWeight: 2.35
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 100
+  unitPrice: 242
   features:
-  - rid: 7737211838078124157
-  - rid: 7737211838078124158
+  - rid: 7737211905655964670
+  - rid: 7737211905655964671
+  - rid: 7737211905660420446
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124157
+    - rid: 7737211905655964670
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:powered-armor
-    - rid: 7737211838078124158
+    - rid: 7737211905655964671
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 512
         sharedIntermediate: 0
+    - rid: 7737211905660420446
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.59978926

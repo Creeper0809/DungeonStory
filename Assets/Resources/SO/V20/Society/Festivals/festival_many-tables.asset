@@ -24,8 +24,8 @@ MonoBehaviour:
   cultureId: 
   requiredBuildingDefinitionId: building:festival-common-hall
   requiredItems:
-  - itemDefinitionId: food:festival-sampler
-    amount: 20
+  - itemDefinitionId: food:lavish-vegan
+    amount: 8
   minimumParticipants: 20
   successOutcome:
     moodDelta: 6

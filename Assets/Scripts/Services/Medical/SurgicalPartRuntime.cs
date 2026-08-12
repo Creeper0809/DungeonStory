@@ -146,48 +146,6 @@ public sealed class SurgicalPartRuntime :
         return true;
     }
 
-    public int GetStatBonus(string subjectId, CharacterStatType statType)
-    {
-        if (string.IsNullOrWhiteSpace(subjectId))
-        {
-            return 0;
-        }
-
-        float total = 0f;
-        foreach (SurgicalPartInstance part in parts)
-        {
-            if (part == null
-                || !part.installed
-                || !string.Equals(
-                    part.installedSubjectId,
-                    subjectId,
-                    StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            float strength = Mathf.Max(0f, part.specialEffectStrength);
-            total += part.specialEffectId switch
-            {
-                "graft:rune-deer-night-sight"
-                    when statType == CharacterStatType.Shooting => 2f * strength,
-                "graft:rune-deer-night-sight"
-                    when statType == CharacterStatType.Evasion => 1f * strength,
-                "graft:shadow-wolf-endurance"
-                    when statType == CharacterStatType.Endurance => 2f * strength,
-                "graft:shadow-wolf-endurance"
-                    when statType == CharacterStatType.MoveSpeed => 1f * strength,
-                "graft:moss-boar-toughness"
-                    when statType == CharacterStatType.Toughness => 3f * strength,
-                "graft:moss-boar-toughness"
-                    when statType == CharacterStatType.Strength => 1f * strength,
-                _ => 0f
-            };
-        }
-
-        return Mathf.RoundToInt(total);
-    }
-
     public string GetSpecialEffectLabel(SurgicalPartInstance part)
     {
         return part?.specialEffectId switch

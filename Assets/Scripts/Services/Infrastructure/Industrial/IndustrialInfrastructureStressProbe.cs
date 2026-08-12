@@ -84,19 +84,21 @@ public static class IndustrialInfrastructureStressProbe
             "컨베이어 행 연결망 수가 결정적으로 생성되지 않았습니다.");
 
         ItemTransitStackSnapshot stack = new ItemTransitStackSnapshot(
-            new ItemStackId("stress-stack"),
+            new ItemStackId("stack:stress"),
             "material:lumber",
             1,
             false,
             0f);
         int successfulRoutes = 0;
+        int firstRouteLength = -1;
+        ConveyorStallReason firstFailureReason = ConveyorStallReason.None;
         long routeAllocatedAtStart =
             GC.GetAllocatedBytesForCurrentThread();
         Stopwatch routeTimer = Stopwatch.StartNew();
         for (int index = 0; index < routeRequests; index++)
         {
             int row = index % height;
-            if (ConveyorRoutePlanner.TryFindRoute(
+            bool found = ConveyorRoutePlanner.TryFindRoute(
                     topology,
                     $"stress:0000:{row:D4}",
                     $"stress-output:{row:D4}",
@@ -105,10 +107,15 @@ public static class IndustrialInfrastructureStressProbe
                     nodeId => topology.Nodes[nodeId]
                         .ConveyorPort?.destinationId ?? string.Empty,
                     out IReadOnlyList<string> route,
-                    out _)
-                && route.Count == width)
+                    out ConveyorStallReason failureReason);
+            if (found && route.Count == width)
             {
                 successfulRoutes++;
+            }
+            else if (firstRouteLength < 0)
+            {
+                firstRouteLength = route.Count;
+                firstFailureReason = failureReason;
             }
         }
 
@@ -116,7 +123,14 @@ public static class IndustrialInfrastructureStressProbe
         long routeAllocated = GC.GetAllocatedBytesForCurrentThread()
             - routeAllocatedAtStart;
         Require(successfulRoutes == routeRequests,
-            "2,000개 화물 경로 배치가 일부 실패했습니다.");
+            $"화물 경로 배치가 일부 실패했습니다: "
+            + $"success={successfulRoutes}/{routeRequests}, "
+            + $"firstReason={firstFailureReason}, "
+            + $"firstRouteLength={firstRouteLength}, expected={width}, "
+            + $"firstOutgoing={topology.ConveyorOutgoing.GetValueOrDefault("stress:0000:0000", new List<string>()).Count}, "
+            + $"lastIncoming={topology.ConveyorIncoming.GetValueOrDefault($"stress:{width - 1:D4}:0000", new List<string>()).Count}, "
+            + $"lastPortMode={topology.Nodes[$"stress:{width - 1:D4}:0000"].ConveyorPort?.mode}, "
+            + $"lastDestination='{topology.Nodes[$"stress:{width - 1:D4}:0000"].ConveyorPort?.destinationId}'.");
         Require(topologyTimer.ElapsedMilliseconds < 10000,
             "10K 기반 시설 토폴로지 생성이 10초를 넘었습니다.");
         Require(routeTimer.ElapsedMilliseconds < 5000,

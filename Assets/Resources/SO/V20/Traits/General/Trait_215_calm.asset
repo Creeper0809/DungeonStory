@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uCE68\uCC29\uD568"
   description: "\uAE34\uAE09 \uC0C1\uD669\uC5D0\uC11C \uBA3C\uC800 \uC0C1\uD669\uC744
     \uC815\uB9AC\uD558\uACE0 \uC8FC\uBCC0\uC758 \uACF5\uD3EC\uC5D0 \uB35C \uD729\uC4F8\uB9B0\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,38 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 2
+  polarity: 0
+  selectionFamilyId: crisis-temperament
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: emergency:assess
-    utilityDelta: 0.4
-  moodReactions:
-  - triggerTag: event:panic
-    moodDelta: -1
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: emergency
-    multiplier: 0.75
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:215:effect:0
+    definition: {fileID: 11400000, guid: ab46736f68b07c442bc3c27bbc87e7cc, type: 2}
+    value: 0.9
+    condition: {fileID: 11400000, guid: dac526911b091534f8e5deb1bd59820e, type: 2}
+  identityRules:
+  - rid: 7737211921986486490
+  - rid: 7737211921986486491
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486490
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:crisis-rescue
+        priority: 0
+        behaviorTag: work:crisis-rescue
+        utilityDelta: 0.65
+    - rid: 7737211921986486491
+      type: {class: MoodTransformRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:panic-quarter
+        priority: 0
+        eventId: event:panic
+        multiplier: 0.25
+        additiveDelta: 0

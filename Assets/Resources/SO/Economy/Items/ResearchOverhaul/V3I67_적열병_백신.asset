@@ -26,29 +26,30 @@ MonoBehaviour:
   displayName: "\uC801\uC5F4\uBCD1 \uBC31\uC2E0"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC801\uC5F4\uBCD1 \uBC31\uC2E0."
   stockCategory: 5
-  unitWeight: 2.23
+  unitWeight: 0.4
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 144
+  unitPrice: 26
   features:
-  - rid: 7737211838078125044
-  - rid: 7737211838078125045
-  - rid: 7737211838078125046
-  - rid: 7737211838078125047
+  - rid: 7737211905660420363
+  - rid: 7737211905660420364
+  - rid: 7737211905660420365
+  - rid: 7737211905660420366
+  - rid: 7737211905660420917
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078125044
+    - rid: 7737211905660420363
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:vaccination
-    - rid: 7737211838078125045
+    - rid: 7737211905660420364
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211838078125046
+    - rid: 7737211905660420365
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 0
@@ -56,8 +57,12 @@ MonoBehaviour:
         infectionReduction: 0
         detoxReduction: 0
         painReduction: 0
-    - rid: 7737211838078125047
+    - rid: 7737211905660420366
       type: {class: VaccineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         diseaseId: disease:red-fever
         doses: 1
+    - rid: 7737211905660420917
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6091916

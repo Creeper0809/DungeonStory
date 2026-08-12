@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c83e41a225cee9145bd7206b5861a543, type: 3}
+  m_Name: capacity_immune-defense
+  m_EditorClassIdentifier: DungeonStory.Foundation::CharacterFunctionalCapacityDefinitionSO
+  capacityId: 13
+  stableId: capacity:immune-defense
+  displayName: "\uBA74\uC5ED \uBC29\uC5B4"
+  description: "\uAC10\uC5FC\xB7\uBCD1\uC6D0\uCCB4\xB7\uBD80\uC2DD\uC131 \uC624\uC5FC\uC5D0
+    \uB300\uD55C \uBC29\uC5B4 \uBC18\uC751"

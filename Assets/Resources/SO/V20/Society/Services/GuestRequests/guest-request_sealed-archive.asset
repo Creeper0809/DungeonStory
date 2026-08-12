@@ -23,7 +23,7 @@ MonoBehaviour:
   deadlineDays: 8
   serviceRequirements:
     items:
-    - itemDefinitionId: material:engineering-blueprint
+    - itemDefinitionId: component:engineering-drawing
       amount: 2
       consume: 1
     facilities:
@@ -40,7 +40,7 @@ MonoBehaviour:
   successEffects:
   - kind: 9
     targetId: guest-service
-    amount: 40
+    amount: 59
     durationDays: 0
   - kind: 6
     targetId: requesting-faction

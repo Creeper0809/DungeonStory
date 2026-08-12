@@ -223,7 +223,18 @@ public class StaffDiscontentRuntime : MonoBehaviour
             return false;
         }
 
-        if (!record.TryCalm(staff, rules, out string failureReason))
+        float negotiationMultiplier = actor == null
+            ? 1f
+            : actor.GetDetailedStatMultiplier(
+                "social:negotiation",
+                actor.Identity?.IsOwner == true
+                    ? new[] { "state:formal-status" }
+                    : Array.Empty<string>());
+        if (!record.TryCalm(
+                staff,
+                rules,
+                negotiationMultiplier,
+                out string failureReason))
         {
             result = new StaffRebellionResponseResult(false, StaffRebellionResponseType.Calm, record.ToSnapshot(), actor, failureReason);
             return false;

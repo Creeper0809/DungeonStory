@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uD68C\uCD98 \uD608\uCCAD"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uD68C\uCD98 \uD608\uCCAD."
   stockCategory: 5
-  unitWeight: 3.76
+  unitWeight: 0.6
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 246
+  unitPrice: 96
   features:
-  - rid: 7737211838078124503
-  - rid: 7737211838078124504
+  - rid: 7737211905658586028
+  - rid: 7737211905658586029
+  - rid: 7737211905660420784
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124503
+    - rid: 7737211905658586028
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:blood-rejuvenation
-    - rid: 7737211838078124504
+    - rid: 7737211905658586029
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1024
         sharedIntermediate: 0
+    - rid: 7737211905660420784
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.59717935

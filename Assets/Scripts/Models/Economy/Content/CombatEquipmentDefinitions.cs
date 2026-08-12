@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public abstract class CombatEquipmentDefinitionSO : ScriptableObject
+public abstract class CombatEquipmentDefinitionSO : ScriptableObject, IGameplayEffectSource
 {
     [SerializeField] private string equipmentId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
@@ -30,6 +30,9 @@ public abstract class CombatEquipmentDefinitionSO : ScriptableObject
     [SerializeField] private EquipmentLineageKind lineageKind;
     [SerializeField] private bool growthEquipment;
     [Range(0.5f, 1f), SerializeField] private float growthBaseStatMultiplier = 0.88f;
+    [SerializeField] private ProficiencyWorkProfileAuthoring proficiency = new();
+    [SerializeField] private List<GameplayEffectBinding> effects = new();
+    [SerializeField] private bool allowMythicInspiration = true;
 
     public string EquipmentId => equipmentId?.Trim() ?? string.Empty;
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? EquipmentId : displayName.Trim();
@@ -57,6 +60,13 @@ public abstract class CombatEquipmentDefinitionSO : ScriptableObject
     public float BaseStatMultiplier => growthEquipment
         ? Mathf.Clamp(growthBaseStatMultiplier, 0.5f, 1f)
         : 1f;
+    public ProficiencyWorkProfileAuthoring Proficiency =>
+        proficiency ??= new ProficiencyWorkProfileAuthoring();
+    public bool AllowMythicInspiration => allowMythicInspiration;
+    public GameplayEffectSourceRef SourceRef =>
+        new(GameplayEffectSourceKind.Equipment, EquipmentId);
+    public IReadOnlyList<GameplayEffectBinding> Effects =>
+        effects ??= new List<GameplayEffectBinding>();
     public abstract CombatEquipmentKind Kind { get; }
 
     public bool AllowsMaterial(CraftMaterialDefinitionSO material)
@@ -67,6 +77,14 @@ public abstract class CombatEquipmentDefinitionSO : ScriptableObject
     }
 
 #if UNITY_EDITOR
+    public void ConfigureGameplayEffects(
+        IEnumerable<GameplayEffectBinding> bindings)
+    {
+        effects = (bindings ?? Array.Empty<GameplayEffectBinding>())
+            .Where(value => value != null)
+            .ToList();
+    }
+
     public void ConfigureRequiredComponentInputs(
         IEnumerable<ItemAmountDefinition> components)
     {
@@ -78,6 +96,17 @@ public abstract class CombatEquipmentDefinitionSO : ScriptableObject
                 new ItemAmountDefinition(component.ItemId, component.Amount))
             .ToList();
     }
+
+    public void ConfigureProficiency(
+        CharacterProficiencyId primary,
+        CharacterProficiencyRank recommendedRank,
+        CharacterProficiencyRank minimumRiskRank) =>
+        (proficiency ??= new ProficiencyWorkProfileAuthoring()).Configure(
+            primary,
+            default,
+            1f,
+            recommendedRank,
+            minimumRiskRank);
 #endif
 }
 

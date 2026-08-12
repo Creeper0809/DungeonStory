@@ -118,7 +118,7 @@ public static class GameplayFlowDiagnosticsDebugScenarios
                 WorldItemStackState.Loose,
                 string.Empty)
             .Single();
-        stack.ReservedByPersistentId = "worker:one";
+        stack.ReservedQuantity = stack.Quantity;
 
         GameplayFlowDiagnosticItem diagnostic = BuildLooseFlow(
             stack,

@@ -2,11 +2,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using VContainer;
 
 public sealed class AbilityHaul : MonoBehaviour
 {
     private const int MaximumPathResolveFrames = 240;
     private const int MaximumMovementAttempts = 5;
+    private const double ActivePlanLeaseSeconds = 45d;
     private static readonly WaitForSeconds MovementRetryDelay =
         new WaitForSeconds(0.15f);
 
@@ -20,6 +22,9 @@ public sealed class AbilityHaul : MonoBehaviour
     private int routineHeartbeat;
     private string activePathDebug = string.Empty;
     private bool haulingHarnessEquippedForCurrentRun;
+    private ICharacterProficiencyCommand proficiencyCommands;
+    private IGameCalendar calendar;
+    private ICharacterSpeciesCommand speciesCommands;
     private IWorldItemStackRuntime ItemRuntime => actor?.WorldItemStackRuntime;
 
     public bool IsHauling => haulingRoutine != null;
@@ -58,6 +63,18 @@ public sealed class AbilityHaul : MonoBehaviour
     private void Awake()
     {
         CacheReferences();
+    }
+
+    [Inject]
+    public void ConstructProficiencyProgression(
+        ICharacterProficiencyCommand commands,
+        IGameCalendar gameCalendar,
+        ICharacterSpeciesCommand speciesCommands)
+    {
+        proficiencyCommands = commands;
+        calendar = gameCalendar;
+        this.speciesCommands = speciesCommands
+            ?? throw new System.ArgumentNullException(nameof(speciesCommands));
     }
 
     private void OnDisable()
@@ -121,6 +138,14 @@ public sealed class AbilityHaul : MonoBehaviour
         }
 
         activePlan = reservedPlan;
+        if (!TryRenewActivePlanLeases(out reason))
+        {
+            actor.Brain?.SetActionPhase("운반 대기", null, reason);
+            ReleaseActivePlanReservations();
+            activePlan = null;
+            EndAiAction();
+            return;
+        }
         actor.CarryInventory?.TryPrepareHaulingHarness(
             out haulingHarnessEquippedForCurrentRun);
         unloadReason = WorldItemHaulPlanUnloadReason.None;
@@ -128,6 +153,38 @@ public sealed class AbilityHaul : MonoBehaviour
         routineHeartbeat = 0;
         activePathDebug = string.Empty;
         haulingRoutine = StartCoroutine(HaulRoutine(activePlan));
+    }
+
+    private bool TryRenewActivePlanLeases(out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (activePlan == null
+            || ItemRuntime is not IWorldItemQuantityLeaseRuntime leaseRuntime)
+        {
+            failureReason = "quantity lease runtime missing";
+            return false;
+        }
+
+        double requestedUntil = Time.timeAsDouble + ActivePlanLeaseSeconds;
+        HashSet<string> renewed = new HashSet<string>(System.StringComparer.Ordinal);
+        foreach (WorldItemReservedStackQuantity reservation in activePlan.ReservedStackQuantities)
+        {
+            if (string.IsNullOrWhiteSpace(reservation.LeaseId)
+                || !renewed.Add(reservation.LeaseId))
+            {
+                continue;
+            }
+
+            if (!leaseRuntime.TryRenewQuantityLease(
+                    reservation.LeaseId,
+                    requestedUntil,
+                    out failureReason))
+            {
+                return false;
+            }
+        }
+
+        return renewed.Count > 0;
     }
 
     public void StopHauling(string reason)
@@ -289,6 +346,9 @@ public sealed class AbilityHaul : MonoBehaviour
             actor.Brain?.SetActionPhase("물품 내려놓는 중", null, delivery.DeliveryPosition.ToString());
             executionStage = "배송 입고";
             routineHeartbeat++;
+            int deliveredQuantity = carry.Items
+                .Where(item => item != null)
+                .Sum(item => Mathf.Max(0, item.quantity));
             string depositReason;
             bool deposited;
             if (delivery.DestinationKind == WorldItemHaulDestinationKind.FacilityBuffer)
@@ -317,6 +377,7 @@ public sealed class AbilityHaul : MonoBehaviour
             {
                 actor.AddLog($"바닥 물건 {pickedStackCount}묶음을 정리했다.");
                 unloadReason = WorldItemHaulPlanUnloadReason.Completed;
+                AwardHaulingProficiency(deliveredQuantity);
             }
 
             break;
@@ -519,6 +580,38 @@ public sealed class AbilityHaul : MonoBehaviour
             actor.Brain.isBestActionEnd = true;
             actor.Brain.RequestImmediateReplan(clearFailures: true);
         }
+    }
+
+    private void AwardHaulingProficiency(int deliveredQuantity)
+    {
+        if (deliveredQuantity <= 0
+            || proficiencyCommands == null
+            || calendar == null
+            || !CharacterPersistentIdentity.TryGet(actor, out CharacterId id))
+        {
+            return;
+        }
+        ProficiencyWorkProfile profile = new(
+            BuiltInCharacterProficiencyIds.Fieldwork);
+        proficiencyCommands.AddApprovedWork(
+            id,
+            profile,
+            approvedWork: deliveredQuantity,
+            difficultyMultiplier: 1f,
+            outcome: ProficiencyWorkOutcome.Success,
+            learningMultiplier: CharacterProficiencyLearningRules.Resolve(
+                actor,
+                profile,
+                BuiltInWorkTypeIds.Haul),
+            repetitionMultiplier: 1f,
+            absoluteHour: calendar.AbsoluteHour);
+        if (!speciesCommands.RecordCompletedWork(
+                id,
+                BuiltInWorkTypeIds.Haul.Value,
+                deliveredQuantity,
+                out DomainFailure failure))
+            throw new System.InvalidOperationException(
+                $"Species hauling wear projection failed: {failure.Code}");
     }
 
     private void CacheReferences()

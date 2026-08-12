@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uB8EC \uC81C\uC5B4\uBC18"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uB8EC \uC81C\uC5B4\uBC18."
   stockCategory: 1
-  unitWeight: 1.24
+  unitWeight: 1.2
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 78
+  unitPrice: 254
   features:
-  - rid: 7737211838078124756
-  - rid: 7737211838078124757
+  - rid: 7737211905660420175
+  - rid: 7737211905660420176
+  - rid: 7737211905660420850
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124756
+    - rid: 7737211905660420175
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:industry:rune-automation
-    - rid: 7737211838078124757
+    - rid: 7737211905660420176
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1024
         sharedIntermediate: 0
+    - rid: 7737211905660420850
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6009666

@@ -34,19 +34,36 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 3
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211838078124416
-    - rid: 7737211838078124417
-    - rid: 7737211838078124418
-    - rid: 7737211838078124419
-    - rid: 7737211838078124420
-    - rid: 7737211838078124421
-    - rid: 7737211838078124422
-    - rid: 7737211838078124423
-    - rid: 7737211838078124424
+    - rid: 7737211905658585948
+    - rid: 7737211905658585949
+    - rid: 7737211905658585950
+    - rid: 7737211905658585951
+    - rid: 7737211905658585952
+    - rid: 7737211905658585953
+    - rid: 7737211905658585954
+    - rid: 7737211905658585955
+    - rid: 7737211905658585956
+    - rid: 7737211905658585957
+    - rid: 7737211905658585958
   width: 1
   height: 1
   layer: 1
@@ -62,12 +79,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124416
+    - rid: 7737211905658585948
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF71
-    - rid: 7737211838078124417
+    - rid: 7737211905658585949
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -75,13 +92,13 @@ MonoBehaviour:
         - research-overhaul
         - research:medical:whole-body-regeneration
         - workstation:v19:whole-body-regeneration
-    - rid: 7737211838078124418
+    - rid: 7737211905658585950
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v19:whole-body-regeneration
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211838078124419
+    - rid: 7737211905658585951
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -89,16 +106,16 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211838078124420
+    - rid: 7737211905658585952
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
-        constructionCost: 360
+        constructionCost: 650
         maintenance: 6
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211838078124421
+    - rid: 7737211905658585953
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -107,9 +124,26 @@ MonoBehaviour:
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
-          supportedWorkTypes: 134250496
+          supportedWorkTypes: 671121408
           disabledWhenDamaged: 1
-    - rid: 7737211838078124422
+    - rid: 7737211905658585954
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 6
+        maxThroughput: 20
+        normallyOpen: 1
+    - rid: 7737211905658585955
+      type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProcessFluidAbility
+        workTypeIds:
+        - work:surgery
+        cleanWaterPerCycle: 0.2
+        wastewaterPerCycle: 0.2
+        minimumQuality: 0
+        allowsManualWaterFallback: 1
+    - rid: 7737211905658585956
       type: {class: BuildingSurgeryTableAbility, ns: , asm: DungeonStory.Medical}
       data:
         abilityId: BuildingSurgeryTableAbility
@@ -118,19 +152,30 @@ MonoBehaviour:
         workSpeedMultiplier: 1
         baseSterility: 0.45
         patientSlots: 1
-    - rid: 7737211838078124423
+    - rid: 7737211905658585957
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211838078124424
+    - rid: 7737211905658585958
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 300
-        repairWorkRequired: 24
-        cleanWorkRequired: 8
+        constructionWorkRequired: 136
+        repairWorkRequired: 52
+        cleanWorkRequired: 12
         researchWorkRequired: 6
         operateWorkRequired: 12
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
         - itemId: material:stone-block
           amount: 16

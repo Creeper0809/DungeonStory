@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uC12C\uC138\uD55C \uCCB4\uACA9"
   description: "\uC815\uBC00 \uC791\uC5C5\uC5D0\uB294 \uC720\uB9AC\uD558\uC9C0\uB9CC
     \uBB34\uAC70\uC6B4 \uC6B4\uBC18\uACFC \uCDA9\uACA9\uC744 \uD53C\uD55C\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1.03
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 0.96
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,54 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 0
+  polarity: 1
+  selectionFamilyId: physique
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: work:precision
-    utilityDelta: 0.35
-  moodReactions:
-  - triggerTag: injury:blunt
-    moodDelta: -3
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: craft
-    multiplier: 1.25
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:203:effect:0
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 1.03
+    condition: {fileID: 11400000, guid: 0c78390599606ad41b379fd1e383fd8b, type: 2}
+  - bindingId: trait:203:effect:1
+    definition: {fileID: 11400000, guid: 137c7667173fc054eb6777aec0aa16f2, type: 2}
+    value: 0.96
+    condition: {fileID: 0}
+  - bindingId: trait:203:effect:2
+    definition: {fileID: 11400000, guid: 3e9b142871b759e4280b9f9320ecb671, type: 2}
+    value: 1.12
+    condition: {fileID: 0}
+  identityRules:
+  - rid: 7737211921986486529
+  - rid: 7737211921986486530
+  - rid: 7737211921986486531
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486529
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:precision-craft
+        priority: 0
+        behaviorTag: work:precision
+        utilityDelta: 0.55
+    - rid: 7737211921986486530
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:avoid-heavy-haul
+        priority: 0
+        behaviorTag: work:heavy-haul
+        utilityDelta: -0.55
+    - rid: 7737211921986486531
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:blunt-injury
+        priority: 0
+        eventId: injury:blunt
+        moodDelta: -3
+        durationDays: 2

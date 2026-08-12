@@ -249,6 +249,9 @@ public interface IProductionBillCoreOrderCommand
     ProductionBillCommandResult SetWorkerPolicy(
         ProductionBillId billId,
         WorkerSelectionPolicySaveData policy);
+    ProductionBillCommandResult SetEmergencyWorker(
+        ProductionBillId billId,
+        string characterId);
     ProductionBillCommandResult RequestStockSensorInstallation(
         ProductionFacilityHandle facility);
     ProductionBillCommandResult AcknowledgeStockSensorUnlock(

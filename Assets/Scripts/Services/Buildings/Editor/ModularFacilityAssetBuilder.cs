@@ -154,6 +154,10 @@ public static class ModularFacilityAssetBuilder
             changed |= ReplaceAbility(building, CreatePreservationAbility(code));
             changed |= ReplaceAbility(building, CreateMedicalAbility(code));
             changed |= ReplaceAbility(building, CreateFuelConsumerAbility(code));
+            BuildingGolemRechargeAbility rechargeAbility =
+                CreateGolemRechargeAbility(code)
+                ?? CreateGolemRechargeAbility(Path.GetFileNameWithoutExtension(path));
+            changed |= ReplaceAbility(building, rechargeAbility);
             changed |= ReplaceAbility(building, CreateTemperatureAbility(code));
             changed |= ReplaceAbility(building, CreateVentilationAbility(code));
 
@@ -411,6 +415,7 @@ public static class ModularFacilityAssetBuilder
         building.movementAnchorOffset = Vector2.zero;
         building.movementTravelTime = 2f;
         building.ReplaceAbilities(CreateAbilities(spec));
+        building.ConfigureCompatibilityStatus(false);
         building.unlocked = !IsResearchLockedFacility(spec.Code);
         EditorUtility.SetDirty(building);
     }
@@ -460,6 +465,7 @@ public static class ModularFacilityAssetBuilder
             : null);
         AddAbility(abilities, new BuildingEvolutionAbility { settings = CreateEvolutionData(spec) });
         AddAbility(abilities, EnsureNeedRecoveryAbility(spec));
+        AddAbility(abilities, EnsureRecreationalSubstanceServiceAbility(spec));
         AddAbility(abilities, EnsureStorageAbility(spec));
         AddAbility(abilities, EnsureSeatingAbility(spec));
         AddAbility(abilities, EnsureTableAbility(spec));
@@ -479,6 +485,7 @@ public static class ModularFacilityAssetBuilder
         AddAbility(abilities, CreatePreservationAbility(spec.Code));
         AddAbility(abilities, CreateMedicalAbility(spec.Code));
         AddAbility(abilities, CreateFuelConsumerAbility(spec.Code));
+        AddAbility(abilities, CreateGolemRechargeAbility(spec.Code));
         AddAbility(abilities, CreateTemperatureAbility(spec.Code));
         AddAbility(abilities, CreateVentilationAbility(spec.Code));
         AddAbility(abilities, CreateEnvironmentThermalAbility(spec.Code));
@@ -649,6 +656,7 @@ public static class ModularFacilityAssetBuilder
             BuildingPreservationAbility => building.AbilityModules.Remove<BuildingPreservationAbility>(),
             BuildingMedicalAbility => building.AbilityModules.Remove<BuildingMedicalAbility>(),
             BuildingFuelConsumerAbility => building.AbilityModules.Remove<BuildingFuelConsumerAbility>(),
+            BuildingGolemRechargeAbility => building.AbilityModules.Remove<BuildingGolemRechargeAbility>(),
             BuildingTemperatureAbility => building.AbilityModules.Remove<BuildingTemperatureAbility>(),
             BuildingVentilationAbility => building.AbilityModules.Remove<BuildingVentilationAbility>(),
             _ => 0
@@ -672,29 +680,27 @@ public static class ModularFacilityAssetBuilder
     private static BuildingWorkAmountAbility CreateWorkAmountAbility(
         FacilityPartSpec spec)
     {
-        int constructionValue = GetConstructionCost(spec);
         int cells = Mathf.Max(1, spec.Width);
+        float baseWork = ResolveConstructionBaseWork(spec);
+        float footprint = Mathf.Clamp(1f + 0.30f * (cells - 1), 1f, 2.5f);
         BuildingWorkAmountAbility ability = new BuildingWorkAmountAbility
         {
-            constructionWorkRequired = Mathf.Clamp(
-                12f + cells * 6f + constructionValue * 0.02f,
-                12f,
-                120f),
-            repairWorkRequired = Mathf.Clamp(8f + cells * 2f, 6f, 35f),
-            cleanWorkRequired = Mathf.Clamp(5f + cells * 1.25f, 4f, 24f),
+            constructionWorkRequired = RoundTo(baseWork * footprint, 4f),
+            repairWorkRequired = RoundTo(baseWork * footprint * 0.25f, 2f),
+            cleanWorkRequired = RoundTo(
+                Mathf.Clamp(baseWork * 0.06f, 4f, 24f),
+                2f),
             researchWorkRequired = 6f,
             operateWorkRequired = 10f
         };
-        List<ItemAmountDefinition> constructionMaterials = new()
+        ability.SetConstructionProjectScale(spec.Phase switch
         {
-            new ItemAmountDefinition(
-                spec.Phase >= 3
-                    ? "component:machine-parts"
-                    : spec.Phase == 2
-                        ? "material:stone-block"
-                        : "material:lumber",
-                Mathf.Max(1, Mathf.CeilToInt(constructionValue * 0.05f)))
-        };
+            <= 1 => ProjectScale.SmallFacility,
+            2 => ProjectScale.MediumFacility,
+            _ => ProjectScale.IndustrialFacility
+        });
+        List<ItemAmountDefinition> constructionMaterials =
+            ResolveConstructionMaterials(spec);
         string[] installationItems = spec.Code switch
         {
             "M04" => new[] { "craft:dreamweave-ritual-banner" },
@@ -708,11 +714,245 @@ public static class ModularFacilityAssetBuilder
             },
             _ => Array.Empty<string>()
         };
-        constructionMaterials.AddRange(installationItems.Select(
-            itemId => new ItemAmountDefinition(itemId, 1)));
+        foreach (string itemId in installationItems)
+            AddOrMergeMaterial(constructionMaterials, itemId, 1);
         ability.SetConstructionMaterials(constructionMaterials);
         return ability;
     }
+
+    private static List<ItemAmountDefinition> ResolveConstructionMaterials(
+        FacilityPartSpec spec)
+    {
+        List<ItemAmountDefinition> result = new();
+        void Add(string itemId, int amount) =>
+            AddOrMergeMaterial(result, itemId, amount);
+
+        switch (spec.Form)
+        {
+            case VisualForm.Hearth:
+                Add("material:stone-block", 6);
+                Add("material:iron-ingot", 2);
+                break;
+            case VisualForm.Grill:
+                Add("material:stone-block", 4);
+                Add("material:iron-ingot", 3);
+                break;
+            case VisualForm.Counter:
+                Add("material:lumber", 5);
+                Add("material:iron-ingot", 1);
+                break;
+            case VisualForm.Table:
+                Add("material:lumber", 4 + Mathf.Max(0, spec.Width - 1) * 2);
+                break;
+            case VisualForm.Chair:
+                Add("material:lumber", 3);
+                if (HasTrait(spec, FacilityEvolutionTerms.Luxury))
+                    Add("material:cloth", 2);
+                break;
+            case VisualForm.Bench:
+                Add("material:lumber", 5);
+                break;
+            case VisualForm.Shelf:
+                Add("material:lumber", 4);
+                if (spec.InternalStockCapacity > 0 || HasTrait(spec, FacilityEvolutionTerms.Security))
+                    Add("material:iron-ingot", 1);
+                break;
+            case VisualForm.WallRack:
+                Add("material:lumber", 3);
+                Add("material:iron-ingot", 1);
+                break;
+            case VisualForm.Cabinet:
+                Add("material:treated-lumber", 4);
+                Add("material:iron-ingot", 1);
+                break;
+            case VisualForm.Workbench:
+                Add("material:treated-lumber", 5 + Mathf.Max(0, spec.Width - 1));
+                Add("material:iron-ingot", 2);
+                Add("material:stone-block", 2);
+                break;
+            case VisualForm.ArmorStand:
+                Add("material:lumber", 3);
+                Add("material:iron-ingot", 2);
+                break;
+            case VisualForm.Bed:
+                Add("material:lumber", 5);
+                Add("material:cloth", 3);
+                break;
+            case VisualForm.BunkBed:
+                Add("material:lumber", 8);
+                Add("material:cloth", 5);
+                Add("material:iron-ingot", 2);
+                break;
+            case VisualForm.Sofa:
+                Add("material:lumber", 5);
+                Add("material:cloth", 5);
+                break;
+            case VisualForm.Desk:
+                Add("material:treated-lumber", 5);
+                Add("material:iron-ingot", 1);
+                break;
+            case VisualForm.Rune:
+                Add("material:stone-block", 6);
+                Add("component:rune-conductor", 2);
+                break;
+            case VisualForm.Dummy:
+            case VisualForm.Target:
+                Add("material:lumber", 5);
+                Add("material:cloth", 2);
+                break;
+            case VisualForm.Weight:
+                Add("material:stone-block", 6);
+                Add("material:iron-ingot", 1);
+                break;
+            case VisualForm.Mat:
+            case VisualForm.Rug:
+                Add("material:cloth", 4 + Mathf.Max(0, spec.Width - 1));
+                break;
+            case VisualForm.Bell:
+                Add("material:iron-ingot", 4);
+                Add("material:lumber", 1);
+                break;
+            case VisualForm.Board:
+            case VisualForm.MapTable:
+                Add("material:treated-lumber", 5);
+                Add("component:engineering-drawing", 1);
+                break;
+            case VisualForm.Flag:
+                Add("material:cloth", 3);
+                Add("material:lumber", 2);
+                break;
+            case VisualForm.Crates:
+                Add("material:lumber", 4);
+                break;
+            case VisualForm.Barrels:
+                Add("material:treated-lumber", 5);
+                Add("material:iron-ingot", 1);
+                break;
+            case VisualForm.Sacks:
+                Add("material:cloth", 4);
+                break;
+            case VisualForm.Toilet:
+            case VisualForm.Sink:
+            case VisualForm.Drain:
+                Add("material:stone-block", 4);
+                Add("material:iron-ingot", 2);
+                break;
+            case VisualForm.Partition:
+                Add("material:lumber", 4);
+                Add("material:cloth", 2);
+                break;
+            case VisualForm.Bath:
+                Add("material:treated-lumber", 6);
+                Add("material:iron-ingot", 2);
+                break;
+            case VisualForm.Torch:
+                Add("material:lumber", 2);
+                Add("material:iron-ingot", 1);
+                break;
+            case VisualForm.Chandelier:
+                Add("material:iron-ingot", 5);
+                Add("material:cloth", 1);
+                break;
+            case VisualForm.Portrait:
+                Add("material:lumber", 2);
+                Add("material:cloth", 2);
+                break;
+            case VisualForm.Candlestick:
+                Add("material:iron-ingot", 2);
+                break;
+            case VisualForm.Skull:
+                Add("material:stone-block", 3);
+                break;
+            case VisualForm.Sign:
+                Add("material:lumber", 3);
+                break;
+            default:
+                Add("material:lumber", 4);
+                break;
+        }
+
+        if (HasTrait(spec, "Production") && spec.Core)
+        {
+            Add("material:iron-ingot", 2);
+            Add("component:machine-parts", spec.Phase >= 2 ? 2 : 1);
+            if (spec.Phase >= 3)
+                Add("component:precision-parts", 1);
+        }
+        if (HasTrait(spec, FacilityEvolutionTerms.Mana))
+        {
+            Add("component:rune-conductor", 1);
+            if (spec.Phase >= 3)
+                Add("material:mana-alloy", 1);
+        }
+        if (HasTrait(spec, FacilityEvolutionTerms.Research) && spec.Core)
+            Add("component:engineering-drawing", 1);
+        if (HasTrait(spec, FacilityEvolutionTerms.Security)
+            || HasTrait(spec, FacilityEvolutionTerms.Combat))
+            Add("material:iron-ingot", 1);
+        if (HasTrait(spec, FacilityEvolutionTerms.Hygiene))
+        {
+            Add("material:stone-block", 2);
+            Add("material:iron-ingot", 1);
+        }
+        if (HasTrait(spec, "Cooling")
+            || HasTrait(spec, "Climate")
+            || HasTrait(spec, "Ventilation"))
+        {
+            Add("component:machine-parts", 2);
+            Add("material:iron-ingot", 2);
+        }
+        return result;
+    }
+
+    private static void AddOrMergeMaterial(
+        IList<ItemAmountDefinition> materials,
+        string itemId,
+        int amount)
+    {
+        if (string.IsNullOrWhiteSpace(itemId) || amount <= 0)
+            return;
+        for (int index = 0; index < materials.Count; index++)
+        {
+            ItemAmountDefinition existing = materials[index];
+            if (!string.Equals(existing.ItemId, itemId, StringComparison.Ordinal))
+                continue;
+            materials[index] = new ItemAmountDefinition(itemId, existing.Amount + amount);
+            return;
+        }
+        materials.Add(new ItemAmountDefinition(itemId, amount));
+    }
+
+    private static bool HasTrait(FacilityPartSpec spec, string trait) =>
+        spec.Traits != null
+        && spec.Traits.Any(value => string.Equals(value, trait, StringComparison.Ordinal));
+
+    private static float ResolveConstructionBaseWork(FacilityPartSpec spec)
+    {
+        if (HasTrait(spec, FacilityEvolutionTerms.Mana) && spec.Core)
+            return 360f;
+        if (spec.Code == "P25")
+            return 280f;
+        if (HasTrait(spec, "Cooling")
+            || HasTrait(spec, "Climate")
+            || HasTrait(spec, "Ventilation")
+            || HasTrait(spec, FacilityEvolutionTerms.Hygiene))
+            return 160f;
+        if (HasTrait(spec, FacilityEvolutionTerms.Security)
+            || (spec.Roles & FacilityRole.Security) != 0)
+            return 180f;
+        if (HasTrait(spec, "Production") || (spec.WorkTypes & FacilityWorkType.Craft) != 0)
+            return 110f;
+        if (spec.InternalStockCapacity > 0
+            || HasTrait(spec, FacilityEvolutionTerms.Storage)
+            || (spec.Roles & FacilityRole.Logistics) != 0)
+            return 48f;
+        if (spec.Core)
+            return 130f;
+        return spec.ContributesToRoom ? 32f : 28f;
+    }
+
+    private static float RoundTo(float value, float step) =>
+        Mathf.Max(step, Mathf.Round(value / step) * step);
 
     private static BuildingNeedRecoveryAbility EnsureNeedRecoveryAbility(FacilityPartSpec spec)
     {
@@ -726,6 +966,18 @@ public static class ModularFacilityAssetBuilder
         {
             recovery = recovery
         };
+    }
+
+    private static BuildingRecreationalSubstanceServiceAbility
+        EnsureRecreationalSubstanceServiceAbility(FacilityPartSpec spec)
+    {
+        return string.Equals(spec.Code, "D12", StringComparison.Ordinal)
+            ? new BuildingRecreationalSubstanceServiceAbility
+            {
+                funRecovery = 8f,
+                facilitySentiment = 0.25f
+            }
+            : null;
     }
 
     private static BuildingInternalStockAbility EnsureInternalStockAbility(FacilityPartSpec spec)
@@ -986,6 +1238,17 @@ public static class ModularFacilityAssetBuilder
         };
     }
 
+    private static BuildingGolemRechargeAbility CreateGolemRechargeAbility(
+        string code) => code is "M02" or "P1_ManaStorage"
+            ? new BuildingGolemRechargeAbility
+            {
+                materialItemId = "resource:mana-crystal",
+                materialQuantity = 1,
+                requiredWork = 100f,
+                restoredCharge = 50f
+            }
+            : null;
+
     private static BuildingTemperatureAbility CreateTemperatureAbility(string code)
     {
         return code switch
@@ -1168,6 +1431,7 @@ public static class ModularFacilityAssetBuilder
         if (CreateCookingAbility(code) != null) result |= FacilityWorkType.Cook;
         if (CreateMedicalAbility(code) != null) result |= FacilityWorkType.Treat;
         if (CreateFuelConsumerAbility(code) != null) result |= FacilityWorkType.Refuel;
+        if (CreateGolemRechargeAbility(code) != null) result |= FacilityWorkType.Refuel;
         return result;
     }
 
@@ -1211,6 +1475,7 @@ public static class ModularFacilityAssetBuilder
         if (building.GetAbility<BuildingCookingAbility>() != null) result |= FacilityWorkType.Cook;
         if (building.GetAbility<BuildingMedicalAbility>() != null) result |= FacilityWorkType.Treat;
         if (building.GetAbility<BuildingFuelConsumerAbility>() != null) result |= FacilityWorkType.Refuel;
+        if (building.GetAbility<BuildingGolemRechargeAbility>() != null) result |= FacilityWorkType.Refuel;
         return result;
     }
 
@@ -1236,7 +1501,7 @@ public static class ModularFacilityAssetBuilder
             "D01" => Recovery(hunger: 35f, mood: 4f),
             "D02" => Recovery(hunger: 48f, mood: 8f),
             "D04" => Recovery(hunger: 25f, mood: 3f),
-            "D12" => Recovery(hunger: 12f, mood: 6f, fun: 8f),
+            "D12" => default,
             "R01" => Recovery(sleep: 35f, mood: 4f),
             "R02" => Recovery(sleep: 52f, mood: 10f),
             "R03" => Recovery(sleep: 42f, mood: 3f),
@@ -1423,7 +1688,17 @@ public static class ModularFacilityAssetBuilder
         item.id = 4000;
         item.itemName = "모험용품";
         item.category = StockCategory.General;
-        item.cost = 45;
+        ItemDefinitionSO definition = Resources.Load<GameContentCatalogSO>(
+                GameContentCatalogSO.ResourcePath)
+            ?.GetItemDefinitions<ItemDefinitionCatalogSO>()
+            ?.Definitions
+            ?.FirstOrDefault(value => value != null
+                && string.Equals(
+                    value.ItemId,
+                    "tool:field-repair-kit",
+                    StringComparison.Ordinal));
+        item.cost = GoldEconomyBalanceRules.CalculateRetailBasePrice(
+            definition != null ? definition.UnitPrice : 1);
         item.itemSprite = AssetDatabase.LoadAssetAtPath<Sprite>(SpriteFolder + "/S02.png");
         item.buyevent = Array.Empty<OnBuyItemSO>();
         EditorUtility.SetDirty(item);
@@ -1435,12 +1710,13 @@ public static class ModularFacilityAssetBuilder
         foreach (string assetPath in LegacyRoomAssetPaths)
         {
             BuildingSO legacy = AssetDatabase.LoadAssetAtPath<BuildingSO>(assetPath);
-            if (legacy == null || !legacy.unlocked)
+            if (legacy == null)
             {
                 continue;
             }
 
             legacy.unlocked = false;
+            legacy.ConfigureCompatibilityStatus(true);
             EditorUtility.SetDirty(legacy);
         }
     }
@@ -1497,7 +1773,7 @@ public static class ModularFacilityAssetBuilder
             Support("D09", "긴벤치", 2, GridLayer.Building, BuildingCategory.Shop, VisualForm.Bench, Traits(FacilityEvolutionTerms.Dining, FacilityEvolutionTerms.Crowd), Metrics((FacilityEvolutionTerms.SeatCount, 2f))),
             Support("D10", "식재료선반", 1, GridLayer.Building, BuildingCategory.Shop, VisualForm.Shelf, Traits(FacilityEvolutionTerms.Storage, "Cooking")),
             Support("D11", "고기걸이", 1, GridLayer.WallFixture, BuildingCategory.Shop, VisualForm.WallRack, Traits("Meat", FacilityEvolutionTerms.Brutal), phase: 2),
-            Core("D12", "술음료장", 1, GridLayer.Building, BuildingCategory.Shop, FacilityRole.Meal, FacilityWorkType.Operate | FacilityWorkType.Clean | FacilityWorkType.Repair, VisualForm.Cabinet, Traits(FacilityEvolutionTerms.Service, FacilityEvolutionTerms.Luxury), phase: 2),
+            Core("D12", "술음료장", 1, GridLayer.Building, BuildingCategory.Shop, FacilityRole.Entertainment, FacilityWorkType.Operate | FacilityWorkType.Clean | FacilityWorkType.Repair, VisualForm.Cabinet, Traits(FacilityEvolutionTerms.Service, FacilityEvolutionTerms.Luxury), phase: 2),
 
             Core("S01", "판매카운터", 2, GridLayer.Building, BuildingCategory.Shop, FacilityRole.Purchase, FacilityWorkType.Operate | FacilityWorkType.Restock | FacilityWorkType.Repair, VisualForm.Counter, Traits(FacilityEvolutionTerms.Service), Metrics((FacilityEvolutionTerms.CounterCount, 1f)), runtimeType: typeof(Shop), internalStockCapacity: 24),
             Support("S02", "잡화진열선반", 2, GridLayer.Building, BuildingCategory.Shop, VisualForm.Shelf, Traits("Shop", FacilityEvolutionTerms.Service)),

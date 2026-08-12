@@ -20,32 +20,6 @@ MonoBehaviour:
   characterName: "\uC544\uC790\uB77C"
   speciesTag: Demon
   species: {fileID: 11400000, guid: 48afe38b6689c25469938d8b27b17aaa, type: 2}
-  baseStats:
-    entries:
-    - statId: stat:attack
-      value: 8
-    - statId: stat:shooting
-      value: 5
-    - statId: stat:evasion
-      value: 5
-    - statId: stat:sales
-      value: 7
-    - statId: stat:research
-      value: 8
-    - statId: stat:move-speed
-      value: 5
-    - statId: stat:strength
-      value: 5
-    - statId: stat:toughness
-      value: 6
-    - statId: stat:dexterity
-      value: 5
-    - statId: stat:cleaning
-      value: 5
-    - statId: stat:endurance
-      value: 5
-    - statId: stat:medical
-      value: 5
   traits: []
   defaultWorkPriorities:
     schemaVersion: 2
@@ -109,6 +83,8 @@ MonoBehaviour:
     - workTypeId: work:threat-mitigation
       priority: 1
     - workTypeId: work:plumbing
+      priority: 2
+    - workTypeId: work:dismantle
       priority: 2
     legacyOperate: 1
     legacyRestock: 2

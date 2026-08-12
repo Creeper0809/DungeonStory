@@ -2458,9 +2458,11 @@ public static class CharacterAiPlanDebugScenarios
                         string.Empty)
                 });
 
-            bool applied = actor.Blackboard.HasActiveMoodImpulse()
-                && actor.Blackboard.ActiveMoodImpulse.type == CharacterMoodImpulseType.Wait
-                && director.LastAppliedMoodImpulseType == CharacterMoodImpulseType.Wait;
+            bool recordedAsNarrativeOnly = !actor.Blackboard.HasActiveMoodImpulse()
+                && director.LastAppliedMoodImpulseType == CharacterMoodImpulseType.None
+                && director.LastAppliedMoodImpulseDebug.Contains(
+                    "suggested=Wait",
+                    System.StringComparison.Ordinal);
 
             return queue != null
                 && shouldBefore
@@ -2468,7 +2470,7 @@ public static class CharacterAiPlanDebugScenarios
                 && queue.QueuedCount == 1
                 && cooldownBlocks
                 && promptContract
-                && applied;
+                && recordedAsNarrativeOnly;
         }
         finally
         {
@@ -3833,11 +3835,11 @@ public static class CharacterAiPlanDebugScenarios
             queue.SetWarningLogsSuppressedForDebug(true);
 
             LocalLlmRequestProfile lowPriority = new LocalLlmRequestProfile(
-                "TestLowPriority",
+                LocalLlmRequestProfiles.Persona.Id,
                 1,
                 temperature: 0.2f);
             LocalLlmRequestProfile highPriority = new LocalLlmRequestProfile(
-                "TestHighPriority",
+                LocalLlmRequestProfiles.MultiPerspective.Id,
                 100,
                 temperature: 0.9f,
                 maxQueueAgeSeconds: 9f);
@@ -3860,7 +3862,7 @@ public static class CharacterAiPlanDebugScenarios
 
             int quietCallbackCount = 0;
             LocalLlmRequestProfile quietProfile = new LocalLlmRequestProfile(
-                "TestQuietWhenFull",
+                LocalLlmRequestProfiles.CharacterRecord.Id,
                 50,
                 queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly);
             bool quietAccepted = queue.Enqueue(
@@ -3873,7 +3875,7 @@ public static class CharacterAiPlanDebugScenarios
             int dropCallbackCount = 0;
             LocalLlmRequestStatus dropStatus = LocalLlmRequestStatus.Succeeded;
             LocalLlmRequestProfile dropProfile = new LocalLlmRequestProfile(
-                "TestDropWhenFull",
+                LocalLlmRequestProfiles.BubbleLine.Id,
                 2,
                 queueFullBehavior: LocalLlmQueueFullBehavior.Drop,
                 canBeEvictedForQueuePressure: true,

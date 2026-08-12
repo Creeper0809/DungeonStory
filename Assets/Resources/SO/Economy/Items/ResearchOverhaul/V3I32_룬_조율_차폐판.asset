@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uB8EC \uC870\uC728 \uCC28\uD3D0\uD310"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uB8EC \uC870\uC728 \uCC28\uD3D0\uD310."
   stockCategory: 1
-  unitWeight: 1.18
+  unitWeight: 2.55
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 74
+  unitPrice: 111
   features:
-  - rid: 7737211838074979322
-  - rid: 7737211838074979323
+  - rid: 7737211905658585735
+  - rid: 7737211905658585736
+  - rid: 7737211905660420710
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074979322
+    - rid: 7737211905658585735
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:rune-module-tuning
-    - rid: 7737211838074979323
+    - rid: 7737211905658585736
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1536
         sharedIntermediate: 0
+    - rid: 7737211905660420710
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.601618

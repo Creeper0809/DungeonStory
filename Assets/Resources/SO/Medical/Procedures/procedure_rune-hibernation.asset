@@ -41,11 +41,11 @@ MonoBehaviour:
     quantity: 1
     optional: 0
   effects:
-  - rid: 7737211824080421853
+  - rid: 7737211857806557905
   references:
     version: 2
     RefIds:
-    - rid: 7737211824080421853
+    - rid: 7737211857806557905
       type: {class: ApplyAgeTreatmentEffect, ns: , asm: DungeonStory.Medical}
       data:
         effectId: ApplyAgeTreatmentEffect

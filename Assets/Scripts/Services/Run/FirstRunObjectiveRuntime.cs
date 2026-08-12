@@ -424,10 +424,33 @@ public sealed class FirstRunObjectiveRuntime :
             completedRunCount = meta.State.CompletedRunCount;
         }
 
-        OffenseCampaignSnapshot campaign = offense.Capture();
-        int completedOffenseTargetCount = campaign.CompletedTargetCount;
-        int totalOffenseTargetCount = campaign.CampaignTargetCount;
-        bool truthRevealed = campaign.TruthRevealed;
+        int completedOffenseTargetCount = 0;
+        int totalOffenseTargetCount = 0;
+        bool truthRevealed = false;
+
+        // Resolve() returns as soon as an earlier onboarding milestone is
+        // incomplete. Capturing the full offense campaign before those gates
+        // are satisfied rebuilt its collection-backed snapshot four times per
+        // second even during the first days of a run. Preserve the resolver's
+        // exact ordering and only pay that cost when the offense milestone can
+        // actually be selected.
+        bool needsOffenseSnapshot = completedRunCount == 0
+            && runFlow.Outcome == DungeonRunOutcome.None
+            && hasOwner
+            && hasUsableRoom
+            && (hasResearchBlueprint
+                || taskCount > 0
+                || completedResearchCount > 0)
+            && completedResearchCount > 0
+            && settlementCount > 0
+            && defendedInvasionCount > 0;
+        if (needsOffenseSnapshot)
+        {
+            OffenseCampaignSnapshot campaign = offense.Capture();
+            completedOffenseTargetCount = campaign.CompletedTargetCount;
+            totalOffenseTargetCount = campaign.CampaignTargetCount;
+            truthRevealed = campaign.TruthRevealed;
+        }
 
         return new FirstRunObjectiveSnapshot(
             hasOwner,

@@ -163,6 +163,7 @@ public sealed class ProductionBillSnapshotProjector :
             WorkerPolicy = record.workerPolicy?.CloneNormalized()
                 ?? WorkerSelectionPolicySaveData.Anyone(
                     WorkerCandidateSortMode.Fastest),
+            EmergencyWorkerId = record.emergencyWorkerId,
             MaterialDestinationId = record.materialDestinationId,
             BlockedFailure = blockedFailure,
             PrefetchBatchCount = record.prefetchBatchCount,

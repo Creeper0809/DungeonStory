@@ -24,8 +24,8 @@ MonoBehaviour:
   cultureId: 
   requiredBuildingDefinitionId: workstation:v19:memorial-room
   requiredItems:
-  - itemDefinitionId: item:candle
-    amount: 20
+  - itemDefinitionId: craft:candle
+    amount: 12
   minimumParticipants: 10
   successOutcome:
     moodDelta: 6

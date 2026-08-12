@@ -107,6 +107,16 @@ public sealed class BuildingNeedRecoveryAbility : BuildingAbility
     public bool HasEffect => recovery.HasEffect;
 }
 
+[Serializable]
+[BuildingAbilityDisplayName("유흥 음료 서비스")]
+public sealed class BuildingRecreationalSubstanceServiceAbility : BuildingAbility
+{
+    [Min(0f), InspectorName("재미 회복")] public float funRecovery = 8f;
+    [Range(-1f, 1f), InspectorName("시설 경험 평판")] public float facilitySentiment = 0.25f;
+
+    public bool IsValid => funRecovery > 0f;
+}
+
 
 [Serializable]
 [BuildingAbilityDisplayName("생산")]
@@ -181,6 +191,8 @@ public sealed class BuildingWorkAmountAbility : BuildingAbility,
     IBuildingWorkAmountRuntimeAbility,
     IBuildingConstructionMaterialValidator
 {
+    [SerializeField, InspectorName("건설 프로젝트 규모")]
+    private ProjectScale constructionProjectScale = ProjectScale.SmallFacility;
     [Min(0.1f), InspectorName("건설 작업량")] public float constructionWorkRequired = 30f;
     [Min(0.1f), InspectorName("수리 작업량")] public float repairWorkRequired = 8f;
     [Min(0.1f), InspectorName("청소 작업량")] public float cleanWorkRequired = 6f;
@@ -210,6 +222,21 @@ public sealed class BuildingWorkAmountAbility : BuildingAbility,
         ?? WorkerSelectionPolicySaveData.Anyone(
             WorkerCandidateSortMode.SpecificThenBestExpectedQuality);
 
+    public ProjectScale ConstructionProjectScale
+    {
+        get
+        {
+            if (constructionProjectScale is not ProjectScale.SmallFacility
+                and not ProjectScale.MediumFacility
+                and not ProjectScale.IndustrialFacility)
+            {
+                throw new InvalidOperationException(
+                    $"Building construction cannot use project scale '{constructionProjectScale}'.");
+            }
+            return constructionProjectScale;
+        }
+    }
+
     public float GetRequiredWork(BuildableObject building, WorkTypeId workTypeId)
     {
         return WorkTypeCatalog.TryGet(workTypeId, out WorkTypeDefinition definition)
@@ -237,6 +264,12 @@ public sealed class BuildingWorkAmountAbility : BuildingAbility,
     }
 
 #if UNITY_EDITOR
+    public void SetConstructionProjectScale(ProjectScale scale)
+    {
+        constructionProjectScale = scale;
+        _ = ConstructionProjectScale;
+    }
+
     public void SetConstructionMaterials(
         IEnumerable<ItemAmountDefinition> materials)
     {
@@ -507,7 +540,11 @@ public sealed class BuildingTrainingAbility : BuildingAbility, IBuildingUseCompl
             return;
         }
 
-        actor.AddExperience(Mathf.Max(0, experienceAmount));
+        if (experienceAmount > 0)
+        {
+            actor.AddExperience(experienceAmount);
+        }
+
         if (Mathf.Approximately(moodAmount, 0f))
         {
             return;

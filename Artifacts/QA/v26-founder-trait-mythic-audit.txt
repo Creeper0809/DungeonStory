@@ -1,0 +1,18 @@
+V26 founder trait and Mythic deterministic audit
+founder_traits=100
+rerolls=100000
+average_trait_count=2.396530
+negative_slot_rate=0.279204
+extreme_slot_rate=0.009618
+multi_extreme_character_rate=0.000000
+mythic_trials=1000000
+mythic_rate=0.030083
+normal_quality_mythic=0
+shared_effect_value=1.155000
+shared_effect_duplicate_suppression=pass
+identity_state_round_trip=pass
+identity_duplicate_rejection=pass
+extreme_trait_runtime=pass
+direct_order_cost_preview_and_apply=pass
+apparel_mythic_provenance_round_trip=pass
+status=PASS

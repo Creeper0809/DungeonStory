@@ -88,8 +88,7 @@ public sealed class DungeonResolutionVerificationRunner : MonoBehaviour
             if (settingsButton != null && settingsButton.interactable)
             {
                 PressButton(settingsButton);
-                yield return null;
-                yield return null;
+                yield return WaitForSettingsVisibility(visible: true);
                 VerifySettings(resolution);
                 yield return Capture(
                     $"Temp/resolution-{resolution.x}x{resolution.y}-settings.png",
@@ -99,7 +98,7 @@ public sealed class DungeonResolutionVerificationRunner : MonoBehaviour
                 if (close != null && close.interactable)
                 {
                     PressButton(close);
-                    yield return null;
+                    yield return WaitForSettingsVisibility(visible: false);
                 }
             }
         }
@@ -198,6 +197,26 @@ public sealed class DungeonResolutionVerificationRunner : MonoBehaviour
             "SettingsCloseButton",
             "ApplySettingsButton");
         VerifyTextOverflow(panel, resolution, "SETTINGS_TEXT");
+    }
+
+    private static IEnumerator WaitForSettingsVisibility(bool visible)
+    {
+        float deadline = Time.realtimeSinceStartup + 2f;
+        while (Time.realtimeSinceStartup < deadline)
+        {
+            GameObject modal = FindSceneObject("SettingsModal");
+            if ((modal != null && modal.activeInHierarchy) == visible)
+            {
+                yield return new WaitForEndOfFrame();
+                Canvas.ForceUpdateCanvases();
+                yield break;
+            }
+
+            yield return null;
+        }
+
+        yield return new WaitForEndOfFrame();
+        Canvas.ForceUpdateCanvases();
     }
 
     private IEnumerator EnsurePlayableRun()

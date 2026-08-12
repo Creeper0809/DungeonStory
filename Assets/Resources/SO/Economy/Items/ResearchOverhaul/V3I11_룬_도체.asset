@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uB8EC \uB3C4\uCCB4"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uB8EC \uB3C4\uCCB4."
   stockCategory: 1
-  unitWeight: 0.55
+  unitWeight: 2.4
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 32
+  unitPrice: 48
   features:
-  - rid: 7737211838078124522
-  - rid: 7737211838078124523
+  - rid: 7737211905658586034
+  - rid: 7737211905658586035
+  - rid: 7737211905660420788
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124522
+    - rid: 7737211905658586034
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:industry:mana-power
-    - rid: 7737211838078124523
+    - rid: 7737211905658586035
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 1536
         sharedIntermediate: 1
+    - rid: 7737211905660420788
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.60157865

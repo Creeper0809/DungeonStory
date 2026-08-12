@@ -19,7 +19,7 @@ public static class ResearchTreeDebugScenarios
         float work = closure.Sum(project => project.RequiredWork);
         int projectsWithoutInlineUnlocks = projects.Count(project => project.Unlocks.Count == 0);
         return $"V19_RESEARCH_GRAPH count={projects.Length};closure={closure.Count};"
-            + $"work={work:F0};days={work / 99f:F1};"
+            + $"work={work:F0};days={work / SettlementLaborBalanceRules.BaselineWuPerAdultDay:F1};"
             + $"projectsWithoutInlineUnlocks={projectsWithoutInlineUnlocks}";
     }
 
@@ -102,7 +102,7 @@ public static class ResearchTreeDebugScenarios
         HashSet<ResearchProjectSO> temporalClosure = new();
         AddClosure(temporalStasis, temporalClosure);
         float temporalClosureWork = temporalClosure.Sum(project => project.RequiredWork);
-        return projects.Length == 180
+        bool valid = projects.Length == 180
             && catalog.Validate().Count == 0
             && required == 4
             && shortcut == 3
@@ -113,8 +113,23 @@ public static class ResearchTreeDebugScenarios
             && temporalStasis != null
             && temporalClosure.Count == 90
             && Mathf.Approximately(temporalClosureWork, 95448f)
-            && Mathf.Abs(temporalClosureWork / 99f - 964.1212f) < 0.05f
+            && Mathf.Abs(
+                temporalClosureWork / SettlementLaborBalanceRules.BaselineWuPerAdultDay
+                - 964.1212f
+                    * SettlementLaborBalanceRules.HistoricalTheoreticalCapacityWuPerAdultDay
+                    / SettlementLaborBalanceRules.BaselineWuPerAdultDay) < 0.05f
             && archiveConfigured;
+        if (!valid)
+        {
+            Debug.LogError(
+                $"Research catalog diagnostic: total={projects.Length}, "
+                + $"catalogErrors={catalog.Validate().Count}, required={required}, "
+                + $"shortcut={shortcut}, blueprintProjects={projects.Count(project => project.Blueprint != null)}, "
+                + $"blueprints={blueprints.Length}, unlocks={projectUnlockCount}, "
+                + $"temporal={(temporalStasis != null)}, closure={temporalClosure.Count}, "
+                + $"closureWork={temporalClosureWork:0.####}, archive={archiveConfigured}.");
+        }
+        return valid;
     }
 
     private static bool VerifySyntheticLayout(int count)

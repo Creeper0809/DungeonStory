@@ -57,9 +57,9 @@ MonoBehaviour:
   - id: culture:myconid-grove
     weight: 0.86
   - id: culture:orc-vigil
-    weight: 0.89
+    weight: 0.89000005
   - id: culture:slime-confluence
     weight: 0.92
   - id: culture:vampire-nightcourt
-    weight: 0.95
+    weight: 0.95000005
   assimilationDays: 120

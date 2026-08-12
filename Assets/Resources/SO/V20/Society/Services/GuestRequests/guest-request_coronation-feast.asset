@@ -23,7 +23,7 @@ MonoBehaviour:
   deadlineDays: 5
   serviceRequirements:
     items:
-    - itemDefinitionId: food:luxury-feast
+    - itemDefinitionId: food:lavish-meat
       amount: 4
       consume: 1
     facilities:
@@ -40,7 +40,7 @@ MonoBehaviour:
   successEffects:
   - kind: 9
     targetId: guest-service
-    amount: 80
+    amount: 134
     durationDays: 0
   - kind: 6
     targetId: requesting-faction

@@ -136,13 +136,20 @@ internal sealed class StartPartyMemberDetailRenderer
     private void RenderIdentityDetail(StartPartyMemberPreparation member, Transform parent)
     {
         CharacterGrowthState growth = member.Progression?.GrowthState;
+        CharacterStartingProfileState profile = growth?.startingProfile;
         Transform basics = CreatePanel(parent, "IdentityBasics", new Vector2(0.045f, 0.38f), new Vector2(0.46f, 0.72f), false);
         basics.GetComponent<Image>().color = DungeonUiTheme.SurfaceRaised;
         CreateSectionTitle(basics, "\uAE30\uBCF8 \uC815\uBCF4", member, StartPartyRerollGroup.Identity);
         CreateInfoRow(basics, "\uC774\uB984", ResolveMemberName(member), 0.63f);
         CreateInfoRow(basics, "\uC5ED\uD560", member.RosterLabel, 0.46f);
         CreateInfoRow(basics, "\uC885\uC871", member.CharacterData?.SpeciesTag ?? "-", 0.29f);
-        CreateInfoRow(basics, "\uCD9C\uC2E0", growth?.origin ?? "-", 0.12f);
+        CreateInfoRow(
+            basics,
+            "\uCD9C\uC2E0\u00B7\uC774\uB825",
+            profile?.prepared == true
+                ? $"{profile.originDisplayName} \u00B7 {profile.historyDisplayName}"
+                : growth?.origin ?? "-",
+            0.12f);
 
         Transform traits = CreatePanel(parent, "IdentityTraits", new Vector2(0.485f, 0.38f), new Vector2(0.955f, 0.72f), false);
         traits.GetComponent<Image>().color = DungeonUiTheme.SurfaceRaised;
@@ -160,15 +167,16 @@ internal sealed class StartPartyMemberDetailRenderer
             return;
         }
 
-        for (int i = 0; i < resolvedTraits.Count && i < 3; i++)
+        for (int i = 0; i < resolvedTraits.Count && i < 4; i++)
         {
-            RenderTraitChip(traits, resolvedTraits[i], 0.56f - i * 0.25f);
+            RenderTraitChip(traits, resolvedTraits[i], 0.58f - i * 0.17f);
         }
     }
 
     private void RenderAptitudeDetail(StartPartyMemberPreparation member, Transform parent)
     {
         CharacterGrowthState growth = member.Progression?.GrowthState;
+        CharacterStartingProfileState profile = growth?.startingProfile;
         Transform summary = CreatePanel(parent, "AptitudeSummary", new Vector2(0.045f, 0.57f), new Vector2(0.955f, 0.72f), false);
         summary.GetComponent<Image>().color = DungeonUiTheme.SurfaceRaised;
         CreateSectionTitle(summary, "\uC7AC\uB2A5", member, StartPartyRerollGroup.Aptitude);
@@ -176,29 +184,70 @@ internal sealed class StartPartyMemberDetailRenderer
             summary,
             "PotentialValue",
             $"\uC7A0\uC7AC\uB825  {PotentialLabel(growth?.potentialGrade ?? CharacterPotentialGrade.Ordinary)}",
-            22f,
+            17f,
             TextAlignmentOptions.MidlineLeft);
-        SetRect(potential.rectTransform, new Vector2(0.04f, 0.22f), new Vector2(0.5f, 0.68f));
+        SetRect(potential.rectTransform, new Vector2(0.04f, 0.22f), new Vector2(0.24f, 0.68f));
         potential.color = DungeonUiTheme.Accent;
         potential.fontStyle = FontStyles.Bold;
 
-        int total = Enum.GetValues(typeof(CharacterStatType))
-            .Cast<CharacterStatType>()
-            .Sum(type => growth?.initialBaseStats?.Get(type) ?? 0);
-        TMP_Text totalText = CreateText(summary, "StatTotal", $"\uCD08\uAE30 \uB2A5\uB825\uCE58 \uD569\uACC4  {total}", 17f, TextAlignmentOptions.MidlineRight);
-        SetRect(totalText.rectTransform, new Vector2(0.5f, 0.22f), new Vector2(0.94f, 0.68f));
+        IReadOnlyList<CharacterStartingProficiencyExperience> starts =
+            growth?.startingProficiencies;
+        starts ??= Array.Empty<CharacterStartingProficiencyExperience>();
+        int total = starts.Where(value => value != null).Sum(value => value.experience);
+        string ageText = profile?.prepared == true
+            ? $"{StartingAgeBandLabel(profile.ageBand)} {profile.biologicalAgeYears:0.#}\uC138"
+                + (profile.initialAgeConditionIds.Count > 0
+                    ? $" \u00B7 \uAC74\uAC15 \uBB38\uC81C {profile.initialAgeConditionIds.Count}"
+                    : string.Empty)
+            : "\uB098\uC774 -";
+        TMP_Text age = CreateText(
+            summary,
+            "StartingAge",
+            ageText,
+            16f,
+            TextAlignmentOptions.MidlineLeft);
+        SetRect(age.rectTransform, new Vector2(0.24f, 0.22f), new Vector2(0.43f, 0.68f));
+
+        string primary = profile?.prepared == true
+            ? ProficiencyLabel(new CharacterProficiencyId(profile.primaryProficiencyId))
+            : "-";
+        string secondary = profile?.prepared == true
+            ? ProficiencyLabel(new CharacterProficiencyId(profile.secondaryProficiencyId))
+            : "-";
+        TMP_Text specialization = CreateText(
+            summary,
+            "StartingSpecializations",
+            $"\uC8FC {primary} x{CharacterProficiencySpecializationRules.PrimaryLearningMultiplier:0.00}"
+                + $"  /  \uBD80 {secondary} x{CharacterProficiencySpecializationRules.SecondaryLearningMultiplier:0.00}",
+            16f,
+            TextAlignmentOptions.MidlineLeft);
+        SetRect(specialization.rectTransform, new Vector2(0.43f, 0.22f), new Vector2(0.78f, 0.68f));
+
+        TMP_Text totalText = CreateText(
+            summary,
+            "ProficiencyTotal",
+            $"XP {total}  /  \uC0C1\uD55C {profile?.proficiencyCap ?? 0}",
+            15f,
+            TextAlignmentOptions.MidlineRight);
+        SetRect(totalText.rectTransform, new Vector2(0.78f, 0.22f), new Vector2(0.95f, 0.68f));
         totalText.color = DungeonUiTheme.TextSecondary;
 
         Transform stats = CreatePanel(parent, "AptitudeStats", new Vector2(0.045f, 0.08f), new Vector2(0.955f, 0.54f), false);
         stats.GetComponent<Image>().color = DungeonUiTheme.SurfaceRaised;
-        CharacterStatType[] types = Enum.GetValues(typeof(CharacterStatType)).Cast<CharacterStatType>().ToArray();
-        for (int i = 0; i < types.Length; i++)
+        for (int i = 0; i < BuiltInCharacterProficiencyIds.All.Count; i++)
         {
+            CharacterProficiencyId proficiencyId =
+                BuiltInCharacterProficiencyIds.All[i];
+            int value = starts.FirstOrDefault(item => item != null
+                && string.Equals(
+                    item.proficiencyId,
+                    proficiencyId.Value,
+                    StringComparison.Ordinal))?.experience ?? 0;
             int column = i / 3;
             int row = i % 3;
             float left = 0.04f + column * 0.315f;
             float top = 0.82f - row * 0.28f;
-            RenderStatBar(stats, types[i], growth?.initialBaseStats?.Get(types[i]) ?? 0, left, top);
+            RenderProficiencyBar(stats, proficiencyId, value, left, top);
         }
     }
 
@@ -325,14 +374,17 @@ internal sealed class StartPartyMemberDetailRenderer
 
     private void RenderTraitChip(Transform parent, CharacterTraitSO trait, float bottom)
     {
-        Transform chip = CreatePanel(parent, "TraitChip_" + (trait != null ? trait.id : 0), new Vector2(0.05f, bottom), new Vector2(0.94f, bottom + 0.2f), false);
+        Transform chip = CreatePanel(parent, "TraitChip_" + (trait != null ? trait.id : 0), new Vector2(0.05f, bottom), new Vector2(0.94f, bottom + 0.145f), false);
         chip.GetComponent<Image>().color = new Color(0.02f, 0.025f, 0.03f, 0.85f);
-        TMP_Text title = CreateText(chip, "TraitName", trait != null ? trait.traitName : "-", 17f, TextAlignmentOptions.MidlineLeft);
-        SetRect(title.rectTransform, new Vector2(0.04f, 0.58f), new Vector2(0.95f, 0.95f));
+        string titleText = trait != null
+            ? $"{trait.traitName}  [{StartPartyPreparationPresentation.TraitRarityLabel(trait.selectionRarity)}]"
+            : "-";
+        TMP_Text title = CreateText(chip, "TraitName", titleText, 15f, TextAlignmentOptions.MidlineLeft);
+        SetRect(title.rectTransform, new Vector2(0.04f, 0.57f), new Vector2(0.95f, 0.96f));
         title.color = DungeonUiTheme.Accent;
         title.fontStyle = FontStyles.Bold;
-        TMP_Text description = CreateText(chip, "TraitDescription", trait != null ? trait.description : string.Empty, 14f, TextAlignmentOptions.TopLeft);
-        SetRect(description.rectTransform, new Vector2(0.04f, 0.08f), new Vector2(0.95f, 0.55f));
+        TMP_Text description = CreateText(chip, "TraitDescription", trait != null ? trait.description : string.Empty, 12f, TextAlignmentOptions.TopLeft);
+        SetRect(description.rectTransform, new Vector2(0.04f, 0.06f), new Vector2(0.95f, 0.56f));
         description.color = DungeonUiTheme.TextSecondary;
         description.textWrappingMode = TextWrappingModes.Normal;
 
@@ -392,19 +444,43 @@ internal sealed class StartPartyMemberDetailRenderer
         trigger.triggers.Add(entry);
     }
 
-    private void RenderStatBar(Transform parent, CharacterStatType type, int value, float left, float top)
+    private void RenderProficiencyBar(
+        Transform parent,
+        CharacterProficiencyId proficiencyId,
+        int experience,
+        float left,
+        float top)
     {
-        TMP_Text label = CreateText(parent, "StatLabel_" + type, StatLabel(type), 15f, TextAlignmentOptions.MidlineLeft);
+        string suffix = proficiencyId.Value.Replace(':', '_');
+        TMP_Text label = CreateText(
+            parent,
+            "ProficiencyLabel_" + suffix,
+            ProficiencyLabel(proficiencyId),
+            15f,
+            TextAlignmentOptions.MidlineLeft);
         SetRect(label.rectTransform, new Vector2(left, top - 0.12f), new Vector2(left + 0.13f, top));
         label.color = DungeonUiTheme.TextSecondary;
 
-        TMP_Text number = CreateText(parent, "StatValue_" + type, value.ToString(), 16f, TextAlignmentOptions.MidlineRight);
-        SetRect(number.rectTransform, new Vector2(left + 0.25f, top - 0.12f), new Vector2(left + 0.285f, top));
+        TMP_Text number = CreateText(
+            parent,
+            "ProficiencyValue_" + suffix,
+            $"{ProficiencyBandLabel(experience * ProficiencyProgressionRules.MilliPerExperience)}  {experience}",
+            13f,
+            TextAlignmentOptions.MidlineRight);
+        SetRect(number.rectTransform, new Vector2(left + 0.215f, top - 0.12f), new Vector2(left + 0.30f, top));
 
-        Image back = CreateImage(parent, "StatBack_" + type, new Color(0.02f, 0.025f, 0.03f, 0.9f));
-        SetRect(back.rectTransform, new Vector2(left + 0.14f, top - 0.085f), new Vector2(left + 0.245f, top - 0.035f));
+        Image back = CreateImage(parent, "ProficiencyBack_" + suffix, new Color(0.02f, 0.025f, 0.03f, 0.9f));
+        SetRect(back.rectTransform, new Vector2(left + 0.14f, top - 0.085f), new Vector2(left + 0.21f, top - 0.035f));
         Image fill = CreateImage(back.transform, "Fill", DungeonUiTheme.Accent);
-        float normalized = Mathf.Clamp01(value / 10f);
+        long milliExperience = experience
+            * ProficiencyProgressionRules.MilliPerExperience;
+        CharacterProficiencyBandSnapshot band =
+            ProficiencyProgressionRules.ResolveBand(milliExperience);
+        float normalized = Mathf.Clamp01(
+            (milliExperience - band.MinimumMilliExperience)
+            / (float)Math.Max(
+                1L,
+                band.NextMilliExperience - band.MinimumMilliExperience));
         SetRect(fill.rectTransform, Vector2.zero, new Vector2(normalized, 1f));
     }
 

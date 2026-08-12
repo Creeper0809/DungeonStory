@@ -31,6 +31,26 @@ MonoBehaviour:
   objectName: "\uC11C\uCEE4\uC2A4 \uB3C4\uBC15 \uCC3D\uAD6C"
   sprite: {fileID: 21300000, guid: 63b7ea22cb495bc46b7ea71d8d4a68a3, type: 3}
   icon: {fileID: 21300000, guid: 63b7ea22cb495bc46b7ea71d8d4a68a3, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  deprecatedCompatibilityAsset: 0
+  useClassification: 0
+  researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
     - rid: 7737211772876620269
@@ -77,6 +97,17 @@ MonoBehaviour:
         cleanWorkRequired: 7.5
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
         - itemId: material:lumber
           amount: 5

@@ -34,17 +34,32 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730834227518
-    - rid: 7737211730834227519
-    - rid: 7737211730834227520
-    - rid: 7737211730834227521
-    - rid: 7737211730834227522
-    - rid: 7737211730834227523
-    - rid: 7737211838074979076
+    - rid: 7737211921440178908
+    - rid: 7737211921440178909
+    - rid: 7737211921440178910
+    - rid: 7737211921440178911
+    - rid: 7737211921440178912
+    - rid: 7737211921440178913
+    - rid: 7737211921440178914
   width: 2
   height: 1
   layer: 1
@@ -60,12 +75,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730834227518
+    - rid: 7737211921440178908
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: S02
-    - rid: 7737211730834227519
+    - rid: 7737211921440178909
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -74,19 +89,31 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211730834227520
+    - rid: 7737211921440178910
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 25.5
-        repairWorkRequired: 12
-        cleanWorkRequired: 7.5
+        constructionProjectScale: 0
+        constructionWorkRequired: 40
+        repairWorkRequired: 10
+        cleanWorkRequired: 4
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
         - itemId: material:lumber
           amount: 4
-    - rid: 7737211730834227521
+    - rid: 7737211921440178911
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -101,19 +128,19 @@ MonoBehaviour:
           - key: Service
             value: 2.5
           metrics: []
-    - rid: 7737211730834227522
+    - rid: 7737211921440178912
       type: {class: BuildingServiceAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingServiceAbility
         capacity: 1
         contributesStockCategory: 0
         stockCategory: 0
-    - rid: 7737211730834227523
+    - rid: 7737211921440178913
       type: {class: BuildingRetailAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRetailAbility
         category: 1
-    - rid: 7737211838074979076
+    - rid: 7737211921440178914
       type: {class: BuildingServiceSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceSupportAbility

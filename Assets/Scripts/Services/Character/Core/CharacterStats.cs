@@ -28,11 +28,15 @@ public class CharacterStats :
     private ICharacterNeedDefinitionCatalog needDefinitionCatalog;
     private IDungeonDebugRuleQuery debugRules;
     private IGameClock gameClock;
+    private IGameEventBus gameEventBus;
     private CharacterStatsProjectionService projectionService;
     private CharacterNeedStateService needStateService;
     private CharacterStatsVitalsService vitalsService;
     private CharacterMoodStateService moodStateService;
     private CharacterStatsMaintenanceSchedule maintenanceSchedule;
+    private ICharacterPerformanceQuery performance;
+    private CharacterWorkPerformanceContextResolver workPerformanceContext;
+    private ICombatEquipmentRuntime combatEquipment;
     [NonSerialized]
     private ControlledDictionary<CharacterCondition, float> controlledStats;
     public IDictionary<CharacterCondition, float> Stats
@@ -104,7 +108,11 @@ public class CharacterStats :
         CharacterStatsProjectionService projectionService,
         CharacterNeedStateService needStateService,
         CharacterMoodStateService moodStateService,
-        CharacterStatsMaintenanceSchedule maintenanceSchedule)
+        CharacterStatsMaintenanceSchedule maintenanceSchedule,
+        IGameEventBus gameEventBus,
+        ICharacterPerformanceQuery performance = null,
+        CharacterWorkPerformanceContextResolver workPerformanceContext = null,
+        ICombatEquipmentRuntime combatEquipment = null)
     {
         this.gameClock = gameClock
             ?? throw new ArgumentNullException(nameof(gameClock));
@@ -119,6 +127,13 @@ public class CharacterStats :
             ?? throw new ArgumentNullException(nameof(moodStateService));
         this.maintenanceSchedule = maintenanceSchedule
             ?? throw new ArgumentNullException(nameof(maintenanceSchedule));
+        this.gameEventBus = gameEventBus
+            ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
+        this.workPerformanceContext = workPerformanceContext
+            ?? throw new ArgumentNullException(nameof(workPerformanceContext));
+        this.combatEquipment = combatEquipment;
         EnsureStats();
         if (actor != null)
         {
@@ -194,6 +209,9 @@ public class CharacterStats :
             CharacterCondition.THIRST,
             -decay.Thirst);
         changed |= ApplyStatDeltaWithoutPublishing(
+            CharacterCondition.FUN,
+            -decay.Fun);
+        changed |= ApplyStatDeltaWithoutPublishing(
             CharacterCondition.EXCRETION,
             -decay.Excretion);
         changed |= ApplyStatDeltaWithoutPublishing(
@@ -239,14 +257,47 @@ public class CharacterStats :
     public void RecoverNeed(
         CharacterCondition condition,
         float amount,
-        CharacterNeedRecoverySource source)
+        CharacterNeedRecoverySource source,
+        IEnumerable<string> activeConditionIds = null)
     {
+        float previousValue = GetConditionValue(condition, 0f);
+        float sharedMultiplier = condition == CharacterCondition.SLEEP
+            && source == CharacterNeedRecoverySource.Rest
+                ? GetDetailedStatMultiplier(
+                    "character:sleep-recovery",
+                    activeConditionIds)
+                : 1f;
         ChangesStat(
             condition,
             RequireNeedStateService().ApplyRecoveryMultiplier(
                 condition,
                 amount,
-                source));
+                source) * sharedMultiplier);
+        if (condition == CharacterCondition.SLEEP
+            && source == CharacterNeedRecoverySource.Rest
+            && gameEventBus != null
+            && actor != null
+            && CharacterPersistentIdentity.TryGet(actor, out CharacterId id))
+        {
+            List<string> conditions = new();
+            if (activeConditionIds != null)
+            {
+                foreach (string conditionId in activeConditionIds)
+                {
+                    if (!string.IsNullOrWhiteSpace(conditionId))
+                        conditions.Add(conditionId.Trim());
+                }
+            }
+            gameEventBus.Publish(new RestOutcomeIdentityEvent(
+                id,
+                previousValue,
+                GetConditionValue(condition, previousValue),
+                conditions,
+                Mathf.Max(
+                    0,
+                    Mathf.FloorToInt(
+                        gameClock.Time / GameCalendarRules.SecondsPerDay))));
+        }
     }
 
     public void ApplyWorkNeedDepletion(float elapsedSeconds = 1f)
@@ -273,6 +324,17 @@ public class CharacterStats :
         float loss = RequireNeedStateService().GetWorkDepletion(
             condition,
             elapsedSeconds);
+        if (condition == CharacterCondition.SLEEP && actor != null)
+        {
+            loss *= Mathf.Max(
+                0f,
+                RequirePerformance().Evaluate(
+                    actor,
+                    "performance:survival:fatigue-rate").Value);
+            loss *= Mathf.Max(
+                0f,
+                actor.Identity?.Data?.species?.needs?.sleepRateMultiplier ?? 1f);
+        }
 
         if (loss > 0f)
         {
@@ -290,7 +352,10 @@ public class CharacterStats :
         }
 
         float previousValue = stats[condition];
-        float nextValue = Mathf.Clamp(previousValue + value, 0f, 100f);
+        float nextValue = Mathf.Clamp(
+            previousValue + value,
+            0f,
+            GetConditionMaximum(condition));
         if (Mathf.Approximately(previousValue, nextValue))
         {
             return false;
@@ -313,6 +378,21 @@ public class CharacterStats :
     }
 
     public void ApplyMoodFactor(
+        string id,
+        string label,
+        float value,
+        float durationSeconds = 180f,
+        int maxStacks = 1)
+    {
+        if (actor != null)
+        {
+            actor.ApplyMoodFactor(id, label, value, durationSeconds, maxStacks);
+            return;
+        }
+        ApplyResolvedMoodFactor(id, label, value, durationSeconds, maxStacks);
+    }
+
+    internal void ApplyResolvedMoodFactor(
         string id,
         string label,
         float value,
@@ -370,50 +450,95 @@ public class CharacterStats :
         return BuildMoodSnapshot(gameClock.Time);
     }
 
-    public int GetCharacterStat(CharacterStatType statType)
-    {
-        return RequireProjectionService().GetCharacterStat(
-            CreateProjectionContext(),
-            statType);
-    }
-
-    public int GetCharacterStat(string statId)
-    {
-        return RequireProjectionService().GetCharacterStat(
-            CreateProjectionContext(),
-            statId);
-    }
-
     public float GetMoveSpeed()
     {
         return RequireProjectionService().GetMoveSpeed(
             CreateProjectionContext());
     }
 
+    public CharacterPerformanceSnapshot EvaluatePerformance(
+        string formulaId,
+        CharacterPerformanceEvaluationContext context = null)
+    {
+        if (actor == null)
+            throw new InvalidOperationException(
+                "Character performance evaluation requires a bound actor.");
+        return context == null
+            ? RequirePerformance().Evaluate(actor, formulaId)
+            : RequirePerformance().Evaluate(actor, formulaId, context);
+    }
+
     public float GetConsumptionMultiplier()
     {
-        return GetEffectiveProfile()?.GetConsumptionMultiplier() ?? 1f;
+        return RequireProjectionService().GetConsumptionMultiplier(
+            CreateProjectionContext());
+    }
+
+    public GameplayEffectProjectionResult ProjectDetailedStat(
+        string targetId,
+        float baseValue,
+        IEnumerable<string> activeConditionIds = null)
+    {
+        return RequireProjectionService().ProjectDetailedStat(
+            CreateProjectionContext(),
+            targetId,
+            baseValue,
+            activeConditionIds);
+    }
+
+    public float GetDetailedStatMultiplier(
+        string targetId,
+        IEnumerable<string> activeConditionIds = null)
+    {
+        return RequireProjectionService().GetDetailedStatMultiplier(
+            CreateProjectionContext(),
+            targetId,
+            activeConditionIds);
     }
 
     public float GetStayDurationMultiplier()
     {
-        return GetEffectiveProfile()?.GetStayDurationMultiplier() ?? 1f;
+        return RequireProjectionService().GetStayDurationMultiplier(
+            CreateProjectionContext());
     }
 
     public float GetCrowdSensitivityMultiplier()
     {
-        return GetEffectiveProfile()?.GetCrowdSensitivityMultiplier() ?? 1f;
+        return RequireProjectionService().GetCrowdSensitivityMultiplier(
+            CreateProjectionContext());
+    }
+
+    public float GetWaitPatienceMultiplier()
+    {
+        return RequireProjectionService().GetWaitPatienceMultiplier(
+            CreateProjectionContext());
     }
 
     public float GetWorkSpeedMultiplier(WorkTypeId workTypeId)
     {
+        return EvaluateWorkPerformance(workTypeId, "speed").Value;
+    }
+
+    public float GetWorkSpeedMultiplier(
+        WorkTypeId workTypeId,
+        BuildableObject target)
+    {
+        return EvaluateWorkPerformance(
+            workTypeId,
+            "speed",
+            target).Value;
+    }
+
+    public float GetWorkContextMultiplier(WorkTypeId workTypeId)
+    {
         return WorkTypeCatalog.TryGet(
                 workTypeId,
                 out WorkTypeDefinition definition)
-            ? RequireProjectionService().GetWorkSpeedMultiplier(
+            ? RequireProjectionService().GetWorkContextMultiplier(
                 CreateProjectionContext(),
                 definition)
-            : 1f;
+            : throw new InvalidOperationException(
+                $"Work type '{workTypeId.Value}' is not registered.");
     }
 
     public float GetWorkPreferenceScore(WorkTypeId workTypeId)
@@ -431,8 +556,14 @@ public class CharacterStats :
 
     public float GetAccidentChanceMultiplier()
     {
-        return RequireProjectionService().GetAccidentChanceMultiplier(
-            CreateProjectionContext());
+        WorkTypeId workTypeId = actor != null
+            && actor.TryGetAbility(out AbilityWork work)
+                ? work.AssignedWorkTypeId
+                : default;
+        if (!workTypeId.IsValid)
+            throw new InvalidOperationException(
+                "Work accident projection requires an assigned work type.");
+        return EvaluateWorkPerformance(workTypeId, "accident").Value;
     }
 
     public CharacterSpeciesIncidentType GetIncidentType()
@@ -448,8 +579,77 @@ public class CharacterStats :
 
     public float GetCombatPowerMultiplier()
     {
-        return RequireProjectionService().GetCombatPowerMultiplier(
-            CreateProjectionContext());
+        string formulaId = "performance:combat:melee-power";
+        string characterId = identity?.PersistentId ?? string.Empty;
+        if (combatEquipment != null
+            && combatEquipment.TryGetActiveWeapon(
+                characterId,
+                out CombatWeaponSnapshot weapon)
+            && weapon?.IsRanged == true)
+        {
+            formulaId = "performance:combat:ranged-hit";
+        }
+        CharacterPerformanceSnapshot snapshot = RequirePerformance().Evaluate(
+            actor,
+            formulaId,
+            new CharacterPerformanceEvaluationContext
+            {
+                ContextFactor = RequireProjectionService()
+                    .GetCombatContextMultiplier(CreateProjectionContext())
+            });
+        if (!snapshot.IsApplicable)
+            throw new InvalidOperationException(
+                snapshot.Failure?.Message ?? "Combat performance is unavailable.");
+        return snapshot.Value;
+    }
+
+    private CharacterPerformanceSnapshot EvaluateWorkPerformance(
+        WorkTypeId workTypeId,
+        string channel,
+        BuildableObject targetOverride = null)
+    {
+        if (!workTypeId.IsValid || actor == null)
+            throw new InvalidOperationException(
+                "Work performance requires a live actor and valid work type.");
+        if (workPerformanceContext == null)
+            throw new InvalidOperationException(
+                "Work performance context resolver was not injected.");
+        BuildableObject target = targetOverride != null
+            ? targetOverride
+            : actor.TryGetAbility(out AbilityWork work)
+                ? work.assignedShop
+                : null;
+        if (!workPerformanceContext.TryResolve(
+                actor,
+                target,
+                workTypeId,
+                out ProficiencyWorkProfile profile,
+                out string failureReason))
+            throw new InvalidOperationException(failureReason);
+        CharacterPerformanceResultChannel resultChannel = channel switch
+        {
+            "speed" => CharacterPerformanceResultChannel.Speed,
+            "accident" => CharacterPerformanceResultChannel.AccidentRisk,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(channel),
+                channel,
+                null)
+        };
+        CharacterPerformanceSnapshot snapshot = RequirePerformance().EvaluateWork(
+            actor,
+            workTypeId,
+            resultChannel,
+            workPerformanceContext.BuildEvaluationContext(
+                profile,
+                new GameplayEffectContext(new[] { workTypeId.Value }),
+                channel == "speed"
+                    ? GetWorkContextMultiplier(workTypeId)
+                    : 1f));
+        if (!snapshot.IsApplicable)
+            throw new InvalidOperationException(
+                snapshot.Failure?.Message
+                ?? $"Work performance '{workTypeId.Value}:{channel}' is unavailable.");
+        return snapshot;
     }
 
     public float GetSpendingMultiplier()
@@ -540,13 +740,22 @@ public class CharacterStats :
     {
         if (amount <= 0f || IsDead) return;
 
-        RequireVitalsService().Heal(actor, amount);
+        float projectedAmount = actor != null
+            ? amount * RequirePerformance().Evaluate(
+                actor,
+                "performance:medical:wound-recovery").Value
+            : amount;
+        RequireVitalsService().Heal(actor, Mathf.Max(0f, projectedAmount));
     }
 
     internal void NotifyAggregateHealing(float amount)
     {
         RequireVitalsService().NotifyHealing(this, log, amount);
     }
+
+    private ICharacterPerformanceQuery RequirePerformance() => performance
+        ?? throw new InvalidOperationException(
+            "CharacterStats requires the authoritative character performance query.");
 
     public void ScaleMaxHealth(float multiplier) =>
         RequireVitalsService().ScaleMaximumHealth(actor, multiplier);
@@ -718,7 +927,7 @@ public class CharacterStats :
     internal void SetControlledStatValue(CharacterCondition condition, float value)
     {
         EnsureStats();
-        stats[condition] = Mathf.Clamp(value, 0f, 100f);
+        stats[condition] = Mathf.Clamp(value, 0f, GetConditionMaximum(condition));
         if (condition == CharacterCondition.MOOD)
         {
             AdoptAssignedMoodAsBase();
@@ -796,5 +1005,8 @@ public class CharacterStats :
             stats[condition] = defaultValue;
         }
     }
+
+    private static float GetConditionMaximum(CharacterCondition condition) =>
+        condition == CharacterCondition.HUNGER ? 115f : 100f;
 
 }

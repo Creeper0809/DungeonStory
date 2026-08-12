@@ -90,6 +90,8 @@ public sealed class ResearchGateItemFeature : ItemFeatureDefinition
 public sealed class FoodItemFeature : ItemFeatureDefinition
 {
     public MealQualityTier quality = MealQualityTier.Simple;
+    public MealQualityBand qualityBand = MealQualityBand.Simple;
+    public MealServingRole servingRole = MealServingRole.FullMeal;
     [Min(0f)] public float nutrition;
     public float mood;
     [Min(0f)] public float freshnessSeconds;
@@ -427,6 +429,11 @@ public abstract class ItemDefinitionSO : DataScriptableObject
     }
 
 #if UNITY_EDITOR
+    public void ConfigureUnitPrice(int price)
+    {
+        unitPrice = Mathf.Max(0, price);
+    }
+
     public void ConfigureCore(
         string stableId,
         string name,

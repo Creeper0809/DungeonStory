@@ -402,14 +402,8 @@ public sealed class EquipmentCraftingPanelPresenter :
                 mode = WorkerSelectionMode.RuleSet,
                 matchMode = WorkerRequirementMatchMode.All,
                 sortMode = WorkerCandidateSortMode.BestExpectedQuality,
-                statRequirements = new List<WorkerStatRequirementSaveData>
-                {
-                    new()
-                    {
-                        statType = (int)CharacterStatType.Dexterity,
-                        minimumValue = 7
-                    }
-                }
+                minimumSkillId = BuiltInCharacterProficiencyIds.Crafting.Value,
+                minimumSkillExperience = 400
             };
         }
         return WorkerSelectionPolicySaveData.Anyone(

@@ -157,7 +157,8 @@ public readonly struct CharacterConsumablesActorSnapshot
         float maxHealth,
         float mood,
         float hunger,
-        bool combatStance)
+        bool combatStance,
+        Vector2Int position = default)
     {
         Id = id;
         Active = active;
@@ -166,6 +167,7 @@ public readonly struct CharacterConsumablesActorSnapshot
         Mood = mood;
         Hunger = hunger;
         CombatStance = combatStance;
+        Position = position;
     }
 
     public CharacterId Id { get; }
@@ -175,6 +177,7 @@ public readonly struct CharacterConsumablesActorSnapshot
     public float Mood { get; }
     public float Hunger { get; }
     public bool CombatStance { get; }
+    public Vector2Int Position { get; }
 }
 
 public readonly struct CharacterConsumablesFacilitySnapshot
@@ -182,15 +185,18 @@ public readonly struct CharacterConsumablesFacilitySnapshot
     public CharacterConsumablesFacilitySnapshot(
         BuildingInstanceId id,
         bool mealFacility,
+        bool recreationalSubstanceFacility,
         Vector2Int position)
     {
         Id = id;
         MealFacility = mealFacility;
+        RecreationalSubstanceFacility = recreationalSubstanceFacility;
         Position = position;
     }
 
     public BuildingInstanceId Id { get; }
     public bool MealFacility { get; }
+    public bool RecreationalSubstanceFacility { get; }
     public Vector2Int Position { get; }
 }
 
@@ -203,36 +209,70 @@ public readonly struct CharacterConsumablesStackSnapshot
         CharacterConsumablesStackState state,
         string destinationId,
         bool forbidden,
-        bool reserved,
+        int reservedQuantity,
         float contamination,
         float freshness01,
         float remainingFreshnessSeconds,
-        bool preserved)
+        bool preserved,
+        Vector2Int position = default)
     {
         StackId = stackId;
         ItemId = itemId;
         Quantity = Math.Max(0, quantity);
+        ReservedQuantity = Math.Max(0, Math.Min(Quantity, reservedQuantity));
         State = state;
         DestinationId = destinationId?.Trim() ?? string.Empty;
         Forbidden = forbidden;
-        Reserved = reserved;
         Contamination = Math.Max(0f, contamination);
         Freshness01 = Clamp01(freshness01);
         RemainingFreshnessSeconds = Math.Max(0f, remainingFreshnessSeconds);
         Preserved = preserved;
+        Position = position;
+    }
+
+    public CharacterConsumablesStackSnapshot(
+        ItemStackId stackId,
+        ConsumableItemDefinitionId itemId,
+        int quantity,
+        CharacterConsumablesStackState state,
+        string destinationId,
+        bool forbidden,
+        bool reserved,
+        float contamination,
+        float freshness01,
+        float remainingFreshnessSeconds,
+        bool preserved,
+        Vector2Int position = default)
+        : this(
+            stackId,
+            itemId,
+            quantity,
+            state,
+            destinationId,
+            forbidden,
+            reserved ? quantity : 0,
+            contamination,
+            freshness01,
+            remainingFreshnessSeconds,
+            preserved,
+            position)
+    {
     }
 
     public ItemStackId StackId { get; }
     public ConsumableItemDefinitionId ItemId { get; }
     public int Quantity { get; }
+    public int ReservedQuantity { get; }
+    public int AvailableQuantity => Math.Max(0, Quantity - ReservedQuantity);
     public CharacterConsumablesStackState State { get; }
     public string DestinationId { get; }
     public bool Forbidden { get; }
-    public bool Reserved { get; }
+    public bool Reserved => ReservedQuantity > 0;
     public float Contamination { get; }
     public float Freshness01 { get; }
     public float RemainingFreshnessSeconds { get; }
     public bool Preserved { get; }
+    public Vector2Int Position { get; }
 
     private static float Clamp01(float value) => Math.Max(0f, Math.Min(1f, value));
 }
@@ -247,7 +287,11 @@ public readonly struct CharacterConsumablesMealDefinitionSnapshot
         float nutrition,
         float mood,
         int unitPrice,
-        bool forbiddenIngredient)
+        bool forbiddenIngredient,
+        bool sweet,
+        bool salted,
+        MealQualityBand qualityBand = MealQualityBand.Simple,
+        MealServingRole servingRole = MealServingRole.FullMeal)
     {
         Id = id;
         DisplayName = displayName?.Trim() ?? string.Empty;
@@ -257,6 +301,10 @@ public readonly struct CharacterConsumablesMealDefinitionSnapshot
         Mood = mood;
         UnitPrice = Math.Max(0, unitPrice);
         ForbiddenIngredient = forbiddenIngredient;
+        Sweet = sweet;
+        Salted = salted;
+        QualityBand = qualityBand;
+        ServingRole = servingRole;
     }
 
     public ConsumableItemDefinitionId Id { get; }
@@ -267,6 +315,10 @@ public readonly struct CharacterConsumablesMealDefinitionSnapshot
     public float Mood { get; }
     public int UnitPrice { get; }
     public bool ForbiddenIngredient { get; }
+    public bool Sweet { get; }
+    public bool Salted { get; }
+    public MealQualityBand QualityBand { get; }
+    public MealServingRole ServingRole { get; }
 }
 
 public readonly struct CharacterConsumablesSubstanceDefinitionSnapshot
@@ -290,6 +342,7 @@ public readonly struct CharacterConsumablesMealResult
     private CharacterConsumablesMealResult(
         bool success,
         CharacterConsumablesFailureCode failureCode,
+        ConsumableOperationId operationId,
         CharacterConsumablesMealDefinitionSnapshot meal,
         ItemStackId itemStackId,
         bool policyViolation,
@@ -298,6 +351,7 @@ public readonly struct CharacterConsumablesMealResult
     {
         Success = success;
         FailureCode = failureCode;
+        OperationId = operationId;
         Meal = meal;
         ItemStackId = itemStackId;
         PolicyViolation = policyViolation;
@@ -309,6 +363,11 @@ public readonly struct CharacterConsumablesMealResult
 
     public bool Success { get; }
     public CharacterConsumablesFailureCode FailureCode { get; }
+    public ConsumableOperationId OperationId { get; }
+    public bool IsAcceptedPending =>
+        !Success
+        && FailureCode == CharacterConsumablesFailureCode.DeliveryPending
+        && OperationId.IsValid;
     public CharacterConsumablesMealDefinitionSnapshot Meal { get; }
     public ItemStackId ItemStackId { get; }
     public bool PolicyViolation { get; }
@@ -317,13 +376,21 @@ public readonly struct CharacterConsumablesMealResult
     public static CharacterConsumablesMealResult Failed(
         CharacterConsumablesFailureCode code,
         params string[] parameters) =>
-        new(false, code, default, default, false, false, parameters);
+        new(false, code, default, default, default, false, false, parameters);
+    public static CharacterConsumablesMealResult Pending(
+        ConsumableOperationId operationId,
+        CharacterConsumablesMealDefinitionSnapshot meal,
+        ItemStackId stackId,
+        params string[] parameters) =>
+        new(false, CharacterConsumablesFailureCode.DeliveryPending, operationId,
+            meal, stackId, false, false, parameters);
     public static CharacterConsumablesMealResult Consumed(
+        ConsumableOperationId operationId,
         CharacterConsumablesMealDefinitionSnapshot meal,
         ItemStackId stackId,
         bool policyViolation,
         bool contaminated) =>
-        new(true, CharacterConsumablesFailureCode.None, meal, stackId,
+        new(true, CharacterConsumablesFailureCode.None, operationId, meal, stackId,
             policyViolation, contaminated);
 }
 
@@ -414,6 +481,13 @@ public readonly struct CharacterConsumablesMealConsumedEvent
     public CharacterConsumablesMealResult Result { get; }
 }
 
+public enum CharacterMealRouteStatus
+{
+    Pending,
+    Reachable,
+    Unreachable
+}
+
 public interface ICharacterConsumablesWorldPort
 {
     IReadOnlyList<CharacterId> CharacterIds { get; }
@@ -423,6 +497,42 @@ public interface ICharacterConsumablesWorldPort
     CharacterCultureMealPreference GetCultureMealPreference(
         CharacterId characterId,
         ConsumableItemDefinitionId itemId);
+    float ProjectGameplayEffect(
+        CharacterId characterId,
+        string targetId,
+        float baseValue);
+    float GetBehaviorUtilityMultiplier(
+        CharacterId characterId,
+        IReadOnlyCollection<string> semanticTags);
+    float GetBaseMoodForMealChoice(CharacterId characterId) => 50f;
+    CharacterMealRouteStatus GetMealRouteStatus(
+        CharacterId characterId,
+        Vector2Int from,
+        Vector2Int to,
+        out float travelSeconds)
+    {
+        travelSeconds = Mathf.Abs(from.x - to.x) + Mathf.Abs(from.y - to.y);
+        return CharacterMealRouteStatus.Reachable;
+    }
+    bool TryReserveMealFacilitySlot(
+        ConsumableOperationId operationId,
+        CharacterId characterId,
+        BuildingInstanceId facilityId) => true;
+    void ReleaseMealFacilitySlot(
+        ConsumableOperationId operationId,
+        BuildingInstanceId facilityId)
+    {
+    }
+    void ApplyBestMealMood(
+        CharacterId characterId,
+        string label,
+        float value,
+        float durationSeconds) => ApplyMood(
+            characterId,
+            "meal:best-active",
+            label,
+            value,
+            durationSeconds);
     void RecoverHunger(CharacterId id, float amount);
     void ApplyMood(CharacterId id, string sourceId, string label, float value, float durationSeconds);
     void ApplyDamage(CharacterId id, float amount, string reason);
@@ -434,11 +544,31 @@ public interface ICharacterConsumablesWorldPort
         float value);
 }
 
+/// <summary>
+/// Optional identity-policy port. Keeping it separate preserves the engine-core
+/// consumables boundary and allows test worlds without identity content.
+/// </summary>
+public interface ICharacterRitualFastingMealPort
+{
+    bool IsRitualFasting(CharacterId characterId);
+    void RecordMealConsumed(CharacterId characterId, bool directPlayerOrder);
+}
+
 public enum CharacterCultureMealPreference
 {
     Neutral,
     Preferred,
     Forbidden
+}
+
+public enum CharacterMealQualityLimit
+{
+    Inherit = -1,
+    Poor = (int)MealQualityBand.Poor,
+    Simple = (int)MealQualityBand.Simple,
+    Decent = (int)MealQualityBand.Decent,
+    Fine = (int)MealQualityBand.Fine,
+    Lavish = (int)MealQualityBand.Lavish
 }
 
 public interface ICharacterConsumablesInventoryPort
@@ -455,12 +585,77 @@ public interface ICharacterConsumablesInventoryPort
         ConsumableItemDefinitionId id,
         out CharacterConsumablesSubstanceDefinitionSnapshot substance);
     bool TryConsume(ItemStackId stackId, int quantity);
+    bool TryReserveMealQuantity(
+        ConsumableOperationId operationId,
+        CharacterId characterId,
+        BuildingInstanceId facilityId,
+        ItemStackId stackId,
+        out string leaseId)
+    {
+        leaseId = string.Empty;
+        return true;
+    }
+    bool RevalidateMealQuantity(string leaseId, ItemStackId stackId) =>
+        string.IsNullOrWhiteSpace(leaseId);
+    bool TryResolveMealQuantityStack(
+        string leaseId,
+        out ItemStackId stackId)
+    {
+        stackId = default;
+        return false;
+    }
+    bool TryRebindMealQuantityLease(
+        ConsumableOperationId operationId,
+        out string leaseId,
+        out ItemStackId stackId)
+    {
+        leaseId = string.Empty;
+        stackId = default;
+        return false;
+    }
+    bool TryConsumeReservedMealQuantity(
+        string leaseId,
+        ItemStackId stackId,
+        int quantity) => string.IsNullOrWhiteSpace(leaseId)
+            && TryConsume(stackId, quantity);
+    void ReleaseMealQuantity(string leaseId)
+    {
+    }
     bool TryRequestDelivery(
         ConsumableItemDefinitionId itemId,
         int quantity,
         Vector2Int position,
         string destinationId,
         out int requested);
+
+}
+
+public enum CharacterMealPlanPhase
+{
+    Reserved,
+    Eating,
+    Completed,
+    Aborted
+}
+
+[Serializable]
+public sealed class CharacterMealPlan
+{
+    public string planId = string.Empty;
+    public string characterId = string.Empty;
+    public string facilityInstanceId = string.Empty;
+    public string sourceStackId = string.Empty;
+    public string transportStackId = string.Empty;
+    public string itemDefinitionId = string.Empty;
+    public string mealQuantityLeaseId = string.Empty;
+    public CharacterMealPlanPhase phase;
+    public double createdAt;
+    public double leaseExpiresAt;
+    public float expectedCompletionEta;
+    public bool physicalConsumptionCommitted;
+    public bool automaticOperation;
+    public float beginContamination;
+    public bool facilitySlotReserved;
 }
 
 public interface ICharacterConsumablesEventPort
@@ -472,6 +667,10 @@ public interface ICharacterConsumablesApplication
 {
     CharacterDietPolicyKind GetDietPolicy(CharacterId characterId);
     void SetDietPolicy(CharacterId characterId, CharacterDietPolicyKind policy);
+    CharacterMealQualityLimit GetMealQualityLimit(CharacterId characterId);
+    void SetMealQualityLimit(
+        CharacterId characterId,
+        CharacterMealQualityLimit qualityLimit);
     bool IsMealAllowed(
         CharacterId characterId,
         CharacterConsumablesMealDefinitionSnapshot meal);
@@ -485,6 +684,9 @@ public interface ICharacterConsumablesApplication
         out CharacterConsumablesMealResult result);
     bool TryConsumeMeal(
         ConsumeMealCommand command,
+        out CharacterConsumablesMealResult result);
+    bool TryGetMealOperationResult(
+        ConsumableOperationId operationId,
         out CharacterConsumablesMealResult result);
     CharacterSubstancePolicyState GetSubstancePolicy(
         CharacterId characterId,
@@ -503,6 +705,10 @@ public interface ICharacterConsumablesApplication
         string substanceId,
         bool medicalContext,
         bool combatContext,
+        out CharacterConsumablesSubstanceResult result);
+    bool TryConsumeRecreationalSubstance(
+        CharacterId characterId,
+        BuildingInstanceId facilityId,
         out CharacterConsumablesSubstanceResult result);
     bool TryConsumeSubstance(
         ConsumeSubstanceByIdCommand command,

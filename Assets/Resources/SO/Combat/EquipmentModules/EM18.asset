@@ -20,3 +20,4 @@ MonoBehaviour:
   minimumEra: 3
   powerPerGrade: 0.04
   utilityPerGrade: 0.035
+  effects: []

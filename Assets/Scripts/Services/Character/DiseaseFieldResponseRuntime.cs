@@ -61,6 +61,7 @@ public sealed class DiseaseFieldResponseRuntime : IDiseaseFieldResponseCommand
     private readonly IItemDefinitionCatalog items;
     private readonly IItemTransferService transfers;
     private readonly IPhysicalVaccinationService vaccination;
+    private readonly IPopulationDiseaseModifierQuery modifiers;
 
     public DiseaseFieldResponseRuntime(
         IDiseaseDefinitionCatalog diseases,
@@ -69,7 +70,8 @@ public sealed class DiseaseFieldResponseRuntime : IDiseaseFieldResponseCommand
         IFacilityCapabilityQuery facilities,
         IItemDefinitionCatalog items,
         IItemTransferService transfers,
-        IPhysicalVaccinationService vaccination)
+        IPhysicalVaccinationService vaccination,
+        IPopulationDiseaseModifierQuery modifiers)
     {
         this.diseases = diseases ?? throw new ArgumentNullException(nameof(diseases));
         this.health = health ?? throw new ArgumentNullException(nameof(health));
@@ -78,6 +80,7 @@ public sealed class DiseaseFieldResponseRuntime : IDiseaseFieldResponseCommand
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.transfers = transfers ?? throw new ArgumentNullException(nameof(transfers));
         this.vaccination = vaccination ?? throw new ArgumentNullException(nameof(vaccination));
+        this.modifiers = modifiers ?? throw new ArgumentNullException(nameof(modifiers));
     }
 
     public bool TryApply(
@@ -154,7 +157,8 @@ public sealed class DiseaseFieldResponseRuntime : IDiseaseFieldResponseCommand
                 characterId,
                 disease.Id,
                 rule.SeverityReduction,
-                diseases);
+                diseases,
+                modifiers.Resolve(characterId, disease));
         }
         catch (Exception)
         {

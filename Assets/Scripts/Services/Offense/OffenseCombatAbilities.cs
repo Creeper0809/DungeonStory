@@ -112,12 +112,15 @@ public static class CharacterCombatAbilityCatalog
         if (Contains(species, "orc", "오크")) AddUnique(result, CreateOrcCrush(), 1, "종족");
         if (Contains(species, "vampire", "뱀파이어")) AddUnique(result, CreateVampireDrain(), 1, "종족");
 
-        foreach (CharacterTraitSO trait in data?.traits ?? Array.Empty<CharacterTraitSO>())
+        IReadOnlyList<CharacterTraitSO> selectedTraits =
+            actor?.Progression?.ResolveSelectedTraits()
+            ?? Array.Empty<CharacterTraitSO>();
+        foreach (CharacterTraitSO trait in selectedTraits)
         {
             AddConfigured(result, trait?.combatAbilities, 3, "특성");
         }
 
-        if ((data?.traits ?? Array.Empty<CharacterTraitSO>())
+        if (selectedTraits
             .Any(trait => Contains(trait?.traitName, "fighter", "전사")))
         {
             AddUnique(result, CreateFighterFlurry(), 3, "특성");

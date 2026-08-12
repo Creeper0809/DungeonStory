@@ -71,6 +71,20 @@ public sealed class OperationsFeatureCommandService : IOperationsFeatureCommandS
                 : $"계약 불가: {result.Message}");
     }
 
+    public OperationsFeatureCommandResult CycleImmigrationPolicy()
+    {
+        SettlementImmigrationPolicy policy =
+            regularCustomers.CycleImmigrationPolicy();
+        SettlementPopulationAcceptance acceptance =
+            regularCustomers.EvaluateImmigration();
+        return new OperationsFeatureCommandResult(
+            true,
+            $"이민 정책: {policy} / "
+            + (acceptance.Accepted
+                ? "현재 1명 수용 가능"
+                : $"수용 보류 [{acceptance.FailureCode}]"));
+    }
+
     public OperationsFeatureCommandResult PurchaseMetaUpgrade(string upgradeId)
     {
         MetaProgressionRuntime runtime = metaProgression;

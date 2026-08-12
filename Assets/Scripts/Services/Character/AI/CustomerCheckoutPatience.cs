@@ -51,8 +51,8 @@ public static class CustomerCheckoutPatienceRules
                 ? actor.Identity.Data.aiPersonality
                 : null;
         float personalityPatience = personality != null ? personality.patience : 1f;
-        float modelPatience = actor != null && actor.Identity != null && actor.Identity.Profile != null
-            ? actor.Identity.Profile.GetWaitPatienceMultiplier()
+        float modelPatience = actor?.Stats != null
+            ? actor.Stats.GetWaitPatienceMultiplier()
             : 1f;
         return Create(personalityPatience, modelPatience, queuePosition);
     }

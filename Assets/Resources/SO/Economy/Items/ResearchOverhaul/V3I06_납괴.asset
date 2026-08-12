@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uB0A9\uAD34"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uB0A9\uAD34."
   stockCategory: 1
-  unitWeight: 0.4
+  unitWeight: 2.15
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 22
+  unitPrice: 24
   features:
-  - rid: 7737211838078124777
-  - rid: 7737211838078124778
+  - rid: 7737211905658585494
+  - rid: 7737211905658585495
+  - rid: 7737211905660420614
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124777
+    - rid: 7737211905658585494
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:metallurgy:iron
-    - rid: 7737211838078124778
+    - rid: 7737211905658585495
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 512
         sharedIntermediate: 1
+    - rid: 7737211905660420614
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6064818

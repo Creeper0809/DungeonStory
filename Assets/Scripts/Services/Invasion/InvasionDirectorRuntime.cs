@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
@@ -36,8 +35,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
     private IEnemyIndividualFactory enemyIndividuals;
     private IFacilityCapabilityQuery facilityCapabilities;
     private IWorldItemStackRuntime worldItems;
+    private ICharacterPerformanceQuery performance;
     private IDisposable invasionCandidateSubscription;
-    private IDisposable invasionResolvedSubscription;
     private bool nextInvasionIsBoss;
     private float nextBossHealthMultiplier = 1f;
     private float nextBossDamageMultiplier = 1f;
@@ -45,8 +44,6 @@ public class InvasionDirectorRuntime : MonoBehaviour
     private float nextRehearsalPowerMultiplier = 1f;
     private float nextRehearsalOwnerDamageMultiplier = 1f;
     private float nextRehearsalRetreatHealthRatio;
-    private CharacterActor ralliedOwner;
-    private Coroutine ownerRallyRoutine;
 
     public IReadOnlyList<InvasionIntruderRuntime> ActiveIntruders =>
         activeIntrudersView ??= ReadOnlyView.List(activeIntruders);
@@ -57,7 +54,6 @@ public class InvasionDirectorRuntime : MonoBehaviour
     {
         return ArmNextInvasionAsBoss(1f, 1f);
     }
-
     public bool ArmNextInvasionAsBoss(float healthMultiplier, float damageMultiplier)
     {
         if (nextInvasionIsBoss)
@@ -95,7 +91,6 @@ public class InvasionDirectorRuntime : MonoBehaviour
         nextRehearsalOwnerDamageMultiplier = 1f;
         nextRehearsalRetreatHealthRatio = 0f;
     }
-
     [Inject]
     public void Construct(
         IInvasionIntruderContext invasionContext,
@@ -110,7 +105,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
         IExternalInfluenceRuntime externalInfluence,
         IInvasionCampaignRuntime campaignRuntime,
         IFacilityCapabilityQuery facilityCapabilities,
-        IWorldItemStackRuntime worldItems)
+        IWorldItemStackRuntime worldItems,
+        ICharacterPerformanceQuery performance)
     {
         this.invasionContext = invasionContext
             ?? throw new ArgumentNullException(nameof(invasionContext));
@@ -136,6 +132,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(facilityCapabilities));
         this.worldItems = worldItems
             ?? throw new ArgumentNullException(nameof(worldItems));
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
         SubscribeToScopedEvents();
     }
 
@@ -155,17 +153,16 @@ public class InvasionDirectorRuntime : MonoBehaviour
         TrySpawnIntruder(eventType.snapshot, out _);
     }
 
-    public void OnTriggerEvent(InvasionResolvedEvent eventType)
-    {
-        ReleaseOwnerRally();
-    }
+    public string LastSpawnFailureReason { get; private set; } = string.Empty;
 
     public bool TrySpawnIntruder(InvasionThreatSnapshot snapshot, out CharacterActor intruder)
     {
         intruder = null;
+        LastSpawnFailureReason = string.Empty;
         CharacterSO data = ResolveIntruderData();
         if (data == null)
         {
+            LastSpawnFailureReason = "missing-intruder-data";
             gameEventBus.RaiseInvasionResult("침입자 데이터가 없어 침입을 시작하지 못했습니다.", EventAlertImportance.High);
             return false;
         }
@@ -173,6 +170,7 @@ public class InvasionDirectorRuntime : MonoBehaviour
         IInvasionIntruderContext context = ResolveInvasionContext();
         if (!context.TryResolveEntry(out InvasionIntruderEntry entry))
         {
+            LastSpawnFailureReason = "missing-invasion-entry";
             gameEventBus.RaiseInvasionResult("침입자가 들어올 수 있는 입구를 찾지 못했습니다.", EventAlertImportance.High);
             return false;
         }
@@ -195,7 +193,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
             gameClock,
             randomStreamProvider,
             gameEventBus,
-            treasuryDefenseRuntime);
+            treasuryDefenseRuntime,
+            performance);
         CharacterActor preparedIntruder = runtime.IntruderActor;
         string individualRuntimeId = $"invasion:{Guid.NewGuid():N}";
         EnemyArchetypeDefinitionSO enemyArchetype = SelectEnemyArchetype(
@@ -319,6 +318,7 @@ public class InvasionDirectorRuntime : MonoBehaviour
         catch (Exception exception)
         {
             intruder = null;
+            LastSpawnFailureReason = $"{exception.GetType().Name}: {exception.Message}";
             if (usedSignalHorn != null
                 && previousSignalHornDurability != null)
             {
@@ -615,7 +615,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
                 gameClock,
                 randomStreamProvider,
                 gameEventBus,
-                treasuryDefenseRuntime),
+                treasuryDefenseRuntime,
+                performance),
             runtime => ResolveIntruderFactory().DestroyDetached(runtime));
 
     public void PublishRestoreCandidates() => restoreCoordinator.Publish();
@@ -648,7 +649,6 @@ public class InvasionDirectorRuntime : MonoBehaviour
 
     public void ClearForPersistentRestore()
     {
-        ReleaseOwnerRally();
         foreach (InvasionIntruderRuntime runtime in activeIntruders.ToArray())
         {
             if (runtime == null)
@@ -687,9 +687,6 @@ public class InvasionDirectorRuntime : MonoBehaviour
     {
         invasionCandidateSubscription?.Dispose();
         invasionCandidateSubscription = null;
-        invasionResolvedSubscription?.Dispose();
-        invasionResolvedSubscription = null;
-        ReleaseOwnerRally();
     }
 
     private void SubscribeToScopedEvents()
@@ -701,8 +698,6 @@ public class InvasionDirectorRuntime : MonoBehaviour
 
         invasionCandidateSubscription ??=
             gameEventBus.Subscribe<InvasionCandidateEvent>(OnInvasionCandidate);
-        invasionResolvedSubscription ??=
-            gameEventBus.Subscribe<InvasionResolvedEvent>(OnTriggerEvent);
     }
 
     private CharacterSO ResolveIntruderData()
@@ -776,99 +771,11 @@ public class InvasionDirectorRuntime : MonoBehaviour
             ?? throw new InvalidOperationException($"{nameof(InvasionDirectorRuntime)} requires {nameof(IDefenseStatusRuntimeService)} injection.");
     }
 
-    private bool TryStartOwnerRally(
-        IInvasionIntruderContext context,
-        InvasionIntruderEntry entry,
-        out FinalDefenseRallyPlan plan)
-    {
-        plan = default;
-        if (context == null
-            || !context.TryGetGrid(out Grid grid)
-            || !context.TryGetOwner(out CharacterActor owner)
-            || owner == null
-            || owner.IsDead
-            || !FinalDefenseRallyPlanner.TryCreate(
-                grid,
-                entry.GridPosition,
-                owner.GetNowXY(),
-                owner.PathSearchBroker,
-                out plan))
-        {
-            return false;
-        }
 
-        ReleaseOwnerRally();
-        AbilityMove ownerMove = owner.GetAbility<AbilityMove>();
-        if (ownerMove == null)
-        {
-            return false;
-        }
 
-        owner.Brain?.RequestImmediateReplan(clearFailures: false);
-        owner.SetAiPaused(true);
-        ralliedOwner = owner;
-        ownerRallyRoutine = StartCoroutine(RunOwnerRally(context, owner, ownerMove, plan));
-        return true;
-    }
 
-    private IEnumerator RunOwnerRally(
-        IInvasionIntruderContext context,
-        CharacterActor owner,
-        AbilityMove ownerMove,
-        FinalDefenseRallyPlan plan)
-    {
-        Queue<GridMoveStep> path = plan.CreateOwnerPath();
-        for (int attempt = 0; attempt < 3 && owner != null && !owner.IsDead; attempt++)
-        {
-            if (path.Count > 0)
-            {
-                yield return ownerMove.MoveByPath(path);
-            }
 
-            if (!context.TryGetGrid(out Grid grid) || owner.GetNowXY() == plan.Target)
-            {
-                break;
-            }
 
-            path = grid.GetMovePathTo(owner.GetNowXY(), plan.Target);
-            if (path.Count == 0)
-            {
-                break;
-            }
-        }
-
-        if (owner != null && !owner.IsDead && owner.GetNowXY() == plan.Target)
-        {
-            owner.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Combat,
-                CharacterActivityOutcomes.Started,
-                "최종 방어선 집결",
-                actionId: "invasion:final-rally",
-                sentiment: -0.15f,
-                bubbleEligible: true));
-        }
-
-        ownerRallyRoutine = null;
-    }
-
-    private void ReleaseOwnerRally()
-    {
-        if (ownerRallyRoutine != null)
-        {
-            StopCoroutine(ownerRallyRoutine);
-            ownerRallyRoutine = null;
-        }
-
-        CharacterActor owner = ralliedOwner;
-        ralliedOwner = null;
-        if (owner == null || owner.IsDead)
-        {
-            return;
-        }
-
-        owner.GetAbility<AbilityMove>()?.CancelActiveMovement();
-        owner.SetAiPaused(false);
-    }
 
     private void OnIntruderFinished(InvasionIntruderRuntime runtime)
     {

@@ -12,6 +12,7 @@ internal static class AIBrainActionConfiguration
     private const string RestActionPath = "SO/AI/Action/Rest";
     private const string ToiletActionPath = "SO/AI/Action/Toilet";
     private const string HygieneActionPath = "SO/AI/Action/Hygiene";
+    private const string RecreationActionPath = "SO/AI/Action/Recreation";
     private const string ShoppingActionPath = "SO/AI/Action/Shopping";
     private const string LookAroundActionPath = "SO/AI/Action/LookAround";
     private const string ExitDungeonActionPath = "SO/AI/Action/ExitDungeon";
@@ -20,6 +21,10 @@ internal static class AIBrainActionConfiguration
     private const string HuntActionPath = "SO/AI/Action/Hunt";
     private const string SubstanceUseActionPath = "SO/AI/Action/SubstanceUse";
     private const string DrinkActionPath = "SO/AI/Action/Drink";
+    private const string PrimitiveFieldMealActionPath = "SO/AI/Action/PrimitiveFieldMeal";
+    private const string PrimitiveFloorRestActionPath = "SO/AI/Action/PrimitiveFloorRest";
+    private const string PrimitiveLatrineActionPath = "SO/AI/Action/PrimitiveLatrine";
+    private const string PrimitiveBucketWashActionPath = "SO/AI/Action/PrimitiveBucketWash";
 
     public static AIAction[] ConfigureOwner(
         ICharacterAiActionAssetCatalog catalog,
@@ -33,9 +38,14 @@ internal static class AIBrainActionConfiguration
         AddSpecialAction<AISubstanceUse>(actions, catalog, SubstanceUseActionPath, CharacterAiBranch.Work);
         AddSpecialAction<AIDrink>(actions, catalog, DrinkActionPath, CharacterAiBranch.Drink);
         AddRequiredAction(actions, catalog, EatActionPath, CharacterAiBranch.Eat);
+        AddSpecialAction<AIPrimitiveFieldMeal>(actions, catalog, PrimitiveFieldMealActionPath, CharacterAiBranch.Eat);
         AddRequiredAction(actions, catalog, RestActionPath, CharacterAiBranch.Rest);
+        AddSpecialAction<AIPrimitiveFloorRest>(actions, catalog, PrimitiveFloorRestActionPath, CharacterAiBranch.Rest);
         AddRequiredAction(actions, catalog, ToiletActionPath, CharacterAiBranch.Toilet);
+        AddSpecialAction<AIPrimitiveLatrine>(actions, catalog, PrimitiveLatrineActionPath, CharacterAiBranch.Toilet);
         AddRequiredAction(actions, catalog, HygieneActionPath, CharacterAiBranch.Hygiene);
+        AddSpecialAction<AIPrimitiveBucketWash>(actions, catalog, PrimitiveBucketWashActionPath, CharacterAiBranch.Hygiene);
+        AddRequiredAction(actions, catalog, RecreationActionPath, CharacterAiBranch.LeisureVisit);
         AddRequiredAction(actions, catalog, WaitActionPath, CharacterAiBranch.Wait);
         return BindClocks(actions, clock);
     }
@@ -54,9 +64,14 @@ internal static class AIBrainActionConfiguration
         AddRequiredAction(actions, catalog, WorkActionPath, CharacterAiBranch.Work);
         AddRequiredAction(actions, catalog, WaitActionPath, CharacterAiBranch.Wait);
         AddRequiredAction(actions, catalog, EatActionPath, CharacterAiBranch.Eat);
+        AddSpecialAction<AIPrimitiveFieldMeal>(actions, catalog, PrimitiveFieldMealActionPath, CharacterAiBranch.Eat);
         AddRequiredAction(actions, catalog, RestActionPath, CharacterAiBranch.Rest);
+        AddSpecialAction<AIPrimitiveFloorRest>(actions, catalog, PrimitiveFloorRestActionPath, CharacterAiBranch.Rest);
         AddRequiredAction(actions, catalog, ToiletActionPath, CharacterAiBranch.Toilet);
+        AddSpecialAction<AIPrimitiveLatrine>(actions, catalog, PrimitiveLatrineActionPath, CharacterAiBranch.Toilet);
         AddRequiredAction(actions, catalog, HygieneActionPath, CharacterAiBranch.Hygiene);
+        AddSpecialAction<AIPrimitiveBucketWash>(actions, catalog, PrimitiveBucketWashActionPath, CharacterAiBranch.Hygiene);
+        AddRequiredAction(actions, catalog, RecreationActionPath, CharacterAiBranch.LeisureVisit);
         AddSpecialAction<AIRescue>(actions, catalog, RescueActionPath, CharacterAiBranch.Work);
         AddSpecialAction<AIHaul>(actions, catalog, HaulActionPath, CharacterAiBranch.Work);
         AddSpecialAction<AIHunt>(actions, catalog, HuntActionPath, CharacterAiBranch.Work);
@@ -107,9 +122,14 @@ internal static class AIBrainActionConfiguration
             ? configured.ToList()
             : new List<AIAction>();
         AddRequiredAction(actions, catalog, EatActionPath, CharacterAiBranch.Eat);
+        AddSpecialAction<AIPrimitiveFieldMeal>(actions, catalog, PrimitiveFieldMealActionPath, CharacterAiBranch.Eat);
         AddRequiredAction(actions, catalog, RestActionPath, CharacterAiBranch.Rest);
+        AddSpecialAction<AIPrimitiveFloorRest>(actions, catalog, PrimitiveFloorRestActionPath, CharacterAiBranch.Rest);
         AddRequiredAction(actions, catalog, ToiletActionPath, CharacterAiBranch.Toilet);
+        AddSpecialAction<AIPrimitiveLatrine>(actions, catalog, PrimitiveLatrineActionPath, CharacterAiBranch.Toilet);
         AddRequiredAction(actions, catalog, HygieneActionPath, CharacterAiBranch.Hygiene);
+        AddSpecialAction<AIPrimitiveBucketWash>(actions, catalog, PrimitiveBucketWashActionPath, CharacterAiBranch.Hygiene);
+        AddRequiredAction(actions, catalog, RecreationActionPath, CharacterAiBranch.LeisureVisit);
         AddSpecialAction<AIDrink>(actions, catalog, DrinkActionPath, CharacterAiBranch.Drink);
         AddRequiredAction(actions, catalog, ShoppingActionPath, CharacterAiBranch.Shopping);
         AddRequiredAction(actions, catalog, LookAroundActionPath, CharacterAiBranch.LookAround);
@@ -158,7 +178,12 @@ internal static class AIBrainActionConfiguration
         IEnumerable<AIAction> source,
         IGameClock clock)
     {
-        AIAction[] actions = source?.ToArray() ?? Array.Empty<AIAction>();
+        List<AIAction> ordered = source?.ToList() ?? new List<AIAction>();
+        MoveFacilityBeforePrimitive<AIPrimitiveFieldMeal>(ordered, CharacterAiBranch.Eat);
+        MoveFacilityBeforePrimitive<AIPrimitiveFloorRest>(ordered, CharacterAiBranch.Rest);
+        MoveFacilityBeforePrimitive<AIPrimitiveLatrine>(ordered, CharacterAiBranch.Toilet);
+        MoveFacilityBeforePrimitive<AIPrimitiveBucketWash>(ordered, CharacterAiBranch.Hygiene);
+        AIAction[] actions = ordered.ToArray();
         if (clock == null)
         {
             return actions;
@@ -170,6 +195,31 @@ internal static class AIBrainActionConfiguration
         }
 
         return actions;
+    }
+
+    private static void MoveFacilityBeforePrimitive<T>(
+        List<AIAction> actions,
+        CharacterAiBranch branch)
+        where T : AIPrimitiveSurvivalAction
+    {
+        int primitiveIndex = actions.FindIndex(action => action?.actionset is T);
+        int facilityIndex = actions.FindIndex(action =>
+            action?.actionset != null
+            && action.actionset.Branch == branch
+            && action.actionset is not AIPrimitiveSurvivalAction);
+        if (primitiveIndex < 0
+            || facilityIndex < 0
+            || facilityIndex < primitiveIndex)
+        {
+            return;
+        }
+
+        AIAction primitive = actions[primitiveIndex];
+        actions.RemoveAt(primitiveIndex);
+        // primitiveIndex was before facilityIndex, so after removal the facility
+        // shifted left once. Inserting at the old facility index places the
+        // primitive immediately after the facility action.
+        actions.Insert(facilityIndex, primitive);
     }
 
     private static ICharacterAiActionAssetCatalog RequireCatalog(

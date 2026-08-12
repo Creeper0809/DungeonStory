@@ -167,6 +167,19 @@ internal sealed class WorkTargetEvaluator
                 continue;
             }
 
+            if (!ignorePriority
+                && !CharacterAutonomousWorkPolicy.IsAllowed(
+                    work.WorkerActor,
+                    workTypeId,
+                    out string identityFailureReason))
+            {
+                lastWorkTypeFailure = AIActionFailure.Create(
+                    AIActionFailureKind.Unsupported,
+                    identityFailureReason,
+                    building);
+                continue;
+            }
+
             if (workPolicyRegistry != null
                 && !workPolicyRegistry.IsAvailable(
                     workTypeId,

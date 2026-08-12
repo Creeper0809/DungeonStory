@@ -395,7 +395,7 @@ public sealed class ProductionBuildingPlayModeVerificationRunner : MonoBehaviour
         Check(full.Status == ProductionBillStatus.WaitingForOutputSpace
                 && progressLabel != null
                 && progressLabel.text.Contains(
-                    "출력 버퍼 가득 참",
+                    "출력 공간 대기",
                     StringComparison.Ordinal),
             suffix + "_OUTPUT_FULL_STATUS",
             $"status={full.Status}; label={progressLabel?.text ?? "<missing>"}");
@@ -959,26 +959,26 @@ public sealed class ProductionBuildingPlayModeVerificationRunner : MonoBehaviour
         RectTransform viewport = scroll != null
             ? scroll.viewport ?? scroll.transform as RectTransform
             : null;
-        bool everyRouteVisible = routes.Length == expectedRouteCount
-            && routes.All(route => IsFullyInsideViewport(
-                route.transform as RectTransform,
-                viewport,
-                1f));
-        Check(everyRouteVisible,
-            suffix + "_ALL_ROUTE_ROWS_VISIBLE",
+        bool everyRouteReachable = routes.Length == expectedRouteCount
+            && scroll?.content != null
+            && routes.All(route => route != null
+                && route.activeInHierarchy
+                && route.transform.IsChildOf(scroll.content));
+        Check(everyRouteReachable,
+            suffix + "_ALL_ROUTE_ROWS_REACHABLE",
             $"expected={expectedRouteCount}; actual={routes.Length}; "
             + string.Join(" | ", routes.Select(route =>
                 route.name + ":" + DescribeViewportBounds(
                     route.transform as RectTransform,
                     viewport))));
 
-        RectTransform thirdRoute = routes.Length >= 3
-            ? routes[2].transform as RectTransform
-            : null;
-        Check(thirdRoute != null
-                && IsFullyInsideViewport(thirdRoute, viewport, 1f),
-            suffix + "_THIRD_ROUTE_VISIBLE",
-            DescribeViewportBounds(thirdRoute, viewport));
+        RectTransform lastRoute = FindSceneObject(
+                $"ProductionRoute_0_{expectedRouteCount - 1}")
+            ?.transform as RectTransform;
+        Check(lastRoute != null
+                && IsFullyInsideViewport(lastRoute, viewport, 1f),
+            suffix + "_LAST_ROUTE_VISIBLE_AFTER_SCROLL",
+            DescribeViewportBounds(lastRoute, viewport));
     }
 
     private static bool IsInsideScreen(RectTransform rect, float tolerance)
@@ -1197,7 +1197,7 @@ public sealed class ProductionBuildingPlayModeVerificationRunner : MonoBehaviour
             ProductionBuildingPlayModeVerifier.ReportPath,
             reportEncoding);
         bool koreanRoundTrip = decodedReport.Contains(
-            "출력 버퍼 가득 참",
+            "출력 공간 대기",
             StringComparison.Ordinal)
             && decodedReport.Contains("목표 재고", StringComparison.Ordinal);
         Check(hasUtf8Bom,

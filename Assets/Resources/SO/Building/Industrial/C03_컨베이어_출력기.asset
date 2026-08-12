@@ -34,18 +34,33 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 3
+    minimumRiskRank: 2
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211838074978637
-    - rid: 7737211838074978638
-    - rid: 7737211838074978639
-    - rid: 7737211838074978640
-    - rid: 7737211838074978641
-    - rid: 7737211838074978642
-    - rid: 7737211838074978643
-    - rid: 7737211838074978644
+    - rid: 7737211905655963925
+    - rid: 7737211905655963926
+    - rid: 7737211905655963927
+    - rid: 7737211905655963928
+    - rid: 7737211905655963929
+    - rid: 7737211905655963930
+    - rid: 7737211905655963931
+    - rid: 7737211905655963932
   width: 1
   height: 1
   layer: 12
@@ -61,12 +76,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074978637
+    - rid: 7737211905655963925
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: C03
-    - rid: 7737211838074978638
+    - rid: 7737211905655963926
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -75,33 +90,48 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211838074978639
+    - rid: 7737211905655963927
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 36
-        repairWorkRequired: 12
-        cleanWorkRequired: 8
+        constructionWorkRequired: 208
+        repairWorkRequired: 62
+        cleanWorkRequired: 10
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: component:machine-parts
+        - itemId: material:steel-ingot
           amount: 3
-    - rid: 7737211838074978640
+        - itemId: material:iron-ingot
+          amount: 2
+        - itemId: component:machine-parts
+          amount: 1
+    - rid: 7737211905655963928
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 10
         normallyOpen: 1
-    - rid: 7737211838074978641
+    - rid: 7737211905655963929
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 0.5
         priority: 4
         minimumSupplyFraction: 0.5
-    - rid: 7737211838074978642
+    - rid: 7737211905655963930
       type: {class: BuildingConveyorSegmentAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorSegmentAbility
@@ -114,20 +144,20 @@ MonoBehaviour:
         allowedMaterialIds: []
         filterQuality: 0
         minimumQuality: 0
-        maximumQuality: 6
+        maximumQuality: 7
         filterFreshness: 0
         minimumFreshness01: 0
         maximumFreshness01: 1
         allowContaminated: 1
         allowForbidden: 0
-    - rid: 7737211838074978643
+    - rid: 7737211905655963931
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 1
         destinationId: 
         capacity: 4
-    - rid: 7737211838074978644
+    - rid: 7737211905655963932
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

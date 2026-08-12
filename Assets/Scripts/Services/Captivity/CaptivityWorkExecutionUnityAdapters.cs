@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using UnityEngine;
 
 public sealed class WardenWorkExecutionUnityAdapter :
     IWorkExecutionHandler,
@@ -113,21 +114,49 @@ public sealed class WardenWorkExecutionUnityAdapter :
 
         public bool TryAdvance(out string status)
         {
+            if (!captivity.TryGetCaptive(captiveId, out CaptiveState before))
+            {
+                status = "Captive interaction state is unavailable.";
+                return false;
+            }
+
+            float completedBefore = before.completedInteractionWork;
             float deltaWork = workAmount.CalculateWorkPerSecond(
                     context.Actor,
                     context.Target,
                     context.WorkTypeId,
                     context.Work.GetWorkEnvironmentDurationMultiplier(context.WorkTypeId))
                 * clock.DeltaTime;
-            return commands.AdvanceInteraction(
+            bool succeeded = commands.AdvanceInteraction(
                 captiveId,
                 context.Actor,
                 deltaWork,
                 out status);
+            if (succeeded
+                && captivity.TryGetCaptive(captiveId, out CaptiveState after))
+            {
+                float accepted = Mathf.Max(
+                    0f,
+                    after.completedInteractionWork - completedBefore);
+                if (accepted > 0f)
+                {
+                    context.RecordApprovedWork(
+                        accepted,
+                        Mathf.Max(
+                            0f,
+                            after.requiredInteractionWork
+                                - after.completedInteractionWork));
+                }
+            }
+
+            return succeeded;
         }
 
         public void SetStatus(string status) =>
             context.Actor?.Brain?.SetActionPhase(status, context.Target);
+
+        public bool TrySuspendAtCheckpoint() =>
+            context.TrySuspendAtCheckpoint();
 
         public void Complete(bool succeeded)
         {
@@ -228,21 +257,55 @@ public sealed class PerformWorkExecutionUnityAdapter :
 
         public bool TryAdvance(out string status)
         {
+            CircusShowOrder before = circus.Orders.FirstOrDefault(item =>
+                string.Equals(item.orderId, orderId, StringComparison.Ordinal));
+            if (before == null)
+            {
+                status = "Performance preparation state is unavailable.";
+                return false;
+            }
+
+            float completedBefore = before.preparationWorkCompleted;
             float deltaWork = workAmount.CalculateWorkPerSecond(
                     context.Actor,
                     context.Target,
                     context.WorkTypeId,
                     context.Work.GetWorkEnvironmentDurationMultiplier(context.WorkTypeId))
                 * clock.DeltaTime;
-            return circus.AdvancePreparation(
+            bool succeeded = circus.AdvancePreparation(
                 orderId,
                 context.Actor,
                 deltaWork,
                 out status);
+            if (succeeded)
+            {
+                CircusShowOrder after = circus.Orders.FirstOrDefault(item =>
+                    string.Equals(item.orderId, orderId, StringComparison.Ordinal));
+                if (after != null)
+                {
+                    float accepted = Mathf.Max(
+                        0f,
+                        after.preparationWorkCompleted - completedBefore);
+                    if (accepted > 0f)
+                    {
+                        context.RecordApprovedWork(
+                            accepted,
+                            Mathf.Max(
+                                0f,
+                                after.preparationWorkRequired
+                                    - after.preparationWorkCompleted));
+                    }
+                }
+            }
+
+            return succeeded;
         }
 
         public void SetStatus(string status) =>
             context.Actor?.Brain?.SetActionPhase(status, context.Target);
+
+        public bool TrySuspendAtCheckpoint() =>
+            context.TrySuspendAtCheckpoint();
 
         public void Complete(bool succeeded)
         {

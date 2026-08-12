@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uC624\uB798\uB41C \uD749\uD130"
   description: "\uACE0\uD1B5\uC5D0 \uC775\uC219\uD558\uC9C0\uB9CC \uC758\uB8CC\uC2E4
     \uB0C4\uC0C8\uAC00 \uACFC\uAC70\uC758 \uAE30\uC5B5\uC744 \uAC74\uB4DC\uB9B0\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1.03
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,42 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 1
+  polarity: 1
+  selectionFamilyId: pain
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: danger:hold-position
-    utilityDelta: 0.2
-  moodReactions:
-  - triggerTag: facility:clinic
-    moodDelta: -2
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: combat
-    multiplier: 1.25
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:204:effect:0
+    definition: {fileID: 11400000, guid: 4dd11f5641ac58047a71a36982861351, type: 2}
+    value: 0.75
+    condition: {fileID: 0}
+  - bindingId: trait:204:effect:1
+    definition: {fileID: 11400000, guid: 137c7667173fc054eb6777aec0aa16f2, type: 2}
+    value: 1.03
+    condition: {fileID: 11400000, guid: 784f0993e9ab9b94d9de1550f3436032, type: 2}
+  identityRules:
+  - rid: 7737211921986486532
+  - rid: 7737211921986486533
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486532
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:persist-through-pain
+        priority: 0
+        behaviorTag: work:while-in-pain
+        utilityDelta: 0.55
+    - rid: 7737211921986486533
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:clinic-memory
+        priority: 0
+        eventId: medical:entered-clinic
+        moodDelta: -2
+        durationDays: 1

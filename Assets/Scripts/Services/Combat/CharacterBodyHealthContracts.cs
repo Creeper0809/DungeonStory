@@ -19,6 +19,8 @@ public sealed class CharacterBodyHealthState
     [Range(0f, 1f)] public float sedationRatio;
     [Min(0f)] public float sedationRemainingSeconds;
     [Min(0f)] public float manaBlockedRemainingSeconds;
+    [Min(1f)] public float maxMana = 100f;
+    [Min(0f)] public float currentMana = 100f;
     public bool downed;
     public string lastDamageReason = string.Empty;
 }
@@ -26,7 +28,7 @@ public sealed class CharacterBodyHealthState
 [Serializable]
 public sealed class DungeonCharacterBodyHealthSaveData
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
 
     public int version = CurrentVersion;
     public List<CharacterBodyHealthState> characters = new List<CharacterBodyHealthState>();
@@ -90,6 +92,33 @@ public interface ICharacterCombatSpecialStatusQuery
 {
     CharacterCombatSpecialStatusSnapshot GetCombatSpecialStatus(
         CharacterId characterId);
+}
+
+public readonly struct CharacterManaSnapshot
+{
+    public CharacterManaSnapshot(float current, float maximum, bool recoveryBlocked)
+    {
+        Maximum = Mathf.Max(1f, maximum);
+        Current = Mathf.Clamp(current, 0f, Maximum);
+        RecoveryBlocked = recoveryBlocked;
+    }
+
+    public float Current { get; }
+    public float Maximum { get; }
+    public float Ratio => Current / Maximum;
+    public bool RecoveryBlocked { get; }
+}
+
+public interface ICharacterManaQuery
+{
+    CharacterManaSnapshot GetMana(CharacterActor actor);
+    bool CanSpendMana(CharacterActor actor, float amount, out string failureReason);
+}
+
+public interface ICharacterManaCommand
+{
+    bool TrySpendMana(CharacterActor actor, float amount, out string failureReason);
+    void RefundFailedManaSpend(CharacterActor actor, float amount);
 }
 
 public interface ICharacterBodyHealthCommand

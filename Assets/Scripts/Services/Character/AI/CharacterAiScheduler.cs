@@ -23,9 +23,9 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     [SerializeField] private bool limitFeedbackToVisibleCharacters = true;
     [SerializeField] private bool adaptBudgetsToFrameCost = true;
     [SerializeField, Min(1)] private int maxDecisionsPerFrame = 512;
-    [SerializeField, Min(1)] private int maxPathSearchesPerFrame = 256;
-    [SerializeField, Min(0)] private int minDecisionsPerFrame;
-    [SerializeField, Min(0)] private int minPathSearchesPerFrame;
+    [SerializeField, Range(1, 8)] private int maxPathSearchesPerFrame = 8;
+    [SerializeField, Min(1)] private int minDecisionsPerFrame = 1;
+    [SerializeField, Min(1)] private int minPathSearchesPerFrame = 1;
     [SerializeField, Min(0.1f)] private float targetAiMilliseconds = 4f;
     [SerializeField, Min(8f)] private float targetFrameMilliseconds = 16.667f;
     [SerializeField, Range(0.05f, 1f)] private float frameHeadroomShare = 0.45f;
@@ -101,7 +101,9 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     public ExternalBehaviorTree CharacterAiExternalBehavior => characterAiExternalBehavior;
     public bool IsDrivingAi => enabled && driveCharacterUpdates;
     public int CurrentDecisionBudget => budgetState.CurrentDecisionBudget;
-    public int CurrentPathSearchBudget => budgetState.CurrentPathSearchBudget;
+    public int CurrentPathSearchBudget => budgetState.GetPathSearchBudgetForFrame(
+        BuildBudgetSettings(),
+        actors.Count);
     private CharacterAiDecisionSchedule DecisionSchedule =>
         decisionSchedule ??= new CharacterAiDecisionSchedule(
             actorSet,
@@ -398,9 +400,13 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                         >= maximumDecisionDeferralSeconds;
                     bool withinCountBudget =
                         LastProcessedDecisionCount < decisionCountBudget;
+                    int guaranteedDecisionFloor = Mathf.Min(
+                        actors.Count,
+                        Mathf.Max(1, minDecisionsPerFrame));
                     bool withinTimeBudget =
-                        elapsedBeforeDecision + predictedDecisionMilliseconds
-                        <= budgetState.CurrentFrameBudgetMilliseconds;
+                        LastProcessedDecisionCount < guaranteedDecisionFloor
+                        || elapsedBeforeDecision + predictedDecisionMilliseconds
+                            <= budgetState.CurrentFrameBudgetMilliseconds;
                     bool canOverdraft = LastProcessedDecisionCount == 0
                         && schedulerTickSequence - lastOverdraftTick
                             >= Mathf.Max(1, overdraftCooldownTicks);
@@ -746,9 +752,9 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         {
             AdaptBudgetsToFrameCost = adaptBudgetsToFrameCost,
             MaxDecisionsPerFrame = maxDecisionsPerFrame,
-            MaxPathSearchesPerFrame = maxPathSearchesPerFrame,
-            MinDecisionsPerFrame = minDecisionsPerFrame,
-            MinPathSearchesPerFrame = minPathSearchesPerFrame,
+            MaxPathSearchesPerFrame = Mathf.Clamp(maxPathSearchesPerFrame, 1, 8),
+            MinDecisionsPerFrame = Mathf.Max(1, minDecisionsPerFrame),
+            MinPathSearchesPerFrame = Mathf.Max(1, minPathSearchesPerFrame),
             TargetAiMilliseconds = targetAiMilliseconds,
             TargetFrameMilliseconds = targetFrameMilliseconds,
             FrameHeadroomShare = frameHeadroomShare,

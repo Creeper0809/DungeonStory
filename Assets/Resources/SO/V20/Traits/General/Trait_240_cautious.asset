@@ -51,6 +51,10 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 2
+  selectionFamilyId: risk
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
   behaviorPreferences:
   - behaviorTag: safety:wait-for-gear

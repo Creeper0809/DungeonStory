@@ -46,11 +46,11 @@ MonoBehaviour:
   - practice:kobold-bench-feast
   otherCultureAttitudes:
   - id: culture:adventurer-frontier
-    weight: 0.89
+    weight: 0.89000005
   - id: culture:beastkin-pack
     weight: 0.92
   - id: culture:demon-contract
-    weight: 0.95
+    weight: 0.95000005
   - id: culture:golem-core
     weight: 0.98
   - id: culture:harpy-aerie

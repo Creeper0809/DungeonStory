@@ -131,21 +131,15 @@ public static class DungeonDebugModeDebugScenarios
             mode = WorkerSelectionMode.RuleSet,
             matchMode = WorkerRequirementMatchMode.All,
             sortMode = WorkerCandidateSortMode.BestExpectedQuality,
-            statRequirements = new List<WorkerStatRequirementSaveData>
-            {
-                new()
-                {
-                    statType = (int)CharacterStatType.Dexterity,
-                    minimumValue = 7
-                }
-            }
+            minimumSkillId = BuiltInCharacterProficiencyIds.Crafting.Value,
+            minimumSkillExperience = 700
         };
         string worker = GameplayUiPresentationText.WorkerPolicy(policy);
         return GameplayUiPresentationText.Quality(CraftsmanshipQualityTier.Masterwork)
                 == "명품"
             && GameplayUiPresentationText.RejectedOutput(
                 RejectedOutputDisposition.AutoDismantle) == "불합격품 자동 분해"
-            && worker.Contains("민첩 7+", StringComparison.Ordinal)
+            && worker.Contains("제작 700+ XP", StringComparison.Ordinal)
             && !worker.Contains(nameof(WorkerSelectionMode.RuleSet), StringComparison.Ordinal);
     }
 

@@ -25,38 +25,8 @@ MonoBehaviour:
   traitName: "\uBD80\uC790"
   description: "\uC18C\uC9C0\uAE08\uACFC \uC18C\uBE44 \uAC00\uB2A5 \uAE08\uC561\uC774
     \uB298\uC5B4\uB09C\uB2E4."
-  statBonus:
-    entries:
-    - statId: stat:attack
-      value: 0
-    - statId: stat:sales
-      value: 1
-    - statId: stat:research
-      value: 0
-    - statId: stat:move-speed
-      value: 0
-    - statId: stat:strength
-      value: 0
-    - statId: stat:toughness
-      value: 0
-    - statId: stat:dexterity
-      value: 0
-    - statId: stat:cleaning
-      value: 0
-    - statId: stat:endurance
-      value: 0
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1.6
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
-    preferredFacilityRoles: 2
+    preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
     dislikedWorkTypes: 0
@@ -69,17 +39,46 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 1
+  polarity: 1
+  selectionFamilyId: wealth
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: service:luxury
-    utilityDelta: 0.4
-  moodReactions:
-  - triggerTag: guest:satisfied
-    moodDelta: 2
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: guest-request
-    multiplier: 1.25
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:103:effect:0
+    definition: {fileID: 11400000, guid: 45048702899454f4fa42cb7be9ea3975, type: 2}
+    value: 15
+    condition: {fileID: 0}
+  - bindingId: trait:103:effect:1
+    definition: {fileID: 11400000, guid: 7b3eb087dd06731449587320d5c7cb29, type: 2}
+    value: 1.4
+    condition: {fileID: 0}
+  identityRules:
+  - rid: 7737211921986486478
+  - rid: 7737211921986486479
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486478
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:prefer-luxury
+        priority: 0
+        behaviorTag: consume:luxury
+        utilityDelta: 0.65
+    - rid: 7737211921986486479
+      type: {class: PersistentNeedRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: need:luxury-standard
+        priority: 0
+        needId: need:luxury-standard
+        satisfiedEventId: living:luxury-satisfied
+        deprivedEventId: living:basic-only
+        deprivationDays: 3
+        deprivedMoodDelta: -3
+        satisfiedMoodDelta: 2
+        moodDurationDays: 2

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 internal static class WorkOrderSaveValidation
 {
@@ -349,24 +350,17 @@ internal static class WorkOrderSaveValidation
         ValidateCanonicalIds(policy.excludedTraitIds, orderId, "excluded trait", report);
         if (policy.minimumSkillExperience < 0
             || policy.minimumSkillId == null
-            || !string.Equals(policy.minimumSkillId, policy.minimumSkillId.Trim(), StringComparison.Ordinal))
+            || !string.Equals(policy.minimumSkillId, policy.minimumSkillId.Trim(), StringComparison.Ordinal)
+            || (policy.minimumSkillId.Length > 0
+                && !BuiltInCharacterProficiencyIds.All.Any(id =>
+                    string.Equals(
+                        id.Value,
+                        policy.minimumSkillId,
+                        StringComparison.Ordinal))))
         {
             report.AddError($"Work order '{orderId}' has invalid skill requirements.");
         }
 
-        HashSet<int> statTypes = new();
-        foreach (WorkerStatRequirementSaveData requirement in
-                 policy.statRequirements ?? new List<WorkerStatRequirementSaveData>())
-        {
-            if (requirement == null
-                || !Enum.IsDefined(typeof(CharacterStatType), requirement.statType)
-                || requirement.minimumValue < 0
-                || !statTypes.Add(requirement.statType))
-            {
-                report.AddError($"Work order '{orderId}' has invalid or duplicate stat requirements.");
-                break;
-            }
-        }
     }
 
     private static void ValidateCraftState(

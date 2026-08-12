@@ -97,13 +97,21 @@ public sealed class MaintainSurgicalPartEffectHandler :
 {
     private readonly ICharacterWorldQuery characters;
     private readonly IAnatomyHealthRuntime anatomy;
+    private readonly ICharacterSpeciesQuery speciesQuery;
+    private readonly ICharacterSpeciesCommand speciesCommands;
 
     public MaintainSurgicalPartEffectHandler(
         ICharacterWorldQuery characters,
-        IAnatomyHealthRuntime anatomy)
+        IAnatomyHealthRuntime anatomy,
+        ICharacterSpeciesQuery speciesQuery,
+        ICharacterSpeciesCommand speciesCommands)
     {
         this.characters = characters ?? throw new ArgumentNullException(nameof(characters));
         this.anatomy = anatomy ?? throw new ArgumentNullException(nameof(anatomy));
+        this.speciesQuery = speciesQuery
+            ?? throw new ArgumentNullException(nameof(speciesQuery));
+        this.speciesCommands = speciesCommands
+            ?? throw new ArgumentNullException(nameof(speciesCommands));
     }
 
     protected override bool ApplyTyped(
@@ -115,11 +123,41 @@ public sealed class MaintainSurgicalPartEffectHandler :
         CharacterActor character = SurgicalSubjectResolver.FindCharacter(
             characters,
             order?.subject?.subjectId);
-        return anatomy.TryMaintainNode(
+        bool isPowerCore = string.Equals(
+            order?.procedureId,
+            "procedure:golem-power-core",
+            StringComparison.Ordinal);
+        CharacterId characterId = (CharacterId)(order?.subject?.subjectId
+            ?? string.Empty);
+        if (isPowerCore
+            && (!speciesQuery.TryGet(characterId, out CharacterSpeciesRuntimeState state)
+                || !state.SpeciesId.Equals(new CharacterSpeciesId("Golem"))))
+        {
+            failure = new DomainFailure(
+                FailureCode.CharacterSpeciesRepairUnsupported,
+                characterId.Value);
+            return false;
+        }
+        if (!anatomy.TryMaintainNode(
             character,
             order?.targetNodeId,
             effect.durability,
             effect.contaminationReduction,
+            out failure))
+            return false;
+        if (!isPowerCore)
+            return true;
+        if (!anatomy.TryReduceNodeBurden(
+                character,
+                order.targetNodeId,
+                30f,
+                0f,
+                0f,
+                out failure))
+            return false;
+        return speciesCommands.RepairIntegrity(
+            characterId,
+            30f,
             out failure);
     }
 }

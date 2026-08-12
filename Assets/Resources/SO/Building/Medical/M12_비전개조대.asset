@@ -34,23 +34,38 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 3
+    minimumRiskRank: 2
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730889015566
-    - rid: 7737211730889015567
-    - rid: 7737211730889015568
-    - rid: 7737211730889015569
-    - rid: 7737211730889015570
-    - rid: 7737211730889015571
-    - rid: 7737211730889015572
-    - rid: 7737211730889015573
-    - rid: 7737211730889015574
-    - rid: 7737211730889015575
-    - rid: 7737211730889015576
-    - rid: 7737211838074978443
-    - rid: 7737211838074978444
+    - rid: 7737211857806557837
+    - rid: 7737211857806557838
+    - rid: 7737211857806557839
+    - rid: 7737211857806557841
+    - rid: 7737211857806557842
+    - rid: 7737211857806557843
+    - rid: 7737211857806557844
+    - rid: 7737211857806557845
+    - rid: 7737211857806557846
+    - rid: 7737211857806557847
+    - rid: 7737211905652294655
+    - rid: 7737211905655963648
+    - rid: 7737211905666711795
   width: 3
   height: 1
   layer: 1
@@ -66,12 +81,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730889015566
+    - rid: 7737211857806557837
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: M12
-    - rid: 7737211730889015567
+    - rid: 7737211857806557838
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -79,7 +94,7 @@ MonoBehaviour:
         - medical
         - surgery
         - m12
-    - rid: 7737211730889015568
+    - rid: 7737211857806557839
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -88,28 +103,17 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211730889015569
-      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingFacilityAbility
-        settings:
-          roles: 4096
-          capacity: 1
-          useDuration: 1.5
-          requiredWorkers: 1
-          supportedWorkTypes: 671121408
-          disabledWhenDamaged: 1
-    - rid: 7737211730889015570
+    - rid: 7737211857806557841
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211730889015571
+    - rid: 7737211857806557842
       type: {class: BuildingInternalStockAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 12
         restockRequestThreshold: 3
-    - rid: 7737211730889015572
+    - rid: 7737211857806557843
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -118,10 +122,21 @@ MonoBehaviour:
         cleanWorkRequired: 8
         researchWorkRequired: 6
         operateWorkRequired: 12
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
         - itemId: component:rune-conductor
           amount: 16
-    - rid: 7737211730889015573
+    - rid: 7737211857806557844
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -133,14 +148,14 @@ MonoBehaviour:
           - m12
           scores: []
           metrics: []
-    - rid: 7737211730889015574
+    - rid: 7737211857806557845
       type: {class: BuildingMedicalAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingMedicalAbility
         workSeconds: 1.8
         severityReduction: 0.4
         requiresMedicine: 1
-    - rid: 7737211730889015575
+    - rid: 7737211857806557846
       type: {class: BuildingFuelConsumerAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingFuelConsumerAbility
@@ -148,21 +163,21 @@ MonoBehaviour:
         workSeconds: 1
         warmth: 0
         lightSafety: 2
-    - rid: 7737211730889015576
+    - rid: 7737211857806557847
       type: {class: BuildingArcaneSurgeryAbility, ns: , asm: DungeonStory.Medical}
       data:
         abilityId: BuildingArcaneSurgeryAbility
         successBonus: 0.12
         minimumMutationRisk: 0.08
         manaCrystalCost: 2
-    - rid: 7737211838074978443
+    - rid: 7737211905652294655
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737211838074978444
+    - rid: 7737211905655963648
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility
@@ -172,3 +187,14 @@ MonoBehaviour:
         wastewaterPerCycle: 0.2
         minimumQuality: 0
         allowsManualWaterFallback: 1
+    - rid: 7737211905666711795
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 4096
+          capacity: 1
+          useDuration: 1.5
+          requiredWorkers: 1
+          supportedWorkTypes: 671186944
+          disabledWhenDamaged: 1

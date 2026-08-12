@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: DungeonStory.Content::SeasonalWorldEventDefinitionSO
   stableId: seasonal:spring-seed-exchange
   displayName: "\uB5A0\uB3CC\uC774 \uC885\uC790\uC0C1"
-  description: "\uC138\uB825 \uC0C1\uC778\uC774 \uD76C\uADC0 \uC885\uC790\uC640 \uC758\uC57D\uD488\uC744
-    \uC0DD\uC0B0\uD488 \uAD50\uD658\uC73C\uB85C \uC81C\uC548\uD55C\uB2E4."
+  description: "\uADE0\uC0AC \uC5F0\uD569 \uC0C1\uC778\uC774 \uD76C\uADC0 \uC885\uC790\uC640
+    \uC758\uC57D\uD488\uC744 \uC0DD\uC0B0\uD488 \uAD50\uD658\uC73C\uB85C \uC81C\uC548\uD55C\uB2E4."
   authoringRevision: 1
   sourceNote: V20 hand-authored seasonal world event manifest.
   season: 0

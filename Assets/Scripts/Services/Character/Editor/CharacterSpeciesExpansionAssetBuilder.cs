@@ -85,12 +85,6 @@ public static class CharacterSpeciesExpansionAssetBuilder
             asset.characterName = spec.CharacterName;
             asset.speciesTag = spec.Tag;
             asset.species = species[spec.Tag];
-            asset.baseStats = CharacterStatBlock.CreateDefault();
-            foreach ((CharacterStatType stat, int value) in spec.BaseStats)
-            {
-                asset.baseStats.Set(stat, value);
-            }
-
             asset.traits = Array.Empty<CharacterTraitSO>();
             asset.defaultWorkPriorities = WorkPriorityProfile.CreateDefault();
             foreach (FacilityWorkType type in EnumerateFlags(spec.StrongWork))
@@ -165,12 +159,6 @@ public static class CharacterSpeciesExpansionAssetBuilder
                     spec.ActiveTarget,
                     spec.ActiveEffects)
             });
-            asset.statBonus = CharacterStatBlock.CreateDefault(0);
-            foreach ((CharacterStatType stat, int value) in spec.SpeciesStats)
-            {
-                asset.statBonus.Set(stat, value);
-            }
-
             asset.modifiers = spec.Modifiers;
         }
     }
@@ -354,12 +342,29 @@ public static class CharacterSpeciesExpansionAssetBuilder
             Name = name,
             Policy = SpeciesOwnerSelectionPolicy.Selectable,
             AnatomyProfileId = anatomy,
-            Needs = Needs(1f, 1f, MealDietClass.Mixed, 1f),
+            Needs = tag == "Orc"
+                ? Needs(1.20f, 1.05f, MealDietClass.Mixed, 1f)
+                : Needs(1f, 1f, MealDietClass.Mixed, 1f),
             Environment = environment,
             RelationTags = relationTags,
             DefenseTags = defenseTags,
-            StrongWork = FacilityWorkType.None,
-            WeakWork = FacilityWorkType.None,
+            StrongWork = tag switch
+            {
+                "Slime" => FacilityWorkType.Clean | FacilityWorkType.Gather,
+                "Orc" => FacilityWorkType.Guard | FacilityWorkType.Haul
+                    | FacilityWorkType.Repair,
+                "Vampire" => FacilityWorkType.Research
+                    | FacilityWorkType.ThreatMitigation,
+                _ => FacilityWorkType.None
+            },
+            WeakWork = tag switch
+            {
+                "Slime" => FacilityWorkType.Guard | FacilityWorkType.Quarry
+                    | FacilityWorkType.Logging,
+                "Orc" => FacilityWorkType.Research,
+                "Vampire" => FacilityWorkType.Haul | FacilityWorkType.Clean,
+                _ => FacilityWorkType.None
+            },
             PreferredFacilities = Array.Empty<string>(),
             DislikedEnvironments = Array.Empty<string>(),
             IncidentId = incidentId,
@@ -418,15 +423,7 @@ public static class CharacterSpeciesExpansionAssetBuilder
         int maximumMoney,
         int speed)
     {
-        CharacterModelModifiers modifiers = new CharacterModelModifiers
-        {
-            workSpeedMultiplier = 1.05f,
-            moveSpeedMultiplier = tag == "Beastkin" || tag == "Harpy" ? 1.12f : 1f,
-            spendingMultiplier = tag == "Demon" ? 1.6f : 1f,
-            combatPowerMultiplier = tag == "Demon" || tag == "Golem" ? 1.15f : 1f,
-            consumptionMultiplier = needs.hungerRateMultiplier,
-            crowdSensitivityMultiplier = tag == "Beastkin" ? 1.3f : 1f
-        };
+        CharacterModelModifiers modifiers = new CharacterModelModifiers();
         modifiers.SetWorkPreferences(strongWork, weakWork);
         return new SpeciesSpec
         {
@@ -465,22 +462,6 @@ public static class CharacterSpeciesExpansionAssetBuilder
                     : OffenseBattleTargetRule.Enemy,
             ActiveEffects = new[] { activeEffect },
             Modifiers = modifiers,
-            SpeciesStats = new[]
-            {
-                (CharacterStatType.Attack, attack - 5),
-                (CharacterStatType.Sales, sales - 5),
-                (CharacterStatType.Research, research - 5),
-                (CharacterStatType.Dexterity, dexterity - 5),
-                (CharacterStatType.Toughness, toughness - 5)
-            },
-            BaseStats = new[]
-            {
-                (CharacterStatType.Attack, attack),
-                (CharacterStatType.Sales, sales),
-                (CharacterStatType.Research, research),
-                (CharacterStatType.Dexterity, dexterity),
-                (CharacterStatType.Toughness, toughness)
-            },
             Personality = Personality(tag),
             CharacterName = characterName,
             MinimumMoney = minimumMoney,
@@ -687,10 +668,6 @@ public static class CharacterSpeciesExpansionAssetBuilder
         public OffenseBattleTargetRule ActiveTarget;
         public OffenseCombatEffectModule[] ActiveEffects;
         public CharacterModelModifiers Modifiers = new CharacterModelModifiers();
-        public (CharacterStatType, int)[] SpeciesStats =
-            Array.Empty<(CharacterStatType, int)>();
-        public (CharacterStatType, int)[] BaseStats =
-            Array.Empty<(CharacterStatType, int)>();
         public CharacterAiPersonality Personality = new CharacterAiPersonality();
         public string CharacterName = string.Empty;
         public int MinimumMoney = 80;

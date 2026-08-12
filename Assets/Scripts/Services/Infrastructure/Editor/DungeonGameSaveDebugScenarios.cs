@@ -11,6 +11,77 @@ using VContainer;
 
 public static class DungeonGameSaveDebugScenarios
 {
+    public static string DescribePopulationHealthStateForDebug()
+    {
+        if (!Application.isPlaying)
+        {
+            return "Population-health inspection requires PlayMode.";
+        }
+
+        DungeonRuntimeLifetimeScope scope =
+            UnityEngine.Object.FindFirstObjectByType<DungeonRuntimeLifetimeScope>();
+        if (scope == null || scope.Container == null)
+        {
+            return "DungeonRuntimeLifetimeScope is not ready.";
+        }
+
+        PopulationHealthWorldSaveData data =
+            scope.Container.Resolve<IPopulationHealthPersistence>().Capture();
+        return $"characters={data.characters?.Count ?? 0}; "
+            + $"exposures={data.pendingExposures?.Count ?? 0}; ids="
+            + string.Join(",", data.pendingExposures?
+                .Where(value => value != null)
+                .Select(value => value.characterId)
+                ?? Enumerable.Empty<string>());
+    }
+
+    public static int RemoveDanglingPopulationHealthExposuresForDebug()
+    {
+        if (!Application.isPlaying)
+        {
+            return 0;
+        }
+
+        DungeonRuntimeLifetimeScope scope =
+            UnityEngine.Object.FindFirstObjectByType<DungeonRuntimeLifetimeScope>();
+        if (scope == null || scope.Container == null)
+        {
+            return 0;
+        }
+
+        HashSet<string> liveIds = scope.Container
+            .Resolve<ICharacterLifetimeQuery>()
+            .AllCharacters
+            .Where(actor => actor != null
+                && actor.gameObject.activeInHierarchy
+                && actor.Identity != null
+                && actor.Identity.Data != null
+                && !actor.IsDead
+                && actor.CurrentLifecycleState
+                    != CharacterLifecycleState.Despawned
+                && (actor.IsOwner
+                    || (actor.Identity.CharacterType == CharacterType.NPC
+                        && actor.TryGetAbility(out AbilityWork _))))
+            .Select(actor => actor.Identity.PersistentId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .ToHashSet(StringComparer.Ordinal);
+        IPopulationHealthPersistence persistence =
+            scope.Container.Resolve<IPopulationHealthPersistence>();
+        PopulationHealthWorldSaveData data = persistence.Capture();
+        int before = data.pendingExposures?.Count ?? 0;
+        data.pendingExposures = (data.pendingExposures
+                ?? new List<DiseaseExposureSaveData>())
+            .Where(value => value != null
+                && liveIds.Contains(value.characterId))
+            .ToList();
+        int removed = before - data.pendingExposures.Count;
+        if (removed > 0)
+        {
+            persistence.PublishRestore(persistence.PrepareRestore(data));
+        }
+        return removed;
+    }
+
     [MenuItem("DungeonStory/Debug/Save/Run Full Game Round Trip")]
     public static void RunFullGameRoundTrip()
     {
@@ -38,6 +109,7 @@ public static class DungeonGameSaveDebugScenarios
             scope.Container.Resolve<FacilityFeatureSceneRuntimeReferences>();
         IFacilityShopCatalog catalog = scope.Container.Resolve<IFacilityShopCatalog>();
         IGridSystemProvider gridProvider = scope.Container.Resolve<IGridSystemProvider>();
+        IBuildingWorldQuery buildingWorld = scope.Container.Resolve<IBuildingWorldQuery>();
         IOwnerRunManagerProvider ownerProvider = scope.Container.Resolve<IOwnerRunManagerProvider>();
         DungeonSceneRuntimeReferences dungeonRuntimes =
             scope.Container.Resolve<DungeonSceneRuntimeReferences>();
@@ -55,6 +127,10 @@ public static class DungeonGameSaveDebugScenarios
         ICombatEquipmentCatalog equipmentCatalog = scope.Container.Resolve<ICombatEquipmentCatalog>();
         IItemInstanceRepository itemInstances = scope.Container.Resolve<IItemInstanceRepository>();
         IWorldItemStackRuntime itemStackRuntime = scope.Container.Resolve<IWorldItemStackRuntime>();
+        ICharacterProficiencyCommand proficiencyCommands =
+            scope.Container.Resolve<ICharacterProficiencyCommand>();
+        ICharacterProficiencyQuery proficiencyQuery =
+            scope.Container.Resolve<ICharacterProficiencyQuery>();
 
         Require(gameDataProvider.TryGetSessionState(out GameSessionState gameData), "GameSessionState runtime is missing.");
         BlueprintResearchRuntime research = progressionRuntimes.BlueprintResearch;
@@ -71,8 +147,14 @@ public static class DungeonGameSaveDebugScenarios
         CodexRuntime codex = facilityRuntimes.Codex;
         Require(codex != null, "Codex runtime is missing.");
         Require(gridProvider.TryGetGrid(out Grid grid), "Grid runtime is missing.");
-        Require(ownerProvider.TryGetManager(out OwnerRunManager ownerManager)
-            && ownerManager.CurrentOwnerActor != null, "Owner runtime is missing.");
+        Require(ownerProvider.TryGetManager(out OwnerRunManager ownerManager),
+            "Owner manager runtime is missing.");
+        if (ownerManager.CurrentOwnerActor == null)
+        {
+            ownerManager.SelectOwnerByIndex(0);
+        }
+        Require(ownerManager.CurrentOwnerActor != null,
+            "Owner runtime could not create the deterministic first candidate.");
         OperatingDaySettlementRuntime settlement = dungeonRuntimes.Settlement;
         Require(settlement != null, "Settlement runtime is missing.");
         EventAlertRuntime alerts = dungeonRuntimes.Alerts;
@@ -137,6 +219,7 @@ public static class DungeonGameSaveDebugScenarios
                     true,
                     true,
                     false,
+                    0,
                     RecruitCapability.All)
             });
 
@@ -301,9 +384,24 @@ public static class DungeonGameSaveDebugScenarios
             string equipmentStaffId = characterIdRegistry.GetOrAssignPersistentId(expeditionMember);
             expeditionMember.Progression?.AddExperience(CharacterProgression.GetExperienceRequired(1));
             Require(expeditionMember.Progression != null
-                    && expeditionMember.Progression.Level >= 2
-                    && expeditionMember.Progression.GrowthState.allocationRecords.Count > 0,
-                "The save test member did not create a level-growth allocation record.");
+                    && expeditionMember.Progression.Level >= 2,
+                "Generic level progression created a deprecated detailed-stat allocation record.");
+            CharacterId equipmentCharacterId = new(equipmentStaffId);
+            const long ProficiencyMarkerHour = 24L;
+            long awardedCraftingExperience =
+                proficiencyCommands.AddDirectExperience(
+                    equipmentCharacterId,
+                    BuiltInCharacterProficiencyIds.Crafting,
+                    7f,
+                    ProficiencyMarkerHour);
+            Require(awardedCraftingExperience > 0L,
+                "The save test member did not receive the crafting-proficiency marker.");
+            Require(proficiencyQuery.TryGetProficiency(
+                    equipmentCharacterId,
+                    BuiltInCharacterProficiencyIds.Crafting,
+                    ProficiencyMarkerHour,
+                    out CharacterProficiencySnapshot expectedCraftingProficiency),
+                "The save test member did not create a crafting-proficiency marker.");
             itemInstances.EquipmentInstances[EquipmentWeaponInstanceMarker] =
                 new CombatEquipmentInstance
                 {
@@ -327,6 +425,13 @@ public static class DungeonGameSaveDebugScenarios
                     EquipmentWeaponMarker,
                     out CombatEquipmentDefinitionSO storedWeaponDefinition),
                 "The stored QA weapon has no authored equipment definition.");
+            float equipmentCraftRequiredWork =
+                storedWeaponDefinition.RequiredCraftWork;
+            float equipmentCraftCompletedWork = Mathf.Min(
+                6.75f,
+                equipmentCraftRequiredWork * 0.5f);
+            float equipmentCraftRemainingWork =
+                equipmentCraftRequiredWork - equipmentCraftCompletedWork;
             Require(itemStackRuntime.SpawnExistingUniqueItemAt(
                     storedWeaponDefinition.ItemId,
                     (ItemInstanceId)EquipmentSpareWeaponInstanceMarker,
@@ -386,11 +491,20 @@ public static class DungeonGameSaveDebugScenarios
                         orderId = EquipmentCraftOrderMarker,
                         definitionId = EquipmentCraftMarker,
                         materialId = "material:iron",
-                        requiredWork = 10f,
-                        completedWork = 6.75f,
+                        requiredWork = equipmentCraftRequiredWork,
+                        completedWork = equipmentCraftCompletedWork,
                         materialsReady = true,
                         materialDestinationId =
-                            "facility-input:qa-save-craft-order"
+                            "facility-input:qa-save-craft-order",
+                        qualityRoll = new CraftQualityRollSaveData
+                        {
+                            attemptIndex = 0,
+                            randomA = -3,
+                            randomB = 1,
+                            randomC = 4
+                        },
+                        qualityStage = QualityTargetPipelineStage.Working,
+                        craftWorkPerAttempt = equipmentCraftRequiredWork
                     }
                 }
             }));
@@ -446,15 +560,25 @@ public static class DungeonGameSaveDebugScenarios
             run.SelectInvasionVariable(RunVariableIds.LootPriority, false);
             Require(invasionDirector.TrySpawnIntruder(invasionSpawnSnapshot, out CharacterActor savedIntruder)
                 && savedIntruder != null,
-                "The invasion save test could not spawn an intruder.");
+                "The invasion save test could not spawn an intruder. reason="
+                + invasionDirector.LastSpawnFailureReason);
             InvasionIntruderRuntime savedIntruderRuntime = savedIntruder.GetComponent<InvasionIntruderRuntime>();
-            BuildableObject damagedFacility = UnityEngine.Object
-                .FindObjectsByType<BuildableObject>(
-                    FindObjectsInactive.Exclude,
-                    FindObjectsSortMode.None)
+            HashSet<string> baselineBuildingIds =
+                DungeonSaveSectionPayload.ReadOrNew<ModularFacilityWorldSaveData>(
+                    baseline,
+                    "world.facilities")
+                .buildings
+                .Where(value => value != null
+                    && !string.IsNullOrWhiteSpace(value.persistentInstanceId))
+                .Select(value => value.persistentInstanceId.Trim())
+                .ToHashSet(StringComparer.Ordinal);
+            BuildableObject damagedFacility = (buildingWorld.Buildings
+                    ?? Array.Empty<BuildableObject>())
                 .FirstOrDefault(candidate =>
                     candidate != null
-                    && candidate.PersistentInstanceId.IsValid);
+                    && candidate.PersistentInstanceId.IsValid
+                    && baselineBuildingIds.Contains(
+                        candidate.PersistentInstanceId.Value));
             FieldInfo damagedFacilityIdsField = typeof(InvasionIntruderRuntime)
                 .GetField(
                     "damagedFacilityIds",
@@ -534,6 +658,10 @@ public static class DungeonGameSaveDebugScenarios
                 DungeonSaveSectionPayload.ReadOrNew<DungeonPhysicalItemSaveData>(
                     parsed,
                     PhysicalItemsSaveSection.Id);
+            CharacterNarrativeWorldSaveData parsedNarratives =
+                DungeonSaveSectionPayload.ReadOrNew<CharacterNarrativeWorldSaveData>(
+                    parsed,
+                    CharacterNarrativeSaveSection.Id);
             int savedCharacterCount = parsedCharacters.actors?.Count ?? 0;
             Require(savedCharacterCount > 0, "No persistent characters were captured.");
             DungeonOffenseExpeditionRunSaveData savedExpedition = parsedOffense.expedition.activeExpeditions?
@@ -548,13 +676,22 @@ public static class DungeonGameSaveDebugScenarios
                 "The active expedition member was not captured with a persistent character id.");
             DungeonCharacterSaveData savedEquipmentActor = parsedCharacters.actors
                 .FirstOrDefault(actor => actor != null && actor.persistentId == equipmentStaffId);
+            NarrativeSkillExperienceSaveData savedCraftingProficiency =
+                parsedNarratives.characters
+                    .FirstOrDefault(character => character != null
+                        && character.characterId == equipmentStaffId)?
+                    .skillExperience
+                    .FirstOrDefault(proficiency => proficiency != null
+                        && proficiency.proficiencyId
+                            == BuiltInCharacterProficiencyIds.Crafting.Value);
             Require(savedEquipmentActor != null
                     && Mathf.Approximately(
                         savedEquipmentActor.expeditionRecovery?.stress ?? -1f,
                         ExpeditionStressMarker)
-                    && savedEquipmentActor.growth?.allocationRecords != null
-                    && savedEquipmentActor.growth.allocationRecords.Count > 0,
-                "Expedition recovery stress or growth allocation records were not captured with the character.");
+                    && savedCraftingProficiency != null
+                    && savedCraftingProficiency.currentMilliExperience
+                        == expectedCraftingProficiency.CurrentMilliExperience,
+                "Expedition recovery stress or crafting proficiency was not captured with the character.");
             Require(parsedEquipment.loadouts.Any(loadout => loadout != null
                         && loadout.characterId == equipmentStaffId
                         && loadout.profiles.Any(profile => profile != null
@@ -568,7 +705,9 @@ public static class DungeonGameSaveDebugScenarios
                     && parsedEquipment.craftOrders.Any(order => order != null
                         && order.orderId == EquipmentCraftOrderMarker
                         && order.definitionId == EquipmentCraftMarker
-                        && Mathf.Approximately(order.RemainingWork, 3.25f)),
+                        && Mathf.Approximately(
+                            order.RemainingWork,
+                            equipmentCraftRemainingWork)),
                 "Combat equipment instances, loadout, or work queue were not captured.");
 
             gameData.holdingMoney.Value = 1;
@@ -738,8 +877,14 @@ public static class DungeonGameSaveDebugScenarios
                         ExpeditionStressMarker)
                     && restoredEquipmentMember.Progression != null
                     && restoredEquipmentMember.Progression.Level >= 2
-                    && restoredEquipmentMember.Progression.GrowthState.allocationRecords.Count > 0,
-                "Expedition recovery stress or growth allocation records did not round-trip on the restored member.");
+                    && proficiencyQuery.TryGetProficiency(
+                        equipmentCharacterId,
+                        BuiltInCharacterProficiencyIds.Crafting,
+                        ProficiencyMarkerHour,
+                        out CharacterProficiencySnapshot restoredCraftingProficiency)
+                    && restoredCraftingProficiency.CurrentMilliExperience
+                        == expectedCraftingProficiency.CurrentMilliExperience,
+                "Expedition recovery stress or crafting proficiency did not round-trip on the restored member.");
             CharacterCombatLoadoutProfile restoredLoadout =
                 equipmentRuntime.GetActiveProfileSnapshot(equipmentStaffId);
             Require(restoredLoadout != null
@@ -752,7 +897,9 @@ public static class DungeonGameSaveDebugScenarios
                     && equipmentRuntime.CraftQueue.Any(order => order != null
                         && order.orderId == EquipmentCraftOrderMarker
                         && order.definitionId == EquipmentCraftMarker
-                        && Mathf.Approximately(order.RemainingWork, 3.25f)),
+                        && Mathf.Approximately(
+                            order.RemainingWork,
+                            equipmentCraftRemainingWork)),
                 "Combat equipment instances, ownership, or work queue did not round-trip.");
             Require(expeditions.ResultHistory.Any(result => result.expeditionId == ExpeditionResultMarker
                 && result.success

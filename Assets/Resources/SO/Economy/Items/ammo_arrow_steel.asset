@@ -31,28 +31,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 5
   features:
-  - rid: 7737211838068949717
-  - rid: 7737211838068949718
-  - rid: 7737211838068949719
-  - rid: 7737211838068949720
+  - rid: 7737211905666712010
+  - rid: 7737211905666712011
+  - rid: 7737211905666712012
+  - rid: 7737211905666712013
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949717
+    - rid: 7737211905666712010
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:arrow-steel
-    - rid: 7737211838068949718
+    - rid: 7737211905666712011
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:metallurgy:steel
-    - rid: 7737211838068949719
+    - rid: 7737211905666712012
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 768
         sharedIntermediate: 0
-    - rid: 7737211838068949720
+    - rid: 7737211905666712013
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6

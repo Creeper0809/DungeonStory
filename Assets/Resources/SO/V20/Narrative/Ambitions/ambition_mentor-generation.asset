@@ -46,7 +46,7 @@ MonoBehaviour:
     excludedFlags: []
   completionRewards:
   - kind: 3
-    targetId: mentoring
+    targetId: proficiency:social
     amount: 100
     durationDays: 0
   relatedEventWeights:

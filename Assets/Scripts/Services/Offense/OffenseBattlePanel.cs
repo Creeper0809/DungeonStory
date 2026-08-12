@@ -261,6 +261,17 @@ public sealed class OffenseBattlePanel : MonoBehaviour
             false,
             false,
             () => ExecuteImmediate(OffenseBattleActionType.Guard, current.PersistentId, string.Empty));
+        if (current.Formation != OffenseFormationSlot.Front)
+        {
+            CreateActionButton(
+                "전진",
+                false,
+                false,
+                () => ExecuteImmediate(
+                    OffenseBattleActionType.Advance,
+                    current.PersistentId,
+                    string.Empty));
+        }
 
         if ((current.Shield.RoleFlags
                 & CombatEquipmentRoleFlags.DeployableCover) != 0)

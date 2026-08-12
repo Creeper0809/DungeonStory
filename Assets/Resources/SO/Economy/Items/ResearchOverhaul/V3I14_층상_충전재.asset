@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uCE35\uC0C1 \uCDA9\uC804\uC7AC"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uCE35\uC0C1 \uCDA9\uC804\uC7AC."
   stockCategory: 1
-  unitWeight: 0.64
+  unitWeight: 0.95
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 38
+  unitPrice: 21
   features:
-  - rid: 7737211838078124256
-  - rid: 7737211838078124257
+  - rid: 7737211905658585179
+  - rid: 7737211905658585180
+  - rid: 7737211905660420472
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124256
+    - rid: 7737211905658585179
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:textile:layered
-    - rid: 7737211838078124257
+    - rid: 7737211905658585180
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 128
         sharedIntermediate: 1
+    - rid: 7737211905660420472
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.59560555

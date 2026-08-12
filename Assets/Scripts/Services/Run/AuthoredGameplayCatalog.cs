@@ -106,6 +106,7 @@ public sealed class AuthoredGameplayCatalog :
             .OrderBy(definition => definition.SortOrder)
             .ThenBy(definition => definition.Id, StringComparer.Ordinal)
             .ToArray();
+        ValidateStockDeliveryItems(content.Items.Definitions, stockDefinitions);
         buildingDefinitions = domain.BuildingCategories
             .Select(CreateBuildingDefinition)
             .OrderBy(definition => definition.SortOrder)
@@ -409,9 +410,43 @@ public sealed class AuthoredGameplayCatalog :
             record.shortName,
             record.sortOrder,
             record.seedWeight,
+            record.deliveryItemId,
             record.dailyBaseAmount,
             record.dailyUnitCost,
             record.dailyGrowthDivisor);
+    }
+
+    private static void ValidateStockDeliveryItems(
+        IReadOnlyList<ItemDefinitionSO> itemDefinitions,
+        IEnumerable<StockCategoryDefinition> stockDefinitions)
+    {
+        Dictionary<string, ItemDefinitionSO> items = (itemDefinitions
+                ?? throw new ArgumentNullException(nameof(itemDefinitions)))
+            .Where(value => value != null)
+            .ToDictionary(value => value.ItemId, StringComparer.Ordinal);
+        foreach (StockCategoryDefinition stock in stockDefinitions
+                     .Where(value => value.DailyBaseAmount > 0))
+        {
+            if (!items.TryGetValue(stock.DeliveryItemId, out ItemDefinitionSO item))
+            {
+                throw new InvalidOperationException(
+                    $"Stock category '{stock.Id}' delivery item "
+                    + $"'{stock.DeliveryItemId}' is not authored.");
+            }
+
+            if (item.StockCategory != stock.Category)
+            {
+                throw new InvalidOperationException(
+                    $"Stock category '{stock.Id}' delivery item '{item.ItemId}' belongs to "
+                    + $"'{item.StockCategory}', expected '{stock.Category}'.");
+            }
+
+            if (item.MaxStack <= 1)
+            {
+                throw new InvalidOperationException(
+                    $"Stock category '{stock.Id}' delivery item '{item.ItemId}' must be stackable.");
+            }
+        }
     }
 
     private static BuildingCategoryDefinition CreateBuildingDefinition(

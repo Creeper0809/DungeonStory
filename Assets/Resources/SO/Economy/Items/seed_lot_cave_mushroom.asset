@@ -34,6 +34,7 @@ MonoBehaviour:
   features:
   - rid: 7737211785112453362
   - rid: 7737211785112453363
+  - rid: 7737211905660420743
   references:
     version: 2
     RefIds:
@@ -47,3 +48,7 @@ MonoBehaviour:
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:agriculture:gathering
+    - rid: 7737211905660420743
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0

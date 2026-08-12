@@ -30,9 +30,19 @@ MonoBehaviour:
   requiredSupportTags: []
   batchSupportTag: 
   processKind: 0
+  flowRole: 0
+  processClass: 7
+  processClassAuthored: 1
   workTypeId: work:craft
+  proficiency:
+    primaryProficiencyId: proficiency:medicine
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 2
   requiredResearchId: research:pharmacology:distillation
-  requiredWork: 11
+  requiredWork: 50
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

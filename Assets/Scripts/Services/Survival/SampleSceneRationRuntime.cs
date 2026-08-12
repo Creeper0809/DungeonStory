@@ -127,7 +127,7 @@ public sealed class SampleSceneRationRuntime : IStartable, ITickable
             .FirstOrDefault(stack => stack != null
                 && stack.Quantity > 0
                 && !stack.Forbidden
-                && !stack.IsReserved
+                && stack.AvailableQuantity > 0
                 && stack.ItemId == itemId
                 && stack.DestinationId == RationDestinationId);
         if (ration == null

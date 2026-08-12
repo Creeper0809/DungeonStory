@@ -31,17 +31,37 @@ MonoBehaviour:
   objectName: "\uACF5\uC870\uAE30"
   sprite: {fileID: 21300000, guid: fe53ebcfdf2e4e74683093b06c84a22e, type: 3}
   icon: {fileID: 21300000, guid: fe53ebcfdf2e4e74683093b06c84a22e, type: 3}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  deprecatedCompatibilityAsset: 0
+  useClassification: 0
+  researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730834227240
-    - rid: 7737211730834227241
-    - rid: 7737211730834227242
-    - rid: 7737211730834227243
-    - rid: 7737211730834227244
-    - rid: 7737211730834227245
-    - rid: 7737211730834227246
-    - rid: 7737211730834227247
-    - rid: 7737211730834227248
+    - rid: 7737211921440178614
+    - rid: 7737211921440178615
+    - rid: 7737211921440178616
+    - rid: 7737211921440178617
+    - rid: 7737211921440178618
+    - rid: 7737211921440178619
+    - rid: 7737211921440178620
+    - rid: 7737211921440178621
+    - rid: 7737211921440178622
   width: 2
   height: 1
   layer: 1
@@ -57,13 +77,13 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730834227240
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440178614
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: E11
-    - rid: 7737211730834227241
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440178615
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 160
@@ -71,19 +91,37 @@ MonoBehaviour:
         maintenance: 5
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211730834227242
+    - rid: 7737211921440178616
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 27.2
-        repairWorkRequired: 12
-        cleanWorkRequired: 7.5
+        constructionProjectScale: 2
+        constructionWorkRequired: 208
+        repairWorkRequired: 52
+        cleanWorkRequired: 10
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
+        - itemId: material:treated-lumber
+          amount: 6
+        - itemId: material:iron-ingot
+          amount: 5
+        - itemId: material:stone-block
+          amount: 4
         - itemId: component:machine-parts
-          amount: 8
-    - rid: 7737211730834227243
+          amount: 2
+    - rid: 7737211921440178617
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -94,7 +132,7 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 4
           disabledWhenDamaged: 1
-    - rid: 7737211730834227244
+    - rid: 7737211921440178618
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -109,8 +147,8 @@ MonoBehaviour:
           - key: Climate
             value: 2
           metrics: []
-    - rid: 7737211730834227245
-      type: {class: BuildingThermalEmitterAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440178619
+      type: {class: BuildingThermalEmitterAbility, ns: , asm: DungeonStory.Environment}
       data:
         abilityId: BuildingThermalEmitterAbility
         mode: 2
@@ -123,8 +161,8 @@ MonoBehaviour:
         requiresPower: 1
         exhaustOffset: {x: 1, y: 0}
         exhaustHeatMultiplier: 1.15
-    - rid: 7737211730834227246
-      type: {class: BuildingAirExchangeAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211921440178620
+      type: {class: BuildingAirExchangeAbility, ns: , asm: DungeonStory.Environment}
       data:
         abilityId: BuildingAirExchangeAbility
         targetAirQuality: 100
@@ -132,14 +170,14 @@ MonoBehaviour:
         radius: 4
         requiresPower: 1
         exchangesWithOutside: 1
-    - rid: 7737211730834227247
+    - rid: 7737211921440178621
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737211730834227248
+    - rid: 7737211921440178622
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility

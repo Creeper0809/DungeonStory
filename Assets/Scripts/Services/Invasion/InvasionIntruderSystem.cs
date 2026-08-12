@@ -59,6 +59,7 @@ public class InvasionIntruderRuntime :
     private EnemyIndividualSaveData enemyIndividual;
     private InvasionIntruderExecutionCoordinator executionCoordinator;
     private InvasionIntruderRestoreCoordinator restoreCoordinator;
+    private ICharacterPerformanceQuery performance;
 
     public CharacterActor IntruderActor => intruderActor != null ? intruderActor : GetComponent<CharacterActor>();
     public InvasionIntruderState State { get; private set; }
@@ -147,6 +148,7 @@ public class InvasionIntruderRuntime :
     bool IInvasionIntruderExecutionHost.RestoredEnragedBreach { get => restoredEnragedBreach; set => restoredEnragedBreach = value; }
     float IInvasionIntruderExecutionHost.MeleeDamageMultiplier => MeleeDamageMultiplier;
     float IInvasionIntruderExecutionHost.AttackSpeedMultiplier => AttackSpeedMultiplier;
+    ICharacterPerformanceQuery IInvasionIntruderExecutionHost.Performance => performance;
     Queue<GridMoveStep> IInvasionIntruderExecutionHost.CreateNextPath(Grid grid, Vector2Int ownerPosition, out bool direct, out BuildableObject priorityTarget) => CreateNextPath(grid, ownerPosition, out direct, out priorityTarget);
     bool IInvasionIntruderExecutionHost.TryDamageNearbyFacility(Grid grid, BuildableObject preferredTarget) => TryDamageNearbyFacility(grid, preferredTarget);
     void IInvasionIntruderExecutionHost.MarkDungeonBreached(Grid grid, Vector2Int cellPosition) => TryMarkDungeonBreached(grid, cellPosition);
@@ -338,7 +340,8 @@ public class InvasionIntruderRuntime :
         IGameClock gameClock,
         IRandomStreamProvider randomStreamProvider,
         IGameEventBus gameEventBus,
-        ITreasuryDefenseRuntime treasuryDefenseRuntime)
+        ITreasuryDefenseRuntime treasuryDefenseRuntime,
+        ICharacterPerformanceQuery performance = null)
     {
         this.invasionContext = invasionContext
             ?? throw new ArgumentNullException(nameof(invasionContext));
@@ -352,6 +355,8 @@ public class InvasionIntruderRuntime :
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.treasuryDefenseRuntime = treasuryDefenseRuntime
             ?? throw new ArgumentNullException(nameof(treasuryDefenseRuntime));
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
     }
 
     public void ConfigureDefenseEngagement(IDefenseEngagementRuntime defenseEngagementRuntime)

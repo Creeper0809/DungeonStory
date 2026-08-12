@@ -32,28 +32,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 28
   features:
-  - rid: 7737211838068949706
-  - rid: 7737211838068949707
-  - rid: 7737211838068949708
-  - rid: 7737211838068949709
+  - rid: 7737211905666712317
+  - rid: 7737211905666712318
+  - rid: 7737211905666712319
+  - rid: 7737211905666712320
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949706
+    - rid: 7737211905666712317
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:stimulants
-    - rid: 7737211838068949707
+    - rid: 7737211905666712318
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 4
         ingredientTags: 4128
         sharedIntermediate: 0
-    - rid: 7737211838068949708
+    - rid: 7737211905666712319
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6
-    - rid: 7737211838068949709
+    - rid: 7737211905666712320
       type: {class: SubstanceItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         substanceId: substance:blood-stimulant

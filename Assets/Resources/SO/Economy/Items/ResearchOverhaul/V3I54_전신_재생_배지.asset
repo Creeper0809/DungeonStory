@@ -27,28 +27,33 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC804\uC2E0 \uC7AC\uC0DD
     \uBC30\uC9C0."
   stockCategory: 5
-  unitWeight: 1.8399999
+  unitWeight: 0.7
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 118
+  unitPrice: 343
   features:
-  - rid: 7737211838078124758
-  - rid: 7737211838078124759
-  - rid: 7737211838078124760
+  - rid: 7737211905658585479
+  - rid: 7737211905658585480
+  - rid: 7737211905658585481
+  - rid: 7737211905660420612
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124758
+    - rid: 7737211905658585479
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:whole-body-regeneration
-    - rid: 7737211838078124759
+    - rid: 7737211905658585480
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737211838078124760
+    - rid: 7737211905658585481
       type: {class: MedicalProcedureSupplyItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         procedureId: procedure:whole-body-regeneration
+    - rid: 7737211905660420612
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.59914064

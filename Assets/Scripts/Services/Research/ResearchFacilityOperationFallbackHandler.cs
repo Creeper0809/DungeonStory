@@ -122,7 +122,6 @@ public sealed class ResearchFacilityOperationFallbackHandler :
         }
 
         IBuildingVisitorPort actor = context.Actor;
-        actor?.AddExperience(ExperienceFor(command));
         ApplyOperatorRecovery(actor, command, building);
         actor?.RecordActivity(
             building,
@@ -165,7 +164,6 @@ public sealed class ResearchFacilityOperationFallbackHandler :
             return 0;
         }
 
-        context.Actor?.AddExperience(ExperienceFor(command));
         context.Actor?.RecordActivity(
             context.Building,
             new BuildingActivitySnapshot(
@@ -200,20 +198,6 @@ public sealed class ResearchFacilityOperationFallbackHandler :
                 order.kind is ApparelWorkOrderKind.Craft
                     or ApparelWorkOrderKind.Alteration,
             _ => false
-        };
-
-    private static int ExperienceFor(ResearchFacilityCommandKind command) =>
-        command switch
-        {
-            ResearchFacilityCommandKind.ClassroomEducation or
-            ResearchFacilityCommandKind.SupervisedApprenticeship or
-            ResearchFacilityCommandKind.MentorAcademy => 10,
-            ResearchFacilityCommandKind.AgingAssessment or
-            ResearchFacilityCommandKind.BiologicalAgeMeasurement or
-            ResearchFacilityCommandKind.PathogenDiagnosis or
-            ResearchFacilityCommandKind.Serology or
-            ResearchFacilityCommandKind.GeneticCounseling => 8,
-            _ => 5
         };
 
     private static void ApplyOperatorRecovery(
@@ -257,6 +241,5 @@ public sealed class ResearchFacilityOperationFallbackHandler :
 
     private static string DisplayName(BuildableObject building) =>
         building?.BuildingData?.objectName
-        ?? building?.name
         ?? "연구 시설";
 }

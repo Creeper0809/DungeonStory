@@ -18,6 +18,8 @@ internal sealed class CropPlotState
     public string MaterialDestinationId = string.Empty;
     public bool MaterialsConsumed;
     public string BlockedReason = string.Empty;
+    public string GoldenHarvestHarvesterId = string.Empty;
+    public int GoldenHarvestAttemptSequence;
 }
 
 internal sealed class CropPlotAggregateState
@@ -75,7 +77,10 @@ public sealed class CropPlotSimulationDependencies
         IGameSessionStateProvider gameDataProvider,
         ISurvivalEnvironmentQuery environmentQuery,
         IGrandProjectBenefitQuery grandProjectBenefits,
-        IGameEventBus events)
+        IGameEventBus events,
+        ExtremeTraitRuntime extremeTraits = null,
+        IRunSeedProvider runSeedProvider = null,
+        CharacterIdentityEventPublisher identityEvents = null)
     {
         GameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         ProgressionRuntimes = progressionRuntimes
@@ -87,6 +92,9 @@ public sealed class CropPlotSimulationDependencies
         GrandProjectBenefits = grandProjectBenefits
             ?? throw new ArgumentNullException(nameof(grandProjectBenefits));
         Events = events ?? throw new ArgumentNullException(nameof(events));
+        ExtremeTraits = extremeTraits;
+        RunSeedProvider = runSeedProvider;
+        IdentityEvents = identityEvents;
     }
 
     public IGameClock GameClock { get; }
@@ -95,6 +103,9 @@ public sealed class CropPlotSimulationDependencies
     public ISurvivalEnvironmentQuery EnvironmentQuery { get; }
     public IGrandProjectBenefitQuery GrandProjectBenefits { get; }
     public IGameEventBus Events { get; }
+    public ExtremeTraitRuntime ExtremeTraits { get; }
+    public IRunSeedProvider RunSeedProvider { get; }
+    public CharacterIdentityEventPublisher IdentityEvents { get; }
 }
 
 public sealed class CropPlotRuntime :
@@ -124,6 +135,10 @@ public sealed class CropPlotRuntime :
     private readonly IGrandProjectBenefitQuery grandProjectBenefits;
     private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
     private readonly IGameEventBus events;
+    private readonly ExtremeTraitRuntime extremeTraits;
+    private readonly IRunSeedProvider runSeedProvider;
+    private readonly CharacterIdentityEventPublisher identityEvents;
+    private readonly ICharacterPerformanceQuery performance;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private IDisposable dayEndedSubscription;
 
@@ -154,7 +169,8 @@ public sealed class CropPlotRuntime :
         CropPlotWorldDependencies world,
         CropPlotSimulationDependencies simulation,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
-        IMilestoneGameplayModifierQuery milestoneModifiers = null)
+        IMilestoneGameplayModifierQuery milestoneModifiers = null,
+        ICharacterPerformanceQuery performance = null)
     {
         world = world ?? throw new ArgumentNullException(nameof(world));
         simulation = simulation ?? throw new ArgumentNullException(nameof(simulation));
@@ -175,6 +191,11 @@ public sealed class CropPlotRuntime :
         environmentQuery = simulation.EnvironmentQuery;
         grandProjectBenefits = simulation.GrandProjectBenefits;
         events = simulation.Events;
+        extremeTraits = simulation.ExtremeTraits;
+        runSeedProvider = simulation.RunSeedProvider;
+        identityEvents = simulation.IdentityEvents;
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
         this.milestoneModifiers = milestoneModifiers
@@ -362,6 +383,14 @@ public sealed class CropPlotRuntime :
         BuildableObject plot,
         WorkTypeId workTypeId,
         float amount,
+        out bool cycleCompleted) =>
+        ApplyWork(plot, workTypeId, amount, null, out cycleCompleted);
+
+    public bool ApplyWork(
+        BuildableObject plot,
+        WorkTypeId workTypeId,
+        float amount,
+        CharacterActor worker,
         out bool cycleCompleted)
     {
         cycleCompleted = false;
@@ -401,7 +430,58 @@ public sealed class CropPlotRuntime :
                 state.HarvestWork + amount);
             if (state.HarvestWork + 0.001f >= crop.HarvestWork)
             {
+                float extremeYieldMultiplier = 1f;
+                float extremeSeedMultiplier = 1f;
+                string[] yieldConditions = Array.Empty<string>();
+                ExtremeRiskResolution extremeResolution = default;
+                bool extremeResolved = extremeTraits != null
+                    && runSeedProvider != null
+                    && worker != null
+                    && string.Equals(
+                        state.GoldenHarvestHarvesterId,
+                        worker.Identity?.PersistentId,
+                        StringComparison.Ordinal)
+                    && extremeTraits.TryResolveGoldenHarvest(
+                        worker,
+                        state.PlotId.Value,
+                        unchecked((ulong)(uint)runSeedProvider.RunSeed),
+                        gameClock.Time,
+                        out extremeResolution);
+                if (extremeResolved)
+                {
+                    if (extremeResolution.Outcome == ExtremeRiskOutcome.Jackpot)
+                    {
+                        yieldConditions = new[] { "state:golden-harvest-jackpot" };
+                        extremeSeedMultiplier = worker.GetDetailedStatMultiplier(
+                            "harvest:seed-yield",
+                            yieldConditions);
+                    }
+                    else
+                    {
+                        extremeYieldMultiplier = extremeResolution.PrimaryMultiplier;
+                        extremeSeedMultiplier = extremeResolution.SecondaryMultiplier;
+                    }
+                }
                 CropHarvestEcologyResult ecologyResult = ecology.Harvest(state.PlotId.Value);
+                float workerYieldMultiplier = 1f;
+                if (worker != null)
+                {
+                    if (performance == null)
+                        throw new InvalidOperationException(
+                            "Harvest yield requires the character performance query.");
+                    CharacterPerformanceSnapshot yield = performance.Evaluate(
+                        worker,
+                        "performance:work:harvest:yield",
+                        new CharacterPerformanceEvaluationContext
+                        {
+                            GameplayEffectContext = new GameplayEffectContext(
+                                yieldConditions)
+                        });
+                    if (!yield.IsApplicable)
+                        throw new InvalidOperationException(
+                            yield.Failure?.Message ?? "Harvest yield is unavailable.");
+                    workerYieldMultiplier = yield.Value;
+                }
                 float outputMultiplier = state.Ability != null
                     && state.Ability.Indoor
                         ? grandProjectBenefits.GetProductionOutputMultiplier(
@@ -412,6 +492,8 @@ public sealed class CropPlotRuntime :
                     Mathf.Max(
                         1,
                         Mathf.RoundToInt(crop.Yield * outputMultiplier
+                            * workerYieldMultiplier
+                            * extremeYieldMultiplier
                             * ecologyResult.YieldMultiplier
                             * (IsOperational(
                                 ResearchFacilityCommandKind.SoilDiagnostics)
@@ -420,7 +502,8 @@ public sealed class CropPlotRuntime :
                     state.Building.centerPos);
                 if (!seedLots.SpawnSeedLot(
                         crop.SeedItemId,
-                        ecologyResult.ReturnedSeedCount
+                        Mathf.Max(0, Mathf.RoundToInt(
+                            ecologyResult.ReturnedSeedCount * extremeSeedMultiplier))
                             + (IsOperational(
                                 ResearchFacilityCommandKind.SeedSelection)
                                     ? 1
@@ -431,6 +514,9 @@ public sealed class CropPlotRuntime :
                         $"Crop '{crop.CropId}' failed to materialize its harvested seed lot.");
                 ResetForNextCycle(state);
                 cycleCompleted = true;
+                PublishHarvestCompleted(worker, state.PlotId.Value, extremeResolved
+                    ? extremeResolution.Outcome.ToString().ToLowerInvariant()
+                    : "normal");
             }
 
             MarkChanged();
@@ -438,6 +524,104 @@ public sealed class CropPlotRuntime :
         }
 
         return false;
+    }
+
+    [GameplayEntryPoint(
+        "CropPlotBuildingPanelPresenter golden-harvest button; V26 extreme-trait focused audit")]
+    public bool TryScheduleGoldenHarvest(
+        BuildableObject plot,
+        CharacterActor harvester,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (harvester == null
+            || !TryGetState(plot, out CropPlotState state)
+            || state.Phase is not (CropPlotPhase.ReadyToHarvest or CropPlotPhase.Harvesting))
+        {
+            failureReason = "수확 가능한 경작지와 작업자가 필요합니다.";
+            return false;
+        }
+        if (!string.IsNullOrWhiteSpace(state.GoldenHarvestHarvesterId))
+        {
+            failureReason = "이미 황금 수확 작업자가 지정되어 있습니다.";
+            return false;
+        }
+        string harvesterId = harvester.Identity?.PersistentId?.Trim()
+            ?? string.Empty;
+        if (harvesterId.Length == 0)
+        {
+            failureReason = "저장 가능한 작업자 ID가 필요합니다.";
+            return false;
+        }
+        if (extremeTraits == null
+            || !extremeTraits.TryScheduleGoldenHarvest(
+                harvester,
+                state.PlotId.Value,
+                state.GoldenHarvestAttemptSequence,
+                gameClock.Time))
+        {
+            failureReason = "황금 수확을 예약할 수 없습니다.";
+            return false;
+        }
+        state.GoldenHarvestHarvesterId = harvesterId;
+        state.GoldenHarvestAttemptSequence = checked(
+            state.GoldenHarvestAttemptSequence + 1);
+        MarkChanged();
+        failureReason = $"{harvester.Identity.DisplayName}에게 황금 수확을 예약했습니다.";
+        return true;
+    }
+
+    public bool IsGoldenHarvestWorkerEligible(
+        BuildableObject plot,
+        CharacterActor harvester,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!TryGetState(plot, out CropPlotState state)
+            || string.IsNullOrWhiteSpace(state.GoldenHarvestHarvesterId))
+            return true;
+        string harvesterId = harvester?.Identity?.PersistentId?.Trim()
+            ?? string.Empty;
+        if (string.Equals(
+                state.GoldenHarvestHarvesterId,
+                harvesterId,
+                StringComparison.Ordinal))
+            return true;
+        failureReason = $"황금 수확 담당자 {state.GoldenHarvestHarvesterId} 전용 경작지";
+        return false;
+    }
+
+    public bool TryGetGoldenHarvestDelay(
+        BuildableObject plot,
+        CharacterActor harvester,
+        out float remainingSeconds)
+    {
+        remainingSeconds = 0f;
+        return harvester != null
+            && TryGetState(plot, out CropPlotState state)
+            && extremeTraits != null
+            && extremeTraits.TryGetGoldenHarvestDelay(
+                harvester,
+                state.PlotId.Value,
+                gameClock.Time,
+                out remainingSeconds);
+    }
+
+    private void PublishHarvestCompleted(
+        CharacterActor worker,
+        string plotId,
+        string outcomeId)
+    {
+        if (identityEvents == null
+            || worker == null
+            || !CharacterPersistentIdentity.TryGet(worker, out CharacterId id))
+            return;
+        identityEvents.Publish(new WorkCompletedIdentityEvent(
+            id,
+            "work:harvest",
+            $"{plotId}:{outcomeId}",
+            CharacterCommandOrigin.Autonomous,
+            Mathf.Max(0, Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay))));
     }
 
     public DungeonCropPlotSaveData Capture()
@@ -454,7 +638,9 @@ public sealed class CropPlotRuntime :
                 sowWork = state.SowWork,
                 growthHours = state.GrowthHours,
                 harvestWork = state.HarvestWork,
-                materialsConsumed = state.MaterialsConsumed
+                materialsConsumed = state.MaterialsConsumed,
+                goldenHarvestHarvesterId = state.GoldenHarvestHarvesterId,
+                goldenHarvestAttemptSequence = state.GoldenHarvestAttemptSequence
             });
         }
 
@@ -488,6 +674,11 @@ public sealed class CropPlotRuntime :
                 HarvestWork = saved.harvestWork,
                 MaterialDestinationId = BuildDestinationId(plotId),
                 MaterialsConsumed = saved.materialsConsumed,
+                GoldenHarvestHarvesterId = saved.goldenHarvestHarvesterId?.Trim()
+                    ?? string.Empty,
+                GoldenHarvestAttemptSequence = Math.Max(
+                    0,
+                    saved.goldenHarvestAttemptSequence),
                 BlockedReason = string.Empty
             });
         }
@@ -977,7 +1168,7 @@ public sealed class CropPlotRuntime :
         {
             throw new InvalidOperationException("Crop-plot payload is null.");
         }
-        if (snapshot.version != DungeonCropPlotSaveData.CurrentVersion)
+        if (snapshot.version is not (2 or DungeonCropPlotSaveData.CurrentVersion))
         {
             throw new InvalidOperationException(
                 $"Crop-plot payload version {snapshot.version} is not current V{DungeonCropPlotSaveData.CurrentVersion}.");
@@ -1042,6 +1233,18 @@ public sealed class CropPlotRuntime :
         RequireFiniteRange(saved.sowWork, 0f, crop.SowWork, "sow work");
         RequireFiniteRange(saved.growthHours, 0f, crop.GrowthHours, "growth hours");
         RequireFiniteRange(saved.harvestWork, 0f, crop.HarvestWork, "harvest work");
+        if (saved.goldenHarvestAttemptSequence < 0)
+            throw new InvalidOperationException(
+                "Crop-plot golden-harvest attempt sequence cannot be negative.");
+        if (!string.IsNullOrEmpty(saved.goldenHarvestHarvesterId)
+            && (!string.Equals(
+                    saved.goldenHarvestHarvesterId,
+                    saved.goldenHarvestHarvesterId.Trim(),
+                    StringComparison.Ordinal)
+                || saved.phase is not (CropPlotPhase.ReadyToHarvest
+                    or CropPlotPhase.Harvesting)))
+            throw new InvalidOperationException(
+                "Crop-plot golden-harvest worker requires a canonical ID and harvest phase.");
 
         bool requiresConsumedMaterials = saved.phase is
             CropPlotPhase.ReadyToSow
@@ -1101,6 +1304,7 @@ public sealed class CropPlotRuntime :
         state.HarvestWork = 0f;
         state.MaterialsConsumed = false;
         state.BlockedReason = string.Empty;
+        state.GoldenHarvestHarvesterId = string.Empty;
     }
 
     private void ReleaseMaterialDestination(CropPlotState state)
@@ -1198,7 +1402,9 @@ public sealed class CropPlotRuntime :
                 MaterialDestinationId = state.MaterialDestinationId,
                 RequiredMaterials = required,
                 DeliveredMaterials = delivered,
-                BlockedReason = state.BlockedReason
+                BlockedReason = state.BlockedReason,
+                GoldenHarvestHarvesterId = state.GoldenHarvestHarvesterId,
+                GoldenHarvestAttemptSequence = state.GoldenHarvestAttemptSequence
             });
         }
 

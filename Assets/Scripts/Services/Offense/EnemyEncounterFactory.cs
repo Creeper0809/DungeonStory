@@ -200,6 +200,11 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
             1f - (pressure.Logistics + pressure.Intelligence) * 0.00075f,
             0.85f,
             1f);
+        int campaignOrder = EncounterCampaign(encounter.encounterId);
+        float campaignStatScale =
+            OffenseCampaignCombatBalanceRules.CalculateStatScale(campaignOrder);
+        float campaignInitiativeScale =
+            OffenseCampaignCombatBalanceRules.CalculateInitiativeScale(campaignOrder);
 
         List<EnemyIndividualSaveData> saved = source
             .Select(value => value.Clone())
@@ -217,7 +222,8 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
                 * personal
                 * difficultyScale.EnemyHealth
                 * encounterScale
-                * healthPressure;
+                * healthPressure
+                * campaignStatScale;
             CharacterCombatAbilityDefinition[] authoredAbilities =
                 archetype.abilityIds
                     .Select(id => ProjectAbility(abilities.Require(id)))
@@ -233,11 +239,11 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
                     ScaleAttack(archetype.attack),
                     ScaleAttack(archetype.strength),
                     archetype.toughness * personal * encounterScale
-                        * armamentPressure,
+                        * armamentPressure * campaignStatScale,
                     ScaleInitiative(archetype.dexterity),
                     ScaleInitiative(archetype.moveSpeed),
                     ShootingAptitude(individual, archetype)
-                        * personal * encounterScale,
+                        * personal * encounterScale * campaignStatScale,
                     archetype.moveSpeed * personal * encounterScale),
                 maxHealth,
                 authoredAbilities,
@@ -257,15 +263,42 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
                 * personal
                 * difficultyScale.EnemyAttack
                 * encounterScale
-                * armamentPressure;
+                * armamentPressure
+                * campaignStatScale;
             float ScaleInitiative(float value) => value
                 * personal
                 * difficultyScale.EnemyInitiative
                 * encounterScale
-                * readinessPressure;
+                * readinessPressure
+                * campaignInitiativeScale;
         }
 
         string objectiveCombatantId = ResolveObjectiveCombatantId(encounter, saved);
+        if (encounter.objective == OffenseEncounterObjective.ProtectTarget)
+        {
+            float protectedHealth = Mathf.Max(
+                55f,
+                combatants.Select(value => value.Stats.MaxHealth)
+                    .DefaultIfEmpty(70f)
+                    .Average() * 0.85f);
+            objectiveCombatantId =
+                $"objective:{encounter.encounterId}:protected";
+            combatants.Add(new OffenseBattleCombatant(
+                objectiveCombatantId,
+                "보호 대상",
+                "objective-protected",
+                OffenseBattleTeam.Allies,
+                new OffenseBattleStats(
+                    protectedHealth,
+                    0f,
+                    0f,
+                    10f * campaignStatScale,
+                    0f,
+                    0f),
+                protectedHealth,
+                formation: OffenseFormationSlot.Rear,
+                participatesInInitiative: false));
+        }
         if (encounter.objective == OffenseEncounterObjective.CaptureLeader
             && string.IsNullOrWhiteSpace(objectiveCombatantId))
         {
@@ -334,10 +367,41 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
         OffenseRouteNode routeNode)
     {
         int campaign = Mathf.Clamp(target.campaignOrder, 1, 6);
+        OffenseEncounterSO[] campaignEncounters = encounters.All
+            .Where(value => EncounterCampaign(value.encounterId) == campaign)
+            .OrderBy(value => value.encounterId, StringComparer.Ordinal)
+            .ToArray();
+        OffenseEncounterSO[] tier = routeNode == null
+            ? campaignEncounters
+            : routeNode.IsBoss
+                ? campaignEncounters.Where(value => value.boss).ToArray()
+                : routeNode.Depth >= 3
+                    ? campaignEncounters.Where(value => value.elite && !value.boss)
+                        .ToArray()
+                    : campaignEncounters.Where(value => !value.elite && !value.boss)
+                        .ToArray();
+        if (tier.Length == 0)
+        {
+            tier = campaignEncounters;
+        }
+        if (tier.Length == 0)
+        {
+            throw new InvalidOperationException(
+                $"Campaign {campaign} has no authored encounters.");
+        }
+
         int variant = (int)(PersistentEntityId.GetStableHash32(
-            $"{target.id}:{context}:{routeNode?.Depth ?? 0}") % 6u);
-        return encounters.Require(
-            $"encounter:{((campaign - 1) * 6 + variant + 1):00}");
+            $"{target.id}:{context}:{routeNode?.Depth ?? 0}") % (uint)tier.Length);
+        return tier[variant];
+    }
+
+    private static int EncounterCampaign(string encounterId)
+    {
+        string suffix = encounterId?.Trim().Replace("encounter:", string.Empty)
+            ?? string.Empty;
+        return int.TryParse(suffix, out int number)
+            ? Mathf.Clamp((number - 1) / 6 + 1, 1, 6)
+            : 0;
     }
 
     private static int DeterministicCount(

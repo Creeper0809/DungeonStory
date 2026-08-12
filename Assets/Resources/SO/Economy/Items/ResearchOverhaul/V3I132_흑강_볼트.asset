@@ -26,28 +26,33 @@ MonoBehaviour:
   displayName: "\uD751\uAC15 \uBCFC\uD2B8"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uD751\uAC15 \uBCFC\uD2B8."
   stockCategory: 7
-  unitWeight: 4.18
+  unitWeight: 0.15
   maxStack: 120
   sprite: {fileID: 0}
-  unitPrice: 274
+  unitPrice: 44
   features:
-  - rid: 7737211838078124918
-  - rid: 7737211838078124919
-  - rid: 7737211838078124920
+  - rid: 7737211905660420285
+  - rid: 7737211905660420286
+  - rid: 7737211905660420287
+  - rid: 7737211905660420886
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124918
+    - rid: 7737211905660420285
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:blacksteel-bolt
-    - rid: 7737211838078124919
+    - rid: 7737211905660420286
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:industry:dark-foundry
-    - rid: 7737211838078124920
+    - rid: 7737211905660420287
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 512
         sharedIntermediate: 0
+    - rid: 7737211905660420886
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.604655

@@ -31,9 +31,19 @@ MonoBehaviour:
   requiredSupportTags: []
   batchSupportTag: 
   processKind: 0
+  flowRole: 0
+  processClass: 6
+  processClassAuthored: 1
   workTypeId: work:craft
+  proficiency:
+    primaryProficiencyId: proficiency:crafting
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
   requiredResearchId: research:medical:mycelial-grafting
-  requiredWork: 34.25
+  requiredWork: 28
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

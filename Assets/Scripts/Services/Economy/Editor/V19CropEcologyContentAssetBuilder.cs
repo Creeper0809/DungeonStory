@@ -90,6 +90,7 @@ public static class V19CropEcologyContentAssetBuilder
                 0.05f,
                 40,
                 crop.RequiredResearchId);
+            seed.ConfigureMarketSaleRate(0f);
             crop.ConfigureEcology(spec.SeedItemId, genome, spec.Group, spec.Disease);
             EditorUtility.SetDirty(genome);
             EditorUtility.SetDirty(seed);

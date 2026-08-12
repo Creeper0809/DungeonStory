@@ -1740,7 +1740,9 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
     {
         List<CharacterActor> ranked = (readyMembers ?? Enumerable.Empty<CharacterActor>())
             .Where(IsDirectPlayBattleReady)
-            .OrderByDescending(OffenseExpeditionService.CalculateMemberPower)
+            .OrderByDescending(actor => OffenseExpeditionService.CalculateMemberPower(
+                actor,
+                FindScope().Container.Resolve<ICharacterPerformanceQuery>()))
             .ToList();
         int safeRequired = Mathf.Clamp(requiredMembers, 1, DirectPlayFullPreferredMembers);
         int safePreferred = Mathf.Clamp(Mathf.Max(safeRequired, preferredMembers), 1, DirectPlayFullPreferredMembers);
@@ -1858,7 +1860,9 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
         return (selected ?? Enumerable.Empty<CharacterActor>())
             .Where(actor => actor != null)
             .OrderByDescending(GetDirectPlayFormationDurability)
-            .ThenByDescending(OffenseExpeditionService.CalculateMemberPower)
+            .ThenByDescending(actor => OffenseExpeditionService.CalculateMemberPower(
+                actor,
+                FindScope().Container.Resolve<ICharacterPerformanceQuery>()))
             .ThenBy(GetActorDisplayName, StringComparer.Ordinal)
             .ToList();
     }
@@ -1873,8 +1877,10 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
         actor.EnsureRuntimeState();
         return actor.CurrentHealth
             + actor.MaxHealth * 0.45f
-            + actor.GetCharacterStat(CharacterStatType.Toughness) * 8f
-            + actor.GetCharacterStat(CharacterStatType.Strength) * 2f
+            + actor.Stats.EvaluatePerformance(
+                "performance:combat:defense-reaction").Value * 40f
+            + actor.Stats.EvaluatePerformance(
+                "performance:combat:melee-power").Value * 10f
             - GetExpeditionStress(actor) * 0.35f;
     }
 
@@ -2618,7 +2624,9 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             IReadOnlyList<CharacterActor> availableMembers = expeditionRuntime.GetAvailableMemberActors();
             List<CharacterActor> readyMembers = availableMembers
                 .Where(IsDirectPlayBattleReady)
-                .OrderByDescending(OffenseExpeditionService.CalculateMemberPower)
+                .OrderByDescending(actor => OffenseExpeditionService.CalculateMemberPower(
+                    actor,
+                    FindScope().Container.Resolve<ICharacterPerformanceQuery>()))
                 .ToList();
             List<CharacterActor> selected = SelectDirectPlayParty(
                 readyMembers,
@@ -2652,7 +2660,9 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
         IReadOnlyList<CharacterActor> finalAvailable = expeditionRuntime.GetAvailableMemberActors();
         List<CharacterActor> finalReady = finalAvailable
             .Where(IsDirectPlayBattleReady)
-            .OrderByDescending(OffenseExpeditionService.CalculateMemberPower)
+            .OrderByDescending(actor => OffenseExpeditionService.CalculateMemberPower(
+                actor,
+                FindScope().Container.Resolve<ICharacterPerformanceQuery>()))
             .ToList();
         List<CharacterActor> finalSelected = SelectDirectPlayParty(
             finalReady,
@@ -2777,7 +2787,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
                 && stack.State == WorldItemStackState.Loose
                 && !stack.Forbidden
                 && IsDirectPlayLogisticsItem(itemCatalog, stack.ItemId))
-            .OrderBy(stack => stack.IsReserved ? 1 : 0)
+            .OrderBy(stack => stack.HasReservations ? 1 : 0)
             .ThenByDescending(stack => stack.TotalValue)
             .ThenBy(stack => stack.DisplayName, StringComparer.Ordinal)
             .ToArray() ?? Array.Empty<WorldItemStackSnapshot>();
@@ -2785,7 +2795,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
         sample = stacks.Length == 0
             ? "none"
             : string.Join("|", stacks.Take(5).Select(stack =>
-                $"{stack.DisplayName}x{stack.Quantity}@{stack.Position}{(stack.IsReserved ? ":reserved" : string.Empty)}"));
+                $"{stack.DisplayName}x{stack.Quantity}@{stack.Position}{(stack.HasReservations ? ":reserved" : string.Empty)}"));
         return stacks.Length;
     }
 

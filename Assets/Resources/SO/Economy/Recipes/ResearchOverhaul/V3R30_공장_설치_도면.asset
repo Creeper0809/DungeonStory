@@ -31,9 +31,19 @@ MonoBehaviour:
   requiredSupportTags: []
   batchSupportTag: 
   processKind: 0
+  flowRole: 0
+  processClass: 6
+  processClassAuthored: 1
   workTypeId: work:craft
+  proficiency:
+    primaryProficiencyId: proficiency:crafting
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
   requiredResearchId: research:industry:powered-tools
-  requiredWork: 29.75
+  requiredWork: 32
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0
@@ -47,6 +57,8 @@ MonoBehaviour:
   - itemId: component:engineering-drawing
     amount: 1
   - itemId: material:paper
+    amount: 1
+  - itemId: component:paper-paste
     amount: 1
   outputs:
   - itemId: component:factory-installation-plan

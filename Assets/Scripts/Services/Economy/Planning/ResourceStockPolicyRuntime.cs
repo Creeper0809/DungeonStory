@@ -56,9 +56,12 @@ public sealed class ResourceStockPolicyRuntime :
     private readonly IResourceEconomyContentCatalog catalog;
     private readonly ResourceStockPolicyLogisticsDependencies logistics;
     private readonly ResourceStockPolicyProductionDependencies production;
+    private readonly ICombatEquipmentRuntime combatEquipment;
     private readonly IGameMoneyAccount money;
     private readonly IGameClock gameClock;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly HashSet<string> reportedRejectedSaleFailures =
+        new(StringComparer.Ordinal);
 
     private ResourceStockPolicyAggregateState state
     {
@@ -74,6 +77,7 @@ public sealed class ResourceStockPolicyRuntime :
         IResourceEconomyContentCatalog catalog,
         ResourceStockPolicyLogisticsDependencies logistics,
         ResourceStockPolicyProductionDependencies production,
+        ICombatEquipmentRuntime combatEquipment,
         IGameMoneyAccount money,
         IGameClock gameClock,
         DungeonRuntimeAggregateRootStore aggregateRootStore)
@@ -83,6 +87,8 @@ public sealed class ResourceStockPolicyRuntime :
             ?? throw new ArgumentNullException(nameof(logistics));
         this.production = production
             ?? throw new ArgumentNullException(nameof(production));
+        this.combatEquipment = combatEquipment
+            ?? throw new ArgumentNullException(nameof(combatEquipment));
         this.money = money ?? throw new ArgumentNullException(nameof(money));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         this.aggregateRootStore = aggregateRootStore
@@ -110,6 +116,7 @@ public sealed class ResourceStockPolicyRuntime :
         }
 
         state.NextEvaluationTime = gameClock.Time + EvaluationInterval;
+        EvaluateRejectedQualitySales();
         foreach (ResourceStockPolicyData policy in policyView)
         {
             Evaluate(policy);
@@ -265,13 +272,31 @@ public sealed class ResourceStockPolicyRuntime :
             return;
         }
 
+        int unitPrice = resourceItem != null
+            ? resourceItem.UnitPrice
+            : 1;
+        float saleRate = resourceItem != null
+            ? resourceItem.MarketSaleRate
+            : 0.6f;
+        float fractionalUnitProceeds = Mathf.Max(0f, unitPrice * saleRate);
+        int minimumSaleBatch = fractionalUnitProceeds > 0f
+            ? Mathf.Max(1, Mathf.CeilToInt(1f / fractionalUnitProceeds))
+            : int.MaxValue;
+
         string destinationId = SellDestinationPrefix + policy.itemId;
         int delivered = CountAtDestination(
             policy.itemId,
             destinationId,
             WorldItemStackState.FacilityBuffer);
-        if (delivered > 0)
+        if (delivered >= minimumSaleBatch)
         {
+            int proceeds = Mathf.FloorToInt(delivered * fractionalUnitProceeds);
+            if (proceeds <= 0)
+            {
+                SetStatus(policy, $"최소 판매 묶음 부족 · {delivered}/{minimumSaleBatch}");
+                return;
+            }
+
             if (logistics.ItemRuntime.TryConsumeFacilityItemBuffer(
                     destinationId,
                     new Dictionary<string, int>(StringComparer.Ordinal)
@@ -280,14 +305,6 @@ public sealed class ResourceStockPolicyRuntime :
                     },
                     out string consumeReason))
             {
-                int unitPrice = resourceItem != null
-                    ? resourceItem.UnitPrice
-                    : 1;
-                float saleRate = resourceItem != null
-                    ? resourceItem.MarketSaleRate
-                    : 0.6f;
-                int proceeds = Mathf.Max(1, Mathf.RoundToInt(
-                    delivered * unitPrice * saleRate));
                 AddMoney(proceeds);
                 SetStatus(policy, $"초과 재고 {delivered}개 판매 · {proceeds} 골드");
                 state.Version++;
@@ -295,6 +312,12 @@ public sealed class ResourceStockPolicyRuntime :
             }
 
             SetStatus(policy, consumeReason);
+            return;
+        }
+
+        if (surplus < minimumSaleBatch)
+        {
+            SetStatus(policy, $"최소 판매 묶음 대기 · {surplus}/{minimumSaleBatch}");
             return;
         }
 
@@ -331,6 +354,202 @@ public sealed class ResourceStockPolicyRuntime :
                 ? "판매 가능한 저장 재고가 없습니다."
                 : failureReason);
         }
+    }
+
+    private void EvaluateRejectedQualitySales()
+    {
+        WorldItemStackSnapshot[] candidates = logistics.ItemRuntime.GetAllStacks()
+            .Where(stack => stack != null
+                && stack.Quantity == 1
+                && string.Equals(
+                    stack.DestinationId,
+                    QualityRejectedOutputRules.MarketDestinationId,
+                    StringComparison.Ordinal))
+            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+            .ToArray();
+        if (candidates.Length == 0)
+        {
+            return;
+        }
+
+        int settled = 0;
+        foreach (WorldItemStackSnapshot stack in candidates)
+        {
+            if (stack.State == WorldItemStackState.FacilityOutputBuffer)
+            {
+                RequestRejectedQualitySaleDelivery(stack);
+                continue;
+            }
+            if (stack.State != WorldItemStackState.FacilityBuffer
+                || settled >= QualityRejectedOutputRules.MaximumSettlementsPerEvaluation
+                || !TryResolveRejectedQualityTier(
+                    stack,
+                    out CraftsmanshipQualityTier quality))
+            {
+                continue;
+            }
+            if (quality == CraftsmanshipQualityTier.Mythic)
+            {
+                ReportRejectedSaleFailureOnce(
+                    stack,
+                    "신화품은 품질 미달 자동 판매 대상에서 제외됩니다.");
+                continue;
+            }
+
+            float saleRate = ResolveRejectedQualitySaleRate(stack.ItemId);
+            int proceeds = CalculateQualityRejectedSaleProceeds(
+                stack.UnitPrice,
+                saleRate,
+                quality);
+            if (proceeds <= 0)
+            {
+                ReportRejectedSaleFailureOnce(
+                    stack,
+                    "이 완제품은 시장 판매가 금지되어 있습니다.");
+                continue;
+            }
+            if (!TryConsumeRejectedQualityOutput(
+                    stack,
+                    out string consumeReason))
+            {
+                ReportRejectedSaleFailureOnce(stack, consumeReason);
+                continue;
+            }
+
+            reportedRejectedSaleFailures.Remove(stack.StackId);
+            money.Add(
+                proceeds,
+                new EconomyTransactionContext(
+                    EconomyTransactionKind.SaleIncome,
+                    stack.StackId,
+                    targetId: stack.ItemId,
+                    description: "품질 미달 완제품 판매"));
+            settled++;
+            state.Version++;
+        }
+    }
+
+    private void RequestRejectedQualitySaleDelivery(
+        WorldItemStackSnapshot stack)
+    {
+        if (!logistics.DropZones.TryGetDeliveryDropoff(out Vector2Int dropoff))
+        {
+            return;
+        }
+        if (logistics.ItemRuntime.TryRequestStackDelivery(
+                stack.StackId,
+                1,
+                dropoff,
+                QualityRejectedOutputRules.MarketDestinationId,
+                out int requested,
+                out string failureReason)
+            && requested == 1)
+        {
+            reportedRejectedSaleFailures.Remove(stack.StackId);
+            logistics.ItemRuntime.PrioritizeHaul(stack.StackId);
+            logistics.Workforce.RequestOneHaulerToReplan(forceInterrupt: false);
+            return;
+        }
+        ReportRejectedSaleFailureOnce(stack, failureReason);
+    }
+
+    private float ResolveRejectedQualitySaleRate(string itemId)
+    {
+        if (catalog.TryGetItem(itemId, out ResourceItemDefinitionSO resource))
+        {
+            return resource.CanSellToMarket
+                ? resource.MarketSaleRate
+                : 0f;
+        }
+        return GoldEconomyBalanceRules.TargetExternalSaleRecovery;
+    }
+
+    private bool TryConsumeRejectedQualityOutput(
+        WorldItemStackSnapshot stack,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (PhysicalItemIds.TryGetEquipmentDefinitionId(stack.ItemId, out _))
+        {
+            return combatEquipment.TryConsumeForMarketSale(
+                stack.StackId,
+                out _,
+                out failureReason);
+        }
+        if (!ApparelItemStateCodec.TryRead(stack.Components, out _))
+        {
+            failureReason = "판매 대상으로 표시된 완제품 상태를 읽을 수 없습니다.";
+            return false;
+        }
+        ItemInstanceId instanceId = (ItemInstanceId)stack.ItemInstanceId;
+        if (!instanceId.IsValid
+            || !logistics.ItemRuntime.TryAbsorbUniqueItemStack(
+                stack.StackId,
+                instanceId))
+        {
+            failureReason = "판매할 의복의 물리 스택을 소비하지 못했습니다.";
+            return false;
+        }
+        return true;
+    }
+
+    private bool TryResolveRejectedQualityTier(
+        WorldItemStackSnapshot stack,
+        out CraftsmanshipQualityTier quality)
+    {
+        if (combatEquipment.TryGetInstanceBySourceStack(
+                stack.StackId,
+                out CombatEquipmentInstance equipment)
+            && Enum.IsDefined(
+                typeof(CraftsmanshipQualityTier),
+                (int)equipment.quality))
+        {
+            quality = (CraftsmanshipQualityTier)(int)equipment.quality;
+            return true;
+        }
+        if (ApparelItemStateCodec.TryRead(
+                stack.Components,
+                out ApparelInstanceState apparel))
+        {
+            quality = apparel.craftsmanshipQuality;
+            return true;
+        }
+        quality = CraftsmanshipQualityTier.Normal;
+        return false;
+    }
+
+    private void ReportRejectedSaleFailureOnce(
+        WorldItemStackSnapshot stack,
+        string failureReason)
+    {
+        if (stack == null
+            || string.IsNullOrWhiteSpace(stack.StackId)
+            || !reportedRejectedSaleFailures.Add(stack.StackId))
+        {
+            return;
+        }
+        Debug.LogWarning(
+            $"품질 미달 완제품 판매 대기 · {stack.DisplayName} · "
+            + (string.IsNullOrWhiteSpace(failureReason)
+                ? "원인을 확인할 수 없습니다."
+                : failureReason));
+    }
+
+    public static int CalculateQualityRejectedSaleProceeds(
+        int unitPrice,
+        float saleRate,
+        CraftsmanshipQualityTier quality)
+    {
+        if (unitPrice <= 0 || saleRate <= 0f)
+        {
+            return 0;
+        }
+        return Mathf.Max(
+            1,
+            Mathf.FloorToInt(
+                unitPrice
+                * Mathf.Clamp01(saleRate)
+                * CraftsmanshipQualityRules.ProjectionMultiplier(quality)));
     }
 
     private void EvaluateProduction(ResourceStockPolicyData policy, int surplus)
@@ -510,6 +729,10 @@ public sealed class ResourceStockPolicyRuntime :
                     StringComparison.Ordinal)
                 || destinationId.StartsWith(
                     "grand-project:",
+                    StringComparison.Ordinal)
+                || string.Equals(
+                    destinationId,
+                    QualityRejectedOutputRules.MarketDestinationId,
                     StringComparison.Ordinal));
     }
 }

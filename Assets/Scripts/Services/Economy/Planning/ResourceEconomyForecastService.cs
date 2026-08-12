@@ -457,7 +457,7 @@ public sealed class ResourceEconomyForecastService :
 
     private static bool IsRouted(WorldItemStackSnapshot stack)
     {
-        return stack.IsReserved
+        return stack.HasReservations
             || (!string.IsNullOrWhiteSpace(stack.DestinationId)
                 && !stack.DestinationId.StartsWith(
                     "warehouse:",

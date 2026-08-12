@@ -85,41 +85,6 @@ public static class CharacterProgressionConstructionApplicationAdapter
     }
 }
 
-public static class CharacterProgressionGrowthApplicationAdapter
-{
-    public static void AllocateGrowthPoints(
-        CharacterGrowthState growthState,
-        CharacterNarrativeLedger narrativeLedger,
-        int reachedLevel,
-        CharacterSkillSystemSettingsSO settings)
-    {
-        if (growthState == null)
-        {
-            throw new ArgumentNullException(nameof(growthState));
-        }
-        if (narrativeLedger == null)
-        {
-            throw new ArgumentNullException(nameof(narrativeLedger));
-        }
-        if (settings == null)
-        {
-            throw new ArgumentNullException(nameof(settings));
-        }
-
-        int points = CharacterGrowthRules.GetGrowthPointsForLevel(reachedLevel);
-        IRandomStream random = new DeterministicRandomSequence(
-            growthState.generationSeed ^ (reachedLevel * 486187739));
-        CharacterGrowthRules.AllocateGrowthPoints(
-            growthState,
-            narrativeLedger,
-            reachedLevel,
-            points,
-            settings.levelGrowthStatCap,
-            settings.identityGrowthWeight,
-            random);
-    }
-}
-
 public readonly struct CharacterGrowthTabRequestedEvent
 {
     public CharacterGrowthTabRequestedEvent(CharacterActor actor)

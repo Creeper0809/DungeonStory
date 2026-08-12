@@ -173,7 +173,7 @@ public readonly struct CharacterCareerSnapshot
 [Serializable]
 public sealed class CharacterCareerWorldSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 3;
     public int version = CurrentVersion;
     public List<CharacterCareerSaveData> characters = new();
     public List<CareerMentorshipSaveData> mentorships = new();
@@ -185,7 +185,11 @@ public sealed class CareerMentorshipSaveData
     public string mentorCharacterId = string.Empty;
     public string studentCharacterId = string.Empty;
     public string academyBuildingId = string.Empty;
+    public string proficiencyId = string.Empty;
     public int lastAwardAbsoluteDay;
+    public int lessonProgressAbsoluteDay;
+    public float mentorApprovedWork;
+    public float studentApprovedWork;
 }
 
 public readonly struct CareerMentorshipSnapshot
@@ -194,24 +198,40 @@ public readonly struct CareerMentorshipSnapshot
         CharacterId mentorCharacterId,
         CharacterId studentCharacterId,
         BuildingInstanceId academyBuildingId,
-        int lastAwardAbsoluteDay)
+        CharacterProficiencyId proficiencyId,
+        int lastAwardAbsoluteDay,
+        int lessonProgressAbsoluteDay,
+        float mentorApprovedWork,
+        float studentApprovedWork)
     {
         MentorCharacterId = mentorCharacterId;
         StudentCharacterId = studentCharacterId;
         AcademyBuildingId = academyBuildingId;
+        ProficiencyId = proficiencyId;
         LastAwardAbsoluteDay = lastAwardAbsoluteDay;
+        LessonProgressAbsoluteDay = lessonProgressAbsoluteDay;
+        MentorApprovedWork = Math.Max(0f, mentorApprovedWork);
+        StudentApprovedWork = Math.Max(0f, studentApprovedWork);
     }
 
     public CharacterId MentorCharacterId { get; }
     public CharacterId StudentCharacterId { get; }
     public BuildingInstanceId AcademyBuildingId { get; }
+    public CharacterProficiencyId ProficiencyId { get; }
     public int LastAwardAbsoluteDay { get; }
+    public int LessonProgressAbsoluteDay { get; }
+    public float MentorApprovedWork { get; }
+    public float StudentApprovedWork { get; }
+    public bool HasCompletedPhysicalLesson =>
+        MentorApprovedWork + 0.001f >= CareerRules.MentoringWorkAmountPerParticipant
+        && StudentApprovedWork + 0.001f >= CareerRules.MentoringWorkAmountPerParticipant;
 }
 
 public static class CareerRules
 {
     public const int RetireeMaximumSafeWorkHours = 4;
     public const int MaximumDailyMentoringXp = 10;
+    public const float MentoringWorkAmountPerParticipant = 30f;
     public const int MaximumRecentHistory = 64;
     public const float RetireeMaximumSafeWorkSeconds =
         GameCalendarRules.SecondsPerDay
@@ -349,22 +369,40 @@ public sealed class CharacterCareerAggregate
     public void AssignMentorship(
         CharacterId mentorCharacterId,
         CharacterId studentCharacterId,
-        BuildingInstanceId academyBuildingId)
+        BuildingInstanceId academyBuildingId,
+        CharacterProficiencyId proficiencyId)
     {
         if (!mentorCharacterId.IsValid || !studentCharacterId.IsValid
             || mentorCharacterId.Equals(studentCharacterId)
-            || !academyBuildingId.IsValid)
+            || !academyBuildingId.IsValid
+            || !proficiencyId.IsValid)
         {
             throw new InvalidOperationException(
                 "Mentorship requires different canonical characters and an academy building.");
         }
         Require(mentorCharacterId);
         Require(studentCharacterId);
+        if (mentorships.Values.Count(value => string.Equals(
+                value.mentorCharacterId,
+                mentorCharacterId.Value,
+                StringComparison.Ordinal)) >= 3
+            && (!mentorships.TryGetValue(
+                    studentCharacterId,
+                    out CareerMentorshipSaveData existing)
+                || !string.Equals(
+                    existing.mentorCharacterId,
+                    mentorCharacterId.Value,
+                    StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException(
+                "A mentor may supervise at most three students.");
+        }
         mentorships[studentCharacterId] = new CareerMentorshipSaveData
         {
             mentorCharacterId = mentorCharacterId.Value,
             studentCharacterId = studentCharacterId.Value,
-            academyBuildingId = academyBuildingId.Value
+            academyBuildingId = academyBuildingId.Value,
+            proficiencyId = proficiencyId.Value
         };
     }
 
@@ -386,6 +424,48 @@ public sealed class CharacterCareerAggregate
             return false;
         assignment.lastAwardAbsoluteDay = absoluteDay;
         return true;
+    }
+
+    public CareerMentorshipSnapshot RecordMentorshipWork(
+        CharacterId studentCharacterId,
+        int absoluteDay,
+        bool mentorContribution,
+        float approvedWork)
+    {
+        if (absoluteDay < 1)
+            throw new ArgumentOutOfRangeException(nameof(absoluteDay));
+        if (approvedWork < 0f || float.IsNaN(approvedWork)
+            || float.IsInfinity(approvedWork))
+            throw new ArgumentOutOfRangeException(nameof(approvedWork));
+        if (!mentorships.TryGetValue(
+                studentCharacterId,
+                out CareerMentorshipSaveData assignment))
+            throw new KeyNotFoundException(
+                $"No mentorship exists for '{studentCharacterId.Value}'.");
+
+        if (assignment.lessonProgressAbsoluteDay != absoluteDay)
+        {
+            assignment.lessonProgressAbsoluteDay = absoluteDay;
+            assignment.mentorApprovedWork = 0f;
+            assignment.studentApprovedWork = 0f;
+        }
+
+        if (assignment.lastAwardAbsoluteDay < absoluteDay && approvedWork > 0f)
+        {
+            if (mentorContribution)
+            {
+                assignment.mentorApprovedWork = Math.Min(
+                    CareerRules.MentoringWorkAmountPerParticipant,
+                    assignment.mentorApprovedWork + approvedWork);
+            }
+            else
+            {
+                assignment.studentApprovedWork = Math.Min(
+                    CareerRules.MentoringWorkAmountPerParticipant,
+                    assignment.studentApprovedWork + approvedWork);
+            }
+        }
+        return Snapshot(assignment);
     }
 
     public IReadOnlyList<CharacterCareerSaveData> Capture() => careers.Values
@@ -444,9 +524,18 @@ public sealed class CharacterCareerAggregate
             CharacterId mentorId = new(source?.mentorCharacterId);
             CharacterId studentId = new(source?.studentCharacterId);
             BuildingInstanceId academyId = new(source?.academyBuildingId);
+            CharacterProficiencyId proficiencyId = new(source?.proficiencyId);
             if (source == null || !mentorId.IsValid || !studentId.IsValid
                 || mentorId.Equals(studentId) || !academyId.IsValid
+                || !proficiencyId.IsValid
                 || source.lastAwardAbsoluteDay < 0
+                || source.lessonProgressAbsoluteDay < 0
+                || source.mentorApprovedWork < 0f
+                || source.studentApprovedWork < 0f
+                || float.IsNaN(source.mentorApprovedWork)
+                || float.IsNaN(source.studentApprovedWork)
+                || float.IsInfinity(source.mentorApprovedWork)
+                || float.IsInfinity(source.studentApprovedWork)
                 || !result.careers.ContainsKey(mentorId)
                 || !result.careers.ContainsKey(studentId)
                 || !result.mentorships.TryAdd(studentId, Clone(source)))
@@ -509,7 +598,11 @@ public sealed class CharacterCareerAggregate
             new CharacterId(value.mentorCharacterId),
             new CharacterId(value.studentCharacterId),
             new BuildingInstanceId(value.academyBuildingId),
-            value.lastAwardAbsoluteDay);
+            new CharacterProficiencyId(value.proficiencyId),
+            value.lastAwardAbsoluteDay,
+            value.lessonProgressAbsoluteDay,
+            value.mentorApprovedWork,
+            value.studentApprovedWork);
 
     private static CareerMentorshipSaveData Clone(CareerMentorshipSaveData value) =>
         new()
@@ -517,7 +610,11 @@ public sealed class CharacterCareerAggregate
             mentorCharacterId = value.mentorCharacterId,
             studentCharacterId = value.studentCharacterId,
             academyBuildingId = value.academyBuildingId,
-            lastAwardAbsoluteDay = value.lastAwardAbsoluteDay
+            proficiencyId = value.proficiencyId,
+            lastAwardAbsoluteDay = value.lastAwardAbsoluteDay,
+            lessonProgressAbsoluteDay = value.lessonProgressAbsoluteDay,
+            mentorApprovedWork = value.mentorApprovedWork,
+            studentApprovedWork = value.studentApprovedWork
         };
 }
 
@@ -539,10 +636,16 @@ public interface ICareerService
     void AssignMentorship(
         CharacterId mentorCharacterId,
         CharacterId studentCharacterId,
-        BuildingInstanceId academyBuildingId);
+        BuildingInstanceId academyBuildingId,
+        CharacterProficiencyId proficiencyId);
     void ClearMentorship(CharacterId studentCharacterId);
     bool TryMarkMentoringAwarded(
         CharacterId studentCharacterId,
         int absoluteDay);
+    CareerMentorshipSnapshot RecordMentorshipWork(
+        CharacterId studentCharacterId,
+        int absoluteDay,
+        bool mentorContribution,
+        float approvedWork);
     int ResolveMentoringXp(int requestedXp);
 }

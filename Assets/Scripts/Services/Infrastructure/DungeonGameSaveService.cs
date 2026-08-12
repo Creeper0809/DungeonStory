@@ -161,10 +161,14 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
 {
     private readonly IDungeonSaveSectionRegistry saveSectionRegistry;
     private readonly IReadOnlyList<IDungeonSavePreflightValidator> preflightValidators;
+    private readonly IReadOnlyList<IDungeonSaveCaptureGuard> captureGuards;
+    private readonly IReadOnlyList<IDungeonSaveRestoreCompletedHook> restoreCompletedHooks;
 
     public DungeonGameSaveService(
         IDungeonSaveSectionRegistry saveSectionRegistry,
-        IEnumerable<IDungeonSavePreflightValidator> preflightValidators)
+        IEnumerable<IDungeonSavePreflightValidator> preflightValidators,
+        IEnumerable<IDungeonSaveCaptureGuard> captureGuards,
+        IEnumerable<IDungeonSaveRestoreCompletedHook> restoreCompletedHooks)
     {
         this.saveSectionRegistry = saveSectionRegistry
             ?? throw new ArgumentNullException(nameof(saveSectionRegistry));
@@ -172,10 +176,23 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
                 ?? throw new ArgumentNullException(nameof(preflightValidators)))
             .Where(validator => validator != null)
             .ToArray();
+        this.captureGuards = (captureGuards
+                ?? throw new ArgumentNullException(nameof(captureGuards)))
+            .Where(guard => guard != null)
+            .ToArray();
+        this.restoreCompletedHooks = (restoreCompletedHooks
+                ?? throw new ArgumentNullException(nameof(restoreCompletedHooks)))
+            .Where(hook => hook != null)
+            .ToArray();
     }
 
     public DungeonGameSaveData Capture()
     {
+        for (int index = 0; index < captureGuards.Count; index++)
+        {
+            captureGuards[index].ValidateBeforeCapture();
+        }
+
         List<DungeonSaveSectionEnvelope> sections = saveSectionRegistry.CaptureAll();
         DungeonGameSaveData save = new DungeonGameSaveData
         {
@@ -251,6 +268,10 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
             if (!saveSectionRegistry.RestoreAll(saveData.sections, report))
             {
                 return false;
+            }
+            for (int index = 0; index < restoreCompletedHooks.Count; index++)
+            {
+                restoreCompletedHooks[index].OnRestoreCompleted();
             }
         }
         catch (Exception exception)

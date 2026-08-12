@@ -144,7 +144,7 @@ public static class CharacterProgressionSavePlayModeFacade
             DungeonSaveSectionPayload.Write(
                 captured,
                 CharacterWorldSaveSection.Id,
-                1,
+                CharacterWorldSaveSection.CurrentVersion,
                 DungeonSaveRestorePhase.Characters,
                 savedCharacters);
 
@@ -241,7 +241,7 @@ public static class CharacterProgressionSavePlayModeFacade
             if (saveService.TryRestore(incompatible, out DungeonGameRestoreReport incompatibleReport)
                 || !incompatibleReport.Errors.Any(error => string.Equals(
                     error,
-                    DungeonSaveCompatibility.PreV21IncompatibilityReason,
+                    DungeonSaveCompatibility.PreV24IncompatibilityReason,
                     StringComparison.Ordinal)))
             {
                 message = "Legacy growth save was not rejected with the new-game compatibility message.";
@@ -561,7 +561,7 @@ public static class CharacterProgressionSavePlayModeFacade
         DungeonSaveSectionPayload.Write(
             ownerless,
             CharacterWorldSaveSection.Id,
-            1,
+            CharacterWorldSaveSection.CurrentVersion,
             DungeonSaveRestorePhase.Characters,
             ownerlessCharacters);
         bool ownerlessRestored = saveService.TryRestore(
@@ -605,7 +605,7 @@ public static class CharacterProgressionSavePlayModeFacade
         DungeonSaveSectionPayload.Write(
             invalidPosition,
             CharacterWorldSaveSection.Id,
-            1,
+            CharacterWorldSaveSection.CurrentVersion,
             DungeonSaveRestorePhase.Characters,
             invalidCharacters);
         if (saveService.TryRestore(invalidPosition, out DungeonGameRestoreReport positionReport)
@@ -656,7 +656,7 @@ public static class CharacterProgressionSavePlayModeFacade
         DungeonSaveSectionPayload.Write(
             invalidSave,
             CharacterWorldSaveSection.Id,
-            1,
+            CharacterWorldSaveSection.CurrentVersion,
             DungeonSaveRestorePhase.Characters,
             characters);
 
@@ -715,7 +715,7 @@ public static class CharacterProgressionSavePlayModeFacade
         DungeonSaveSectionPayload.Write(
             collision,
             CharacterWorldSaveSection.Id,
-            1,
+            CharacterWorldSaveSection.CurrentVersion,
             DungeonSaveRestorePhase.Characters,
             characters);
 

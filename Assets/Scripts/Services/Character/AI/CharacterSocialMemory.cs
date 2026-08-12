@@ -599,12 +599,7 @@ public static class SocialRumorUtility
 
         if (!string.IsNullOrWhiteSpace(rumor.targetCharacterId))
         {
-            yield return $"actor:{rumor.targetCharacterId}";
-        }
-
-        if (!string.IsNullOrWhiteSpace(rumor.targetCharacterName))
-        {
-            yield return $"actor-name:{Normalize(rumor.targetCharacterName)}";
+            yield return rumor.targetCharacterId.Trim();
         }
     }
 
@@ -616,7 +611,7 @@ public static class SocialRumorUtility
         }
 
         string id = actor.Identity != null ? actor.Identity.PersistentId : string.Empty;
-        return string.IsNullOrWhiteSpace(id) ? string.Empty : $"actor:{id}";
+        return string.IsNullOrWhiteSpace(id) ? string.Empty : id.Trim();
     }
 
     public static string GetActorNameKey(CharacterActor actor)

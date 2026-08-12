@@ -112,54 +112,75 @@ MonoBehaviour:
     mechanicTags:
     - "\uC911\uB7C9"
     - "\uC815\uBE44"
-  statBonus:
-    entries:
-    - statId: stat:attack
-      value: 1
-    - statId: stat:shooting
-      value: 0
-    - statId: stat:evasion
-      value: 0
-    - statId: stat:sales
-      value: -1
-    - statId: stat:research
-      value: -1
-    - statId: stat:move-speed
-      value: 0
-    - statId: stat:strength
-      value: 0
-    - statId: stat:toughness
-      value: 5
-    - statId: stat:dexterity
-      value: -1
-    - statId: stat:cleaning
-      value: 0
-    - statId: stat:endurance
-      value: 0
-    - statId: stat:medical
-      value: 0
   modifiers:
-    consumptionMultiplier: 0
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1.05
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1.15
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 537002500
     dislikedWorkTypes: 1040
   combatAbilities:
     abilities:
-    - rid: 7302563319989403751
+    - rid: 7737211892852327059
+  effects:
+  - bindingId: species:Golem:capacity_mental-maintenance
+    definition: {fileID: 11400000, guid: e824443ce8b009943965055bb5c84cce, type: 2}
+    value: 0.9
+    condition: {fileID: 0}
+  - bindingId: species:Golem:capacity_visual-discernment
+    definition: {fileID: 11400000, guid: 7294ccb39b7adea47aadcc65dde9b29e, type: 2}
+    value: 1
+    condition: {fileID: 0}
+  - bindingId: species:Golem:capacity_auditory-sensing
+    definition: {fileID: 11400000, guid: 7aceac644d3d00d4bb23b8b446cd20ec, type: 2}
+    value: 0.85
+    condition: {fileID: 0}
+  - bindingId: species:Golem:capacity_respiratory-exchange
+    definition: {fileID: 11400000, guid: bf0c7ee266c94734491fabbefc56f3bd, type: 2}
+    value: 1.05
+    condition: {fileID: 0}
+  - bindingId: species:Golem:capacity_power-circulation
+    definition: {fileID: 11400000, guid: c4320a922f47a944bac98c577c493f0b, type: 2}
+    value: 1.15
+    condition: {fileID: 0}
+  - bindingId: species:Golem:capacity_intake-processing
+    definition: {fileID: 11400000, guid: 798519265bdbcb44e8d7179997823082, type: 2}
+    value: 0.9
+    condition: {fileID: 0}
+  - bindingId: species:Golem:capacity_purification-processing
+    definition: {fileID: 11400000, guid: 9646fe5d20b2ffb4691924f2c54f043c, type: 2}
+    value: 1.1
+    condition: {fileID: 0}
+  - bindingId: species:Golem:capacity_vitality-response
+    definition: {fileID: 11400000, guid: e505e4d6c6b105d41920604fab29dd97, type: 2}
+    value: 1
+    condition: {fileID: 0}
+  - bindingId: species:Golem:capacity_physical-power
+    definition: {fileID: 11400000, guid: 3e6c3de3dbac42342ac392f653a710be, type: 2}
+    value: 1.25
+    condition: {fileID: 0}
+  - bindingId: species:Golem:capacity_precision-manipulation
+    definition: {fileID: 11400000, guid: 65206679fe515374e90ed42156a79020, type: 2}
+    value: 1.05
+    condition: {fileID: 0}
+  - bindingId: species:Golem:capacity_physical-mobility
+    definition: {fileID: 11400000, guid: f663257780e25da4985e8411e2d66bbd, type: 2}
+    value: 1.1
+    condition: {fileID: 0}
+  - bindingId: species:Golem:capacity_communication
+    definition: {fileID: 11400000, guid: ad0a376957a1b5b42bfbd2975864c730, type: 2}
+    value: 0.8
+    condition: {fileID: 0}
+  - bindingId: species:Golem:capacity_arcane-conduction
+    definition: {fileID: 11400000, guid: 650cb7f5e730c0b46bc5dc495f7d1586, type: 2}
+    value: 1.1
+    condition: {fileID: 0}
+  - bindingId: species:Golem:capacity_immune-defense
+    definition: {fileID: 11400000, guid: ba0a979776169d34597d6d5c9e4e2d8e, type: 2}
+    value: 1.15
+    condition: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563319989403751
+    - rid: 7737211892852327059
       type: {class: CharacterCombatAbilityDefinition, ns: , asm: DungeonStory.Combat}
       data:
         id: species-active:golem
@@ -171,8 +192,8 @@ MonoBehaviour:
         usableFrom: 7
         targetPositions: 7
         effects:
-        - rid: 7302563319989403752
-    - rid: 7302563319989403752
+        - rid: 7737211892852327060
+    - rid: 7737211892852327060
       type: {class: OffenseGuardEffect, ns: , asm: DungeonStory.Combat}
       data:
         damageReduction: 0.45

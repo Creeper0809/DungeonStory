@@ -764,7 +764,6 @@ public static class DefenseFacilityDebugScenarios
             data.characterType = CharacterType.NPC;
             data.characterName = "Defense Repair Worker";
             data.speciesTag = "Orc";
-            data.baseStats = CharacterStatBlock.CreateDefault(10);
             GameObject obj = CreateCharacterObject("Defense Scenario Worker");
             AbilityWork work = obj.AddComponent<AbilityWork>();
             work.ConstructAbilityWork(

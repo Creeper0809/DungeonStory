@@ -32,17 +32,22 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 14
   features:
-  - rid: 7737211838074979142
-  - rid: 7737211838074979143
-  - rid: 7737211838074979144
+  - rid: 7737211905660420789
+  - rid: 7737211907793485828
+  - rid: 7737211907793485829
+  - rid: 7737211907793485830
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074979142
+    - rid: 7737211905660420789
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6147372
+    - rid: 7737211907793485828
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:livestock
-    - rid: 7737211838074979143
+    - rid: 7737211907793485829
       type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         quality: 3
@@ -50,9 +55,9 @@ MonoBehaviour:
         mood: 2
         freshnessSeconds: 1440
         preserved: 1
-    - rid: 7737211838074979144
+    - rid: 7737211907793485830
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2
-        ingredientTags: 17
+        ingredientTags: 65553
         sharedIntermediate: 0

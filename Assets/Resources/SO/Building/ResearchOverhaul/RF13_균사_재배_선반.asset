@@ -34,19 +34,34 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 3
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: proficiency:food-production
+    secondaryProficiencyId: proficiency:fieldwork
+    primaryWeight: 0.8
+    combinationMode: 1
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211838078124184
-    - rid: 7737211838078124185
-    - rid: 7737211838078124186
-    - rid: 7737211838078124187
-    - rid: 7737211838078124188
-    - rid: 7737211838078124189
-    - rid: 7737211838078124190
-    - rid: 7737211838078124191
-    - rid: 7737211838078124192
+    - rid: 7737211905658585100
+    - rid: 7737211905658585101
+    - rid: 7737211905658585102
+    - rid: 7737211905658585103
+    - rid: 7737211905658585104
+    - rid: 7737211905658585105
+    - rid: 7737211905658585106
+    - rid: 7737211905658585107
+    - rid: 7737211905658585108
   width: 1
   height: 1
   layer: 1
@@ -62,12 +77,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124184
+    - rid: 7737211905658585100
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF13
-    - rid: 7737211838078124185
+    - rid: 7737211905658585101
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -75,13 +90,13 @@ MonoBehaviour:
         - research-overhaul
         - research:forestry:fungal
         - workstation:v3:fungal
-    - rid: 7737211838078124186
+    - rid: 7737211905658585102
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v3:fungal
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211838078124187
+    - rid: 7737211905658585103
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -89,7 +104,7 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211838078124188
+    - rid: 7737211905658585104
       type: {class: BuildingCropPlotAbility, ns: , asm: DungeonStory.Economy}
       data:
         abilityId: BuildingCropPlotAbility
@@ -101,39 +116,60 @@ MonoBehaviour:
         cycleSupplyInputs:
         - itemId: supply:inoculated-log
           amount: 1
-    - rid: 7737211838078124189
+    - rid: 7737211905658585105
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
-        constructionCost: 128
+        constructionCost: 260
         maintenance: 2
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211838078124190
+    - rid: 7737211905658585106
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
         settings:
-          roles: 80
+          roles: 64
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
-          supportedWorkTypes: 17
+          supportedWorkTypes: 6291457
           disabledWhenDamaged: 1
-    - rid: 7737211838078124191
+    - rid: 7737211905658585107
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211838078124192
+    - rid: 7737211905658585108
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 126
-        repairWorkRequired: 24
-        cleanWorkRequired: 8
+        constructionWorkRequired: 136
+        repairWorkRequired: 21
+        cleanWorkRequired: 12
         researchWorkRequired: 6
         operateWorkRequired: 12
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: material:lumber
-          amount: 5
+        - itemId: material:treated-lumber
+          amount: 12
+        - itemId: material:stone-block
+          amount: 8
+        - itemId: material:iron-ingot
+          amount: 6
+        - itemId: resource:clean-water
+          amount: 12
+        - itemId: component:machine-parts
+          amount: 2
+        - itemId: material:cloth
+          amount: 4

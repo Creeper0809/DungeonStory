@@ -117,6 +117,76 @@ public interface IItemTransferService
         string destinationId,
         IReadOnlyDictionary<string, int> costs,
         out string failureReason);
+
+    int ReleaseQuantityReservationsByOwner(
+        string ownerOperationId,
+        ItemReservationReleaseReason reason);
+
+    bool RenewQuantityReservation(
+        string leaseId,
+        double requestedUntilGameSeconds,
+        out DomainFailure failure);
+}
+
+public readonly struct ItemTransitDestination
+{
+    public ItemTransitDestination(
+        WorldItemStackState state,
+        Vector2Int position,
+        string destinationId)
+    {
+        State = state;
+        Position = position;
+        DestinationId = destinationId?.Trim() ?? string.Empty;
+    }
+
+    public WorldItemStackState State { get; }
+    public Vector2Int Position { get; }
+    public string DestinationId { get; }
+}
+
+public readonly struct ItemExtractionReceipt
+{
+    public ItemExtractionReceipt(
+        string leaseId,
+        string sourceStackId,
+        string extractedStackId,
+        string itemId,
+        int extractedQuantity,
+        int sourceRemainingQuantity,
+        bool sourceIdentityTransferred)
+    {
+        LeaseId = leaseId?.Trim() ?? string.Empty;
+        SourceStackId = sourceStackId?.Trim() ?? string.Empty;
+        ExtractedStackId = extractedStackId?.Trim() ?? string.Empty;
+        ItemId = itemId?.Trim() ?? string.Empty;
+        ExtractedQuantity = Mathf.Max(0, extractedQuantity);
+        SourceRemainingQuantity = Mathf.Max(0, sourceRemainingQuantity);
+        SourceIdentityTransferred = sourceIdentityTransferred;
+    }
+
+    public string LeaseId { get; }
+    public string SourceStackId { get; }
+    public string ExtractedStackId { get; }
+    public string ItemId { get; }
+    public int ExtractedQuantity { get; }
+    public int SourceRemainingQuantity { get; }
+    public bool SourceIdentityTransferred { get; }
+}
+
+public interface IReservedItemTransferService
+{
+    bool TryExtractReservedQuantity(
+        string leaseId,
+        int quantity,
+        ItemTransitDestination destination,
+        out ItemExtractionReceipt receipt,
+        out DomainFailure failure);
+
+    bool TryConsumeReservedQuantity(
+        string leaseId,
+        int quantity,
+        out DomainFailure failure);
 }
 
 public readonly struct ReservedItemConsumption
@@ -150,15 +220,23 @@ public sealed class AtomicItemConsumptionService :
 {
     private readonly WorldItemRepository repository;
     private readonly IItemMarkerPresenter markerPresenter;
+    private readonly IItemQuantityReservationService reservations;
+    private readonly IItemQuantityLeaseMutation leaseMutations;
 
     public AtomicItemConsumptionService(
         WorldItemRepository repository,
-        IItemMarkerPresenter markerPresenter)
+        IItemMarkerPresenter markerPresenter,
+        IItemQuantityReservationService reservations,
+        IItemQuantityLeaseMutation leaseMutations)
     {
         this.repository = repository
             ?? throw new ArgumentNullException(nameof(repository));
         this.markerPresenter = markerPresenter
             ?? throw new ArgumentNullException(nameof(markerPresenter));
+        this.reservations = reservations
+            ?? throw new ArgumentNullException(nameof(reservations));
+        this.leaseMutations = leaseMutations
+            ?? throw new ArgumentNullException(nameof(leaseMutations));
     }
 
     public bool TryConsumeReserved(
@@ -187,7 +265,33 @@ public sealed class AtomicItemConsumptionService :
             return false;
         }
 
+        if (!reservations.TryGetLeasesByOwner(owner, out IReadOnlyList<ItemQuantityLease> leases))
+        {
+            failure = new DomainFailure(
+                FailureCode.ItemReservationLeaseMissing,
+                owner);
+            return false;
+        }
+        Dictionary<string, Queue<(string leaseId, int quantity)>> leasedByStack =
+            new(StringComparer.Ordinal);
+        foreach (ItemQuantityLease lease in leases)
+        {
+            foreach (ItemLeaseSlice slice in lease.slices ?? new List<ItemLeaseSlice>())
+            {
+                if (slice == null || slice.quantity <= 0) continue;
+                if (!leasedByStack.TryGetValue(
+                        slice.stackId,
+                        out Queue<(string leaseId, int quantity)> queue))
+                {
+                    queue = new Queue<(string leaseId, int quantity)>();
+                    leasedByStack.Add(slice.stackId, queue);
+                }
+                queue.Enqueue((lease.leaseId, slice.quantity));
+            }
+        }
+
         List<(WorldItemStackRecord record, int quantity)> resolved = new();
+        List<(string leaseId, int quantity)> leaseConsumptions = new();
         foreach (ReservedItemConsumption cost in costs)
         {
             if (!repository.RecordsById.TryGetValue(
@@ -195,16 +299,44 @@ public sealed class AtomicItemConsumptionService :
                     out WorldItemStackRecord record)
                 || record == null
                 || record.quantity < cost.Quantity
-                || !string.Equals(
-                    record.reservedByPersistentId,
-                    owner,
-                    StringComparison.Ordinal))
+                || !leasedByStack.TryGetValue(
+                    cost.StackId,
+                    out Queue<(string leaseId, int quantity)> queue))
             {
                 failure = new DomainFailure(
                     FailureCode.ItemTransferConsumptionFailed);
                 return false;
             }
+            int remainingCost = cost.Quantity;
+            while (remainingCost > 0 && queue.Count > 0)
+            {
+                (string leaseId, int leasedQuantity) = queue.Dequeue();
+                int consume = Math.Min(remainingCost, leasedQuantity);
+                leaseConsumptions.Add((leaseId, consume));
+                remainingCost -= consume;
+                if (leasedQuantity > consume)
+                    queue.Enqueue((leaseId, leasedQuantity - consume));
+            }
+            if (remainingCost > 0)
+            {
+                failure = new DomainFailure(
+                    FailureCode.ItemReservationQuantityUnavailable,
+                    cost.StackId);
+                return false;
+            }
             resolved.Add((record, cost.Quantity));
+        }
+
+        foreach ((string leaseId, int quantity) in leaseConsumptions)
+        {
+            if (!leaseMutations.TryConsumeSlices(
+                    leaseId,
+                    quantity,
+                    out _,
+                    out failure))
+            {
+                return false;
+            }
         }
 
         HashSet<Vector2Int> changedPositions = new();
@@ -212,14 +344,11 @@ public sealed class AtomicItemConsumptionService :
         {
             changedPositions.Add(record.position);
             record.quantity -= quantity;
-            if (record.quantity > 0)
-            {
-                record.reservedByPersistentId = string.Empty;
-                continue;
-            }
+            if (record.quantity > 0) continue;
             if (!string.IsNullOrWhiteSpace(record.itemInstanceId))
             {
                 repository.TryMarkEquipmentLostBySourceStack(record.stackId);
+                repository.TryMarkModuleLostBySourceStack(record.stackId);
             }
             repository.Remove(record);
         }
@@ -256,7 +385,9 @@ public readonly struct ItemTransitStackSnapshot
     public bool IsValid => StackId.IsValid && Quantity > 0;
 }
 
-public sealed class ItemTransferService : IItemTransferService
+public sealed class ItemTransferService :
+    IItemTransferService,
+    IReservedItemTransferService
 {
     private readonly IDungeonItemCatalogProvider catalogProvider;
     private readonly IItemHaulingSettingsProvider haulingSettingsProvider;
@@ -270,6 +401,11 @@ public sealed class ItemTransferService : IItemTransferService
     private readonly IDungeonDebugRuleQuery debugRules;
     private readonly WorldItemQueryService itemQueries;
     private readonly WorldItemWarehouseService warehouseService;
+    private readonly IItemQuantityReservationService quantityReservations;
+    private readonly IItemQuantityLeaseMutation quantityLeaseMutations;
+    private readonly IBufferStackAggregationService bufferAggregation;
+    private long facilityConsumptionSequence;
+    private long directConsumptionSequence;
 
     public ItemTransferService(
         WorldItemReadServices readServices,
@@ -279,7 +415,10 @@ public sealed class ItemTransferService : IItemTransferService
         IGameEventBus gameEventBus,
         WorldItemRepository repository,
         IWorldItemSpawner itemSpawner,
-        WorldItemWarehouseService warehouseService)
+        WorldItemWarehouseService warehouseService,
+        IItemQuantityReservationService quantityReservations,
+        IItemQuantityLeaseMutation quantityLeaseMutations,
+        IBufferStackAggregationService bufferAggregation)
     {
         WorldItemReadServices reads = readServices
             ?? throw new ArgumentNullException(nameof(readServices));
@@ -302,6 +441,310 @@ public sealed class ItemTransferService : IItemTransferService
         itemQueries = reads.Queries;
         this.warehouseService = warehouseService
             ?? throw new ArgumentNullException(nameof(warehouseService));
+        this.quantityReservations = quantityReservations
+            ?? throw new ArgumentNullException(nameof(quantityReservations));
+        this.quantityLeaseMutations = quantityLeaseMutations
+            ?? throw new ArgumentNullException(nameof(quantityLeaseMutations));
+        this.bufferAggregation = bufferAggregation
+            ?? throw new ArgumentNullException(nameof(bufferAggregation));
+    }
+
+    public int ReleaseQuantityReservationsByOwner(
+        string ownerOperationId,
+        ItemReservationReleaseReason reason) =>
+        quantityReservations.ReleaseByOwner(ownerOperationId, reason);
+
+    public bool RenewQuantityReservation(
+        string leaseId,
+        double requestedUntilGameSeconds,
+        out DomainFailure failure) =>
+        quantityReservations.Renew(
+            leaseId,
+            requestedUntilGameSeconds,
+            out failure);
+
+    public bool TryExtractReservedQuantity(
+        string leaseId,
+        int quantity,
+        ItemTransitDestination destination,
+        out ItemExtractionReceipt receipt,
+        out DomainFailure failure)
+    {
+        receipt = default;
+        failure = DomainFailure.None;
+        if (quantity <= 0
+            || !quantityReservations.Revalidate(
+                leaseId,
+                out ItemQuantityLease lease,
+                out failure)
+            || lease.remainingQuantity < quantity)
+        {
+            if (!failure.IsFailure)
+                failure = new DomainFailure(
+                    FailureCode.ItemReservationQuantityUnavailable,
+                    leaseId ?? string.Empty);
+            return false;
+        }
+
+        ItemLeaseSlice sourceSlice = lease.slices.FirstOrDefault(slice =>
+            slice != null
+            && slice.quantity >= quantity
+            && repository.RecordsById.ContainsKey(slice.stackId));
+        if (sourceSlice == null
+            || !repository.RecordsById.TryGetValue(
+                sourceSlice.stackId,
+                out WorldItemStackRecord source)
+            || source == null
+            || source.quantity < quantity)
+        {
+            failure = new DomainFailure(
+                FailureCode.ItemReservationSliceInvalid,
+                leaseId ?? string.Empty,
+                sourceSlice?.stackId ?? string.Empty);
+            return false;
+        }
+
+        string sourceId = source.stackId;
+        bool transferredIdentity = source.quantity == quantity
+            && source.reservedQuantity == quantity;
+        string extractedId = transferredIdentity
+            ? source.stackId
+            : repository.AllocateStackId();
+        Vector2Int sourcePosition = source.position;
+        string itemId = source.itemId;
+        WorldItemStackState transitState = destination.State is
+            WorldItemStackState.Carried or WorldItemStackState.InTransit
+                ? destination.State
+                : WorldItemStackState.InTransit;
+
+        if (transferredIdentity)
+        {
+            repository.Relocate(source, destination.Position);
+            source.state = transitState;
+            source.destinationId = destination.DestinationId;
+            source.aggregationCohortId = lease.aggregationCohortId;
+            source.hasDestinationPosition = destination.DestinationId.Length > 0;
+            source.destinationPosition = destination.Position;
+            source.sourceStorageDestinationId = string.Empty;
+            repository.MarkChanged();
+        }
+        else
+        {
+            WorldItemStackRecord child = CloneForTransit(
+                source,
+                extractedId,
+                quantity,
+                transitState,
+                destination,
+                lease.aggregationCohortId);
+            source.quantity -= quantity;
+            repository.Add(child);
+
+            List<ItemLeaseSlice> replacements = BuildExtractionReplacements(
+                lease,
+                sourceId,
+                extractedId,
+                sourceSlice.expectedStackSignature,
+                quantity);
+            if (replacements == null
+                || !quantityLeaseMutations.TryRetargetSlices(
+                    new Dictionary<string, IReadOnlyList<ItemLeaseSlice>>
+                    {
+                        [lease.leaseId] = replacements
+                    },
+                    out failure))
+            {
+                repository.Remove(child);
+                source.quantity += quantity;
+                repository.MarkChanged();
+                if (!failure.IsFailure)
+                {
+                    failure = new DomainFailure(
+                        FailureCode.ItemReservationSliceInvalid,
+                        lease.leaseId,
+                        sourceId);
+                }
+                return false;
+            }
+        }
+
+        markerPresenter.RefreshAt(sourcePosition);
+        markerPresenter.RefreshAt(destination.Position);
+        receipt = new ItemExtractionReceipt(
+            leaseId,
+            sourceId,
+            extractedId,
+            itemId,
+            quantity,
+            transferredIdentity ? 0 : source.quantity,
+            transferredIdentity);
+        return true;
+    }
+
+    public bool TryConsumeReservedQuantity(
+        string leaseId,
+        int quantity,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (quantity <= 0
+            || !quantityReservations.Revalidate(
+                leaseId,
+                out ItemQuantityLease lease,
+                out failure)
+            || lease.remainingQuantity < quantity)
+        {
+            if (!failure.IsFailure)
+            {
+                failure = new DomainFailure(
+                    FailureCode.ItemReservationQuantityUnavailable,
+                    leaseId ?? string.Empty);
+            }
+            return false;
+        }
+
+        List<(WorldItemStackRecord record, int quantity)> removals = new();
+        int remaining = quantity;
+        foreach (ItemLeaseSlice slice in lease.slices)
+        {
+            if (slice == null || slice.quantity <= 0 || remaining <= 0)
+                continue;
+            if (!repository.RecordsById.TryGetValue(
+                    slice.stackId,
+                    out WorldItemStackRecord record)
+                || record == null)
+            {
+                failure = new DomainFailure(
+                    FailureCode.ItemReservationSliceInvalid,
+                    lease.leaseId,
+                    slice.stackId);
+                return false;
+            }
+            int take = Mathf.Min(remaining, slice.quantity);
+            removals.Add((record, take));
+            remaining -= take;
+        }
+        if (remaining > 0)
+        {
+            failure = new DomainFailure(
+                FailureCode.ItemReservationQuantityUnavailable,
+                lease.leaseId);
+            return false;
+        }
+        if (!quantityLeaseMutations.TryConsumeSlices(
+                lease.leaseId,
+                quantity,
+                out _,
+                out failure))
+        {
+            return false;
+        }
+        HashSet<Vector2Int> touched = new();
+        foreach ((WorldItemStackRecord record, int remove) in removals)
+        {
+            touched.Add(record.position);
+            record.quantity -= remove;
+            if (record.quantity <= 0)
+            {
+                if (!string.IsNullOrWhiteSpace(record.itemInstanceId))
+                {
+                    repository.TryMarkEquipmentLostBySourceStack(record.stackId);
+                    repository.TryMarkModuleLostBySourceStack(record.stackId);
+                }
+                repository.Remove(record);
+            }
+        }
+        repository.MarkChanged();
+        foreach (Vector2Int position in touched)
+            markerPresenter.RefreshAt(position);
+        return true;
+    }
+
+    private static WorldItemStackRecord CloneForTransit(
+        WorldItemStackRecord source,
+        string stackId,
+        int quantity,
+        WorldItemStackState state,
+        ItemTransitDestination destination,
+        string aggregationCohortId) => new()
+    {
+        stackId = stackId,
+        itemInstanceId = source.itemInstanceId,
+        itemId = source.itemId,
+        quantity = quantity,
+        state = state,
+        position = destination.Position,
+        destinationId = destination.DestinationId,
+        aggregationCohortId = aggregationCohortId?.Trim() ?? string.Empty,
+        hasDestinationPosition = destination.DestinationId.Length > 0,
+        destinationPosition = destination.Position,
+        forbidden = source.forbidden,
+        sourceCharacterId = source.sourceCharacterId,
+        sourceDisplayName = source.sourceDisplayName,
+        sourceSpeciesTag = source.sourceSpeciesTag,
+        sourceDeathReason = source.sourceDeathReason,
+        emergencyButcheryAllowed = source.emergencyButcheryAllowed,
+        wasteOrigin = source.wasteOrigin,
+        contamination = source.contamination,
+        components = (source.components ?? new List<ItemInstanceComponentSaveData>())
+            .Where(component => component != null)
+            .Select(component => component.Clone())
+            .ToList()
+    };
+
+    private static List<ItemLeaseSlice> BuildExtractionReplacements(
+        ItemQuantityLease lease,
+        string sourceStackId,
+        string extractedStackId,
+        string expectedSignature,
+        int quantity)
+    {
+        int remaining = quantity;
+        List<ItemLeaseSlice> replacements = new();
+        foreach (ItemLeaseSlice slice in lease.slices)
+        {
+            if (slice == null || slice.quantity <= 0)
+                continue;
+            if (!string.Equals(
+                    slice.stackId,
+                    sourceStackId,
+                    StringComparison.Ordinal)
+                || remaining <= 0)
+            {
+                replacements.Add(slice.Clone());
+                continue;
+            }
+            int moved = Mathf.Min(remaining, slice.quantity);
+            int left = slice.quantity - moved;
+            if (left > 0)
+            {
+                replacements.Add(new ItemLeaseSlice
+                {
+                    stackId = slice.stackId,
+                    originStackId = string.IsNullOrWhiteSpace(slice.originStackId)
+                        ? slice.stackId
+                        : slice.originStackId,
+                    expectedStackSignature = slice.expectedStackSignature,
+                    quantity = left
+                });
+            }
+            if (moved > 0)
+            {
+                replacements.Add(new ItemLeaseSlice
+                {
+                    stackId = extractedStackId,
+                    originStackId = string.IsNullOrWhiteSpace(slice.originStackId)
+                        ? slice.stackId
+                        : slice.originStackId,
+                    expectedStackSignature = expectedSignature,
+                    quantity = moved
+                });
+            }
+            remaining -= moved;
+        }
+        if (remaining > 0)
+            return null;
+        return replacements;
     }
 
     public bool TryRequestItemDelivery(
@@ -374,7 +817,8 @@ public sealed class ItemTransferService : IItemTransferService
                 stackId.Value,
                 out WorldItemStackRecord record)
             || record == null
-            || record.quantity <= 0)
+            || record.quantity <= 0
+            || record.quantity - record.reservedQuantity < quantity)
         {
             failure = new DomainFailure(
                 FailureCode.ItemTransferStackUnavailable,
@@ -382,26 +826,45 @@ public sealed class ItemTransferService : IItemTransferService
             return false;
         }
 
-        consumed = itemQueries.CreateSnapshot(record);
-        consumed.Quantity = Mathf.Min(quantity, record.quantity);
+        WorldItemStackSnapshot snapshot = itemQueries.CreateSnapshot(record);
+        snapshot.Quantity = quantity;
         if (debugRules.ShouldSkipCosts())
         {
+            consumed = snapshot;
             return consumed.Quantity > 0;
         }
 
-        Vector2Int position = record.position;
-        record.quantity -= consumed.Quantity;
-        repository.MarkChanged();
-        if (record.quantity <= 0)
+        string operationId =
+            $"direct-item-consume:{++directConsumptionSequence:D16}:{stackId.Value}";
+        string signature = ItemStackSignature.Create(
+            record.itemId,
+            record.components);
+        if (!quantityReservations.TryReserve(
+                operationId,
+                string.Empty,
+                ItemReservationPurpose.DirectPlayerOrder,
+                $"direct-consume:{record.itemId}",
+                new ItemQuantityReservationRequest(
+                    stackId,
+                    quantity,
+                    signature),
+                out ItemQuantityLease lease,
+                out failure))
         {
-            if (!string.IsNullOrWhiteSpace(record.itemInstanceId))
-            {
-                repository.TryMarkEquipmentLostBySourceStack(record.stackId);
-            }
-            repository.Remove(record);
+            return false;
         }
-        markerPresenter.RefreshAt(position);
-        return consumed.Quantity > 0;
+        if (!TryConsumeReservedQuantity(
+                lease.leaseId,
+                quantity,
+                out failure))
+        {
+            quantityReservations.ReleaseByOwner(
+                operationId,
+                ItemReservationReleaseReason.Cancelled);
+            return false;
+        }
+        consumed = snapshot;
+        return true;
     }
 
     public bool TrySpawnItem(
@@ -469,7 +932,7 @@ public sealed class ItemTransferService : IItemTransferService
                 && record.quantity > 0
                 && record.state == WorldItemStackState.FacilityOutputBuffer
                 && !record.forbidden
-                && string.IsNullOrWhiteSpace(record.reservedByPersistentId)
+                && record.quantity - record.reservedQuantity > 0
                 && string.Equals(
                     record.destinationId,
                     sourceId,
@@ -480,7 +943,10 @@ public sealed class ItemTransferService : IItemTransferService
                     StringComparison.Ordinal))
             .OrderBy(record => record.stackId, StringComparer.Ordinal)
             .ToArray();
-        if (candidates.Sum(record => record.quantity) < amount)
+        if (candidates.Sum(record => Mathf.Max(
+                0,
+                quantityReservations.GetAvailableQuantity(
+                    new ItemStackId(record.stackId)))) < amount)
         {
             failure = new DomainFailure(
                 FailureCode.ItemTransferStackUnavailable,
@@ -496,7 +962,14 @@ public sealed class ItemTransferService : IItemTransferService
                 break;
             }
 
-            int moved = Mathf.Min(remaining, source.quantity);
+            int moved = Mathf.Min(
+                remaining,
+                Mathf.Max(
+                    0,
+                    quantityReservations.GetAvailableQuantity(
+                        new ItemStackId(source.stackId))));
+            if (moved <= 0)
+                continue;
             Vector2Int sourcePosition = source.position;
             source.quantity -= moved;
             repository.MarkChanged();
@@ -663,7 +1136,7 @@ public sealed class ItemTransferService : IItemTransferService
             return false;
         }
 
-        if (!string.IsNullOrWhiteSpace(record.reservedByPersistentId))
+        if (record.reservedQuantity > 0)
         {
             failure = new DomainFailure(
                 FailureCode.ConveyorStackReserved,
@@ -735,8 +1208,7 @@ public sealed class ItemTransferService : IItemTransferService
                          && record.quantity > 0
                          && record.state is WorldItemStackState.Loose
                              or WorldItemStackState.FacilityOutputBuffer
-                         && string.IsNullOrWhiteSpace(
-                             record.reservedByPersistentId))
+                         && record.quantity - record.reservedQuantity > 0)
                      .OrderBy(record => record.stackId, StringComparer.Ordinal))
         {
             destination.Add(new ItemStackId(record.stackId));
@@ -860,105 +1332,122 @@ public sealed class ItemTransferService : IItemTransferService
             return false;
         }
 
-        if (!string.Equals(
-                record.reservedByPersistentId,
+        ItemQuantityLease lease = null;
+        DomainFailure leaseFailure = DomainFailure.None;
+        if (string.IsNullOrWhiteSpace(reservation.LeaseId)
+            || !quantityReservations.Revalidate(
+                reservation.LeaseId,
+                out lease,
+                out leaseFailure)
+            || !string.Equals(
+                lease.ownerCharacterId,
                 actorId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                lease.ownerOperationId,
+                reservation.OwnerOperationId,
                 StringComparison.Ordinal))
         {
-            failureReason = "stack reserved by someone else";
+            failureReason = leaseFailure.IsFailure
+                ? leaseFailure.ToString()
+                : "stack quantity leased by another operation";
             return false;
         }
 
+        int leasedOnStack = lease.slices
+            .Where(slice => slice != null
+                && string.Equals(
+                    slice.stackId,
+                    reservation.StackId,
+                    StringComparison.Ordinal))
+            .Sum(slice => Mathf.Max(0, slice.quantity));
         int requested = Mathf.Min(
             record.quantity,
-            Mathf.Max(1, reservation.Quantity));
-        if (IsOutboundStoredStack(record))
+            Mathf.Min(leasedOnStack, Mathf.Max(1, reservation.Quantity)));
+        int accepted = inventory.GetMaxAcceptableQuantity(
+            record.itemId,
+            requested,
+            catalogProvider,
+            haulingSettingsProvider);
+        if (accepted <= 0)
         {
-            int accepted = inventory.GetMaxAcceptableQuantity(
-                record.itemId,
-                requested,
-                catalogProvider,
-                haulingSettingsProvider);
-            if (accepted <= 0)
-            {
-                failureReason = "carry limit";
-                return false;
-            }
-
-            if (!TryWithdrawOutboundStoredStock(
-                    record,
-                    accepted,
-                    out IWarehouseFacility sourceWarehouse,
-                    out StockCategory sourceCategory,
-                    out pickedUp,
-                    out failureReason))
-            {
-                return false;
-            }
-
-            if (!inventory.TryAddPartialStack(
-                    record.stackId,
-                    record.itemInstanceId,
-                    record.itemId,
-                    pickedUp,
-                    catalogProvider,
-                    haulingSettingsProvider,
-                    record.wasteOrigin,
-                    record.contamination,
-                    record.components,
-                    out int acceptedQuantity,
-                    out string carryFailure))
-            {
-                pickedUp = 0;
-                failureReason = string.IsNullOrWhiteSpace(carryFailure)
-                    ? "carry limit"
-                    : carryFailure;
-                return false;
-            }
-
-            if (acceptedQuantity != pickedUp)
-            {
-                pickedUp = acceptedQuantity;
-            }
+            failureReason = "carry limit";
+            return false;
         }
-        else if (!inventory.TryAddPartialStack(
-                     record.stackId,
-                     record.itemInstanceId,
-                     record.itemId,
-                     requested,
-                     catalogProvider,
-                     haulingSettingsProvider,
-                     record.wasteOrigin,
-                     record.contamination,
-                     record.components,
-                     out pickedUp,
-                     out failureReason)
-                 || pickedUp <= 0)
+        if (IsOutboundStoredStack(record)
+            && !TryWithdrawOutboundStoredStock(
+                record,
+                accepted,
+                out _,
+                out _,
+                out accepted,
+                out failureReason))
         {
-            failureReason = string.IsNullOrWhiteSpace(failureReason)
-                ? "carry limit"
-                : failureReason;
             return false;
         }
 
         Vector2Int position = record.position;
+        if (!TryExtractReservedQuantity(
+                reservation.LeaseId,
+                accepted,
+                new ItemTransitDestination(
+                    WorldItemStackState.Carried,
+                    ResolveActorGridPosition(actor),
+                    actorId),
+                out ItemExtractionReceipt extraction,
+                out DomainFailure extractionFailure))
+        {
+            failureReason = extractionFailure.ToString();
+            return false;
+        }
+        if (!repository.RecordsById.TryGetValue(
+                extraction.ExtractedStackId,
+                out WorldItemStackRecord carriedRecord)
+            || carriedRecord == null)
+        {
+            quantityReservations.Release(
+                reservation.LeaseId,
+                ItemReservationReleaseReason.StackInvalidated);
+            failureReason = "transport stack missing after extraction";
+            return false;
+        }
+
+        if (!inventory.TryAddLeasedPartialStack(
+                carriedRecord.stackId,
+                extraction.SourceStackId,
+                reservation.OwnerOperationId,
+                carriedRecord.itemInstanceId,
+                carriedRecord.itemId,
+                accepted,
+                catalogProvider,
+                haulingSettingsProvider,
+                carriedRecord.wasteOrigin,
+                carriedRecord.contamination,
+                carriedRecord.components,
+                out pickedUp,
+                out string carryFailure)
+            || pickedUp != accepted)
+        {
+            quantityReservations.Release(
+                reservation.LeaseId,
+                ItemReservationReleaseReason.Cancelled);
+            repository.Relocate(carriedRecord, position);
+            carriedRecord.state = WorldItemStackState.Loose;
+            carriedRecord.destinationId = string.Empty;
+            carriedRecord.aggregationCohortId = string.Empty;
+            carriedRecord.hasDestinationPosition = false;
+            carriedRecord.destinationPosition = default;
+            repository.MarkChanged();
+            failureReason = string.IsNullOrWhiteSpace(carryFailure)
+                ? "carry commit failed after lease extraction"
+                : carryFailure;
+            markerPresenter.RefreshAt(position);
+            return false;
+        }
+
         repository.TrySetEquipmentWorldStateBySourceStack(
-            record.stackId,
+            carriedRecord.stackId,
             CombatEquipmentWorldState.Carried);
-        record.quantity -= pickedUp;
-        record.reservedByPersistentId = string.Empty;
-        if (record.quantity > 0
-            && IsCombatLoadoutDestination(record.destinationId))
-        {
-            RestoreDirectPickupStack(record);
-        }
-
-        repository.MarkChanged();
-        if (record.quantity <= 0)
-        {
-            repository.Remove(record);
-        }
-
         markerPresenter.RefreshAt(position);
         return true;
     }
@@ -985,6 +1474,18 @@ public sealed class ItemTransferService : IItemTransferService
             return false;
         }
 
+        HashSet<string> completedOperations = carried
+            .Where(item => item != null
+                && !string.IsNullOrWhiteSpace(item.ownerOperationId))
+            .Select(item => item.ownerOperationId.Trim())
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (string operationId in completedOperations)
+        {
+            quantityReservations.ReleaseByOwner(
+                operationId,
+                ItemReservationReleaseReason.Completed);
+        }
+
         Vector2Int dropPosition = ResolveActorGridPosition(actor);
         bool depositedAny = false;
         foreach (CharacterCarriedItemSaveData item in carried)
@@ -1005,13 +1506,15 @@ public sealed class ItemTransferService : IItemTransferService
                     warehouse.Inventory.RemainingCapacity);
                 if (deposited > 0)
                 {
-                    AddStoredWarehouseItems(
-                        warehouse,
-                        item.itemId,
+                    deposited = TrySpawnCarriedItem(
+                        item,
                         deposited,
-                        item.wasteOrigin,
-                        item.contamination,
-                        item.components);
+                        ResolveWarehouseStoragePosition(warehouse),
+                        WorldItemStackState.Stored,
+                        GetWarehouseStorageDestinationId(warehouse),
+                        false,
+                        default,
+                        out _);
                 }
 
                 remaining -= deposited;
@@ -1147,15 +1650,48 @@ public sealed class ItemTransferService : IItemTransferService
             }
             else
             {
-                spawned = TrySpawnCarriedItem(
+                ItemReservationPurpose purpose = ItemReservationPurpose.ProductionInput;
+                string cohortId = string.Empty;
+                if (quantityReservations.TryGetLeasesByOwner(
+                        item.ownerOperationId,
+                        out IReadOnlyList<ItemQuantityLease> activeLeases))
+                {
+                    ItemQuantityLease carriedLease = activeLeases.FirstOrDefault(lease =>
+                        lease?.slices?.Any(slice => slice != null
+                            && string.Equals(
+                                slice.stackId,
+                                item.carriedStackId,
+                                StringComparison.Ordinal)) == true);
+                    if (carriedLease != null)
+                    {
+                        purpose = carriedLease.purpose;
+                        cohortId = carriedLease.aggregationCohortId;
+                    }
+                }
+                if (string.IsNullOrWhiteSpace(cohortId))
+                {
+                    cohortId = purpose == ItemReservationPurpose.Meal
+                        ? $"meal:{normalizedDestination}:{item.itemId}:unassigned"
+                        : $"production:{normalizedDestination}:unassigned:{item.itemId}";
+                }
+                spawned = bufferAggregation.TryDepositAndAggregate(
                     item,
-                    item.quantity,
-                    destinationPosition,
-                    WorldItemStackState.FacilityBuffer,
+                    purpose,
+                    cohortId,
                     normalizedDestination,
-                    true,
                     destinationPosition,
-                    out _);
+                    out _,
+                    out _)
+                    ? item.quantity
+                    : TrySpawnCarriedItem(
+                        item,
+                        item.quantity,
+                        destinationPosition,
+                        WorldItemStackState.FacilityBuffer,
+                        normalizedDestination,
+                        true,
+                        destinationPosition,
+                        out _);
             }
 
             depositedAny |= spawned > 0;
@@ -1180,6 +1716,9 @@ public sealed class ItemTransferService : IItemTransferService
             repository,
             catalogProvider,
             markerPresenter,
+            quantityReservations,
+            this,
+            AllocateFacilityConsumptionOperationId(destinationId),
             out failureReason);
 
     public bool TryConsumeFacilityItemBuffer(
@@ -1192,7 +1731,13 @@ public sealed class ItemTransferService : IItemTransferService
             debugRules,
             repository,
             markerPresenter,
+            quantityReservations,
+            this,
+            AllocateFacilityConsumptionOperationId(destinationId),
             out failureReason);
+
+    private string AllocateFacilityConsumptionOperationId(string destinationId) =>
+        $"facility-consume:{destinationId?.Trim() ?? string.Empty}:{++facilityConsumptionSequence}";
 
     private bool TryWithdrawOutboundStoredStock(
         WorldItemStackRecord stack,
@@ -1289,6 +1834,55 @@ public sealed class ItemTransferService : IItemTransferService
         if (item == null || quantity <= 0 || string.IsNullOrWhiteSpace(item.itemId))
         {
             return 0;
+        }
+
+        string carriedId = item.carriedStackId?.Trim() ?? string.Empty;
+        if (carriedId.Length > 0
+            && repository.RecordsById.TryGetValue(
+                carriedId,
+                out WorldItemStackRecord carriedRecord)
+            && carriedRecord != null
+            && carriedRecord.quantity >= quantity
+            && carriedRecord.state is WorldItemStackState.Carried
+                or WorldItemStackState.InTransit
+            && string.Equals(
+                carriedRecord.itemId,
+                item.itemId,
+                StringComparison.Ordinal))
+        {
+            carriedRecord.wasteOrigin = item.wasteOrigin;
+            carriedRecord.contamination = Mathf.Clamp(item.contamination, 0f, 100f);
+            carriedRecord.components = (item.components
+                    ?? new List<ItemInstanceComponentSaveData>())
+                .Where(component => component != null)
+                .Select(component => component.Clone())
+                .ToList();
+            if (carriedRecord.quantity > quantity)
+            {
+                carriedRecord.quantity -= quantity;
+                repository.MarkChanged();
+                return itemSpawner.Spawn(
+                    item.itemId,
+                    quantity,
+                    position,
+                    state,
+                    destinationId,
+                    hasDestinationPosition,
+                    destinationPosition,
+                    wasteOrigin: item.wasteOrigin,
+                    contamination: item.contamination,
+                    components: item.components);
+            }
+
+            repository.Relocate(carriedRecord, position);
+            carriedRecord.state = state;
+            carriedRecord.destinationId = destinationId?.Trim() ?? string.Empty;
+            carriedRecord.hasDestinationPosition = hasDestinationPosition;
+            carriedRecord.destinationPosition = destinationPosition;
+            repository.MarkChanged();
+            markerPresenter.RefreshAt(position);
+            stackId = carriedRecord.stackId;
+            return quantity;
         }
 
         ItemInstanceId instanceId = (ItemInstanceId)item.itemInstanceId;

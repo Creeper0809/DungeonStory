@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uB8EC \uB3D9\uBA74 \uCD09\uB9E4"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uB8EC \uB3D9\uBA74 \uCD09\uB9E4."
   stockCategory: 5
-  unitWeight: 3.9399998
+  unitWeight: 0.55
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 258
+  unitPrice: 86
   features:
-  - rid: 7737211838074979221
-  - rid: 7737211838074979222
+  - rid: 7737211905658585665
+  - rid: 7737211905658585666
+  - rid: 7737211905660420698
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074979221
+    - rid: 7737211905658585665
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:rune-hibernation
-    - rid: 7737211838074979222
+    - rid: 7737211905658585666
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1024
         sharedIntermediate: 0
+    - rid: 7737211905660420698
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.60176027

@@ -446,17 +446,24 @@ public class OwnerSelectionPanel : MonoBehaviour
 
         if (tab == PreparationTab.Aptitude)
         {
-            CharacterStatBlock stats = progression.GrowthState.initialBaseStats;
-            return string.Join("\n", new[]
-            {
-                $"잠재력  {PotentialLabel(progression.PotentialGrade)}",
-                string.Empty,
-                $"공격 {stats.Get(CharacterStatType.Attack),2}    판매 {stats.Get(CharacterStatType.Sales),2}    연구 {stats.Get(CharacterStatType.Research),2}",
-                $"이동 {stats.Get(CharacterStatType.MoveSpeed),2}    근력 {stats.Get(CharacterStatType.Strength),2}    맷집 {stats.Get(CharacterStatType.Toughness),2}",
-                $"민첩 {stats.Get(CharacterStatType.Dexterity),2}    청소 {stats.Get(CharacterStatType.Cleaning),2}    지구력 {stats.Get(CharacterStatType.Endurance),2}",
-                string.Empty,
-                "초기 능력치 합계 45 · 각 능력치 1~10"
-            });
+            IReadOnlyList<CharacterStartingProficiencyExperience> starts =
+                progression.GrowthState.startingProficiencies;
+            starts ??= Array.Empty<CharacterStartingProficiencyExperience>();
+            string[] values = BuiltInCharacterProficiencyIds.All
+                .Select(id =>
+                {
+                    int experience = starts.FirstOrDefault(value =>
+                        value != null
+                        && string.Equals(
+                            value.proficiencyId,
+                            id.Value,
+                            StringComparison.Ordinal))?.experience ?? 0;
+                    return $"{StartPartyPreparationPresentation.ProficiencyLabel(id)} {experience} XP";
+                })
+                .ToArray();
+            return $"잠재력  {PotentialLabel(progression.PotentialGrade)}\n\n"
+                + string.Join("\n", values)
+                + "\n\n숙련이 성장하면 관련 작업 속도·완성 품질·사고 위험과 전투 성능이 변합니다.";
         }
 
         string passive = progression.PassiveSkills.FirstOrDefault()?.displayName ?? "-";

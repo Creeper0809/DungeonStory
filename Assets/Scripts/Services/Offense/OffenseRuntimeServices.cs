@@ -48,11 +48,16 @@ public interface IOffensePanelService
 public sealed class OffenseExpeditionMemberQuery : IOffenseExpeditionMemberQuery
 {
     private readonly ICharacterWorldQuery characterWorld;
+    private readonly ICharacterPerformanceQuery performance;
 
-    public OffenseExpeditionMemberQuery(ICharacterWorldQuery characterWorld)
+    public OffenseExpeditionMemberQuery(
+        ICharacterWorldQuery characterWorld,
+        ICharacterPerformanceQuery performance)
     {
         this.characterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
     }
 
     public IReadOnlyList<CharacterActor> GetAvailableMemberActors()
@@ -60,7 +65,8 @@ public sealed class OffenseExpeditionMemberQuery : IOffenseExpeditionMemberQuery
         return OffenseExpeditionService
             .GetDistinctMembers(characterWorld.Characters)
             .Where((actor) => OffenseExpeditionService.CanJoinExpedition(actor, out _))
-            .OrderByDescending(OffenseExpeditionService.CalculateMemberPower)
+            .OrderByDescending(actor =>
+                OffenseExpeditionService.CalculateMemberPower(actor, performance))
             .ToList();
     }
 }

@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uC758\uC2DD \uB2E8\uC2DD\uAC00"
   description: "\uC911\uC694\uD55C \uC758\uC2DD \uC804 \uC2DD\uC0AC\uB97C \uAC70\uB974\uB294
     \uAC83\uC744 \uC790\uBD80\uC2EC\uC73C\uB85C \uC5EC\uAE34\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 0.95
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,46 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 0
+  polarity: 3
+  selectionFamilyId: ritual-food
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: culture:fast
-    utilityDelta: 0.4
-  moodReactions:
-  - triggerTag: festival:prepared
-    moodDelta: 3
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: festival
-    multiplier: 1.35
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:213:effect:0
+    definition: {fileID: 11400000, guid: 4c10a3b16899e31478c3820a16829879, type: 2}
+    value: 0
+    condition: {fileID: 11400000, guid: 77d813d712defef4dac5d73098403e6f, type: 2}
+  - bindingId: trait:213:effect:1
+    definition: {fileID: 11400000, guid: 4c10a3b16899e31478c3820a16829879, type: 2}
+    value: 1.15
+    condition: {fileID: 11400000, guid: 7f225be99f098d244883315897d0349f, type: 2}
+  identityRules:
+  - rid: 7737211921986486431
+  - rid: 7737211921986486432
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486431
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:ritual-fast
+        priority: 0
+        behaviorTag: ritual:fast
+        utilityDelta: 0.7
+    - rid: 7737211921986486432
+      type: {class: PersistentNeedRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: need:ritual-fast
+        priority: 0
+        needId: need:ritual-fast
+        satisfiedEventId: ritual:fast-completed
+        deprivedEventId: ritual:fast-broken
+        deprivationDays: 1
+        deprivedMoodDelta: -3
+        satisfiedMoodDelta: 3
+        moodDurationDays: 2

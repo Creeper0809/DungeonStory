@@ -32,28 +32,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 20
   features:
-  - rid: 7737211838068949815
-  - rid: 7737211838068949816
-  - rid: 7737211838068949817
-  - rid: 7737211838068949818
+  - rid: 7737211905666712363
+  - rid: 7737211905666712364
+  - rid: 7737211905666712365
+  - rid: 7737211905666712366
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949815
+    - rid: 7737211905666712363
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:distillation
-    - rid: 7737211838068949816
+    - rid: 7737211905666712364
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 3
         sharedIntermediate: 0
-    - rid: 7737211838068949817
+    - rid: 7737211905666712365
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6
-    - rid: 7737211838068949818
+    - rid: 7737211905666712366
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 1

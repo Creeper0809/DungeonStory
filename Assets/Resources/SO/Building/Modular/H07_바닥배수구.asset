@@ -34,18 +34,31 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211730834227379
-    - rid: 7737211730834227380
-    - rid: 7737211730834227381
-    - rid: 7737211730834227382
-    - rid: 7737211730834227383
-    - rid: 7737211730834227384
-    - rid: 7737211730863325754
-    - rid: 7737211838074978550
+    - rid: 7737211921440178769
+    - rid: 7737211921440178770
+    - rid: 7737211921440178771
+    - rid: 7737211921440178772
+    - rid: 7737211921440178773
+    - rid: 7737211921440178774
   width: 1
   height: 1
   layer: 5
@@ -61,12 +74,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211730834227379
+    - rid: 7737211921440178769
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: H07
-    - rid: 7737211730834227380
+    - rid: 7737211921440178770
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -75,19 +88,33 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7737211730834227381
+    - rid: 7737211921440178771
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 19.7
-        repairWorkRequired: 10
-        cleanWorkRequired: 6.25
+        constructionProjectScale: 1
+        constructionWorkRequired: 160
+        repairWorkRequired: 40
+        cleanWorkRequired: 10
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
         - itemId: material:stone-block
-          amount: 5
-    - rid: 7737211730834227382
+          amount: 6
+        - itemId: material:iron-ingot
+          amount: 3
+    - rid: 7737211921440178772
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -99,32 +126,14 @@ MonoBehaviour:
           - key: Hygiene
             value: 3
           metrics: []
-    - rid: 7737211730834227383
+    - rid: 7737211921440178773
       type: {class: BuildingCleaningAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingCleaningAbility
         restoredCleanliness: 100
-    - rid: 7737211730834227384
+    - rid: 7737211921440178774
       type: {class: BuildingVentilationAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingVentilationAbility
         hygieneRiskReduction: 18
         smokeRiskReduction: 8
-    - rid: 7737211730863325754
-      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingFacilityAbility
-        settings:
-          roles: 0
-          capacity: 1
-          useDuration: 1
-          requiredWorkers: 0
-          supportedWorkTypes: 536870912
-          disabledWhenDamaged: 1
-    - rid: 7737211838074978550
-      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingUtilityConnectionAbility
-        channels: 4
-        maxThroughput: 20
-        normallyOpen: 1

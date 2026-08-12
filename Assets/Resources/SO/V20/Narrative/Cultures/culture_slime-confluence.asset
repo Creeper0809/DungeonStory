@@ -62,5 +62,5 @@ MonoBehaviour:
   - id: culture:orc-vigil
     weight: 1
   - id: culture:vampire-nightcourt
-    weight: 1.06
+    weight: 1.0600001
   assimilationDays: 120

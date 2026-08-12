@@ -26,7 +26,7 @@ internal static class WorkExecutionRules
             ? Mathf.Max(
                 0.1f,
                 workTypeId.IsValid
-                    ? actor.GetWorkSpeedMultiplier(workTypeId)
+                    ? actor.GetWorkSpeedMultiplier(workTypeId, target)
                     : 1f)
             : 1f;
         float environment =

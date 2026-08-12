@@ -27,29 +27,30 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC810\uC561\uC5ED\uBCD1
     \uBC31\uC2E0."
   stockCategory: 5
-  unitWeight: 2.3799999
+  unitWeight: 0.4
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 154
+  unitPrice: 26
   features:
-  - rid: 7737211838078124892
-  - rid: 7737211838078124893
-  - rid: 7737211838078124894
-  - rid: 7737211838078124895
+  - rid: 7737211905660420260
+  - rid: 7737211905660420261
+  - rid: 7737211905660420262
+  - rid: 7737211905660420263
+  - rid: 7737211905660420879
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124892
+    - rid: 7737211905660420260
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:vaccination
-    - rid: 7737211838078124893
+    - rid: 7737211905660420261
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211838078124894
+    - rid: 7737211905660420262
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 0
@@ -57,8 +58,12 @@ MonoBehaviour:
         infectionReduction: 0
         detoxReduction: 0
         painReduction: 0
-    - rid: 7737211838078124895
+    - rid: 7737211905660420263
       type: {class: VaccineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         diseaseId: disease:slime-blight
         doses: 1
+    - rid: 7737211905660420879
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6091916

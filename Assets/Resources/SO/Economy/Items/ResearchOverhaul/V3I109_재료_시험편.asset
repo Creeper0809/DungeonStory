@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uC7AC\uB8CC \uC2DC\uD5D8\uD3B8"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC7AC\uB8CC \uC2DC\uD5D8\uD3B8."
   stockCategory: 1
-  unitWeight: 3.49
+  unitWeight: 2.35
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 228
+  unitPrice: 89
   features:
-  - rid: 7737211838078125000
-  - rid: 7737211838078125001
+  - rid: 7737211905660420335
+  - rid: 7737211905660420336
+  - rid: 7737211905660420911
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078125000
+    - rid: 7737211905660420335
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:material-testing
-    - rid: 7737211838078125001
+    - rid: 7737211905660420336
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 512
         sharedIntermediate: 0
+    - rid: 7737211905660420911
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.596685

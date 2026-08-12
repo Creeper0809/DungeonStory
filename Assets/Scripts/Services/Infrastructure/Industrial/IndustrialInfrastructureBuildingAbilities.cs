@@ -245,7 +245,7 @@ public sealed class BuildingConveyorSegmentAbility : BuildingAbility
 
     [InspectorName("최대 품질")]
     public CombatEquipmentQuality maximumQuality =
-        CombatEquipmentQuality.Legendary;
+        CombatEquipmentQuality.Mythic;
 
     [InspectorName("신선도 필터")]
     public bool filterFreshness;

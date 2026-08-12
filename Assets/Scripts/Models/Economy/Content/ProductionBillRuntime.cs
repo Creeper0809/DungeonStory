@@ -376,6 +376,46 @@ public sealed class ProductionBillRuntime :
         return ProductionBillCommandResult.Success(billId);
     }
 
+    public ProductionBillCommandResult SetEmergencyWorker(
+        ProductionBillId billId,
+        string characterId)
+    {
+        ProductionBillRecord record = Find(billId);
+        if (record == null)
+            return ProductionBillCommandResult.Failed(
+                new DomainFailure(FailureCode.ProductionBillMissing, billId.Value));
+
+        string normalized = characterId?.Trim() ?? string.Empty;
+        if (normalized.Length > 0
+            && (!string.Equals(normalized, characterId, StringComparison.Ordinal)
+                || bills.Any(candidate => candidate != null
+                    && candidate != record
+                    && string.Equals(
+                        candidate.emergencyWorkerId,
+                        normalized,
+                        StringComparison.Ordinal))))
+        {
+            return ProductionBillCommandResult.Failed(
+                new DomainFailure(
+                    FailureCode.WorkOrderWorkerIneligible,
+                    normalized));
+        }
+
+        record.SetEmergencyWorker(normalized);
+        if (normalized.Length > 0)
+        {
+            record.SetWorkerPolicy(new WorkerSelectionPolicySaveData
+            {
+                mode = WorkerSelectionMode.SpecificCharacters,
+                sortMode = WorkerCandidateSortMode.SpecificThenBestExpectedQuality,
+                specificCharacterIds = new List<string> { normalized }
+            });
+        }
+        record.SetReservedWorker(string.Empty);
+        Touch(ResolveRecipe(record)?.WorkTypeId ?? default, requestWorker: true);
+        return ProductionBillCommandResult.Success(billId);
+    }
+
     public bool HasStockSensor(ProductionFacilityHandle facility)
     {
         return stockSensors.Has(facility);
@@ -431,7 +471,10 @@ public sealed class ProductionBillRuntime :
             workTypeId,
             requireDeliveredInputs: true,
             out DomainFailure failure);
-        return new ProductionWorkAvailabilityResult(record != null, failure);
+        return new ProductionWorkAvailabilityResult(
+            record != null,
+            failure,
+            record != null ? ToSnapshot(record, facility) : null);
     }
 
     public ProductionWorkBeginResult BeginWork(

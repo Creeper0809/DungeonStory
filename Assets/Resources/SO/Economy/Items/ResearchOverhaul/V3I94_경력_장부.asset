@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uACBD\uB825 \uC7A5\uBD80"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uACBD\uB825 \uC7A5\uBD80."
   stockCategory: 1
-  unitWeight: 3.04
+  unitWeight: 1.1
   maxStack: 1
   sprite: {fileID: 0}
-  unitPrice: 198
+  unitPrice: 48
   features:
-  - rid: 7737211838078124566
-  - rid: 7737211838078124567
+  - rid: 7737211905658586069
+  - rid: 7737211905658586070
+  - rid: 7737211905660420793
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124566
+    - rid: 7737211905658586069
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:society:career-records
-    - rid: 7737211838078124567
+    - rid: 7737211905658586070
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1
         sharedIntermediate: 0
+    - rid: 7737211905660420793
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6051069

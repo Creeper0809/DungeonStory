@@ -23,14 +23,14 @@ MonoBehaviour:
     SerializationNodes: []
   id: 8011
   encounterId: encounter:11
-  displayName: "\uC131\uD654 \uC2EC\uBB38 \uC815\uD654\uBCD1 \uC804\uC220 \uC870\uC6B0"
+  displayName: "\uC131\uD654 \uC2EC\uBB38 \uC815\uD654\uB300"
   minimumSiteStrength: 3
   maximumSiteStrength: 6
   elite: 0
   boss: 0
   objective: 4
   objectiveRoundLimit: 7
-  objectiveTargetId:
+  objectiveTargetId: 
   battlefieldModifierIds:
   - battlefield:spore-bloom
   counterTags:

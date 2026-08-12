@@ -547,7 +547,6 @@ public class AIAction
             return false;
         }
 
-        GridCell cell = grid.GetGridCell(actor.GetNowXY());
-        return cell != null && cell.GetAllOccupants().Contains(destination);
+        return destination.ContainsGridPosition(actor.GetNowXY());
     }
 }

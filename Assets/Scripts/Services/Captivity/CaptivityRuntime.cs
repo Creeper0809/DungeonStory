@@ -885,6 +885,7 @@ public bool IsWorkAllowed(
         actor.SetAiPaused(false);
         actor.SetLifecycleState(CharacterLifecycleState.Active);
         doorSubjectRegistry.SetCaptive(state.captiveId, false);
+        PublishPrisonerDecision(actor, "recruit");
         return true;
     }
 
@@ -913,6 +914,7 @@ public bool IsWorkAllowed(
         actor.SetAiPaused(false);
         actor.SetLifecycleState(CharacterLifecycleState.Active);
         doorSubjectRegistry.SetCaptive(state.captiveId, false);
+        PublishPrisonerDecision(actor, "convert-minion");
         return true;
     }
 
@@ -960,6 +962,7 @@ public bool IsWorkAllowed(
                 state.captiveId,
                 actor.Identity?.PersistentId ?? state.captiveId,
                 "포로 몸값"));
+        PublishPrisonerDecision(actor, "ransom");
         ReleaseCaptive(
             state,
             actor,
@@ -976,6 +979,8 @@ public bool IsWorkAllowed(
         failureReason = string.Empty;
         CaptiveState state = FindState(captiveId);
         CharacterActor actor = FindActor(captiveId);
+        if (state != null && actor != null)
+            PublishPrisonerDecision(actor, "release");
         if (state == null || actor == null)
         {
             failureReason = "포로를 찾을 수 없습니다.";
@@ -984,6 +989,26 @@ public bool IsWorkAllowed(
 
         ReleaseCaptive(state, actor, "석방됨");
         return true;
+    }
+
+    private void PublishPrisonerDecision(
+        CharacterActor prisoner,
+        string decisionId)
+    {
+        CharacterActor decider = worldRegistry.Characters
+            .FirstOrDefault(value => value?.Identity?.IsOwner == true);
+        if (!CharacterPersistentIdentity.TryGet(decider, out CharacterId deciderId)
+            || !CharacterPersistentIdentity.TryGet(prisoner, out CharacterId prisonerId))
+            return;
+        int day = Mathf.Max(
+            0,
+            Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay));
+        gameEventBus.Publish(new PrisonerDecisionEvent(
+            deciderId,
+            prisonerId,
+            decisionId,
+            CharacterCommandOrigin.DirectPlayerOrder,
+            day));
     }
 
     public bool TryTriggerBetrayal(

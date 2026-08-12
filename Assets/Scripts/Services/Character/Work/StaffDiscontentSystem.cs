@@ -232,7 +232,11 @@ public sealed class StaffDiscontentRecord
         return true;
     }
 
-    public bool TryCalm(CharacterActor staff, StaffDiscontentRules rules, out string failureReason)
+    public bool TryCalm(
+        CharacterActor staff,
+        StaffDiscontentRules rules,
+        float negotiationMultiplier,
+        out string failureReason)
     {
         rules ??= StaffDiscontentRules.CreateDefault();
         failureReason = string.Empty;
@@ -258,7 +262,8 @@ public sealed class StaffDiscontentRecord
         staff?.Stats?.ApplyMoodFactor(
             "management:calmed",
             "상담으로 진정됨",
-            Mathf.Max(0f, rules.calmMoodRecovery),
+            Mathf.Max(0f, rules.calmMoodRecovery)
+                * Mathf.Max(0f, negotiationMultiplier),
             240f,
             1);
         LastMood = StaffDiscontentService.GetMood(staff);

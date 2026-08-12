@@ -252,7 +252,7 @@ public sealed class EvolutionCatalystEconomyRuntime :
                     stack.ItemId,
                     inputItemId,
                     StringComparison.Ordinal)
-                && !stack.IsReserved
+                && stack.AvailableQuantity > 0
                 && !stack.Forbidden
                 && stack.State is WorldItemStackState.Loose
                     or WorldItemStackState.Stored)

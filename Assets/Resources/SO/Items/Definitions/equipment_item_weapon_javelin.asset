@@ -29,7 +29,7 @@ MonoBehaviour:
   unitWeight: 2
   maxStack: 1
   sprite: {fileID: 0}
-  unitPrice: 36
+  unitPrice: 28
   features:
   - rid: 7737211673752633610
   - rid: 7737211673752633611
@@ -37,11 +37,11 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737211673752633610
-      type: {class: EquipmentItemFeature, ns: , asm: Assembly-CSharp}
+      type: {class: EquipmentItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         equipmentDefinitionId: weapon:javelin
     - rid: 7737211673752633611
-      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 0

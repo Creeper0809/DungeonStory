@@ -26,7 +26,7 @@ MonoBehaviour:
   completionRequirements:
     items:
     - itemDefinitionId: medicine:standard
-      amount: 6
+      amount: 3
       consume: 1
     facilities: []
     research: []

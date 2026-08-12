@@ -46,8 +46,8 @@ MonoBehaviour:
   blueprint: {fileID: 11400000, guid: af5d82288efb85c4fa51a626075e7cb4, type: 2}
   unlocks:
     items:
-    - rid: 7737211838079696956
-    - rid: 7737211838079696957
+    - rid: 7737211905660420978
+    - rid: 7737211905660420979
   facilityRequirements:
   - capability: 0
     requiredCount: 1
@@ -56,14 +56,15 @@ MonoBehaviour:
   - capability: 5
     requiredCount: 1
   icon: {fileID: 0}
+  effects: []
   references:
     version: 2
     RefIds:
-    - rid: 7737211838079696956
+    - rid: 7737211905660420978
       type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         recipeId: recipe_arcane_ritual_2
-    - rid: 7737211838079696957
+    - rid: 7737211905660420979
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 8897

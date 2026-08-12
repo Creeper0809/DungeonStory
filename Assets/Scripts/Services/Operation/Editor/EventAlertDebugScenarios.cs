@@ -493,7 +493,40 @@ public static class EventAlertDebugScenarios
                 new DungeonSceneServiceReferences(null, null, runtime, null),
                 new DungeonSceneViewReferences(
                     null, null, null, null, null, null, null, null));
-        return new EventAlertSaveService(references);
+        return new EventAlertSaveService(
+            references,
+            new TestSettlementAlertPersistence(),
+            new TestSettlementLaborPersistence());
+    }
+
+    private sealed class TestSettlementAlertPersistence :
+        ISettlementAlertPersistence
+    {
+        private DungeonStory.Infrastructure.SettlementThreatAlertSaveData state = new();
+
+        public DungeonStory.Infrastructure.SettlementThreatAlertSaveData CaptureAlertSaveData() =>
+            state;
+
+        public void RestoreAlertSaveData(
+            DungeonStory.Infrastructure.SettlementThreatAlertSaveData saveData)
+        {
+            state = saveData ?? throw new ArgumentNullException(nameof(saveData));
+        }
+    }
+
+    private sealed class TestSettlementLaborPersistence :
+        ISettlementLaborPersistence
+    {
+        private DungeonStory.Infrastructure.SettlementLaborSaveData state = new();
+
+        public DungeonStory.Infrastructure.SettlementLaborSaveData CaptureLaborSaveData() =>
+            state;
+
+        public void RestoreLaborSaveData(
+            DungeonStory.Infrastructure.SettlementLaborSaveData saveData)
+        {
+            state = saveData ?? throw new ArgumentNullException(nameof(saveData));
+        }
     }
 
     private sealed class RecordingChoiceActionDispatcher :
@@ -703,7 +736,7 @@ public static class EventAlertDebugScenarios
         }
 
         public void EnsureRuntimeUI() { }
-        public void DestroyRuntimeUI() => DestroyCount++;
+        public void DestroyRuntimeUI(bool immediate = false) => DestroyCount++;
         public void CreateButton(EventAlertRecord record) => CreateCount++;
         public void UpdateButton(EventAlertRecord record) { }
         public void RemoveButton(EventAlertRecord record) { }
@@ -725,7 +758,7 @@ public static class EventAlertDebugScenarios
         public bool IsDetailVisible { get; private set; }
 
         public void EnsureRuntimeUI() { }
-        public void DestroyRuntimeUI() { }
+        public void DestroyRuntimeUI(bool immediate = false) { }
         public void CreateButton(EventAlertRecord record) { }
         public void UpdateButton(EventAlertRecord record) { }
         public void RemoveButton(EventAlertRecord record) { }

@@ -20,7 +20,7 @@ MonoBehaviour:
   sourceNote: V20 content-density expansion; hand-authored Korean source revision
     1.
   startingSkills:
-  - skillId: diplomacy
+  - skillId: proficiency:social
     experience: 80
   startingEffects:
   - kind: 1

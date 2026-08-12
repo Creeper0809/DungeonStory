@@ -1,10 +1,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public interface ICharacterCombatCommandRuntime
+public interface ICharacterCombatStanceQuery
+{
+    bool IsInCombatStance(CharacterActor actor);
+}
+
+public interface ICharacterCombatCommandRuntime : ICharacterCombatStanceQuery
 {
     IReadOnlyList<CharacterCombatCommand> ActiveCommands { get; }
-    bool IsInCombatStance(CharacterActor actor);
     bool SetCombatStance(CharacterActor actor, bool enabled, out string message);
     bool TryIssueMove(CharacterActor actor, Vector2Int destination, out string message);
     bool TryIssueMoveToCover(

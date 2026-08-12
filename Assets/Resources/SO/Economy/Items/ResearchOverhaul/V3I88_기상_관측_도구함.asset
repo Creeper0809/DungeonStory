@@ -27,23 +27,28 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uAE30\uC0C1 \uAD00\uCE21
     \uB3C4\uAD6C\uD568."
   stockCategory: 1
-  unitWeight: 2.86
+  unitWeight: 2.35
   maxStack: 1
   sprite: {fileID: 0}
-  unitPrice: 186
+  unitPrice: 63
   features:
-  - rid: 7737211838078124719
-  - rid: 7737211838078124720
+  - rid: 7737211905658585448
+  - rid: 7737211905658585449
+  - rid: 7737211905660420604
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124719
+    - rid: 7737211905658585448
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:climate:weather-observation
-    - rid: 7737211838078124720
+    - rid: 7737211905658585449
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 512
         sharedIntermediate: 0
+    - rid: 7737211905660420604
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.60180444

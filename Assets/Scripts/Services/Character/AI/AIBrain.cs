@@ -70,11 +70,37 @@ public class AIBrain : CharacterAbility
     private bool manualCommandActive;
     private bool externallyDrivenActionActive;
     private bool externalReplanClearFailures;
+    private string externalIntentOwnerId = string.Empty;
+    private CharacterActionIntentKind externalIntentKind;
+    private long externalIntentEpoch;
+    private int externalIntentTransitionCount;
+    private int externalIntentPreemptionCount;
+    private int externalIntentRejectedCount;
+    private int externalIntentStaleCompletionCount;
     private int directDecisionTickCount;
     public bool IsPathSearchDeferred => pathSearchSession?.IsDeferred == true;
     public bool IsActionScoringPending => candidateSelector?.IsPending == true;
+
+    internal bool IsActionScoringPendingFor(
+        Predicate<AIActionSet> predicate,
+        bool hasDecisionContext = true)
+    {
+        return candidateSelector?.IsPendingFor(
+            predicate,
+            hasDecisionContext) == true;
+    }
     public bool IsManualCommandActive => manualCommandActive;
     public bool IsExternallyDrivenActionActive => externallyDrivenActionActive;
+    public string ExternalIntentOwnerId => externalIntentOwnerId;
+    public CharacterActionIntentKind ExternalIntentKind => externalIntentKind;
+    public long ExternalIntentEpoch => externalIntentEpoch;
+    public int ExternalIntentTransitionCount => externalIntentTransitionCount;
+    public int ExternalIntentPreemptionCount => externalIntentPreemptionCount;
+    public int ExternalIntentRejectedCount => externalIntentRejectedCount;
+    public int ExternalIntentStaleCompletionCount => externalIntentStaleCompletionCount;
+
+    public bool IsExternalIntentCurrent(
+        in CharacterActionIntentLease lease) => OwnsExternalIntent(lease);
     public AIActionFailure LastActionFailure => lastActionFailure;
     public IReadOnlyList<AIActionDebugCandidate> LastCandidateScores => lastCandidateScoresView ??= ReadOnlyView.List(lastCandidateScores);
     public string CurrentActionDebugLabel => currentActionDebugLabel;
@@ -680,6 +706,15 @@ public class AIBrain : CharacterAbility
 
     public void BeginManualMoveCommand(Vector2Int destination)
     {
+        // A direct player order is the top-level command authority.  Retire the
+        // currently owned autonomous survival intent before entering manual mode;
+        // its coroutine may still unwind, but its lease epoch can no longer mutate
+        // this command.
+        if (externallyDrivenActionActive)
+        {
+            EndOwnedExternalIntent(clearFailures: true);
+        }
+
         if (bestAction != null || queuedAction != null)
         {
             StopCurrentActionForReplan("플레이어 이동 명령");
@@ -729,12 +764,51 @@ public class AIBrain : CharacterAbility
         MarkDebugDirty();
     }
 
-    public void BeginExternallyDrivenAction(string actionLabel, string phase, string detail = null)
+    public bool TryBeginExternallyDrivenAction(
+        string ownerId,
+        CharacterActionIntentKind kind,
+        string actionLabel,
+        string phase,
+        string detail,
+        out CharacterActionIntentLease lease)
     {
+        lease = default;
+        if (manualCommandActive)
+        {
+            externalIntentRejectedCount++;
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(ownerId)
+            || kind == CharacterActionIntentKind.None)
+        {
+            externalIntentRejectedCount++;
+            return false;
+        }
+
+        bool preempting = false;
         if (externallyDrivenActionActive)
         {
-            UpdateExternallyDrivenAction(actionLabel, phase, detail);
-            return;
+            if (string.Equals(
+                    externalIntentOwnerId,
+                    ownerId,
+                    StringComparison.Ordinal))
+            {
+                UpdateExternalPresentation(actionLabel, phase, detail);
+                lease = new CharacterActionIntentLease(
+                    externalIntentOwnerId,
+                    externalIntentKind,
+                    externalIntentEpoch);
+                return true;
+            }
+
+            if (kind <= externalIntentKind)
+            {
+                externalIntentRejectedCount++;
+                return false;
+            }
+
+            preempting = true;
         }
 
         bestAction?.actionset?.OnStop(
@@ -752,6 +826,14 @@ public class AIBrain : CharacterAbility
         currentActionPhaseDetail = detail ?? string.Empty;
         currentDestinationDebugLabel = string.Empty;
         externallyDrivenActionActive = true;
+        externalIntentOwnerId = ownerId;
+        externalIntentKind = kind;
+        externalIntentEpoch = checked(externalIntentEpoch + 1L);
+        externalIntentTransitionCount++;
+        if (preempting)
+        {
+            externalIntentPreemptionCount++;
+        }
         externalReplanClearFailures = false;
         isExecuted = true;
         isBestActionEnd = false;
@@ -759,19 +841,34 @@ public class AIBrain : CharacterAbility
         RequireCandidateSelector().Reset();
         ClearPathSearchCache();
         MarkDebugDirty();
+        lease = new CharacterActionIntentLease(
+            externalIntentOwnerId,
+            externalIntentKind,
+            externalIntentEpoch);
+        return true;
     }
 
-    public void UpdateExternallyDrivenAction(
+    public bool UpdateExternallyDrivenAction(
+        in CharacterActionIntentLease lease,
         string actionLabel,
         string phase,
         string detail = null)
     {
-        if (!externallyDrivenActionActive)
+        if (!OwnsExternalIntent(lease))
         {
-            BeginExternallyDrivenAction(actionLabel, phase, detail);
-            return;
+            externalIntentRejectedCount++;
+            return false;
         }
 
+        UpdateExternalPresentation(actionLabel, phase, detail);
+        return true;
+    }
+
+    private void UpdateExternalPresentation(
+        string actionLabel,
+        string phase,
+        string detail)
+    {
         currentActionDebugLabel = string.IsNullOrWhiteSpace(actionLabel)
             ? "외부 행동"
             : actionLabel;
@@ -783,18 +880,58 @@ public class AIBrain : CharacterAbility
         MarkDebugDirty();
     }
 
-    public void EndExternallyDrivenAction(bool clearFailures = true)
+    public bool EndExternallyDrivenAction(
+        in CharacterActionIntentLease lease,
+        bool clearFailures = true)
     {
-        if (!externallyDrivenActionActive)
+        if (!OwnsExternalIntent(lease))
         {
-            return;
+            externalIntentStaleCompletionCount++;
+            return false;
         }
 
+        return EndOwnedExternalIntent(clearFailures);
+    }
+
+    public bool EndExternallyDrivenAction(
+        string ownerId,
+        bool clearFailures = true)
+    {
+        if (!externallyDrivenActionActive
+            || !string.Equals(
+                externalIntentOwnerId,
+                ownerId,
+                StringComparison.Ordinal))
+        {
+            externalIntentStaleCompletionCount++;
+            return false;
+        }
+
+        return EndOwnedExternalIntent(clearFailures);
+    }
+
+    private bool EndOwnedExternalIntent(bool clearFailures)
+    {
         bool shouldClearFailures =
             clearFailures || externalReplanClearFailures;
         externallyDrivenActionActive = false;
+        externalIntentOwnerId = string.Empty;
+        externalIntentKind = CharacterActionIntentKind.None;
         externalReplanClearFailures = false;
         RequestImmediateReplan(shouldClearFailures);
+        return true;
+    }
+
+    private bool OwnsExternalIntent(in CharacterActionIntentLease lease)
+    {
+        return externallyDrivenActionActive
+            && lease.IsValid
+            && lease.Epoch == externalIntentEpoch
+            && lease.Kind == externalIntentKind
+            && string.Equals(
+                lease.OwnerId,
+                externalIntentOwnerId,
+                StringComparison.Ordinal);
     }
 
     public void NotifyActionStarted()

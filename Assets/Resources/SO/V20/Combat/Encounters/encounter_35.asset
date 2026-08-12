@@ -23,7 +23,7 @@ MonoBehaviour:
     SerializationNodes: []
   id: 8035
   encounterId: encounter:35
-  displayName: "\uC720\uB791 \uD0DC\uC5FD\uAD6C\uC131\uCCB4 \uC804\uC220 \uC870\uC6B0"
+  displayName: "\uC720\uB791 \uD0DC\uC5FD\uAD6C\uC131\uCCB4"
   minimumSiteStrength: 9
   maximumSiteStrength: 12
   elite: 1

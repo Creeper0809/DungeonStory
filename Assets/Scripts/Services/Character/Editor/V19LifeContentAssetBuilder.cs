@@ -373,7 +373,14 @@ public static class V19LifeContentAssetBuilder
         Mode = mode,
         FuneralName = funeral,
         FuneralFacilityTag = funeralFacility,
-        Phases = new[] { phase1, phase2, phase3, phase4 }
+        Phases = new[]
+            {
+                construct ? null : Phase(ReproductionPhaseKind.Attempt, 1),
+                phase1,
+                phase2,
+                phase3,
+                phase4
+            }
             .Where(value => value != null)
             .ToArray(),
         Construct = construct
@@ -439,7 +446,6 @@ public static class V19LifeContentAssetBuilder
             description = "던전 침투와 전투에 익숙하다.",
             mechanicTags = new[] { "invasion", "combat" }
         };
-        species.statBonus = new CharacterStatBlock();
         species.modifiers = new CharacterModelModifiers();
         EditorUtility.SetDirty(species);
 

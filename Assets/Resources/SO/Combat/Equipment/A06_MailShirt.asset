@@ -34,6 +34,15 @@ MonoBehaviour:
   lineageKind: 1
   growthEquipment: 0
   growthBaseStatMultiplier: 1
+  proficiency:
+    primaryProficiencyId: proficiency:crafting
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 1
+    minimumRiskRank: 0
+  effects: []
+  allowMythicInspiration: 1
   layer: 2
   collisionTag: torso-mail
   bodyPartDefense:

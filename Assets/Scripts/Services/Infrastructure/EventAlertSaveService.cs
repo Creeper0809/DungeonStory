@@ -8,14 +8,23 @@ namespace DungeonStory.Infrastructure
 public sealed class EventAlertSaveService : IEventAlertSaveService
 {
     private readonly EventAlertRuntime runtime;
+    private readonly ISettlementAlertPersistence settlementAlert;
+    private readonly ISettlementLaborPersistence settlementLabor;
 
-    public EventAlertSaveService(DungeonSceneRuntimeReferences runtimeReferences)
+    public EventAlertSaveService(
+        DungeonSceneRuntimeReferences runtimeReferences,
+        ISettlementAlertPersistence settlementAlert,
+        ISettlementLaborPersistence settlementLabor)
     {
         runtime = (runtimeReferences
                 ?? throw new ArgumentNullException(nameof(runtimeReferences)))
             .Alerts
             ?? throw new InvalidOperationException(
                 $"{nameof(EventAlertSaveService)} requires a loaded {nameof(EventAlertRuntime)}.");
+        this.settlementAlert = settlementAlert
+            ?? throw new ArgumentNullException(nameof(settlementAlert));
+        this.settlementLabor = settlementLabor
+            ?? throw new ArgumentNullException(nameof(settlementLabor));
     }
 
     public DungeonEventAlertSaveData Capture()
@@ -41,6 +50,8 @@ public sealed class EventAlertSaveService : IEventAlertSaveService
                 }).ToList()
             })
             .ToList();
+        result.threatAlert = settlementAlert.CaptureAlertSaveData();
+        result.labor = settlementLabor.CaptureLaborSaveData();
         return result;
     }
 
@@ -55,7 +66,7 @@ public sealed class EventAlertSaveService : IEventAlertSaveService
                 + string.Join(" | ", errors));
         }
 
-        return runtime.PrepareRestoreHistory(source.records
+        EventAlertRestoreCandidate presentation = runtime.PrepareRestoreHistory(source.records
             .Select(record => new EventAlertRecordSnapshot(
                 record.id,
                 record.title,
@@ -72,10 +83,18 @@ public sealed class EventAlertSaveService : IEventAlertSaveService
                 record.dismissed,
                 record.sourceId))
             .ToList());
+        return new EventAlertRestoreCandidate(
+            presentation.State,
+            source.threatAlert,
+            source.labor);
     }
 
-    public void PublishRestore(EventAlertRestoreCandidate candidate) =>
+    public void PublishRestore(EventAlertRestoreCandidate candidate)
+    {
         runtime.PublishRestoreHistory(candidate);
+        settlementAlert.RestoreAlertSaveData(candidate.ThreatAlert);
+        settlementLabor.RestoreLaborSaveData(candidate.Labor);
+    }
 }
 
 }

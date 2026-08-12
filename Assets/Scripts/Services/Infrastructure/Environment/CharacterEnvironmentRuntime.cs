@@ -27,6 +27,7 @@ public sealed class CharacterEnvironmentUnityAdapter :
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly IGameClock clock;
     private readonly CharacterEnvironmentAggregateStateStore stateStore;
+    private readonly ICharacterPerformanceQuery performance;
 
     private Dictionary<CharacterId, CharacterEnvironmentExposure> states =>
         stateStore.Current.Exposures;
@@ -43,7 +44,8 @@ public sealed class CharacterEnvironmentUnityAdapter :
         IApparelWorkOrderPersistence apparelWorkOrders,
         ICharacterBodyHealthCommand bodyHealthCommands,
         IGameClock clock,
-        CharacterEnvironmentAggregateStateStore stateStore)
+        CharacterEnvironmentAggregateStateStore stateStore,
+        ICharacterPerformanceQuery performance)
     {
         this.field = field ?? throw new ArgumentNullException(nameof(field));
         this.characters = characters
@@ -63,6 +65,8 @@ public sealed class CharacterEnvironmentUnityAdapter :
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
+        this.performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
     }
 
     public void Tick()
@@ -368,6 +372,10 @@ public sealed class CharacterEnvironmentUnityAdapter :
             ThermalProtectionProfile resolvedProtection =
                 protection.Resolve(actor);
             ApplySleepingInsulation(actor, resolvedProtection);
+            CharacterThermalGameplayEffectProjection.Apply(
+                actor,
+                resolvedProtection,
+                performance);
             SpeciesThermalProfile thermal =
                 speciesEnvironment
                     .GetRequiredThermalProfile(

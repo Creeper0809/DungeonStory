@@ -79,6 +79,13 @@ public sealed class RegularCustomerSaveSection :
             report.AddError(
                 $"Regular-customer payload version {payload.version} is unsupported.");
         }
+        if (!Enum.IsDefined(
+                typeof(SettlementImmigrationPolicy),
+                payload.immigrationPolicy))
+        {
+            report.AddError(
+                $"Regular-customer payload has invalid immigration policy {(int)payload.immigrationPolicy}.");
+        }
         HashSet<string> ids = new(StringComparer.Ordinal);
         HashSet<int> characterIds = new(catalog.CharacterDefinitionIds);
         string previous = string.Empty;
@@ -123,6 +130,12 @@ public sealed class RegularCustomerSaveSection :
             {
                 report.AddError(
                     $"Regular customer '{id}' has an invalid recruitment status hierarchy.");
+            }
+            if (saved.isRecruited && saved.recruitedAbsoluteDay < 1
+                || !saved.isRecruited && saved.recruitedAbsoluteDay != 0)
+            {
+                report.AddError(
+                    $"Regular customer '{id}' has an invalid recruitment day.");
             }
             if (saved.recruitCapabilities == RecruitCapability.None
                 || (saved.recruitCapabilities & ~RecruitCapability.All) != 0)

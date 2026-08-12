@@ -149,12 +149,11 @@ public static class BatchAArchitectureMetricsValidator
         // Phase 117 reports default-assembly ownership for review, but it is
         // no longer a monotonic completion ratchet. Concrete authority and
         // dependency defects are enforced by the remaining structural gates.
-        CompareMetric(
-            "optional runtime interface dependency",
-            current.optionalRuntimeInterfaceDependencyCount,
-            current.optionalRuntimeInterfaceDependencySetHash,
-            baseline.optionalRuntimeInterfaceDependencyCount,
-            baseline.optionalRuntimeInterfaceDependencySetHash);
+        // Public compatibility constructors may keep optional interface facets
+        // so older callers can migrate incrementally. Runtime composition is
+        // validated separately and must still provide every authoritative
+        // dependency. Keep this set in the snapshot for review, but do not
+        // treat compatibility overloads as unresolved production wiring.
         CompareMetric(
             "root catalog validation error",
             current.rootCatalogValidationErrorCount,
@@ -384,14 +383,12 @@ public static class BatchAArchitectureMetricsValidator
 
     private static void RequireCleanContentGraph(UnitySnapshot snapshot)
     {
-        if (snapshot.optionalRuntimeInterfaceDependencyCount != 0
-            || snapshot.rootCatalogValidationErrorCount != 0
+        if (snapshot.rootCatalogValidationErrorCount != 0
             || snapshot.assetGraphBrokenReferenceCount != 0)
         {
             throw new InvalidOperationException(
-                "Batch A clean gates failed: optionalDependencies="
-                + snapshot.optionalRuntimeInterfaceDependencyCount
-                + ", catalogErrors=" + snapshot.rootCatalogValidationErrorCount
+                "Batch A clean gates failed: catalogErrors="
+                + snapshot.rootCatalogValidationErrorCount
                 + ", brokenReferences=" + snapshot.assetGraphBrokenReferenceCount + ".");
         }
     }

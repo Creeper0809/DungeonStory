@@ -376,7 +376,8 @@ public static class SurgeryDebugScenarios
         SurgicalProcedureSO procedure = LoadAssets<SurgicalProcedureSO>(
                 "Assets/Resources/SO/Medical/Procedures")
             .First();
-        SurgeryRiskEvaluator evaluator = new SurgeryRiskEvaluator();
+        SurgeryRiskEvaluator evaluator = new SurgeryRiskEvaluator(
+            CharacterAiEditorTestDependencies.NeutralPerformance);
         SurgicalFacilitySnapshot poor = new SurgicalFacilitySnapshot(
             null,
             procedure.RequiredFacilityTags,
@@ -808,8 +809,8 @@ public static class SurgeryDebugScenarios
             && definition.DefaultPriority == WorkPriorityLevel.Priority1,
             "surgery was not Priority1");
         Require(
-            Enum.GetValues(typeof(CharacterStatType)).Length == 12,
-            "character stat count was not 12");
+            Enum.GetValues(typeof(CharacterFunctionalCapacityId)).Length == 14,
+            "functional capacity count was not 14");
         CharacterSkillSystemSettingsSO settings =
             ScriptableObject.CreateInstance<CharacterSkillSystemSettingsSO>();
         try

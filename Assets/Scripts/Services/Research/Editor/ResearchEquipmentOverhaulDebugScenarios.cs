@@ -421,8 +421,8 @@ public static class ResearchEquipmentOverhaulDebugScenarios
                 StringComparison.Ordinal)
             && oneItemShort[0].Quantity == 3
             && oneItemShort[1].Quantity == 1
-            && !oneItemShort[0].IsReserved
-            && !oneItemShort[1].IsReserved;
+            && oneItemShort[0].AvailableQuantity > 0
+            && oneItemShort[1].AvailableQuantity > 0;
         Require(
             failedWithoutPlan,
             "last required item failure mutated stock or leaked a partial commit plan",

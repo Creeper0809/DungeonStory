@@ -154,7 +154,7 @@ public sealed class ApparelAvailabilityIndex : IApparelAvailabilityIndex
         {
             WorldItemStackSnapshot stack = stacks[index];
             if (stack == null
-                || stack.IsReserved
+                || stack.AvailableQuantity <= 0
                 || stack.Quantity != 1
                 || !((ItemInstanceId)stack.ItemInstanceId).IsValid
                 || !apparel.TryGetByItemId(stack.ItemId, out ApparelDefinitionSO definition)

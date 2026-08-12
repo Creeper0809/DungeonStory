@@ -95,6 +95,7 @@ public static class RuntimeBuildingArchetypeAssetBuilder
             researchWorkRequired = 6f,
             operateWorkRequired = 10f
         };
+        workAmount.SetConstructionProjectScale(ProjectScale.SmallFacility);
         workAmount.SetConstructionMaterials(new[]
         {
             new ItemAmountDefinition(

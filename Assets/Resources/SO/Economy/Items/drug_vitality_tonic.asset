@@ -31,28 +31,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 16
   features:
-  - rid: 7737211838068949730
-  - rid: 7737211838068949731
-  - rid: 7737211838068949732
-  - rid: 7737211838068949733
+  - rid: 7737211905666712018
+  - rid: 7737211905666712019
+  - rid: 7737211905666712020
+  - rid: 7737211905666712021
   references:
     version: 2
     RefIds:
-    - rid: 7737211838068949730
+    - rid: 7737211905666712018
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:distillation
-    - rid: 7737211838068949731
+    - rid: 7737211905666712019
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 4
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211838068949732
+    - rid: 7737211905666712020
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6
-    - rid: 7737211838068949733
+    - rid: 7737211905666712021
       type: {class: SubstanceItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         substanceId: substance:vitality-tonic

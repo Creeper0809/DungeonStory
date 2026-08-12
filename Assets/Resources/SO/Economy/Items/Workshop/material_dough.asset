@@ -32,16 +32,21 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 6
   features:
-  - rid: 7737211838074978864
-  - rid: 7737211838074978865
+  - rid: 7737211905660420708
+  - rid: 7737211905666712494
+  - rid: 7737211905666712495
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074978864
+    - rid: 7737211905660420708
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.5892102
+    - rid: 7737211905666712494
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:baking
-    - rid: 7737211838074978865
+    - rid: 7737211905666712495
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1

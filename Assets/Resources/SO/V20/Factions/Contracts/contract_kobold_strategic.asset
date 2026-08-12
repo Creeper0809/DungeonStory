@@ -24,8 +24,8 @@ MonoBehaviour:
   deadlineDays: 45
   completionRequirements:
     items:
-    - itemDefinitionId: material:engineering-blueprint
-      amount: 4
+    - itemDefinitionId: component:engineering-drawing
+      amount: 18
       consume: 1
     facilities: []
     research: []

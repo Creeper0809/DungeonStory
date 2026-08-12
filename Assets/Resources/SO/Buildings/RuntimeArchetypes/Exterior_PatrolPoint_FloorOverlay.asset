@@ -31,11 +31,31 @@ MonoBehaviour:
   objectName: "\uC21C\uCC30 \uC9C0\uC810"
   sprite: {fileID: 0}
   icon: {fileID: 0}
+  contentDefinitionId: 
+  authoringRevision: 1
+  sourceNote: 
+  deprecatedCompatibilityAsset: 0
+  useClassification: 0
+  researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 8799999998050000405
-    - rid: 7737211679622037799
-    - rid: 7737211679622037800
+    - rid: 7737211921440179152
+    - rid: 7737211921440179153
+    - rid: 7737211921440179154
   width: 1
   height: 1
   layer: 5
@@ -53,19 +73,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 8799999998050000405
-      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 18
-        repairWorkRequired: 10
-        cleanWorkRequired: 6.25
-        researchWorkRequired: 6
-        operateWorkRequired: 10
-        constructionMaterials:
-        - itemId: material:stone-block
-          amount: 1
-    - rid: 7737211679622037799
+    - rid: 7737211921440179152
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -76,7 +84,31 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 32
           disabledWhenDamaged: 0
-    - rid: 7737211679622037800
+    - rid: 7737211921440179153
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
+        constructionWorkRequired: 18
+        repairWorkRequired: 10
+        cleanWorkRequired: 6.25
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
+        constructionMaterials:
+        - itemId: material:stone-block
+          amount: 1
+    - rid: 7737211921440179154
       type: {class: BuildingPatrolPostAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPatrolPostAbility

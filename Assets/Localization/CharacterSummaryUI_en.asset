@@ -723,7 +723,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 552947885
-    m_Localized: Base stats
+    m_Localized: Proficiency effects
     m_Metadata:
       m_Items: []
   - m_Id: 552947886
@@ -1229,6 +1229,14 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 552948010
     m_Localized: '{0:0.#} kg'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1792687631323136
+    m_Localized: Proficiencies
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2107312281309184
+    m_Localized: Mythic
     m_Metadata:
       m_Items: []
   references:

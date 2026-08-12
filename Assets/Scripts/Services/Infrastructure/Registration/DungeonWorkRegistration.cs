@@ -1,10 +1,31 @@
 using VContainer;
+using VContainer.Unity;
 
 public static class DungeonWorkRegistration
 {
     public static void RegisterDungeonWork(this IContainerBuilder builder)
     {
         RegisterWorkStatPolicies(builder);
+
+        builder.Register<EmergencyWorkAccountingRuntime>(Lifetime.Singleton)
+            .AsSelf()
+            .AsImplementedInterfaces();
+        builder.Register<SettlementAlertRuntime>(Lifetime.Singleton)
+            .AsSelf()
+            .AsImplementedInterfaces();
+        builder.Register<EmergencyRiskForecastRegistry>(Lifetime.Singleton)
+            .As<IEmergencyRiskForecastRegistry>();
+        builder.RegisterEntryPoint<SettlementEmergencyReservePlanner>(
+                Lifetime.Singleton)
+            .As<ISettlementEmergencyReserveTargetQuery>();
+        builder.RegisterEntryPoint<SettlementLaborAccountingRuntime>(
+                Lifetime.Singleton)
+            .As<ISettlementLaborAccountingService>()
+            .As<ISettlementLaborPersistence>();
+        builder.Register<SettlementThreatEventAdapter>(Lifetime.Singleton)
+            .AsImplementedInterfaces();
+        builder.Register<ProjectWorkforceRuntime>(Lifetime.Singleton)
+            .As<IProjectWorkforceRuntime>();
 
         builder.Register<RepairWorkExecutionHandler>(Lifetime.Singleton)
             .As<IWorkExecutionHandler>()

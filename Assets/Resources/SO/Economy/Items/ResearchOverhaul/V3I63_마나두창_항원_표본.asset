@@ -27,28 +27,33 @@ MonoBehaviour:
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uB9C8\uB098\uB450\uCC3D
     \uD56D\uC6D0 \uD45C\uBCF8."
   stockCategory: 1
-  unitWeight: 2.11
+  unitWeight: 1.1
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 136
+  unitPrice: 11
   features:
-  - rid: 7737211838078124667
-  - rid: 7737211838078124668
-  - rid: 7737211838078124669
+  - rid: 7737211905660420125
+  - rid: 7737211905660420126
+  - rid: 7737211905660420127
+  - rid: 7737211905660420821
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124667
+    - rid: 7737211905660420125
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:pathogen-observation
-    - rid: 7737211838078124668
+    - rid: 7737211905660420126
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737211838078124669
+    - rid: 7737211905660420127
       type: {class: PathogenSampleItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         diseaseId: disease:mana-pox
+    - rid: 7737211905660420821
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.58359313

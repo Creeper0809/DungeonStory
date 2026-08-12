@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uB290\uB9B0 \uB300\uC0AC"
   description: "\uC801\uAC8C \uBA39\uC9C0\uB9CC \uCD94\uC704\uC640 \uC7A5\uC2DC\uAC04
     \uC791\uC5C5\uC5D0\uC11C \uC27D\uAC8C \uAD73\uC5B4\uC9C4\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 0.88
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 0.98
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,46 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 2
+  polarity: 1
+  selectionFamilyId: metabolism
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: food:delay-meal
-    utilityDelta: 0.2
-  moodReactions:
-  - triggerTag: weather:cold
-    moodDelta: -3
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: survival
-    multiplier: 1.15
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:208:effect:0
+    definition: {fileID: 11400000, guid: 4c10a3b16899e31478c3820a16829879, type: 2}
+    value: 0.88
+    condition: {fileID: 0}
+  - bindingId: trait:208:effect:1
+    definition: {fileID: 11400000, guid: 5efe462ac434ee74498e829584182490, type: 2}
+    value: 0.98
+    condition: {fileID: 0}
+  - bindingId: trait:208:effect:2
+    definition: {fileID: 11400000, guid: 426f03603ba79a7459d9214b87e09318, type: 2}
+    value: 1.15
+    condition: {fileID: 0}
+  identityRules:
+  - rid: 7737211921986486455
+  - rid: 7737211921986486456
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486455
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:delay-meal
+        priority: 0
+        behaviorTag: work:eat
+        utilityDelta: -0.35
+    - rid: 7737211921986486456
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:cold-exposure
+        priority: 0
+        eventId: temperature:cold-long
+        moodDelta: -3
+        durationDays: 1

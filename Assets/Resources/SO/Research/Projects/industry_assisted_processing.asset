@@ -40,19 +40,19 @@ MonoBehaviour:
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211838079697071
-    - rid: 7737211838079697072
-    - rid: 7737211838079697073
-    - rid: 7737211838079697074
-    - rid: 7737211838079697075
-    - rid: 7737211838079697076
-    - rid: 7737211838079697077
-    - rid: 7737211838079697078
-    - rid: 7737211838079697079
-    - rid: 7737211838079697080
-    - rid: 7737211838079697081
-    - rid: 7737211838079697082
-    - rid: 7737211838079697083
+    - rid: 7737211905660421093
+    - rid: 7737211905660421094
+    - rid: 7737211905660421095
+    - rid: 7737211905660421096
+    - rid: 7737211905660421097
+    - rid: 7737211905660421098
+    - rid: 7737211905660421099
+    - rid: 7737211905660421100
+    - rid: 7737211905660421101
+    - rid: 7737211905660421102
+    - rid: 7737211905660421103
+    - rid: 7737211905660421104
+    - rid: 7737211905660421105
   facilityRequirements:
   - capability: 0
     requiredCount: 2
@@ -61,58 +61,59 @@ MonoBehaviour:
   - capability: 6
     requiredCount: 1
   icon: {fileID: 0}
+  effects: []
   references:
     version: 2
     RefIds:
-    - rid: 7737211838079697071
+    - rid: 7737211905660421093
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 8821
-    - rid: 7737211838079697072
+    - rid: 7737211905660421094
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 9313
-    - rid: 7737211838079697073
+    - rid: 7737211905660421095
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 9314
-    - rid: 7737211838079697074
+    - rid: 7737211905660421096
       type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         recipeId: recipe:v22:spin-powered:cave-silk
-    - rid: 7737211838079697075
+    - rid: 7737211905660421097
       type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         recipeId: recipe:v22:spin-powered:common-wool
-    - rid: 7737211838079697076
+    - rid: 7737211905660421098
       type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         recipeId: recipe:v22:spin-powered:deep-goat-wool
-    - rid: 7737211838079697077
+    - rid: 7737211905660421099
       type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         recipeId: recipe:v22:spin-powered:dreamweave
-    - rid: 7737211838079697078
+    - rid: 7737211905660421100
       type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         recipeId: recipe:v22:spin-powered:ember-cotton
-    - rid: 7737211838079697079
+    - rid: 7737211905660421101
       type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         recipeId: recipe:v22:spin-powered:frost-linen
-    - rid: 7737211838079697080
+    - rid: 7737211905660421102
       type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         recipeId: recipe:v22:spin-powered:frost-wool
-    - rid: 7737211838079697081
+    - rid: 7737211905660421103
       type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         recipeId: recipe:v22:spin-powered:mire-canvas
-    - rid: 7737211838079697082
+    - rid: 7737211905660421104
       type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         recipeId: recipe:v22:spin-powered:shade-cloth
-    - rid: 7737211838079697083
+    - rid: 7737211905660421105
       type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         recipeId: recipe:v22:spin-powered:spore-hemp

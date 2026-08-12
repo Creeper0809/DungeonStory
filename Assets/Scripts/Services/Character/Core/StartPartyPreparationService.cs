@@ -23,6 +23,7 @@ public sealed class StartPartyMemberPreparation
     internal GameObject prefetchedSkillObject;
     internal CharacterProgression prefetchedSkillProgression;
     internal int rollSerial;
+    internal int proficiencySeed;
 
     public int Index { get; internal set; }
     public int RosterId { get; internal set; }
@@ -95,16 +96,6 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         "Ayun", "Sion", "Ruka", "Noa", "Cain", "Rena", "Ian", "Roma"
     };
 
-    private static readonly string[] Origins =
-    {
-        "abandoned archive survivor",
-        "market courier apprentice",
-        "wandering guild trainee",
-        "underground workshop assistant",
-        "border guard camp aide",
-        "caravan record keeper"
-    };
-
     private readonly ICharacterSkillGenerationService skillGenerationService;
     private readonly ICharacterSkillSystemSettingsProvider settingsProvider;
     private readonly IRunCharacterCatalog characterCatalog;
@@ -115,6 +106,10 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
     private readonly IRandomStream random;
 
     private CharacterTraitSO[] traitPool;
+    private CharacterStartingOriginSO[] startingOrigins;
+    private CharacterStartingHistorySO[] startingHistories;
+    private AgeConditionDefinitionSO[] ageConditions;
+    private CharacterSpeciesSO[] speciesDefinitions;
     private int seedSerial;
 
     public bool IsPreparing { get; private set; }
@@ -174,6 +169,27 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
             .Where(trait => trait != null)
             .OrderBy(trait => trait.id)
             .ToArray();
+        startingOrigins ??= content.GetAll<CharacterStartingOriginSO>()
+            .Where(value => value != null && value.ValidateDefinition().Count == 0)
+            .OrderBy(value => value.originId, StringComparer.Ordinal)
+            .ToArray();
+        startingHistories ??= content.GetAll<CharacterStartingHistorySO>()
+            .Where(value => value != null && value.ValidateDefinition().Count == 0)
+            .OrderBy(value => value.historyId, StringComparer.Ordinal)
+            .ToArray();
+        ageConditions ??= content.GetAll<AgeConditionDefinitionSO>()
+            .Where(value => value != null && value.ValidateDefinition().Count == 0)
+            .OrderBy(value => value.conditionId, StringComparer.Ordinal)
+            .ToArray();
+        speciesDefinitions ??= content.GetAll<CharacterSpeciesSO>()
+            .Where(value => value != null)
+            .OrderBy(value => value.speciesTag, StringComparer.Ordinal)
+            .ToArray();
+        if (startingOrigins.Length == 0 || startingHistories.Length == 0)
+        {
+            message = "시작 출신 또는 과거 이력 데이터가 없습니다.";
+            return false;
+        }
 
         members.Add(CreateMember(0, true, ownerData, partySlot: 0, isReserve: false));
         for (int i = 0; i < 6; i++)
@@ -203,9 +219,9 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         }
 
         CharacterPreparedIdentity identity = RollIdentity(member.CharacterData, member.Index);
-        CharacterStatBlock stats = CharacterGrowthRules.RollInitialStats(settingsProvider.Settings, random);
+        member.proficiencySeed = NextSeed(member);
         CharacterPotentialGrade potential = CharacterGrowthRules.RollPotential(settingsProvider.Settings, random);
-        ReplaceCurrentProgression(member, identity, stats, potential);
+        ReplaceCurrentProgression(member, identity, potential);
         member.IdentityRerollsRemaining = PartialRerollCharge;
         member.AptitudeRerollsRemaining = PartialRerollCharge;
         member.SkillRerollsRemaining = PartialRerollCharge;
@@ -237,7 +253,6 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
                 ReplaceCurrentProgression(
                     member,
                     RollIdentity(member.CharacterData, member.Index),
-                    member.Progression.GrowthState.initialBaseStats,
                     member.Progression.PotentialGrade);
                 message = $"{member.RoleLabel} 정체성을 다시 굴렸습니다.";
                 break;
@@ -250,10 +265,16 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
                 }
 
                 member.AptitudeRerollsRemaining--;
+                member.proficiencySeed = NextSeed(member);
+                CharacterPreparedIdentity aptitudeIdentity =
+                    ReadIdentity(member.Progression);
+                ApplyStartingProfile(
+                    aptitudeIdentity,
+                    member.CharacterData,
+                    member.Index);
                 ReplaceCurrentProgression(
                     member,
-                    ReadIdentity(member.Progression),
-                    CharacterGrowthRules.RollInitialStats(settingsProvider.Settings, random),
+                    aptitudeIdentity,
                     CharacterGrowthRules.RollPotential(settingsProvider.Settings, random));
                 message = $"{member.RoleLabel} 재능을 다시 굴렸습니다.";
                 break;
@@ -414,10 +435,10 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
             SlotProfile = CharacterSkillSlotProfile.For(data, isOwner)
         };
         CharacterPreparedIdentity identity = RollIdentity(data, index);
+        member.proficiencySeed = NextSeed(member);
         ReplaceCurrentProgression(
             member,
             identity,
-            CharacterGrowthRules.RollInitialStats(settingsProvider.Settings, random),
             CharacterGrowthRules.RollPotential(settingsProvider.Settings, random));
         return member;
     }
@@ -463,7 +484,6 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
     private void ReplaceCurrentProgression(
         StartPartyMemberPreparation member,
         CharacterPreparedIdentity identity,
-        CharacterStatBlock stats,
         CharacterPotentialGrade potential)
     {
         DestroyPreview(member.Progression, member.previewObject);
@@ -472,14 +492,13 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         member.Progression = progression;
         progression.DraftReady += _ => Changed?.Invoke();
         progression.Changed += HandleProgressionChanged;
-        ApplyRoll(progression, member, identity, stats, potential);
+        ApplyRoll(progression, member, identity, potential);
         TryBeginSkillPrefetch(member);
     }
 
     private void UsePrefetchedSkills(StartPartyMemberPreparation member)
     {
         CharacterPreparedIdentity identity = ReadIdentity(member.Progression);
-        CharacterStatBlock stats = CharacterSkillModelUtility.CopyStats(member.Progression.GrowthState.initialBaseStats);
         CharacterPotentialGrade potential = member.Progression.PotentialGrade;
         DestroyPreview(member.Progression, member.previewObject);
 
@@ -498,7 +517,7 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
             member.Progression = progression;
             progression.DraftReady += _ => Changed?.Invoke();
             progression.Changed += HandleProgressionChanged;
-            ApplyRoll(progression, member, identity, stats, potential);
+            ApplyRoll(progression, member, identity, potential);
         }
 
         TryBeginSkillPrefetch(member);
@@ -524,7 +543,6 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
             progression,
             member,
             ReadIdentity(member.Progression),
-            member.Progression.GrowthState.initialBaseStats,
             member.Progression.PotentialGrade);
     }
 
@@ -532,7 +550,6 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         CharacterProgression progression,
         StartPartyMemberPreparation member,
         CharacterPreparedIdentity identity,
-        CharacterStatBlock stats,
         CharacterPotentialGrade potential)
     {
         member.rollSerial++;
@@ -540,10 +557,12 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
             identity.displayName,
             identity.origin,
             identity.traitIds,
-            stats,
             potential,
             NextSeed(member),
-            autoChooseDrafts: false);
+            autoChooseDrafts: false,
+            startingProficiencySeed: member.proficiencySeed,
+            startingProfile: identity.startingProfile,
+            preparedStartingProficiencies: identity.startingProficiencies);
         EnsureGeneratedStartingSkills(member, progression);
     }
 
@@ -817,14 +836,7 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
             float score = candidate != null ? (int)candidate.rarity * 100f : 0f;
             foreach (CharacterSkillModuleSelection module in candidate?.modules ?? new List<CharacterSkillModuleSelection>())
             {
-                score += module.moduleId switch
-                {
-                    "damage" => progression.GetFinalStat(CharacterStatType.Attack) * 2f,
-                    "guard" => progression.GetFinalStat(CharacterStatType.Toughness) * 1.7f,
-                    "heal" => progression.GetFinalStat(CharacterStatType.Research) * 1.4f,
-                    "delay" => progression.GetFinalStat(CharacterStatType.Dexterity) * 1.5f,
-                    _ => 1f
-                };
+                score += 1f;
             }
 
             if (score > bestScore)
@@ -929,7 +941,8 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         List<int> traitIds = CharacterTraitSelectionRules.Select(
                 traitPool,
                 settingsProvider.Settings.traitConflicts,
-                random)
+                random,
+                data?.SpeciesTag)
             .ToList();
 
         string baseName = GivenNames[random.NextInt(0, GivenNames.Length)];
@@ -937,12 +950,68 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
                 && string.Equals(member.Progression.GrowthState.displayName, baseName, StringComparison.Ordinal))
             ? $"{baseName}{memberIndex + 1}"
             : baseName;
-        return new CharacterPreparedIdentity
+        CharacterPreparedIdentity identity = new CharacterPreparedIdentity
         {
             displayName = displayName,
-            origin = $"{data.SpeciesTag} - {Origins[random.NextInt(0, Origins.Length)]}",
             traitIds = traitIds
         };
+        ApplyStartingProfile(identity, data, memberIndex);
+        return identity;
+    }
+
+    private void ApplyStartingProfile(
+        CharacterPreparedIdentity identity,
+        CharacterSO data,
+        int memberIndex)
+    {
+        if (identity == null || data == null)
+            throw new ArgumentNullException(identity == null
+                ? nameof(identity)
+                : nameof(data));
+        CharacterSpeciesSO species = speciesDefinitions.FirstOrDefault(value =>
+            string.Equals(
+                value.speciesTag,
+                data.SpeciesTag,
+                StringComparison.OrdinalIgnoreCase));
+        if (species?.lifeHistory == null)
+        {
+            throw new InvalidOperationException(
+                $"Starting profile requires a life history for '{data.SpeciesTag}'.");
+        }
+
+        CharacterStartingOriginSO origin = startingOrigins[
+            random.NextInt(0, startingOrigins.Length)];
+        CharacterStartingHistorySO history = startingHistories[
+            random.NextInt(0, startingHistories.Length)];
+        int profileSeed = CharacterGrowthRules.StableHash(
+            $"founder-profile:{memberIndex}:{seedSerial}:{random.NextInt(0, int.MaxValue)}");
+        CharacterStartingProfileRoll roll = CharacterStartingProfileRules.Create(
+            profileSeed,
+            new CharacterStartingLifeHistory(
+                species.lifeHistory.adultAgeYears,
+                species.lifeHistory.elderAgeYears,
+                species.lifeHistory.untreatedExpectedLifeYears,
+                species.lifeHistory.construct),
+            origin,
+            history,
+            ageConditions.Select(value => new CharacterStartingAgeCondition(
+                    value.conditionId,
+                    value.constructCondition))
+                .ToArray());
+        identity.origin = $"{data.SpeciesTag} · {origin.displayName} · {history.displayName}";
+        identity.startingProfile = roll.Profile.Clone();
+        identity.startingProficiencies = roll.Proficiencies
+            .Select(value => value.Clone())
+            .ToList();
+        CharacterTraitSO[] selectedTraits = (identity.traitIds ?? new List<int>())
+            .Select(traitId => traitPool.FirstOrDefault(value => value.id == traitId)
+                ?? throw new InvalidOperationException(
+                    $"MissingFounderTraitId: founder slot {memberIndex} references trait {traitId}."))
+            .ToArray();
+        CharacterTraitStartingProficiencyRules.Apply(
+            identity.startingProficiencies,
+            selectedTraits,
+            roll.Profile.proficiencyCap);
     }
 
     private bool TryGetMember(
@@ -974,7 +1043,13 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         {
             displayName = progression.GrowthState.displayName,
             origin = progression.GrowthState.origin,
-            traitIds = progression.GrowthState.traitIds.ToList()
+            traitIds = progression.GrowthState.traitIds.ToList(),
+            startingProfile = progression.GrowthState.startingProfile?.Clone()
+                ?? new CharacterStartingProfileState(),
+            startingProficiencies = progression.GrowthState.startingProficiencies
+                .Where(value => value != null)
+                .Select(value => value.Clone())
+                .ToList()
         };
     }
 
@@ -1020,5 +1095,9 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         public string displayName;
         public string origin;
         public List<int> traitIds = new List<int>();
+        public CharacterStartingProfileState startingProfile =
+            new CharacterStartingProfileState();
+        public List<CharacterStartingProficiencyExperience>
+            startingProficiencies = new();
     }
 }

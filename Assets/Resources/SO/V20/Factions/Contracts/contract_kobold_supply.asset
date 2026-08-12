@@ -24,8 +24,8 @@ MonoBehaviour:
   deadlineDays: 20
   completionRequirements:
     items:
-    - itemDefinitionId: component:mechanical-parts
-      amount: 12
+    - itemDefinitionId: component:machine-parts
+      amount: 2
       consume: 1
     facilities: []
     research: []

@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uC9C8\uC0B0 \uBE44\uB8CC"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC9C8\uC0B0 \uBE44\uB8CC."
   stockCategory: 1
-  unitWeight: 0.7
+  unitWeight: 1.1
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 42
+  unitPrice: 15
   features:
-  - rid: 7737211838078124805
-  - rid: 7737211838078124806
+  - rid: 7737211905660420207
+  - rid: 7737211905660420208
+  - rid: 7737211905660420860
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078124805
+    - rid: 7737211905660420207
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:agriculture:compost
-    - rid: 7737211838078124806
+    - rid: 7737211905660420208
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1
         sharedIntermediate: 0
+    - rid: 7737211905660420860
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.5939909

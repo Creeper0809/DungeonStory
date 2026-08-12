@@ -32,17 +32,22 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 11
   features:
-  - rid: 7737211838074979049
-  - rid: 7737211838074979050
-  - rid: 7737211838074979051
+  - rid: 7737211905660420504
+  - rid: 7737211905666712556
+  - rid: 7737211905666712557
+  - rid: 7737211905666712558
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074979049
+    - rid: 7737211905660420504
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.5999909
+    - rid: 7737211905666712556
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:vegan
-    - rid: 7737211838074979050
+    - rid: 7737211905666712557
       type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         quality: 3
@@ -50,7 +55,7 @@ MonoBehaviour:
         mood: 2
         freshnessSeconds: 1440
         preserved: 1
-    - rid: 7737211838074979051
+    - rid: 7737211905666712558
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2

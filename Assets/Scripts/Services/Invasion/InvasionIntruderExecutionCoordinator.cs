@@ -47,6 +47,7 @@ internal interface IInvasionIntruderExecutionHost
     bool RestoredEnragedBreach { get; set; }
     float MeleeDamageMultiplier { get; }
     float AttackSpeedMultiplier { get; }
+    ICharacterPerformanceQuery Performance { get; }
 
     Queue<GridMoveStep> CreateNextPath(
         Grid grid,
@@ -420,7 +421,8 @@ internal sealed class InvasionIntruderExecutionCoordinator
                 InvasionIntruderCombatRules.EstimateStructureDamage(
                     host.Actor,
                     host.Settings,
-                    host.MeleeDamageMultiplier),
+                    host.MeleeDamageMultiplier,
+                    host.Performance),
                 out DefenseBreachPlan plan))
         {
             if (!host.NoBreachableExitAlerted)
@@ -506,7 +508,8 @@ internal sealed class InvasionIntruderExecutionCoordinator
                         host.Settings,
                         host.MeleeDamageMultiplier,
                         snapshot.Toughness,
-                        host.EnragedBreach);
+                        host.EnragedBreach,
+                        host.Performance);
                     BuildingStructuralDamageResult result =
                         host.StructuralIntegrity.ApplyDamage(
                             host.BreachTarget,

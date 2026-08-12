@@ -5,9 +5,6 @@ using UnityEngine;
 
 public sealed class CharacterRuntimeProfile
 {
-    private const int DefaultStatValue = 5;
-
-    private readonly CharacterStatBlock finalStats;
     private readonly CharacterModelModifiers finalModifiers;
     private readonly IReadOnlyList<string> expressedTraitIds;
     private readonly IReadOnlyList<string> latentTraitIds;
@@ -15,6 +12,7 @@ public sealed class CharacterRuntimeProfile
     private readonly IReadOnlyDictionary<string, float> behaviorUtilityDeltas;
     private readonly IReadOnlyDictionary<string, float> eventWeightMultipliers;
     private readonly IReadOnlyDictionary<string, int> innateAptitudes;
+    private readonly float earnedWorkExperienceMultiplier;
     private readonly SpeciesNeedProfile needProfile;
     private readonly SpeciesEnvironmentProfile environmentProfile;
     private readonly float speciesStayDurationMultiplier;
@@ -28,7 +26,6 @@ public sealed class CharacterRuntimeProfile
 
     private CharacterRuntimeProfile(
         CharacterSpawnRequest request,
-        CharacterStatBlock finalStats,
         CharacterModelModifiers finalModifiers,
         IEnumerable<CharacterTraitSO> expressedTraits,
         CharacterSpeciesSO species)
@@ -48,10 +45,25 @@ public sealed class CharacterRuntimeProfile
             .ToArray();
         behaviorUtilityDeltas = BuildBehaviorUtilityDeltas(expressedTraits);
         eventWeightMultipliers = BuildEventWeightMultipliers(expressedTraits);
+        CharacterTraitSO[] authoredTraits = (expressedTraits
+                ?? Array.Empty<CharacterTraitSO>())
+            .Where(value => value != null)
+            .ToArray();
+        float legacyExperience = authoredTraits
+            .Where(value => !HasEffectTarget(
+                value,
+                GameplayEffectTargetIds.EarnedWorkExperience))
+            .Aggregate(
+                1f,
+                (current, value) => current
+                    * Mathf.Max(.1f, value.earnedWorkExperienceMultiplier));
+        earnedWorkExperienceMultiplier = Mathf.Clamp(
+            legacyExperience,
+            .1f,
+            1.75f);
         innateAptitudes = new Dictionary<string, int>(
             request.InnateAptitudes,
             StringComparer.Ordinal);
-        this.finalStats = CopyStats(finalStats);
         this.finalModifiers = CopyModifiers(finalModifiers);
         SpeciesTag = species.speciesTag?.Trim() ?? string.Empty;
         needProfile = CopyNeeds(species.needs);
@@ -75,6 +87,8 @@ public sealed class CharacterRuntimeProfile
     public IReadOnlyList<string> TraitDisplayNames => traitDisplayNames;
     public IReadOnlyDictionary<string, int> InnateAptitudes => innateAptitudes;
     public string SpeciesTag { get; }
+    public float EarnedWorkExperienceMultiplier =>
+        earnedWorkExperienceMultiplier;
 
     public float GetBehaviorUtilityMultiplier(
         IEnumerable<string> actionSemanticTags)
@@ -104,27 +118,58 @@ public sealed class CharacterRuntimeProfile
         IEnumerable<CharacterTraitSO> traits) =>
         (traits ?? Array.Empty<CharacterTraitSO>())
         .Where(value => value != null)
-        .SelectMany(value => value.behaviorPreferences
-            ?? new List<CharacterTraitBehaviorPreference>())
-        .Where(value => value != null && value.IsValid)
-        .GroupBy(value => value.behaviorTag.Trim(), StringComparer.Ordinal)
+        .SelectMany(value =>
+        {
+            IEnumerable<KeyValuePair<string, float>> shared =
+                (value.identityRules ?? new List<CharacterIdentityRule>())
+                .OfType<BehaviorUtilityRule>()
+                .Where(rule => !string.IsNullOrWhiteSpace(rule.behaviorTag)
+                    && !Mathf.Approximately(rule.utilityDelta, 0f))
+                .Select(rule => new KeyValuePair<string, float>(
+                    rule.behaviorTag.Trim(),
+                    rule.utilityDelta));
+            IEnumerable<KeyValuePair<string, float>> legacy =
+                (value.behaviorPreferences
+                    ?? new List<CharacterTraitBehaviorPreference>())
+                .Where(rule => rule != null && rule.IsValid)
+                .Select(rule => new KeyValuePair<string, float>(
+                    rule.behaviorTag.Trim(),
+                    rule.utilityDelta));
+            return shared.Any() ? shared : legacy;
+        })
+        .GroupBy(value => value.Key, StringComparer.Ordinal)
         .ToDictionary(
             group => group.Key,
-            group => Mathf.Clamp(group.Sum(value => value.utilityDelta), -0.75f, 1f),
+            group => Mathf.Clamp(group.Sum(value => value.Value), -0.75f, 1f),
             StringComparer.Ordinal);
 
     private static IReadOnlyDictionary<string, float> BuildEventWeightMultipliers(
         IEnumerable<CharacterTraitSO> traits) =>
         (traits ?? Array.Empty<CharacterTraitSO>())
         .Where(value => value != null)
-        .SelectMany(value => value.eventWeights
-            ?? new List<CharacterTraitEventWeight>())
-        .Where(value => value != null && value.IsValid)
-        .GroupBy(value => value.eventCategoryId.Trim(), StringComparer.Ordinal)
+        .SelectMany(value =>
+        {
+            IEnumerable<KeyValuePair<string, float>> shared =
+                (value.identityRules ?? new List<CharacterIdentityRule>())
+                .OfType<IncidentWeightRule>()
+                .Where(rule => !string.IsNullOrWhiteSpace(rule.incidentId)
+                    && !Mathf.Approximately(rule.multiplier, 1f))
+                .Select(rule => new KeyValuePair<string, float>(
+                    rule.incidentId.Trim(),
+                    rule.multiplier));
+            IEnumerable<KeyValuePair<string, float>> legacy =
+                (value.eventWeights ?? new List<CharacterTraitEventWeight>())
+                .Where(rule => rule != null && rule.IsValid)
+                .Select(rule => new KeyValuePair<string, float>(
+                    rule.eventCategoryId.Trim(),
+                    rule.multiplier));
+            return shared.Any() ? shared : legacy;
+        })
+        .GroupBy(value => value.Key, StringComparer.Ordinal)
         .ToDictionary(
             group => group.Key,
             group => Mathf.Clamp(
-                group.Aggregate(1f, (current, value) => current * value.multiplier),
+                group.Aggregate(1f, (current, value) => current * value.Value),
                 0.1f,
                 10f),
             StringComparer.Ordinal);
@@ -133,21 +178,7 @@ public sealed class CharacterRuntimeProfile
         string behaviorTag,
         IReadOnlyCollection<string> actionTags)
     {
-        if (actionTags.Contains(behaviorTag, StringComparer.Ordinal)) return true;
-        string prefix = behaviorTag.Split(':')[0];
-        return prefix switch
-        {
-            "work" or "research" or "career" =>
-                actionTags.Contains(CharacterAiActionTags.Work),
-            "food" or "health" or "rest" or "room" =>
-                actionTags.Contains(CharacterAiActionTags.SelfCare),
-            "danger" or "safety" or "emergency" or "combat" =>
-                actionTags.Contains(CharacterAiActionTags.Work),
-            "item" or "choice" =>
-                actionTags.Contains(CharacterAiActionTags.Curiosity),
-            "service" => actionTags.Contains(CharacterAiActionTags.Shopping),
-            _ => false
-        };
+        return actionTags.Contains(behaviorTag, StringComparer.Ordinal);
     }
 
     internal static CharacterRuntimeProfile Create(
@@ -164,75 +195,14 @@ public sealed class CharacterRuntimeProfile
             .ToArray();
         return new CharacterRuntimeProfile(
             request,
-            BuildFinalStats(archetype, species, traits),
             BuildFinalModifiers(species, traits),
             traits,
             species);
     }
 
-    public int GetStat(CharacterStatType type)
-    {
-        return Mathf.Max(0, finalStats.Get(type));
-    }
-
-    public int GetStat(string statId)
-    {
-        return Mathf.Max(0, finalStats.Get(statId));
-    }
-
-    public float GetMoveSpeedMultiplier()
-    {
-        return ClampStatMultiplier(CharacterStatType.MoveSpeed, 0.08f, 0.5f, 1.8f)
-            * finalModifiers.moveSpeedMultiplier;
-    }
-
-    public float GetMoveModifierOnly()
-    {
-        return Mathf.Max(0f, finalModifiers.moveSpeedMultiplier);
-    }
-
-    public float GetSpendingMultiplier()
-    {
-        return ClampStatMultiplier(CharacterStatType.Sales, 0.05f, 0.5f, 2f)
-            * finalModifiers.spendingMultiplier;
-    }
-
-    public float GetSpendingModifierOnly()
-    {
-        return Mathf.Max(0f, finalModifiers.spendingMultiplier);
-    }
-
-    public float GetConsumptionMultiplier()
-    {
-        return Mathf.Max(0f, finalModifiers.consumptionMultiplier);
-    }
-
     public float GetStayDurationMultiplier()
     {
-        return speciesStayDurationMultiplier
-            * Mathf.Max(0f, finalModifiers.stayDurationMultiplier);
-    }
-
-    public float GetCrowdSensitivityMultiplier()
-    {
-        return Mathf.Max(0f, finalModifiers.crowdSensitivityMultiplier);
-    }
-
-    public float GetWaitPatienceMultiplier()
-    {
-        return Mathf.Max(0f, finalModifiers.waitPatienceMultiplier);
-    }
-
-    public float GetAccidentChanceMultiplier()
-    {
-        float enduranceMultiplier = Mathf.Clamp(1f - ((GetStat(CharacterStatType.Endurance) - DefaultStatValue) * 0.03f), 0.5f, 1.5f);
-        float toughnessMultiplier = Mathf.Clamp(1f - ((GetStat(CharacterStatType.Toughness) - DefaultStatValue) * 0.02f), 0.6f, 1.4f);
-        return Mathf.Max(0f, finalModifiers.accidentChanceMultiplier * enduranceMultiplier * toughnessMultiplier);
-    }
-
-    public float GetAccidentModifierOnly()
-    {
-        return Mathf.Max(0f, finalModifiers.accidentChanceMultiplier);
+        return speciesStayDurationMultiplier;
     }
 
     public float GetCrimeRiskMultiplier()
@@ -285,62 +255,11 @@ public sealed class CharacterRuntimeProfile
         return shortDescription;
     }
 
-    public float GetCombatPowerMultiplier()
-    {
-        return Mathf.Max(0f, finalModifiers.combatPowerMultiplier);
-    }
-
-    public float GetWorkModifierOnly(WorkTypeId workTypeId)
-    {
-        return WorkTypeCatalog.TryGet(workTypeId, out WorkTypeDefinition definition)
-            ? CalculateWorkModifierOnly(FacilityWorkTypeMap.GetRequired(definition))
-            : 1f;
-    }
-
-    public float GetWorkSpeedMultiplier(WorkTypeId workTypeId)
-    {
-        return WorkTypeCatalog.TryGet(workTypeId, out WorkTypeDefinition definition)
-            ? CalculateWorkSpeedMultiplier(definition)
-            : 1f;
-    }
-
     public float GetWorkPreferenceScore(WorkTypeId workTypeId)
     {
         return WorkTypeCatalog.TryGet(workTypeId, out WorkTypeDefinition definition)
             ? CalculateWorkPreferenceScore(FacilityWorkTypeMap.GetRequired(definition))
             : 0.5f;
-    }
-
-    private float CalculateWorkModifierOnly(FacilityWorkType workTypes)
-    {
-        float typeMultiplier = 1f;
-        if ((workTypes & finalModifiers.PreferredLegacyWorkTypes) != 0)
-        {
-            typeMultiplier *= 1.25f;
-        }
-
-        if ((workTypes & finalModifiers.DislikedLegacyWorkTypes) != 0)
-        {
-            typeMultiplier *= 0.75f;
-        }
-
-        if ((workTypes & FacilityWorkType.Research) != 0)
-        {
-            typeMultiplier *= finalModifiers.researchSpeedMultiplier;
-        }
-
-        return Mathf.Max(0f, finalModifiers.workSpeedMultiplier * typeMultiplier);
-    }
-
-    private float CalculateWorkSpeedMultiplier(WorkTypeDefinition definition)
-    {
-        FacilityWorkType legacyType = FacilityWorkTypeMap.GetRequired(definition);
-        float statMultiplier = ClampStatMultiplier(
-            GetBestWorkStat(legacyType),
-            0.06f,
-            0.5f,
-            2f);
-        return Mathf.Max(0f, statMultiplier * CalculateWorkModifierOnly(legacyType));
     }
 
     private float CalculateWorkPreferenceScore(FacilityWorkType workTypes)
@@ -392,74 +311,44 @@ public sealed class CharacterRuntimeProfile
             || traitDisplayNames.Contains(normalized, StringComparer.Ordinal);
     }
 
-    private float ClampStatMultiplier(
-        CharacterStatType statType,
-        float perPoint,
-        float min,
-        float max)
-    {
-        return Mathf.Clamp(1f + ((GetStat(statType) - DefaultStatValue) * perPoint), min, max);
-    }
-
-    private static CharacterStatType GetBestWorkStat(FacilityWorkType workTypes)
-    {
-        if ((workTypes & FacilityWorkType.Construct) != 0) return CharacterStatType.Dexterity;
-        if ((workTypes & FacilityWorkType.Research) != 0) return CharacterStatType.Research;
-        if ((workTypes & FacilityWorkType.Guard) != 0) return CharacterStatType.Attack;
-        if ((workTypes & FacilityWorkType.Clean) != 0) return CharacterStatType.Cleaning;
-        if ((workTypes & FacilityWorkType.DrawWater) != 0) return CharacterStatType.Endurance;
-        if ((workTypes & FacilityWorkType.Cook) != 0) return CharacterStatType.Dexterity;
-        if ((workTypes & FacilityWorkType.Treat) != 0) return CharacterStatType.Research;
-        if ((workTypes & FacilityWorkType.Refuel) != 0) return CharacterStatType.Strength;
-        if ((workTypes & FacilityWorkType.Restock) != 0) return CharacterStatType.Strength;
-        if ((workTypes & FacilityWorkType.Repair) != 0) return CharacterStatType.Dexterity;
-        if ((workTypes & FacilityWorkType.Operate) != 0) return CharacterStatType.Sales;
-        if ((workTypes & FacilityWorkType.Rescue) != 0) return CharacterStatType.Toughness;
-        return CharacterStatType.Endurance;
-    }
-
-    private static CharacterStatBlock BuildFinalStats(
-        CharacterSO source,
-        CharacterSpeciesSO species,
-        IEnumerable<CharacterTraitSO> traits)
-    {
-        CharacterStatBlock result = source != null && source.baseStats != null && source.baseStats.HasAnyValue
-            ? CopyStats(source.baseStats)
-            : CharacterStatBlock.CreateDefault(DefaultStatValue);
-
-        result.Add(species?.statBonus);
-        if (traits != null)
-        {
-            foreach (CharacterTraitSO trait in traits)
-            {
-                result.Add(trait?.statBonus);
-            }
-        }
-
-        return result;
-    }
-
     private static CharacterModelModifiers BuildFinalModifiers(
         CharacterSpeciesSO species,
         IEnumerable<CharacterTraitSO> traits)
     {
         CharacterModelModifiers result = new CharacterModelModifiers();
-        result.Multiply(species?.modifiers);
-        if (traits != null)
+        if (species != null)
         {
-            foreach (CharacterTraitSO trait in traits)
-            {
-                result.Multiply(trait?.modifiers);
-            }
+            result.Multiply(CopyLegacyPreferencesOnly(species.modifiers));
+        }
+        foreach (CharacterTraitSO trait in traits ?? Array.Empty<CharacterTraitSO>())
+        {
+            if (trait == null) continue;
+            result.Multiply(CopyLegacyPreferencesOnly(trait.modifiers));
         }
 
         return result;
     }
 
-    private static CharacterStatBlock CopyStats(CharacterStatBlock source)
+    private static bool HasEffectTarget(
+        CharacterTraitSO trait,
+        string targetId) =>
+        trait != null && trait.Effects.Any(binding =>
+            binding?.definition != null
+            && string.Equals(
+                binding.definition.TargetId,
+                targetId,
+                StringComparison.Ordinal));
+
+    private static CharacterModelModifiers CopyLegacyPreferencesOnly(
+        CharacterModelModifiers source)
     {
-        CharacterStatBlock result = new CharacterStatBlock();
-        result.Add(source);
+        CharacterModelModifiers result = new();
+        if (source == null) return result;
+        result.preferredFacilityRoles = source.preferredFacilityRoles;
+        result.dislikedFacilityRoles = source.dislikedFacilityRoles;
+        result.SetWorkPreferences(
+            source.PreferredLegacyWorkTypes,
+            source.DislikedLegacyWorkTypes);
         return result;
     }
 

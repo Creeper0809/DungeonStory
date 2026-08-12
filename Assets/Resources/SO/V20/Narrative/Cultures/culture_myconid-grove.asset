@@ -21,9 +21,9 @@ MonoBehaviour:
     1.
   defaultSpeciesId: Myconid
   preferredItemIds:
-  - food:cultured-mushroom
+  - resource:cave-mushroom
   forbiddenItemIds:
-  - item:fungicide
+  - supply:fungicide
   preferredFacilityIds: []
   environmentalPreferences:
   - humid dim gardens
@@ -45,13 +45,13 @@ MonoBehaviour:
   - practice:myconid-spore-return
   otherCultureAttitudes:
   - id: culture:adventurer-frontier
-    weight: 0.96
+    weight: 0.96000004
   - id: culture:beastkin-pack
     weight: 0.99
   - id: culture:demon-contract
     weight: 1.02
   - id: culture:golem-core
-    weight: 1.05
+    weight: 1.0500001
   - id: culture:harpy-aerie
     weight: 1.08
   - id: culture:kobold-toolclan
@@ -59,7 +59,7 @@ MonoBehaviour:
   - id: culture:orc-vigil
     weight: 0.86
   - id: culture:slime-confluence
-    weight: 0.89
+    weight: 0.89000005
   - id: culture:vampire-nightcourt
     weight: 0.92
   assimilationDays: 120

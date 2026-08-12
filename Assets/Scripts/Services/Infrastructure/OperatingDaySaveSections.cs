@@ -62,7 +62,7 @@ public sealed class EventAlertSaveSection :
     IDungeonRollbackFreeSaveSection
 {
     public const string Id = "operation.event-alerts";
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 5;
 
     private readonly IEventAlertSaveService saveService;
 

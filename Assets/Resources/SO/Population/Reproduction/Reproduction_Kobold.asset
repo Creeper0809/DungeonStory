@@ -19,6 +19,8 @@ MonoBehaviour:
   viableTemperatureMinimum: 10
   viableTemperatureMaximum: 32
   phases:
+  - phase: 0
+    durationDays: 1
   - phase: 4
     durationDays: 10
   - phase: 6

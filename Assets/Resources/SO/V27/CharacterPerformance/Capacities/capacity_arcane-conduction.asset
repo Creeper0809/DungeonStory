@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c83e41a225cee9145bd7206b5861a543, type: 3}
+  m_Name: capacity_arcane-conduction
+  m_EditorClassIdentifier: DungeonStory.Foundation::CharacterFunctionalCapacityDefinitionSO
+  capacityId: 12
+  stableId: capacity:arcane-conduction
+  displayName: "\uB9C8\uB825 \uC804\uB3C4"
+  description: "\uC8FC\uBB38\xB7\uB9C8\uB098 \uD68C\uBCF5\xB7\uACFC\uCDA9\uC804 \uC548\uC815\uC131"

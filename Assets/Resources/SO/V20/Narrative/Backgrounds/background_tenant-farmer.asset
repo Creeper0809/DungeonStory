@@ -21,7 +21,7 @@ MonoBehaviour:
   sourceNote: V20 content-density expansion; hand-authored Korean source revision
     1.
   startingSkills:
-  - skillId: farming
+  - skillId: proficiency:food-production
     experience: 80
   startingEffects:
   - kind: 1

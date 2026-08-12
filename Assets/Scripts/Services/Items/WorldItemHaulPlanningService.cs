@@ -31,7 +31,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
     private readonly IGridPathSearchBroker pathSearchBroker;
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly WorldItemRepository repository;
-    private readonly IItemReservationService reservationService;
+    private readonly IItemQuantityReservationService reservationService;
     private CharacterActor cachedAvailabilityActor;
     private int cachedAvailabilityHaulVersion = -1;
     private int cachedAvailabilityWarehouseVersion = -1;
@@ -46,7 +46,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         IGridPathSearchBroker pathSearchBroker,
         ICharacterAiWorldRegistry worldRegistry,
         WorldItemRepository repository,
-        IItemReservationService reservationService)
+        IItemQuantityReservationService reservationService)
     {
         this.gridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
@@ -133,7 +133,10 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             leg.DestinationKind,
             leg.DestinationId,
             leg.DropPosition,
-            useDropPosition: true);
+            useDropPosition: true,
+            quantity: leg.Reservation.Quantity,
+            leaseId: leg.Reservation.LeaseId,
+            ownerOperationId: leg.Reservation.OwnerOperationId);
         return true;
     }
 
@@ -183,12 +186,46 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             seed,
             out float plannedWeight,
             out int expectedDetour);
+        string ownerOperationId = $"haul:{actorId}";
+        Dictionary<string, ItemQuantityLease> leasesByStack =
+            new(StringComparer.Ordinal);
+        if (reserve)
+        {
+            ItemQuantityReservationRequest[] requests = selected
+                .Select(candidate => new ItemQuantityReservationRequest(
+                    new ItemStackId(candidate.Stack.stackId),
+                    candidate.Quantity,
+                    ItemStackSignature.Create(
+                        candidate.Stack.itemId,
+                        candidate.Stack.components)))
+                .ToArray();
+            if (!reservationService.TryReserveBatch(
+                    ownerOperationId,
+                    actorId,
+                    ItemReservationPurpose.Hauling,
+                    $"haul:{seed.DestinationKind}:{seed.DestinationId}",
+                    requests,
+                    out IReadOnlyList<ItemQuantityLease> leases,
+                    out _))
+            {
+                failureReason = "reservation changed";
+                return false;
+            }
+            foreach (ItemQuantityLease lease in leases)
+            {
+                if (lease?.slices == null || lease.slices.Count != 1)
+                    continue;
+                leasesByStack[lease.slices[0].stackId] = lease;
+            }
+        }
+
         List<WorldItemHaulPlanLeg> pickupLegs =
             new List<WorldItemHaulPlanLeg>(selected.Count);
         List<WorldItemReservedStackQuantity> reservations =
             new List<WorldItemReservedStackQuantity>(selected.Count);
         foreach (HaulCandidate candidate in selected)
         {
+            leasesByStack.TryGetValue(candidate.Stack.stackId, out ItemQuantityLease lease);
             WorldItemReservedStackQuantity itemReservation =
                 new WorldItemReservedStackQuantity(
                     candidate.Stack.stackId,
@@ -196,7 +233,9 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                     candidate.Quantity,
                     candidate.Stack.position,
                     candidate.DestinationKind,
-                    candidate.DestinationId);
+                    candidate.DestinationId,
+                    lease?.leaseId,
+                    reserve ? ownerOperationId : string.Empty);
             reservations.Add(itemReservation);
             pickupLegs.Add(new WorldItemHaulPlanLeg(
                 itemReservation,
@@ -204,15 +243,6 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                 candidate.Warehouse,
                 candidate.DeliveryPosition,
                 candidate.DropPosition));
-        }
-
-        if (reserve
-            && !reservationService.TryReserve(
-                selected.Select(candidate => candidate.Stack.stackId),
-                actorId))
-        {
-            failureReason = "reservation changed";
-            return false;
         }
 
         plan = new WorldItemHaulPlan(
@@ -251,7 +281,8 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                 || GetAcceptableQuantity(
                     inventory,
                     stack.itemId,
-                    stack.quantity,
+                    reservationService.GetAvailableQuantity(
+                        new ItemStackId(stack.stackId)),
                     plannedWeight: 0f) <= 0
                 || !TryResolvePickupStandCell(
                     grid,
@@ -492,7 +523,8 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         int acceptable = GetAcceptableQuantity(
             inventory,
             stack.itemId,
-            stack.quantity,
+            reservationService.GetAvailableQuantity(
+                new ItemStackId(stack.stackId)),
             plannedWeight);
         if (acceptable <= 0)
         {
@@ -678,14 +710,12 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             && warehouse.Inventory != null;
     }
 
-    private static bool CanUseStack(WorldItemStackRecord stack, string actorId)
+    private bool CanUseStack(WorldItemStackRecord stack, string actorId)
     {
+        _ = actorId;
         return CanHaul(stack)
-            && (string.IsNullOrWhiteSpace(stack.reservedByPersistentId)
-                || string.Equals(
-                    stack.reservedByPersistentId,
-                    actorId,
-                    StringComparison.Ordinal));
+            && reservationService.GetAvailableQuantity(
+                new ItemStackId(stack.stackId)) > 0;
     }
 
     private static bool CanHaul(WorldItemStackRecord stack)

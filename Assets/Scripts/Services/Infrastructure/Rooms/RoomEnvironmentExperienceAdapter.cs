@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
 
@@ -45,6 +46,7 @@ public readonly struct RoomEnvironmentExperienceEvent
 public interface IRoomEnvironmentExperienceService
 {
     bool Apply(RoomEnvironmentExperienceEvent eventType);
+    IReadOnlyList<string> GetActiveConditionIds(BuildableObject facility);
 }
 
 public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienceService
@@ -53,16 +55,18 @@ public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienc
     private readonly IRoomEnvironmentEvaluator evaluator;
     private readonly IRoomEnvironmentSettingsProvider settingsProvider;
     private readonly IGameEventBus events;
+    private readonly IGameClock gameClock;
     private readonly IHeritableTraitEffectQuery heritableTraits;
-    private readonly ICharacterTraitReactionService traitReactions;
+    private readonly Dictionary<string, float> lastCleanlinessByObserverRoom =
+        new(StringComparer.Ordinal);
 
     public RoomEnvironmentExperienceService(
         IRoomLayoutCache roomLayoutCache,
         IRoomEnvironmentEvaluator evaluator,
         IRoomEnvironmentSettingsProvider settingsProvider,
         IGameEventBus events,
-        IHeritableTraitEffectQuery heritableTraits,
-        ICharacterTraitReactionService traitReactions)
+        IGameClock gameClock,
+        IHeritableTraitEffectQuery heritableTraits)
     {
         this.roomLayoutCache = roomLayoutCache
             ?? throw new ArgumentNullException(nameof(roomLayoutCache));
@@ -71,10 +75,9 @@ public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienc
         this.settingsProvider = settingsProvider
             ?? throw new ArgumentNullException(nameof(settingsProvider));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
+        this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         this.heritableTraits = heritableTraits
             ?? throw new ArgumentNullException(nameof(heritableTraits));
-        this.traitReactions = traitReactions
-            ?? throw new ArgumentNullException(nameof(traitReactions));
     }
 
     public bool Apply(RoomEnvironmentExperienceEvent eventType)
@@ -105,21 +108,13 @@ public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienc
         }
 
         RoomEnvironmentSettingsSO settings = settingsProvider.Settings;
-        List<string> traitTriggers = new();
-        if (snapshot.Cleanliness < 40f)
-            traitTriggers.Add("room:dirty");
-        if (snapshot.Spaciousness < 35f)
-            traitTriggers.Add("room:cramped");
-        if (snapshot.TemperatureC < 10f)
-            traitTriggers.Add("event:safe-cold");
-        if (traitTriggers.Count > 0)
-            traitReactions.Apply(actor, traitTriggers.ToArray());
         DungeonStory.Rooms.RoomMoodDecision mood = settings.EvaluateMood(
             snapshot.Impressiveness,
             snapshot.Cleanliness);
         float impressionMood = mood.ImpressionMood;
         float cleanlinessMood = mood.CleanlinessMood;
         string roomKey = $"{facility.Grid.GetHashCode()}:{room.Bounds.xMin}:{room.Bounds.yMin}";
+        PublishRoomCondition(actor, roomKey, snapshot.Cleanliness);
         string roomName = RoomEnvironmentPresentation.GetRoomName(snapshot);
         string action = GetActionLabel(eventType, facility);
 
@@ -145,6 +140,58 @@ public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienc
 
         return !Mathf.Approximately(impressionMood, 0f)
             || !Mathf.Approximately(cleanlinessMood, 0f);
+    }
+
+    public IReadOnlyList<string> GetActiveConditionIds(BuildableObject facility)
+    {
+        if (facility == null
+            || facility.Grid == null
+            || !TryGetFacilityRoom(facility, out RoomInstance room)
+            || room == null
+            || !room.IsUsable)
+            return Array.Empty<string>();
+
+        RoomEnvironmentSnapshot snapshot = evaluator.Evaluate(facility.Grid, room);
+        bool noisy = snapshot.Fixtures.Any(fixture =>
+            fixture != null
+            && fixture != facility
+            && (fixture.BuildingData?.category is BuildingCategory.Production
+                or BuildingCategory.Crafting
+                || fixture.BuildingData?.GetAbility<BuildingProductionAbility>() != null
+                || fixture.SupportsFacilityRole(FacilityRole.Training)
+                || fixture.SupportsFacilityRole(FacilityRole.Mana)));
+        List<string> conditions = new(2);
+        if (noisy)
+            conditions.Add("room:noise");
+        if (snapshot.Area <= 8 && snapshot.DoorCount > 0)
+            conditions.Add("room:private");
+        return conditions;
+    }
+
+    private void PublishRoomCondition(
+        CharacterActor actor,
+        string roomKey,
+        float currentCleanliness)
+    {
+        if (!CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId))
+            return;
+        string observerRoomKey = $"{characterId.Value}|{roomKey}";
+        if (lastCleanlinessByObserverRoom.TryGetValue(
+                observerRoomKey,
+                out float previousCleanliness)
+            && !Mathf.Approximately(previousCleanliness, currentCleanliness))
+        {
+            events.Publish(new RoomConditionChangedEvent(
+                characterId,
+                roomKey,
+                previousCleanliness / 100f,
+                currentCleanliness / 100f,
+                Math.Max(
+                    0,
+                    (int)Math.Floor(
+                        gameClock.Time / GameCalendarRules.SecondsPerDay))));
+        }
+        lastCleanlinessByObserverRoom[observerRoomKey] = currentCleanliness;
     }
 
     private void PublishManaExposure(RoomEnvironmentExperienceEvent eventType)

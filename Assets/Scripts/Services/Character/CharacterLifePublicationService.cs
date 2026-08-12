@@ -24,6 +24,7 @@ public sealed class CharacterLifePublicationService :
     private readonly ICharacterNarrativeCommand narrativeCommands;
     private readonly HashSet<string> heritableTraitIds;
     private readonly IRandomStream random;
+    private readonly IGameEventBus events;
 
     public CharacterLifePublicationService(
         ICharacterLifeQuery query,
@@ -34,7 +35,8 @@ public sealed class CharacterLifePublicationService :
         ICharacterNarrativeQuery narrativeQuery,
         ICharacterNarrativeCommand narrativeCommands,
         ICharacterNarrativeCatalog narrativeCatalog,
-        IRandomStreamProvider randomStreams)
+        IRandomStreamProvider randomStreams,
+        IGameEventBus events)
     {
         this.query = query ?? throw new ArgumentNullException(nameof(query));
         this.commands = commands ?? throw new ArgumentNullException(nameof(commands));
@@ -58,6 +60,7 @@ public sealed class CharacterLifePublicationService :
             StringComparer.Ordinal);
         random = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams)))
             .Get(InitialAgeRandomStreamId);
+        this.events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
     public void EnsureRegistered(CharacterActor actor)
@@ -74,7 +77,9 @@ public sealed class CharacterLifePublicationService :
             characterId,
             new CharacterSpeciesId(actor.SpeciesTag),
             profile?.ExpressedTraitIds ?? Array.Empty<string>(),
-            profile?.LatentTraitIds ?? Array.Empty<string>());
+            profile?.LatentTraitIds ?? Array.Empty<string>(),
+            actor.Progression?.GrowthState?.startingProficiencies,
+            actor.Progression?.GrowthState?.startingProfile);
     }
 
     private static bool IsPersistentLifeActor(CharacterActor actor)
@@ -93,20 +98,33 @@ public sealed class CharacterLifePublicationService :
             characterId,
             phenotypeSpeciesId,
             Array.Empty<string>(),
-            Array.Empty<string>());
+            Array.Empty<string>(),
+            null,
+            null);
     }
 
     private void EnsureRegisteredCore(
         CharacterId characterId,
         CharacterSpeciesId phenotypeSpeciesId,
         IReadOnlyList<string> expressedTraitIds,
-        IReadOnlyList<string> latentTraitIds)
+        IReadOnlyList<string> latentTraitIds,
+        IReadOnlyList<CharacterStartingProficiencyExperience>
+            startingProficiencies,
+        CharacterStartingProfileState startingProfile)
     {
+        bool registeredLife = false;
         if (!query.TryGet(characterId, out _))
         {
             SpeciesLifeHistoryDefinition history = definitions.RequireLifeHistory(
                 phenotypeSpeciesId);
-            double biologicalAgeYears = SampleInitialBiologicalAgeYears(history);
+            double biologicalAgeYears = startingProfile?.prepared == true
+                ? Math.Clamp(
+                    startingProfile.biologicalAgeYears,
+                    history.AdultAgeYears,
+                    Math.Max(
+                        history.AdultAgeYears,
+                        history.UntreatedExpectedLifeYears))
+                : SampleInitialBiologicalAgeYears(history);
             double biologicalAgeUnits = biologicalAgeYears * GameCalendarRules.DaysPerYear;
             int chronologicalAgeDays = CalculateChronologicalAgeDays(
                 history,
@@ -120,6 +138,18 @@ public sealed class CharacterLifePublicationService :
                 chronologicalAgeDays,
                 biologicalAgeUnits,
                 birthday);
+            registeredLife = true;
+        }
+
+        if (registeredLife && startingProfile?.prepared == true)
+        {
+            startingProfile.EnsureCollections();
+            IReadOnlyList<AgeConditionChange> changes =
+                commands.AddInitialAgeConditions(
+                    characterId,
+                    startingProfile.initialAgeConditionIds);
+            foreach (AgeConditionChange change in changes)
+                events.Publish(new CharacterAgeConditionChangedEvent(change));
         }
 
         if (!narrativeQuery.TryGet(characterId, out _))
@@ -128,7 +158,8 @@ public sealed class CharacterLifePublicationService :
                 characterId,
                 phenotypeSpeciesId,
                 FilterHeritableTraits(expressedTraitIds),
-                FilterHeritableTraits(latentTraitIds));
+                FilterHeritableTraits(latentTraitIds),
+                startingProficiencies);
         }
     }
 

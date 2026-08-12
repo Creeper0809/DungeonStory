@@ -9,6 +9,7 @@ public sealed class CharacterNarrativeCatalog : ICharacterNarrativeCatalog
     private readonly IReadOnlyDictionary<string, LifeEventDefinitionSO> events;
     private readonly IReadOnlyDictionary<string, SpeciesCultureDefinitionSO> cultures;
     private readonly IReadOnlyDictionary<string, HeritableTraitDefinitionSO> heritableTraits;
+    private readonly IReadOnlyDictionary<string, ProficiencyDefinitionSO> proficiencies;
 
     public CharacterNarrativeCatalog(IGameContentDefinitionSource content)
     {
@@ -31,12 +32,19 @@ public sealed class CharacterNarrativeCatalog : ICharacterNarrativeCatalog
         if (heritableErrors.Length > 0)
             throw new InvalidOperationException(
                 "V20 heritable trait content is invalid:\n" + string.Join("\n", heritableErrors));
+        Proficiencies = RequireDefinitions(
+            content.GetAll<ProficiencyDefinitionSO>(),
+            9,
+            "proficiency");
         backgrounds = Backgrounds.ToDictionary(value => value.StableId, StringComparer.Ordinal);
         ambitions = Ambitions.ToDictionary(value => value.StableId, StringComparer.Ordinal);
         events = LifeEvents.ToDictionary(value => value.StableId, StringComparer.Ordinal);
         cultures = Cultures.ToDictionary(value => value.StableId, StringComparer.Ordinal);
         heritableTraits = HeritableTraits.ToDictionary(
             value => value.traitId,
+            StringComparer.Ordinal);
+        proficiencies = Proficiencies.ToDictionary(
+            value => value.StableId,
             StringComparer.Ordinal);
         foreach (SpeciesCultureDefinitionSO culture in Cultures)
         {
@@ -69,6 +77,7 @@ public sealed class CharacterNarrativeCatalog : ICharacterNarrativeCatalog
     public IReadOnlyList<SpeciesCultureDefinitionSO> Cultures { get; }
     public IReadOnlyList<CulturalPracticeDefinitionSO> Practices { get; }
     public IReadOnlyList<HeritableTraitDefinitionSO> HeritableTraits { get; }
+    public IReadOnlyList<ProficiencyDefinitionSO> Proficiencies { get; }
 
     public CharacterBackgroundDefinitionSO Require(CharacterBackgroundId id) => Require(backgrounds, id.Value, "background");
     public CharacterAmbitionDefinitionSO Require(CharacterAmbitionId id) => Require(ambitions, id.Value, "ambition");
@@ -80,6 +89,8 @@ public sealed class CharacterNarrativeCatalog : ICharacterNarrativeCatalog
         heritableTraits.TryGetValue(traitId?.Trim() ?? string.Empty, out HeritableTraitDefinitionSO value)
             ? value
             : throw new KeyNotFoundException($"Unknown V20 heritable trait '{traitId}'.");
+    public ProficiencyDefinitionSO Require(CharacterProficiencyId id) =>
+        Require(proficiencies, id.Value, "proficiency");
 
     private static IReadOnlyList<T> RequireDefinitions<T>(IEnumerable<T> source, int expected, string label)
         where T : V20AuthoredContentSO

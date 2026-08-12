@@ -96,7 +96,12 @@ public enum V20WorldMetricKind
     RunePower,
     SelfSufficiencyDays,
     CompletedGenerations,
-    DefeatedHumanBranches
+    DefeatedHumanBranches,
+    PerCapitaNetWuIndex,
+    EmergencyReserveCoverage,
+    ProductivityCoverageDays,
+    CultureAcceptance,
+    PerCapitaServiceIndex
 }
 
 [Serializable]

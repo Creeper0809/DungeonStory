@@ -263,6 +263,7 @@ public sealed class ApparelInstanceState
     public string designatedWearerCharacterId = string.Empty;
     public int craftedAbsoluteDay;
     public ulong deterministicBatchHash;
+    public MythicProvenanceSaveData mythicProvenance;
 }
 
 [CreateAssetMenu(
@@ -287,8 +288,10 @@ public sealed class ApparelDefinitionSO : DataScriptableObject
         TextileMaterialTag.Woven | TextileMaterialTag.NonWoven;
     [Min(0.05f), SerializeField] private float tailoringCoefficient = 1f;
     [Min(0.01f), SerializeField] private float baseWeight = 0.5f;
+    [SerializeField] private bool allowMythicInspiration = true;
     [SerializeField] private string requiredResearchId = string.Empty;
     [SerializeField] private Sprite sprite;
+    [SerializeField] private ProficiencyWorkProfileAuthoring proficiency = new();
 
     public string ApparelId => apparelId?.Trim() ?? string.Empty;
     public string PhysicalItemId => physicalItemId?.Trim() ?? string.Empty;
@@ -307,8 +310,11 @@ public sealed class ApparelDefinitionSO : DataScriptableObject
     public TextileMaterialTag AllowedMaterialTags => allowedMaterialTags;
     public float TailoringCoefficient => Mathf.Max(0.05f, tailoringCoefficient);
     public float BaseWeight => Mathf.Max(0.01f, baseWeight);
+    public bool AllowMythicInspiration => allowMythicInspiration;
     public string RequiredResearchId => requiredResearchId?.Trim() ?? string.Empty;
     public Sprite Sprite => sprite;
+    public ProficiencyWorkProfileAuthoring Proficiency =>
+        proficiency ??= new ProficiencyWorkProfileAuthoring();
 
 #if UNITY_EDITOR
     public void Configure(
@@ -348,6 +354,16 @@ public sealed class ApparelDefinitionSO : DataScriptableObject
         requiredResearchId = researchId?.Trim() ?? string.Empty;
         sprite = icon;
     }
+
+    public void ConfigureProficiency(
+        CharacterProficiencyRank recommendedRank,
+        CharacterProficiencyRank minimumRiskRank) =>
+        (proficiency ??= new ProficiencyWorkProfileAuthoring()).Configure(
+            BuiltInCharacterProficiencyIds.Crafting,
+            default,
+            1f,
+            recommendedRank,
+            minimumRiskRank);
 #endif
 }
 

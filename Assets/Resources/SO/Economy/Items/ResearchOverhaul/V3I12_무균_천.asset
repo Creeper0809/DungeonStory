@@ -26,23 +26,28 @@ MonoBehaviour:
   displayName: "\uBB34\uADE0 \uCC9C"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uBB34\uADE0 \uCC9C."
   stockCategory: 1
-  unitWeight: 0.58
+  unitWeight: 1
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 34
+  unitPrice: 14
   features:
-  - rid: 7737211838078125004
-  - rid: 7737211838078125005
+  - rid: 7737211905658585599
+  - rid: 7737211905658585600
+  - rid: 7737211905660420665
   references:
     version: 2
     RefIds:
-    - rid: 7737211838078125004
+    - rid: 7737211905658585599
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:surgery
-    - rid: 7737211838078125005
+    - rid: 7737211905658585600
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 128
         sharedIntermediate: 1
+    - rid: 7737211905660420665
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.58791983

@@ -9,6 +9,13 @@ public enum RegularCustomerStatus
     Recruited
 }
 
+public enum SettlementImmigrationPolicy
+{
+    Conservative = 0,
+    Balanced = 1,
+    Open = 2
+}
+
 [Flags]
 public enum RecruitCapability
 {
@@ -19,11 +26,28 @@ public enum RecruitCapability
     All = Staff | Defense | Expedition
 }
 
+public static class RecruitProficiencyCatchUpRules
+{
+    public const int SpecializedProficiencyCount = 2;
+
+    public static int ResolvePrimaryExperienceFloor(int completedTargets) =>
+        Math.Clamp(completedTargets, 0, 6) switch
+        {
+            0 => 0,
+            1 => 100,
+            2 => 250,
+            3 => 400,
+            _ => 600
+        };
+}
+
 [Serializable]
 public sealed class DungeonRegularCustomerSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 3;
     public int version = CurrentVersion;
+    public SettlementImmigrationPolicy immigrationPolicy =
+        SettlementImmigrationPolicy.Balanced;
     public List<DungeonRegularCustomerRecordSaveData> records = new();
 }
 
@@ -39,6 +63,7 @@ public sealed class DungeonRegularCustomerRecordSaveData
     public bool isRegular;
     public bool isRecruitCandidate;
     public bool isRecruited;
+    public int recruitedAbsoluteDay;
     public RecruitCapability recruitCapabilities;
 }
 
@@ -69,6 +94,7 @@ public sealed class RegularCustomerRules
     public float regularAverageSatisfactionThreshold = 65f;
     public int recruitCandidateVisitThreshold = 2;
     public float recruitCandidateAverageSatisfactionThreshold = 65f;
+    public int recruitmentCooldownDays = 10;
     public RecruitCapability defaultRecruitCapabilities = RecruitCapability.All;
     public static RegularCustomerRules CreateDefault() => new();
 }
@@ -127,6 +153,7 @@ public sealed class RegularCustomerProgressState
         bool isRegular,
         bool isRecruitCandidate,
         bool isRecruited,
+        int recruitedAbsoluteDay,
         RecruitCapability recruitCapabilities)
     {
         CustomerId = customerId?.Trim() ?? string.Empty;
@@ -141,6 +168,9 @@ public sealed class RegularCustomerProgressState
         IsRegular = isRegular || isRecruitCandidate || isRecruited;
         IsRecruitCandidate = isRecruitCandidate || isRecruited;
         IsRecruited = isRecruited;
+        RecruitedAbsoluteDay = IsRecruited
+            ? Math.Max(1, recruitedAbsoluteDay)
+            : 0;
         RecruitCapabilities = recruitCapabilities == RecruitCapability.None
             ? RecruitCapability.All
             : recruitCapabilities;
@@ -155,6 +185,7 @@ public sealed class RegularCustomerProgressState
     public bool IsRegular { get; private set; }
     public bool IsRecruitCandidate { get; private set; }
     public bool IsRecruited { get; private set; }
+    public int RecruitedAbsoluteDay { get; private set; }
     public RecruitCapability RecruitCapabilities { get; }
     public RegularCustomerStatus Status =>
         RegularCustomerProgressionRules.ResolveStatus(
@@ -176,6 +207,14 @@ public sealed class RegularCustomerProgressState
 
     public void RecordVisit(float satisfaction, RegularCustomerRules rules)
     {
+        RecordVisit(satisfaction, rules, allowRecruitCandidate: true);
+    }
+
+    public void RecordVisit(
+        float satisfaction,
+        RegularCustomerRules rules,
+        bool allowRecruitCandidate)
+    {
         rules ??= RegularCustomerRules.CreateDefault();
         VisitCount++;
         satisfactionTotal += ClampSatisfaction(satisfaction);
@@ -187,7 +226,8 @@ public sealed class RegularCustomerProgressState
         {
             IsRegular = true;
         }
-        if (!IsRecruitCandidate
+        if (allowRecruitCandidate
+            && !IsRecruitCandidate
             && RegularCustomerProgressionRules.MeetsRecruitCandidateCondition(
                 VisitCount,
                 AverageSatisfaction,
@@ -209,7 +249,7 @@ public sealed class RegularCustomerProgressState
         return true;
     }
 
-    public bool MarkRecruited()
+    public bool MarkRecruited(int absoluteDay)
     {
         if (IsRecruited || !IsRecruitCandidate)
         {
@@ -217,6 +257,7 @@ public sealed class RegularCustomerProgressState
         }
         IsRegular = true;
         IsRecruited = true;
+        RecruitedAbsoluteDay = Math.Max(1, absoluteDay);
         return true;
     }
 
@@ -229,6 +270,7 @@ public sealed class RegularCustomerProgressState
         IsRegular,
         IsRecruitCandidate,
         IsRecruited,
+        RecruitedAbsoluteDay,
         RecruitCapabilities);
 
     private static float ClampSatisfaction(float value) =>

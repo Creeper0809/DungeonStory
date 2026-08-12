@@ -8,7 +8,9 @@ public sealed class CharacterConsumablesRuntime :
     ICharacterConsumablesApplication,
     ICharacterConsumablesPersistence
 {
-    private const float EmergencyHungerThreshold = 10f;
+    public const string FieldMealFacilityId = "primitive:field-meal";
+    private const float MealFollowupCooldownSeconds = 15f;
+    private const float MealActionSeconds = 4f;
     private const float DeliveryRetrySeconds = 45f;
     private const float GameHourSeconds = 60f;
     private const float MedicalUseHealthRatio = 0.82f;
@@ -20,6 +22,14 @@ public sealed class CharacterConsumablesRuntime :
     private readonly IGameClock clock;
     private readonly IRandomStream random;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly ICharacterNeedBalanceRuntime needBalance;
+
+    private float RoutineHungerThreshold => needBalance
+        .GetResponse(CharacterCondition.HUNGER)
+        .routineStart;
+    private float EmergencyHungerThreshold => needBalance
+        .GetResponse(CharacterCondition.HUNGER)
+        .emergencyStart;
 
     private CharacterConsumablesAggregateState ReadState =>
         aggregateRootStore.GetOrCreate(() => new CharacterConsumablesAggregateState());
@@ -34,7 +44,8 @@ public sealed class CharacterConsumablesRuntime :
         ICharacterConsumablesEventPort events,
         IGameClock clock,
         IRandomStreamProvider randomStreams,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        ICharacterNeedBalanceRuntime needBalance)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.inventory = inventory ?? throw new ArgumentNullException(nameof(inventory));
@@ -42,6 +53,8 @@ public sealed class CharacterConsumablesRuntime :
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.needBalance = needBalance
+            ?? throw new ArgumentNullException(nameof(needBalance));
         random = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams)))
             .Get("character-consumables");
     }
@@ -63,6 +76,31 @@ public sealed class CharacterConsumablesRuntime :
             characterId = characterId.Value,
             policy = policy
         };
+    }
+
+    public CharacterMealQualityLimit GetMealQualityLimit(CharacterId characterId) =>
+        characterId.IsValid
+        && ReadState.MealQualityPolicies.TryGetValue(
+            characterId,
+            out CharacterMealQualityPolicyState state)
+            ? state.maximumQuality
+            : CharacterMealQualityLimit.Inherit;
+
+    public void SetMealQualityLimit(
+        CharacterId characterId,
+        CharacterMealQualityLimit qualityLimit)
+    {
+        if (!characterId.IsValid
+            || !Enum.IsDefined(typeof(CharacterMealQualityLimit), qualityLimit))
+        {
+            return;
+        }
+        WriteState.MealQualityPolicies[characterId] =
+            new CharacterMealQualityPolicyState
+            {
+                characterId = characterId.Value,
+                maximumQuality = qualityLimit
+            };
     }
 
     public bool IsMealAllowed(
@@ -93,11 +131,30 @@ public sealed class CharacterConsumablesRuntime :
         }
 
         bool emergency = actor.Hunger <= EmergencyHungerThreshold;
-        if (GetMealCandidates(actor, facilityId, true, emergency).Count > 0)
+        if (IsMealFollowupCooldownActive(actor) && !emergency)
+        {
+            failure = new CharacterConsumablesFailure(
+                CharacterConsumablesFailureCode.PolicyForbidden,
+                "meal-followup-cooldown");
+            return false;
+        }
+        if (GetMealCandidates(
+                actor,
+                facilityId,
+                true,
+                emergency,
+                out bool bufferRoutePending).Count > 0)
         {
             return true;
         }
-        if (GetMealCandidates(actor, facilityId, false, emergency).Count > 0)
+        if (GetMealCandidates(
+                actor,
+                facilityId,
+                false,
+                emergency,
+                out bool sourceRoutePending).Count > 0
+            || bufferRoutePending
+            || sourceRoutePending)
         {
             failure = new CharacterConsumablesFailure(
                 CharacterConsumablesFailureCode.DeliveryPending,
@@ -111,6 +168,213 @@ public sealed class CharacterConsumablesRuntime :
                 : CharacterConsumablesFailureCode.PolicyForbidden,
             facilityId.Value);
         return false;
+    }
+
+    public bool TryFindFieldMeal(
+        CharacterId characterId,
+        out ItemStackId stackId,
+        out Vector2Int position,
+        out CharacterConsumablesFailure failure)
+    {
+        stackId = default;
+        position = default;
+        failure = CharacterConsumablesFailure.None;
+        if (!TryGetActor(characterId, out CharacterConsumablesActorSnapshot actor)
+            || !actor.Active)
+        {
+            failure = new CharacterConsumablesFailure(
+                CharacterConsumablesFailureCode.CharacterMissing,
+                characterId.Value);
+            return false;
+        }
+        if (world is ICharacterRitualFastingMealPort fasting
+            && fasting.IsRitualFasting(characterId))
+        {
+            failure = new CharacterConsumablesFailure(
+                CharacterConsumablesFailureCode.PolicyForbidden,
+                characterId.Value,
+                "ritual-fast");
+            return false;
+        }
+        if (actor.Hunger > RoutineHungerThreshold)
+        {
+            failure = new CharacterConsumablesFailure(
+                CharacterConsumablesFailureCode.PolicyForbidden,
+                characterId.Value,
+                "not-hungry");
+            return false;
+        }
+        bool emergency = actor.Hunger <= EmergencyHungerThreshold;
+        if (IsMealFollowupCooldownActive(actor) && !emergency)
+        {
+            failure = new CharacterConsumablesFailure(
+                CharacterConsumablesFailureCode.PolicyForbidden,
+                characterId.Value,
+                "meal-followup-cooldown");
+            return false;
+        }
+
+        CharacterMealQualityLimit authoredLimit = GetMealQualityLimit(actor.Id);
+        MealQualityBand maximumQuality = authoredLimit == CharacterMealQualityLimit.Inherit
+            ? MealQualityBand.Fine
+            : (MealQualityBand)(int)authoredLimit;
+        float baseMood = world.GetBaseMoodForMealChoice(actor.Id);
+        CharacterConsumablesStackSnapshot selected = inventory.GetAllStacks()
+            .Where(stack => stack.AvailableQuantity > 0
+                && !stack.Forbidden
+                && stack.State is CharacterConsumablesStackState.Loose
+                    or CharacterConsumablesStackState.Stored
+                && stack.RemainingFreshnessSeconds > MealActionSeconds + 0.25f
+                && inventory.TryGetMeal(
+                    stack.ItemId,
+                    out CharacterConsumablesMealDefinitionSnapshot meal)
+                && (meal.ServingRole != MealServingRole.EmergencyOnly
+                    || emergency))
+            .Where(stack =>
+            {
+                inventory.TryGetMeal(stack.ItemId, out CharacterConsumablesMealDefinitionSnapshot meal);
+                return meal.QualityBand <= maximumQuality
+                    && (emergency || IsMealAllowed(actor.Id, meal)
+                        && stack.Contamination <= 0.01f);
+            })
+            .OrderByDescending(stack =>
+            {
+                inventory.TryGetMeal(stack.ItemId, out CharacterConsumablesMealDefinitionSnapshot meal);
+                float quality = (baseMood < 35f ? 1f : -1f)
+                    * (int)meal.QualityBand * 100f;
+                float culture = world.GetCultureMealPreference(actor.Id, meal.Id)
+                    == CharacterCultureMealPreference.Preferred ? 1000f : 0f;
+                return culture + quality + meal.Nutrition + meal.Mood * 2f;
+            })
+            .ThenBy(stack => ManhattanSeconds(actor.Position, stack.Position))
+            .ThenBy(stack => stack.StackId.Value, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (!selected.StackId.IsValid)
+        {
+            failure = new CharacterConsumablesFailure(
+                CharacterConsumablesFailureCode.ItemStackMissing,
+                characterId.Value,
+                "field-meal");
+            return false;
+        }
+
+        stackId = selected.StackId;
+        position = selected.Position;
+        return true;
+    }
+
+    public bool TryConsumeFieldMeal(
+        CharacterId characterId,
+        ItemStackId stackId,
+        out CharacterConsumablesMealResult result)
+    {
+        ConsumableOperationId operationId = NewOperationId();
+        BuildingInstanceId fieldFacility = new(FieldMealFacilityId);
+        if (!TryGetActor(characterId, out CharacterConsumablesActorSnapshot actor)
+            || !actor.Active)
+        {
+            result = CharacterConsumablesMealResult.Failed(
+                CharacterConsumablesFailureCode.CharacterMissing,
+                characterId.Value);
+            return false;
+        }
+        if (world is ICharacterRitualFastingMealPort fasting
+            && fasting.IsRitualFasting(characterId))
+        {
+            result = CharacterConsumablesMealResult.Failed(
+                CharacterConsumablesFailureCode.PolicyForbidden,
+                characterId.Value,
+                "ritual-fast");
+            return false;
+        }
+        bool emergency = actor.Hunger <= EmergencyHungerThreshold;
+        if (actor.Hunger > RoutineHungerThreshold
+            || IsMealFollowupCooldownActive(actor) && !emergency)
+        {
+            result = CharacterConsumablesMealResult.Failed(
+                CharacterConsumablesFailureCode.PolicyForbidden,
+                characterId.Value,
+                "field-meal-not-needed");
+            return false;
+        }
+
+        CharacterConsumablesStackSnapshot stack = FindStack(stackId);
+        if (!stack.StackId.IsValid
+            || stack.AvailableQuantity <= 0
+            || stack.Forbidden
+            || stack.State is not CharacterConsumablesStackState.Loose
+                and not CharacterConsumablesStackState.Stored
+            || stack.RemainingFreshnessSeconds <= 0f
+            || !inventory.TryGetMeal(
+                stack.ItemId,
+                out CharacterConsumablesMealDefinitionSnapshot meal))
+        {
+            result = CharacterConsumablesMealResult.Failed(
+                CharacterConsumablesFailureCode.ItemNotConsumable,
+                stackId.Value,
+                "field-meal-invalid");
+            return false;
+        }
+        bool policyAllowed = IsMealAllowed(actor.Id, meal);
+        bool contaminated = stack.Contamination > 0.01f;
+        if ((!policyAllowed || contaminated) && !emergency)
+        {
+            result = CharacterConsumablesMealResult.Failed(
+                CharacterConsumablesFailureCode.PolicyForbidden,
+                meal.Id.Value);
+            return false;
+        }
+        if (!inventory.TryReserveMealQuantity(
+                operationId,
+                characterId,
+                fieldFacility,
+                stackId,
+                out string leaseId))
+        {
+            result = CharacterConsumablesMealResult.Failed(
+                CharacterConsumablesFailureCode.ItemStackMissing,
+                stackId.Value,
+                "field-meal-reservation-failed");
+            return false;
+        }
+
+        if (!inventory.RevalidateMealQuantity(leaseId, stackId)
+            || !inventory.TryConsumeReservedMealQuantity(leaseId, stackId, 1))
+        {
+            inventory.ReleaseMealQuantity(leaseId);
+            result = CharacterConsumablesMealResult.Failed(
+                CharacterConsumablesFailureCode.PhysicalConsumptionFailed,
+                stackId.Value,
+                "field-meal-consumption-failed");
+            return false;
+        }
+
+        result = CharacterConsumablesMealResult.Consumed(
+            operationId,
+            meal,
+            stackId,
+            !policyAllowed,
+            contaminated);
+        RecordCompletedOperation(
+            operationId,
+            characterId,
+            meal.Id,
+            stackId,
+            true,
+            !policyAllowed,
+            contaminated);
+        if (meal.ServingRole is MealServingRole.Snack or MealServingRole.LightMeal)
+        {
+            WriteState.MealFollowupCooldownUntil[characterId] =
+                clock.Time + MealFollowupCooldownSeconds;
+        }
+        (world as ICharacterRitualFastingMealPort)?.RecordMealConsumed(
+            characterId,
+            directPlayerOrder: false);
+        ApplyMealEffects(
+            new ConsumeMealCommand(operationId, characterId, fieldFacility, stackId),
+            result);
+        return true;
     }
 
     public bool TryConsumeMeal(
@@ -127,15 +391,48 @@ public sealed class CharacterConsumablesRuntime :
                     : CharacterConsumablesFailureCode.FacilityMissing);
             return false;
         }
+        if (world is ICharacterRitualFastingMealPort ritualFasting
+            && ritualFasting.IsRitualFasting(characterId))
+        {
+            result = CharacterConsumablesMealResult.Failed(
+                CharacterConsumablesFailureCode.PolicyForbidden,
+                characterId.Value,
+                "ritual-fast");
+            return false;
+        }
+        if (actor.Hunger > RoutineHungerThreshold)
+        {
+            result = CharacterConsumablesMealResult.Failed(
+                CharacterConsumablesFailureCode.PolicyForbidden,
+                characterId.Value,
+                "not-hungry");
+            return false;
+        }
         bool emergency = actor.Hunger <= EmergencyHungerThreshold;
+        if (IsMealFollowupCooldownActive(actor) && !emergency)
+        {
+            result = CharacterConsumablesMealResult.Failed(
+                CharacterConsumablesFailureCode.PolicyForbidden,
+                characterId.Value,
+                "meal-followup-cooldown");
+            return false;
+        }
         List<MealCandidate> candidates = GetMealCandidates(
             actor,
             facilityId,
             true,
-            emergency);
+            emergency,
+            out bool routePending);
         if (candidates.Count == 0)
         {
-            if (TryRequestMealDelivery(actor, facilityId, emergency))
+            bool deliveryRoutePending = false;
+            if (routePending
+                || TryRequestMealDelivery(
+                    actor,
+                    facilityId,
+                    emergency,
+                    out deliveryRoutePending)
+                || deliveryRoutePending)
             {
                 result = CharacterConsumablesMealResult.Failed(
                     CharacterConsumablesFailureCode.DeliveryPending,
@@ -183,6 +480,11 @@ public sealed class CharacterConsumablesRuntime :
                 command.OperationId.Value);
             return false;
         }
+        if (ReadState.ActiveMealPlans.ContainsKey(command.OperationId))
+        {
+            return TryGetMealOperationResult(command.OperationId, out result)
+                && result.Success;
+        }
         if (!TryGetActor(command.CharacterId, out CharacterConsumablesActorSnapshot actor)
             || !TryGetMealFacility(command.FacilityId, out _))
         {
@@ -211,6 +513,25 @@ public sealed class CharacterConsumablesRuntime :
         }
 
         bool emergency = actor.Hunger <= EmergencyHungerThreshold;
+        if (automaticOperation
+            && actor.Hunger > RoutineHungerThreshold)
+        {
+            result = CharacterConsumablesMealResult.Failed(
+                CharacterConsumablesFailureCode.PolicyForbidden,
+                command.CharacterId.Value,
+                "not-hungry");
+            return false;
+        }
+        if (automaticOperation
+            && IsMealFollowupCooldownActive(actor)
+            && !emergency)
+        {
+            result = CharacterConsumablesMealResult.Failed(
+                CharacterConsumablesFailureCode.PolicyForbidden,
+                command.CharacterId.Value,
+                "meal-followup-cooldown");
+            return false;
+        }
         bool policyAllowed = IsMealAllowed(actor.Id, meal);
         bool contaminated = stack.Contamination > 0.01f;
         if ((!policyAllowed || contaminated) && !emergency)
@@ -221,28 +542,278 @@ public sealed class CharacterConsumablesRuntime :
                 GetDietPolicy(actor.Id).ToString());
             return false;
         }
-        if (!inventory.TryConsume(stack.StackId, 1))
+
+        if (!world.TryReserveMealFacilitySlot(
+                command.OperationId,
+                command.CharacterId,
+                command.FacilityId))
         {
             result = CharacterConsumablesMealResult.Failed(
-                CharacterConsumablesFailureCode.PhysicalConsumptionFailed,
-                command.ItemStackId.Value);
+                CharacterConsumablesFailureCode.DeliveryPending,
+                command.FacilityId.Value,
+                "meal-facility-slot-reserved");
+            return false;
+        }
+        if (!inventory.TryReserveMealQuantity(
+                command.OperationId,
+                command.CharacterId,
+                command.FacilityId,
+                command.ItemStackId,
+                out string mealLeaseId))
+        {
+            world.ReleaseMealFacilitySlot(command.OperationId, command.FacilityId);
+            result = CharacterConsumablesMealResult.Failed(
+                CharacterConsumablesFailureCode.ItemStackMissing,
+                command.ItemStackId.Value,
+                "meal-quantity-reservation-failed");
             return false;
         }
 
-        result = CharacterConsumablesMealResult.Consumed(
+        CharacterMealPlan plan = new()
+        {
+            planId = command.OperationId.Value,
+            characterId = command.CharacterId.Value,
+            facilityInstanceId = command.FacilityId.Value,
+            sourceStackId = command.ItemStackId.Value,
+            itemDefinitionId = meal.Id.Value,
+            mealQuantityLeaseId = mealLeaseId,
+            phase = CharacterMealPlanPhase.Reserved,
+            createdAt = clock.Time,
+            leaseExpiresAt = clock.Time + 15f,
+            expectedCompletionEta = 4f
+        };
+        plan.automaticOperation = automaticOperation;
+        plan.facilitySlotReserved = true;
+        WriteState.ActiveMealPlans[command.OperationId] = plan;
+
+        // Begin-use validation: the item must still be an edible buffer item and
+        // survive the authored four-second eating action with a small safety margin.
+        ItemStackId beginStackId = inventory.TryResolveMealQuantityStack(
+                mealLeaseId,
+                out ItemStackId resolvedBeginStackId)
+            ? resolvedBeginStackId
+            : command.ItemStackId;
+        CharacterConsumablesStackSnapshot beginStack = FindStack(beginStackId);
+        if (!IsAvailableMealBufferStack(beginStack, command.FacilityId)
+            || beginStack.RemainingFreshnessSeconds <= 4.25f)
+        {
+            AbortMealPlan(command, plan);
+            result = CharacterConsumablesMealResult.Failed(
+                CharacterConsumablesFailureCode.ItemNotConsumable,
+                command.ItemStackId.Value,
+                "meal-invalid-before-use");
+            return false;
+        }
+        plan.beginContamination = beginStack.Contamination;
+        plan.phase = CharacterMealPlanPhase.Eating;
+        result = CharacterConsumablesMealResult.Pending(
+            command.OperationId,
             meal,
             command.ItemStackId,
-            !policyAllowed,
-            contaminated);
+            "meal-eating");
+        return false;
+    }
+
+    public bool TryGetMealOperationResult(
+        ConsumableOperationId operationId,
+        out CharacterConsumablesMealResult result)
+    {
+        if (!operationId.IsValid)
+        {
+            result = CharacterConsumablesMealResult.Failed(
+                CharacterConsumablesFailureCode.InvalidCommand);
+            return false;
+        }
+
+        if (ReadState.ActiveMealPlans.TryGetValue(operationId, out CharacterMealPlan plan)
+            && plan != null
+            && inventory.TryGetMeal(
+                new ConsumableItemDefinitionId(plan.itemDefinitionId),
+                out CharacterConsumablesMealDefinitionSnapshot activeMeal))
+        {
+            ItemStackId activeStack = inventory.TryResolveMealQuantityStack(
+                    plan.mealQuantityLeaseId,
+                    out ItemStackId resolvedActiveStack)
+                ? resolvedActiveStack
+                : new ItemStackId(plan.sourceStackId);
+            result = CharacterConsumablesMealResult.Pending(
+                operationId,
+                activeMeal,
+                activeStack,
+                "meal-eating");
+            return true;
+        }
+
+        if (ReadState.CompletedOperations.TryGetValue(
+                operationId,
+                out CharacterConsumableOperationState completed)
+            && completed != null
+            && completed.meal
+            && inventory.TryGetMeal(
+                completed.ItemDefinitionId,
+                out CharacterConsumablesMealDefinitionSnapshot completedMeal))
+        {
+            result = CharacterConsumablesMealResult.Consumed(
+                operationId,
+                completedMeal,
+                completed.ItemStackId,
+                completed.policyViolation,
+                completed.contaminated);
+            return true;
+        }
+
+        result = CharacterConsumablesMealResult.Failed(
+            CharacterConsumablesFailureCode.PhysicalConsumptionFailed,
+            operationId.Value,
+            "meal-operation-missing-or-aborted");
+        return false;
+    }
+
+    private void AdvanceMealPlans()
+    {
+        CharacterConsumablesAggregateState state = WriteState;
+        KeyValuePair<ConsumableOperationId, CharacterMealPlan>[] active =
+            state.ActiveMealPlans
+                .OrderBy(pair => pair.Key.Value, StringComparer.Ordinal)
+                .ToArray();
+        foreach (KeyValuePair<ConsumableOperationId, CharacterMealPlan> pair in active)
+        {
+            CharacterMealPlan plan = pair.Value;
+            if (plan == null || plan.phase != CharacterMealPlanPhase.Eating)
+                continue;
+            ConsumeMealCommand command = new(
+                pair.Key,
+                new CharacterId(plan.characterId),
+                new BuildingInstanceId(plan.facilityInstanceId),
+                new ItemStackId(plan.sourceStackId));
+            if (!command.IsValid)
+            {
+                AbortMealPlan(command, plan);
+                continue;
+            }
+            if (string.IsNullOrWhiteSpace(plan.mealQuantityLeaseId))
+            {
+                if (!inventory.TryRebindMealQuantityLease(
+                        pair.Key,
+                        out string reboundLeaseId,
+                        out ItemStackId reboundStackId))
+                {
+                    if (clock.Time >= plan.leaseExpiresAt)
+                        AbortMealPlan(command, plan);
+                    continue;
+                }
+                plan.mealQuantityLeaseId = reboundLeaseId;
+                plan.transportStackId = reboundStackId.Value;
+                plan.leaseExpiresAt = Math.Max(
+                    plan.leaseExpiresAt,
+                    clock.Time + 15f);
+            }
+            if (!plan.facilitySlotReserved)
+            {
+                if (!world.TryReserveMealFacilitySlot(
+                        pair.Key,
+                        command.CharacterId,
+                        command.FacilityId))
+                {
+                    continue;
+                }
+                plan.facilitySlotReserved = true;
+            }
+            if (clock.Time >= plan.leaseExpiresAt)
+            {
+                AbortMealPlan(command, plan);
+                continue;
+            }
+            if (clock.Time < plan.createdAt + MealActionSeconds)
+                continue;
+            TryCommitMealPlan(command, plan);
+        }
+    }
+
+    private bool TryCommitMealPlan(
+        ConsumeMealCommand command,
+        CharacterMealPlan plan)
+    {
+        if (!TryGetActor(command.CharacterId, out CharacterConsumablesActorSnapshot actor)
+            || !TryGetMealFacility(command.FacilityId, out _)
+            || !inventory.TryGetMeal(
+                new ConsumableItemDefinitionId(plan.itemDefinitionId),
+                out CharacterConsumablesMealDefinitionSnapshot meal))
+        {
+            AbortMealPlan(command, plan);
+            return false;
+        }
+
+        ItemStackId commitStackId = inventory.TryResolveMealQuantityStack(
+                plan.mealQuantityLeaseId,
+                out ItemStackId resolvedCommitStackId)
+            ? resolvedCommitStackId
+            : command.ItemStackId;
+        CharacterConsumablesStackSnapshot commitStack = FindStack(commitStackId);
+        bool policyAllowed = IsMealAllowed(actor.Id, meal);
+        bool contaminated = commitStack.Contamination > 0.01f;
+        bool emergency = actor.Hunger <= EmergencyHungerThreshold;
+        if ((!policyAllowed || contaminated) && !emergency
+            || !inventory.RevalidateMealQuantity(
+                plan.mealQuantityLeaseId,
+                commitStackId)
+            || !IsAvailableMealBufferStack(commitStack, command.FacilityId)
+            || commitStack.RemainingFreshnessSeconds <= 0f
+            || commitStack.Contamination > plan.beginContamination + 0.01f
+            || !inventory.TryConsumeReservedMealQuantity(
+                plan.mealQuantityLeaseId,
+                commitStackId,
+                1))
+        {
+            AbortMealPlan(command, plan);
+            return false;
+        }
+
+        plan.physicalConsumptionCommitted = true;
+        plan.phase = CharacterMealPlanPhase.Completed;
+        WriteState.ActiveMealPlans.Remove(command.OperationId);
+        world.ReleaseMealFacilitySlot(command.OperationId, command.FacilityId);
+
+        CharacterConsumablesMealResult result =
+            CharacterConsumablesMealResult.Consumed(
+                command.OperationId,
+                meal,
+                commitStackId,
+                !policyAllowed,
+                contaminated);
         RecordCompletedOperation(
             command.OperationId,
             command.CharacterId,
             meal.Id,
-            command.ItemStackId,
-            true);
+            commitStackId,
+            true,
+            !policyAllowed,
+            contaminated);
+        if (meal.ServingRole is MealServingRole.Snack or MealServingRole.LightMeal)
+        {
+            WriteState.MealFollowupCooldownUntil[command.CharacterId] =
+                clock.Time + MealFollowupCooldownSeconds;
+        }
         CompleteDelivery(command.CharacterId, command.FacilityId, meal.Id);
+        (world as ICharacterRitualFastingMealPort)?.RecordMealConsumed(
+            command.CharacterId,
+            directPlayerOrder: !plan.automaticOperation);
         ApplyMealEffects(command, result);
         return true;
+    }
+
+    private void AbortMealPlan(
+        ConsumeMealCommand command,
+        CharacterMealPlan plan)
+    {
+        if (plan != null)
+        {
+            plan.phase = CharacterMealPlanPhase.Aborted;
+            if (!plan.physicalConsumptionCommitted)
+                inventory.ReleaseMealQuantity(plan.mealQuantityLeaseId);
+        }
+        WriteState.ActiveMealPlans.Remove(command.OperationId);
+        world.ReleaseMealFacilitySlot(command.OperationId, command.FacilityId);
     }
 
     public CharacterSubstancePolicyState GetSubstancePolicy(
@@ -361,6 +932,99 @@ public sealed class CharacterConsumablesRuntime :
             out result);
     }
 
+    public bool TryConsumeRecreationalSubstance(
+        CharacterId characterId,
+        BuildingInstanceId facilityId,
+        out CharacterConsumablesSubstanceResult result)
+    {
+        if (!TryGetActor(characterId, out CharacterConsumablesActorSnapshot actor)
+            || !TryGetRecreationalSubstanceFacility(
+                facilityId,
+                out CharacterConsumablesFacilitySnapshot facility))
+        {
+            result = CharacterConsumablesSubstanceResult.Failed(
+                !actor.Id.IsValid
+                    ? CharacterConsumablesFailureCode.CharacterMissing
+                    : CharacterConsumablesFailureCode.FacilityMissing,
+                !actor.Id.IsValid ? characterId.Value : facilityId.Value);
+            return false;
+        }
+
+        List<RecreationalSubstanceCandidate> buffered =
+            GetRecreationalSubstanceCandidates(actor, facilityId, bufferOnly: true);
+        if (buffered.Count > 0)
+        {
+            RecreationalSubstanceCandidate selected = buffered[0];
+            return TryConsumeSubstance(
+                new ConsumeSubstanceByIdCommand(
+                    NewOperationId(),
+                    characterId,
+                    selected.Substance.Id,
+                    selected.Stack.StackId,
+                    medicalContext: false,
+                    combatContext: false),
+                automaticOperation: true,
+                out result);
+        }
+
+        List<RecreationalSubstanceCandidate> deliverable =
+            GetRecreationalSubstanceCandidates(actor, facilityId, bufferOnly: false);
+        if (deliverable.Count > 0)
+        {
+            RecreationalSubstanceCandidate selected = deliverable[0];
+            string destinationId = GetRecreationalSubstanceDestinationId(facilityId);
+            if (HasRoutedItem(destinationId, selected.Substance.Id)
+                || inventory.TryRequestDelivery(
+                    selected.Substance.Id,
+                    1,
+                    facility.Position,
+                    destinationId,
+                    out int requested) && requested > 0)
+            {
+                result = CharacterConsumablesSubstanceResult.Failed(
+                    CharacterConsumablesFailureCode.DeliveryPending,
+                    characterId.Value,
+                    facilityId.Value,
+                    selected.Substance.Id.Value);
+                return false;
+            }
+        }
+
+        bool hasRecreationalStock = false;
+        bool hasPolicyAllowedRecreationalStock = false;
+        foreach (CharacterConsumablesStackSnapshot stack in inventory.GetAllStacks())
+        {
+            if (stack.AvailableQuantity <= 0 || stack.Forbidden
+                || !inventory.TryResolveSubstance(
+                    stack.ItemId,
+                    out CharacterConsumablesSubstanceDefinitionSnapshot substance)
+                || substance.Definition.UseClass != SubstanceUseClass.Recreational)
+            {
+                continue;
+            }
+            hasRecreationalStock = true;
+            CharacterSubstancePolicyState policy = GetSubstancePolicy(
+                actor.Id,
+                substance.Definition.SubstanceId);
+            if (CharacterConsumablesPolicyRules.AllowsSubstance(
+                    policy,
+                    medicalContext: false,
+                    combatContext: false,
+                    actor.Mood))
+            {
+                hasPolicyAllowedRecreationalStock = true;
+                break;
+            }
+        }
+        result = CharacterConsumablesSubstanceResult.Failed(
+            hasRecreationalStock && !hasPolicyAllowedRecreationalStock
+                ? CharacterConsumablesFailureCode.PolicyForbidden
+                : CharacterConsumablesFailureCode.ItemStackMissing,
+            characterId.Value,
+            facilityId.Value);
+        return false;
+    }
+
     public bool TryConsumeSubstance(
         ConsumeSubstanceByIdCommand command,
         out CharacterConsumablesSubstanceResult result) =>
@@ -421,8 +1085,8 @@ public sealed class CharacterConsumablesRuntime :
             return false;
         }
         CharacterConsumablesStackSnapshot stack = FindStack(command.ItemStackId);
-        if (!stack.StackId.IsValid || stack.Quantity <= 0 || stack.Forbidden
-            || stack.Reserved || !stack.ItemId.Equals(substance.Id))
+        if (!stack.StackId.IsValid || stack.AvailableQuantity <= 0 || stack.Forbidden
+            || !stack.ItemId.Equals(substance.Id))
         {
             result = FailedSubstance(
                 CharacterConsumablesFailureCode.ItemStackMissing,
@@ -543,6 +1207,7 @@ public sealed class CharacterConsumablesRuntime :
 
     public void Tick()
     {
+        AdvanceMealPlans();
         float deltaTime = Mathf.Max(0f, clock.DeltaTime);
         if (deltaTime <= 0f)
         {
@@ -630,16 +1295,21 @@ public sealed class CharacterConsumablesRuntime :
                 "survived",
                 1f);
         }
-        if (result.Contaminated)
+        float poisoningChance = result.Contaminated
+            ? Mathf.Clamp01(world.ProjectGameplayEffect(
+                command.CharacterId,
+                GameplayEffectTargetIds.FoodPoisoningChance,
+                1f))
+            : 0f;
+        if (result.Contaminated && random.Chance(poisoningChance))
         {
             mood -= 7f;
             world.ApplyDamage(command.CharacterId, 3f, "contaminated meal");
         }
         if (!Mathf.Approximately(mood, 0f))
         {
-            world.ApplyMood(
+            world.ApplyBestMealMood(
                 command.CharacterId,
-                $"meal:{result.Meal.Id.Value}",
                 $"Ate {result.Meal.DisplayName}",
                 mood,
                 180f);
@@ -698,13 +1368,20 @@ public sealed class CharacterConsumablesRuntime :
     private bool TryRequestMealDelivery(
         CharacterConsumablesActorSnapshot actor,
         BuildingInstanceId facilityId,
-        bool emergency)
+        bool emergency,
+        out bool routePending)
     {
+        routePending = false;
         if (!TryGetMealFacility(facilityId, out CharacterConsumablesFacilitySnapshot facility))
         {
             return false;
         }
-        foreach (MealCandidate candidate in GetMealCandidates(actor, facilityId, false, emergency))
+        foreach (MealCandidate candidate in GetMealCandidates(
+                     actor,
+                     facilityId,
+                     false,
+                     emergency,
+                     out routePending))
         {
             MealDeliveryRoute route = new(actor.Id, facilityId, candidate.Definition.Id);
             if (ReadState.DeliveryByRoute.TryGetValue(route, out ConsumableDeliveryId existingId)
@@ -748,13 +1425,21 @@ public sealed class CharacterConsumablesRuntime :
         CharacterConsumablesActorSnapshot actor,
         BuildingInstanceId facilityId,
         bool bufferOnly,
-        bool emergency)
+        bool emergency,
+        out bool routePending)
     {
+        routePending = false;
         string destinationId = GetMealDestinationId(facilityId);
         List<MealCandidate> result = new();
+        if (!TryGetMealFacility(
+                facilityId,
+                out CharacterConsumablesFacilitySnapshot facility))
+        {
+            return result;
+        }
         foreach (CharacterConsumablesStackSnapshot stack in inventory.GetAllStacks())
         {
-            if (stack.Quantity <= 0 || stack.Forbidden
+            if (stack.AvailableQuantity <= 0 || stack.Forbidden
                 || !inventory.TryGetMeal(stack.ItemId, out CharacterConsumablesMealDefinitionSnapshot meal))
             {
                 continue;
@@ -773,21 +1458,144 @@ public sealed class CharacterConsumablesRuntime :
             {
                 continue;
             }
-            float score = (allowed ? 1000f : 0f)
+            if (meal.ServingRole == MealServingRole.EmergencyOnly && !emergency)
+                continue;
+            CharacterMealQualityLimit authoredLimit = GetMealQualityLimit(actor.Id);
+            MealQualityBand maximumQuality = authoredLimit == CharacterMealQualityLimit.Inherit
+                ? MealQualityBand.Fine
+                : (MealQualityBand)(int)authoredLimit;
+            if (meal.QualityBand > maximumQuality)
+                continue;
+            float actorToFacility = ManhattanSeconds(
+                actor.Position,
+                facility.Position);
+            float foodToFacility = isBuffer
+                ? 0f
+                : ManhattanSeconds(stack.Position, facility.Position) + 2f;
+            float completionEta = Mathf.Max(actorToFacility, foodToFacility) + 4f;
+            if (stack.RemainingFreshnessSeconds <= completionEta + 1f)
+                continue;
+            float baseMood = world.GetBaseMoodForMealChoice(actor.Id);
+            float qualityPreference = (baseMood < 35f ? 1f : -1f)
+                * (int)meal.QualityBand * 100f;
+            float score = (allowed ? 10000f : 0f)
                 + (world.GetCultureMealPreference(actor.Id, meal.Id)
                     == CharacterCultureMealPreference.Preferred
-                        ? 250f
+                        ? 1000f
                         : 0f)
+                + qualityPreference
                 + (1f - stack.Freshness01) * 120f
                 + meal.Nutrition
                 + meal.Mood * 2f;
-            result.Add(new MealCandidate(meal, stack, score));
+            List<string> semanticTags = new(3);
+            if (meal.Quality == MealQualityTier.Lavish)
+                semanticTags.Add("consume:luxury");
+            if (meal.Sweet) semanticTags.Add("food:sweet");
+            if (meal.Salted) semanticTags.Add("food:salted");
+            bool unfamiliar = !ReadState.CompletedOperations.Values.Any(
+                operation => operation != null
+                    && operation.meal
+                    && string.Equals(
+                        operation.characterId,
+                        actor.Id.Value,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        operation.itemDefinitionId,
+                        meal.Id.Value,
+                        StringComparison.Ordinal));
+            if (unfamiliar) semanticTags.Add("food:unfamiliar");
+            score *= world.GetBehaviorUtilityMultiplier(
+                actor.Id,
+                semanticTags);
+            if (contaminated)
+            {
+                float detection = Math.Max(
+                    0f,
+                    world.ProjectGameplayEffect(
+                        actor.Id,
+                        "food:spoilage-detection",
+                        1f));
+                score -= 500f * detection;
+            }
+            result.Add(new MealCandidate(meal, stack, score, completionEta));
         }
-        return result.OrderByDescending(candidate => candidate.Score)
+        float bestCompletionEta = result.Count == 0
+            ? float.PositiveInfinity
+            : result.Min(candidate => candidate.CompletionEta);
+        List<MealCandidate> preciseCandidates = result
+            .Where(candidate => candidate.CompletionEta <= bestCompletionEta + 8f)
+            .OrderByDescending(candidate => candidate.Score)
+            .ThenBy(candidate => candidate.Definition.Id.Value, StringComparer.Ordinal)
+            .ThenBy(candidate => candidate.Stack.StackId.Value, StringComparer.Ordinal)
+            .Take(7)
+            .ToList();
+        if (preciseCandidates.Count == 0)
+            return preciseCandidates;
+
+        CharacterMealRouteStatus actorRouteStatus = world.GetMealRouteStatus(
+            actor.Id,
+            actor.Position,
+            facility.Position,
+            out float actorToFacilityExact);
+        if (actorRouteStatus == CharacterMealRouteStatus.Pending)
+        {
+            routePending = true;
+            return new List<MealCandidate>();
+        }
+        if (actorRouteStatus != CharacterMealRouteStatus.Reachable)
+            return new List<MealCandidate>();
+
+        List<MealCandidate> exact = new(preciseCandidates.Count);
+        foreach (MealCandidate candidate in preciseCandidates)
+        {
+            bool isBuffer = candidate.Stack.State
+                == CharacterConsumablesStackState.FacilityBuffer;
+            float foodToFacilityExact = 0f;
+            if (!isBuffer)
+            {
+                CharacterMealRouteStatus foodRouteStatus = world.GetMealRouteStatus(
+                    actor.Id,
+                    candidate.Stack.Position,
+                    facility.Position,
+                    out foodToFacilityExact);
+                if (foodRouteStatus == CharacterMealRouteStatus.Pending)
+                {
+                    routePending = true;
+                    continue;
+                }
+                if (foodRouteStatus != CharacterMealRouteStatus.Reachable)
+                    continue;
+                foodToFacilityExact += 2f;
+            }
+
+            float completionEta = Mathf.Max(
+                    actorToFacilityExact,
+                    foodToFacilityExact)
+                + 4f;
+            if (candidate.Stack.RemainingFreshnessSeconds
+                <= completionEta + 1f)
+            {
+                continue;
+            }
+            float rotRescueBonus = 8f * Mathf.Clamp01(
+                1f - candidate.Stack.RemainingFreshnessSeconds / 18f);
+            float finalScore = candidate.Score
+                - (completionEta - rotRescueBonus) * 10f;
+            exact.Add(new MealCandidate(
+                candidate.Definition,
+                candidate.Stack,
+                finalScore,
+                completionEta));
+        }
+        return exact
+            .OrderByDescending(candidate => candidate.Score)
             .ThenBy(candidate => candidate.Definition.Id.Value, StringComparer.Ordinal)
             .ThenBy(candidate => candidate.Stack.StackId.Value, StringComparer.Ordinal)
             .ToList();
     }
+
+    private static float ManhattanSeconds(Vector2Int from, Vector2Int to) =>
+        Mathf.Abs(from.x - to.x) + Mathf.Abs(from.y - to.y);
 
     private float GetEffectMultiplier(CharacterId characterId, bool workEffect)
     {
@@ -816,6 +1624,15 @@ public sealed class CharacterConsumablesRuntime :
         return Mathf.Clamp(1f + additive - withdrawalPenalty, 0.45f, 1.75f);
     }
 
+    private bool IsMealFollowupCooldownActive(
+        CharacterConsumablesActorSnapshot actor) =>
+        actor.Id.IsValid
+        && actor.Hunger > EmergencyHungerThreshold
+        && ReadState.MealFollowupCooldownUntil.TryGetValue(
+            actor.Id,
+            out float until)
+        && clock.Time < until;
+
     private CharacterSubstanceState GetWritableSubstanceState(
         CharacterId characterId,
         ConsumableItemDefinitionId itemId)
@@ -838,7 +1655,9 @@ public sealed class CharacterConsumablesRuntime :
         CharacterId characterId,
         ConsumableItemDefinitionId itemId,
         ItemStackId stackId,
-        bool meal)
+        bool meal,
+        bool policyViolation = false,
+        bool contaminated = false)
     {
         WriteState.CompletedOperations.Add(operationId, new CharacterConsumableOperationState
         {
@@ -847,6 +1666,8 @@ public sealed class CharacterConsumablesRuntime :
             itemDefinitionId = itemId.Value,
             itemStackId = stackId.Value,
             meal = meal,
+            policyViolation = policyViolation,
+            contaminated = contaminated,
             completedAt = clock.Time
         });
     }
@@ -934,12 +1755,64 @@ public sealed class CharacterConsumablesRuntime :
     private CharacterConsumablesStackSnapshot FindAvailableSubstanceStack(
         ConsumableItemDefinitionId itemId) =>
         inventory.GetAllStacks()
-            .Where(stack => stack.Quantity > 0 && !stack.Forbidden && !stack.Reserved
+            .Where(stack => stack.AvailableQuantity > 0 && !stack.Forbidden
                 && stack.ItemId.Equals(itemId))
             .OrderBy(stack => stack.State == CharacterConsumablesStackState.Carried ? 0 : 1)
             .ThenBy(stack => stack.State)
             .ThenBy(stack => stack.StackId.Value, StringComparer.Ordinal)
             .FirstOrDefault();
+
+    private List<RecreationalSubstanceCandidate> GetRecreationalSubstanceCandidates(
+        CharacterConsumablesActorSnapshot actor,
+        BuildingInstanceId facilityId,
+        bool bufferOnly)
+    {
+        string destinationId = GetRecreationalSubstanceDestinationId(facilityId);
+        List<RecreationalSubstanceCandidate> result = new();
+        foreach (CharacterConsumablesStackSnapshot stack in inventory.GetAllStacks())
+        {
+            if (stack.AvailableQuantity <= 0 || stack.Forbidden
+                || !inventory.TryResolveSubstance(
+                    stack.ItemId,
+                    out CharacterConsumablesSubstanceDefinitionSnapshot substance)
+                || substance.Definition.UseClass != SubstanceUseClass.Recreational)
+            {
+                continue;
+            }
+
+            bool isFacilityBuffer = stack.State == CharacterConsumablesStackState.FacilityBuffer
+                && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal);
+            if (bufferOnly != isFacilityBuffer
+                || !bufferOnly && stack.State is not CharacterConsumablesStackState.Stored
+                    and not CharacterConsumablesStackState.Loose)
+            {
+                continue;
+            }
+
+            CharacterSubstancePolicyState policy = GetSubstancePolicy(
+                actor.Id,
+                substance.Definition.SubstanceId);
+            if (!CharacterConsumablesPolicyRules.AllowsSubstance(
+                    policy,
+                    medicalContext: false,
+                    combatContext: false,
+                    actor.Mood))
+            {
+                continue;
+            }
+
+            float score = substance.Definition.MoodEffect
+                - substance.Definition.AddictionChance * 20f
+                - substance.Definition.OverdoseChance * 30f;
+            result.Add(new RecreationalSubstanceCandidate(substance, stack, score));
+        }
+
+        return result
+            .OrderByDescending(candidate => candidate.Score)
+            .ThenBy(candidate => candidate.Substance.Id.Value, StringComparer.Ordinal)
+            .ThenBy(candidate => candidate.Stack.StackId.Value, StringComparer.Ordinal)
+            .ToList();
+    }
 
     private bool TryGetActor(
         CharacterId id,
@@ -958,6 +1831,20 @@ public sealed class CharacterConsumablesRuntime :
         out CharacterConsumablesFacilitySnapshot facility)
     {
         if (id.IsValid && world.TryGetFacility(id, out facility) && facility.MealFacility)
+        {
+            return true;
+        }
+        facility = default;
+        return false;
+    }
+
+    private bool TryGetRecreationalSubstanceFacility(
+        BuildingInstanceId id,
+        out CharacterConsumablesFacilitySnapshot facility)
+    {
+        if (id.IsValid
+            && world.TryGetFacility(id, out facility)
+            && facility.RecreationalSubstanceFacility)
         {
             return true;
         }
@@ -1018,6 +1905,9 @@ public sealed class CharacterConsumablesRuntime :
         Mathf.FloorToInt(Mathf.Max(0f, clock.Time) / GameHourSeconds) % 24;
     private static string GetMealDestinationId(BuildingInstanceId facilityId) =>
         FacilityInputDestinationPrefix + $"meal:{facilityId.Value}";
+    public static string GetRecreationalSubstanceDestinationId(
+        BuildingInstanceId facilityId) =>
+        FacilityInputDestinationPrefix + $"recreation-substance:{facilityId.Value}";
     private static bool IsAvailableMealBufferStack(
         CharacterConsumablesStackSnapshot stack,
         BuildingInstanceId facilityId) =>
@@ -1033,14 +1923,35 @@ public sealed class CharacterConsumablesRuntime :
         internal MealCandidate(
             CharacterConsumablesMealDefinitionSnapshot definition,
             CharacterConsumablesStackSnapshot stack,
-            float score)
+            float score,
+            float completionEta)
         {
             Definition = definition;
             Stack = stack;
             Score = score;
+            CompletionEta = Mathf.Max(0f, completionEta);
         }
 
         internal CharacterConsumablesMealDefinitionSnapshot Definition { get; }
+        internal CharacterConsumablesStackSnapshot Stack { get; }
+        internal float Score { get; }
+        internal float CompletionEta { get; }
+    }
+
+
+    private readonly struct RecreationalSubstanceCandidate
+    {
+        internal RecreationalSubstanceCandidate(
+            CharacterConsumablesSubstanceDefinitionSnapshot substance,
+            CharacterConsumablesStackSnapshot stack,
+            float score)
+        {
+            Substance = substance;
+            Stack = stack;
+            Score = score;
+        }
+
+        internal CharacterConsumablesSubstanceDefinitionSnapshot Substance { get; }
         internal CharacterConsumablesStackSnapshot Stack { get; }
         internal float Score { get; }
     }

@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uB099\uCC9C\uAC00"
   description: "\uC791\uC740 \uC131\uACF5\uC744 \uD568\uAED8 \uCD95\uD558\uD558\uACE0
     \uACF5\uB3D9 \uC791\uC5C5\uC758 \uBD84\uC704\uAE30\uB97C \uB04C\uC5B4\uC62C\uB9B0\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,38 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 2
+  polarity: 0
+  selectionFamilyId: outlook
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: social:encourage
-    utilityDelta: 0.4
-  moodReactions:
-  - triggerTag: event:minor-success
-    moodDelta: 3
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: festival
-    multiplier: 1.25
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:217:effect:0
+    definition: {fileID: 11400000, guid: a7ef984985d95a54899b99eaae3746c5, type: 2}
+    value: 0.75
+    condition: {fileID: 0}
+  identityRules:
+  - rid: 7737211921986486493
+  - rid: 7737211921986486494
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486493
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:encourage
+        priority: 0
+        behaviorTag: social:encourage
+        utilityDelta: 0.55
+    - rid: 7737211921986486494
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:small-success
+        priority: 0
+        eventId: work:small-success
+        moodDelta: 3
+        durationDays: 1

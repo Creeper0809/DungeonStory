@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer;
 
@@ -23,6 +24,10 @@ public class BlueprintResearchRuntime : MonoBehaviour
     private readonly HashSet<string> pendingKnowledgeDeliveries =
         new HashSet<string>(StringComparer.Ordinal);
     private IDisposable shopPurchasedSubscription;
+    private ExtremeTraitRuntime extremeTraits;
+    private IRunSeedProvider runSeedProvider;
+    private IGameClock gameClock;
+    private CharacterIdentityEventPublisher identityEvents;
 
     public BlueprintResearchState State => state;
     public bool HasActiveResearch =>
@@ -70,6 +75,23 @@ public class BlueprintResearchRuntime : MonoBehaviour
         SubscribeToScopedEvents();
     }
 
+    [Inject]
+    public void ConstructFounderTraitRuntime(
+        ExtremeTraitRuntime extremeTraits,
+        IRunSeedProvider runSeedProvider,
+        IGameClock gameClock,
+        CharacterIdentityEventPublisher identityEvents)
+    {
+        this.extremeTraits = extremeTraits
+            ?? throw new ArgumentNullException(nameof(extremeTraits));
+        this.runSeedProvider = runSeedProvider
+            ?? throw new ArgumentNullException(nameof(runSeedProvider));
+        this.gameClock = gameClock
+            ?? throw new ArgumentNullException(nameof(gameClock));
+        this.identityEvents = identityEvents
+            ?? throw new ArgumentNullException(nameof(identityEvents));
+    }
+
     public bool EnqueueBlueprint(FacilityBlueprintSO blueprint)
     {
         if (blueprint != null
@@ -107,6 +129,11 @@ public class BlueprintResearchRuntime : MonoBehaviour
                 : BlueprintResearchService.CalculateResearchWork(researcher, researchFacility, seconds);
             projectWork += TryConsumeKnowledgeResidue(researchFacility);
             float projectAdded = projectProgress.Add(projectWork, project);
+            PublishResearchProgress(
+                researcher,
+                project.ProjectId.Value,
+                projectWork,
+                projectAdded);
             bool projectCompleted = projectProgress.Progress >= project.RequiredWork;
             BlueprintResearchWorkResult projectResult = BlueprintResearchWorkResult.ForProject(
                 true,
@@ -118,6 +145,11 @@ public class BlueprintResearchRuntime : MonoBehaviour
                 projectCompleted ? "연구 완료" : "연구 진행");
             if (projectCompleted)
             {
+                PublishResearchOutcome(
+                    researcher,
+                    project.ProjectId.Value,
+                    "completed",
+                    CharacterCommandOrigin.Autonomous);
                 CompleteProject(project);
             }
             return projectResult;
@@ -140,6 +172,11 @@ public class BlueprintResearchRuntime : MonoBehaviour
             : BlueprintResearchService.CalculateResearchWork(researcher, researchFacility, seconds);
         work += TryConsumeKnowledgeResidue(researchFacility);
         float added = task.AddProgress(work);
+        PublishResearchProgress(
+            researcher,
+            $"blueprint:{task.Blueprint?.id ?? 0}",
+            work,
+            added);
         bool completed = task.IsCompleted;
         BlueprintResearchWorkResult result = new BlueprintResearchWorkResult(
             true,
@@ -153,11 +190,113 @@ public class BlueprintResearchRuntime : MonoBehaviour
 
         if (completed)
         {
+            PublishResearchOutcome(
+                researcher,
+                $"blueprint:{task.Blueprint?.id ?? 0}",
+                "completed",
+                CharacterCommandOrigin.Autonomous);
             CompleteTask(task.Blueprint);
         }
 
         return result;
     }
+
+    public bool TryForbiddenResearchLeap(
+        CharacterActor researcher,
+        out ExtremeRiskResolution resolution,
+        out string failureReason)
+    {
+        resolution = default;
+        failureReason = string.Empty;
+        if (researcher == null)
+        {
+            failureReason = "연구자가 필요합니다.";
+            return false;
+        }
+        if (extremeTraits == null || runSeedProvider == null || gameClock == null)
+        {
+            failureReason = "금단의 도약 런타임이 구성되지 않았습니다.";
+            return false;
+        }
+        if (!TryResolveActiveProject(out ResearchProjectSO project, out string blocker))
+        {
+            failureReason = string.IsNullOrWhiteSpace(blocker)
+                ? "활성 연구 프로젝트가 없습니다."
+                : blocker;
+            return false;
+        }
+        if (!extremeTraits.TryResolveForbiddenResearchLeap(
+                researcher,
+                project.ProjectId.Value,
+                unchecked((ulong)(uint)runSeedProvider.RunSeed),
+                gameClock.Time,
+                out resolution))
+        {
+            failureReason = "이 프로젝트에서는 금단의 도약을 사용할 수 없습니다.";
+            return false;
+        }
+
+        ResearchProjectProgressState progress = state.Projects.GetProgress(project.ProjectId);
+        float before = progress.Progress;
+        float requestedDelta = resolution.ProgressDelta * project.RequiredWork;
+        if (requestedDelta >= 0f)
+            progress.Add(requestedDelta, project);
+        else
+            progress.Restore(Mathf.Max(0f, progress.Progress + requestedDelta), project);
+        PublishResearchProgress(
+            researcher,
+            project.ProjectId.Value,
+            Mathf.Abs(requestedDelta),
+            progress.Progress - before);
+        PublishResearchOutcome(
+            researcher,
+            project.ProjectId.Value,
+            resolution.Outcome.ToString().ToLowerInvariant(),
+            CharacterCommandOrigin.DirectPlayerOrder);
+        if (progress.Progress >= project.RequiredWork)
+            CompleteProject(project);
+        return true;
+    }
+
+    private void PublishResearchProgress(
+        CharacterActor researcher,
+        string projectId,
+        float approvedWork,
+        float progressDelta)
+    {
+        if (identityEvents == null
+            || researcher == null
+            || !CharacterPersistentIdentity.TryGet(researcher, out CharacterId id))
+            return;
+        identityEvents.Publish(new ResearchProgressEvent(
+            id,
+            projectId,
+            approvedWork,
+            progressDelta,
+            CurrentAbsoluteDay));
+    }
+
+    private void PublishResearchOutcome(
+        CharacterActor researcher,
+        string projectId,
+        string outcomeId,
+        CharacterCommandOrigin origin)
+    {
+        if (identityEvents == null
+            || researcher == null
+            || !CharacterPersistentIdentity.TryGet(researcher, out CharacterId id))
+            return;
+        identityEvents.Publish(new ResearchOutcomeEvent(
+            id,
+            projectId,
+            outcomeId,
+            origin,
+            CurrentAbsoluteDay));
+    }
+
+    private int CurrentAbsoluteDay => gameClock == null
+        ? 0
+        : Mathf.Max(0, Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay));
 
     public ResearchQueueCommandResult EnqueueProject(ResearchProjectId projectId)
     {

@@ -47,156 +47,12 @@ public sealed class CharacterProgressionProfileProjector
         }
     }
 
-    public int GetFinalStat(
-        CharacterActor actor,
-        CharacterGrowthState growthState,
-        CharacterStatType statType)
-    {
-        CharacterGrowthState state = RequireState(growthState);
-        if (!state.initialized)
-        {
-            return actor?.Identity?.Profile?.GetStat(statType) ?? 5;
-        }
-
-        int value = state.initialBaseStats.Get(statType);
-        CharacterSO data = actor?.Identity?.Data;
-        value += data?.species?.statBonus?.Get(statType) ?? 0;
-        foreach (CharacterTraitSO trait in ResolveSelectedTraits(actor, state))
-        {
-            value += trait?.statBonus?.Get(statType) ?? 0;
-        }
-
-        value += state.levelGrowthStats.Get(statType);
-        value += GetConditionalPassiveStatBonus(actor, state, statType);
-        return Mathf.Max(0, value);
-    }
-
-    public CharacterStatBreakdown GetStatBreakdown(
-        CharacterActor actor,
-        CharacterGrowthState growthState,
-        CharacterStatType statType)
-    {
-        CharacterGrowthState state = RequireState(growthState);
-        if (!state.initialized)
-        {
-            int fallback = actor?.Identity?.Profile?.GetStat(statType) ?? 5;
-            return new CharacterStatBreakdown(
-                statType,
-                fallback,
-                0,
-                0,
-                0,
-                fallback);
-        }
-
-        int baseValue = state.initialBaseStats.Get(statType);
-        int speciesTrait = GetSpeciesTraitStatBonus(actor, state, statType);
-        int levelGrowth = state.levelGrowthStats.Get(statType);
-        int conditionalPassive = GetConditionalPassiveStatBonus(
-            actor,
-            state,
-            statType);
-        int finalValue = Mathf.Max(
-            0,
-            baseValue + speciesTrait + levelGrowth + conditionalPassive);
-        return new CharacterStatBreakdown(
-            statType,
-            baseValue,
-            speciesTrait,
-            levelGrowth,
-            conditionalPassive,
-            finalValue);
-    }
-
-    public int GetBaseStat(
-        CharacterActor actor,
-        CharacterGrowthState growthState,
-        CharacterStatType statType)
-    {
-        CharacterGrowthState state = RequireState(growthState);
-        return state.initialized
-            ? state.initialBaseStats.Get(statType)
-            : actor?.Identity?.Profile?.GetStat(statType) ?? 5;
-    }
-
-    public int GetSpeciesTraitStatBonus(
-        CharacterActor actor,
-        CharacterGrowthState growthState,
-        CharacterStatType statType)
-    {
-        CharacterGrowthState state = RequireState(growthState);
-        int value = actor?.Identity?.Data?.species?.statBonus?.Get(statType) ?? 0;
-        foreach (CharacterTraitSO trait in ResolveSelectedTraits(actor, state))
-        {
-            value += trait?.statBonus?.Get(statType) ?? 0;
-        }
-
-        return value;
-    }
-
-    public int GetLevelGrowthStat(
-        CharacterGrowthState growthState,
-        CharacterStatType statType)
-    {
-        CharacterGrowthState state = RequireState(growthState);
-        return state.initialized ? state.levelGrowthStats.Get(statType) : 0;
-    }
-
-    public int GetConditionalPassiveStatBonus(
-        CharacterActor actor,
-        CharacterGrowthState growthState,
-        CharacterStatType statType)
-    {
-        CharacterGrowthState state = RequireState(growthState);
-        if (!state.initialized)
-        {
-            return 0;
-        }
-
-        int bonus = 0;
-        IReadOnlyList<CharacterSkillInstance> passives = state.passiveSkills;
-        for (int passiveIndex = 0; passiveIndex < passives.Count; passiveIndex++)
-        {
-            CharacterSkillInstance passive = passives[passiveIndex];
-            if (passive == null || !IsPassiveConditionActive(actor, passive.trigger))
-            {
-                continue;
-            }
-
-            IReadOnlyList<CharacterSkillModuleSelection> modules = passive.modules;
-            if (modules == null)
-            {
-                continue;
-            }
-
-            for (int moduleIndex = 0; moduleIndex < modules.Count; moduleIndex++)
-            {
-                CharacterSkillModuleSelection module = modules[moduleIndex];
-                if ((statType == CharacterStatType.Attack
-                        || statType == CharacterStatType.Strength)
-                    && string.Equals(module.moduleId, "buff", StringComparison.Ordinal))
-                {
-                    bonus += 2;
-                }
-                else if (statType == CharacterStatType.Endurance
-                    && string.Equals(
-                        module.moduleId,
-                        "protect",
-                        StringComparison.Ordinal))
-                {
-                    bonus += 2;
-                }
-            }
-        }
-
-        return bonus;
-    }
-
     public IReadOnlyList<CharacterTraitSO> ResolveSelectedTraits(
         CharacterActor actor,
         CharacterGrowthState growthState)
     {
         CharacterGrowthState state = RequireState(growthState);
+        RequireTraitSelectionAuthority(actor, state);
         CharacterSO data = actor?.Identity?.Data;
         int key = data != null ? BuildEffectiveRuntimeProfileKey(data, state) : 0;
         if (resolvedSelectedTraitsKey == key
@@ -207,32 +63,24 @@ public sealed class CharacterProgressionProfileProjector
 
         resolvedSelectedTraits.Clear();
         IReadOnlyList<int> traitIds = state.traitIds;
-        if (traitIds == null || traitIds.Count == 0)
-        {
-            IReadOnlyList<CharacterTraitSO> sourceTraits = data?.traits;
-            if (sourceTraits != null)
-            {
-                for (int index = 0; index < sourceTraits.Count; index++)
-                {
-                    CharacterTraitSO trait = sourceTraits[index];
-                    if (trait != null)
-                    {
-                        resolvedSelectedTraits.Add(trait);
-                    }
-                }
-            }
-        }
-        else
+        if (traitIds != null)
         {
             for (int index = 0; index < traitIds.Count; index++)
             {
-                if (traitCatalog.TryGetValue(
-                        traitIds[index],
-                        out CharacterTraitSO trait)
-                    && trait != null)
+                int traitId = traitIds[index];
+                if (RetiredFounderTraitIds.Contains(traitId))
                 {
-                    resolvedSelectedTraits.Add(trait);
+                    throw new InvalidOperationException(
+                        $"RetiredFounderTraitId: character '{ResolveCharacterDiagnosticId(actor)}' "
+                        + $"references retired founder trait {traitId}. This development save "
+                        + "predates the 100-trait catalog and requires a new game.");
                 }
+                if (!traitCatalog.TryGetValue(traitId, out CharacterTraitSO trait)
+                    || trait == null)
+                    throw new InvalidOperationException(
+                        $"MissingFounderTraitId: character '{ResolveCharacterDiagnosticId(actor)}' "
+                        + $"references missing trait definition {traitId}.");
+                resolvedSelectedTraits.Add(trait);
             }
         }
 
@@ -240,6 +88,16 @@ public sealed class CharacterProgressionProfileProjector
         resolvedSelectedTraitsView ??= ReadOnlyView.List(resolvedSelectedTraits);
         return resolvedSelectedTraitsView;
     }
+
+    private static readonly HashSet<int> RetiredFounderTraitIds = new()
+    {
+        231, 232, 233, 234, 236, 237, 238, 240, 241, 242, 243, 244, 246
+    };
+
+    private static string ResolveCharacterDiagnosticId(CharacterActor actor) =>
+        CharacterPersistentIdentity.TryGet(actor, out CharacterId id)
+            ? id.Value
+            : actor != null ? actor.name : "<null>";
 
     public CharacterRuntimeProfile GetEffectiveRuntimeProfile(
         CharacterActor actor,
@@ -288,6 +146,7 @@ public sealed class CharacterProgressionProfileProjector
         initializedDataInstanceId = dataInstanceId;
         if (state.initialized)
         {
+            RequireTraitSelectionAuthority(actor, state);
             return;
         }
 
@@ -300,10 +159,10 @@ public sealed class CharacterProgressionProfileProjector
         state.generationSeed = seed;
         state.displayName = actor.Identity.DisplayName;
         state.origin = actor.Identity.GetSpeciesShortDescription();
-        state.initialBaseStats = actor.Identity.Data.baseStats != null
-            ? CharacterSkillModelUtility.CopyStats(actor.Identity.Data.baseStats)
-            : CharacterGrowthRules.RollInitialStats(requiredSettings, random);
-        state.levelGrowthStats = new CharacterStatBlock();
+        state.startingProficiencies = CharacterStartingProficiencyRules
+            .Create(seed)
+            .Select(value => value.Clone())
+            .ToList();
         state.potentialGrade = CharacterGrowthRules.RollPotential(
             requiredSettings,
             random);
@@ -311,29 +170,16 @@ public sealed class CharacterProgressionProfileProjector
             .Where(item => item != null)
             .Select(item => item.id)
             .Distinct()
-            .Take(3)
+            .Take(4)
             .ToList() ?? new List<int>();
+        state.traitSelectionAuthorityVersion =
+            CharacterGrowthState.CurrentTraitSelectionAuthorityVersion;
+        state.traitSelectionAuthorityOrigin = state.traitIds.Count > 0
+            ? CharacterTraitSelectionAuthorityOrigin.LegacyCharacterDefinitionBootstrap
+            : CharacterTraitSelectionAuthorityOrigin.PreparedSelection;
         state.autoChooseDrafts =
             actor.Identity.CharacterType == CharacterType.Customer;
-        EnsureMedicalStat(state);
         Invalidate();
-    }
-
-    public void EnsureMedicalStat(CharacterGrowthState growthState)
-    {
-        CharacterGrowthState state = RequireState(growthState);
-        state.initialBaseStats ??= new CharacterStatBlock();
-        if (state.initialBaseStats.Contains(CharacterStatIds.Medical))
-        {
-            return;
-        }
-
-        int migratedValue = Mathf.RoundToInt(
-            state.initialBaseStats.Get(CharacterStatType.Research) * 0.6f
-            + state.initialBaseStats.Get(CharacterStatType.Dexterity) * 0.4f);
-        state.initialBaseStats.Set(
-            CharacterStatType.Medical,
-            Mathf.Clamp(migratedValue, 1, 10));
     }
 
     public void Invalidate()
@@ -343,28 +189,33 @@ public sealed class CharacterProgressionProfileProjector
         resolvedSelectedTraitsKey = int.MinValue;
     }
 
+    private static void RequireTraitSelectionAuthority(
+        CharacterActor actor,
+        CharacterGrowthState state)
+    {
+        if (state.traitSelectionAuthorityVersion
+                != CharacterGrowthState.CurrentTraitSelectionAuthorityVersion
+            || !Enum.IsDefined(
+                typeof(CharacterTraitSelectionAuthorityOrigin),
+                state.traitSelectionAuthorityOrigin)
+            || state.traitSelectionAuthorityOrigin
+                == CharacterTraitSelectionAuthorityOrigin.None)
+        {
+            throw new InvalidOperationException(
+                $"UnsupportedTraitSelectionAuthority: character "
+                + $"'{ResolveCharacterDiagnosticId(actor)}' has authority version "
+                + $"{state.traitSelectionAuthorityVersion} and origin "
+                + $"'{state.traitSelectionAuthorityOrigin}'. This development save "
+                + "predates the single traitIds authority and requires a new game.");
+        }
+    }
+
     public void Warm(CharacterActor actor, CharacterGrowthState growthState)
     {
         if (actor?.Identity?.Data != null)
         {
             GetEffectiveRuntimeProfile(actor, growthState);
         }
-    }
-
-    private static bool IsPassiveConditionActive(
-        CharacterActor actor,
-        CharacterSkillTrigger trigger)
-    {
-        return trigger switch
-        {
-            CharacterSkillTrigger.DamageTaken =>
-                actor != null && actor.InjurySeverity >= 0.25f,
-            CharacterSkillTrigger.NeedChanged =>
-                actor?.Stats != null && actor.Stats.Mood < 50f,
-            CharacterSkillTrigger.MoodChanged =>
-                actor?.Stats != null && actor.Stats.Mood >= 70f,
-            _ => false
-        };
     }
 
     private static int BuildEffectiveRuntimeProfileKey(

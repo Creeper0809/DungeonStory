@@ -34,17 +34,32 @@ MonoBehaviour:
   contentDefinitionId: 
   authoringRevision: 1
   sourceNote: 
+  deprecatedCompatibilityAsset: 0
   useClassification: 0
   researchFacilityCommand: 0
+  constructionProficiency:
+    primaryProficiencyId: proficiency:construction-engineering
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  operationProficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 0
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211838074978566
-    - rid: 7737211838074978567
-    - rid: 7737211838074978568
-    - rid: 7737211838074978569
-    - rid: 7737211838074978570
-    - rid: 7737211838074978571
-    - rid: 7737211838074978572
+    - rid: 7737211905655963837
+    - rid: 7737211905655963838
+    - rid: 7737211905655963839
+    - rid: 7737211905655963840
+    - rid: 7737211905655963841
+    - rid: 7737211905655963842
+    - rid: 7737211905655963843
   width: 3
   height: 1
   layer: 1
@@ -60,12 +75,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211838074978566
+    - rid: 7737211905655963837
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I13
-    - rid: 7737211838074978567
+    - rid: 7737211905655963838
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -74,28 +89,49 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211838074978568
+    - rid: 7737211905655963839
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 60
-        repairWorkRequired: 12
-        cleanWorkRequired: 8
+        constructionWorkRequired: 308
+        repairWorkRequired: 92
+        cleanWorkRequired: 16
         researchWorkRequired: 6
         operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
         constructionMaterials:
-        - itemId: component:rune-conductor
+        - itemId: material:stone-block
           amount: 5
+        - itemId: material:iron-ingot
+          amount: 4
+        - itemId: material:cloth
+          amount: 1
+        - itemId: component:machine-parts
+          amount: 1
+        - itemId: component:rune-conductor
+          amount: 2
+        - itemId: material:mana-alloy
+          amount: 1
         - itemId: component:rune-purification-crystal
           amount: 1
-    - rid: 7737211838074978569
+    - rid: 7737211905655963840
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 7
         maxThroughput: 100
         normallyOpen: 1
-    - rid: 7737211838074978570
+    - rid: 7737211905655963841
       type: {class: BuildingWastewaterProcessorAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWastewaterProcessorAbility
@@ -106,14 +142,14 @@ MonoBehaviour:
         sludgeItemId: industrial:sludge
         sludgeAmount: 1
         secondsPerBatch: 8
-    - rid: 7737211838074978571
+    - rid: 7737211905655963842
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 4
         priority: 3
         minimumSupplyFraction: 1
-    - rid: 7737211838074978572
+    - rid: 7737211905655963843
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

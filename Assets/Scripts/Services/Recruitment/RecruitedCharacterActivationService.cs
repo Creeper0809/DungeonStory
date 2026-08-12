@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -17,13 +18,19 @@ public sealed class RecruitedCharacterActivationService : IRecruitedCharacterAct
     private readonly ICharacterSpawnObjectFactory characterObjectFactory;
     private readonly ICharacterPopulationService characterPopulationService;
     private readonly IOffenseQuery offense;
+    private readonly ICharacterProficiencyQuery proficiencyQuery;
+    private readonly ICharacterProficiencyCommand proficiencyCommands;
+    private readonly IGameCalendar calendar;
 
     public RecruitedCharacterActivationService(
         ICharacterWorldQuery characterWorld,
         ICharacterSpawnerProvider spawnerProvider,
         ICharacterSpawnObjectFactory characterObjectFactory,
         ICharacterPopulationService characterPopulationService,
-        IOffenseQuery offense)
+        IOffenseQuery offense,
+        ICharacterProficiencyQuery proficiencyQuery,
+        ICharacterProficiencyCommand proficiencyCommands,
+        IGameCalendar calendar)
     {
         this.characterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));
@@ -33,6 +40,11 @@ public sealed class RecruitedCharacterActivationService : IRecruitedCharacterAct
         this.characterPopulationService = characterPopulationService
             ?? throw new ArgumentNullException(nameof(characterPopulationService));
         this.offense = offense ?? throw new ArgumentNullException(nameof(offense));
+        this.proficiencyQuery = proficiencyQuery
+            ?? throw new ArgumentNullException(nameof(proficiencyQuery));
+        this.proficiencyCommands = proficiencyCommands
+            ?? throw new ArgumentNullException(nameof(proficiencyCommands));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
     }
 
     public bool TryActivate(
@@ -115,12 +127,11 @@ public sealed class RecruitedCharacterActivationService : IRecruitedCharacterAct
             actor.gameObject.SetActive(true);
         }
         PromoteActorToStaff(actor);
-        ApplyCampaignRecruitCatchUp(actor, record);
-
         brain = actor.Brain;
         brain?.UseStaffWorkActions();
         brain?.RequestImmediateReplan(clearFailures: true);
         characterPopulationService.PromoteToStaff(actor);
+        ApplyCampaignRecruitCatchUp(actor, record);
         if (!IsActiveStaffActor(actor))
         {
             if (created)
@@ -158,6 +169,10 @@ public sealed class RecruitedCharacterActivationService : IRecruitedCharacterAct
 
         progression.SetAutoChooseSkillDrafts(true);
         int completedTargets = offense.Capture().CompletedTargetCount;
+        ApplyRecruitProficiencyCatchUp(
+            actor,
+            completedTargets,
+            calendar.AbsoluteHour);
 
         int minimumLevel = EstimateCampaignRecruitLevel(
             record,
@@ -172,6 +187,57 @@ public sealed class RecruitedCharacterActivationService : IRecruitedCharacterAct
 
         actor.Heal(actor.MaxHealth);
         actor.Lifecycle?.RestoreExpeditionRecovery(new CharacterExpeditionRecoveryState());
+    }
+
+    private void ApplyRecruitProficiencyCatchUp(
+        CharacterActor actor,
+        int completedTargets,
+        long absoluteHour)
+    {
+        int targetExperience = RecruitProficiencyCatchUpRules
+            .ResolvePrimaryExperienceFloor(completedTargets);
+        CharacterId characterId = (CharacterId)(
+            actor?.Identity?.PersistentId ?? string.Empty);
+        if (targetExperience <= 0 || !characterId.IsValid)
+        {
+            return;
+        }
+
+        CharacterProficiencyId probeId =
+            BuiltInCharacterProficiencyIds.All[0];
+        if (!proficiencyQuery.TryGetProficiency(
+                characterId,
+                probeId,
+                absoluteHour,
+                out _))
+        {
+            return;
+        }
+        IReadOnlyList<CharacterProficiencySnapshot> proficiencies =
+            proficiencyQuery.GetAllProficiencies(
+                characterId,
+                absoluteHour);
+
+        foreach (CharacterProficiencySnapshot proficiency in proficiencies
+                     .OrderByDescending(value => value.CurrentMilliExperience)
+                     .ThenBy(value => value.ProficiencyId.Value, StringComparer.Ordinal)
+                     .Take(RecruitProficiencyCatchUpRules.SpecializedProficiencyCount))
+        {
+            float missing = targetExperience
+                - proficiency.CurrentMilliExperience
+                    / (float)ProficiencyProgressionRules.MilliPerExperience;
+            if (missing <= 0f)
+            {
+                continue;
+            }
+
+            proficiencyCommands.AddDirectExperience(
+                characterId,
+                proficiency.ProficiencyId,
+                missing,
+                absoluteHour,
+                applyLearningMultiplier: false);
+        }
     }
 
     private static int GetCampaignRecruitMinimumLevel(int completedTargets)

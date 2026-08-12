@@ -56,6 +56,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
     private readonly IRunSeedProvider runSeedProvider;
     private readonly IFactionContractQuery factionContracts;
     private readonly IRunCharacterCatalog characterCatalog;
+    private readonly CharacterMoodPolicyService identityMoods;
     private readonly CharacterPopulationAggregate<
         WorldCharacterProfile,
         CharacterActor,
@@ -82,7 +83,8 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
         IFactionContractQuery factionContracts,
         IRunCharacterCatalog characterCatalog,
         ICharacterRuntimeProfileFactory runtimeProfileFactory,
-        ICharacterLifePublicationService lifePublication)
+        ICharacterLifePublicationService lifePublication,
+        CharacterMoodPolicyService identityMoods = null)
     {
         this.settingsProvider = settingsProvider
             ?? throw new ArgumentNullException(nameof(settingsProvider));
@@ -99,6 +101,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             ?? throw new ArgumentNullException(nameof(runtimeProfileFactory));
         this.lifePublication = lifePublication
             ?? throw new ArgumentNullException(nameof(lifePublication));
+        this.identityMoods = identityMoods;
     }
 
     public IReadOnlyList<WorldCharacterProfile> Profiles => population.Profiles;
@@ -175,7 +178,6 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
                 profile.displayName,
                 profile.origin,
                 profile.growth?.traitIds,
-                profile.growth?.initialBaseStats,
                 profile.growth?.potentialGrade ?? CharacterPotentialGrade.Ordinary,
                 profile.growth?.generationSeed ?? CharacterGrowthRules.StableHash(profile.persistentId),
                 autoChooseDrafts: true);
@@ -229,9 +231,35 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             actors[actor] = profile;
         }
 
+        bool wasStaff = profile.isStaff;
         population.PromoteToStaff(profile);
         ApplyStaffRuntimeState(profile, actor);
         SynchronizeProfile(profile, actor);
+        if (!wasStaff && identityMoods != null)
+        {
+            identityMoods.Apply(
+                actor,
+                "status:recognized",
+                0f,
+                2,
+                "공식 직원 임명");
+            foreach (CharacterActor incumbent in actors.Keys
+                         .Where(value => value != null
+                             && value != actor
+                             && !value.IsDead
+                             && TryGetProfile(value, out WorldCharacterProfile incumbentProfile)
+                             && incumbentProfile.isStaff)
+                         .OrderBy(value => value.Identity?.PersistentId,
+                             StringComparer.Ordinal))
+            {
+                identityMoods.Apply(
+                    incumbent,
+                    "status:publicly-ignored",
+                    0f,
+                    2,
+                    "다른 인원의 공개 임명을 지켜봄");
+            }
+        }
         EnsurePreparedPool();
     }
 
@@ -244,10 +272,18 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
                 $"External recruit '{characterId.Value}' has no character archetype.");
         CharacterProgressionSnapshot snapshot = actor.Progression?
             .CapturePersistentState();
+        bool createdWithoutGrowthAuthority = snapshot?.GrowthState == null;
         CharacterGrowthState growth = snapshot?.GrowthState?.Clone()
             ?? new CharacterGrowthState();
         growth.EnsureCollections();
         growth.initialized = true;
+        if (createdWithoutGrowthAuthority)
+        {
+            growth.traitSelectionAuthorityVersion =
+                CharacterGrowthState.CurrentTraitSelectionAuthorityVersion;
+            growth.traitSelectionAuthorityOrigin =
+                CharacterTraitSelectionAuthorityOrigin.PopulationGeneration;
+        }
         if (string.IsNullOrWhiteSpace(growth.displayName))
         {
             growth.displayName = actor.name?.Trim() ?? characterId.Value;
@@ -652,9 +688,15 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             displayName = $"{GivenNames[random.NextInt(0, GivenNames.Length)]} {creationSerial}",
             origin = $"{data.SpeciesTag} · {Origins[random.NextInt(0, Origins.Length)]}",
             potentialGrade = CharacterGrowthRules.RollPotential(settings, random),
-            initialBaseStats = CharacterGrowthRules.RollInitialStats(settings, random),
-            levelGrowthStats = new CharacterStatBlock(),
-            traitIds = RollTraits(settings, random)
+            startingProficiencies = CharacterStartingProficiencyRules
+                .Create(seed)
+                .Select(value => value.Clone())
+                .ToList(),
+            traitSelectionAuthorityVersion =
+                CharacterGrowthState.CurrentTraitSelectionAuthorityVersion,
+            traitSelectionAuthorityOrigin =
+                CharacterTraitSelectionAuthorityOrigin.PopulationGeneration,
+            traitIds = RollTraits(settings, random, data.SpeciesTag)
         };
         growth.EnsureCollections();
         return new WorldCharacterProfile
@@ -689,7 +731,8 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
 
     private List<int> RollTraits(
         CharacterSkillSystemSettingsSO settings,
-        IRandomStream random)
+        IRandomStream random,
+        string speciesTag)
     {
         if (initializedCaches.Add(TraitPoolCache))
         {
@@ -700,7 +743,8 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
         return CharacterTraitSelectionRules.Select(
                 traitPool,
                 settings.traitConflicts,
-                random)
+                random,
+                speciesTag)
             .ToList();
     }
 

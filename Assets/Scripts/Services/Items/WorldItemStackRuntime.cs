@@ -11,6 +11,7 @@ using VContainer.Unity;
 
 public sealed class WorldItemStackRuntime :
     IWorldItemStackRuntime,
+    IWorldItemQuantityLeaseRuntime,
     IPhysicalItemRestoreStaging,
     IWorldItemMarkerDataSource,
     IHaulPlanBuilder,
@@ -153,6 +154,32 @@ public sealed class WorldItemStackRuntime :
     {
         warehouseService.NormalizeStorageIds();
         RefreshAllMarkers();
+    }
+
+    public bool SpawnItemAtDropoff(
+        string itemId,
+        int amount,
+        string sourceLabel,
+        out int spawned)
+    {
+        spawned = 0;
+        string normalizedItemId = itemId?.Trim() ?? string.Empty;
+        if (normalizedItemId.Length == 0
+            || amount <= 0
+            || !TryGetDropoffPosition(out Vector2Int dropoff)
+            || !catalogProvider.TryGetDefinition(normalizedItemId, out DungeonItemDefinition definition)
+            || definition.MaxStack <= 1)
+        {
+            return false;
+        }
+
+        spawned = Spawn(
+            normalizedItemId,
+            amount,
+            dropoff,
+            WorldItemStackState.Loose,
+            string.Empty);
+        return spawned == amount;
     }
 
     public bool SpawnStockAtDropoff(StockCategory category, int amount, string sourceLabel, out int spawned)
@@ -576,7 +603,6 @@ public sealed class WorldItemStackRuntime :
             return false;
         }
 
-        string actorId = characterIdRegistry.GetOrAssignPersistentId(actor);
         if (!stacksById.TryGetValue(job.StackId, out WorldItemStackRecord record)
             || record.quantity <= 0)
         {
@@ -584,19 +610,22 @@ public sealed class WorldItemStackRuntime :
             return false;
         }
 
-        if (!string.Equals(record.reservedByPersistentId, actorId, StringComparison.Ordinal))
+        if (string.IsNullOrWhiteSpace(job.LeaseId)
+            || string.IsNullOrWhiteSpace(job.OwnerOperationId))
         {
-            failureReason = "stack reserved by someone else";
+            failureReason = "haul job has no quantity lease";
             return false;
         }
 
         WorldItemReservedStackQuantity reservation = new WorldItemReservedStackQuantity(
             record.stackId,
             record.itemId,
-            record.quantity,
+            Mathf.Max(1, job.Quantity),
             record.position,
             job.DestinationKind,
-            job.DestinationId);
+            job.DestinationId,
+            job.LeaseId,
+            job.OwnerOperationId);
         return TryPickupReservedStackQuantity(
             actor,
             inventory,
@@ -670,7 +699,23 @@ public sealed class WorldItemStackRuntime :
 
     public void ReleaseReservation(string stackId, string persistentId)
     {
+        itemTransferService.ReleaseQuantityReservationsByOwner(
+            $"haul:{persistentId?.Trim() ?? string.Empty}",
+            ItemReservationReleaseReason.Cancelled);
         reservationService.Release(stackId, persistentId);
+    }
+
+    public bool TryRenewQuantityLease(
+        string leaseId,
+        double requestedUntilGameSeconds,
+        out string failureReason)
+    {
+        bool renewed = itemTransferService.RenewQuantityReservation(
+            leaseId,
+            requestedUntilGameSeconds,
+            out DomainFailure failure);
+        failureReason = renewed ? string.Empty : failure.ToString();
+        return renewed;
     }
 
     public bool TryClearReservation(string stackId)
@@ -700,7 +745,8 @@ public sealed class WorldItemStackRuntime :
             || string.IsNullOrWhiteSpace(destinationId)
             || !stacksById.TryGetValue(stackId, out WorldItemStackRecord record)
             || record == null
-            || record.quantity <= 0)
+            || record.quantity <= 0
+            || record.reservedQuantity > 0)
         {
             failureReason = "이동시킬 물품 스택을 찾을 수 없습니다.";
             return false;
@@ -763,41 +809,18 @@ public sealed class WorldItemStackRuntime :
 
     public bool TryConsumeStackQuantity(string stackId, int quantity, out WorldItemStackSnapshot consumed)
     {
-        consumed = null;
-        if (string.IsNullOrWhiteSpace(stackId)
-            || quantity <= 0
-            || !stacksById.TryGetValue(stackId, out WorldItemStackRecord record)
-            || record == null
-            || record.quantity <= 0)
+        ItemStackId typedStackId = new(stackId);
+        if (!typedStackId.IsValid)
         {
+            consumed = null;
             return false;
         }
 
-        if (debugRules.ShouldSkipCosts())
-        {
-            consumed = ToSnapshot(record);
-            consumed.Quantity = Mathf.Min(quantity, record.quantity);
-            return consumed.Quantity > 0;
-        }
-
-        int amount = Mathf.Min(quantity, record.quantity);
-        consumed = ToSnapshot(record);
-        consumed.Quantity = amount;
-        Vector2Int position = record.position;
-        record.quantity -= amount;
-        MarkStacksChanged();
-        if (record.quantity <= 0)
-        {
-            if (!string.IsNullOrWhiteSpace(record.itemInstanceId))
-            {
-                itemRepository.TryMarkEquipmentLostBySourceStack(record.stackId);
-                itemRepository.TryMarkModuleLostBySourceStack(record.stackId);
-            }
-            RemoveRecord(record);
-        }
-
-        RefreshMarkerAt(position);
-        return amount > 0;
+        return itemTransferService.TryConsumeStackQuantity(
+            typedStackId,
+            quantity,
+            out consumed,
+            out _);
     }
 
     public bool SetEmergencyButcheryAllowed(string stackId, bool allowed)

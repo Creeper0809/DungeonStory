@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using DungeonStory.Foundation;
 using Unity.Profiling;
 using UnityEngine;
@@ -11,9 +12,12 @@ internal sealed class AIBrainCandidateSelector
     private readonly AIBrainActionEvaluator evaluator;
     private readonly ICharacterAiSchedulingService scheduling;
     private readonly ICharacterAiPerformanceRecorder performanceRecorder;
-    private readonly AIBrainActionScoringContinuation reusableContinuation =
-        new AIBrainActionScoringContinuation();
-    private AIBrainActionScoringContinuation continuation;
+    // A root decision evaluates several JobGivers in one pass.  Each giver has
+    // a different predicate, so a single shared continuation was repeatedly
+    // discarded before later actions (notably recreation) could be reached.
+    // Keep one bounded continuation per active predicate instead.
+    private readonly List<AIBrainActionScoringContinuation> continuations =
+        new List<AIBrainActionScoringContinuation>();
 
     public AIBrainCandidateSelector(
         AIBrainActionEvaluator evaluator,
@@ -26,11 +30,18 @@ internal sealed class AIBrainCandidateSelector
             ?? throw new ArgumentNullException(nameof(performanceRecorder));
     }
 
-    public bool IsPending => continuation != null;
+    public bool IsPending => continuations.Count > 0;
+
+    public bool IsPendingFor(
+        Predicate<AIActionSet> predicate,
+        bool hasDecisionContext)
+    {
+        return FindContinuation(predicate, hasDecisionContext) != null;
+    }
 
     public void Reset()
     {
-        continuation = null;
+        continuations.Clear();
     }
 
     public bool TryFind(
@@ -107,17 +118,13 @@ internal sealed class AIBrainCandidateSelector
             return false;
         }
 
-        if (continuation != null && !continuation.Matches(predicate, hasDecisionContext))
-        {
-            evaluator.ClearEvaluations();
-            clearRelatedCaches?.Invoke();
-            continuation = null;
-        }
-
+        AIBrainActionScoringContinuation continuation =
+            FindContinuation(predicate, hasDecisionContext);
         if (continuation == null)
         {
-            reusableContinuation.Reset(predicate, hasDecisionContext);
-            continuation = reusableContinuation;
+            continuation = new AIBrainActionScoringContinuation();
+            continuation.Reset(predicate, hasDecisionContext);
+            continuations.Add(continuation);
         }
 
         double sliceMilliseconds = scheduling.GetDecisionWorkSliceMilliseconds(actor);
@@ -142,6 +149,11 @@ internal sealed class AIBrainCandidateSelector
             bool canConsider = hasDecisionContext
                 ? evaluator.TryEvaluate(actor, action, in context, out evaluation)
                 : evaluator.TryEvaluate(actor, action, out evaluation);
+            if (action == null)
+            {
+                continuation.NextActionIndex++;
+                continue;
+            }
             if (!canConsider)
             {
                 action.score = 0f;
@@ -197,7 +209,7 @@ internal sealed class AIBrainCandidateSelector
         AIAction bestCandidate = continuation.BestCandidate;
         float bestScore = continuation.BestScore;
         AIActionFailure bestFailure = continuation.BestFailure;
-        continuation = null;
+        continuations.Remove(continuation);
         if (bestCandidate == null)
         {
             candidate = FailureCandidate(actor, bestFailure);
@@ -216,6 +228,22 @@ internal sealed class AIBrainCandidateSelector
                 ? bestEvaluation.Destination
                 : null);
         return resolvedScore > 0f;
+    }
+
+    private AIBrainActionScoringContinuation FindContinuation(
+        Predicate<AIActionSet> predicate,
+        bool hasDecisionContext)
+    {
+        for (int index = 0; index < continuations.Count; index++)
+        {
+            AIBrainActionScoringContinuation candidate = continuations[index];
+            if (candidate.Matches(predicate, hasDecisionContext))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 
     private bool Measure(Func<bool> action)

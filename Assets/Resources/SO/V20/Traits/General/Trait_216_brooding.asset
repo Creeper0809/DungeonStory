@@ -25,19 +25,7 @@ MonoBehaviour:
   traitName: "\uACF1\uC539\uB294 \uC131\uACA9"
   description: "\uC2E4\uD328\uB97C \uC624\uB798 \uAE30\uC5B5\uD574 \uC7AC\uBC1C\uC744
     \uC904\uC774\uC9C0\uB9CC \uAE30\uBD84 \uD68C\uBCF5\uC774 \uB290\uB9AC\uB2E4."
-  statBonus:
-    entries: []
   modifiers:
-    consumptionMultiplier: 1
-    spendingMultiplier: 1
-    waitPatienceMultiplier: 1
-    crowdSensitivityMultiplier: 1
-    accidentChanceMultiplier: 1
-    workSpeedMultiplier: 1
-    researchSpeedMultiplier: 1
-    combatPowerMultiplier: 1
-    moveSpeedMultiplier: 1
-    stayDurationMultiplier: 1
     preferredFacilityRoles: 0
     dislikedFacilityRoles: 0
     preferredWorkTypes: 0
@@ -51,17 +39,38 @@ MonoBehaviour:
     safeMaximumOffset: 0
     coldExposureMultiplier: 1
     heatExposureMultiplier: 1
+  selectionRarity: 0
+  polarity: 1
+  selectionFamilyId: outlook
+  eligibleSpeciesTags: []
+  earnedWorkExperienceMultiplier: 1
   incompatibilityGroups: []
-  behaviorPreferences:
-  - behaviorTag: event:review-failure
-    utilityDelta: 0.35
-  moodReactions:
-  - triggerTag: event:failure
-    moodDelta: -4
-    durationDays: 3
-  eventWeights:
-  - eventCategoryId: life-event
-    multiplier: 1.25
+  behaviorPreferences: []
+  moodReactions: []
+  eventWeights: []
+  effects:
+  - bindingId: trait:216:effect:0
+    definition: {fileID: 11400000, guid: ab46736f68b07c442bc3c27bbc87e7cc, type: 2}
+    value: 0.85
+    condition: {fileID: 11400000, guid: 66eb2991cddc529409912ff292a87319, type: 2}
+  identityRules:
+  - rid: 7737211921986486457
+  - rid: 7737211921986486458
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211921986486457
+      type: {class: BehaviorUtilityRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: behavior:prevent-repeat-failure
+        priority: 0
+        behaviorTag: work:prevent-repeat-failure
+        utilityDelta: 0.65
+    - rid: 7737211921986486458
+      type: {class: EventMoodRule, ns: , asm: DungeonStory.Foundation}
+      data:
+        ruleId: mood:work-failure
+        priority: 0
+        eventId: work:failed
+        moodDelta: -4
+        durationDays: 5

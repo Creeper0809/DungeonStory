@@ -843,7 +843,8 @@ public static class FullGameManualQaRuntimeProbe
                 speciesPresent = !string.IsNullOrWhiteSpace(speciesTag);
                 traitsPresent = traitCount > 0;
                 statsFromProfile = owner.Stats != null
-                    && owner.Stats.GetCharacterStat(CharacterStatType.Toughness) > 0
+                    && owner.Stats.EvaluatePerformance(
+                        "performance:combat:defense-reaction").Value > 0f
                     && owner.Stats.GetMoveSpeed() > 0f
                     && owner.Stats.GetCombatPowerMultiplier() > 0f;
 
@@ -3546,7 +3547,6 @@ public static class FullGameManualQaRuntimeProbe
         data.characterType = type;
         data.role = role;
         data.speciesTag = type == CharacterType.Intruder ? "Intruder" : "QA";
-        data.baseStats = CharacterStatBlock.CreateDefault(statValue);
         data.defaultWorkPriorities = WorkPriorityProfile.CreateDefault();
 
         GameObject obj = new GameObject(name);

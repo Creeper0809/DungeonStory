@@ -269,7 +269,7 @@ public sealed class ShopFeatureQueryService : IShopFeatureQueryService
         return stockCategoryCatalog.TryGet(
             category,
             out StockCategoryDefinition definition)
-            ? Mathf.Max(1, definition.DailyUnitCost * 2)
+            ? Mathf.Max(1, Mathf.CeilToInt(definition.DailyUnitCost * 2f))
             : 20;
     }
 
@@ -402,7 +402,7 @@ public sealed class ShopFeatureCommandService : IShopFeatureCommandService
         int defaultPrice = stockCategoryCatalog.TryGet(
             category,
             out StockCategoryDefinition definition)
-            ? Mathf.Max(1, definition.DailyUnitCost * 2)
+            ? Mathf.Max(1, Mathf.CeilToInt(definition.DailyUnitCost * 2f))
             : 20;
         autoProcurement.UpsertStockRule(new AutoProcurementRule
         {

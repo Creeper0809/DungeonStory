@@ -462,7 +462,7 @@ public sealed class ApparelBuildingPanelPresenter : IApparelBuildingPanelPresent
         foreach (WorldItemStackSnapshot stack in items.GetAllStacks())
         {
             if (stack == null
-                || stack.IsReserved
+                || stack.AvailableQuantity <= 0
                 || string.IsNullOrWhiteSpace(stack.ItemInstanceId)
                 || stack.DestinationId.StartsWith(
                     CharacterApparelAggregate.EquippedDestinationPrefix,
@@ -587,14 +587,8 @@ public sealed class ApparelBuildingPanelPresenter : IApparelBuildingPanelPresent
         mode = WorkerSelectionMode.RuleSet,
         matchMode = WorkerRequirementMatchMode.All,
         sortMode = WorkerCandidateSortMode.BestExpectedQuality,
-        statRequirements = new List<WorkerStatRequirementSaveData>
-        {
-            new()
-            {
-                statType = (int)CharacterStatType.Dexterity,
-                minimumValue = 7
-            }
-        }
+        minimumSkillId = BuiltInCharacterProficiencyIds.Crafting.Value,
+        minimumSkillExperience = 400
     };
 
     private static string Sanitize(string value) => new(

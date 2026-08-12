@@ -194,7 +194,7 @@ public static class GameplayFlowDiagnosticsBuilder
         WorldItemStackSnapshot[] looseStacks = allStacks
             .Where(stack => stack.State == WorldItemStackState.Loose)
             .ToArray();
-        int reservedLooseCount = looseStacks.Count(stack => stack.IsReserved);
+        int reservedLooseCount = looseStacks.Count(stack => stack.HasReservations);
         GameplayFlowDiagnosticItem looseDiagnostic = BuildLooseStackDiagnostic(
             looseStacks,
             reservedLooseCount,
@@ -247,7 +247,7 @@ public static class GameplayFlowDiagnosticsBuilder
         WorldItemStackSnapshot[] unassigned = looseStacks
             .Where(stack =>
                 string.IsNullOrWhiteSpace(stack.DestinationId)
-                && !stack.IsReserved)
+                && stack.AvailableQuantity > 0)
             .ToArray();
         if (unassigned.Length == 0)
         {

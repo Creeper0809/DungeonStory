@@ -7,9 +7,15 @@ public sealed class OperationsFeatureSurfaceModel
 {
     public string DaySummary { get; set; } = string.Empty;
     public string SettlementSummary { get; set; } = string.Empty;
+    public string LaborSummary { get; set; } = string.Empty;
+    public IReadOnlyList<OperationsStatusRow> LaborRows { get; set; }
+        = Array.Empty<OperationsStatusRow>();
     public IReadOnlyList<OperationsRecruitmentRow> Recruitment { get; set; }
         = Array.Empty<OperationsRecruitmentRow>();
     public string RecruitmentSummary { get; set; } = string.Empty;
+    public string ImmigrationPolicyLabel { get; set; } = string.Empty;
+    public string ImmigrationCapacityDetail { get; set; } = string.Empty;
+    public bool ImmigrationCapacityAccepted { get; set; }
     public string SurvivalSummary { get; set; } = string.Empty;
     public IReadOnlyList<OperationsStatusRow> SurvivalRows { get; set; }
         = Array.Empty<OperationsStatusRow>();
@@ -141,6 +147,7 @@ public interface IOperationsFeatureCommandService
 {
     OperationsFeatureCommandResult Recruit(string customerId);
     OperationsFeatureCommandResult HireMercenary(string customerId);
+    OperationsFeatureCommandResult CycleImmigrationPolicy();
     OperationsFeatureCommandResult PurchaseMetaUpgrade(string upgradeId);
     OperationsFeatureCommandResult ToggleMaintenanceAutomaticRepair(string policyId);
     OperationsFeatureCommandResult StepMaintenanceSendAt(string policyId);
@@ -205,6 +212,13 @@ public sealed class OperationsFeatureSurfacePresenter : IFeatureSurfaceTabPresen
 
         view.AddSection("운영 정산", model.DaySummary);
         view.AddLabel(model.SettlementSummary, 18f, 52f);
+
+        AddStatusSection(
+            view,
+            "노동·비상 대응",
+            model.LaborSummary,
+            "SettlementLabor_",
+            model.LaborRows);
 
         AddRecruitment(view, model);
         captivitySection.Present(view);
@@ -294,6 +308,13 @@ public sealed class OperationsFeatureSurfacePresenter : IFeatureSurfaceTabPresen
     private void AddRecruitment(IFeatureSurfaceView view, OperationsFeatureSurfaceModel model)
     {
         view.AddSection("단골·영입", model.RecruitmentSummary);
+        view.AddDataCard(
+            "SettlementImmigrationPolicy",
+            $"이민 정책: {model.ImmigrationPolicyLabel}",
+            model.ImmigrationCapacityDetail,
+            "정책 변경",
+            () => Execute(view, commands.CycleImmigrationPolicy),
+            CompactCardHeight);
         foreach (OperationsRecruitmentRow row in model.Recruitment)
         {
             OperationsRecruitmentRow captured = row;

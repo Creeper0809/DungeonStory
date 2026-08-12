@@ -47,7 +47,8 @@ public sealed class DefenseEngagementCombatServices
         ICombatAmmoResupplyRuntime ammoResupply,
         IDefenseTacticalCoordinator tactics,
         IDefenseEngagementStore store,
-        IGridPathSearchBroker pathSearch)
+        IGridPathSearchBroker pathSearch,
+        ICharacterPerformanceQuery performance)
     {
         Policy = policy ?? throw new ArgumentNullException(nameof(policy));
         LineOfSight = lineOfSight ?? throw new ArgumentNullException(nameof(lineOfSight));
@@ -57,6 +58,7 @@ public sealed class DefenseEngagementCombatServices
         Tactics = tactics ?? throw new ArgumentNullException(nameof(tactics));
         Store = store ?? throw new ArgumentNullException(nameof(store));
         PathSearch = pathSearch ?? throw new ArgumentNullException(nameof(pathSearch));
+        Performance = performance ?? throw new ArgumentNullException(nameof(performance));
     }
 
     public IDefenseResponsePolicyRuntime Policy { get; }
@@ -67,4 +69,5 @@ public sealed class DefenseEngagementCombatServices
     public IDefenseTacticalCoordinator Tactics { get; }
     public IDefenseEngagementStore Store { get; }
     public IGridPathSearchBroker PathSearch { get; }
+    public ICharacterPerformanceQuery Performance { get; }
 }

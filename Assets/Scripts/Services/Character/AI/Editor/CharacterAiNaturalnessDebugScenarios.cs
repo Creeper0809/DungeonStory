@@ -45,6 +45,8 @@ public static class CharacterAiNaturalnessDebugScenarios
         RunScenario("Leisure need is not a survival emergency", VerifyLeisureNeedIsNotEmergency, errors);
         RunScenario("Multiple low needs use weighted survival triage", VerifyWeightedSurvivalTriage, errors);
         RunScenario("Owner and worker can respond to depleted needs", VerifyWorkerSelfCareAccess, errors);
+        RunScenario("Routine need service resumes interrupted work", VerifyRoutineNeedWorkResume, errors);
+        RunScenario("External intent arbitration rejects stale completions", VerifyExternalIntentArbitration, errors);
         RunScenario("Low mood chooses autonomous movement without LLM", VerifyLowMoodAutonomy, errors);
         RunScenario("Critical logistics survives low mood autonomy", VerifyCriticalLogisticsSurvivesLowMoodAutonomy, errors);
         RunScenario("Critical mood interrupts ordinary work", VerifyCriticalMoodInterruptsWork, errors);
@@ -388,6 +390,91 @@ public static class CharacterAiNaturalnessDebugScenarios
         }
     }
 
+    private static bool VerifyRoutineNeedWorkResume()
+    {
+        GameObject actorObject = CharacterAiPlanDebugFixtures.CreateActorObject(
+            "Routine Need Work Resume");
+        GameObject targetObject = new GameObject(
+            "Routine Need Resume Target",
+            typeof(BuildableObject));
+        CharacterSO data = CharacterAiPlanDebugFixtures.CreateCharacterData(
+            CharacterType.NPC,
+            "Routine Need Worker",
+            "Slime");
+        BuildingSO targetData = CharacterAiPlanDebugFixtures.CreateBuildingData(
+            910701,
+            "Routine Need Resume Target");
+        try
+        {
+            actorObject.SetActive(false);
+            AbilityWork work = actorObject.GetComponent<AbilityWork>()
+                ?? actorObject.AddComponent<AbilityWork>();
+            CharacterAiEditorTestDependencies.Inject(actorObject);
+            actorObject.SetActive(true);
+
+            CharacterActor actor = actorObject.GetComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.EnsureCharacterProgression(actorObject);
+            actor.EnsureRuntimeState();
+            actor.RefreshAbilityCache();
+            actor.Initialize(data);
+            actor.SetLifecycleState(CharacterLifecycleState.Active);
+
+            BuildableObject target = targetObject.GetComponent<BuildableObject>();
+            CharacterAiEditorTestDependencies.Inject(target);
+            target.Initialization(targetData, Vector2Int.right);
+            target.SetDamaged(true);
+            work.WorkPriorities.SetPriority(
+                BuiltInWorkTypeIds.Repair,
+                WorkPriorityLevel.Priority2);
+            System.Reflection.MethodInfo assignWork = typeof(AbilityWork).GetMethod(
+                "AssignWork",
+                System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.NonPublic,
+                binder: null,
+                types: new[] { typeof(BuildableObject), typeof(WorkTypeId) },
+                modifiers: null);
+            assignWork?.Invoke(
+                work,
+                new object[] { target, BuiltInWorkTypeIds.Repair });
+            bool assigned = work.assignedShop == target
+                && work.AssignedWorkTypeId == BuiltInWorkTypeIds.Repair;
+
+            SetNeeds(
+                actor,
+                hunger: 20f,
+                sleep: 100f,
+                fun: 100f,
+                excretion: 100f,
+                hygiene: 100f);
+            bool interrupted = work.ShouldInterruptCurrentWork(out string reason)
+                && reason == "식사 필요"
+                && assigned;
+
+            actor.stats[CharacterCondition.HUNGER] = 100f;
+            bool resumed = work.NotifyRoutineNeedServiceCompleted();
+            bool passed = interrupted
+                && resumed
+                && work.assignedShop == target
+                && work.AssignedWorkTypeId == BuiltInWorkTypeIds.Repair;
+            if (!passed)
+            {
+                Debug.LogError(
+                    "Routine need resume probe failed: "
+                    + $"assigned={assigned}; interrupted={interrupted}:{reason}; resumed={resumed}; "
+                    + $"target={(work.assignedShop == target)}; workType={work.AssignedWorkTypeId}");
+            }
+
+            return passed;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(data);
+            UnityEngine.Object.DestroyImmediate(targetData);
+            UnityEngine.Object.DestroyImmediate(targetObject);
+            UnityEngine.Object.DestroyImmediate(actorObject);
+        }
+    }
+
     private static bool VerifyLowMoodAutonomy()
     {
         return WithActor("Low Mood Autonomous Idle", actor =>
@@ -435,6 +522,70 @@ public static class CharacterAiNaturalnessDebugScenarios
                 && IdleBehaviorRunner.GetSelectedBehaviorTypeNameForDebug(actor, true)
                     == nameof(MoodDrivenWanderIdleBehavior)
                 && IdleBehaviorRunner.IsSelectedBehaviorMovementBasedForDebug(actor, true);
+        });
+    }
+
+    private static bool VerifyExternalIntentArbitration()
+    {
+        return WithActor("External Intent Arbitration", actor =>
+        {
+            AIBrain brain = actor.Brain;
+            if (brain == null
+                || !brain.TryBeginExternallyDrivenAction(
+                    "test:routine",
+                    CharacterActionIntentKind.RoutineNeed,
+                    "일상 욕구",
+                    "이동",
+                    string.Empty,
+                    out CharacterActionIntentLease routine))
+            {
+                return false;
+            }
+
+            bool peerRejected = !brain.TryBeginExternallyDrivenAction(
+                "test:peer-routine",
+                CharacterActionIntentKind.RoutineNeed,
+                "다른 일상 욕구",
+                "대기",
+                string.Empty,
+                out _);
+            bool emergencyPreempted = brain.TryBeginExternallyDrivenAction(
+                "test:emergency",
+                CharacterActionIntentKind.EmergencyNeed,
+                "긴급 욕구",
+                "실행",
+                string.Empty,
+                out CharacterActionIntentLease emergency);
+            bool staleEndRejected = !brain.EndExternallyDrivenAction(
+                routine,
+                clearFailures: true);
+            bool emergencyStillOwned = brain.IsExternallyDrivenActionActive
+                && brain.ExternalIntentOwnerId == "test:emergency"
+                && brain.ExternalIntentEpoch == emergency.Epoch;
+            brain.BeginManualMoveCommand(actor.GetNowXY());
+            bool directOrderProtected = brain.IsManualCommandActive
+                && !brain.IsExternallyDrivenActionActive
+                && !brain.TryBeginExternallyDrivenAction(
+                    "test:breakdown-during-order",
+                    CharacterActionIntentKind.Breakdown,
+                    "붕괴",
+                    "실행",
+                    string.Empty,
+                    out _);
+            brain.CompleteManualMoveCommand(
+                actor.GetNowXY(),
+                succeeded: true);
+            bool emergencyEnded = brain.EndExternallyDrivenAction(
+                emergency,
+                clearFailures: true);
+
+            return peerRejected
+                && emergencyPreempted
+                && staleEndRejected
+                && emergencyStillOwned
+                && directOrderProtected
+                && !emergencyEnded
+                && !brain.IsExternallyDrivenActionActive;
         });
     }
 
@@ -607,6 +758,7 @@ public static class CharacterAiNaturalnessDebugScenarios
         float hygiene)
     {
         actor.stats[CharacterCondition.HUNGER] = hunger;
+        actor.stats[CharacterCondition.THIRST] = 100f;
         actor.stats[CharacterCondition.SLEEP] = sleep;
         actor.stats[CharacterCondition.FUN] = fun;
         actor.stats[CharacterCondition.EXCRETION] = excretion;
@@ -655,6 +807,46 @@ internal sealed class ProbeSafeReliefRuntime : ICharacterDeprivationRuntime
         return false;
     }
     public bool TryRunRoutineDrink(CharacterActor actor, out string status)
+    {
+        status = string.Empty;
+        return false;
+    }
+    public bool NeedsPrimitiveMeal(CharacterActor actor, out string reason)
+    {
+        reason = string.Empty;
+        return false;
+    }
+    public bool NeedsPrimitiveRest(CharacterActor actor, out string reason)
+    {
+        reason = string.Empty;
+        return false;
+    }
+    public bool NeedsPrimitiveRelief(CharacterActor actor, out string reason)
+    {
+        reason = string.Empty;
+        return false;
+    }
+    public bool NeedsPrimitiveWash(CharacterActor actor, out string reason)
+    {
+        reason = string.Empty;
+        return false;
+    }
+    public bool TryRunPrimitiveMeal(CharacterActor actor, out string status)
+    {
+        status = string.Empty;
+        return false;
+    }
+    public bool TryRunPrimitiveRest(CharacterActor actor, out string status)
+    {
+        status = string.Empty;
+        return false;
+    }
+    public bool TryRunPrimitiveRelief(CharacterActor actor, out string status)
+    {
+        status = string.Empty;
+        return false;
+    }
+    public bool TryRunPrimitiveWash(CharacterActor actor, out string status)
     {
         status = string.Empty;
         return false;

@@ -13,6 +13,8 @@ public sealed class OffenseCampaignSnapshot
     public int CompletedTargetCount { get; set; }
     public int CampaignTargetCount { get; set; }
     public bool TruthRevealed { get; set; }
+    public bool CanLaunchExpedition { get; set; }
+    public string ExpeditionBlocker { get; set; } = string.Empty;
     public int AvailableMemberCount { get; set; }
     public int MoneyEarned { get; set; }
     public int RecoveredLootValue { get; set; }
@@ -50,9 +52,11 @@ public sealed class OffenseApplication : IOffenseQuery, IOffenseApplication
     private readonly IOffensePanelService panelService;
     private readonly OffenseExpeditionRuntime expedition;
     private readonly OffenseRewardRuntime reward;
+    private readonly BlueprintResearchState researchState;
 
     public OffenseApplication(
         OffenseSceneRuntimeReferences runtimeReferences,
+        ProgressionSceneRuntimeReferences progressionRuntimes,
         IOffenseCampaignQuery campaign,
         IOffenseCampaignCommands campaignCommands,
         IOffensePanelService panelService)
@@ -71,6 +75,9 @@ public sealed class OffenseApplication : IOffenseQuery, IOffenseApplication
         reward = runtimeReferences.Rewards
             ?? throw new InvalidOperationException(
                 $"{nameof(OffenseApplication)} requires a loaded {nameof(OffenseRewardRuntime)}.");
+        researchState = OffenseExpeditionAccessRules.RequireState(
+            progressionRuntimes,
+            nameof(OffenseApplication));
     }
 
     public OffenseCampaignSnapshot Capture()
@@ -80,6 +87,7 @@ public sealed class OffenseApplication : IOffenseQuery, IOffenseApplication
             return OffenseCampaignSnapshot.Unavailable;
         }
 
+        bool canLaunchExpedition = OffenseExpeditionAccessRules.IsUnlocked(researchState);
         return new OffenseCampaignSnapshot
         {
             IsAvailable = true,
@@ -89,6 +97,10 @@ public sealed class OffenseApplication : IOffenseQuery, IOffenseApplication
             CompletedTargetCount = campaign.State.CompletedTargetCount,
             CampaignTargetCount = campaign.CampaignTargetCount,
             TruthRevealed = campaign.State.TruthRevealed,
+            CanLaunchExpedition = canLaunchExpedition,
+            ExpeditionBlocker = canLaunchExpedition
+                ? string.Empty
+                : OffenseExpeditionAccessRules.BlockerMessage,
             AvailableMemberCount = expedition.GetAvailableMemberActors().Count,
             MoneyEarned = reward?.State.MoneyEarned ?? 0,
             RecoveredLootValue = reward?.State.RecoveredLootValue ?? 0,
@@ -127,6 +139,12 @@ public sealed class OffenseApplication : IOffenseQuery, IOffenseApplication
             return false;
         }
 
+        if (!OffenseExpeditionAccessRules.IsUnlocked(researchState))
+        {
+            message = OffenseExpeditionAccessRules.BlockerMessage;
+            return false;
+        }
+
         bool opened = expedition.ShowExpeditionPanel() != null;
         message = opened ? "OffensePreparationOpened" : "OffensePreparationOpenFailed";
         return opened;
@@ -159,6 +177,12 @@ public sealed class OffenseApplication : IOffenseQuery, IOffenseApplication
         if (campaign == null || expedition == null)
         {
             message = "OffenseUnavailable";
+            return false;
+        }
+
+        if (!OffenseExpeditionAccessRules.IsUnlocked(researchState))
+        {
+            message = OffenseExpeditionAccessRules.BlockerMessage;
             return false;
         }
 
