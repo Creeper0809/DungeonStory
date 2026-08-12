@@ -492,8 +492,33 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             actor.Brain.isBestActionEnd = false;
         }
 
-        if (IdleBehaviorRunner.TryRunDefault(actor, 1.0f, true, out string behaviorName, out string failureReason))
+        bool survivalNeedDue = CharacterNeedAiThresholds
+            .TryGetMostUrgentSurvivalRoutineNeed(
+                actor,
+                out CharacterCondition survivalCondition,
+                out float survivalUtility,
+                out float survivalValue,
+                out float survivalThreshold);
+        string behaviorName;
+        string failureReason;
+        bool idleStarted = survivalNeedDue
+            ? IdleBehaviorRunner.TryRunStatic(
+                actor,
+                1.0f,
+                out behaviorName,
+                out failureReason)
+            : IdleBehaviorRunner.TryRunDefault(
+                actor,
+                1.0f,
+                true,
+                out behaviorName,
+                out failureReason);
+        if (idleStarted)
         {
+            if (survivalNeedDue)
+            {
+                behaviorName = $"생존 욕구 대기({survivalCondition} {survivalValue:0.###}/{survivalThreshold:0.###}, utility={survivalUtility:0.###})";
+            }
             actor.Brain?.ClearSelectedActionForIdle(behaviorName);
             blackboard.ClearCommitment(CharacterAiInterruptReason.ManualReplan, "Idle behavior selected.");
             blackboard.RecordSelectedUtilitySummary($"AmbientIdle utility=explicit behavior={behaviorName}");
@@ -731,6 +756,8 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
                 out failureSummary);
         }
 
+        actor.Brain.BeginJobGiverEvaluationPass();
+
         for (int i = 0; i < jobGiverCount; i++)
         {
             CharacterAiJobGiver jobGiver = jobGivers[i];
@@ -756,8 +783,15 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
                     domainReason,
                     out CharacterAiJobCandidate candidate))
             {
-                if (candidate.ActionCandidate.Failure.Kind
-                        == AIActionFailureKind.PathSearchDeferred
+                if (domainScore > 0f
+                    || candidate.ActionCandidate.Failure.HasFailure)
+                {
+                    actor.Brain.RecordJobGiverEvaluationRejection(
+                        jobGiver.Branch,
+                        candidate.ActionCandidate.Failure,
+                        candidate.Reason);
+                }
+                if (candidate.ActionCandidate.Failure.IsDeferred
                     && actor.Brain.IsActionScoringPending)
                 {
                     failureSummary = "행동 후보를 나누어 평가하는 중";
@@ -855,6 +889,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         long domainAllocatedAtStart = collectDomainPerformance
             ? GC.GetAllocatedBytesForCurrentThread()
             : 0L;
+        actor?.Brain?.BeginJobGiverEvaluationPass();
         int remainingMask = 0;
         for (int index = 0; index < jobGiverCount; index++)
         {
@@ -936,7 +971,11 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
                 out CharacterAiJobCandidate candidate))
             {
                 lastFailure = candidate.ActionCandidate.Failure;
-                if (lastFailure.Kind == AIActionFailureKind.PathSearchDeferred
+                actor.Brain.RecordJobGiverEvaluationRejection(
+                    jobGiver.Branch,
+                    lastFailure,
+                    candidate.Reason);
+                if (lastFailure.IsDeferred
                     && actor.Brain.IsActionScoringPending)
                 {
                     failureSummary = "행동 후보를 나누어 평가하는 중";
@@ -1069,6 +1108,13 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
 
         if (CharacterNeedAiThresholds.IsEmergency(
                 actor,
+                CharacterCondition.THIRST))
+        {
+            AddUniqueJobGiver(catalog.Drink);
+        }
+
+        if (CharacterNeedAiThresholds.IsEmergency(
+                actor,
                 CharacterCondition.EXCRETION))
         {
             AddUniqueJobGiver(catalog.Toilet);
@@ -1090,28 +1136,12 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             AddUniqueJobGiver(catalog.Rest);
         }
 
-        if (context.IsWorker
-            && (HasExplicitPriorityWork(actor)
-                || context.FoodStockPressure > 0.65f
-                || context.WaterStockPressure > 0.65f))
-        {
-            AddUniqueJobGiver(catalog.Work);
-        }
-
         if (!context.IsWorker)
         {
             AddUniqueJobGiver(catalog.ExitDungeon);
         }
 
-        AddUniqueJobGiver(catalog.Wait);
         return jobGiverBuffer;
-    }
-
-    private static bool HasExplicitPriorityWork(CharacterActor actor)
-    {
-        return actor != null
-            && actor.TryGetAbility(out AbilityWork work)
-            && (work.PriorityWorkTarget != null || work.HasPrioritySuppressTarget);
     }
 
     private IReadOnlyList<CharacterAiJobGiver> BuildRoutineJobGivers(

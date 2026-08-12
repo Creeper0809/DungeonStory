@@ -94,14 +94,37 @@ public class AIWait : AIActionSet
         float duration = actor?.Brain != null
             ? actor.Brain.NextRandom(minimumWait, maximumWait)
             : minimumWait;
-        bool ranIdleBehavior = IdleBehaviorRunner.TryRunDefault(
-            actor,
-            duration,
-            true,
-            out string behaviorName,
-            out string failureReason);
+        bool survivalNeedDue = CharacterNeedAiThresholds
+            .TryGetMostUrgentSurvivalRoutineNeed(
+                actor,
+                out CharacterCondition survivalCondition,
+                out float survivalUtility,
+                out float survivalValue,
+                out float survivalThreshold);
+        string behaviorName;
+        string failureReason;
+        bool ranIdleBehavior = survivalNeedDue
+            ? IdleBehaviorRunner.TryRunStatic(
+                actor,
+                duration,
+                out behaviorName,
+                out failureReason)
+            : IdleBehaviorRunner.TryRunDefault(
+                actor,
+                duration,
+                true,
+                out behaviorName,
+                out failureReason);
         if (ranIdleBehavior)
         {
+            if (survivalNeedDue)
+            {
+                actor?.Brain?.SetActionPhase(
+                    "생존 욕구 시설 대기",
+                    detail: $"{survivalCondition}={survivalValue:0.###}/{survivalThreshold:0.###}; utility={survivalUtility:0.###}");
+                return;
+            }
+
             string phaseDetail = CharacterMoodImpulseUtility.ShouldPreferAutonomousIdle(actor, out string moodReason)
                 ? moodReason
                 : "다음 행동을 찾으며 움직이는 중";

@@ -1,5 +1,37 @@
 # DungeonStory Progress
 
+## 2026-08-13 AI decision conflict investigation resumed
+
+- Restored the active Phase 157 worktree and re-read the project guide plus planning, game-AI and Unity C# skill instructions.
+- Unity MCP remains explicitly revoked by the Editor, so no shell or mouse substitute will be used for compilation or PlayMode. Static implementation work continues while the approval is unavailable.
+- Confirmed the current runtime diagnostics miss hierarchical job-giver evaluation rejection paths. Existing candidate counters cover action-scoring/commit failures, but do not explain why higher-priority food, drink, toilet or hygiene candidates lost before `Wait` committed.
+- The first instrumented five-day evidence remains provisional because deterministic AiDirector/LLM isolation was authored after that run began. A fresh isolated run is required before the wait/short-chat cause is accepted as fully reproduced.
+- Unity MCP reconnected. Reimport and compilation completed with Console Warning/Error 0/0 after correcting one editor-assembly access error in the new focused test.
+- Added thirst to the drink priority, work survival pressure and wait strongest-need calculation. Added a shared survival-routine query so both explicit wait and ambient idle use an observable static `survival need wait` state instead of short chat/wander while a need is due.
+- Added fixed-size job-giver evaluation rejection accounting by branch and failure kind, current rejection detail in the character AI panel, and selected utility/BT route/mood/macro evidence in five-day stall records.
+- Added a focused thirst-versus-work/wait scenario. The full AI priority corner-case suite now passes, including destination failure, occupancy, direct-command priority, work/wait and thirst handling.
+- Repaired the suite's stale restock fixture to mutate the current physical stock authority through `Shop.DebugClearStock()` rather than a removed reflected legacy list.
+- Ran the first fully isolated five-day observation with the new counters. It failed loudly: 20 harmful no-progress episodes, 23.041 WU/actor-day, 526-794 JobGiver evaluation rejections per actor and destinationless Wait actions incorrectly reporting `PathSearchDeferred` 94-99 times.
+- Traced the failure to `AIBrainCandidateSelector`: nonmatching actions consumed the decision work slice before the matching action was reached. Changed the continuation so only actual matching candidate evaluation consumes the slice.
+- Recompiled through Unity MCP and passed AI priority, naturalness and full character-plan scenario suites after the selector correction. A second isolated five-day run is the next required evidence gate.
+- The second isolated run still failed and was retained as evidence: 24.928 WU/actor-day, one actor trapped in deprivation breakdown for 570 seconds, and Wait path deferrals distributed 32/0/92 by actor. This proved a remaining trailing-array continuation defect rather than a gameplay path failure.
+- Added post-evaluation filtering so unrelated trailing actions cannot keep a JobGiver continuation pending. A third isolated run must prove destinationless Wait deferrals are zero for every actor.
+- Third isolated five-day run completed: destinationless Wait path deferrals are zero for all three actors and no deprivation breakdown occurs. The sample records `27.612 actual WU/actor-day`, but still fails 18 harmful stalls, recreation `0.467/day`, and a `0.641 WU` construction/accounting boundary mismatch.
+- Traced the remaining Wait stalls into the emergency candidate builder. Added the missing emergency Drink branch and removed Wait from emergency candidates so an unavailable emergency action falls through rather than terminating the root tree.
+- Added revision-stamped per-branch current JobGiver rejection diagnostics and typed urgent-need evidence to each stall record. Removed stale macro-expiration text from current BT status.
+- Unity MCP compilation is clean. Priority corner cases, naturalness, plan-AI, and the new emergency-thirst routing/fallthrough regression pass; Console Warning/Error remains `0/0` before the next long run.
+
+## 2026-08-13 parallel construction rerun and AI diagnostics continuation
+
+- Fixed the compile defect exposed after restarting Unity: stable `CharacterId` reservation comparison now uses `.Equals` rather than an unavailable `==` operator.
+- Forced refresh and clean compilation through Unity MCP, verified the compiler log as well as Console, and passed the focused work-amount scenario including reservation through one adapter and refresh/release through another adapter for the same character.
+- Ran the isolated five-day Phase 157 verifier through Unity MCP. Population stayed exactly three, food/water accounting was exact, construction reached three active / 2.60 effective workers, intent collision counters stayed zero and Console Warning/Error was 0/0.
+- The report improved to `29.119 actual WU/actor-day` but remains failed on recreation `0.4/actor-day`. Began the next unit: bounded cumulative transition/failure/replan telemetry plus harmful no-progress evidence before any numeric leisure or travel tuning.
+- Added fixed-size runtime counters at `AIBrain`'s central lifecycle boundaries. Committed execution failures, no-action failures and candidate rejections are now separate; action starts/switches/restarts, phase transitions, immediate/interrupted replans and repeated-failure peaks are retained without unbounded event strings.
+- Added an explicit diagnostics snapshot/delta formatter for long-run verifiers and surfaced the cumulative totals in the selected-character AI panel. Unity compilation is the next gate.
+- Unity MCP compilation passed, and focused naturalness plus work-amount scenarios both passed. The five-day verifier now records branch dwell, bounded stall evidence, and runtime diagnostic deltas.
+- The first instrumented long run exposed unrelated narrative-LLM request timeouts and then lost Unity MCP approval mid-run. Recorded the failure and prepared deterministic benchmark isolation instead of hiding the timeout logs.
+
 ## 2026-08-12 Phase 157 technology-stage founder WU deterministic audit passed
 
 - Added a reusable 10,000-party founder distribution API that exposes natural, compromise-3 and upper-20 p10/median/p90 assignment, crafting, research and food-demand values from the actual starting-profile, age, health, proficiency, trait and performance-formula authorities.

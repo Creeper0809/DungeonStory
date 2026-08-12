@@ -210,7 +210,11 @@ public enum AIActionFailureKind
     OffDuty,
     Unsupported,
     Destroyed,
-    Unknown
+    Unknown,
+
+    // Appended to preserve the serialized numeric values of the legacy kinds.
+    CandidateEvaluationDeferred,
+    FacilityCandidateDeferred
 }
 
 public static class CharacterAiActionTags

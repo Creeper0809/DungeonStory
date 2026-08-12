@@ -864,6 +864,7 @@ public sealed class WorkJobGiver : CharacterAiJobGiver
 
         float survivalPressure = Mathf.Max(
             Need(actor, CharacterCondition.HUNGER),
+            Need(actor, CharacterCondition.THIRST),
             Need(actor, CharacterCondition.SLEEP),
             Need(actor, CharacterCondition.EXCRETION),
             Need(actor, CharacterCondition.HYGIENE) * 0.7f,
@@ -896,6 +897,7 @@ public sealed class WorkJobGiver : CharacterAiJobGiver
 
         float survivalPressure = Mathf.Max(
             context.HungerUrgency,
+            context.ThirstUrgency,
             context.SleepUrgency);
         survivalPressure = Mathf.Max(
             survivalPressure,
@@ -1008,6 +1010,7 @@ public sealed class WaitJobGiver : CharacterAiJobGiver
 
         float strongestNeed = Mathf.Max(
             Need(actor, CharacterCondition.HUNGER),
+            Need(actor, CharacterCondition.THIRST),
             Need(actor, CharacterCondition.SLEEP),
             Need(actor, CharacterCondition.FUN),
             Need(actor, CharacterCondition.MOOD),
@@ -1035,6 +1038,7 @@ public sealed class WaitJobGiver : CharacterAiJobGiver
 
         float strongestNeed = Mathf.Max(
             context.HungerUrgency,
+            context.ThirstUrgency,
             context.SleepUrgency);
         strongestNeed = Mathf.Max(strongestNeed, context.FunUrgency);
         strongestNeed = Mathf.Max(strongestNeed, context.MoodUrgency);

@@ -40,6 +40,8 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         RunScenario("Occupied work target is classified", VerifyOccupiedWorkTargetFailureClassification, errors);
         RunScenario("Work and wait scores prefer real work", VerifyWorkAndWaitScoresPreferRealWork, errors);
         RunScenario("No work target uses explicit wait", VerifyNoWorkTargetUsesExplicitWait, errors);
+        RunScenario("Thirst outranks work and social wait", VerifyThirstOutranksWorkAndSocialWait, errors);
+        RunScenario("Emergency thirst is routed and can fall through", VerifyEmergencyThirstRouting, errors);
 
         if (errors.Count > 0)
         {
@@ -373,10 +375,27 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         work.SetWorkPriority(BuiltInWorkTypeIds.Repair, WorkPriorityLevel.Priority2);
 
         bool assigned = work.TryAssignShop(world.Grid.SearchPath(Vector2Int.zero));
-        return warehouse != null
+        bool passed = warehouse != null
             && assigned
             && work.assignedShop == restockShop
             && work.AssignedWorkTypeId == BuiltInWorkTypeIds.Restock;
+        if (!passed)
+        {
+            bool foundRestock = work.TryGetBestWorkCandidate(
+                BuiltInWorkTypeIds.Restock,
+                world.Grid.SearchPath(Vector2Int.zero),
+                out WorkTargetCandidate restockCandidate);
+            bool foundRepair = work.TryGetBestWorkCandidate(
+                BuiltInWorkTypeIds.Repair,
+                world.Grid.SearchPath(Vector2Int.zero),
+                out WorkTargetCandidate repairCandidate);
+            Debug.LogError(
+                $"Priority work diagnostic: assigned={assigned}; target={work.assignedShop?.name}; type={work.AssignedWorkTypeId}; "
+                + $"restock={foundRestock}/{restockCandidate.Score:0.###}/{restockCandidate.FailureKind}/{restockCandidate.FailureReason}; "
+                + $"repair={foundRepair}/{repairCandidate.Score:0.###}/{repairCandidate.FailureKind}/{repairCandidate.FailureReason}; "
+                + $"lastRejected={work.LastRejectedWorkCandidate.FailureKind}/{work.LastRejectedWorkCandidate.FailureReason}");
+        }
+        return passed;
     }
 
     private static bool VerifyCombinedPriorityProfileEdges()
@@ -405,10 +424,18 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
     private static bool VerifyPersonalityModifierAffectsActionScore()
     {
         GameObject obj = new GameObject("Personality Score Character");
-        CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
+        CharacterSO source = AssetDatabase.LoadAssetAtPath<CharacterSO>(
+            "Assets/Resources/SO/Character/Owners/Owner_Slime.asset");
+        CharacterSO data = source != null
+            ? Object.Instantiate(source)
+            : null;
         AIWait waitAction = ScriptableObject.CreateInstance<AIWait>();
         try
         {
+            if (data == null)
+            {
+                return false;
+            }
             CharacterActor character = obj.AddComponent<CharacterActor>();
             CharacterAiEditorTestDependencies.Inject(obj);
             data.aiPersonality.patience = 0.5f;
@@ -509,6 +536,108 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
             Object.DestroyImmediate(workAction);
             Object.DestroyImmediate(waitAction);
         }
+    }
+
+    private static bool VerifyThirstOutranksWorkAndSocialWait()
+    {
+        using PriorityScenarioWorld world = new PriorityScenarioWorld();
+        CharacterActor thirsty = world.CreateOwner("Owner_Slime", Vector2Int.zero);
+        AIWait waitAction = ScriptableObject.CreateInstance<AIWait>();
+        try
+        {
+            thirsty.stats[CharacterCondition.HUNGER] = 100f;
+            thirsty.stats[CharacterCondition.THIRST] = 0f;
+            thirsty.stats[CharacterCondition.SLEEP] = 100f;
+            thirsty.stats[CharacterCondition.EXCRETION] = 100f;
+            thirsty.stats[CharacterCondition.HYGIENE] = 100f;
+            thirsty.stats[CharacterCondition.FUN] = 100f;
+            thirsty.stats[CharacterCondition.MOOD] = 100f;
+
+            CharacterAiDecisionContext drinkContext =
+                CharacterAiDecisionContext.Capture(
+                    thirsty,
+                    CharacterAiBranch.Drink);
+            new DrinkJobGiver().TryEvaluate(
+                thirsty,
+                out CharacterAiJobCandidate drinkCandidate);
+            new WorkJobGiver().TryEvaluate(
+                thirsty,
+                out CharacterAiJobCandidate workCandidate);
+            new WaitJobGiver().TryEvaluate(
+                thirsty,
+                out CharacterAiJobCandidate waitCandidate);
+            float drinkDomain = drinkCandidate.DomainScore;
+            float workDomain = workCandidate.DomainScore;
+            float waitDomain = waitCandidate.DomainScore;
+            bool priorityUsesThirst = drinkContext.GetPriorityScore(
+                    CharacterAiBranch.Drink)
+                >= 0.99f;
+            waitAction.Execute(thirsty);
+            bool waitIsExplicitlySurvivalBlocked =
+                thirsty.Brain.CurrentActionPhaseDetail.Contains(
+                    "THIRST=",
+                    StringComparison.Ordinal);
+            return drinkDomain > workDomain
+                && drinkDomain > waitDomain
+                && priorityUsesThirst
+                && waitIsExplicitlySurvivalBlocked;
+        }
+        finally
+        {
+            Object.DestroyImmediate(waitAction);
+        }
+    }
+
+    private static bool VerifyEmergencyThirstRouting()
+    {
+        using PriorityScenarioWorld world = new PriorityScenarioWorld();
+        CharacterActor thirsty = world.CreateOwner(
+            "Owner_Slime",
+            Vector2Int.zero);
+        thirsty.stats[CharacterCondition.HUNGER] = 100f;
+        thirsty.stats[CharacterCondition.THIRST] = 0f;
+        thirsty.stats[CharacterCondition.SLEEP] = 100f;
+        thirsty.stats[CharacterCondition.EXCRETION] = 100f;
+        thirsty.stats[CharacterCondition.HYGIENE] = 100f;
+        thirsty.stats[CharacterCondition.FUN] = 100f;
+        thirsty.stats[CharacterCondition.MOOD] = 100f;
+
+        CharacterAiDecisionPipeline pipeline =
+            thirsty.Brain.RequireDecisionPipeline()
+                as CharacterAiDecisionPipeline;
+        MethodInfo builder = typeof(CharacterAiDecisionPipeline).GetMethod(
+            "BuildEmergencyJobGivers",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        if (pipeline == null || builder == null)
+        {
+            return false;
+        }
+
+        CharacterAiDecisionContext context =
+            CharacterAiDecisionContext.Capture(
+                thirsty,
+                CharacterAiBranch.Emergency);
+        IReadOnlyList<CharacterAiJobGiver> emergency =
+            builder.Invoke(pipeline, new object[] { thirsty, context })
+                as IReadOnlyList<CharacterAiJobGiver>;
+        bool drinkIncluded = emergency?.Any(
+            giver => giver?.Branch == CharacterAiBranch.Drink) == true;
+        bool waitExcluded = emergency?.All(
+            giver => giver?.Branch != CharacterAiBranch.Wait) == true;
+        bool workExcluded = emergency?.All(
+            giver => giver?.Branch != CharacterAiBranch.Work) == true;
+
+        CharacterAiDecisionTickResult result =
+            pipeline.RunEmergencyDecision(thirsty);
+        bool unavailableEmergencyFallsThrough = !result.Handled;
+        return context.EmergencyScore >= 0.58f
+            && CharacterNeedAiThresholds.IsEmergency(
+                thirsty,
+                CharacterCondition.THIRST)
+            && drinkIncluded
+            && waitExcluded
+            && workExcluded
+            && unavailableEmergencyFallsThrough;
     }
 
     private static TestActionSet CreateAction(
@@ -630,8 +759,10 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
 
     private static void ClearShopStock(BuildableObject building)
     {
-        FieldInfo field = typeof(Shop).GetField("stocks", BindingFlags.Instance | BindingFlags.NonPublic);
-        field?.SetValue(building, new List<RemainStock>());
+        if (building is Shop shop)
+        {
+            shop.DebugClearStock();
+        }
         FacilityCandidateCache.MarkDynamicStateDirty();
     }
 

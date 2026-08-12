@@ -473,10 +473,24 @@ public static class StaffDutyDebugScenarios
 
         bool interruptsForFood = work.ShouldInterruptCurrentWork(out string interruptReason)
             && interruptReason == "식사 필요";
-        bool valid = work.CanStartWorkAction()
+        // The need interruption latches a short-lived work-start blocker until
+        // the meal is actually completed. Remaining on duty must not make the
+        // actor immediately restart the same work and interrupt it again.
+        bool workStartBlockedUntilFed = !work.CanStartWorkAction();
+        bool valid = workStartBlockedUntilFed
             && !work.IsOffDuty
             && !work.ShouldTakeOffDuty()
             && interruptsForFood;
+
+        if (!valid)
+        {
+            Debug.LogError(
+                "Hunger interruption detail: "
+                + $"interrupts={interruptsForFood}:{interruptReason}; "
+                + $"workStartBlocked={workStartBlockedUntilFed}; "
+                + $"offDuty={work.IsOffDuty}; shouldTakeOffDuty={work.ShouldTakeOffDuty()}; "
+                + $"hunger={staff.stats[CharacterCondition.HUNGER]:0.##}");
+        }
 
         Object.DestroyImmediate(staff.gameObject);
         return valid;

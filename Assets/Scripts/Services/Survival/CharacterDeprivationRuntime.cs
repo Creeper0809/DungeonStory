@@ -960,6 +960,16 @@ public sealed class CharacterDeprivationRuntime :
             return;
         }
 
+        // At high simulation speeds a need can cross the breakdown threshold
+        // between two scheduled AI decisions. Give an available safe emergency
+        // self-care action one immediate start opportunity before converting the
+        // same need into a destructive breakdown. The action still acquires the
+        // brain's authoritative external intent, so this is not a parallel AI.
+        if (TryStartEmergencySelfCare(actor))
+        {
+            return;
+        }
+
         DeprivationBurdenSaveData highest = null;
         List<DeprivationBurdenSaveData> burdens = state.burdens;
         for (int i = 0; i < burdens.Count; i++)
@@ -1000,6 +1010,68 @@ public sealed class CharacterDeprivationRuntime :
         {
             StartBreakdown(actor, state, highest.kind, now);
         }
+    }
+
+    private bool TryStartEmergencySelfCare(CharacterActor actor)
+    {
+        if (actor?.Stats == null || actor.Brain == null)
+        {
+            return false;
+        }
+
+        if (CharacterNeedAiThresholds.IsEmergency(
+                actor,
+                CharacterCondition.THIRST)
+            && NeedsSafeEmergencyRelief(actor, out _)
+            && TryStartSafeDrink(actor, emergency: true, out _))
+        {
+            return true;
+        }
+
+        if (CharacterNeedAiThresholds.IsEmergency(
+                actor,
+                CharacterCondition.HUNGER)
+            && NeedsPrimitiveMeal(actor, out _)
+            && primitiveSurvivalRunner.TryStart(
+                actor,
+                CharacterPrimitiveSurvivalActionKind.FieldMeal,
+                out _))
+        {
+            return true;
+        }
+
+        if (CharacterNeedAiThresholds.IsEmergency(
+                actor,
+                CharacterCondition.EXCRETION)
+            && NeedsPrimitiveRelief(actor, out _)
+            && primitiveSurvivalRunner.TryStart(
+                actor,
+                CharacterPrimitiveSurvivalActionKind.Latrine,
+                out _))
+        {
+            return true;
+        }
+
+        if (CharacterNeedAiThresholds.IsEmergency(
+                actor,
+                CharacterCondition.HYGIENE)
+            && NeedsPrimitiveWash(actor, out _)
+            && primitiveSurvivalRunner.TryStart(
+                actor,
+                CharacterPrimitiveSurvivalActionKind.BucketWash,
+                out _))
+        {
+            return true;
+        }
+
+        return CharacterNeedAiThresholds.IsEmergency(
+                actor,
+                CharacterCondition.SLEEP)
+            && NeedsPrimitiveRest(actor, out _)
+            && primitiveSurvivalRunner.TryStart(
+                actor,
+                CharacterPrimitiveSurvivalActionKind.FloorRest,
+                out _);
     }
 
     private void UpdateBurden(

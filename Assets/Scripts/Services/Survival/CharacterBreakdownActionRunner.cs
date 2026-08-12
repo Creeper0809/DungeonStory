@@ -40,6 +40,7 @@ internal sealed class CharacterBreakdownActionExecutionDependencies
         CharacterEmergencyMovement emergencyMovement,
         CharacterDeprivationDiagnostics diagnostics,
         CharacterDeprivationConsequences consequences,
+        IFieldMealConsumptionCommand fieldMeals,
         IGameEventBus events)
     {
         StateStore = stateStore
@@ -52,6 +53,8 @@ internal sealed class CharacterBreakdownActionExecutionDependencies
             ?? throw new ArgumentNullException(nameof(diagnostics));
         Consequences = consequences
             ?? throw new ArgumentNullException(nameof(consequences));
+        FieldMeals = fieldMeals
+            ?? throw new ArgumentNullException(nameof(fieldMeals));
         Events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
@@ -60,6 +63,7 @@ internal sealed class CharacterBreakdownActionExecutionDependencies
     internal CharacterEmergencyMovement EmergencyMovement { get; }
     internal CharacterDeprivationDiagnostics Diagnostics { get; }
     internal CharacterDeprivationConsequences Consequences { get; }
+    internal IFieldMealConsumptionCommand FieldMeals { get; }
     internal IGameEventBus Events { get; }
 }
 
@@ -87,6 +91,7 @@ internal sealed class CharacterBreakdownActionRunner
     private readonly CharacterEmergencyMovement emergencyMovement;
     private readonly CharacterDeprivationDiagnostics diagnostics;
     private readonly CharacterDeprivationConsequences consequences;
+    private readonly IFieldMealConsumptionCommand fieldMeals;
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly ICharacterPerformanceQuery performance;
     private readonly IGameEventBus events;
@@ -114,6 +119,7 @@ internal sealed class CharacterBreakdownActionRunner
         emergencyMovement = execution.EmergencyMovement;
         diagnostics = execution.Diagnostics;
         consequences = execution.Consequences;
+        fieldMeals = execution.FieldMeals;
         events = execution.Events;
         CreateActionRoutines();
     }
@@ -485,9 +491,37 @@ internal sealed class CharacterBreakdownActionRunner
         if (TryFindEmergencyFood(actor, out WorldItemStackSnapshot food))
         {
             yield return emergencyMovement.MoveNear(actor, food.Position, 0);
-            if (CanCommit(actor, intentLease)
-                && Manhattan(actor.GetNowXY(), food.Position) == 0
-                && world.TryConsumeStack(food.StackId, 1, out WorldItemStackSnapshot consumed))
+            if (!CanCommit(actor, intentLease)
+                || Manhattan(actor.GetNowXY(), food.Position) != 0)
+            {
+                yield break;
+            }
+
+            // Authored meals must use the same physical consumption authority as
+            // ordinary and primitive meals. Directly deleting their stack here
+            // bypassed nutrition projection, mood policy and PhysicalMealConsumedEvent,
+            // making starvation breakdowns appear to eat while the rest of the
+            // simulation saw no meal at all.
+            if (itemCatalog.TryGet(
+                    (ItemDefinitionId)food.ItemId,
+                    out ItemDefinitionSO mealDefinition)
+                && mealDefinition.TryGetFeature(out FoodItemFeature _))
+            {
+                if (fieldMeals.TryConsumeFieldMeal(
+                        actor,
+                        (ItemStackId)food.StackId,
+                        out MealConsumptionResult mealResult)
+                    && mealResult.Success)
+                {
+                    consequences.EndActiveBreakdownIfRelieved(actor);
+                }
+                yield break;
+            }
+
+            if (world.TryConsumeStack(
+                    food.StackId,
+                    1,
+                    out WorldItemStackSnapshot consumed))
             {
                 bool humanoid = consumed.ItemId == DarkSurvivalItemDefinitions.HumanoidCorpseItemId
                     || consumed.ItemId == DarkSurvivalItemDefinitions.HumanoidMeatItemId;

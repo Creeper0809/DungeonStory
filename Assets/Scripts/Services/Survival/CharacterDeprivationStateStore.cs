@@ -194,6 +194,7 @@ public sealed class CharacterDeprivationAuthorityDependencies
                 emergencyMovement,
                 diagnostics,
                 consequences,
+                PrimitiveSurvival.FieldMeals,
                 events));
     }
 }

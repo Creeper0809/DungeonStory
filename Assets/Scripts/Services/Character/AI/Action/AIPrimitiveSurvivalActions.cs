@@ -35,25 +35,26 @@ public abstract class AIPrimitiveSurvivalAction : AIActionSet
             return false;
         }
 
-        if (FacilityCandidateScorer.HasUsableCandidate(actor, facilityRole))
+        // Coarse role presence, or even an indexed building on this grid, may
+        // still be outside the actor's reachable component. Only an
+        // actor-reachable authored fixture suppresses the primitive fallback.
+        // A temporarily occupied reachable fixture still remains a candidate
+        // (IsCandidate deliberately does not consume a visit slot), so it keeps
+        // the actor on the wait/retry path without mistaking global role bits
+        // for a usable local service.
+        GridPathSearchResult searchResult = actor.Brain?.GetPathSearch(actor);
+        if (searchResult != null
+            && FacilityCandidateScorer.HasCandidate(
+                actor,
+                searchResult,
+                facilityRole))
         {
             return false;
         }
 
-        // Role presence (and an index still being built) is enough to keep the
-        // actor on the authored facility path.  A temporarily occupied,
-        // cooling-down or reserved fixture must create a wait/retry, not turn
-        // into an outdoor latrine or bucket wash next to a working bathroom.
-        // Emergency urgency raises the facility job's priority; it does not
-        // redefine an existing fixture as absent.
-        if (FacilityCandidateScorer.HasCandidate(actor, null, facilityRole))
-        {
-            return false;
-        }
-
-        // Only a genuinely absent facility role permits the primitive path.
-        // This remains available at both routine and emergency urgency so a
-        // new settlement can survive before it builds its first fixture.
+        // No reachable facility exists. This remains available at both routine
+        // and emergency urgency so a new settlement can survive before it
+        // builds its first fixture or while an isolated fixture is unreachable.
         return true;
     }
 }

@@ -735,6 +735,7 @@ public readonly struct CharacterAiDecisionContext
             CharacterAiBranch.Work => WorkPriority,
             CharacterAiBranch.Wait => Mathf.Clamp01(1f - EmergencyScore),
             CharacterAiBranch.Eat => HungerUrgency,
+            CharacterAiBranch.Drink => ThirstUrgency,
             CharacterAiBranch.Rest => RestUrgency,
             CharacterAiBranch.Toilet => ExcretionUrgency,
             CharacterAiBranch.Hygiene => Mathf.Max(HygieneUrgency, ExpeditionStressUrgency * 0.75f),

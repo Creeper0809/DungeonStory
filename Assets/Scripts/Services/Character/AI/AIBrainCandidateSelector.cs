@@ -133,17 +133,19 @@ internal sealed class AIBrainCandidateSelector
         while (continuation.NextActionIndex < actions.Length)
         {
             AIAction action = actions[continuation.NextActionIndex];
-            processedThisSlice++;
             if (action?.actionset == null || !predicate(action.actionset))
             {
                 continuation.NextActionIndex++;
-                if (ShouldYield(sliceStarted, sliceMilliseconds, processedThisSlice))
-                {
-                    break;
-                }
-
                 continue;
             }
+
+            // Predicate filtering is an O(1) array read and does not execute
+            // destination, path, reservation or score logic. Counting skipped
+            // actions against the work slice made a destinationless action near
+            // the end of the shared action array report PathSearchDeferred for
+            // several ticks. Only real candidate evaluations consume this
+            // selector's decision budget.
+            processedThisSlice++;
 
             AIBrainActionEvaluation evaluation;
             bool canConsider = hasDecisionContext
@@ -163,7 +165,7 @@ internal sealed class AIBrainCandidateSelector
                     continuation.BestFailure = evaluation.Failure;
                 }
 
-                if (evaluation.Failure.Kind == AIActionFailureKind.PathSearchDeferred)
+                if (evaluation.Failure.IsDeferred)
                 {
                     break;
                 }
@@ -171,6 +173,10 @@ internal sealed class AIBrainCandidateSelector
                 continuation.NextActionIndex++;
                 if (ShouldYield(sliceStarted, sliceMilliseconds, processedThisSlice))
                 {
+                    SkipNonMatchingActions(
+                        actions,
+                        predicate,
+                        continuation);
                     break;
                 }
 
@@ -187,6 +193,10 @@ internal sealed class AIBrainCandidateSelector
 
             if (ShouldYield(sliceStarted, sliceMilliseconds, processedThisSlice))
             {
+                SkipNonMatchingActions(
+                    actions,
+                    predicate,
+                    continuation);
                 break;
             }
         }
@@ -194,7 +204,7 @@ internal sealed class AIBrainCandidateSelector
         if (continuation.NextActionIndex < actions.Length)
         {
             AIActionFailure pending = AIActionFailure.Create(
-                AIActionFailureKind.PathSearchDeferred,
+                AIActionFailureKind.CandidateEvaluationDeferred,
                 "Action candidate evaluation is waiting for the next work slice.");
             candidate = new CharacterAiActionCandidate(
                 null,
@@ -244,6 +254,23 @@ internal sealed class AIBrainCandidateSelector
         }
 
         return null;
+    }
+
+    private static void SkipNonMatchingActions(
+        AIAction[] actions,
+        Predicate<AIActionSet> predicate,
+        AIBrainActionScoringContinuation continuation)
+    {
+        while (continuation.NextActionIndex < actions.Length)
+        {
+            AIAction action = actions[continuation.NextActionIndex];
+            if (action?.actionset != null && predicate(action.actionset))
+            {
+                return;
+            }
+
+            continuation.NextActionIndex++;
+        }
     }
 
     private bool Measure(Func<bool> action)
@@ -310,6 +337,8 @@ internal sealed class AIBrainCandidateSelector
             AIActionFailureKind.OffDuty => 35,
             AIActionFailureKind.Unsupported => 25,
             AIActionFailureKind.CannotStart => 20,
+            AIActionFailureKind.CandidateEvaluationDeferred => 10,
+            AIActionFailureKind.FacilityCandidateDeferred => 10,
             AIActionFailureKind.PathSearchDeferred => 10,
             AIActionFailureKind.Cooldown => 5,
             AIActionFailureKind.NoScore => 1,

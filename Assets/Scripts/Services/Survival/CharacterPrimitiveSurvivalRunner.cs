@@ -19,7 +19,7 @@ internal enum CharacterPrimitiveSurvivalActionKind
 /// </summary>
 internal sealed class CharacterPrimitiveSurvivalRunner
 {
-    private const string IntentOwnerId = "survival:primitive";
+    private const string IntentOwnerPrefix = "survival:primitive:";
     private const float FieldMealSeconds = 4f;
     private const float FloorRestSeconds = 60f;
     private const float LatrineSeconds = 6f;
@@ -33,7 +33,24 @@ internal sealed class CharacterPrimitiveSurvivalRunner
     private readonly IGameEventBus events;
     private readonly IItemQuantityReservationService quantityReservations;
     private readonly IReservedItemTransferService reservedTransfers;
-    private readonly HashSet<CharacterId> runningActorIds = new();
+    private readonly Dictionary<CharacterId, RunningPrimitiveAction> runningActions = new();
+
+    private readonly struct RunningPrimitiveAction
+    {
+        internal RunningPrimitiveAction(
+            CharacterPrimitiveSurvivalActionKind kind,
+            CharacterActionIntentKind intentKind,
+            long leaseEpoch)
+        {
+            Kind = kind;
+            IntentKind = intentKind;
+            LeaseEpoch = leaseEpoch;
+        }
+
+        internal CharacterPrimitiveSurvivalActionKind Kind { get; }
+        internal CharacterActionIntentKind IntentKind { get; }
+        internal long LeaseEpoch { get; }
+    }
 
     internal CharacterPrimitiveSurvivalRunner(
         CharacterBreakdownWorld world,
@@ -54,7 +71,7 @@ internal sealed class CharacterPrimitiveSurvivalRunner
     }
 
     internal bool IsRunning(CharacterId actorId) =>
-        actorId.IsValid && runningActorIds.Contains(actorId);
+        actorId.IsValid && runningActions.ContainsKey(actorId);
 
     internal bool HasFieldMeal(CharacterActor actor, out string reason)
     {
@@ -98,7 +115,13 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         }
 
         CharacterId actorId = CharacterPersistentIdentity.Require(actor);
-        if (!runningActorIds.Add(actorId))
+        if (runningActions.TryGetValue(
+                actorId,
+                out RunningPrimitiveAction running)
+            && (IsEmergency(actor, kind)
+                    ? CharacterActionIntentKind.EmergencyNeed
+                    : CharacterActionIntentKind.RoutineNeed)
+                <= running.IntentKind)
         {
             status = GetLabel(kind) + " 진행 중";
             return true;
@@ -110,18 +133,22 @@ internal sealed class CharacterPrimitiveSurvivalRunner
                 : CharacterActionIntentKind.RoutineNeed;
         if (actor.Brain == null
             || !actor.Brain.TryBeginExternallyDrivenAction(
-                IntentOwnerId,
+                IntentOwnerPrefix + kind,
                 intentKind,
                 GetLabel(kind),
                 "시설 없는 초기 생존 행동을 수행하는 중",
                 GetReason(kind),
                 out CharacterActionIntentLease intentLease))
         {
-            runningActorIds.Remove(actorId);
+            runningActions.Remove(actorId);
             status = "더 높은 우선순위 행동이 진행 중";
             return true;
         }
 
+        runningActions[actorId] = new RunningPrimitiveAction(
+            kind,
+            intentKind,
+            intentLease.Epoch);
         actor.StartCoroutine(Run(actor, actorId, kind, intentLease));
         status = GetLabel(kind);
         return true;
@@ -131,11 +158,11 @@ internal sealed class CharacterPrimitiveSurvivalRunner
     {
         if (actorId.IsValid)
         {
-            runningActorIds.Remove(actorId);
+            runningActions.Remove(actorId);
         }
     }
 
-    internal void Reset() => runningActorIds.Clear();
+    internal void Reset() => runningActions.Clear();
 
     private IEnumerator Run(
         CharacterActor actor,
@@ -163,7 +190,13 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         }
         finally
         {
-            runningActorIds.Remove(actorId);
+            if (runningActions.TryGetValue(
+                    actorId,
+                    out RunningPrimitiveAction running)
+                && running.LeaseEpoch == intentLease.Epoch)
+            {
+                runningActions.Remove(actorId);
+            }
             actor?.Brain?.EndExternallyDrivenAction(
                 intentLease,
                 clearFailures: true);

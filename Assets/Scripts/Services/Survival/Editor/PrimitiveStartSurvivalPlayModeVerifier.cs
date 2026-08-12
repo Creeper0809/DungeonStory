@@ -109,6 +109,46 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
             yield break;
         }
 
+        CharacterActor[] party = ResolveParty();
+        if (party.Length == 3)
+        {
+            Check(true,
+                "START_COMMIT",
+                "GameplayScene launch flow already committed the starting party.");
+        }
+        else
+        {
+            string commit = StartPartyPreparationPlayModeVerifier.RunFastCommitForDebug();
+            Check(commit.Contains("committed=True", StringComparison.OrdinalIgnoreCase),
+                "START_COMMIT",
+                commit);
+            yield return null;
+            party = ResolveParty();
+        }
+
+        // Committing the starting party replaces the preparation scene and its
+        // LifetimeScope. Never retain services or event subscriptions resolved
+        // before that transition: they belong to a disposed world and silently
+        // miss every event produced by the gameplay world.
+        float gameplayScopeDeadline = Time.realtimeSinceStartup + 10f;
+        scope = FindRuntimeScopeForParty(party);
+        while ((scope == null || scope.Container == null)
+            && Time.realtimeSinceStartup < gameplayScopeDeadline)
+        {
+            yield return null;
+            party = ResolveParty();
+            scope = FindRuntimeScopeForParty(party);
+        }
+        Check(scope?.Container != null,
+            "GAMEPLAY_RUNTIME_SCOPE",
+            scope != null
+                ? $"scene={scope.gameObject.scene.name}; party={party.Length}"
+                : $"missing gameplay scope; party={party.Length}");
+        if (scope?.Container == null)
+        {
+            yield break;
+        }
+
         IGameEventBus events = scope.Container.Resolve<IGameEventBus>();
         primitiveSubscription = events.Subscribe<CharacterPrimitiveSurvivalCompletedEvent>(
             completed =>
@@ -134,23 +174,6 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                 physicalFieldMeals++;
             }
         });
-
-        CharacterActor[] party = ResolveParty();
-        if (party.Length == 3)
-        {
-            Check(true,
-                "START_COMMIT",
-                "GameplayScene launch flow already committed the starting party.");
-        }
-        else
-        {
-            string commit = StartPartyPreparationPlayModeVerifier.RunFastCommitForDebug();
-            Check(commit.Contains("committed=True", StringComparison.OrdinalIgnoreCase),
-                "START_COMMIT",
-                commit);
-            yield return null;
-            party = ResolveParty();
-        }
 
         IWorldItemStackRuntime items =
             scope.Container.Resolve<IWorldItemStackRuntime>();
@@ -357,6 +380,22 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
             yield break;
         }
 
+        float previousActionDeadline = Time.realtimeSinceStartup + 2f;
+        while (actor.Brain.IsExternallyDrivenActionActive
+            && Time.realtimeSinceStartup < previousActionDeadline)
+        {
+            yield return null;
+        }
+        Check(!actor.Brain.IsExternallyDrivenActionActive,
+            checkPrefix + "_PREVIOUS_ACTION_SETTLED",
+            actor.Brain.IsExternallyDrivenActionActive
+                ? actor.Brain.CurrentActionDebugLabel
+                : "settled");
+        if (actor.Brain.IsExternallyDrivenActionActive)
+        {
+            yield break;
+        }
+
         ResetNeeds(actor);
         CharacterNeedResponseProfile response = actor.Stats.GetNeedResponse(targetNeed);
         SetNeed(actor, targetNeed, Mathf.Max(1f, response.emergencyStart - 1f));
@@ -380,10 +419,13 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
 
         actor.Brain.availableActions = new[] { focusedAction };
         bool canStart = focusedAction.actionset.CanStart(actor);
-        bool authoredFacilityPresent = FacilityCandidateScorer.HasCandidate(
-            actor,
-            null,
-            authoredFacilityRole);
+        GridPathSearchResult authoredFacilitySearch =
+            actor.Brain.GetPathSearch(actor);
+        bool authoredFacilityPresent = authoredFacilitySearch != null
+            && FacilityCandidateScorer.HasCandidate(
+                actor,
+                authoredFacilitySearch,
+                authoredFacilityRole);
         if (authoredFacilityPresent)
         {
             Check(!canStart,
@@ -497,6 +539,26 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
             .OrderBy(candidate => candidate.gameObject.scene.buildIndex)
             .ThenBy(candidate => candidate.GetInstanceID())
             .FirstOrDefault();
+
+    private static DungeonRuntimeLifetimeScope FindRuntimeScopeForParty(
+        IReadOnlyList<CharacterActor> party)
+    {
+        CharacterActor anchor = party?
+            .FirstOrDefault(actor => actor != null && actor.gameObject.scene.IsValid());
+        if (anchor == null)
+        {
+            return null;
+        }
+
+        int sceneHandle = anchor.gameObject.scene.handle;
+        return Resources.FindObjectsOfTypeAll<DungeonRuntimeLifetimeScope>()
+            .Where(candidate => candidate != null
+                && candidate.gameObject.scene.IsValid()
+                && candidate.gameObject.scene.handle == sceneHandle
+                && candidate.Container != null)
+            .OrderBy(candidate => candidate.GetInstanceID())
+            .FirstOrDefault();
+    }
 
     private static CharacterActor[] ResolveParty()
     {

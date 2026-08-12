@@ -2,6 +2,15 @@ using UnityEngine;
 
 public static class CharacterNeedAiThresholds
 {
+    private static readonly CharacterCondition[] SurvivalRoutineConditions =
+    {
+        CharacterCondition.HUNGER,
+        CharacterCondition.THIRST,
+        CharacterCondition.SLEEP,
+        CharacterCondition.EXCRETION,
+        CharacterCondition.HYGIENE
+    };
+
     public static float GetRoutineUtility(
         CharacterActor actor,
         CharacterCondition condition)
@@ -42,5 +51,40 @@ public static class CharacterNeedAiThresholds
         return actor?.Stats != null
             && actor.Stats.TryGetConditionValue(condition, out float value)
             && value >= actor.Stats.GetNeedResponse(condition).resumeTarget;
+    }
+
+    public static bool TryGetMostUrgentSurvivalRoutineNeed(
+        CharacterActor actor,
+        out CharacterCondition condition,
+        out float utility,
+        out float value,
+        out float routineStart)
+    {
+        condition = default;
+        utility = 0f;
+        value = 0f;
+        routineStart = 0f;
+        if (actor?.Stats == null)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < SurvivalRoutineConditions.Length; index++)
+        {
+            CharacterCondition candidate = SurvivalRoutineConditions[index];
+            float candidateUtility = GetRoutineUtility(actor, candidate);
+            if (candidateUtility <= utility
+                || !actor.Stats.TryGetConditionValue(candidate, out float candidateValue))
+            {
+                continue;
+            }
+
+            condition = candidate;
+            utility = candidateUtility;
+            value = candidateValue;
+            routineStart = actor.Stats.GetNeedResponse(candidate).routineStart;
+        }
+
+        return utility > 0f;
     }
 }

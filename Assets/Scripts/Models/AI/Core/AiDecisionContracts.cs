@@ -153,9 +153,9 @@ namespace DungeonStory.AI
             if (selected) return AiActionDecision.Allow();
             return AiActionDecision.Reject(
                 pending
-                    ? AIActionFailureKind.PathSearchDeferred
+                    ? AIActionFailureKind.FacilityCandidateDeferred
                     : AIActionFailureKind.NoDestination,
-                pending ? "시설 후보를 나누어 확인하는 중" : string.Empty);
+                pending ? "시설 후보 인덱스 또는 근접 후보 목록을 갱신하는 중" : string.Empty);
         }
     }
 }

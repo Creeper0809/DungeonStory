@@ -137,6 +137,9 @@ public sealed class WorkTaskExecutor
     private int currentRunId;
     private string activeEmergencyOperationId = string.Empty;
     private long emergencyAccountingSequence;
+    private double actualLaborMilliWuCarry;
+    private double projectOutputMilliWuCarry;
+    private long latestApprovedLaborMilliWu;
     private bool emergencySuspensionRequested;
     private bool emergencySuspended;
     private long requestedEmergencyEpochId;
@@ -197,6 +200,9 @@ public sealed class WorkTaskExecutor
         currentRunId = runId;
         activeEmergencyOperationId = string.Empty;
         emergencyAccountingSequence = 0L;
+        actualLaborMilliWuCarry = 0d;
+        projectOutputMilliWuCarry = 0d;
+        latestApprovedLaborMilliWu = 0L;
         emergencySuspensionRequested = false;
         emergencySuspended = false;
         requestedEmergencyEpochId = 0L;
@@ -1731,12 +1737,14 @@ public sealed class WorkTaskExecutor
             ? remainingWork
             : EmergencyWuUnits.ToWu(EmergencyWuUnits.MaximumReserveWindowMilliWu);
         long remainingMilliWu = EmergencyWuUnits.FromWu(knownRemaining);
+        long approvedMilliWu = ConvertApprovedWorkToMilliWu(approvedWork);
+        latestApprovedLaborMilliWu = approvedMilliWu;
         if (string.IsNullOrWhiteSpace(activeEmergencyOperationId))
         {
             activeEmergencyOperationId =
                 $"work:{characterId.Value}:{currentRunId}:{workTypeId.Value}";
             long initialRemaining = checked(
-                remainingMilliWu + EmergencyWuUnits.FromWu(approvedWork));
+                remainingMilliWu + approvedMilliWu);
             long reserve = (definition.EmergencyFlags & EmergencyWorkFlags.ReserveEligible) != 0
                 ? Math.Min(initialRemaining, EmergencyWuUnits.MaximumReserveWindowMilliWu)
                 : 0L;
@@ -1757,7 +1765,7 @@ public sealed class WorkTaskExecutor
         EmergencyAccountingResult progress = emergencyWorkAccounting.ApplyProgress(
             new EmergencyWorkProgress(
                 activeEmergencyOperationId,
-                EmergencyWuUnits.FromWu(approvedWork),
+                approvedMilliWu,
                 remainingMilliWu,
                 emergencyAccountingSequence));
         RequireEmergencyAccountingSuccess(progress);
@@ -1769,7 +1777,7 @@ public sealed class WorkTaskExecutor
                     activeEmergencyOperationId,
                     emergencyAccountingSequence,
                     SettlementLaborContributionChannel.ActualLabor,
-                    EmergencyWuUnits.FromWu(approvedWork),
+                    approvedMilliWu,
                     workTypeId.Value));
             RequireEmergencyAccountingSuccess(labor);
             if (SettlementLaborBalanceRules.TryGetMaintenanceChannel(
@@ -1782,11 +1790,35 @@ public sealed class WorkTaskExecutor
                             activeEmergencyOperationId,
                             emergencyAccountingSequence,
                             maintenanceChannel,
-                            EmergencyWuUnits.FromWu(approvedWork),
+                            approvedMilliWu,
                             workTypeId.Value));
                 RequireEmergencyAccountingSuccess(maintenance);
             }
         }
+    }
+
+    private long ConvertApprovedWorkToMilliWu(float approvedWork)
+    {
+        if (float.IsNaN(approvedWork)
+            || float.IsInfinity(approvedWork)
+            || approvedWork < 0f)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(approvedWork),
+                approvedWork,
+                "Approved work must be finite and non-negative.");
+        }
+
+        // Work progresses in small floating-point deltas. Rounding every tick
+        // independently accumulated measurable drift against the authoritative
+        // physical project progress. Carry the sub-milli remainder within the
+        // active operation so the integer ledger tracks the rounded cumulative
+        // total instead of the sum of rounded fragments.
+        double exactMilliWu = approvedWork * EmergencyWuUnits.UnitsPerWu
+            + actualLaborMilliWuCarry;
+        long wholeMilliWu = checked((long)Math.Floor(exactMilliWu + 1e-9d));
+        actualLaborMilliWuCarry = exactMilliWu - wholeMilliWu;
+        return wholeMilliWu;
     }
 
     private void CompleteEmergencyAccounting(string reason)
@@ -1800,6 +1832,9 @@ public sealed class WorkTaskExecutor
         emergencyAccountingSequence = checked(emergencyAccountingSequence + 1L);
         string operationId = activeEmergencyOperationId;
         activeEmergencyOperationId = string.Empty;
+        actualLaborMilliWuCarry = 0d;
+        projectOutputMilliWuCarry = 0d;
+        latestApprovedLaborMilliWu = 0L;
         EmergencyAccountingResult result = emergencyWorkAccounting.Remove(
             new EmergencyWorkCompletion(
                 operationId,
@@ -1820,8 +1855,12 @@ public sealed class WorkTaskExecutor
             return;
         }
 
-        long outputMilliWu = EmergencyWuUnits.FromWu(outputEquivalentWork);
-        long laborMilliWu = EmergencyWuUnits.FromWu(actualLaborWork);
+        double exactOutputMilliWu = outputEquivalentWork
+            * EmergencyWuUnits.UnitsPerWu
+            + projectOutputMilliWuCarry;
+        long outputMilliWu = checked((long)Math.Floor(exactOutputMilliWu + 1e-9d));
+        projectOutputMilliWuCarry = exactOutputMilliWu - outputMilliWu;
+        long laborMilliWu = latestApprovedLaborMilliWu;
         long difference = checked(outputMilliWu - laborMilliWu);
         if (difference == 0L)
         {

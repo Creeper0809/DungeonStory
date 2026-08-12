@@ -559,7 +559,10 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
         activeMacroGoal.targetFacilityTag = string.Empty;
         activeMacroGoal.validUntil = 0f;
         activeMacroGoal.source = string.Empty;
-        currentStatus = reason ?? string.Empty;
+        if (DetailedDiagnosticsEnabled)
+        {
+            AppendDecisionTrace($"MacroGoal cleared: {TrimTrace(reason)}");
+        }
     }
 
     public void SetMoodImpulse(CharacterMoodImpulse impulse)

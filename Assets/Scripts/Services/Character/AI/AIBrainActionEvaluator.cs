@@ -140,7 +140,7 @@ internal sealed class AIBrainActionEvaluator
             out AIActionFailure failure,
             out BuildableObject destination);
         evaluation = new AIBrainActionEvaluation(canConsider, failure, destination);
-        if (action != null && failure.Kind != AIActionFailureKind.PathSearchDeferred)
+        if (action != null && !failure.IsDeferred)
         {
             evaluations[action] = evaluation;
         }

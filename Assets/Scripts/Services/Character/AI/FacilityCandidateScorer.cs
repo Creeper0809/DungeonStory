@@ -400,6 +400,7 @@ public static class FacilityCandidateScorer
         }
 
         BuildableObject scoreLeader = selectedBuilding;
+        float scoreLeaderSpeciesAffinity = GetSpeciesAffinityBias(actor, scoreLeader);
         CharacterAiUtilityBreakdown scoreLeaderBreakdown = selectedBreakdown;
         float scoreLeaderScore = selectedScore;
         float scoreLeaderTravel = GetEstimatedTravelCells(
@@ -429,8 +430,15 @@ public static class FacilityCandidateScorer
                 searchResult,
                 scoringContext,
                 out CharacterAiUtilityBreakdown breakdown);
+            float candidateSpeciesAffinity = GetSpeciesAffinityBias(actor, building);
             if ((requirePositiveScore && score <= 0f)
-                || score + tolerance < scoreLeaderScore)
+                || score + tolerance < scoreLeaderScore
+                // A preferred or disliked facility is not equivalent to a
+                // neutral one. The proximity nudge must never erase authored
+                // species identity merely because their final scores are close.
+                || !Mathf.Approximately(
+                    candidateSpeciesAffinity,
+                    scoreLeaderSpeciesAffinity))
             {
                 continue;
             }
@@ -724,14 +732,20 @@ public static class FacilityCandidateScorer
     private static float ApplySpeciesAffinityBias(float score, float bias)
     {
         score = Mathf.Clamp01(score);
+        // Species affinity is an authored categorical identity. Its former
+        // 35%-of-remaining-headroom blend was too weak for a preferred distant
+        // facility to beat a nearby neutral one. Keep a monotonic blend (rather
+        // than a saturating flat addition) so novelty, crowding and memory can
+        // still distinguish two preferred facilities.
         if (bias > 0f)
         {
-            return Mathf.Clamp01(score + (1f - score) * bias);
+            float preferredBlend = Mathf.Clamp01(bias * 2.2f);
+            return Mathf.Lerp(score, 1f, preferredBlend);
         }
 
         if (bias < 0f)
         {
-            return Mathf.Clamp01(score + score * bias);
+            return score * (1f - Mathf.Clamp01(-bias));
         }
 
         return score;

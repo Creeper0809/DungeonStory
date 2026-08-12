@@ -325,7 +325,20 @@ public static class CustomerAiDebugScenarios
         CharacterActor slime = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 30f);
         BuildableObject slimeBest = SelectBest(slime, searchResult, CharacterVisitPolicy.CustomerInterestRoles);
 
-        return orcBest == weapon && slimeBest == general;
+        bool valid = orcBest == weapon && slimeBest == general;
+        if (!valid)
+        {
+            Debug.LogError(
+                "Species-vs-distance selection detail: "
+                + $"orcIdentity={orc.Identity?.SpeciesTag}; orcBest={Name(orcBest)}; "
+                + $"orcGeneral={Score(orc, general, searchResult):0.###}; "
+                + $"orcWeapon={Score(orc, weapon, searchResult):0.###}; "
+                + $"slimeIdentity={slime.Identity?.SpeciesTag}; slimeBest={Name(slimeBest)}; "
+                + $"slimeGeneral={Score(slime, general, searchResult):0.###}; "
+                + $"slimeWeapon={Score(slime, weapon, searchResult):0.###}");
+        }
+
+        return valid;
     }
 
     private static bool VerifyToiletAndHygieneFacilityRecovery()
@@ -369,7 +382,18 @@ public static class CustomerAiDebugScenarios
         CharacterActor vampire = world.CreateCustomer("Vampire", Vector2Int.zero, 90f, 90f, 10f, 10f);
         BuildableObject best = SelectBest(vampire, searchResult, CharacterVisitPolicy.CustomerInterestRoles);
 
-        return best != general && (best == lab || best == mana);
+        bool valid = best != general && (best == lab || best == mana);
+        if (!valid)
+        {
+            Debug.LogError(
+                "Vampire interest selection detail: "
+                + $"identity={vampire.Identity?.SpeciesTag}; best={Name(best)}; "
+                + $"general={Score(vampire, general, searchResult):0.###}; "
+                + $"research={Score(vampire, lab, searchResult):0.###}; "
+                + $"mana={Score(vampire, mana, searchResult):0.###}");
+        }
+
+        return valid;
     }
 
     private static bool VerifyUnavailableFacilitiesAreExcluded()
@@ -855,7 +879,16 @@ public static class CustomerAiDebugScenarios
             searchResult,
             scoringContext);
 
-        return revisitedScore < freshScore && crowdedRestScore < emptyRestScore;
+        bool valid = revisitedScore < freshScore && crowdedRestScore < emptyRestScore;
+        if (!valid)
+        {
+            Debug.LogError(
+                "Novelty/crowd score detail: "
+                + $"fresh={freshScore:0.###}; revisited={revisitedScore:0.###}; "
+                + $"emptyRest={emptyRestScore:0.###}; crowdedRest={crowdedRestScore:0.###}");
+        }
+
+        return valid;
     }
 
     private static BuildableObject SelectBest(
@@ -877,6 +910,19 @@ public static class CustomerAiDebugScenarios
         ConsiderationFacilityNeed need = ScriptableObject.CreateInstance<ConsiderationFacilityNeed>();
         need.Role = role;
         return need;
+    }
+
+    private static float Score(
+        CharacterActor character,
+        BuildableObject building,
+        GridPathSearchResult searchResult)
+    {
+        return FacilityCandidateScorer.ScoreCandidate(
+            CharacterActor.From(character),
+            building,
+            CharacterVisitPolicy.CustomerInterestRoles,
+            searchResult,
+            CreateIsolatedFacilityScoringContext());
     }
 
     private static FacilityScoringContext CreateIsolatedFacilityScoringContext()

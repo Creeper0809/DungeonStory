@@ -153,6 +153,8 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
     private CharacterActor[] fixtureActors = Array.Empty<CharacterActor>();
     private int quarantinedNonFixtureActorCount;
     private int finalActiveActorCount;
+    private AiDirectorRuntime suspendedAiDirector;
+    private LocalLlmRequestQueue suspendedLlmQueue;
 
     private IEnumerator Start()
     {
@@ -237,6 +239,19 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         }
 
         yield return EnsureGameplayActors(scope);
+        suspendedAiDirector =
+            UnityEngine.Object.FindFirstObjectByType<AiDirectorRuntime>();
+        if (suspendedAiDirector != null)
+        {
+            suspendedAiDirector.enabled = false;
+        }
+        suspendedLlmQueue =
+            UnityEngine.Object.FindFirstObjectByType<LocalLlmRequestQueue>();
+        if (suspendedLlmQueue != null)
+        {
+            suspendedLlmQueue.AbortAllForDebug();
+            suspendedLlmQueue.enabled = false;
+        }
         CharacterSpawner sceneSpawner =
             UnityEngine.Object.FindFirstObjectByType<CharacterSpawner>();
         if (sceneSpawner != null)
@@ -645,6 +660,14 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             gameSpeed.SetSpeed(originalGameSpeed);
         }
         exteriorIncidents?.SetAutomaticIncidentChecksSuspended(false);
+        if (suspendedLlmQueue != null)
+        {
+            suspendedLlmQueue.enabled = true;
+        }
+        if (suspendedAiDirector != null)
+        {
+            suspendedAiDirector.enabled = true;
+        }
         Time.timeScale = originalTimeScale;
         File.Delete(DailyRoutineWuPlayModeVerifier.RequestPath);
 
@@ -737,6 +760,23 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         report.AppendLine($"otherTravel={observations.Values.Sum(value => value.OtherTravelSeconds) / sampledActorDays:0.###}");
         report.AppendLine($"idleOther={observations.Values.Sum(value => value.IdleOtherSeconds) / sampledActorDays:0.###}");
         report.AppendLine($"sampledSeconds={sampledActorSeconds:0.###}; expected={observedGameSeconds * observations.Count:0.###}; delta={sampledActorSeconds - observedGameSeconds * observations.Count:0.###}");
+
+        report.AppendLine();
+        report.AppendLine("## Cumulative AI lifecycle and harmful-stall diagnostics");
+        foreach (ActorRoutineObservation observation in observations.Values
+                     .OrderBy(value => value.ActorName, StringComparer.Ordinal))
+        {
+            report.AppendLine(observation.DescribeCumulativeDiagnostics());
+            foreach (string evidence in observation.EnumerateStallEvidence())
+            {
+                report.AppendLine($"stall actor={observation.ActorName}; {evidence}");
+            }
+            if (observation.HarmfulStallEpisodes > 0)
+            {
+                failures.Add(
+                    $"{observation.ActorName} encountered {observation.HarmfulStallEpisodes} harmful no-progress episode(s); inspect cumulative stall evidence.");
+            }
+        }
 
         int toiletVisits = GetFacilityVisitCount(FacilityRole.Toilet);
         int hygieneVisits = GetFacilityVisitCount(FacilityRole.Hygiene);
@@ -1189,8 +1229,7 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             {
                 evaluated = giver.TryEvaluate(actor, out candidate);
                 if (evaluated
-                    || candidate.ActionCandidate.Failure.Kind
-                        != AIActionFailureKind.PathSearchDeferred)
+                    || !candidate.ActionCandidate.Failure.IsDeferred)
                 {
                     break;
                 }
@@ -1872,15 +1911,29 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
 
         private readonly CharacterActor actor;
         private readonly NeedSnapshot start;
+        private readonly CharacterAiRuntimeDiagnosticsSnapshot diagnosticsStart;
+        private readonly Dictionary<CharacterAiBranch, float> branchSeconds =
+            new Dictionary<CharacterAiBranch, float>();
+        private readonly List<string> stallEvidence = new List<string>(8);
         private Vector3 lastPosition;
         private bool hasPosition;
         private RoutineNeedKind previousNeedKind;
+        private float urgentUnservedSeconds;
+        private float movementStallSeconds;
+        private float activePhaseStallSeconds;
+        private float longestHarmfulStallSeconds;
+        private int harmfulStallEpisodes;
+        private string previousActiveSignature = string.Empty;
+        private bool urgentStallReported;
+        private bool movementStallReported;
+        private bool activePhaseStallReported;
 
         public ActorRoutineObservation(CharacterActor actor)
         {
             this.actor = actor;
             ActorName = actor != null ? actor.name : "missing";
             start = NeedSnapshot.Capture(actor);
+            diagnosticsStart = actor?.Brain?.CaptureRuntimeDiagnostics() ?? default;
         }
 
         public string ActorName { get; }
@@ -1936,6 +1989,7 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             AbilityWork work = actor.GetComponent<AbilityWork>();
             if (work != null && work.isWorking)
             {
+                ResetNoProgressWindows();
                 previousNeedKind = RoutineNeedKind.None;
                 string workPhase = actor.Brain?.CurrentActionPhase ?? string.Empty;
                 if (moving || IsMovementPhase(workPhase)
@@ -1962,7 +2016,17 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 ?? CharacterAiBranch.None;
             string actionLabel = brain?.CurrentActionDebugLabel ?? string.Empty;
             string actionPhase = brain?.CurrentActionPhase ?? string.Empty;
+            AddBranchSeconds(branch, seconds);
             RoutineNeedKind needKind = ResolveNeedKind(branch, actionLabel);
+            ObserveHarmfulNoProgress(
+                seconds,
+                moving,
+                work,
+                brain,
+                branch,
+                actionLabel,
+                actionPhase,
+                needKind);
             if (needKind != RoutineNeedKind.None)
             {
                 if (previousNeedKind != needKind)
@@ -2074,6 +2138,148 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             || phase.Contains("확인", StringComparison.Ordinal)
             || phase.Contains("결정", StringComparison.Ordinal);
 
+        private void AddBranchSeconds(CharacterAiBranch branch, float seconds)
+        {
+            branchSeconds.TryGetValue(branch, out float current);
+            branchSeconds[branch] = current + seconds;
+        }
+
+        private void ObserveHarmfulNoProgress(
+            float seconds,
+            bool moving,
+            AbilityWork work,
+            AIBrain brain,
+            CharacterAiBranch branch,
+            string actionLabel,
+            string actionPhase,
+            RoutineNeedKind needKind)
+        {
+            if (brain == null || work?.isWorking == true)
+            {
+                ResetNoProgressWindows();
+                return;
+            }
+
+            bool urgent = NeedSnapshot.Capture(actor).TryGetMostUrgent(
+                actor,
+                out string urgentNeed,
+                out CharacterAiBranch urgentBranch);
+            bool servicingNeed = needKind != RoutineNeedKind.None
+                && !IsMovementPhase(actionPhase)
+                && !IsQueuePhase(actionPhase);
+            bool activeAction = brain.IsExternallyDrivenActionActive
+                || (brain.bestAction != null && !brain.isBestActionEnd);
+
+            if (urgent && needKind == RoutineNeedKind.None && !moving)
+            {
+                urgentUnservedSeconds += seconds;
+                longestHarmfulStallSeconds = Mathf.Max(
+                    longestHarmfulStallSeconds,
+                    urgentUnservedSeconds);
+                if (urgentUnservedSeconds >= 12f && !urgentStallReported)
+                {
+                    RecordStall("urgent-unserved", urgentUnservedSeconds,
+                        urgentNeed, urgentBranch, branch, actionLabel,
+                        actionPhase, brain);
+                    urgentStallReported = true;
+                }
+            }
+            else
+            {
+                urgentUnservedSeconds = 0f;
+                urgentStallReported = false;
+            }
+
+            if (IsMovementPhase(actionPhase) && !moving)
+            {
+                movementStallSeconds += seconds;
+                longestHarmfulStallSeconds = Mathf.Max(
+                    longestHarmfulStallSeconds,
+                    movementStallSeconds);
+                if (movementStallSeconds >= 6f && !movementStallReported)
+                {
+                    RecordStall("movement-not-advancing", movementStallSeconds,
+                        urgentNeed, urgentBranch, branch, actionLabel,
+                        actionPhase, brain);
+                    movementStallReported = true;
+                }
+            }
+            else
+            {
+                movementStallSeconds = 0f;
+                movementStallReported = false;
+            }
+
+            string activeSignature = string.Concat(
+                ((int)branch).ToString(), "|", actionLabel, "|", actionPhase,
+                "|", brain.CurrentDestinationDebugLabel);
+            bool activePhaseNotProgressing = activeAction
+                && !servicingNeed
+                && !IsQueuePhase(actionPhase)
+                && !IsMovementPhase(actionPhase)
+                && !moving
+                && string.Equals(activeSignature, previousActiveSignature,
+                    StringComparison.Ordinal);
+            if (activePhaseNotProgressing)
+            {
+                activePhaseStallSeconds += seconds;
+                longestHarmfulStallSeconds = Mathf.Max(
+                    longestHarmfulStallSeconds,
+                    activePhaseStallSeconds);
+                if (activePhaseStallSeconds >= 15f && !activePhaseStallReported)
+                {
+                    RecordStall("active-phase-not-advancing", activePhaseStallSeconds,
+                        urgentNeed, urgentBranch, branch, actionLabel,
+                        actionPhase, brain);
+                    activePhaseStallReported = true;
+                }
+            }
+            else
+            {
+                activePhaseStallSeconds = 0f;
+                activePhaseStallReported = false;
+            }
+            previousActiveSignature = activeSignature;
+        }
+
+        private void ResetNoProgressWindows()
+        {
+            urgentUnservedSeconds = 0f;
+            movementStallSeconds = 0f;
+            activePhaseStallSeconds = 0f;
+            urgentStallReported = false;
+            movementStallReported = false;
+            activePhaseStallReported = false;
+            previousActiveSignature = string.Empty;
+        }
+
+        private void RecordStall(
+            string kind,
+            float duration,
+            string urgentNeed,
+            CharacterAiBranch urgentBranch,
+            CharacterAiBranch branch,
+            string actionLabel,
+            string actionPhase,
+            AIBrain brain)
+        {
+            harmfulStallEpisodes++;
+            if (stallEvidence.Count >= 8) return;
+            CharacterBlackboard blackboard = actor?.Blackboard;
+            string macro = blackboard?.HasActiveMacroGoal() == true
+                ? blackboard.ActiveMacroGoal?.type.ToString()
+                : "None";
+            string impulse = blackboard?.HasActiveMoodImpulse() == true
+                ? $"{blackboard.ActiveMoodImpulse?.type}/{blackboard.ActiveMoodImpulse?.strength:0.###}"
+                : "None";
+            string urgentRejection = urgentBranch == CharacterAiBranch.None
+                ? "none"
+                : brain?.GetCurrentJobGiverEvaluationRejectionSummary(
+                    urgentBranch);
+            stallEvidence.Add(
+                $"kind={kind}; at={duration:0.###}s; urgent={urgentNeed}; urgentJobGiverRejected={OneLine(urgentRejection)}; branch={branch}; action={OneLine(actionLabel)}; phase={OneLine(actionPhase)}; phaseDetail={OneLine(brain?.CurrentActionPhaseDetail)}; destination={OneLine(brain?.CurrentDestinationDebugLabel)}; failure={brain?.LastActionFailure.Kind}; lastJobGiverRejected={OneLine(brain?.CurrentJobGiverEvaluationRejectionSummary)}; selected={OneLine(blackboard?.SelectedJobGiverUtilitySummary)}; route={OneLine(blackboard?.LastDecisionRouteSummary)}; macro={macro}; impulse={impulse}");
+        }
+
         private void AddNeedService(RoutineNeedKind kind, float seconds)
         {
             switch (kind)
@@ -2176,6 +2382,23 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 + $"decisionRoute={OneLine(blackboard?.LastDecisionRouteSummary)}; selectedUtility={OneLine(blackboard?.SelectedJobGiverUtilitySummary)}; blackboardFailure={OneLine(blackboard?.LastFailureReason)}; trace={OneLine(blackboard?.LastDecisionTrace)}";
         }
 
+        public string DescribeCumulativeDiagnostics()
+        {
+            CharacterAiRuntimeDiagnosticsSnapshot end =
+                actor?.Brain?.CaptureRuntimeDiagnostics() ?? default;
+            string branches = string.Join(", ", branchSeconds
+                .Where(value => value.Value >= .05f)
+                .OrderByDescending(value => value.Value)
+                .ThenBy(value => value.Key)
+                .Take(10)
+                .Select(value => $"{value.Key}:{value.Value:0.###}"));
+            return $"actor={ActorName}; {end.FormatDeltaFrom(diagnosticsStart)}; harmfulStalls={harmfulStallEpisodes}; longestHarmfulStall={longestHarmfulStallSeconds:0.###}; branches={branches}";
+        }
+
+        public IEnumerable<string> EnumerateStallEvidence() => stallEvidence;
+
+        public int HarmfulStallEpisodes => harmfulStallEpisodes;
+
         private static string F(float value) => value.ToString("0.0");
 
         private static string OneLine(string value) =>
@@ -2216,6 +2439,67 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
 
         public string Format() =>
             $"H{Hunger:0}/T{Thirst:0}/S{Sleep:0}/F{Fun:0}/E{Excretion:0}/Y{Hygiene:0}/M{Mood:0}";
+
+        public bool TryGetMostUrgent(
+            CharacterActor actor,
+            out string summary,
+            out CharacterAiBranch branch)
+        {
+            string selectedSummary = string.Empty;
+            CharacterAiBranch selectedBranch = CharacterAiBranch.None;
+            if (actor?.Stats == null)
+            {
+                summary = selectedSummary;
+                branch = selectedBranch;
+                return false;
+            }
+
+            float worstMargin = float.PositiveInfinity;
+            bool found = false;
+            Evaluate(
+                CharacterCondition.HUNGER,
+                CharacterAiBranch.Eat,
+                Hunger);
+            Evaluate(
+                CharacterCondition.THIRST,
+                CharacterAiBranch.Drink,
+                Thirst);
+            Evaluate(
+                CharacterCondition.SLEEP,
+                CharacterAiBranch.Rest,
+                Sleep);
+            Evaluate(
+                CharacterCondition.FUN,
+                CharacterAiBranch.LeisureVisit,
+                Fun);
+            Evaluate(
+                CharacterCondition.EXCRETION,
+                CharacterAiBranch.Toilet,
+                Excretion);
+            Evaluate(
+                CharacterCondition.HYGIENE,
+                CharacterAiBranch.Hygiene,
+                Hygiene);
+            summary = selectedSummary;
+            branch = selectedBranch;
+            return found;
+
+            void Evaluate(
+                CharacterCondition condition,
+                CharacterAiBranch conditionBranch,
+                float value)
+            {
+                CharacterNeedResponseProfile response =
+                    actor.Stats.GetNeedResponse(condition);
+                float margin = value - response.routineStart;
+                if (margin > 0f || margin >= worstMargin) return;
+                worstMargin = margin;
+                selectedSummary =
+                    $"{condition}:{value:0.###}/{response.routineStart:0.###}";
+                selectedBranch = conditionBranch;
+                found = true;
+            }
+        }
     }
 }
 #endif

@@ -13,6 +13,7 @@ public readonly struct AIActionFailure
     public string Reason { get; }
     public BuildableObject Target { get; }
     public bool HasFailure => Kind != AIActionFailureKind.None;
+    public bool IsDeferred => IsDeferredKind(Kind);
 
     public static AIActionFailure None => new AIActionFailure(AIActionFailureKind.None, string.Empty);
 
@@ -29,6 +30,13 @@ public readonly struct AIActionFailure
         return string.IsNullOrWhiteSpace(Reason) ? GetDefaultReason(Kind) : Reason;
     }
 
+    public static bool IsDeferredKind(AIActionFailureKind kind)
+    {
+        return kind == AIActionFailureKind.CandidateEvaluationDeferred
+            || kind == AIActionFailureKind.FacilityCandidateDeferred
+            || kind == AIActionFailureKind.PathSearchDeferred;
+    }
+
     private static string GetDefaultReason(AIActionFailureKind kind)
     {
         return kind switch
@@ -36,6 +44,8 @@ public readonly struct AIActionFailure
             AIActionFailureKind.None => string.Empty,
             AIActionFailureKind.NoAction => "행동 없음",
             AIActionFailureKind.Cooldown => "쿨다운",
+            AIActionFailureKind.CandidateEvaluationDeferred => "행동 후보 평가 지연",
+            AIActionFailureKind.FacilityCandidateDeferred => "시설 후보 인덱스 지연",
             AIActionFailureKind.PathSearchDeferred => "경로 탐색 지연",
             AIActionFailureKind.CannotStart => "시작 조건 불만족",
             AIActionFailureKind.NoScore => "점수 없음",

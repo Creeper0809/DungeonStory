@@ -1,5 +1,18 @@
 # DungeonStory Active Plan
 
+## Phase 157B - AI no-progress and decision-conflict hardening (in progress)
+
+- [x] Add bounded action lifecycle, replan and committed failure counters.
+- [x] Add five-day branch dwell and harmful no-progress evidence.
+- [x] Add bounded hierarchical job-giver rejection counters by branch and failure kind.
+- [x] Include selected utility, route, mood/macro bias and typed rejection evidence in stall reports.
+- [x] Correct omitted thirst pressure in work/wait scoring and prevent survival-due waits from presenting as social short-chat.
+- [x] Recompile and rerun deterministic isolated five-day observation through Unity MCP. Three diagnostic runs reproduced and then eliminated the false destinationless-Wait path deferral; the latest remains failed on higher-level survival stalls/cadence and is not completion evidence.
+- [x] Pass focused survival priority, destination failure, path deferral, work interruption, naturalness and emergency-thirst routing regressions.
+- [ ] Pass save round-trip and Console Warning/Error gates; update the long-run evidence report.
+
+Current unit: rerun the isolated five-day observation after adding Drink to emergency selection, removing emergency Wait as a successful terminal fallback, and retaining per-need JobGiver rejection evidence. Any remaining stall must identify the rejected need branch rather than only the last unrelated Work rejection.
+
 ## Phase 157 - Single worker-intent authority and live WU recovery (in progress)
 
 - [x] Inventory the competing character action owners. Routine safe relief, emergency relief, primitive survival, deprivation breakdown and direct movement previously mutated one `AIBrain` through unrelated booleans/coroutines.
@@ -9,8 +22,10 @@
 - [x] Protect direct player movement from autonomous external intents: manual mode retires the prior external owner and new external intent acquisition is rejected until the command ends.
 - [x] Add intent diagnostics to the five-day report: owner/kind/epoch, transitions, preemptions, rejected acquisitions and stale completions.
 - [x] Fix editor AI fixture composition so carry inventory receives the same typed catalog/settings authority as a live world; focused naturalness and deprivation authority regressions pass through Unity MCP.
-- [ ] Repair ordinary work resumption/parallel assignment after routine needs. The latest clean no-breakdown sample proves collision-free intent state, but only one construction worker remained active and measured labor fell to 4.175 WU/adult-day.
-- [ ] Re-run the isolated five-day sample until exact physical needs, multi-worker construction, intent diagnostics and Console 0/0 all pass together. Only then re-author the provisional 20-WU baseline if the stable mean differs materially.
+- [x] Repair ordinary work resumption/parallel assignment after routine needs. Construction reservations now use stable `CharacterId` across the actor/visitor adapter boundary; the focused regression passes and the isolated five-day run reaches three active workers / 2.60 effective workers.
+- [ ] Add bounded cumulative AI diagnostics for action/phase transitions, committed execution failures, candidate rejections, repeated identical failures, replans and harmful no-progress intervals. Preserve the current-state trace but do not rely on it as five-day evidence.
+- [ ] Diagnose the remaining recreation cadence (`0.4/actor-day`) and the large `need travel=36.508s`, `other travel=24.556s`, `idle/other=39.097s` channels from cumulative evidence before changing need or facility balance values.
+- [ ] Re-run the isolated five-day sample until exact physical needs, multi-worker construction, cumulative diagnostics, harmful-stall gate and Console 0/0 all pass together. Only then re-author the provisional 20-WU baseline if the stable mean differs materially.
 
 ### Phase 157 intent authority record
 
@@ -2695,6 +2710,8 @@ Phase 157 recovery note:
 
 Phase 157 current errors:
 - Unity compile attempt 1 after adding the workforce gate failed with `CS0117` because `ProjectScale.Industrial` is not a canonical enum member. Resolve against the existing enum rather than adding an alias or fallback.
+- Unity Console once appeared clean while `Editor.log` held `CS0019` (`CharacterId == CharacterId`); use `.Equals` and require both editor compile state plus compiler-log evidence.
+- Instrumented five-day attempt 1 allowed narrative-only local-LLM mood requests, produced repeated request timeouts, and Unity MCP approval was revoked mid-run. Suspend `AiDirectorRuntime` and its request queue only inside the deterministic WU fixture, then rerun after MCP reconnects.
 # 2026-08-12 measured WU baseline correction
 
 - [x] Treat `99 WU/adult-day` as the historical 100-second schedule envelope, not live output authority.

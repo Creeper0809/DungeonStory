@@ -471,7 +471,7 @@ public sealed class ConstructionSite : BuildableObject,
         for (int index = 0; index < workers.Count; index++)
         {
             IBuildingVisitorPort worker = workers[index];
-            if (worker != null && worker.BuildingCharacterId == characterId)
+            if (worker != null && worker.BuildingCharacterId.Equals(characterId))
             {
                 return worker;
             }

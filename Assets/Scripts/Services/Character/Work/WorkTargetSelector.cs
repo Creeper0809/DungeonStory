@@ -1074,6 +1074,8 @@ public sealed class WorkTargetSelector
         return candidate.FailureKind switch
         {
             AIActionFailureKind.Cooldown => true,
+            AIActionFailureKind.CandidateEvaluationDeferred => true,
+            AIActionFailureKind.FacilityCandidateDeferred => true,
             AIActionFailureKind.PathSearchDeferred => true,
             AIActionFailureKind.CannotStart => true,
             AIActionFailureKind.DestinationOccupied => true,

@@ -8,6 +8,10 @@ using System.Linq;
 using VContainer;
 public class AIBrain : CharacterAbility
 {
+    private static readonly int FailureKindCount =
+        Enum.GetValues(typeof(AIActionFailureKind)).Length;
+    private static readonly int BranchCount =
+        Enum.GetValues(typeof(CharacterAiBranch)).Length;
     public AIAction[] availableActions;
     [ReadOnly]public AIAction bestAction;
     [SerializeField, FormerlySerializedAs("isBestActionEnd")]
@@ -78,6 +82,39 @@ public class AIBrain : CharacterAbility
     private int externalIntentRejectedCount;
     private int externalIntentStaleCompletionCount;
     private int directDecisionTickCount;
+    private readonly long[] executionFailuresByKind =
+        new long[Enum.GetValues(typeof(AIActionFailureKind)).Length];
+    private readonly long[] candidateRejectionsByKind =
+        new long[Enum.GetValues(typeof(AIActionFailureKind)).Length];
+    private readonly long[] jobGiverEvaluationRejectionsByBranchAndKind =
+        new long[
+            Enum.GetValues(typeof(CharacterAiBranch)).Length
+            * Enum.GetValues(typeof(AIActionFailureKind)).Length];
+    private long actionStartCount;
+    private long actionSwitchCount;
+    private long sameActionRestartCount;
+    private long phaseTransitionCount;
+    private long immediateReplanCount;
+    private long interruptedReplanCount;
+    private long executionFailureCount;
+    private long noActionFailureCount;
+    private long candidateRejectionCount;
+    private long jobGiverEvaluationRejectionCount;
+    private long currentRepeatedFailureCount;
+    private long peakRepeatedFailureCount;
+    private AIActionFailureKind repeatedFailureKind;
+    private AIActionSet repeatedFailureActionSet;
+    private AIActionSet lastStartedActionSet;
+    private CharacterAiBranch currentJobGiverRejectedBranch;
+    private AIActionFailureKind currentJobGiverRejectedFailureKind;
+    private string currentJobGiverRejectedReason = string.Empty;
+    private int currentJobGiverEvaluationPassRevision;
+    private readonly int[] currentJobGiverRejectedRevisionByBranch =
+        new int[BranchCount];
+    private readonly AIActionFailureKind[] currentJobGiverRejectedKindByBranch =
+        new AIActionFailureKind[BranchCount];
+    private readonly string[] currentJobGiverRejectedReasonByBranch =
+        new string[BranchCount];
     public bool IsPathSearchDeferred => pathSearchSession?.IsDeferred == true;
     public bool IsActionScoringPending => candidateSelector?.IsPending == true;
 
@@ -98,6 +135,36 @@ public class AIBrain : CharacterAbility
     public int ExternalIntentPreemptionCount => externalIntentPreemptionCount;
     public int ExternalIntentRejectedCount => externalIntentRejectedCount;
     public int ExternalIntentStaleCompletionCount => externalIntentStaleCompletionCount;
+    public long RuntimeActionStartCount => actionStartCount;
+    public long RuntimeActionSwitchCount => actionSwitchCount;
+    public long RuntimePhaseTransitionCount => phaseTransitionCount;
+    public long RuntimeImmediateReplanCount => immediateReplanCount;
+    public long RuntimeExecutionFailureCount => executionFailureCount;
+    public long RuntimeCandidateRejectionCount => candidateRejectionCount;
+    public long RuntimeJobGiverEvaluationRejectionCount =>
+        jobGiverEvaluationRejectionCount;
+    public long RuntimePeakRepeatedFailureCount => peakRepeatedFailureCount;
+    public AIActionFailureKind RuntimeRepeatedFailureKind => repeatedFailureKind;
+    public string CurrentJobGiverEvaluationRejectionSummary =>
+        currentJobGiverRejectedBranch == CharacterAiBranch.None
+            ? "none"
+            : $"{currentJobGiverRejectedBranch}/{currentJobGiverRejectedFailureKind}: {currentJobGiverRejectedReason}";
+
+    public string GetCurrentJobGiverEvaluationRejectionSummary(
+        CharacterAiBranch branch)
+    {
+        int index = (int)branch;
+        if (index < 0
+            || index >= BranchCount
+            || currentJobGiverRejectedRevisionByBranch[index]
+                != currentJobGiverEvaluationPassRevision)
+        {
+            return "none";
+        }
+
+        return $"{branch}/{currentJobGiverRejectedKindByBranch[index]}: "
+            + currentJobGiverRejectedReasonByBranch[index];
+    }
 
     public bool IsExternalIntentCurrent(
         in CharacterActionIntentLease lease) => OwnsExternalIntent(lease);
@@ -586,6 +653,8 @@ public class AIBrain : CharacterAbility
             return;
         }
 
+        immediateReplanCount++;
+
         actor?.GetAbility<AbilityMove>()?.CancelActiveMovement();
         bestAction?.ReleaseReservation(actor);
         queuedAction?.ReleaseReservation(actor);
@@ -943,6 +1012,17 @@ public class AIBrain : CharacterAbility
 
         bestAction.BindClock(gameClock);
         bestAction.MarkStarted(Now);
+        actionStartCount++;
+        if (lastStartedActionSet == bestAction.actionset)
+        {
+            sameActionRestartCount++;
+        }
+        else if (lastStartedActionSet != null)
+        {
+            actionSwitchCount++;
+        }
+        lastStartedActionSet = bestAction.actionset;
+        ResetRepeatedExecutionFailureStreak();
         currentActionDebugLabel = GetActionLabel(bestAction.actionset);
         currentDestinationDebugLabel = AIBrainDebugFormatter.GetDestinationLabel(bestAction.destination);
         currentActionPhase = "\uC2DC\uC791";
@@ -966,11 +1046,20 @@ public class AIBrain : CharacterAbility
 
     public void SetActionPhase(string phase, BuildableObject destination = null, string detail = null)
     {
-        currentActionPhase = phase ?? string.Empty;
+        string nextPhase = phase ?? string.Empty;
+        string nextDestination = destination != null
+            ? AIBrainDebugFormatter.GetDestinationLabel(destination)
+            : currentDestinationDebugLabel;
+        if (!string.Equals(currentActionPhase, nextPhase, StringComparison.Ordinal)
+            || !string.Equals(currentDestinationDebugLabel, nextDestination, StringComparison.Ordinal))
+        {
+            phaseTransitionCount++;
+        }
+        currentActionPhase = nextPhase;
         currentActionPhaseDetail = detail ?? string.Empty;
         if (destination != null)
         {
-            currentDestinationDebugLabel = AIBrainDebugFormatter.GetDestinationLabel(destination);
+            currentDestinationDebugLabel = nextDestination;
         }
 
         MarkDebugDirty();
@@ -1038,6 +1127,8 @@ public class AIBrain : CharacterAbility
         {
             return false;
         }
+
+        interruptedReplanCount++;
 
         actionToStop?.actionset?.OnStop(actor, actionToStop, reason);
         actionToStop?.ReleaseReservation(actor);
@@ -1144,7 +1235,7 @@ public class AIBrain : CharacterAbility
 
         if (!RequireActionEvaluator().CanUse(actor, action, out AIActionFailure failure))
         {
-            if (failure.Kind != AIActionFailureKind.PathSearchDeferred)
+            if (!failure.IsDeferred)
             {
                 ClearPreferredAction();
             }
@@ -1192,6 +1283,7 @@ public class AIBrain : CharacterAbility
         RequireActionEvaluator().StartCooldown(actionSet, actionFailureCooldown);
         lastFailedActionSet = actionSet;
         lastActionFailure = failure.HasFailure ? failure : AIActionFailure.Create(AIActionFailureKind.Unknown);
+        TrackExecutionFailure(actionSet, lastActionFailure.Kind, isNoAction: false);
         actor?.AiMemory?.RecordDecision(
             CharacterAiBranch.InterruptCheck,
             CharacterAiUtilityText.GetIntention(actionSet.Branch),
@@ -1211,6 +1303,7 @@ public class AIBrain : CharacterAbility
         noActionLogCooldownUntil = Now + Mathf.Max(0.1f, actionFailureCooldown);
         lastFailedActionSet = null;
         lastActionFailure = AIActionFailure.Create(AIActionFailureKind.NoAction, "\uC2E4\uD589 \uAC00\uB2A5\uD55C \uD589\uB3D9 \uC5C6\uC74C");
+        TrackExecutionFailure(null, AIActionFailureKind.NoAction, isNoAction: true);
         currentActionDebugLabel = "\uB300\uAE30";
         actor?.Blackboard?.ReportActionFailure(null, lastActionFailure);
         actor?.AddActivity(CharacterActivityEvent.InternalAi(
@@ -1246,6 +1339,9 @@ public class AIBrain : CharacterAbility
         {
             return;
         }
+
+        candidateRejectionCount++;
+        IncrementFailureKind(candidateRejectionsByKind, failure.Kind);
 
         if (GetFailureDebugPriority(failure.Kind) <= GetFailureDebugPriority(lastActionFailure.Kind))
         {
@@ -1289,6 +1385,8 @@ public class AIBrain : CharacterAbility
             AIActionFailureKind.OffDuty => 35,
             AIActionFailureKind.Unsupported => 25,
             AIActionFailureKind.CannotStart => 20,
+            AIActionFailureKind.CandidateEvaluationDeferred => 10,
+            AIActionFailureKind.FacilityCandidateDeferred => 10,
             AIActionFailureKind.PathSearchDeferred => 10,
             AIActionFailureKind.Cooldown => 5,
             AIActionFailureKind.NoScore => 1,
@@ -1299,6 +1397,133 @@ public class AIBrain : CharacterAbility
     public string GetDebugSummary(int candidateCount = 3)
     {
         return AIBrainDebugFormatter.Format(CreateDebugSnapshot(), candidateCount);
+    }
+
+    internal void BeginJobGiverEvaluationPass()
+    {
+        if (currentJobGiverEvaluationPassRevision == int.MaxValue)
+        {
+            Array.Clear(
+                currentJobGiverRejectedRevisionByBranch,
+                0,
+                currentJobGiverRejectedRevisionByBranch.Length);
+            currentJobGiverEvaluationPassRevision = 1;
+        }
+        else
+        {
+            currentJobGiverEvaluationPassRevision++;
+        }
+
+        currentJobGiverRejectedBranch = CharacterAiBranch.None;
+        currentJobGiverRejectedFailureKind = AIActionFailureKind.None;
+        currentJobGiverRejectedReason = string.Empty;
+    }
+
+    internal void RecordJobGiverEvaluationRejection(
+        CharacterAiBranch branch,
+        AIActionFailure failure,
+        string reason)
+    {
+        AIActionFailureKind kind = failure.HasFailure
+            ? failure.Kind
+            : AIActionFailureKind.Unknown;
+        int index = (int)branch * FailureKindCount + (int)kind;
+        if (index >= 0
+            && index < jobGiverEvaluationRejectionsByBranchAndKind.Length)
+        {
+            jobGiverEvaluationRejectionsByBranchAndKind[index]++;
+        }
+
+        // Deferred states are scheduler backpressure, not rejected decisions.
+        // Keep their typed per-branch counters for diagnosis, but do not inflate
+        // the user-facing rejection total or replace the current hard failure.
+        if (failure.IsDeferred)
+        {
+            return;
+        }
+
+        jobGiverEvaluationRejectionCount++;
+        currentJobGiverRejectedBranch = branch;
+        currentJobGiverRejectedFailureKind = kind;
+        currentJobGiverRejectedReason = string.IsNullOrWhiteSpace(reason)
+            ? failure.ToString()
+            : reason;
+        int branchIndex = (int)branch;
+        if (branchIndex >= 0 && branchIndex < BranchCount)
+        {
+            currentJobGiverRejectedRevisionByBranch[branchIndex] =
+                currentJobGiverEvaluationPassRevision;
+            currentJobGiverRejectedKindByBranch[branchIndex] = kind;
+            currentJobGiverRejectedReasonByBranch[branchIndex] =
+                currentJobGiverRejectedReason;
+        }
+        MarkDebugDirty();
+    }
+
+    public CharacterAiRuntimeDiagnosticsSnapshot CaptureRuntimeDiagnostics()
+    {
+        return new CharacterAiRuntimeDiagnosticsSnapshot(
+            actionStartCount,
+            actionSwitchCount,
+            sameActionRestartCount,
+            phaseTransitionCount,
+            immediateReplanCount,
+            interruptedReplanCount,
+            executionFailureCount,
+            noActionFailureCount,
+            candidateRejectionCount,
+            currentRepeatedFailureCount,
+            peakRepeatedFailureCount,
+            repeatedFailureKind,
+            (long[])executionFailuresByKind.Clone(),
+            (long[])candidateRejectionsByKind.Clone(),
+            jobGiverEvaluationRejectionCount,
+            (long[])jobGiverEvaluationRejectionsByBranchAndKind.Clone());
+    }
+
+    private void TrackExecutionFailure(
+        AIActionSet actionSet,
+        AIActionFailureKind kind,
+        bool isNoAction)
+    {
+        executionFailureCount++;
+        if (isNoAction)
+        {
+            noActionFailureCount++;
+        }
+        IncrementFailureKind(executionFailuresByKind, kind);
+
+        if (kind == repeatedFailureKind && actionSet == repeatedFailureActionSet)
+        {
+            currentRepeatedFailureCount++;
+        }
+        else
+        {
+            repeatedFailureKind = kind;
+            repeatedFailureActionSet = actionSet;
+            currentRepeatedFailureCount = 1L;
+        }
+
+        if (currentRepeatedFailureCount > peakRepeatedFailureCount)
+        {
+            peakRepeatedFailureCount = currentRepeatedFailureCount;
+        }
+    }
+
+    private void ResetRepeatedExecutionFailureStreak()
+    {
+        currentRepeatedFailureCount = 0L;
+        repeatedFailureKind = AIActionFailureKind.None;
+        repeatedFailureActionSet = null;
+    }
+
+    private static void IncrementFailureKind(long[] counts, AIActionFailureKind kind)
+    {
+        int index = (int)kind;
+        if (index > 0 && index < counts.Length)
+        {
+            counts[index]++;
+        }
     }
 
     public int GetDebugHash()

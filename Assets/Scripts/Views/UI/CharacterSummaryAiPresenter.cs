@@ -131,6 +131,20 @@ public sealed class CharacterSummaryAiPresenter
             builder.AppendLine();
             builder.AppendLine("현재 행동");
             builder.AppendLine(actor.Brain.GetDebugSummary(5));
+            builder.AppendLine();
+            builder.AppendLine("AI 누적 진단");
+            builder.Append("행동 시작 ").Append(actor.Brain.RuntimeActionStartCount)
+                .Append(" / 전환 ").Append(actor.Brain.RuntimeActionSwitchCount)
+                .Append(" / 단계 전환 ").Append(actor.Brain.RuntimePhaseTransitionCount)
+                .Append(" / 재계획 ").AppendLine(actor.Brain.RuntimeImmediateReplanCount.ToString());
+            builder.Append("실행 실패 ").Append(actor.Brain.RuntimeExecutionFailureCount)
+                .Append(" / 후보 탈락 ").Append(actor.Brain.RuntimeCandidateRejectionCount)
+                .Append(" / JobGiver 평가 탈락 ")
+                .Append(actor.Brain.RuntimeJobGiverEvaluationRejectionCount)
+                .Append(" / 동일 실패 최대 ").Append(actor.Brain.RuntimePeakRepeatedFailureCount)
+                .Append(" (").Append(actor.Brain.RuntimeRepeatedFailureKind).AppendLine(")");
+            builder.Append("최근 JobGiver 탈락: ")
+                .AppendLine(actor.Brain.CurrentJobGiverEvaluationRejectionSummary);
         }
 
         builder.AppendLine();
