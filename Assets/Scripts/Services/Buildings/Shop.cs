@@ -35,6 +35,21 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
 
     public int CurrentStock => Inventory.CurrentCount;
     public bool HasAvailableStock => CurrentStock > 0;
+
+    public bool HasMealAvailableFor(
+        CharacterActor actor,
+        out CharacterConsumablesFailure failure)
+    {
+        if (mealConsumptionRuntime == null)
+        {
+            failure = new CharacterConsumablesFailure(
+                CharacterConsumablesFailureCode.InvalidCommand,
+                "Meal consumption runtime is unavailable.");
+            return false;
+        }
+
+        return mealConsumptionRuntime.HasMealAvailable(actor, this, out failure);
+    }
     public int WaitingCheckoutCount => CustomerInteraction.WaitingCheckoutCount;
     public bool HasWaitingCheckout => CustomerInteraction.HasWaitingCheckout;
     public bool HasServingWorker

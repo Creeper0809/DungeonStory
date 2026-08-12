@@ -362,6 +362,7 @@ public class CharacterStats :
         }
 
         stats[condition] = nextValue;
+        RequestNeedThresholdDecision(condition, previousValue, nextValue);
         if (actor?.Progression != null
             && ((previousValue >= 20f && nextValue < 20f)
                 || (previousValue <= 80f && nextValue > 80f)))
@@ -375,6 +376,35 @@ public class CharacterStats :
         }
 
         return true;
+    }
+
+    private void RequestNeedThresholdDecision(
+        CharacterCondition condition,
+        float previousValue,
+        float nextValue)
+    {
+        if (actor?.Brain == null
+            || condition == CharacterCondition.MOOD
+            || nextValue >= previousValue)
+        {
+            return;
+        }
+
+        CharacterNeedResponseProfile response =
+            RequireNeedStateService().GetResponse(condition);
+        bool crossedRoutine = previousValue > response.routineStart
+            && nextValue <= response.routineStart;
+        bool crossedEmergency = previousValue > response.emergencyStart
+            && nextValue <= response.emergencyStart;
+        if (!crossedRoutine && !crossedEmergency)
+        {
+            return;
+        }
+
+        string threshold = crossedEmergency ? "emergency" : "routine";
+        actor.Brain.RequestImmediateDecision(
+            $"Need threshold crossed: {condition} {threshold} "
+            + $"({previousValue:0.###}->{nextValue:0.###}).");
     }
 
     public void ApplyMoodFactor(

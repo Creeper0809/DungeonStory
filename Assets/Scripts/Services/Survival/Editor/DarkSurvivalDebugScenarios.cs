@@ -22,6 +22,7 @@ public static class DarkSurvivalDebugScenarios
     {
         List<string> errors = new List<string>();
         Run("burden_curve", VerifyBurdenCurve, errors, logSuccess);
+        Run("damage_requires_current_deprivation", VerifyDamageRequiresCurrentDeprivation, errors, logSuccess);
         Run("breakdown_thresholds", VerifyBreakdownThresholds, errors, logSuccess);
         Run("thirst_need_and_terrain", VerifyThirstNeedAndTerrain, errors, logSuccess);
         Run("filth_cleaning_work", VerifyFilthCleaningWork, errors, logSuccess);
@@ -48,6 +49,53 @@ public static class DarkSurvivalDebugScenarios
                 < CharacterDeprivationRuntime.CalculateBurdenDelta(40f, 1f),
             "high need did not recover faster");
         return "quadratic accumulation and recovery verified";
+    }
+
+    private static string VerifyDamageRequiresCurrentDeprivation()
+    {
+        Require(InvokeShouldApplyDeprivationDamage(
+                currentNeed: 0f,
+                burden: 70f,
+                now: 100f,
+                nextDamageAt: 100f),
+            "active deprivation did not permit its due damage tick");
+        Require(!InvokeShouldApplyDeprivationDamage(
+                currentNeed: 35f,
+                burden: 100f,
+                now: 200f,
+                nextDamageAt: 100f),
+            "historical burden continued damaging a character after eating");
+        Require(!InvokeShouldApplyDeprivationDamage(
+                currentNeed: 0f,
+                burden: 69.9f,
+                now: 200f,
+                nextDamageAt: 100f),
+            "damage fired below the authored burden threshold");
+        Require(!InvokeShouldApplyDeprivationDamage(
+                currentNeed: 0f,
+                burden: 100f,
+                now: 99.9f,
+                nextDamageAt: 100f),
+            "damage fired before its interval elapsed");
+        return "damage requires current need<20, burden>=70, and due interval";
+    }
+
+    private static bool InvokeShouldApplyDeprivationDamage(
+        float currentNeed,
+        float burden,
+        float now,
+        float nextDamageAt)
+    {
+        System.Reflection.MethodInfo method = typeof(CharacterDeprivationRuntime)
+            .GetMethod(
+                "ShouldApplyDeprivationDamage",
+                System.Reflection.BindingFlags.Static
+                    | System.Reflection.BindingFlags.NonPublic);
+        Require(method != null, "deprivation damage authority predicate is missing");
+        object result = method.Invoke(
+            null,
+            new object[] { currentNeed, burden, now, nextDamageAt });
+        return result is bool allowed && allowed;
     }
 
     private static string VerifyBreakdownThresholds()

@@ -861,6 +861,9 @@ internal sealed class ProbeSafeReliefRuntime : ICharacterDeprivationRuntime
         status = "안전한 식수로 이동";
         return actor != null;
     }
+    public bool TryRunMostUrgentEmergencySelfCare(
+        CharacterActor actor,
+        out string status) => TryRunSafeEmergencyRelief(actor, out status);
     public CharacterDeprivationDiagnosticsSnapshot GetDiagnostics() => default;
     public void ResetDiagnostics() { }
     public void BeginBreakdownAction(CharacterActor actor, CharacterBreakdownKind kind) { }

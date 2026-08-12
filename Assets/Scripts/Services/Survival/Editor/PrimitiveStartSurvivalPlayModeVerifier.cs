@@ -73,9 +73,11 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
         new(StringComparer.Ordinal);
     private readonly Dictionary<string, int> primitivePhysicalItemCounts =
         new(StringComparer.Ordinal);
+    private readonly List<string> deathEvents = new();
     private float originalTimeScale;
     private IDisposable primitiveSubscription;
     private IDisposable mealSubscription;
+    private IDisposable deathSubscription;
     private int physicalMeals;
     private int physicalFieldMeals;
     public bool FocusedOnly { get; set; }
@@ -174,6 +176,12 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                 physicalFieldMeals++;
             }
         });
+        deathSubscription = events.Subscribe<CharacterDeathEvent>(died =>
+        {
+            deathEvents.Add(
+                $"character={died.CharacterId.Value};cause={died.Cause};"
+                + $"day={died.AbsoluteDay};location={died.Location.X},{died.Location.Y}");
+        });
 
         IWorldItemStackRuntime items =
             scope.Container.Resolve<IWorldItemStackRuntime>();
@@ -230,11 +238,20 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
             actor.Brain?.RequestImmediateReplan(clearFailures: true);
         }
 
+        Dictionary<string, float> initialHealthByCharacter = party
+            .Where(actor => actor != null)
+            .ToDictionary(
+                actor => actor.Identity?.PersistentId
+                    ?? $"instance:{actor.GetInstanceID()}",
+                actor => actor.CurrentHealth,
+                StringComparer.Ordinal);
+
         float startedAt = clock.Time;
         float nextDayAt = startedAt + DaySeconds;
         int sampledDay = 0;
         Time.timeScale = VerificationTimeScale;
-        while (clock.Time < startedAt + DaySeconds * Days
+        float targetEndAt = startedAt + DaySeconds * Days;
+        while (clock.Time < targetEndAt
             && party.All(actor => actor != null && !actor.IsDead))
         {
             maximumRations = Mathf.Max(
@@ -256,16 +273,66 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
         }
         Time.timeScale = 0f;
 
-        Check(party.All(actor => actor != null && !actor.IsDead),
+        bool elapsedFiveDays = clock.Time >= targetEndAt;
+        bool allActorsAlive = party.All(actor => actor != null && !actor.IsDead);
+        Check(elapsedFiveDays,
+            "FIVE_DAY_ELAPSED",
+            $"clock={clock.Time:0.###}; start={startedAt:0.###}; target={targetEndAt:0.###}; "
+                + $"elapsed={clock.Time - startedAt:0.###}");
+        Check(allActorsAlive,
             "FIVE_DAY_SURVIVAL",
-            string.Join(", ", party.Select(DescribeActor)));
+            string.Join(", ", party.Select(actor =>
+                $"{DescribeActor(actor)}:dead={actor == null || actor.IsDead}:"
+                + $"brainExternal={actor?.Brain?.IsExternallyDrivenActionActive}:"
+                + $"intent={actor?.Brain?.ExternalIntentOwnerId}:"
+                + $"epoch={actor?.Brain?.ExternalIntentEpoch}")));
+        report.Add("death-events=" + (deathEvents.Count == 0
+            ? "none"
+            : string.Join(" | ", deathEvents)));
+        foreach (CharacterActor actor in party)
+        {
+            report.Add("damage-activities=" + DescribeDamageActivities(actor));
+            report.Add("ai-failures=" + DescribeAiFailures(actor));
+            report.Add("ai-arbitration=" + DescribeAiArbitration(actor));
+        }
         Check(party.All(actor => actor.CurrentHealth > 0f),
             "POSITIVE_HEALTH",
             string.Join(", ", party.Select(DescribeActor)));
+        Check(party.All(actor =>
+            {
+                if (actor == null)
+                {
+                    return false;
+                }
+
+                string characterId = actor.Identity?.PersistentId
+                    ?? $"instance:{actor.GetInstanceID()}";
+                return initialHealthByCharacter.TryGetValue(
+                        characterId,
+                        out float initialHealth)
+                    && actor.CurrentHealth >= initialHealth - 0.001f;
+            }),
+            "NO_SURVIVAL_DAMAGE",
+            string.Join(", ", party.Select(actor =>
+            {
+                if (actor == null)
+                {
+                    return "missing";
+                }
+
+                string characterId = actor.Identity?.PersistentId
+                    ?? $"instance:{actor.GetInstanceID()}";
+                initialHealthByCharacter.TryGetValue(characterId, out float initialHealth);
+                return $"{characterId}:health={initialHealth:0.###}->{actor.CurrentHealth:0.###}";
+            })));
         Check(party.All(actor => !deprivation.HasActiveBreakdown(actor)),
             "NO_ACTIVE_BREAKDOWN",
             string.Join(", ", party.Select(actor =>
                 $"{actor.Identity?.PersistentId}:{deprivation.HasActiveBreakdown(actor)}")));
+        Check(party.All(actor => actor?.Brain != null
+                && actor.Brain.ExternalIntentStaleCompletionCount == 0),
+            "NO_STALE_AI_COMPLETION",
+            string.Join(", ", party.Select(DescribeAiArbitration)));
         int naturalFinalRations = CountItem(items, "food:preserved-ration");
         int naturalFinalWater = CountItem(items, "resource:clean-water");
         Check(maximumRations <= initialRations && maximumWater <= initialWater,
@@ -487,6 +554,7 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
     {
         primitiveSubscription?.Dispose();
         mealSubscription?.Dispose();
+        deathSubscription?.Dispose();
         Time.timeScale = originalTimeScale;
         report.Insert(0, failures.Count == 0 ? "PASS" : "FAIL");
         report.Add("primitive-counts=" + string.Join(", ", primitiveCounts
@@ -660,11 +728,50 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                 + candidate.Failure.Kind)
             ?? Array.Empty<string>());
         FacilityRole availableRoles = CharacterAiJobGiver.ResolveAvailableFacilityRoles(actor);
+        AIBrain brain = actor.Brain;
+        string facilityAuthority = DescribeFacilityAuthority(actor, brain);
         return $"canRun={actor.CanRunAi}:current={actor.Brain?.CurrentActionDebugLabel}:"
             + $"availableRoles={availableRoles}:registered={registered}:"
             + $"meal={meal}({mealReason}):"
             + $"rest={rest}({restReason}):relief={relief}({reliefReason}):"
-            + $"wash={wash}({washReason}):candidates={candidates}";
+            + $"wash={wash}({washReason}):candidates={candidates}:"
+            + $"immediateDecisions={brain?.ImmediateDecisionRequestCount ?? 0}:"
+            + $"lastImmediate={brain?.LastImmediateDecisionReason}:"
+            + $"facilityAuthority={facilityAuthority}";
+    }
+
+    private static string DescribeFacilityAuthority(
+        CharacterActor actor,
+        AIBrain brain)
+    {
+        if (brain == null || !brain.TryGetRuntimeGrid(out Grid activeGrid))
+        {
+            return "active-grid-missing";
+        }
+
+        IFacilityCandidateCache cache = brain.RequireFacilityCandidateCache();
+        GridPathSearchResult search = brain.GetPathSearch(actor);
+        Grid searchGrid = search?.sourceGrid;
+        IReadOnlyList<BuildableObject> activeMeals =
+            cache.GetCandidates(activeGrid, FacilityRole.Meal);
+        IReadOnlyList<BuildableObject> searchMeals = searchGrid != null
+            ? cache.GetCandidates(searchGrid, FacilityRole.Meal)
+            : Array.Empty<BuildableObject>();
+        string rows = string.Join(",", searchMeals.Select(building =>
+        {
+            bool usable = FacilityCandidateScorer.IsCandidate(
+                actor,
+                building,
+                FacilityRole.Meal,
+                out string rejectReason);
+            bool reachable = search != null
+                && search.ContainsVisitableOccupant(building);
+            return $"{building?.name}:usable={usable}:reachable={reachable}:"
+                + $"reject={rejectReason}";
+        }));
+        return $"sameGrid={ReferenceEquals(activeGrid, searchGrid)}:"
+            + $"activeMeal={activeMeals.Count}:searchMeal={searchMeals.Count}:"
+            + $"rows=[{rows}]";
     }
 
     private static string DescribeActor(CharacterActor actor)
@@ -679,6 +786,77 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
             + $"s={GetNeed(actor, CharacterCondition.SLEEP):0.##}:"
             + $"e={GetNeed(actor, CharacterCondition.EXCRETION):0.##}:"
             + $"y={GetNeed(actor, CharacterCondition.HYGIENE):0.##}";
+    }
+
+    private static string DescribeDamageActivities(CharacterActor actor)
+    {
+        string id = actor?.Identity?.PersistentId ?? "missing";
+        IReadOnlyList<CharacterActivityEvent> activities =
+            actor?.LogComponent?.ActivityEntries;
+        if (activities == null)
+        {
+            return id + ":log-unavailable";
+        }
+
+        string[] damage = activities
+            .Where(value => value != null
+                && string.Equals(
+                    value.ActionId,
+                    "health:damage",
+                    StringComparison.Ordinal))
+            .TakeLast(20)
+            .Select(value =>
+                $"value={value.Value:0.###},reason={value.ReasonCode},fact={value.FactText}")
+            .ToArray();
+        return id + ":" + (damage.Length == 0
+            ? "none"
+            : string.Join(" || ", damage));
+    }
+
+    private static string DescribeAiFailures(CharacterActor actor)
+    {
+        string id = actor?.Identity?.PersistentId ?? "missing";
+        IReadOnlyList<CharacterActivityEvent> activities =
+            actor?.LogComponent?.ActivityEntries;
+        if (activities == null)
+        {
+            return id + ":log-unavailable";
+        }
+
+        string[] failures = activities
+            .Where(value => value != null
+                && string.Equals(
+                    value.KindId,
+                    CharacterActivityKinds.AiDecision,
+                    StringComparison.Ordinal)
+                && (string.Equals(
+                        value.OutcomeId,
+                        CharacterActivityOutcomes.Failed,
+                        StringComparison.Ordinal)
+                    || string.Equals(
+                        value.OutcomeId,
+                        CharacterActivityOutcomes.Blocked,
+                        StringComparison.Ordinal)))
+            .TakeLast(20)
+            .Select(value => $"outcome={value.OutcomeId},reason={value.ReasonCode},fact={value.FactText}")
+            .ToArray();
+        return id + ":" + (failures.Length == 0
+            ? "none"
+            : string.Join(" || ", failures));
+    }
+
+    private static string DescribeAiArbitration(CharacterActor actor)
+    {
+        string id = actor?.Identity?.PersistentId ?? "missing";
+        AIBrain brain = actor?.Brain;
+        return brain == null
+            ? id + ":brain-missing"
+            : $"{id}:transitions={brain.ExternalIntentTransitionCount},"
+                + $"preemptions={brain.ExternalIntentPreemptionCount},"
+                + $"rejections={brain.ExternalIntentRejectedCount},"
+                + $"staleCompletions={brain.ExternalIntentStaleCompletionCount},"
+                + $"immediateDecisions={brain.ImmediateDecisionRequestCount},"
+                + $"lastImmediate={brain.LastImmediateDecisionReason}";
     }
 
     private static string DescribeEnvironment(

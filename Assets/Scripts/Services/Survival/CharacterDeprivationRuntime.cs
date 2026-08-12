@@ -465,6 +465,82 @@ public sealed class CharacterDeprivationRuntime :
         return TryStartSafeDrink(actor, true, out status);
     }
 
+    public bool TryRunMostUrgentEmergencySelfCare(
+        CharacterActor actor,
+        out string status)
+    {
+        status = string.Empty;
+        if (actor?.Stats == null || actor.Brain == null)
+        {
+            return false;
+        }
+
+        CharacterCondition[] orderedConditions =
+        {
+            CharacterCondition.HUNGER,
+            CharacterCondition.THIRST,
+            CharacterCondition.SLEEP,
+            CharacterCondition.EXCRETION,
+            CharacterCondition.HYGIENE
+        };
+        CharacterCondition selected = default;
+        float selectedUrgency = float.NegativeInfinity;
+        bool hasSelected = false;
+        for (int index = 0; index < orderedConditions.Length; index++)
+        {
+            CharacterCondition condition = orderedConditions[index];
+            if (!CharacterNeedAiThresholds.IsEmergency(actor, condition)
+                || !actor.Stats.TryGetConditionValue(condition, out float value))
+            {
+                continue;
+            }
+
+            CharacterNeedResponseProfile response = GetResponse(condition);
+            float denominator = Mathf.Max(1f, response.emergencyStart);
+            float urgency = (response.emergencyStart - value) / denominator;
+            if (hasSelected && urgency <= selectedUrgency)
+            {
+                continue;
+            }
+
+            selected = condition;
+            selectedUrgency = urgency;
+            hasSelected = true;
+        }
+
+        return hasSelected && selected switch
+        {
+            CharacterCondition.HUNGER =>
+                NeedsPrimitiveMeal(actor, out _)
+                && primitiveSurvivalRunner.TryStart(
+                    actor,
+                    CharacterPrimitiveSurvivalActionKind.FieldMeal,
+                    out status),
+            CharacterCondition.THIRST =>
+                NeedsSafeEmergencyRelief(actor, out _)
+                && TryStartSafeDrink(actor, emergency: true, out status),
+            CharacterCondition.SLEEP =>
+                NeedsPrimitiveRest(actor, out _)
+                && primitiveSurvivalRunner.TryStart(
+                    actor,
+                    CharacterPrimitiveSurvivalActionKind.FloorRest,
+                    out status),
+            CharacterCondition.EXCRETION =>
+                NeedsPrimitiveRelief(actor, out _)
+                && primitiveSurvivalRunner.TryStart(
+                    actor,
+                    CharacterPrimitiveSurvivalActionKind.Latrine,
+                    out status),
+            CharacterCondition.HYGIENE =>
+                NeedsPrimitiveWash(actor, out _)
+                && primitiveSurvivalRunner.TryStart(
+                    actor,
+                    CharacterPrimitiveSurvivalActionKind.BucketWash,
+                    out status),
+            _ => false
+        };
+    }
+
     public bool NeedsRoutineDrink(CharacterActor actor, out string reason)
     {
         reason = string.Empty;
@@ -1014,64 +1090,7 @@ public sealed class CharacterDeprivationRuntime :
 
     private bool TryStartEmergencySelfCare(CharacterActor actor)
     {
-        if (actor?.Stats == null || actor.Brain == null)
-        {
-            return false;
-        }
-
-        if (CharacterNeedAiThresholds.IsEmergency(
-                actor,
-                CharacterCondition.THIRST)
-            && NeedsSafeEmergencyRelief(actor, out _)
-            && TryStartSafeDrink(actor, emergency: true, out _))
-        {
-            return true;
-        }
-
-        if (CharacterNeedAiThresholds.IsEmergency(
-                actor,
-                CharacterCondition.HUNGER)
-            && NeedsPrimitiveMeal(actor, out _)
-            && primitiveSurvivalRunner.TryStart(
-                actor,
-                CharacterPrimitiveSurvivalActionKind.FieldMeal,
-                out _))
-        {
-            return true;
-        }
-
-        if (CharacterNeedAiThresholds.IsEmergency(
-                actor,
-                CharacterCondition.EXCRETION)
-            && NeedsPrimitiveRelief(actor, out _)
-            && primitiveSurvivalRunner.TryStart(
-                actor,
-                CharacterPrimitiveSurvivalActionKind.Latrine,
-                out _))
-        {
-            return true;
-        }
-
-        if (CharacterNeedAiThresholds.IsEmergency(
-                actor,
-                CharacterCondition.HYGIENE)
-            && NeedsPrimitiveWash(actor, out _)
-            && primitiveSurvivalRunner.TryStart(
-                actor,
-                CharacterPrimitiveSurvivalActionKind.BucketWash,
-                out _))
-        {
-            return true;
-        }
-
-        return CharacterNeedAiThresholds.IsEmergency(
-                actor,
-                CharacterCondition.SLEEP)
-            && NeedsPrimitiveRest(actor, out _)
-            && primitiveSurvivalRunner.TryStart(
-                actor,
-                CharacterPrimitiveSurvivalActionKind.FloorRest,
-                out _);
+        return TryRunMostUrgentEmergencySelfCare(actor, out _);
     }
 
     private void UpdateBurden(
@@ -1144,12 +1163,14 @@ public sealed class CharacterDeprivationRuntime :
         ApplyDeprivationDamage(
             actor,
             CharacterDeprivationStateStore.GetBurden(state, DeprivationKind.Hunger),
+            GetNeed(actor, CharacterCondition.HUNGER),
             now,
             CharacterDeathCauseCode.Starvation,
             "심한 굶주림");
         ApplyDeprivationDamage(
             actor,
             CharacterDeprivationStateStore.GetBurden(state, DeprivationKind.Thirst),
+            GetNeed(actor, CharacterCondition.THIRST),
             now,
             CharacterDeathCauseCode.Dehydration,
             "심한 탈수");
@@ -1169,11 +1190,30 @@ public sealed class CharacterDeprivationRuntime :
     private void ApplyDeprivationDamage(
         CharacterActor actor,
         DeprivationBurdenSaveData burden,
+        float currentNeed,
         float now,
         CharacterDeathCauseCode deathCause,
         string source)
     {
-        if (burden.burden < BreakdownThreshold || now < burden.nextDamageAt)
+        // Burden is long-lived history used for breakdown risk. Physical
+        // starvation/dehydration damage may only tick while the authoritative
+        // need remains in the actual deprivation band. Otherwise a successful
+        // low-nutrition meal at hunger 0 -> 35 can keep dealing starvation
+        // damage solely because its historical burden has not decayed yet.
+        if (currentNeed >= 20f)
+        {
+            // Keep a full grace interval after the need next crosses back into
+            // deprivation instead of applying an overdue historical tick on
+            // the first frame below 20.
+            burden.nextDamageAt = now + GetDamageInterval();
+            return;
+        }
+
+        if (!ShouldApplyDeprivationDamage(
+                currentNeed,
+                burden.burden,
+                now,
+                burden.nextDamageAt))
         {
             return;
         }
@@ -1185,6 +1225,17 @@ public sealed class CharacterDeprivationRuntime :
             deathCause,
             source,
             allowDeath: true);
+    }
+
+    private static bool ShouldApplyDeprivationDamage(
+        float currentNeed,
+        float burden,
+        float now,
+        float nextDamageAt)
+    {
+        return currentNeed < 20f
+            && burden >= BreakdownThreshold
+            && now >= nextDamageAt;
     }
 
     private CharacterNeedResponseProfile GetResponse(

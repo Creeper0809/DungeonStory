@@ -404,6 +404,7 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
     private int lastSpatialRefreshFrame = int.MinValue;
     private int indexedCharacterVersion = -1;
     private int indexedWildlifeVersion = -1;
+    private int indexedBuildingVersion = -1;
     private int characterMembershipEpoch;
     private int wildlifeMembershipEpoch;
     private int wildlifeRefreshCursor;
@@ -775,6 +776,14 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
         CharacterActor actor,
         Vector2Int actorPosition)
     {
+        // An empty wildlife registry is authoritative. Avoid projecting the
+        // character's full risk-detection performance graph for a threat class
+        // that cannot contribute anything to this decision.
+        if (worldRegistry.Wildlife.Count == 0)
+        {
+            return 0f;
+        }
+
         float radius = CharacterAiNaturalnessSettingsResolver.Require(actor).WildlifeThreatRadius;
         CharacterPerformanceSnapshot detection = actor.Stats?.EvaluatePerformance(
             CharacterPerformanceFormulaIds.RiskDetection);
@@ -904,13 +913,30 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
         {
             indexedCharacterVersion = worldRegistry.CharacterVersion;
             characterMembershipEpoch++;
+            characterBuckets.Clear();
+            characterEntries.Clear();
+            IReadOnlyList<CharacterActor> characters = worldRegistry.Characters;
+            for (int index = 0; index < characters.Count; index++)
+            {
+                UpdateCharacterEntry(characters[index]);
+            }
+            cache.Clear();
         }
 
         if (indexedWildlifeVersion != worldRegistry.WildlifeVersion)
         {
             indexedWildlifeVersion = worldRegistry.WildlifeVersion;
             wildlifeMembershipEpoch++;
+            wildlifeBuckets.Clear();
+            wildlifeEntries.Clear();
             wildlifeRefreshCursor = 0;
+            cache.Clear();
+        }
+
+        if (indexedBuildingVersion != worldRegistry.BuildingVersion)
+        {
+            indexedBuildingVersion = worldRegistry.BuildingVersion;
+            cache.Clear();
         }
     }
 

@@ -16,7 +16,11 @@ public abstract class AIPrimitiveSurvivalAction : AIActionSet
         }
 
         float utility = CharacterNeedAiThresholds.GetRoutineUtility(actor, condition);
-        return Mathf.Clamp01(Mathf.Max(baseScore, utility) * 0.65f);
+        // Keep the primitive option unattractive at the first routine hint,
+        // but never attenuate the continuous need urgency itself. The previous
+        // max(...)*0.65 formula capped every non-emergency need at 0.65, making
+        // founders knowingly postpone food until the emergency discontinuity.
+        return Mathf.Clamp01(Mathf.Max(baseScore * 0.65f, utility));
     }
 
     /// <summary>

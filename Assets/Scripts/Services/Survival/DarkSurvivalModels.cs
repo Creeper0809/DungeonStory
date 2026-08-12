@@ -91,6 +91,9 @@ public interface ICharacterDeprivationCommand
     bool TryRunPrimitiveRelief(CharacterActor actor, out string status);
     bool TryRunPrimitiveWash(CharacterActor actor, out string status);
     bool TryRunSafeEmergencyRelief(CharacterActor actor, out string status);
+    bool TryRunMostUrgentEmergencySelfCare(
+        CharacterActor actor,
+        out string status);
     void ResetDiagnostics();
     void BeginBreakdownAction(CharacterActor actor, CharacterBreakdownKind kind);
     bool ApplySuppression(CharacterActor actor, float amount, out bool ended);
@@ -221,6 +224,13 @@ public sealed class NoCharacterDeprivationBoundary :
         return false;
     }
     public bool TryRunSafeEmergencyRelief(
+        CharacterActor actor,
+        out string status)
+    {
+        status = string.Empty;
+        return false;
+    }
+    public bool TryRunMostUrgentEmergencySelfCare(
         CharacterActor actor,
         out string status)
     {

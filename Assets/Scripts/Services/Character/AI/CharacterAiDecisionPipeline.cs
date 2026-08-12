@@ -563,7 +563,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
                 return RunDeprivationBreakdown(actor);
             }
 
-            if (deprivationCommands.TryRunSafeEmergencyRelief(
+            if (deprivationCommands.TryRunMostUrgentEmergencySelfCare(
                     actor,
                     out string reliefStatus))
             {

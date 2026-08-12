@@ -319,12 +319,14 @@ internal static class CharacterAiEditorTestDependencies
             ability.ConstructCharacterAbility(GridSystem);
         }
 
-        actorObject.GetComponent<AbilityMove>()?.ConstructAbilityMove(
+        AbilityMove abilityMove = actorObject.GetComponent<AbilityMove>();
+        abilityMove?.ConstructAbilityMove(
             CharacterSpawner,
             scheduling,
             PathSearchBroker,
             RandomStreams,
             GameClock, defenseEngagementRuntime: null);
+        abilityMove?.ConstructDoorAccessQuery(OpenDoorAccessQuery.Instance);
 
         actorObject.GetComponent<CharacterLifecycle>()?.ConstructCharacterLifecycle(GridSystem);
 
@@ -442,6 +444,40 @@ internal static class CharacterAiEditorTestDependencies
             HaulingSettings,
             CarryInventories);
 
+    }
+
+    /// <summary>
+    /// Editor AI fixtures have no authored door-policy runtime. Movement still
+    /// has to traverse the same guard as the live game, so provide an explicit
+    /// open policy instead of leaving the guard unconstructed and crashing on
+    /// the first idle-wander step.
+    /// </summary>
+    private sealed class OpenDoorAccessQuery : IDoorAccessQuery
+    {
+        public static readonly OpenDoorAccessQuery Instance = new();
+
+        public int DoorAccessVersion => 0;
+
+        public DoorAccessSubjectRef ResolveSubject(GridTraversalContext context) => default;
+
+        public bool CanUse(
+            Door door,
+            GridTraversalContext context,
+            out string denialReason)
+        {
+            denialReason = string.Empty;
+            return true;
+        }
+
+        public bool CanTraverse(
+            Grid grid,
+            Vector2Int position,
+            GridTraversalContext context,
+            out string denialReason)
+        {
+            denialReason = string.Empty;
+            return true;
+        }
     }
 
     private static WorkExecutionHandlerRegistry CreateWorkRegistry(

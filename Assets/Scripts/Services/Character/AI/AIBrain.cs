@@ -82,6 +82,8 @@ public class AIBrain : CharacterAbility
     private int externalIntentRejectedCount;
     private int externalIntentStaleCompletionCount;
     private int directDecisionTickCount;
+    private int immediateDecisionRequestCount;
+    private string lastImmediateDecisionReason = string.Empty;
     private readonly long[] executionFailuresByKind =
         new long[Enum.GetValues(typeof(AIActionFailureKind)).Length];
     private readonly long[] candidateRejectionsByKind =
@@ -683,8 +685,28 @@ public class AIBrain : CharacterAbility
         }
 
         MarkDebugDirty();
+        RequestImmediateDecision(
+            clearFailures
+                ? "Immediate replan with cleared failures."
+                : "Immediate replan.");
+    }
+
+    /// <summary>
+    /// Wakes the scheduler without discarding the current action, reservation,
+    /// or movement. Threshold-driven needs use this path so the decision
+    /// pipeline can decide whether the action is interruptible instead of a
+    /// stat mutation cancelling work by itself.
+    /// </summary>
+    public void RequestImmediateDecision(string reason)
+    {
+        immediateDecisionRequestCount++;
+        lastImmediateDecisionReason = reason?.Trim() ?? string.Empty;
+        MarkDebugDirty();
         RequireAiSchedulingService().RequestImmediateDecision(actor);
     }
+
+    public int ImmediateDecisionRequestCount => immediateDecisionRequestCount;
+    public string LastImmediateDecisionReason => lastImmediateDecisionReason;
 
     public void RequestImmediateReplanForAction<TActionSet>(bool clearFailures = false)
         where TActionSet : AIActionSet

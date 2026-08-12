@@ -28,6 +28,21 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
     public IWarehouseInventoryPort InventoryPort => warehouseInventory;
     public bool HasWarehouseInventory => warehouseInventory != null;
 
+    public bool HasMealAvailableFor(
+        CharacterActor actor,
+        out CharacterConsumablesFailure failure)
+    {
+        if (mealConsumptionRuntime == null)
+        {
+            failure = new CharacterConsumablesFailure(
+                CharacterConsumablesFailureCode.InvalidCommand,
+                "Meal consumption runtime is unavailable.");
+            return false;
+        }
+
+        return mealConsumptionRuntime.HasMealAvailable(actor, this, out failure);
+    }
+
     [Inject]
     public void ConstructFacility(
         IRoomEnvironmentExperienceService roomEnvironmentExperienceService,

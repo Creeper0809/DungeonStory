@@ -20,6 +20,7 @@ internal enum CharacterPrimitiveSurvivalActionKind
 internal sealed class CharacterPrimitiveSurvivalRunner
 {
     private const string IntentOwnerPrefix = "survival:primitive:";
+    private const int PrimitiveLatrineSearchRadius = 8;
     private const float FieldMealSeconds = 4f;
     private const float FloorRestSeconds = 60f;
     private const float LatrineSeconds = 6f;
@@ -123,7 +124,7 @@ internal sealed class CharacterPrimitiveSurvivalRunner
                     : CharacterActionIntentKind.RoutineNeed)
                 <= running.IntentKind)
         {
-            status = GetLabel(kind) + " 진행 중";
+            status = GetLabel(running.Kind) + " 진행 중";
             return true;
         }
 
@@ -140,15 +141,18 @@ internal sealed class CharacterPrimitiveSurvivalRunner
                 GetReason(kind),
                 out CharacterActionIntentLease intentLease))
         {
-            runningActions.Remove(actorId);
             status = "더 높은 우선순위 행동이 진행 중";
-            return true;
+            return false;
         }
 
         runningActions[actorId] = new RunningPrimitiveAction(
             kind,
             intentKind,
             intentLease.Epoch);
+        actor.AddActivity(CharacterActivityEvent.InternalAi(
+            CharacterActivityOutcomes.Started,
+            "primitive-survival-start",
+            $"Primitive survival started: kind={kind}; intent={intentKind}; epoch={intentLease.Epoch}; position={actor.GetNowXY()}"));
         actor.StartCoroutine(Run(actor, actorId, kind, intentLease));
         status = GetLabel(kind);
         return true;
@@ -228,12 +232,17 @@ internal sealed class CharacterPrimitiveSurvivalRunner
                 out Vector2Int position,
                 out _))
         {
+            RecordFailure(actor, CharacterPrimitiveSurvivalActionKind.FieldMeal,
+                "field-meal-missing", "No physical field meal was available at execution time.");
             yield break;
         }
 
         yield return movement.MoveNear(actor, position, 1);
         if (!CanCommit(actor, intentLease) || !IsAliveAndNear(actor, position, 1))
         {
+            RecordFailure(actor, CharacterPrimitiveSurvivalActionKind.FieldMeal,
+                "field-meal-approach-failed",
+                $"leaseCurrent={CanCommit(actor, intentLease)}; actor={actor?.GetNowXY()}; target={position}");
             yield break;
         }
         yield return WaitGameSeconds(actor, intentLease, FieldMealSeconds);
@@ -252,6 +261,12 @@ internal sealed class CharacterPrimitiveSurvivalRunner
                 value: result.Nutrition,
                 bubbleEligible: true));
             PublishCompleted(actor, "survival:field-meal", result.Nutrition, 1);
+        }
+        else
+        {
+            RecordFailure(actor, CharacterPrimitiveSurvivalActionKind.FieldMeal,
+                "field-meal-commit-failed",
+                $"leaseCurrent={CanCommit(actor, intentLease)}; actor={actor?.GetNowXY()}; target={position}; stack={stackId.Value}");
         }
     }
 
@@ -294,17 +309,25 @@ internal sealed class CharacterPrimitiveSurvivalRunner
     {
         if (!TryGetDesignatedLatrinePosition(actor, out Vector2Int target))
         {
+            RecordFailure(actor, CharacterPrimitiveSurvivalActionKind.Latrine,
+                "latrine-position-missing", "No nearby safe primitive latrine cell was available.");
             yield break;
         }
 
         yield return movement.MoveNear(actor, target, 0);
         if (!CanCommit(actor, intentLease) || !IsAliveAndNear(actor, target, 0))
         {
+            RecordFailure(actor, CharacterPrimitiveSurvivalActionKind.Latrine,
+                "latrine-approach-failed",
+                $"leaseCurrent={CanCommit(actor, intentLease)}; actor={actor?.GetNowXY()}; target={target}");
             yield break;
         }
         yield return WaitGameSeconds(actor, intentLease, LatrineSeconds);
         if (!CanCommit(actor, intentLease) || !IsAliveAndNear(actor, target, 0))
         {
+            RecordFailure(actor, CharacterPrimitiveSurvivalActionKind.Latrine,
+                "latrine-commit-failed",
+                $"leaseCurrent={CanCommit(actor, intentLease)}; actor={actor?.GetNowXY()}; target={target}");
             yield break;
         }
 
@@ -453,24 +476,30 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         Vector2Int origin = actor.GetNowXY();
         GridCell best = null;
         int bestPriority = int.MaxValue;
-        foreach (GridCell cell in grid.GetCells())
+        int bestDistance = int.MaxValue;
+        int minX = Mathf.Max(0, origin.x - PrimitiveLatrineSearchRadius);
+        int maxX = Mathf.Min(grid.width - 1, origin.x + PrimitiveLatrineSearchRadius);
+        for (int x = minX; x <= maxX; x++)
         {
+            GridCell cell = grid.GetGridCell(new Vector2Int(x, origin.y));
             if (cell == null
-                || cell.Position.y != origin.y
                 || !grid.IsWalkable(cell.Position))
             {
                 continue;
             }
             int priority = world.GetAccidentLocationPriority(grid, cell);
+            int distance = Mathf.Abs(cell.Position.x - origin.x);
             if (best != null
                 && (priority > bestPriority
-                    || priority == bestPriority
-                    && cell.Position.x >= best.Position.x))
+                    || (priority == bestPriority && distance > bestDistance)
+                    || (priority == bestPriority && distance == bestDistance
+                        && cell.Position.x >= best.Position.x)))
             {
                 continue;
             }
             best = cell;
             bestPriority = priority;
+            bestDistance = distance;
         }
 
         if (best == null)
@@ -479,6 +508,18 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         }
         position = best.Position;
         return true;
+    }
+
+    private static void RecordFailure(
+        CharacterActor actor,
+        CharacterPrimitiveSurvivalActionKind kind,
+        string reasonCode,
+        string detail)
+    {
+        actor?.AddActivity(CharacterActivityEvent.InternalAi(
+            CharacterActivityOutcomes.Failed,
+            reasonCode,
+            $"Primitive survival failed: kind={kind}; {detail}"));
     }
 
     private static bool IsAliveAndNear(

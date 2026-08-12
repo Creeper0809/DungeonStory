@@ -530,6 +530,20 @@ public static class FacilityCandidateScorer
             return false;
         }
 
+        // A role-compatible fixture is not necessarily able to serve a meal.
+        // Empty cooking/service fixtures used to suppress the field-ration
+        // fallback and strand founders until emergency starvation. Workers
+        // must use the same physical-meal availability authority that the
+        // facility will call at execution time. Visitors retain retail/service
+        // selection semantics and are filtered by their purchase rules below.
+        if (role == FacilityRole.Meal
+            && actor != null
+            && CharacterWorkRoleUtility.TryGetWork(actor, out _)
+            && !HasPhysicalMealAvailable(actor, building, out rejectReason))
+        {
+            return false;
+        }
+
         if (building is IRetailFacility shop
             && actor != null
             && actor.TryGetAbility(out AbilityShopping shopping)
@@ -539,6 +553,39 @@ public static class FacilityCandidateScorer
         }
 
         return true;
+    }
+
+    private static bool HasPhysicalMealAvailable(
+        CharacterActor actor,
+        BuildableObject building,
+        out string rejectReason)
+    {
+        bool available;
+        CharacterConsumablesFailure failure;
+        switch (building)
+        {
+            case Facility facility:
+                available = facility.HasMealAvailableFor(actor, out failure);
+                break;
+            case Shop shop:
+                available = shop.HasMealAvailableFor(actor, out failure);
+                break;
+            default:
+                rejectReason = "meal facility has no physical consumption authority";
+                return false;
+        }
+
+        // DeliveryPending means that a remote source may eventually be routed
+        // into this fixture; it is not a meal the actor can consume now. The
+        // primitive fallback must remain eligible until physical food is
+        // already committed to the facility buffer.
+        available &= !failure.IsFailure;
+
+        rejectReason = available
+            ? string.Empty
+            : $"meal unavailable: {failure.Code} "
+                + string.Join(",", failure.Parameters);
+        return available;
     }
 
     public static float ScoreCandidate(

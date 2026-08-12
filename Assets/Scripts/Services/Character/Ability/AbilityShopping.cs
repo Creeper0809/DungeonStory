@@ -34,6 +34,12 @@ public class AbilityShopping : CharacterAbility
     private IGameClock gameClock;
     private IGameEventBus gameEventBus;
     private Predicate<BuildableObject> canVisitBuildingPredicate;
+    private float decisionStateCapturedAt = float.NegativeInfinity;
+    private int decisionStateVisitCount = int.MinValue;
+    private int decisionStateLookAroundCount = int.MinValue;
+    private int decisionStateFacilityVersion = int.MinValue;
+    private bool cachedCanLookAround;
+    private bool cachedShouldExitDungeon;
 
     public int visitCount { get; private set; }
     public int lookAroundCount { get; private set; }
@@ -411,6 +417,20 @@ public class AbilityShopping : CharacterAbility
         out bool canLookAround,
         out bool shouldExitDungeon)
     {
+        float now = gameClock?.Time ?? Time.time;
+        float cacheSeconds = actor?.NaturalnessSettings?.SignalCacheSeconds ?? 0f;
+        int facilityVersion = actor?.Brain?.RequireFacilityCandidateCache()
+            .DynamicStateVersion ?? int.MinValue;
+        if (now - decisionStateCapturedAt <= cacheSeconds
+            && decisionStateVisitCount == visitCount
+            && decisionStateLookAroundCount == lookAroundCount
+            && decisionStateFacilityVersion == facilityVersion)
+        {
+            canLookAround = cachedCanLookAround;
+            shouldExitDungeon = cachedShouldExitDungeon;
+            return;
+        }
+
         bool shouldEndVisitCycle = actor != null && ShouldEndVisitCycle();
         canLookAround = shouldEndVisitCycle
             && visitCount > 0
@@ -418,6 +438,12 @@ public class AbilityShopping : CharacterAbility
         shouldExitDungeon = shouldEndVisitCycle
             && (visitCount <= 0
                 || lookAroundCount >= DefaultMaxLookAroundCount);
+        decisionStateCapturedAt = now;
+        decisionStateVisitCount = visitCount;
+        decisionStateLookAroundCount = lookAroundCount;
+        decisionStateFacilityVersion = facilityVersion;
+        cachedCanLookAround = canLookAround;
+        cachedShouldExitDungeon = shouldExitDungeon;
     }
 
     public bool ShouldEndVisitCycle()

@@ -1918,16 +1918,15 @@ public static class CharacterAiStressDebugScenarios
             CharacterAwakeMethod?.Invoke(character, null);
             CharacterAiEditorTestDependencies.Inject(obj, Scheduling);
 
-            CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
+            CharacterSO data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+                CharacterType.Customer,
+                $"Stress Customer {speciesTag}",
+                speciesTag);
             scriptableObjects.Add(data);
             SetPrivateField(data, "frequencyVisitMin", 3);
             SetPrivateField(data, "frequencyVisitMax", 3);
             SetPrivateField(data, "minHoldingMoney", 500);
             SetPrivateField(data, "maxHoldingMoney", 600);
-            data.characterType = CharacterType.Customer;
-            data.characterName = speciesTag;
-            data.speciesTag = speciesTag;
-
             ApplyStressPersona(obj.GetComponent<CustomerPersonaRuntime>(), speciesTag);
             obj.transform.position = Grid.GetWorldPos(position);
             character.Initialization(data);

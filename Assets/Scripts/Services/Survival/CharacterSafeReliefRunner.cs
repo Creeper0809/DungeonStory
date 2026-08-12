@@ -122,7 +122,7 @@ internal sealed class CharacterSafeReliefRunner
             deprivation.nextSafeReliefAttemptAt = now
                 + CharacterSafeDrinkPlanner.GetRetryDelay(actorId.Value);
             status = "더 높은 우선순위 행동이 끝나기를 기다리는 중";
-            return true;
+            return false;
         }
 
         runningActorIds.Add(actorId);
