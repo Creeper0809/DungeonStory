@@ -904,7 +904,8 @@ public static class CharacterAiStressDebugScenarios
             IsolateProfileScene();
 
             CharacterAiEditorTestDependencies.ResetPerformanceRecorder(
-                detailedCollectionEnabled: sampleFrames <= 120);
+                detailedCollectionEnabled: sampleFrames <= 120,
+                slowTraceEnabled: sampleFrames <= 120);
             world = new StressWorld();
             world.PlaceFacilities();
             world.SetSchedulerEnabled(false);

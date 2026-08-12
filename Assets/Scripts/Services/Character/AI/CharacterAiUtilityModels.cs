@@ -473,9 +473,12 @@ public readonly struct CharacterAiDecisionContext
         bool shouldExitDungeon = false;
         if (!isWorker && hasShoppingAbility)
         {
-            shopping.GetDecisionState(
-                out canLookAround,
-                out shouldExitDungeon);
+            // Keep the shared decision snapshot cheap. A precise visitor-state
+            // query walks usable facilities and used to run for every routine
+            // decision, even while the visitor still had ordinary shopping
+            // work available. Destination actions perform that exact query
+            // only when their branch is actually evaluated.
+            shouldExitDungeon = shopping.HasNoRemainingVisits;
         }
         VisitorCaptureMarker.End();
         RecordCaptureStage(

@@ -93,11 +93,22 @@ public class AIShopping : AIActionSet
             searchResult,
             shopping.GetInterestRoles(),
             FacilityScoringContext.RequireFromActor(actor),
+            shopping.CanVisitCandidate,
             out destination,
             out bool pending))
         {
+            shopping.RecordVisitableFacilitySearchResult(true);
             failure = AIActionFailure.None;
             return true;
+        }
+
+        if (!pending)
+        {
+            // The shopping action has already paid for the precise facility
+            // scan. Publish that result to visitor-state arbitration so the
+            // look-around and exit actions do not repeat the same scan in this
+            // decision window.
+            shopping.RecordVisitableFacilitySearchResult(false);
         }
 
         DungeonStory.AI.AiActionDecision decision =

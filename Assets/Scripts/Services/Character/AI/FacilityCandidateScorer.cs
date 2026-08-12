@@ -14,6 +14,15 @@ public static class FacilityCandidateScorer
     [System.ThreadStatic]
     private static int[] scoringShortlistCosts;
 
+    [System.ThreadStatic]
+    private static float[] scoredCandidateValues;
+
+    [System.ThreadStatic]
+    private static CharacterAiUtilityBreakdown[] scoredCandidateBreakdowns;
+
+    [System.ThreadStatic]
+    private static bool[] scoredCandidateValid;
+
     private static readonly FacilityRole[] ScoredRoles =
     {
         FacilityRole.Meal,
@@ -73,6 +82,7 @@ public static class FacilityCandidateScorer
             role,
             searchResult,
             scoringContext,
+            additionalPredicate: null,
             requirePositiveScore: false,
             out BuildableObject bestBuilding,
             out CharacterAiUtilityBreakdown bestBreakdown,
@@ -179,6 +189,25 @@ public static class FacilityCandidateScorer
         out BuildableObject bestBuilding,
         out bool pending)
     {
+        return TrySelectBestIncremental(
+            actor,
+            searchResult,
+            role,
+            scoringContext,
+            additionalPredicate: null,
+            out bestBuilding,
+            out pending);
+    }
+
+    public static bool TrySelectBestIncremental(
+        CharacterActor actor,
+        GridPathSearchResult searchResult,
+        FacilityRole role,
+        FacilityScoringContext scoringContext,
+        System.Predicate<BuildableObject> additionalPredicate,
+        out BuildableObject bestBuilding,
+        out bool pending)
+    {
         bestBuilding = null;
         pending = false;
         if (role == FacilityRole.None)
@@ -193,6 +222,7 @@ public static class FacilityCandidateScorer
                 searchResult,
                 role,
                 scoringContext,
+                additionalPredicate,
                 out bestBuilding);
         }
 
@@ -227,6 +257,7 @@ public static class FacilityCandidateScorer
             candidates,
             role,
             scoringContext,
+            additionalPredicate,
             out bestBuilding);
     }
 
@@ -235,6 +266,23 @@ public static class FacilityCandidateScorer
         GridPathSearchResult searchResult,
         FacilityRole role,
         FacilityScoringContext scoringContext,
+        out BuildableObject bestBuilding)
+    {
+        return TrySelectBest(
+            actor,
+            searchResult,
+            role,
+            scoringContext,
+            additionalPredicate: null,
+            out bestBuilding);
+    }
+
+    private static bool TrySelectBest(
+        CharacterActor actor,
+        GridPathSearchResult searchResult,
+        FacilityRole role,
+        FacilityScoringContext scoringContext,
+        System.Predicate<BuildableObject> additionalPredicate,
         out BuildableObject bestBuilding)
     {
         bestBuilding = null;
@@ -271,6 +319,7 @@ public static class FacilityCandidateScorer
             role,
             searchResult,
             scoringContext,
+            additionalPredicate,
             requirePositiveScore: true,
             out bestBuilding,
             out CharacterAiUtilityBreakdown bestBreakdown,
@@ -298,6 +347,7 @@ public static class FacilityCandidateScorer
         IReadOnlyList<BuildableObject> candidates,
         FacilityRole role,
         FacilityScoringContext scoringContext,
+        System.Predicate<BuildableObject> additionalPredicate,
         out BuildableObject bestBuilding)
     {
         bestBuilding = null;
@@ -314,6 +364,7 @@ public static class FacilityCandidateScorer
             role,
             searchResult: null,
             scoringContext,
+            additionalPredicate,
             requirePositiveScore: true,
             out bestBuilding,
             out CharacterAiUtilityBreakdown bestBreakdown,
@@ -335,6 +386,7 @@ public static class FacilityCandidateScorer
         FacilityRole role,
         GridPathSearchResult searchResult,
         FacilityScoringContext scoringContext,
+        System.Predicate<BuildableObject> additionalPredicate,
         bool requirePositiveScore,
         out BuildableObject selectedBuilding,
         out CharacterAiUtilityBreakdown selectedBreakdown,
@@ -344,9 +396,12 @@ public static class FacilityCandidateScorer
         selectedBreakdown = null;
         selectedScore = float.MinValue;
         int selectedId = int.MaxValue;
+        int selectedSourceIndex = -1;
         int safeCount = Mathf.Min(count, useThreadShortlist
             ? MaximumFullyScoredCandidates
             : source?.Count ?? 0);
+        EnsureScoredCandidateBuffers(safeCount);
+        System.Array.Clear(scoredCandidateValid, 0, safeCount);
 
         for (int index = 0; index < safeCount; index++)
         {
@@ -358,6 +413,12 @@ public static class FacilityCandidateScorer
                 continue;
             }
 
+            if (additionalPredicate != null
+                && !additionalPredicate(building))
+            {
+                continue;
+            }
+
             float score = ScoreCandidateWithBreakdown(
                 actor,
                 building,
@@ -365,6 +426,9 @@ public static class FacilityCandidateScorer
                 searchResult,
                 scoringContext,
                 out CharacterAiUtilityBreakdown breakdown);
+            scoredCandidateValues[index] = score;
+            scoredCandidateBreakdowns[index] = breakdown;
+            scoredCandidateValid[index] = true;
             if ((requirePositiveScore && score <= 0f)
                 || (selectedBuilding != null
                     && score < selectedScore
@@ -382,6 +446,7 @@ public static class FacilityCandidateScorer
                 selectedBreakdown = breakdown;
                 selectedScore = score;
                 selectedId = building.id;
+                selectedSourceIndex = index;
             }
         }
 
@@ -415,21 +480,22 @@ public static class FacilityCandidateScorer
 
         for (int index = 0; index < safeCount; index++)
         {
-            BuildableObject building = useThreadShortlist
-                ? scoringShortlist[index]
-                : source[index];
-            if (!CanScoreSelectionCandidate(building, searchResult))
+            if (index == selectedSourceIndex)
             {
                 continue;
             }
 
-            float score = ScoreCandidateWithBreakdown(
-                actor,
-                building,
-                role,
-                searchResult,
-                scoringContext,
-                out CharacterAiUtilityBreakdown breakdown);
+            if (!scoredCandidateValid[index])
+            {
+                continue;
+            }
+
+            BuildableObject building = useThreadShortlist
+                ? scoringShortlist[index]
+                : source[index];
+            float score = scoredCandidateValues[index];
+            CharacterAiUtilityBreakdown breakdown =
+                scoredCandidateBreakdowns[index];
             float candidateSpeciesAffinity = GetSpeciesAffinityBias(actor, building);
             if ((requirePositiveScore && score <= 0f)
                 || score + tolerance < scoreLeaderScore
@@ -466,6 +532,19 @@ public static class FacilityCandidateScorer
         }
 
         return true;
+    }
+
+    private static void EnsureScoredCandidateBuffers(int count)
+    {
+        int capacity = Mathf.Max(MaximumFullyScoredCandidates, count);
+        if (scoredCandidateValues == null
+            || scoredCandidateValues.Length < capacity)
+        {
+            scoredCandidateValues = new float[capacity];
+            scoredCandidateBreakdowns =
+                new CharacterAiUtilityBreakdown[capacity];
+            scoredCandidateValid = new bool[capacity];
+        }
     }
 
     private static bool CanScoreSelectionCandidate(
@@ -665,10 +744,12 @@ public static class FacilityCandidateScorer
         out CharacterAiUtilityBreakdown breakdown)
     {
         breakdown = null;
+        long stageStarted = BeginSlowFacilityStage(actor);
         if (!IsCandidate(actor, building, role, scoringContext, out _))
         {
             return 0f;
         }
+        RecordSlowFacilityStage(actor, building, "candidate", ref stageStarted);
 
         FacilityRole matchedRole = GetBestMatchedRole(actor, building, role);
         float desireScore = GetNeedScore(actor, matchedRole);
@@ -676,11 +757,15 @@ public static class FacilityCandidateScorer
         float stockScore = GetStockScore(building);
         float affordabilityScore = GetAffordabilityScore(actor, building);
         float crowdScore = GetCrowdScore(actor, building);
+        RecordSlowFacilityStage(actor, building, "actor-and-stock", ref stageStarted);
         float distanceScore = GetDistanceScore(actor, building, searchResult);
+        RecordSlowFacilityStage(actor, building, "distance", ref stageStarted);
         float travelOpportunityPenalty = GetTravelOpportunityPenalty(
             actor,
             distanceScore);
+        RecordSlowFacilityStage(actor, building, "travel-penalty", ref stageStarted);
         float noveltyScore = GetNoveltyScore(actor, building);
+        RecordSlowFacilityStage(actor, building, "novelty", ref stageStarted);
         float reputationBias = GetReputationBias(actor, building, scoringContext);
         float roomScore = scoringContext.GetRoomUtilityScore(building, matchedRole);
         float cultureBias = scoringContext.GetCulturePreferenceBias(
@@ -688,15 +773,18 @@ public static class FacilityCandidateScorer
             building,
             matchedRole);
         float facilityStateScore = GetFacilityStateScore(building);
+        RecordSlowFacilityStage(actor, building, "social-room-culture", ref stageStarted);
         float memoryScore = actor != null && actor.AiMemory != null
             ? actor.AiMemory.GetFacilityMemoryScore(building)
             : 0.5f;
+        RecordSlowFacilityStage(actor, building, "memory", ref stageStarted);
         CharacterAiWorldSignalSnapshot signals = actor?.WorldSignalQuery?.Capture(
                 actor,
                 GetBranchForRole(matchedRole),
                 building,
                 searchResult)
             ?? CharacterAiWorldSignalSnapshot.Neutral;
+        RecordSlowFacilityStage(actor, building, "world-signal", ref stageStarted);
         float queueScore = Mathf.Clamp01(1f - signals.QueuePressure);
         float socialScore = ResolveSocialFacilityScore(matchedRole, signals);
         float weatherScore = Mathf.Clamp01(1f - signals.WeatherPressure);
@@ -727,6 +815,7 @@ public static class FacilityCandidateScorer
             - travelOpportunityPenalty;
 
         float finalScore = ApplySpeciesAffinityBias(score, speciesAffinityBias);
+        RecordSlowFacilityStage(actor, building, "combine", ref stageStarted);
         if (actor != null && !actor.ShouldCollectDetailedAiDiagnostics)
         {
             return finalScore;
@@ -751,6 +840,37 @@ public static class FacilityCandidateScorer
         breakdown.Add(CharacterAiUtilityFactorKind.Schedule, scheduleScore, 0.02f, "일정");
         breakdown.SetFinalScore(finalScore);
         return finalScore;
+    }
+
+    private static long BeginSlowFacilityStage(CharacterActor actor)
+    {
+        return actor?.Brain?.PerformanceRecorder?.SlowTraceEnabled == true
+            ? Stopwatch.GetTimestamp()
+            : 0L;
+    }
+
+    private static void RecordSlowFacilityStage(
+        CharacterActor actor,
+        BuildableObject building,
+        string stage,
+        ref long started)
+    {
+        if (started == 0L)
+        {
+            return;
+        }
+
+        long finished = Stopwatch.GetTimestamp();
+        actor.Brain.PerformanceRecorder.RecordSlowOperation(
+            $"facility:{stage}:{building?.name ?? "none"}",
+            actor,
+            null,
+            null,
+            (finished - started) * 1000.0 / Stopwatch.Frequency);
+        // Slow tracing can emit a console line. Start the next interval only
+        // after that diagnostic work so logging time is never charged to the
+        // following gameplay stage.
+        started = Stopwatch.GetTimestamp();
     }
 
     private static float GetSpeciesAffinityBias(CharacterActor actor, BuildableObject building)
@@ -1151,8 +1271,11 @@ public static class FacilityCandidateScorer
             return 1f;
         }
 
-        CharacterStats stats = actor != null ? actor.Stats : null;
-        float sensitivity = stats != null ? stats.GetCrowdSensitivityMultiplier() : 1f;
+        float sensitivity = actor?.Brain != null
+            ? actor.Brain.GetFacilityCrowdSensitivity(actor)
+            : actor?.Stats != null
+                ? actor.Stats.GetCrowdSensitivityMultiplier()
+                : 1f;
         int capacity = Mathf.Max(1, building.EffectiveCapacity);
         int pressureCount = building.CurrentUserCount + Mathf.Max(0, building.ActiveVisitReservationCount);
         return Mathf.Clamp01(1f - (((float)pressureCount / capacity) * sensitivity));

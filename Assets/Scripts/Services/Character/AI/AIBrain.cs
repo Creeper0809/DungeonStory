@@ -41,6 +41,12 @@ public class AIBrain : CharacterAbility
     [SerializeField, Range(1, 8)] private int debugCandidateLimit = 3;
     private readonly Dictionary<(BuildableObject Building, FacilityRole Role), float> facilityScoreCache =
         new Dictionary<(BuildableObject Building, FacilityRole Role), float>();
+    private readonly Dictionary<CharacterAiBranch, CharacterAiWorldSignalSnapshot> worldSignalCache =
+        new Dictionary<CharacterAiBranch, CharacterAiWorldSignalSnapshot>();
+    private Vector2Int worldSignalCachePosition;
+    private bool hasWorldSignalCachePosition;
+    private bool hasCachedFacilityCrowdSensitivity;
+    private float cachedFacilityCrowdSensitivity = 1f;
     private readonly List<AIAction> destinationFailedThisDecision = new List<AIAction>();
     private readonly List<AIActionDebugCandidate> lastCandidateScores = new List<AIActionDebugCandidate>();
     private IReadOnlyList<AIActionDebugCandidate> lastCandidateScoresView;
@@ -198,6 +204,8 @@ public class AIBrain : CharacterAbility
             actor.Blackboard?.ClearJobGiverCandidateCache();
             RequireActionEvaluator().ClearEvaluations();
             facilityScoreCache.Clear();
+            ClearWorldSignalCache();
+            hasCachedFacilityCrowdSensitivity = false;
         }
 
         return decisionPipeline.RunRootDecision(actor);
@@ -387,6 +395,57 @@ public class AIBrain : CharacterAbility
         }
     }
 
+    internal float GetFacilityCrowdSensitivity(CharacterActor sourceActor)
+    {
+        if (hasCachedFacilityCrowdSensitivity)
+        {
+            return cachedFacilityCrowdSensitivity;
+        }
+
+        cachedFacilityCrowdSensitivity = sourceActor?.Stats != null
+            ? sourceActor.Stats.GetCrowdSensitivityMultiplier()
+            : 1f;
+        hasCachedFacilityCrowdSensitivity = true;
+        return cachedFacilityCrowdSensitivity;
+    }
+
+    internal bool TryGetCachedWorldSignal(
+        CharacterAiBranch branch,
+        Vector2Int actorPosition,
+        out CharacterAiWorldSignalSnapshot snapshot)
+    {
+        if (!hasWorldSignalCachePosition
+            || worldSignalCachePosition != actorPosition)
+        {
+            snapshot = default;
+            return false;
+        }
+
+        return worldSignalCache.TryGetValue(branch, out snapshot);
+    }
+
+    internal void CacheWorldSignal(
+        CharacterAiBranch branch,
+        Vector2Int actorPosition,
+        CharacterAiWorldSignalSnapshot snapshot)
+    {
+        if (!hasWorldSignalCachePosition
+            || worldSignalCachePosition != actorPosition)
+        {
+            worldSignalCache.Clear();
+            worldSignalCachePosition = actorPosition;
+            hasWorldSignalCachePosition = true;
+        }
+
+        worldSignalCache[branch] = snapshot;
+    }
+
+    private void ClearWorldSignalCache()
+    {
+        worldSignalCache.Clear();
+        hasWorldSignalCachePosition = false;
+    }
+
     public ICharacterAiFacilityLookup RequireFacilityLookup() =>
         facilityLookup ?? throw MissingDependency(nameof(ICharacterAiFacilityLookup));
 
@@ -423,6 +482,8 @@ public class AIBrain : CharacterAbility
 
         RequireActionEvaluator().ClearEvaluations();
         facilityScoreCache.Clear();
+        ClearWorldSignalCache();
+        hasCachedFacilityCrowdSensitivity = false;
 
         if (TryUsePreferredAction())
         {

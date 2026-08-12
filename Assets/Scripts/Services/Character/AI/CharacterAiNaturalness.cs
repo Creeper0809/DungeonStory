@@ -461,6 +461,22 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
         }
 
         Vector2Int actorPosition = actor.GetNowXY();
+        // A target projection can safely reuse the branch snapshot already
+        // captured by the root decision. Re-entering the full base-signal
+        // cache lookup for every facility used to dominate AIEat/AIRest.
+        if (target != null
+            && actor.Brain != null
+            && actor.Brain.TryGetCachedWorldSignal(
+                branch,
+                actorPosition,
+                out CharacterAiWorldSignalSnapshot decisionSnapshot))
+        {
+            return ApplyTargetSignals(
+                decisionSnapshot,
+                target,
+                searchResult);
+        }
+
         int cacheKey = BuildCacheKey(actor, actorPosition);
         float now = gameClock.Time;
         float cacheSeconds = CharacterAiNaturalnessSettingsResolver.Require(actor).SignalCacheSeconds;
@@ -481,6 +497,7 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
                 actor,
                 branch,
                 snapshot.TimeOfDay));
+        actor.Brain?.CacheWorldSignal(branch, actorPosition, snapshot);
         return target != null
             ? ApplyTargetSignals(snapshot, target, searchResult)
             : snapshot;
@@ -664,7 +681,7 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
                 CharacterSpatialEntry candidate = bucket[index];
                 if (candidate.Actor == null
                     || candidate.Actor == actor
-                    || candidate.Actor.IsDead
+                    || candidate.IsDead
                     || candidate.MembershipEpoch != characterMembershipEpoch)
                 {
                     continue;
@@ -971,6 +988,7 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
         }
 
         entry.Position = position;
+        entry.IsDead = character.IsDead;
         entry.IsWorker = CharacterWorkRoleUtility.TryGetWork(character, out _);
         entry.BucketKey = bucketKey;
         entry.MembershipEpoch = characterMembershipEpoch;
@@ -1237,6 +1255,7 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
 
         public CharacterActor Actor { get; }
         public Vector2Int Position { get; set; }
+        public bool IsDead { get; set; }
         public bool IsWorker { get; set; }
         public long BucketKey { get; set; }
         public int BucketIndex { get; set; } = -1;

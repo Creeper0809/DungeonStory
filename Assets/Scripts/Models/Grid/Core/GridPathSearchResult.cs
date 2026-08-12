@@ -25,6 +25,7 @@ public class GridPathSearchResult
     private Queue<GridMoveStep> ownedExactPath;
     private HashSet<IGridOccupant> visitableOccupantSet;
     private Dictionary<IGridOccupant, Vector2Int> visitableOccupantPositions;
+    private Dictionary<IGridOccupant, int> visitableOccupantMoveCosts;
     private bool visitableOccupantPositionsBuilt;
 
     internal GridPathSearchResult(
@@ -172,8 +173,9 @@ public class GridPathSearchResult
             return int.MaxValue;
         }
 
-        return TryGetVisitableOccupantPosition(destination, out Vector2Int position)
-            ? GetMoveCostTo(position)
+        EnsureVisitableOccupantPositionCache();
+        return visitableOccupantMoveCosts.TryGetValue(destination, out int cost)
+            ? cost
             : int.MaxValue;
     }
 
@@ -588,6 +590,7 @@ public class GridPathSearchResult
         visitableOccupantPositionsBuilt = true;
         visitableOccupantSet ??= new HashSet<IGridOccupant>(visitableOccupants);
         visitableOccupantPositions ??= new Dictionary<IGridOccupant, Vector2Int>();
+        visitableOccupantMoveCosts ??= new Dictionary<IGridOccupant, int>();
         for (int index = 0; index < searchOrderCount; index++)
         {
             Vector2Int pos = sourceGrid.GetPositionFromCellIndex(searchOrder[index]);
@@ -606,6 +609,12 @@ public class GridPathSearchResult
                     && !visitableOccupantPositions.ContainsKey(occupant))
                 {
                     visitableOccupantPositions.Add(occupant, pos);
+                    int cellIndex = sourceGrid.TryGetCellIndex(pos, out int resolvedIndex)
+                        ? resolvedIndex
+                        : -1;
+                    visitableOccupantMoveCosts.Add(
+                        occupant,
+                        cellIndex >= 0 ? moveCost[cellIndex] : int.MaxValue);
                 }
             }
         }

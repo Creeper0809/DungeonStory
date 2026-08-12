@@ -843,10 +843,12 @@ internal static class CharacterAiEditorTestDependencies
     }
 
     internal static void ResetPerformanceRecorder(
-        bool detailedCollectionEnabled = true)
+        bool detailedCollectionEnabled = true,
+        bool slowTraceEnabled = false)
     {
         PerformanceRecorder.SetDetailedCollectionEnabled(
             detailedCollectionEnabled);
+        PerformanceRecorder.SetSlowTraceEnabled(slowTraceEnabled);
         PerformanceRecorder.Reset();
     }
 
@@ -1940,6 +1942,8 @@ internal static class CharacterAiEditorTestDependencies
 
 internal sealed class EditorCharacterAiPerformanceRecorder : ICharacterAiPerformanceRecorder
 {
+    private const double SlowOperationThresholdMilliseconds = 1d;
+    private const int MaximumSlowOperationEntries = 64;
     private static readonly string[] Names =
     {
         "Scheduler",
@@ -1974,6 +1978,8 @@ internal sealed class EditorCharacterAiPerformanceRecorder : ICharacterAiPerform
     private int cacheHits;
     private int deferrals;
     private bool detailedCollectionEnabled = true;
+    private bool slowTraceEnabled;
+    private int slowTraceEntryCount;
 
     public EditorCharacterAiPerformanceRecorder()
     {
@@ -1985,7 +1991,9 @@ internal sealed class EditorCharacterAiPerformanceRecorder : ICharacterAiPerform
     }
 
     public bool DetailedCollectionEnabled => detailedCollectionEnabled;
-    public bool SlowTraceEnabled => false;
+    public bool SlowTraceEnabled =>
+        slowTraceEnabled
+        && slowTraceEntryCount < MaximumSlowOperationEntries;
 
     public void RecordSlowOperation(
         string stage,
@@ -1994,11 +2002,48 @@ internal sealed class EditorCharacterAiPerformanceRecorder : ICharacterAiPerform
         Consideration consideration,
         double elapsedMilliseconds)
     {
+        if (!SlowTraceEnabled
+            || elapsedMilliseconds < SlowOperationThresholdMilliseconds)
+        {
+            return;
+        }
+
+        slowTraceEntryCount++;
+        string actorId = actor?.Identity?.PersistentId;
+        string actorLabel = !string.IsNullOrWhiteSpace(actorId)
+            ? actorId
+            : actor != null && !string.IsNullOrWhiteSpace(actor.name)
+                ? actor.name
+                : "none";
+        string stageLabel = stage ?? "unknown";
+        string actionType = actionSet != null
+            ? actionSet.GetType().Name
+            : "none";
+        string actionLabel = actionSet != null
+            ? actionSet.GetDisplayLabel()
+            : "none";
+        string considerationType = consideration != null
+            ? consideration.GetType().Name
+            : "none";
+        UnityEngine.Debug.Log(
+            $"AI_SLOW_OPERATION #{slowTraceEntryCount} "
+            + $"stage={stageLabel} "
+            + $"elapsedMs={elapsedMilliseconds:0.000} "
+            + $"actor={actorLabel} "
+            + $"action={actionType} "
+            + $"actionLabel={actionLabel} "
+            + $"consideration={considerationType}");
     }
 
     public void SetDetailedCollectionEnabled(bool enabled)
     {
         detailedCollectionEnabled = enabled;
+    }
+
+    public void SetSlowTraceEnabled(bool enabled)
+    {
+        slowTraceEnabled = enabled;
+        slowTraceEntryCount = 0;
     }
 
     public void Record(AiPerformanceCategory category, double elapsedMilliseconds, long gcBytes = 0)
@@ -2062,6 +2107,7 @@ internal sealed class EditorCharacterAiPerformanceRecorder : ICharacterAiPerform
         searches = 0;
         cacheHits = 0;
         deferrals = 0;
+        slowTraceEntryCount = 0;
     }
 
     private static CharacterAiPerformanceMetric CaptureMetric(string name, List<double> source)

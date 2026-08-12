@@ -646,8 +646,22 @@ public sealed class ExitDungeonJobGiver : CharacterAiJobGiver
         in CharacterAiDecisionContext context,
         out string reason)
     {
-        reason = context.ShouldExitDungeon ? "exit intent" : "no exit intent";
-        return context.ShouldExitDungeon ? 1f : 0f;
+        bool shouldExit = context.ShouldExitDungeon;
+        if (!shouldExit
+            && !context.IsWorker
+            && actor != null
+            && actor.TryGetAbility(out AbilityShopping shopping)
+            && shopping.HasUsedLookAroundAllowance)
+        {
+            // Once the single fallback look-around has been consumed, resolve
+            // visitability precisely so a visitor cannot loop forever between
+            // an unaffordable/unavailable shop and an idle action. Fresh
+            // visitors do not pay this facility scan on every routine tick.
+            shouldExit = shopping.ShouldExitDungeon();
+        }
+
+        reason = shouldExit ? "exit intent" : "no exit intent";
+        return shouldExit ? 1f : 0f;
     }
 }
 

@@ -43,6 +43,9 @@ public class AbilityShopping : CharacterAbility
 
     public int visitCount { get; private set; }
     public int lookAroundCount { get; private set; }
+    public bool HasNoRemainingVisits => visitCount <= 0;
+    public bool HasUsedLookAroundAllowance =>
+        lookAroundCount >= DefaultMaxLookAroundCount;
     public IReadOnlyList<BuildableObject> visitedBuilding =>
         visitedBuildingsView ??= ReadOnlyView.List(mutableVisitedBuildings);
     public int HoldingMoney
@@ -431,19 +434,38 @@ public class AbilityShopping : CharacterAbility
             return;
         }
 
-        bool shouldEndVisitCycle = actor != null && ShouldEndVisitCycle();
-        canLookAround = shouldEndVisitCycle
+        bool hasVisitableBuilding = actor != null
+            && visitCount > 0
+            && IsThereVisitableBuilding();
+        CacheDecisionState(now, facilityVersion, hasVisitableBuilding);
+        canLookAround = cachedCanLookAround;
+        shouldExitDungeon = cachedShouldExitDungeon;
+    }
+
+    public void RecordVisitableFacilitySearchResult(bool hasCandidate)
+    {
+        float now = gameClock?.Time ?? Time.time;
+        int facilityVersion = actor?.Brain?.RequireFacilityCandidateCache()
+            .DynamicStateVersion ?? int.MinValue;
+        CacheDecisionState(now, facilityVersion, hasCandidate);
+    }
+
+    private void CacheDecisionState(
+        float now,
+        int facilityVersion,
+        bool hasVisitableBuilding)
+    {
+        bool shouldEndVisitCycle = visitCount <= 0 || !hasVisitableBuilding;
+        cachedCanLookAround = shouldEndVisitCycle
             && visitCount > 0
             && lookAroundCount < DefaultMaxLookAroundCount;
-        shouldExitDungeon = shouldEndVisitCycle
+        cachedShouldExitDungeon = shouldEndVisitCycle
             && (visitCount <= 0
                 || lookAroundCount >= DefaultMaxLookAroundCount);
         decisionStateCapturedAt = now;
         decisionStateVisitCount = visitCount;
         decisionStateLookAroundCount = lookAroundCount;
         decisionStateFacilityVersion = facilityVersion;
-        cachedCanLookAround = canLookAround;
-        cachedShouldExitDungeon = shouldExitDungeon;
     }
 
     public bool ShouldEndVisitCycle()
@@ -479,7 +501,7 @@ public class AbilityShopping : CharacterAbility
             return false;
         }
 
-        canVisitBuildingPredicate ??= CanVisitBuilding;
+        canVisitBuildingPredicate ??= CanVisitCandidate;
         return FacilityCandidateScorer.HasCandidate(
             actor,
             null,
@@ -510,7 +532,7 @@ public class AbilityShopping : CharacterAbility
                      null,
                      GetInterestRoles()))
         {
-            if (!CanVisitBuilding(building))
+            if (!CanVisitCandidate(building))
             {
                 continue;
             }
@@ -534,7 +556,7 @@ public class AbilityShopping : CharacterAbility
         return favorite != null ? favorite : randomCandidate;
     }
 
-    private bool CanVisitBuilding(BuildableObject building)
+    public bool CanVisitCandidate(BuildableObject building)
     {
         if (!CharacterVisitPolicy.CanVisitBuilding(
             actor,
