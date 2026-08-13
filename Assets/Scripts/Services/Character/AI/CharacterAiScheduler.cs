@@ -178,6 +178,19 @@ public sealed class CharacterAiScheduler : MonoBehaviour
 
     private void Update()
     {
+        // Unity may tick this scene component once before dependency injection
+        // has completed, especially around PlayMode/domain reload boundaries.
+        // Waiting is safer than running a partially configured global scheduler.
+        if (gameClock == null || characterWorld == null || debugRules == null)
+        {
+            LastProcessedDecisionCount = 0;
+            LastBehaviorTreeTickCount = 0;
+            LastLegacyFallbackCount = 0;
+            budgetState.ResetLastTickCounters();
+            LastAllocatedBytes = -1L;
+            return;
+        }
+
         if (gameClock.IsPaused)
         {
             LastProcessedDecisionCount = 0;

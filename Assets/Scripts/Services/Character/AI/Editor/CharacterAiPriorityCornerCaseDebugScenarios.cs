@@ -27,6 +27,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         RunScenario("AI action plan invariants", VerifyActionPlanInvariants, errors);
         RunScenario("Running AI action execution is idempotent", VerifyRunningActionExecutionIsIdempotent, errors);
         RunScenario("Multi-frame self-care actions retain lifecycle ownership", VerifySelfCareActionLifecycleContracts, errors);
+        RunScenario("Workforce replans preserve running non-work actions", VerifyWorkforceReplanPreservesRunningNonWorkAction, errors);
         RunScenario("Destroyed committed destination reports exact execution failure", VerifyDestroyedCommittedDestinationFailure, errors);
         RunScenario("Repeated execution failures survive action restart diagnostics", VerifyRepeatedFailureDiagnosticsAcrossRestarts, errors);
         RunScenario("Facility destruction aborts an in-flight interaction", VerifyFacilityDestructionAbortsInFlightInteraction, errors);
@@ -663,11 +664,18 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
             return actions.All(action =>
             {
                 AIAction running = new(action, AIActionPlan.WithoutDestination);
-                running.MarkStarted(0f);
-                return action.IsContinuous
+                actor.ai.bestAction = running;
+                actor.ai.isBestActionEnd = false;
+                actor.ai.NotifyActionStarted();
+                bool passed = action.IsContinuous
                     && action.MinimumDuration > 0f
                     && action.AllowsSurvivalEmergencyInterrupt
-                    && action.CanContinue(actor, running, out _);
+                    && action.CanContinue(actor, running, out _)
+                    && !actor.ai.CanInterruptCurrentActionForSurvivalEmergency(
+                        out _);
+                actor.ai.bestAction = null;
+                actor.ai.isBestActionEnd = true;
+                return passed;
             });
         }
         finally
@@ -676,6 +684,65 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
             Object.DestroyImmediate(rest);
             Object.DestroyImmediate(toilet);
             Object.DestroyImmediate(hygiene);
+            Object.DestroyImmediate(recreation);
+        }
+    }
+
+    private static bool VerifyWorkforceReplanPreservesRunningNonWorkAction()
+    {
+        using PriorityScenarioWorld world = new PriorityScenarioWorld();
+        CharacterActor actor = world.CreateOwner("Owner_Slime", Vector2Int.zero);
+        AbilityWork work = actor.GetComponent<AbilityWork>();
+        AIFacilityRoleAction recreation =
+            ScriptableObject.CreateInstance<AIFacilityRoleAction>();
+        recreation.Role = FacilityRole.Entertainment;
+
+        try
+        {
+            AIAction running = new(recreation, AIActionPlan.WithoutDestination);
+            actor.ai.bestAction = running;
+            actor.ai.isBestActionEnd = false;
+            actor.ai.isExecuted = false;
+            actor.ai.NotifyActionStarted();
+            // AbilityWork can remain true for one scheduling boundary after a
+            // routine-need interruption. Preservation must follow the current
+            // AI action semantic, not this stale execution flag.
+            work.isWorking = true;
+
+            CharacterAiRuntimeDiagnosticsSnapshot before =
+                actor.ai.CaptureRuntimeDiagnostics();
+            actor.ai.RequestImmediateReplan(clearFailures: true);
+            CharacterAiRuntimeDiagnosticsSnapshot diagnostics =
+                actor.ai.CaptureRuntimeDiagnostics();
+            AIWork workActionSet = ScriptableObject.CreateInstance<AIWork>();
+            AIAction runningWork = new(
+                workActionSet,
+                AIActionPlan.WithoutDestination);
+            actor.ai.bestAction = runningWork;
+            actor.ai.isBestActionEnd = false;
+            actor.ai.NotifyActionStarted();
+            bool preservesRunningWorkWakeup =
+                DungeonWorkforceReplanService.ShouldPreserveRunningNonWorkAction(
+                    work,
+                    actor.ai,
+                    forceInterrupt: false);
+            Object.DestroyImmediate(workActionSet);
+
+            return preservesRunningWorkWakeup
+                && diagnostics.ProtectedRunningActionReplans
+                    == before.ProtectedRunningActionReplans + 1
+                && diagnostics.ImmediateReplans == before.ImmediateReplans
+                && DungeonWorkforceReplanService.ShouldPreserveRunningNonWorkAction(
+                    work,
+                    actor.ai,
+                    forceInterrupt: false)
+                && !DungeonWorkforceReplanService.ShouldPreserveRunningNonWorkAction(
+                    work,
+                    actor.ai,
+                    forceInterrupt: true);
+        }
+        finally
+        {
             Object.DestroyImmediate(recreation);
         }
     }
@@ -865,6 +932,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
                 && Mathf.Approximately(actor.stats[CharacterCondition.SLEEP], sleepBefore)
                 && outcome == ShoppingVisitOutcome.Abandoned
                 && diagnostics.ExecutionFailures == 0
+                && diagnostics.InteractionActionReplacements == 1
                 && ReferenceEquals(actor.ai.bestAction, replacementAction);
             if (!passed)
             {
@@ -875,6 +943,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
                     + $"afterReplacementYield={yieldedAfterReplacement}; "
                     + $"sleep={sleepBefore:0.###}->{actor.stats[CharacterCondition.SLEEP]:0.###}; "
                     + $"outcome={outcome}; failures={diagnostics.ExecutionFailures}; "
+                    + $"interactionReplacements={diagnostics.InteractionActionReplacements}; "
                     + $"replacementPreserved={ReferenceEquals(actor.ai.bestAction, replacementAction)}.");
             }
             return passed;

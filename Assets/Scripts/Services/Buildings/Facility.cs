@@ -541,6 +541,25 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             }
             if (!mealConsumed)
             {
+                if (mealResult.IsRetryableUnavailable)
+                {
+                    const string cancellationReason = "meal-supply-retry";
+                    if (serviceSession != null)
+                    {
+                        serviceSessionRuntime.CancelSession(
+                            serviceSession.SessionId,
+                            cancellationReason);
+                    }
+                    actor.RecordActivity(this, new BuildingActivitySnapshot(
+                        BuildingActivityKinds.FacilityUse,
+                        BuildingActivityOutcomes.Cancelled,
+                        $"{interactionFacilityLabel} meal supply changed before commit; retrying selection.",
+                        reasonCode: cancellationReason));
+                    EndUse(actor);
+                    SetVisitOutcome(actor, this, BuildingVisitOutcome.Abandoned);
+                    yield break;
+                }
+
                 if (mealResult.IsNoLongerNeeded)
                 {
                     const string cancellationReason = "meal-no-longer-needed";
@@ -920,7 +939,14 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 reasonCode: detail));
         }
 
-        if (failureKind != BuildingInteractionFailureKind.ActionReplaced)
+        if (failureKind == BuildingInteractionFailureKind.ActionReplaced)
+        {
+            actor?.ReportInteractionCancellation(
+                failureKind,
+                $"{facilityLabel}: {detail}",
+                facilityAlive ? this : null);
+        }
+        else
         {
             actor?.ReportInteractionFailure(
                 failureKind,

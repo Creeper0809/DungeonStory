@@ -205,8 +205,8 @@ public static class NeedBalanceCalibrationScenario
             RangeError(metrics.mealsPerDay, 1f, 1.5f)
             + RangeError(metrics.drinksPerDay, 1f, 1.5f)
             + RangeError(metrics.restsPerDay, 0.7f, 1.2f)
-            + RangeError(metrics.toiletsPerDay, 0.3f, 0.7f)
-            + RangeError(metrics.hygienePerDay, 0.3f, 0.7f);
+            + RangeError(metrics.toiletsPerDay, 0.6f, 1.0f)
+            + RangeError(metrics.hygienePerDay, 0.6f, 1.0f);
         useError /= 5f;
         float workLoss = Mathf.Max(
             0f,
@@ -704,13 +704,13 @@ public static class NeedBalanceCalibrationScenario
             $"휴식 빈도 {metrics.restsPerDay:0.00}/일",
             errors);
         Require(
-            metrics.toiletsPerDay >= 0.3f
-            && metrics.toiletsPerDay <= 0.7f,
+            metrics.toiletsPerDay >= 0.6f
+            && metrics.toiletsPerDay <= 1.0f,
             $"배변 빈도 {metrics.toiletsPerDay:0.00}/일",
             errors);
         Require(
-            metrics.hygienePerDay >= 0.3f
-            && metrics.hygienePerDay <= 0.7f,
+            metrics.hygienePerDay >= 0.6f
+            && metrics.hygienePerDay <= 1.0f,
             $"위생 빈도 {metrics.hygienePerDay:0.00}/일",
             errors);
     }
@@ -943,7 +943,9 @@ public sealed class NeedBalanceAggregate
                 metrics.Where(value => value.biological).ToArray(),
                 value => value.drinks / 5f),
             restsPerDay = Average(metrics, value => value.rests / 5f),
-            toiletsPerDay = Average(metrics, value => value.toilets / 5f),
+            toiletsPerDay = Average(
+                metrics.Where(value => value.biological).ToArray(),
+                value => value.toilets / 5f),
             hygienePerDay = Average(
                 metrics,
                 value => value.hygieneUses / 5f),

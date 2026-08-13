@@ -129,6 +129,9 @@ public sealed class CharacterActorPresentationBridge : MonoBehaviour
         if (detachedRestoreCandidate
             || unpublishedComposition
             || actor == null
+            || MainCameraProvider == null
+            || worldPresentationCatalog == null
+            || userSettings == null
             || !Application.isPlaying)
         {
             return;

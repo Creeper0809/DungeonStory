@@ -589,6 +589,18 @@ internal sealed class ShopCustomerInteractionService
         }
         if (!consumed)
         {
+            if (meal.IsRetryableUnavailable)
+            {
+                const string cancellationReason = "meal-supply-retry";
+                shopping.SetVisitOutcome(owner, BuildingVisitOutcome.Abandoned);
+                actor?.RecordActivity(owner, new BuildingActivitySnapshot(
+                    BuildingActivityKinds.FacilityUse,
+                    BuildingActivityOutcomes.Cancelled,
+                    "Meal supply changed before commit; retrying selection.",
+                    reasonCode: cancellationReason));
+                yield break;
+            }
+
             if (meal.IsNoLongerNeeded)
             {
                 const string cancellationReason = "meal-no-longer-needed";
@@ -1063,7 +1075,14 @@ internal sealed class ShopCustomerInteractionService
             actor?.Shopping?.SetVisitOutcome(null, BuildingVisitOutcome.Abandoned);
         }
 
-        if (failureKind != BuildingInteractionFailureKind.ActionReplaced)
+        if (failureKind == BuildingInteractionFailureKind.ActionReplaced)
+        {
+            actor?.ReportInteractionCancellation(
+                failureKind,
+                $"{ownerDisplayName}: {detail}",
+                ownerAlive ? owner : null);
+        }
+        else
         {
             actor?.ReportInteractionFailure(
                 failureKind,

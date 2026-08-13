@@ -195,7 +195,7 @@ public sealed class WorkOrderRuntime :
         {
             workforceReplanService.RequestOneWorkerToReplanFor(
                 BuiltInWorkTypeIds.Dismantle,
-                forceInterrupt: true);
+                forceInterrupt: false);
             return;
         }
 
@@ -210,7 +210,7 @@ public sealed class WorkOrderRuntime :
 
         workforceReplanService.RequestOneWorkerToReplanFor(
             BuiltInWorkTypeIds.Construct,
-            forceInterrupt: true);
+            forceInterrupt: false);
     }
 
     public DungeonWorkOrderSaveData Capture()
@@ -992,7 +992,7 @@ public sealed class WorkOrderRuntime :
             BumpWorkOrderCandidates();
             workforceReplanService?.RequestOneWorkerToReplanFor(
                 BuiltInWorkTypeIds.Construct,
-                forceInterrupt: true);
+                forceInterrupt: false);
         }
 
         return ready;
@@ -1308,7 +1308,7 @@ public sealed class WorkOrderRuntime :
             }
 
             workforceReplanService?.RequestOneHaulerToReplan(
-                forceInterrupt: true);
+                forceInterrupt: false);
         }
     }
 
@@ -1982,7 +1982,7 @@ public sealed class WorkOrderRuntime :
         BumpWorkOrderCandidates();
         workforceReplanService?.RequestOneWorkerToReplanFor(
             BuiltInWorkTypeIds.Dismantle,
-            forceInterrupt: true);
+            forceInterrupt: false);
     }
 
     private bool CompleteFacilityDismantle(

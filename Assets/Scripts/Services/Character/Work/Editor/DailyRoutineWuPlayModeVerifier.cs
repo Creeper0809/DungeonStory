@@ -89,6 +89,11 @@ public static class DailyRoutineWuPlayModeVerifier
 
 public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
 {
+    public const string DailyCadenceContractVersion = "cadence-v2";
+    public const float ToiletCadenceMinimum = 0.6f;
+    public const float ToiletCadenceMaximum = 1.0f;
+    public const float HygieneCadenceMinimum = 0.6f;
+    public const float HygieneCadenceMaximum = 1.0f;
     private const int ObservationDays = 5;
     private const float ObservationGameSeconds =
         SettlementLaborBalanceRules.SecondsPerDay * ObservationDays;
@@ -173,8 +178,25 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
     private AiDirectorRuntime suspendedAiDirector;
     private LocalLlmRequestQueue suspendedLlmQueue;
 
+    [SerializeField]
+    private string diagnosticStage = "not-started";
+    [SerializeField]
+    private float diagnosticStageEnteredRealtime;
+    [SerializeField]
+    private float diagnosticObservedGameSeconds;
+    [SerializeField]
+    private float diagnosticLastProgressRealtime;
+
+    private void SetDiagnosticStage(string stage)
+    {
+        diagnosticStage = stage;
+        diagnosticStageEnteredRealtime = Time.realtimeSinceStartup;
+        diagnosticLastProgressRealtime = diagnosticStageEnteredRealtime;
+    }
+
     private IEnumerator Start()
     {
+        SetDiagnosticStage("initializing");
         Directory.CreateDirectory("Artifacts/QA");
         Application.logMessageReceived += OnLogMessageReceived;
         originalTimeScale = Time.timeScale;
@@ -273,6 +295,7 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 + Compact(exception.Message));
         }
 
+        SetDiagnosticStage("ensuring-actors");
         yield return EnsureGameplayActors(scope);
         suspendedAiDirector =
             UnityEngine.Object.FindFirstObjectByType<AiDirectorRuntime>();
@@ -302,6 +325,7 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 DungeonDebugCheat.FriendlyInvincible);
             debugMode.SetCheat(DungeonDebugCheat.FriendlyInvincible, true);
         }
+        SetDiagnosticStage("startup-wait");
         yield return new WaitForSecondsRealtime(WarmupRealtimeSeconds);
 
         CharacterActor[] discoveredActors = FindActors();
@@ -364,9 +388,11 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 actor.Brain?.RequestImmediateReplan(clearFailures: true);
             }
             yield return new WaitForSecondsRealtime(.5f);
+            SetDiagnosticStage("recreation-preflight");
             yield return VerifyRecreationSelectionPreflight(actors);
         }
 
+        SetDiagnosticStage("steady-state-warmup");
         RestoreFixtureActorPositions(actors);
         yield return new WaitForSecondsRealtime(.25f);
         foreach (CharacterActor actor in actors)
@@ -424,6 +450,7 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             observations[actor] = new ActorRoutineObservation(actor);
         }
         observationActive = true;
+        SetDiagnosticStage("observing-five-days");
 
         previousLabor = labor?.Capture() ?? default;
         float observedGameSeconds = 0f;
@@ -448,6 +475,8 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 ObserveFixtureWorkforce();
                 ObserveLabor();
                 observedGameSeconds += step;
+                diagnosticObservedGameSeconds = observedGameSeconds;
+                diagnosticLastProgressRealtime = Time.realtimeSinceStartup;
             }
             if (observedGameSeconds >= ObservationGameSeconds)
             {
@@ -680,6 +709,8 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
 
     private void Finish(float observedGameSeconds)
     {
+        diagnosticObservedGameSeconds = observedGameSeconds;
+        SetDiagnosticStage("writing-report");
         observationActive = false;
         Application.logMessageReceived -= OnLogMessageReceived;
         mealConsumedSubscription?.Dispose();
@@ -720,6 +751,7 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         report.AppendLine($"observedGameSeconds={observedGameSeconds:0.###}");
         report.AppendLine($"observedDays={ObservationDays}");
         report.AppendLine($"runSeed={requestedRunSeed}");
+        report.AppendLine($"dailyCadenceContract={DailyCadenceContractVersion}; toilet={ToiletCadenceMinimum:0.###}~{ToiletCadenceMaximum:0.###}; hygiene={HygieneCadenceMinimum:0.###}~{HygieneCadenceMaximum:0.###}");
         report.AppendLine($"actors={observations.Count}");
         report.AppendLine($"activeActorsAtEnd={finalActiveActorCount}");
         report.AppendLine($"quarantinedNonFixtureActors={quarantinedNonFixtureActorCount}");
@@ -832,6 +864,11 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 failures.Add(
                     $"{observation.ActorName} encountered {observation.HarmfulStallEpisodes} harmful no-progress episode(s); inspect cumulative stall evidence.");
             }
+            if (observation.InteractionActionReplacementDelta > 0)
+            {
+                failures.Add(
+                    $"{observation.ActorName} lost ownership of {observation.InteractionActionReplacementDelta} active facility interaction(s); inspect cumulative AI lifecycle diagnostics.");
+            }
         }
 
         int toiletVisits = GetFacilityVisitCount(FacilityRole.Toilet);
@@ -864,13 +901,13 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         ValidateDailyFacilityCadence(
             "toilet",
             toiletVisitsPerActorDay,
-            .3f,
-            .7f);
+            ToiletCadenceMinimum,
+            ToiletCadenceMaximum);
         ValidateDailyFacilityCadence(
             "hygiene",
             hygieneVisitsPerActorDay,
-            .3f,
-            .7f);
+            HygieneCadenceMinimum,
+            HygieneCadenceMaximum);
         ValidateDailyFacilityCadence(
             "recreation",
             funRecoveryVisitsPerActorDay,
@@ -1462,10 +1499,26 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             do
             {
                 evaluated = giver.TryEvaluate(actor, out candidate);
+                bool facilityLookupDeferred = !evaluated
+                    && string.Equals(
+                        candidate.Reason,
+                        "required facility role unavailable",
+                        StringComparison.Ordinal);
                 if (evaluated
-                    || !candidate.ActionCandidate.Failure.IsDeferred)
+                    || (!candidate.ActionCandidate.Failure.IsDeferred
+                        && !facilityLookupDeferred))
                 {
                     break;
+                }
+                if (facilityLookupDeferred)
+                {
+                    // The authored-role cache and the actor-specific candidate
+                    // shortlist rebuild on bounded frame budgets. Drive the
+                    // same lookup the live AI will retry instead of declaring a
+                    // transient cache rebuild to be a missing facility.
+                    FacilityCandidateScorer.HasUsableCandidate(
+                        actor,
+                        FacilityRole.Entertainment);
                 }
                 yield return null;
             }
@@ -2055,6 +2108,14 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 actor.InjurySeverity,
                 75f,
                 Array.Empty<CharacterMoodFactorSnapshot>());
+
+            if (deprivationRuntime == null
+                || !deprivationRuntime.DebugResetForDeterministicScenario(actor))
+            {
+                failures.Add(
+                    $"Measured-day deprivation reset failed: actor={actor.Identity?.PersistentId ?? actor.name}.");
+            }
+            actor.Brain?.RequestImmediateReplan(clearFailures: true);
         }
 
         staffDiscontent?.RestoreSnapshots(Array.Empty<StaffDiscontentSnapshot>());
@@ -2292,6 +2353,16 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         public int ToiletVisits { get; private set; }
         public int HygieneVisits { get; private set; }
         public int RecreationVisits { get; private set; }
+        public long InteractionActionReplacementDelta
+        {
+            get
+            {
+                CharacterAiRuntimeDiagnosticsSnapshot end =
+                    actor?.Brain?.CaptureRuntimeDiagnostics() ?? default;
+                return end.InteractionActionReplacements
+                    - diagnosticsStart.InteractionActionReplacements;
+            }
+        }
 
         public void StabilizeNeutralHealth()
         {
@@ -2557,6 +2628,18 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 return;
             }
 
+            // A routine-need interruption is a deliberate one-frame ownership
+            // handoff: the executor has stopped applying work but still owns
+            // the action until accounting, worker leases and resume intent are
+            // finalized. It is not an inactive Work action and must not be
+            // classified as a no-progress stall.
+            if (branch == CharacterAiBranch.Work
+                && work?.IsRoutineNeedInterruptionFinalizing == true)
+            {
+                ResetNoProgressWindows();
+                return;
+            }
+
             bool urgent = NeedSnapshot.Capture(actor).TryGetMostUrgent(
                 actor,
                 out string urgentNeed,
@@ -2587,7 +2670,10 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 urgentStallReported = false;
             }
 
-            if (IsMovementPhase(actionPhase) && !moving)
+            bool expectsPhysicalMovement = IsMovementPhase(actionPhase)
+                && branch != CharacterAiBranch.Wait
+                && !actionPhase.Contains("갈 곳 찾는 중", StringComparison.Ordinal);
+            if (expectsPhysicalMovement && !moving)
             {
                 movementStallSeconds += seconds;
                 longestHarmfulStallSeconds = Mathf.Max(
@@ -2669,12 +2755,13 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             string impulse = blackboard?.HasActiveMoodImpulse() == true
                 ? $"{blackboard.ActiveMoodImpulse?.type}/{blackboard.ActiveMoodImpulse?.strength:0.###}"
                 : "None";
+            AbilityWork work = actor?.GetComponent<AbilityWork>();
             string urgentRejection = urgentBranch == CharacterAiBranch.None
                 ? "none"
                 : brain?.GetCurrentJobGiverEvaluationRejectionSummary(
                     urgentBranch);
             stallEvidence.Add(
-                $"kind={kind}; at={duration:0.###}s; urgent={urgentNeed}; urgentJobGiverRejected={OneLine(urgentRejection)}; branch={branch}; action={OneLine(actionLabel)}; phase={OneLine(actionPhase)}; phaseDetail={OneLine(brain?.CurrentActionPhaseDetail)}; destination={OneLine(brain?.CurrentDestinationDebugLabel)}; failure={brain?.LastActionFailure.Kind}; lastJobGiverRejected={OneLine(brain?.CurrentJobGiverEvaluationRejectionSummary)}; selected={OneLine(blackboard?.SelectedJobGiverUtilitySummary)}; route={OneLine(blackboard?.LastDecisionRouteSummary)}; macro={macro}; impulse={impulse}");
+                $"kind={kind}; at={duration:0.###}s; urgent={urgentNeed}; urgentJobGiverRejected={OneLine(urgentRejection)}; branch={branch}; action={OneLine(actionLabel)}; phase={OneLine(actionPhase)}; phaseDetail={OneLine(brain?.CurrentActionPhaseDetail)}; destination={OneLine(brain?.CurrentDestinationDebugLabel)}; failure={brain?.LastActionFailure.Kind}; lastJobGiverRejected={OneLine(brain?.CurrentJobGiverEvaluationRejectionSummary)}; selected={OneLine(blackboard?.SelectedJobGiverUtilitySummary)}; route={OneLine(blackboard?.LastDecisionRouteSummary)}; macro={macro}; impulse={impulse}; brainExecuted={brain?.isExecuted}; workActive={work?.isWorking}; workRoutine={work?.HasActiveWorkRoutineForDiagnostics}; workRun={work?.ActiveWorkRunIdForDiagnostics}; routineBlock={work?.HasRoutineNeedWorkBlockForDiagnostics}; routineFinalizing={work?.IsRoutineNeedInterruptionFinalizing}");
         }
 
         private void AddNeedService(RoutineNeedKind kind, float seconds)
@@ -2775,7 +2862,7 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 + $"area={cell?.AreaType}; "
                 + $"duty={work?.CurrentDutyState}; offDuty={work?.IsOffDuty}; canWork={work?.CanStartWorkAction()}; constructPriority={work?.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Construct)}; rejected={work?.LastRejectedWorkCandidate.FailureReason}; "
                 + $"decisionPending={actor.IsAiDecisionPending}; actionEnded={brain?.isBestActionEnd}; external={brain?.IsExternallyDrivenActionActive}; externalOwner={brain?.ExternalIntentOwnerId}; externalKind={brain?.ExternalIntentKind}; externalEpoch={brain?.ExternalIntentEpoch}; externalTransitions={brain?.ExternalIntentTransitionCount}; externalPreemptions={brain?.ExternalIntentPreemptionCount}; externalRejected={brain?.ExternalIntentRejectedCount}; staleCompletions={brain?.ExternalIntentStaleCompletionCount}; branch={brain?.bestAction?.actionset?.Branch ?? actor.Blackboard?.CurrentBranch ?? CharacterAiBranch.None}; action={brain?.CurrentActionDebugLabel}; phase={brain?.CurrentActionPhase}; detail={brain?.CurrentActionPhaseDetail}; destination={brain?.CurrentDestinationDebugLabel}; failure={brain?.LastActionFailure}; "
-                + $"workActive={work?.isWorking}; workType={work?.AssignedWorkTypeId}; workTarget={target}; "
+                + $"workActive={work?.isWorking}; workRoutine={work?.HasActiveWorkRoutineForDiagnostics}; workRun={work?.ActiveWorkRunIdForDiagnostics}; routineBlock={work?.HasRoutineNeedWorkBlockForDiagnostics}; routineFinalizing={work?.IsRoutineNeedInterruptionFinalizing}; brainExecuted={brain?.isExecuted}; workType={work?.AssignedWorkTypeId}; workTarget={target}; "
                 + $"decisionRoute={OneLine(blackboard?.LastDecisionRouteSummary)}; selectedUtility={OneLine(blackboard?.SelectedJobGiverUtilitySummary)}; blackboardFailure={OneLine(blackboard?.LastFailureReason)}; trace={OneLine(blackboard?.LastDecisionTrace)}";
         }
 
@@ -2889,10 +2976,18 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 CharacterCondition.SLEEP,
                 CharacterAiBranch.Rest,
                 Sleep);
-            Evaluate(
-                CharacterCondition.FUN,
-                CharacterAiBranch.LeisureVisit,
-                Fun);
+            AbilityWork work = actor.GetComponent<AbilityWork>();
+            if (work == null || !work.HasUrgentPriorityWork)
+            {
+                // Priority work intentionally suppresses routine recreation;
+                // physiological survival needs remain strict above. Treating
+                // this authored policy as an unserved emergency creates a
+                // false stall while the actor is productively working.
+                Evaluate(
+                    CharacterCondition.FUN,
+                    CharacterAiBranch.LeisureVisit,
+                    Fun);
+            }
             Evaluate(
                 CharacterCondition.EXCRETION,
                 CharacterAiBranch.Toilet,

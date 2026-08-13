@@ -456,6 +456,7 @@ public sealed class WorkTaskExecutor
             // Never dereference the Unity fake-null object during finalization.
             if (assignedTarget == null)
             {
+                CompleteEmergencyAccounting("target-destroyed-after-execution");
                 actor?.Brain?.ReportRuntimeActionFailure(
                     AIActionFailure.Create(
                         AIActionFailureKind.Destroyed,
@@ -530,15 +531,26 @@ public sealed class WorkTaskExecutor
                 assignedTarget,
                 completedSuccessfully,
                 $"{WorkTaskCatalog.GetLegacyDisplayName(workType)} {(completedSuccessfully ? "완료" : "실패")}: {assignedTarget.name}");
+            CompleteEmergencyAccounting(
+                completedSuccessfully
+                    ? "completed"
+                    : routineNeedInterrupted
+                        ? "routine-need-suspended"
+                        : "failed");
             CharacterSkillRuntimeEffects.EndWork(actor);
             bool wasPriorityTarget = work.assignedShop == work.PriorityWorkTarget;
+            // Keep the AI action alive until every runtime owner is released.
+            // Publishing isBestActionEnd before this cleanup lets a facility
+            // invalidation wake a new Work run while this old run can still
+            // clear assignedShop, clobbering the new run's target and leaving
+            // a Work action without an executing coroutine.
             facility.DeallocateWorker(visitor);
-            currentAction?.ReleaseReservation(actor);
             work.AssignWork(null, FacilityWorkType.None);
             if (wasPriorityTarget && !routineNeedInterrupted)
             {
                 work.ClearPriorityWorkTarget();
             }
+            EndAiAction(actor, currentAction);
         }
         else
         {
@@ -1365,7 +1377,7 @@ public sealed class WorkTaskExecutor
             return false;
         }
 
-        work.StopAssignedWorkFromAi(interruptReason);
+        work.MarkCurrentWorkInterruptedFromExecutor(interruptReason);
         actor?.AddActivity(CharacterActivityEvent.Create(
             CharacterActivityKinds.Duty,
             CharacterActivityOutcomes.Changed,
@@ -1474,9 +1486,13 @@ public sealed class WorkTaskExecutor
     private static void EndAiAction(CharacterActor actor, AIAction currentAction)
     {
         currentAction?.ReleaseReservation(actor);
-        if (actor != null && actor.Brain != null)
+        AIBrain brain = actor?.Brain;
+        if (brain != null
+            && (currentAction != null
+                ? ReferenceEquals(brain.bestAction, currentAction)
+                : brain.bestAction == null))
         {
-            actor.Brain.isBestActionEnd = true;
+            brain.isBestActionEnd = true;
         }
     }
 
@@ -1552,6 +1568,7 @@ public sealed class WorkTaskExecutor
             {
                 work.AssignWork(null, FacilityWorkType.None);
             }
+            EndAiAction(actor, currentAction);
             work.ClearActiveWorkRoutine(runId);
             emergencySuspended = false;
             return;
@@ -1622,6 +1639,11 @@ public sealed class WorkTaskExecutor
             work.AssignWork(null, FacilityWorkType.None);
         }
 
+        // Abort is a terminal executor path just like successful completion.
+        // Routine-need interruption previously cleared the coroutine and work
+        // ownership without ending the matching AI action, producing an
+        // orphan Work action (brain executed, no work routine) indefinitely.
+        EndAiAction(actor, currentAction);
         work.ClearActiveWorkRoutine(runId);
     }
 
@@ -1767,7 +1789,7 @@ public sealed class WorkTaskExecutor
         latestApprovedLaborMilliWu = approvedMilliWu;
         if (string.IsNullOrWhiteSpace(activeEmergencyOperationId))
         {
-            activeEmergencyOperationId =
+            string operationId =
                 $"work:{characterId.Value}:{currentRunId}:{workTypeId.Value}";
             long initialRemaining = checked(
                 remainingMilliWu + approvedMilliWu);
@@ -1776,7 +1798,7 @@ public sealed class WorkTaskExecutor
                 : 0L;
             EmergencyAccountingResult registration = emergencyWorkAccounting.Register(
                 new EmergencyWorkLedgerEntry(
-                    activeEmergencyOperationId,
+                    operationId,
                     characterId.Value,
                     workTypeId,
                     definition.EmergencyFlags,
@@ -1785,6 +1807,11 @@ public sealed class WorkTaskExecutor
                     classificationRevision: 0,
                     mutationSequence: emergencyAccountingSequence));
             RequireEmergencyAccountingSuccess(registration);
+            // Registration is the ownership commit point. Do not retain a
+            // candidate operation ID when Register fails, otherwise cleanup
+            // later attempts to remove an operation the ledger never owned and
+            // hides the original lifecycle fault behind OperationMissing noise.
+            activeEmergencyOperationId = operationId;
         }
 
         emergencyAccountingSequence = checked(emergencyAccountingSequence + 1L);

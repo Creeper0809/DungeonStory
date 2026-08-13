@@ -51,13 +51,15 @@ public static class SurvivalDebugScenarios
             CharacterConsumablesFailureCode.PolicyForbidden.ToString(),
             string.Empty,
             0,
-            failureDetail: "owner,not-hungry");
+            failureDetail: "owner,not-hungry",
+            isNoLongerNeeded: true);
         BuildingMealUseSnapshot followupCooldown = new(
             false,
             CharacterConsumablesFailureCode.PolicyForbidden.ToString(),
             string.Empty,
             0,
-            failureDetail: "owner,meal-followup-cooldown");
+            failureDetail: "owner,meal-followup-cooldown",
+            isNoLongerNeeded: true);
         BuildingMealUseSnapshot ritualFast = new(
             false,
             CharacterConsumablesFailureCode.PolicyForbidden.ToString(),

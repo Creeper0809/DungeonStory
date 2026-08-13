@@ -14,8 +14,13 @@ public readonly struct CharacterAiRuntimeDiagnosticsSnapshot
     public CharacterAiRuntimeDiagnosticsSnapshot(
         long actionStarts, long actionSwitches, long sameActionRestarts,
         long phaseTransitions, long immediateReplans, long interruptedReplans,
+        string lastInterruptedReplanDetail,
         long executionFailures, long noActionFailures, long candidateRejections,
         long duplicateExecutionSuppressions,
+        long interactionActionReplacements,
+        string lastInteractionActionReplacementDetail,
+        long protectedRunningActionReplans,
+        string lastProtectedRunningActionReplanDetail,
         long currentRepeatedFailureCount, long peakRepeatedFailureCount,
         AIActionFailureKind repeatedFailureKind,
         string lastExecutionFailureDetail,
@@ -29,10 +34,17 @@ public readonly struct CharacterAiRuntimeDiagnosticsSnapshot
         PhaseTransitions = phaseTransitions;
         ImmediateReplans = immediateReplans;
         InterruptedReplans = interruptedReplans;
+        LastInterruptedReplanDetail = lastInterruptedReplanDetail ?? string.Empty;
         ExecutionFailures = executionFailures;
         NoActionFailures = noActionFailures;
         CandidateRejections = candidateRejections;
         DuplicateExecutionSuppressions = duplicateExecutionSuppressions;
+        InteractionActionReplacements = interactionActionReplacements;
+        LastInteractionActionReplacementDetail =
+            lastInteractionActionReplacementDetail ?? string.Empty;
+        ProtectedRunningActionReplans = protectedRunningActionReplans;
+        LastProtectedRunningActionReplanDetail =
+            lastProtectedRunningActionReplanDetail ?? string.Empty;
         CurrentRepeatedFailureCount = currentRepeatedFailureCount;
         PeakRepeatedFailureCount = peakRepeatedFailureCount;
         RepeatedFailureKind = repeatedFailureKind;
@@ -50,10 +62,15 @@ public readonly struct CharacterAiRuntimeDiagnosticsSnapshot
     public long PhaseTransitions { get; }
     public long ImmediateReplans { get; }
     public long InterruptedReplans { get; }
+    public string LastInterruptedReplanDetail { get; }
     public long ExecutionFailures { get; }
     public long NoActionFailures { get; }
     public long CandidateRejections { get; }
     public long DuplicateExecutionSuppressions { get; }
+    public long InteractionActionReplacements { get; }
+    public string LastInteractionActionReplacementDetail { get; }
+    public long ProtectedRunningActionReplans { get; }
+    public string LastProtectedRunningActionReplanDetail { get; }
     public long JobGiverEvaluationRejections { get; }
     public long CurrentRepeatedFailureCount { get; }
     public long PeakRepeatedFailureCount { get; }
@@ -74,16 +91,41 @@ public readonly struct CharacterAiRuntimeDiagnosticsSnapshot
             .Append("; candidateRejections=").Append(CandidateRejections - start.CandidateRejections)
             .Append("; duplicateExecutionSuppressions=")
             .Append(DuplicateExecutionSuppressions - start.DuplicateExecutionSuppressions)
+            .Append("; interactionActionReplacements=")
+            .Append(InteractionActionReplacements - start.InteractionActionReplacements)
+            .Append("; protectedRunningActionReplans=")
+            .Append(ProtectedRunningActionReplans - start.ProtectedRunningActionReplans)
             .Append("; jobGiverEvaluationRejections=")
             .Append(JobGiverEvaluationRejections - start.JobGiverEvaluationRejections)
             .Append("; repeatedPeak=").Append(PeakRepeatedFailureCount)
             .Append('(').Append(RepeatedFailureKind).Append(')');
+        if (InterruptedReplans > start.InterruptedReplans)
+        {
+            builder.Append("; lastInterruptedReplan=")
+                .Append(string.IsNullOrWhiteSpace(LastInterruptedReplanDetail)
+                    ? "unknown"
+                    : LastInterruptedReplanDetail);
+        }
         if (ExecutionFailures > start.ExecutionFailures)
         {
             builder.Append("; lastExecutionFailure=")
                 .Append(string.IsNullOrWhiteSpace(LastExecutionFailureDetail)
                     ? "unknown"
                     : LastExecutionFailureDetail);
+        }
+        if (InteractionActionReplacements > start.InteractionActionReplacements)
+        {
+            builder.Append("; lastInteractionActionReplacement=")
+                .Append(string.IsNullOrWhiteSpace(LastInteractionActionReplacementDetail)
+                    ? "unknown"
+                    : LastInteractionActionReplacementDetail);
+        }
+        if (ProtectedRunningActionReplans > start.ProtectedRunningActionReplans)
+        {
+            builder.Append("; lastProtectedRunningActionReplan=")
+                .Append(string.IsNullOrWhiteSpace(LastProtectedRunningActionReplanDetail)
+                    ? "unknown"
+                    : LastProtectedRunningActionReplanDetail);
         }
         AppendKinds(builder, "executionByKind", executionFailuresByKind, start.executionFailuresByKind);
         AppendKinds(builder, "candidateByKind", candidateRejectionsByKind, start.candidateRejectionsByKind);

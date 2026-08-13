@@ -4381,3 +4381,11 @@
 - Added the exact last runtime execution failure to the bounded per-actor five-day diagnostics. Clean Unity compilation, priority-corner, physical-item, modular-facility, and customer suites passed with Console Warning/Error `0/0`.
 - Re-ran seed `157183` for five days. Physical/central construction matched within `0.002 WU`, harmful stalls/primitive fallbacks/duplicate execution suppressions were zero, and the remaining meal failure was identified exactly as stale `not-hungry` policy state. The run failed only the separate toilet cadence upper bound (`0.8` vs `0.7`).
 - Implemented a benign stale-meal classification for `not-hungry` and snack follow-up cooldown. Facilities and meal shops now abandon the obsolete visit without reporting an AI execution failure or consuming stock; ritual policy and physical commit failures stay visible. Added focused classification and stock-preservation regressions. Unity recompile and rerun are next.
+# 2026-08-13 AI facility-action ownership repair
+
+- Added live runner stage/progress telemetry (`diagnosticStage`, observed game seconds, last progress realtime), making a slow five-day PlayMode run distinguishable from a stalled verifier.
+- Added `AIBrain.HasRunningWorkAction` and changed workforce preservation to inspect the current action semantic rather than stale `AbilityWork.isWorking` state.
+- Removed emergency-force interruption from ordinary construction, dismantle, and material-haul wakeups.
+- Priority lifecycle and work-amount focused regressions pass through Unity MCP; compilation and Console Warning/Error are 0/0.
+- Same-seed five-day evidence now has zero facility action replacements, interrupted replans, execution failures, harmful stalls, and primitive survival fallbacks. The only remaining verifier failure is the separate authored toilet cadence mismatch (0.8 vs old 0.3-0.7).
+- Next: broad AI/save scenario matrix, additional deterministic seeds, then 500-NPC lifecycle/performance and final Console/save evidence.

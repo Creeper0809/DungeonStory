@@ -182,6 +182,19 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
             requestImmediateReplan: true);
     }
 
+    void IBuildingVisitorPort.ReportInteractionCancellation(
+        BuildingInteractionFailureKind failureKind,
+        string detail,
+        IBuildingWorldEntryPort destination)
+    {
+        if (failureKind == BuildingInteractionFailureKind.ActionReplaced)
+        {
+            Brain?.NotifyInteractionActionReplaced(
+                detail,
+                destination as BuildableObject);
+        }
+    }
+
     IEnumerator IBuildingVisitorPort.MoveTo(
         Vector3 position,
         float speed,
@@ -350,7 +363,9 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
                 meal.UnitPrice,
                 meal.IsAcceptedPending,
                 meal.OperationId.Value,
-                string.Join(",", meal.Parameters));
+                string.Join(",", meal.Parameters),
+                IsBenignSatisfiedMealResult(meal),
+                IsRetryableUnavailableMealResult(meal));
             return consumed;
         }
 
@@ -378,7 +393,9 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
                 meal.UnitPrice,
                 meal.IsAcceptedPending,
                 meal.OperationId.Value,
-                string.Join(",", meal.Parameters));
+                string.Join(",", meal.Parameters),
+                IsBenignSatisfiedMealResult(meal),
+                IsRetryableUnavailableMealResult(meal));
             // A false return is a resolved operation failure, not a missing
             // result. Preserve its typed parameters so the facility, AI
             // blackboard, and activity trace expose the actual commit cause.
@@ -392,6 +409,36 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
             0);
         return false;
     }
+
+    private static bool IsBenignSatisfiedMealResult(MealConsumptionResult meal)
+    {
+        if (meal.Success
+            || meal.FailureCode != CharacterConsumablesFailureCode.PolicyForbidden)
+        {
+            return false;
+        }
+
+        IReadOnlyList<string> parameters = meal.Parameters;
+        for (int index = 0; index < parameters.Count; index++)
+        {
+            string parameter = parameters[index];
+            if (string.Equals(parameter, "not-hungry", StringComparison.Ordinal)
+                || string.Equals(
+                    parameter,
+                    "meal-followup-cooldown",
+                    StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool IsRetryableUnavailableMealResult(
+        MealConsumptionResult meal) =>
+        !meal.Success
+        && !meal.IsAcceptedPending
+        && meal.FailureCode == CharacterConsumablesFailureCode.DeliveryPending;
 
     bool IBuildingVisitorPort.TryConsumeRecreationalSubstance(
         IBuildingWorldEntryPort facility,

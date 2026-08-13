@@ -802,6 +802,28 @@ public sealed class CharacterDeprivationRuntime :
         return true;
     }
 
+    public bool DebugResetForDeterministicScenario(CharacterActor actor)
+    {
+        if (!CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId))
+        {
+            return false;
+        }
+
+        // A deterministic scenario boundary must clear both the persisted
+        // burden authority and every transient runner which can republish it.
+        // Resetting visible needs alone leaves warm-up contamination and can
+        // trigger a breakdown during an otherwise neutral measurement window.
+        actor.Brain?.StopCurrentActionForReplan(
+            "deterministic scenario state reset");
+        safeReliefRunner.ReleaseActor(characterId);
+        primitiveSurvivalRunner.ReleaseActor(characterId);
+        breakdownActionRunner.ReleaseActor(characterId);
+        safeDrinkPlanner.ReleaseForActor(characterId.Value);
+        stateStore.Remove(characterId);
+        alertLevels.Remove(characterId);
+        return true;
+    }
+
     public float GetMoveSpeedMultiplier(CharacterActor actor)
     {
         float traitMultiplier = CharacterPersistentIdentity.TryGet(

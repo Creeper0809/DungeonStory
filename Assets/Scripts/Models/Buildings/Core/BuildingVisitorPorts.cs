@@ -253,7 +253,9 @@ public readonly struct BuildingMealUseSnapshot
         int unitPrice,
         bool acceptedPending = false,
         string operationId = "",
-        string failureDetail = "")
+        string failureDetail = "",
+        bool isNoLongerNeeded = false,
+        bool isRetryableUnavailable = false)
     {
         Success = success;
         FailureCode = failureCode ?? string.Empty;
@@ -262,6 +264,8 @@ public readonly struct BuildingMealUseSnapshot
         AcceptedPending = acceptedPending;
         OperationId = operationId ?? string.Empty;
         FailureDetail = failureDetail ?? string.Empty;
+        IsNoLongerNeeded = isNoLongerNeeded;
+        IsRetryableUnavailable = isRetryableUnavailable;
     }
 
     public bool Success { get; }
@@ -272,35 +276,16 @@ public readonly struct BuildingMealUseSnapshot
     public string OperationId { get; }
     public string FailureDetail { get; }
 
-    public bool IsNoLongerNeeded =>
-        string.Equals(
-            FailureCode,
-            CharacterConsumablesFailureCode.PolicyForbidden.ToString(),
-            StringComparison.Ordinal)
-        && (HasFailureDetailToken("not-hungry")
-            || HasFailureDetailToken("meal-followup-cooldown"));
+    // The consumables domain owns this classification.  Buildings deliberately
+    // receive the semantic result instead of parsing another assembly's failure
+    // enum or parameter vocabulary.
+    public bool IsNoLongerNeeded { get; }
 
-    private bool HasFailureDetailToken(string token)
-    {
-        if (string.IsNullOrWhiteSpace(FailureDetail)
-            || string.IsNullOrWhiteSpace(token))
-        {
-            return false;
-        }
-
-        string[] values = FailureDetail.Split(',');
-        for (int index = 0; index < values.Length; index++)
-        {
-            if (string.Equals(
-                    values[index]?.Trim(),
-                    token,
-                    StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
+    // The meal candidate was valid when selected, but another actor or a
+    // bounded delivery search consumed the currently available quantity before
+    // this interaction committed. This is a normal retry boundary, not an AI
+    // execution failure and not an accepted meal operation.
+    public bool IsRetryableUnavailable { get; }
 }
 
 public readonly struct BuildingRecreationalSubstanceUseSnapshot
@@ -399,6 +384,10 @@ public interface IBuildingVisitorPort : IBuildingCharacterPort
         IBuildingWorldEntryPort destination,
         string detail = null);
     void ReportInteractionFailure(
+        BuildingInteractionFailureKind failureKind,
+        string detail,
+        IBuildingWorldEntryPort destination);
+    void ReportInteractionCancellation(
         BuildingInteractionFailureKind failureKind,
         string detail,
         IBuildingWorldEntryPort destination);

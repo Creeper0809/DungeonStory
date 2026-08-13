@@ -95,6 +95,15 @@ internal static class AIBrainActionContinuationPolicy
             return false;
         }
 
+        // A character already resolving a concrete self-care need must finish
+        // that short transaction before mood impulses or another routine need
+        // can replace it. Crisis actions still pre-empt through the separate
+        // higher InterruptPriority path in AIBrain.TryFindInterruptAction.
+        if (actionSet.HasSemanticTag(CharacterAiActionTags.SelfCare))
+        {
+            return false;
+        }
+
         if (CharacterMoodImpulseUtility.ShouldInterruptCurrentAction(
             actor,
             runningAction,
@@ -143,6 +152,7 @@ internal static class AIBrainActionContinuationPolicy
             || !actionSet.IsContinuous
             || !runningAction.HasStarted
             || !actionSet.AllowsSurvivalEmergencyInterrupt
+            || actionSet.HasSemanticTag(CharacterAiActionTags.SelfCare)
             || runningAction.RunningSeconds < minimumPersistenceSeconds)
         {
             return false;
@@ -194,7 +204,10 @@ internal static class AIBrainActionContinuationPolicy
             return false;
         }
 
-        if (runningAction.RunningSeconds >= minimumPersistenceSeconds
+        bool preservesSelfCareLifecycle =
+            actionSet.HasSemanticTag(CharacterAiActionTags.SelfCare);
+        if (!preservesSelfCareLifecycle
+            && runningAction.RunningSeconds >= minimumPersistenceSeconds
             && CharacterMoodImpulseUtility.ShouldInterruptCurrentAction(
                 actor,
                 runningAction,
@@ -212,7 +225,8 @@ internal static class AIBrainActionContinuationPolicy
             return false;
         }
 
-        if (runningAction.RunningSeconds >= minimumPersistenceSeconds
+        if (!preservesSelfCareLifecycle
+            && runningAction.RunningSeconds >= minimumPersistenceSeconds
             && actionSet.CanInterrupt(actor, runningAction, out string interruptReason))
         {
             status = string.IsNullOrWhiteSpace(interruptReason)

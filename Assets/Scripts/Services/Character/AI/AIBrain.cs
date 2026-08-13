@@ -5,6 +5,7 @@ using UnityEngine.Serialization;
 using Sirenix.OdinInspector;
 using System;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using VContainer;
 public class AIBrain : CharacterAbility
 {
@@ -105,11 +106,16 @@ public class AIBrain : CharacterAbility
     private long phaseTransitionCount;
     private long immediateReplanCount;
     private long interruptedReplanCount;
+    private string lastInterruptedReplanDetail = string.Empty;
     private long executionFailureCount;
     private long noActionFailureCount;
     private long candidateRejectionCount;
     private long jobGiverEvaluationRejectionCount;
     private long duplicateExecutionSuppressionCount;
+    private long interactionActionReplacementCount;
+    private string lastInteractionActionReplacementDetail = string.Empty;
+    private long protectedRunningActionReplanCount;
+    private string lastProtectedRunningActionReplanDetail = string.Empty;
     private long currentRepeatedFailureCount;
     private long peakRepeatedFailureCount;
     private AIActionFailureKind repeatedFailureKind;
@@ -138,6 +144,12 @@ public class AIBrain : CharacterAbility
             hasDecisionContext) == true;
     }
     public bool IsManualCommandActive => manualCommandActive;
+    public bool HasRunningAction =>
+        bestAction?.HasStarted == true && !isBestActionEnd;
+
+    public bool HasRunningWorkAction =>
+        HasRunningAction
+        && bestAction.actionset?.HasSemanticTag(CharacterAiActionTags.Work) == true;
     public bool IsExternallyDrivenActionActive => externallyDrivenActionActive;
     public string ExternalIntentOwnerId => externalIntentOwnerId;
     public CharacterActionIntentKind ExternalIntentKind => externalIntentKind;
@@ -154,6 +166,10 @@ public class AIBrain : CharacterAbility
     public long RuntimeCandidateRejectionCount => candidateRejectionCount;
     public long RuntimeDuplicateExecutionSuppressionCount =>
         duplicateExecutionSuppressionCount;
+    public long RuntimeInteractionActionReplacementCount =>
+        interactionActionReplacementCount;
+    public long RuntimeProtectedRunningActionReplanCount =>
+        protectedRunningActionReplanCount;
     public long RuntimeJobGiverEvaluationRejectionCount =>
         jobGiverEvaluationRejectionCount;
     public long RuntimePeakRepeatedFailureCount => peakRepeatedFailureCount;
@@ -713,11 +729,53 @@ public class AIBrain : CharacterAbility
         pathSearchSession?.Clear();
     }
 
-    public void RequestImmediateReplan(bool clearFailures = false)
+    public void RequestImmediateReplan(
+        bool clearFailures = false,
+        [CallerMemberName] string callerMember = "")
     {
         if (externallyDrivenActionActive)
         {
             externalReplanClearFailures |= clearFailures;
+            return;
+        }
+
+        // A replan request is frequently used as a scheduler wake-up after world
+        // state changes.  It must not silently destroy an in-flight facility,
+        // meal, rest, or other multi-frame action.  Callers that truly intend to
+        // interrupt must first use StopCurrentActionForReplan, which invokes the
+        // action's typed cancellation path and releases its ownership cleanly.
+        if (HasRunningAction)
+        {
+            protectedRunningActionReplanCount++;
+            lastProtectedRunningActionReplanDetail =
+                $"caller={callerMember ?? string.Empty}; "
+                + $"action={GetActionLabel(bestAction?.actionset)}; "
+                + $"phase={currentActionPhase}; "
+                + $"destination={AIBrainDebugFormatter.GetDestinationLabel(bestAction?.destination)}; "
+                + $"clearFailures={clearFailures}";
+            InvalidateQueuedActionForNextDecision();
+            if (clearFailures)
+            {
+                RequireActionEvaluator().ClearCooldowns();
+                lastActionFailure = AIActionFailure.None;
+                lastFailedActionSet = null;
+                noActionLogCooldownUntil = 0f;
+            }
+
+            if (protectedRunningActionReplanCount <= 4
+                || (protectedRunningActionReplanCount
+                    & (protectedRunningActionReplanCount - 1)) == 0)
+            {
+                actor?.AddActivity(CharacterActivityEvent.InternalAi(
+                    CharacterActivityOutcomes.Changed,
+                    "running-action-replan-deferred",
+                    "Destructive AI replan deferred while an action owns its lifecycle: "
+                    + lastProtectedRunningActionReplanDetail));
+            }
+
+            MarkDebugDirty();
+            RequestImmediateDecision(
+                $"Running action preserved for replan request from {callerMember}.");
             return;
         }
 
@@ -1157,6 +1215,31 @@ public class AIBrain : CharacterAbility
         MarkDebugDirty();
     }
 
+    internal void NotifyInteractionActionReplaced(
+        string detail,
+        BuildableObject facility)
+    {
+        interactionActionReplacementCount++;
+        lastInteractionActionReplacementDetail =
+            $"detail={detail ?? string.Empty}; "
+            + $"replacementAction={GetActionLabel(bestAction?.actionset)}; "
+            + $"replacementDestination={AIBrainDebugFormatter.GetDestinationLabel(bestAction?.destination)}; "
+            + $"facility={AIBrainDebugFormatter.GetDestinationLabel(facility)}";
+
+        if (interactionActionReplacementCount <= 4
+            || (interactionActionReplacementCount
+                & (interactionActionReplacementCount - 1)) == 0)
+        {
+            actor?.AddActivity(CharacterActivityEvent.InternalAi(
+                CharacterActivityOutcomes.Failed,
+                "interaction-action-replaced",
+                "AI interaction ownership was replaced: "
+                + lastInteractionActionReplacementDetail));
+        }
+
+        MarkDebugDirty();
+    }
+
     public void SetActionPhase(string phase, BuildableObject destination = null, string detail = null)
     {
         string nextPhase = phase ?? string.Empty;
@@ -1227,7 +1310,9 @@ public class AIBrain : CharacterAbility
             out status);
     }
 
-    public bool StopCurrentActionForReplan(string reason)
+    public bool StopCurrentActionForReplan(
+        string reason,
+        [System.Runtime.CompilerServices.CallerMemberName] string caller = "")
     {
         if (externallyDrivenActionActive)
         {
@@ -1242,6 +1327,11 @@ public class AIBrain : CharacterAbility
         }
 
         interruptedReplanCount++;
+        lastInterruptedReplanDetail =
+            $"caller={caller}; reason={reason ?? string.Empty}; "
+            + $"action={GetActionLabel(actionToStop?.actionset)}; "
+            + $"phase={currentActionPhase}; "
+            + $"destination={AIBrainDebugFormatter.GetDestinationLabel(actionToStop?.destination)}";
 
         actionToStop?.actionset?.OnStop(actor, actionToStop, reason);
         actionToStop?.ReleaseReservation(actor);
@@ -1615,10 +1705,15 @@ public class AIBrain : CharacterAbility
             phaseTransitionCount,
             immediateReplanCount,
             interruptedReplanCount,
+            lastInterruptedReplanDetail,
             executionFailureCount,
             noActionFailureCount,
             candidateRejectionCount,
             duplicateExecutionSuppressionCount,
+            interactionActionReplacementCount,
+            lastInteractionActionReplacementDetail,
+            protectedRunningActionReplanCount,
+            lastProtectedRunningActionReplanDetail,
             currentRepeatedFailureCount,
             peakRepeatedFailureCount,
             repeatedFailureKind,

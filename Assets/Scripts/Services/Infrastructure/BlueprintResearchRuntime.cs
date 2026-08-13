@@ -667,6 +667,14 @@ public class BlueprintResearchRuntime : MonoBehaviour
 
     private void Update()
     {
+        // Scene MonoBehaviours can receive an Update between PlayMode state
+        // transition and VContainer injection (and during domain-reload teardown).
+        // No research authority exists until the application adapter is present.
+        if (applicationAdapter == null || projectCoordinator == null)
+        {
+            return;
+        }
+
         EnsureRestoreProjectionCurrent();
         float unscaledTime = applicationAdapter.UnscaledTime;
         if (unscaledTime < nextArchiveDeliveryRefresh)

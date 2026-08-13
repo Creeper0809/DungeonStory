@@ -88,6 +88,13 @@ public class AbilityWork : CharacterAbility
     private float lastFailedWorkAt = -1f;
 
     public BuildableObject PriorityWorkTarget => CommandHandler.PriorityWorkTarget;
+    public bool HasUrgentPriorityWork => CommandHandler.HasUrgentPriorityTarget();
+    public bool IsRoutineNeedInterruptionFinalizing =>
+        DutyController.LastWorkRunInterruptedForRoutineNeed && !isWorking;
+    public int ActiveWorkRunIdForDiagnostics => activeWorkRunId;
+    public bool HasActiveWorkRoutineForDiagnostics => activeWorkRoutine != null;
+    public bool HasRoutineNeedWorkBlockForDiagnostics =>
+        DutyController.HasRoutineNeedWorkBlock;
     public CharacterActor PrioritySuppressActor => CommandHandler.PrioritySuppressActor;
     public bool HasPrioritySuppressTarget => CommandHandler.HasPrioritySuppressTarget;
     internal FacilityWorkType PriorityWorkType => CommandHandler.PriorityWorkType;
@@ -997,6 +1004,18 @@ public class AbilityWork : CharacterAbility
         return DutyController.ApplyWorkNeedDepletion(elapsedGameSeconds);
     }
 
+    internal void MarkCurrentWorkInterruptedFromExecutor(string reason)
+    {
+        // This method is called by the active work coroutine itself. Calling
+        // StopAssignedWorkFromAi here would StopCoroutine(activeWorkRoutine)
+        // from inside that same coroutine, bypassing WorkTaskExecutor's
+        // deallocation, accounting, resume-intent, and reservation cleanup.
+        isWorking = false;
+        // Keep the AI action alive until WorkTaskExecutor has completed its
+        // finally/cleanup path. The work loop observes isWorking=false and
+        // publishes the terminal action state only after ownership is released.
+    }
+
     public bool RequestEmergencySuspension(long alertEpochId)
     {
         return TaskExecutor.RequestEmergencySuspension(alertEpochId);
@@ -1126,6 +1145,15 @@ public class AbilityWork : CharacterAbility
         if (IsActiveWorkRun(runId))
         {
             activeWorkRoutine = null;
+            if (actor?.Brain?.isBestActionEnd == true)
+            {
+                // Wake only after the coroutine has returned its worker slot,
+                // reservations, accounting and resume intent. Waking at the
+                // interruption checkpoint permits a new Work action to enter
+                // StartWorking while this routine still owns activeWorkRoutine.
+                actor.Brain.RequestImmediateDecision(
+                    "Work coroutine finalized and released runtime ownership.");
+            }
         }
     }
 

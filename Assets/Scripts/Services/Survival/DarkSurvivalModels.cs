@@ -119,6 +119,7 @@ public interface ICharacterDeprivationCommand
     bool ApplySuppression(CharacterActor actor, float amount, out bool ended);
     bool DebugForceBreakdown(CharacterActor actor, CharacterBreakdownKind kind);
     bool DebugClearBreakdown(CharacterActor actor);
+    bool DebugResetForDeterministicScenario(CharacterActor actor);
 }
 
 public interface ICharacterDeprivationPersistence
@@ -277,4 +278,5 @@ public sealed class NoCharacterDeprivationBoundary :
         CharacterActor actor,
         CharacterBreakdownKind kind) => false;
     public bool DebugClearBreakdown(CharacterActor actor) => false;
+    public bool DebugResetForDeterministicScenario(CharacterActor actor) => false;
 }

@@ -73,6 +73,12 @@ public sealed class DungeonWorkforceReplanService : IWorkforceReplanService
                 continue;
             }
 
+            if (ShouldPreserveRunningNonWorkAction(work, brain, forceInterrupt: false))
+            {
+                brain.InvalidateQueuedActionForNextDecision();
+                continue;
+            }
+
             brain?.RequestImmediateReplan(clearFailures);
         }
     }
@@ -103,6 +109,11 @@ public sealed class DungeonWorkforceReplanService : IWorkforceReplanService
             }
 
             if (actor.Brain.IsExternallyDrivenActionActive)
+            {
+                continue;
+            }
+
+            if (ShouldPreserveRunningNonWorkAction(work, actor.Brain, forceInterrupt))
             {
                 continue;
             }
@@ -161,7 +172,7 @@ public sealed class DungeonWorkforceReplanService : IWorkforceReplanService
         selectedBrain.PreferWorkActionOnNextDecision(
             requestedWorkTypeId,
             persistenceSeconds: 600f);
-        if (selectedWork.isWorking)
+        if (selectedBrain.HasRunningAction)
         {
             selectedBrain.StopCurrentActionForReplan(
                 $"{requestedDefinition.DisplayName} 작업 시작");
@@ -188,6 +199,7 @@ public sealed class DungeonWorkforceReplanService : IWorkforceReplanService
                 || actor.Brain == null
                 || !actor.CanRunAi
                 || actor.Brain.IsExternallyDrivenActionActive
+                || ShouldPreserveRunningNonWorkAction(work, actor.Brain, forceInterrupt)
                 || work.IsOffDuty
                 || !work.WorkPriorities.IsEnabled(BuiltInWorkTypeIds.Haul))
             {
@@ -241,11 +253,26 @@ public sealed class DungeonWorkforceReplanService : IWorkforceReplanService
             return;
         }
 
-        if (selectedWork.isWorking)
+        if (selectedBrain.HasRunningAction)
         {
             selectedBrain.StopCurrentActionForReplan("공사 자재 운반 시작");
         }
 
         selectedBrain.RequestImmediateReplan(clearFailures);
+    }
+
+    public static bool ShouldPreserveRunningNonWorkAction(
+        AbilityWork work,
+        AIBrain brain,
+        bool forceInterrupt)
+    {
+        // A non-forced workforce notification is a wake-up hint, never an
+        // interruption authority. This also protects the one-frame work
+        // finalization boundary where AbilityWork.isWorking has cleared but
+        // the current AI action has not yet completed. Only callers that
+        // explicitly opt into forceInterrupt may replace a running action.
+        return !forceInterrupt
+            && work != null
+            && brain?.HasRunningAction == true;
     }
 }

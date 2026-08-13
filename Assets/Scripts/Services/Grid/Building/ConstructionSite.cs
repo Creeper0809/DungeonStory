@@ -336,7 +336,11 @@ public sealed class ConstructionSite : BuildableObject,
             : new Vector3(0f, WorkerStandOffsetY, 0f);
         workerOffsets.Remove(actor);
         workerSlots.Remove(actor);
-        actor.SetActionPhase("공사 현장 이탈", this);
+        // Deallocation is an instantaneous ownership cleanup, not a movement
+        // phase: SetWorldPosition below restores the visitor immediately. Do
+        // not overwrite the AI action phase here because the work executor has
+        // already published its terminal state and the stale "site exit"
+        // label can survive into the next decision as a false active action.
         actor.SetWorldPosition(
             actor.VisitorSnapshot.Position
                 - standOffset);

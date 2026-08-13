@@ -890,4 +890,5 @@ internal sealed class ProbeSafeReliefRuntime : ICharacterDeprivationRuntime
     public void PublishRestoreCandidate(DarkSurvivalRestoreCandidate candidate) { }
     public bool DebugForceBreakdown(CharacterActor actor, CharacterBreakdownKind kind) => false;
     public bool DebugClearBreakdown(CharacterActor actor) => false;
+    public bool DebugResetForDeterministicScenario(CharacterActor actor) => false;
 }

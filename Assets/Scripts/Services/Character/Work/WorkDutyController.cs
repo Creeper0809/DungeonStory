@@ -30,6 +30,7 @@ public sealed class WorkDutyController
     public bool IsOffDuty => dutyState == AbilityWork.DutyState.OffDuty;
     public bool LastWorkRunCompleted { get; private set; }
     public bool LastWorkRunInterruptedForRoutineNeed { get; private set; }
+    internal bool HasRoutineNeedWorkBlock => routineNeedBlockingWorkStart.HasValue;
     internal BuildableObject RoutineNeedResumeTarget => routineNeedResumeTarget;
     internal WorkTypeId RoutineNeedResumeWorkTypeId => routineNeedResumeWorkTypeId;
     private float Now => RequireGameClock().Time;
@@ -685,6 +686,17 @@ public sealed class WorkDutyController
                 out stopReason))
         {
             return false;
+        }
+
+        // Construction sites own a parallel-worker contract. Asking the base
+        // BuildableObject assignment contract reports "unsupported work" and
+        // makes the decision pipeline interrupt a valid construction action on
+        // every scheduler pass.
+        if (target is ConstructionSite constructionSite)
+        {
+            return constructionSite.CanAssignWorker(
+                work.WorkerActor?.BuildingVisitor,
+                out stopReason);
         }
 
         if (!target.CanAssignWork(definition.WorkTypeId, out stopReason))
