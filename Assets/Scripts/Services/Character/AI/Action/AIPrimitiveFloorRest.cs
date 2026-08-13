@@ -17,6 +17,11 @@ public sealed class AIPrimitiveFloorRest : AIPrimitiveSurvivalAction
             CharacterCondition.SLEEP);
     public override float AdjustScore(CharacterActor actor, float baseScore) =>
         PrimitiveScore(actor, CharacterCondition.SLEEP, baseScore);
-    public override void Execute(CharacterActor actor) =>
-        actor?.DeprivationCommands?.TryRunPrimitiveRest(actor, out _);
+    public override void Execute(CharacterActor actor)
+    {
+        if (RevalidateAtExecution(actor))
+        {
+            actor?.DeprivationCommands?.TryRunPrimitiveRest(actor, out _);
+        }
+    }
 }

@@ -118,6 +118,17 @@ public static class SurvivalDebugScenarios
                 "meal action fixture failed to spawn first serving");
             WorldItemStackSnapshot firstStack = items.GetAllStacks().Single(stack =>
                 stack.ItemId == FoodId);
+            actor.PathSearchBroker?.BeginFrame(
+                0,
+                enforceBudget: true,
+                searchTimeBudgetMilliseconds: 0d);
+            Require(runtime.HasMealAvailable(
+                    CharacterPersistentIdentity.Require(actor),
+                    facility.RequirePersistentInstanceId(),
+                    out CharacterConsumablesFailure bufferedAvailability)
+                && !bufferedAvailability.IsFailure,
+                "physical buffer meal availability incorrectly depended on transient path-search budget");
+            actor.PathSearchBroker?.BeginFrame(int.MaxValue, enforceBudget: false);
             ConsumeMealCommand firstCommand = new(
                 new ConsumableOperationId("consumable-operation:meal-action-success"),
                 CharacterPersistentIdentity.Require(actor),
@@ -203,7 +214,17 @@ public static class SurvivalDebugScenarios
                 && spoiled.ReservedQuantity == 0
                 && runtime.Capture().completedOperations.Count == 1,
                 "spoiled meal was consumed, leaked its lease, or recorded completion");
-            return "pending=3.9s; committed=4.1s; spoiled=abort; leaseReleased=True";
+            Require(!runtime.TryGetMealOperationResult(
+                    spoilCommand.OperationId,
+                    out CharacterConsumablesMealResult spoiledResult)
+                && spoiledResult.FailureCode
+                    == CharacterConsumablesFailureCode.ItemNotConsumable
+                && spoiledResult.Parameters.Contains(
+                    "meal-spoiled-before-commit"),
+                "spoiled meal abort did not retain its typed diagnostic reason: "
+                + $"code={spoiledResult.FailureCode}; "
+                + $"parameters={string.Join(",", spoiledResult.Parameters)}");
+            return "pending=3.9s; committed=4.1s; spoiled=abort; leaseReleased=True; failure=ItemNotConsumable:meal-spoiled-before-commit";
         }
         finally
         {

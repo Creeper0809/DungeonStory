@@ -17,6 +17,11 @@ public sealed class AIPrimitiveLatrine : AIPrimitiveSurvivalAction
             CharacterCondition.EXCRETION);
     public override float AdjustScore(CharacterActor actor, float baseScore) =>
         PrimitiveScore(actor, CharacterCondition.EXCRETION, baseScore);
-    public override void Execute(CharacterActor actor) =>
-        actor?.DeprivationCommands?.TryRunPrimitiveRelief(actor, out _);
+    public override void Execute(CharacterActor actor)
+    {
+        if (RevalidateAtExecution(actor))
+        {
+            actor?.DeprivationCommands?.TryRunPrimitiveRelief(actor, out _);
+        }
+    }
 }

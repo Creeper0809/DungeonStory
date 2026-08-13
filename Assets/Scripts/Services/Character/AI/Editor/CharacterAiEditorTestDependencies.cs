@@ -857,6 +857,17 @@ internal static class CharacterAiEditorTestDependencies
         return PerformanceRecorder.CaptureReport(actorCount);
     }
 
+    internal static IDisposable OverrideGridSystemForScenario(
+        GridSystemManager manager)
+    {
+        return ((EditorGridSystemProvider)GridSystem).PushOverride(manager);
+    }
+
+    internal static void FlushSlowPerformanceTrace()
+    {
+        PerformanceRecorder.FlushSlowTrace();
+    }
+
     public static void Inject(OwnerRunManager manager)
     {
         if (manager != null)
@@ -1076,7 +1087,42 @@ internal static class CharacterAiEditorTestDependencies
 
     private sealed class EditorGridSystemProvider : IGridSystemProvider
     {
+        private sealed class OverrideLease : IDisposable
+        {
+            private Action release;
+
+            public OverrideLease(Action release)
+            {
+                this.release = release;
+            }
+
+            public void Dispose()
+            {
+                Action callback = release;
+                release = null;
+                callback?.Invoke();
+            }
+        }
+
         private GridSystemManager cachedManager;
+        private GridSystemManager overrideManager;
+
+        public IDisposable PushOverride(GridSystemManager manager)
+        {
+            if (manager == null)
+            {
+                throw new ArgumentNullException(nameof(manager));
+            }
+
+            GridSystemManager previous = overrideManager;
+            overrideManager = manager;
+            cachedManager = manager;
+            return new OverrideLease(() =>
+            {
+                overrideManager = previous;
+                cachedManager = previous;
+            });
+        }
 
         public GridSystemManager Manager
         {
@@ -1106,6 +1152,15 @@ internal static class CharacterAiEditorTestDependencies
 
         public bool TryGetManager(out GridSystemManager manager)
         {
+            // Large stress worlds bind their exact manager explicitly. Ordinary
+            // editor scenarios keep resolving by priority because many of them
+            // create and destroy different grids within the same editor frame.
+            if (overrideManager != null && overrideManager.grid != null)
+            {
+                manager = overrideManager;
+                return true;
+            }
+
             GridSystemManager[] managers =
                 UnityEngine.Object.FindObjectsByType<GridSystemManager>(
                     FindObjectsInactive.Include,
@@ -1980,6 +2035,8 @@ internal sealed class EditorCharacterAiPerformanceRecorder : ICharacterAiPerform
     private bool detailedCollectionEnabled = true;
     private bool slowTraceEnabled;
     private int slowTraceEntryCount;
+    private readonly List<string> slowTraceEntries =
+        new List<string>(MaximumSlowOperationEntries);
 
     public EditorCharacterAiPerformanceRecorder()
     {
@@ -2025,7 +2082,7 @@ internal sealed class EditorCharacterAiPerformanceRecorder : ICharacterAiPerform
         string considerationType = consideration != null
             ? consideration.GetType().Name
             : "none";
-        UnityEngine.Debug.Log(
+        slowTraceEntries.Add(
             $"AI_SLOW_OPERATION #{slowTraceEntryCount} "
             + $"stage={stageLabel} "
             + $"elapsedMs={elapsedMilliseconds:0.000} "
@@ -2044,6 +2101,17 @@ internal sealed class EditorCharacterAiPerformanceRecorder : ICharacterAiPerform
     {
         slowTraceEnabled = enabled;
         slowTraceEntryCount = 0;
+        slowTraceEntries.Clear();
+    }
+
+    public void FlushSlowTrace()
+    {
+        for (int index = 0; index < slowTraceEntries.Count; index++)
+        {
+            UnityEngine.Debug.Log(slowTraceEntries[index]);
+        }
+
+        slowTraceEntries.Clear();
     }
 
     public void Record(AiPerformanceCategory category, double elapsedMilliseconds, long gcBytes = 0)
@@ -2108,6 +2176,7 @@ internal sealed class EditorCharacterAiPerformanceRecorder : ICharacterAiPerform
         cacheHits = 0;
         deferrals = 0;
         slowTraceEntryCount = 0;
+        slowTraceEntries.Clear();
     }
 
     private static CharacterAiPerformanceMetric CaptureMetric(string name, List<double> source)

@@ -17,6 +17,11 @@ public sealed class AIPrimitiveFieldMeal : AIPrimitiveSurvivalAction
             CharacterCondition.HUNGER);
     public override float AdjustScore(CharacterActor actor, float baseScore) =>
         PrimitiveScore(actor, CharacterCondition.HUNGER, baseScore);
-    public override void Execute(CharacterActor actor) =>
-        actor?.DeprivationCommands?.TryRunPrimitiveMeal(actor, out _);
+    public override void Execute(CharacterActor actor)
+    {
+        if (RevalidateAtExecution(actor))
+        {
+            actor?.DeprivationCommands?.TryRunPrimitiveMeal(actor, out _);
+        }
+    }
 }

@@ -56,6 +56,21 @@ public abstract class AIActionSet : SerializedScriptableObject
         return true;
     }
 
+    /// <summary>
+    /// Revalidates only mutable facts that may change between candidate
+    /// evaluation and commit. The default is intentionally allocation-free;
+    /// actions with volatile eligibility override this instead of forcing a
+    /// second full destination scan for every candidate.
+    /// </summary>
+    public virtual bool RevalidateBeforeCommit(
+        CharacterActor actor,
+        BuildableObject evaluatedDestination,
+        out AIActionFailure failure)
+    {
+        failure = AIActionFailure.None;
+        return true;
+    }
+
     public virtual bool CanStart(
         CharacterActor actor,
         in CharacterAiDecisionContext context)

@@ -562,19 +562,14 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             {
                 return RunDeprivationBreakdown(actor);
             }
-
-            if (deprivationCommands.TryRunMostUrgentEmergencySelfCare(
-                    actor,
-                    out string reliefStatus))
-            {
-                blackboard.SetIntent(
-                    CharacterAiBranch.Emergency,
-                    reliefStatus,
-                    "Run Safe Emergency Relief",
-                    reliefStatus);
-                return CharacterAiDecisionRules.Result(true, CharacterAiBranch.Emergency, "Run Safe Emergency Relief", reliefStatus, blackboard);
-            }
         }
+
+        // Emergency needs must use the same job-giver/action candidate path as
+        // routine needs. The former direct deprivation shortcut started a
+        // primitive action before the authored facility action could be
+        // evaluated, so a free toilet could still lose to a field latrine.
+        // The emergency job-giver set already contains both facility and
+        // primitive actions and applies the shared availability policy.
 
         CharacterAiDecisionContext context;
         using (EmergencyContextMarker.Auto())

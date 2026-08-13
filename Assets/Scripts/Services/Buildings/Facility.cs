@@ -104,16 +104,44 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
 
     public IEnumerator Interact(IBuildingVisitorPort actor)
     {
-        if (!CanVisit(actor, out string visitFailure))
+        // Capture presentation text before the first yield. A coroutine can
+        // resume while its facility is being demolished or its scene unloads;
+        // accessing UnityEngine.Object.name after destruction throws.
+        string interactionFacilityLabel = objectNameOrDefault();
+        object currentAction = actor?.CurrentActionToken;
+        if (!CanQueueVisit(actor, out string visitFailure))
         {
             SetVisitOutcome(actor, this, BuildingVisitOutcome.Failed);
             actor?.RecordActivity(this, new BuildingActivitySnapshot(
                 BuildingActivityKinds.FacilityUse,
                 BuildingActivityOutcomes.Failed,
-                $"{objectNameOrDefault()} 이용 실패: {visitFailure}",
+                $"{interactionFacilityLabel} 이용 실패: {visitFailure}",
                 reasonCode: visitFailure,
                 bubbleEligible: true));
             yield break;
+        }
+
+        if (!CanVisit(actor, out _))
+        {
+            yield return WaitForVisitAdmission(actor, currentAction);
+            if (actor == null
+                || !actor.IsCurrentAction(currentAction)
+                || actor.IsCurrentActionEnded)
+            {
+                yield break;
+            }
+
+            if (!CanVisit(actor, out visitFailure))
+            {
+                SetVisitOutcome(actor, this, BuildingVisitOutcome.Abandoned);
+                actor.RecordActivity(this, new BuildingActivitySnapshot(
+                    BuildingActivityKinds.FacilityUse,
+                    BuildingActivityOutcomes.Cancelled,
+                    $"{interactionFacilityLabel} 대기 종료: {visitFailure}",
+                    actionId: "facility:queue",
+                    reasonCode: "queue-not-admitted"));
+                yield break;
+            }
         }
 
         ServiceSessionSnapshot serviceSession = null;
@@ -137,7 +165,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             actor?.RecordActivity(this, new BuildingActivitySnapshot(
                 BuildingActivityKinds.FacilityUse,
                 BuildingActivityOutcomes.Failed,
-                $"{objectNameOrDefault()} 이용 실패",
+                $"{interactionFacilityLabel} 이용 실패",
                 reasonCode: serviceFailureCode,
                 bubbleEligible: true));
             yield break;
@@ -163,7 +191,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             actor?.RecordActivity(this, new BuildingActivitySnapshot(
                 BuildingActivityKinds.FacilityUse,
                 BuildingActivityOutcomes.Failed,
-                $"{objectNameOrDefault()} 이용 실패: {drainFailureCode}",
+                $"{interactionFacilityLabel} 이용 실패: {drainFailureCode}",
                 reasonCode: drainFailureCode,
                 bubbleEligible: true));
             yield break;
@@ -185,7 +213,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             actor?.RecordActivity(this, new BuildingActivitySnapshot(
                 BuildingActivityKinds.FacilityUse,
                 BuildingActivityOutcomes.Failed,
-                $"{objectNameOrDefault()} 이용 실패: {plumbingFailureCode}",
+                $"{interactionFacilityLabel} 이용 실패: {plumbingFailureCode}",
                 reasonCode: plumbingFailureCode,
                 bubbleEligible: true));
             yield break;
@@ -202,7 +230,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             actor?.RecordActivity(this, new BuildingActivitySnapshot(
                 BuildingActivityKinds.FacilityUse,
                 BuildingActivityOutcomes.Failed,
-                $"{objectNameOrDefault()} 이용 실패: {failureReason}",
+                $"{interactionFacilityLabel} 이용 실패: {failureReason}",
                 reasonCode: failureReason,
                 bubbleEligible: true));
             yield break;
@@ -220,7 +248,6 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             yield break;
         }
 
-        object currentAction = actor.CurrentActionToken;
         Vector3 usePosition = GetFacilityAnchorWorldPosition(
             FacilityAnchorPurposeIds.Use,
             actor.VisitorSnapshot.Position);
@@ -383,7 +410,8 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                         false,
                         CharacterConsumablesFailureCode.PhysicalConsumptionFailed.ToString(),
                         string.Empty,
-                        0);
+                        0,
+                        failureDetail: "meal-action-timeout");
                 }
             }
             if (!mealConsumed)
@@ -402,7 +430,9 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 actor.RecordActivity(this, new BuildingActivitySnapshot(
                     BuildingActivityKinds.FacilityUse,
                     BuildingActivityOutcomes.Failed,
-                    failureCode,
+                    string.IsNullOrWhiteSpace(mealResult.FailureDetail)
+                        ? failureCode
+                        : $"{failureCode}:{mealResult.FailureDetail}",
                     reasonCode: failureCode,
                     bubbleEligible: true));
                 EndUse(actor);
@@ -455,7 +485,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             BuildingActivityOutcomes.Completed,
             mealResult.Success
                 ? $"{mealResult.DisplayName} 식사 완료"
-                : $"{objectNameOrDefault()} 이용 완료"));
+                : $"{interactionFacilityLabel} 이용 완료"));
         SetVisitOutcome(actor, this, BuildingVisitOutcome.Completed);
         if (serviceSession != null
             && !serviceSessionRuntime.TryCompleteSession(

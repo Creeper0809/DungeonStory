@@ -523,7 +523,10 @@ public class Grid
                 new int[cellCount],
                 0,
                 CreateFilledArray(cellCount, int.MaxValue),
-                new List<IGridOccupant>(0));
+                new List<IGridOccupant>(0),
+                new Dictionary<IGridOccupant, GridVisitableOccupantAccess>(
+                    0,
+                    GridOccupantReferenceComparer.Instance));
         }
 
         GridSearchWorkspace workspace = exactDestination.HasValue
@@ -545,6 +548,11 @@ public class Grid
         List<IGridOccupant> visitableOccupants = collectVisitableOccupants
             ? new List<IGridOccupant>()
             : null;
+        Dictionary<IGridOccupant, GridVisitableOccupantAccess> visitableOccupantAccess =
+            collectVisitableOccupants
+                ? new Dictionary<IGridOccupant, GridVisitableOccupantAccess>(
+                    GridOccupantReferenceComparer.Instance)
+                : null;
         HashSet<IGridOccupant> visitableOccupantSet = collectVisitableOccupants
             ? GridSearchScratch.RentOccupantSet()
             : null;
@@ -600,6 +608,9 @@ public class Grid
                             && visitableOccupantSet.Add(occupant))
                         {
                             visitableOccupants.Add(occupant);
+                            visitableOccupantAccess.Add(
+                                occupant,
+                                new GridVisitableOccupantAccess(pos, knownCurrentCost));
                         }
                     }
                 }
@@ -734,7 +745,8 @@ public class Grid
             searchOrder,
             searchOrderCount,
             moveCost,
-            visitableOccupants);
+            visitableOccupants,
+            visitableOccupantAccess);
     }
 
     public Queue<IGridOccupant> GetOccupantPath(Vector2Int start, Func<Vector2Int, bool> terminateEndCondition)

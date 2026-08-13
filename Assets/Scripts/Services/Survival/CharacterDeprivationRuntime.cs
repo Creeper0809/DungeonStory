@@ -512,6 +512,10 @@ public sealed class CharacterDeprivationRuntime :
         {
             CharacterCondition.HUNGER =>
                 NeedsPrimitiveMeal(actor, out _)
+                && AIPrimitiveSurvivalAction.CanUsePrimitiveFallback(
+                    actor,
+                    FacilityRole.Meal,
+                    CharacterCondition.HUNGER)
                 && primitiveSurvivalRunner.TryStart(
                     actor,
                     CharacterPrimitiveSurvivalActionKind.FieldMeal,
@@ -521,18 +525,30 @@ public sealed class CharacterDeprivationRuntime :
                 && TryStartSafeDrink(actor, emergency: true, out status),
             CharacterCondition.SLEEP =>
                 NeedsPrimitiveRest(actor, out _)
+                && AIPrimitiveSurvivalAction.CanUsePrimitiveFallback(
+                    actor,
+                    FacilityRole.Rest,
+                    CharacterCondition.SLEEP)
                 && primitiveSurvivalRunner.TryStart(
                     actor,
                     CharacterPrimitiveSurvivalActionKind.FloorRest,
                     out status),
             CharacterCondition.EXCRETION =>
                 NeedsPrimitiveRelief(actor, out _)
+                && AIPrimitiveSurvivalAction.CanUsePrimitiveFallback(
+                    actor,
+                    FacilityRole.Toilet,
+                    CharacterCondition.EXCRETION)
                 && primitiveSurvivalRunner.TryStart(
                     actor,
                     CharacterPrimitiveSurvivalActionKind.Latrine,
                     out status),
             CharacterCondition.HYGIENE =>
                 NeedsPrimitiveWash(actor, out _)
+                && AIPrimitiveSurvivalAction.CanUsePrimitiveFallback(
+                    actor,
+                    FacilityRole.Hygiene,
+                    CharacterCondition.HYGIENE)
                 && primitiveSurvivalRunner.TryStart(
                     actor,
                     CharacterPrimitiveSurvivalActionKind.BucketWash,

@@ -1,5 +1,24 @@
 # DungeonStory Progress
 
+## 2026-08-13 AI collision, 500-NPC performance and five-day live WU
+
+- The prior roughly 20 WU/adult-day observation was not a valid balance baseline. Meal-buffer path-budget coupling, competing routine intent paths and invalid fixture floor topology suppressed ordinary work. The corrected same-floor five-day verifier now passes with zero harmful stalls and zero committed execution failures.
+- Two earlier valid same-floor samples produced 62.944 and 59.200 actual WU/adult-day. After the latest scoped grid-provider correction and clean scene rerun, the five-day result is 54.721 actual / 50.832 output-equivalent WU/adult-day, with meal/drink cadence 1.067/1.067 per day, toilet 0.800, hygiene 1.000 and fun-recovery facility cadence 0.733.
+- The 500-NPC profile's apparent 78 ms scheduler cost was dominated by the editor fixture resolving `GridSystemManager` through `FindObjectsByType` on every actor-position query. A scoped scenario grid override reduced the corrected profile to frame p95 4.136 ms, scheduler p95 0.791 ms and AI-owned allocation 0 KB/frame; behavior and performance gates both pass.
+- The GC pass authority now prefers the scheduler same-thread allocation counter in Editor Play Mode and retains whole-editor frame GC as diagnostics. Player-build whole-frame GC remains a separate release gate.
+- The MCP frame pump now caps each call to 240 frames so Unity subsystems receive regular control and long single-call forced stepping does not create artificial TempJob lifetime warnings.
+- A leaked uninitialized root `Facility` named `간이화덕` with `BuildingData=null`, `Grid=null`, and `id=0` was removed from `GameplayScene` through Unity MCP. The clean five-day run then passed with captured issues 0 and Console 0/0 during the run.
+- Facility interaction completion now captures its presentation label before yielding, preventing teardown/demolition from dereferencing a destroyed Unity object at coroutine completion.
+- Focused Survival, Customer AI, AI priority corner-case and Modular Facility suites pass independently with Console Warning/Error 0/0. The editor grid optimization is scoped only to the stress world so short-lived scenario grids do not leak into later tests.
+
+## 2026-08-13 local meal authority and same-floor routine verification
+
+- Separated physical meal-buffer availability from transient exact-route broker deferral and added a focused zero-path-budget regression. Unity compilation and Survival, Customer AI and priority corner-case suites pass with Console Warning/Error 0/0.
+- Rebuilt the five-day fixture so its facilities cannot accidentally span dungeon floors. Since the starter floor cannot fit six separate building footprints, five test-only visitor facilities share one walkable cell through independent occupancy layers while preserving their own capacity/FIFO and item Lease authorities; the construction site remains a distinct adjacent cell.
+- Completed a valid 900-game-second run: 3/3 actors, 944.166 actual WU, 16 physical meals, 16 physical drinks, no primitive survival action, no harmful stall, no execution/no-action failure and no Console issue. Average labor is 62.944 WU/adult-day after eliminating fixture-created stair travel.
+- Corrected the recreation audit to count actual authored FUN-recovery facility completions rather than only Leisure-branch visits. Raised only the float-vs-milli-WU causal comparison tolerance from 0.01 to 0.05 WU after a measured 0.014 WU representation difference. A confirming five-day rerun remains required.
+- Extended failed meal activity diagnostics with bounded operation failure detail and preserved timeout detail across Facility and Shop consumers.
+
 ## 2026-08-13 AI decision conflict investigation resumed
 
 - Restored the active Phase 157 worktree and re-read the project guide plus planning, game-AI and Unity C# skill instructions.
@@ -4242,3 +4261,42 @@
 - 2026-08-13: Recovered the 500-NPC profiling branch and fixed a compile-blocking escaped quote in the new slow-stage logger. Unity MCP project compilation returned clean afterward.
 - 2026-08-13: Added bounded slow-operation traces for facility candidate sub-stages. They proved `AIEat`/`AIRest` destination resolution was repeatedly paying grid-target distance and world-signal costs for every candidate.
 - 2026-08-13: Added a cached occupant move-cost map to `GridPathSearchResult` and cached dead state in character spatial entries. Grid foundation and focused AI regression matrices pass. The latest 500-NPC profile is behavior-valid with scheduler p95 43.223 ms (previous traced run about 83 ms), but remains above the 4 ms target; world-signal proximity is the next active bottleneck.
+- 2026-08-13: Re-established the pushed 500-NPC baseline. The 180-frame run remained behavior-valid and 0 B/frame after warm-up, but scheduler average/p95 were `34.061/57.069 ms`.
+- 2026-08-13: A detailed 60-frame run localized the live cost to behavior evaluation (`BT p95 51.64 ms`), especially destination resolution (`31.34 ms`), world signal (`~8.41 ms`), and facility availability (`~3.41 ms`).
+- 2026-08-13: Replaced the grid result's lazy whole-search cell rescan with eager occupant position/move-cost records captured during the original search. Unity compilation and Grid/naturalness/priority/customer/stress100 focused regressions pass.
+- 2026-08-13 recoverable harness error: a manual profile pump overlapped the automatic Editor PlayerLoop and Unity reported recursive PlayerLoop execution. The run was discarded, PlayMode stopped, and the Console cleared; future runs must use a single frame-driving mode.
+- 2026-08-13: recovered the active AI-error goal and planning files with `planning-with-files` session catch-up; reviewed `game-ai` and `unity-csharp-scripting` guidance before continuing.
+- 2026-08-13: fixed the 500-NPC profiler so detailed category samples and slow-operation traces reset at the actual measurement boundary rather than including staging and the forced first tick of every behavior tree.
+- 2026-08-13: changed `AIBrainCandidateCommitter` to reuse the action evaluation produced by the same root decision instead of deleting and recomputing destination/facility/world-signal work immediately before commit. Priority-corner, naturalness, customer, and 100-NPC stress scenarios pass through Unity MCP.
+- 2026-08-13: ran two automatic 500-NPC 60-frame profiles. Both are behavior-valid but CPU-invalid; high run variance means no performance improvement claim is accepted yet. The next step is deterministic stage isolation plus the complete AI scenario matrix.
+- 2026-08-13: executed one comprehensive synchronous Unity MCP AI matrix covering action descriptors, naturalness/intent arbitration, priority corners, customer facilities, staff duty, work priorities, direct priority commands, owner AI, feedback diagnostics, grid pathing, physical grid occupancy, work amount, and survival/meal commit. All 13 groups passed and the fresh Console Warning/Error query returned `0/0`.
+- 2026-08-13: added and passed a focused regression proving candidate commit does not call `CanStart` a second time after selection in the same decision. This locks the decision-local evaluation reuse fix against regression.
+- 2026-08-13 recoverable compile error: the new regression declared `failure` inside a short-circuited commit expression and later read it, producing CS0165 when Unity performed the real project refresh. The requested five-day run did not start. Initialize the failure value before the expression, recompile, and rerun.
+## 2026-08-13 AI robustness continuation
+
+- 실제 Unity 재컴파일 뒤 priority corner-case 픽스처가 `CharacterActor`를 활성 상태에서 `AIBrain`보다 먼저 추가해 `CharacterActor.Awake()`가 빈 brain 참조를 확정하는 생명주기 오류를 확인했다. 테스트 픽스처를 비활성 조립 -> 주입 -> 활성화 순서로 수정하고 수동 `Awake` reflection 호출을 제거했다.
+- Unity MCP 동적 컴파일 요청 첫 시도는 MCP 래퍼 네임스페이스 안에서 `CompilationPipeline`이 `Unity.CompilationPipeline`으로 해석되어 CS0234로 실패했다. 프로젝트 스크립트 오류가 아니며 `UnityEditor.Compilation.CompilationPipeline` 완전 수식 이름으로 재시도한다.
+# 2026-08-13 facility fallback and five-day AI continuation
+
+- Split facility structural reachability from immediate capacity. Full authored facilities remain path-visible and queueable; immediate use and reservations still enforce capacity.
+- Added occupied-facility regression coverage and primitive start/completion telemetry with actor need, path, facility user/reservation/capacity, and immediate/queueable evidence.
+- Removed the emergency-decision direct primitive shortcut and routed emergency needs through the shared job-giver candidate path.
+- Guarded the high-speed deprivation self-care safeguard with the same primitive fallback policy; added commit-time and execution-time stale candidate revalidation.
+- Unity MCP customer/priority suites pass and project compilation is clean.
+- Latest five-day Unity MCP evidence: primitive actions 0, harmful stalls 0, authored toilet/hygiene/recreation cadence in range. Remaining WU issue is excessive need travel (`94.095 s/adult-day`) and a small observation-boundary accounting mismatch, not a production cost balance result.
+- Next: split need travel by meal/drink/rest/toilet/hygiene/recreation and origin/destination distance, verify the compact fixture does not classify non-moving service phases as travel, then repair real facility selection/detour behavior before accepting a live WU baseline.
+# 2026-08-13 AI meal-facility authority continuation
+
+- Recovered the active AI robustness goal, re-read the project authority and the planning/game-AI/Unity scripting skills, and inspected the current dirty worktree before editing.
+- Rechecked the reported local meal-buffer mismatch. Both the verifier and consumables runtime use `facility-input:meal:{facilityId}`; the physical destination string is not the defect.
+- Traced the false `DeliveryPending` to `GetMealCandidates`: a buffer-only availability query performs asynchronous exact pathfinding, and a transient `Pending` route is surfaced as delivery pending even though the serving is already in the local facility buffer.
+- Next implementation: split physical meal availability from precise route readiness, add focused pending-route/buffer-stock regression evidence, compile through Unity MCP, and rerun the five-day trace.
+- Implemented the split with an explicit `requireExactRoute` path in `GetMealCandidates`; buffer availability bypasses transient exact-route `Pending`, while meal execution and source delivery retain exact routing.
+- Added a survival regression that sets the shared path broker budget to zero and proves a supplied facility buffer still reports meal availability. Unity MCP compilation, all 18 survival groups, customer AI, and priority-corner regressions pass with Console Warning/Error `0/0`.
+- Five-day rerun passed: local meal counter is now valid for every actor, no primitive fallback or harmful stall occurred, physical food/water conservation held, and output/labor were `35.628/38.340 WU per actor-day`. The run still logged a distant-equivalent selection and one opaque meal abort.
+- Authored the shared equivalent-facility tolerance from `0.06` to `0.12` in source and the live ScriptableObject via Unity MCP. Added terminal meal-operation failure retention so a removed aborted plan no longer collapses to an unqualified missing-operation error. Focused regressions remain green; the next five-day comparison is pending.
+- Second five-day comparison removed distant-equivalent selection logs, but failed recreation cadence at `0.533/actor-day` and reported 30-31-cell paths between facilities with only 2-3 coordinate displacement.
+- Traced those paths to a test-world topology error: the verifier put facilities on different dungeon floors. Restricted the compact layout to the origin floor and added an explicit same-floor return invariant. This prevents path-correct stair travel from being mislabeled as AI detouring.
+- Bounded the terminal meal-operation diagnostic memory to 64 distinct operation IDs. Unity MCP compilation, all survival groups, customer AI and priority-corner regressions remain green with Console Warning/Error `0/0`.
+- Recoverable Unity MCP diagnostic-command error: a dynamic command attempted `FindObjectsByType<CharacterActor>` but its wrapper did not reference Sirenix.Serialization, causing command-only CS0311/CS0012. No project compilation or source was affected. The next diagnostic resolves `CharacterActor` through the already-registered world service instead of directly using the Sirenix-derived type in the dynamic command.
+- Diagnostic-command attempt 2 also failed at the dynamic wrapper boundary because it does not reference VContainer. Again, no project assembly/source changed. Rather than repeating an incompatible reflection command, fixture setup itself will emit per-floor candidate counts into its deterministic failure report.

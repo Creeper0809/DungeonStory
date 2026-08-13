@@ -13,6 +13,8 @@
 
 Current unit: rerun the isolated five-day observation after adding Drink to emergency selection, removing emergency Wait as a successful terminal fallback, and retaining per-need JobGiver rejection evidence. Any remaining stall must identify the rejected need branch rather than only the last unrelated Work rejection.
 
+2026-08-13 current unit update: local meal-buffer availability no longer depends on a transient exact-path budget. Three corrected same-floor samples now produce 54.721-62.944 actual WU/adult-day with zero harmful stalls; the latest passes all cadence and physical-consumption gates. FIFO refresh/cancellation, meal spoil-abort diagnostics and 500-NPC performance pass focused audits. Finish facility-destruction/save-round-trip proof, then run multi-seed and technology-stage WU matrices before replacing the provisional baseline.
+
 ## Phase 157 - Single worker-intent authority and live WU recovery (in progress)
 
 - [x] Inventory the competing character action owners. Routine safe relief, emergency relief, primitive survival, deprivation breakdown and direct movement previously mutated one `AIBrain` through unrelated booleans/coroutines.

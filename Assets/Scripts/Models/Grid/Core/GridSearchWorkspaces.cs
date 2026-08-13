@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using DungeonStory.Foundation;
 using UnityEngine;
 
@@ -345,7 +346,9 @@ internal static class GridSearchScratch
 
     public static HashSet<IGridOccupant> RentOccupantSet()
     {
-        return OccupantSets.Count > 0 ? OccupantSets.Pop() : new HashSet<IGridOccupant>();
+        return OccupantSets.Count > 0
+            ? OccupantSets.Pop()
+            : new HashSet<IGridOccupant>(GridOccupantReferenceComparer.Instance);
     }
 
     public static GridSearchPriorityQueue RentPriorityQueue()
@@ -482,4 +485,15 @@ internal static class GridSearchScratch
         SparseWorkspaces.Clear();
         sharedOccupants = null;
     }
+}
+
+internal sealed class GridOccupantReferenceComparer : IEqualityComparer<IGridOccupant>
+{
+    internal static readonly GridOccupantReferenceComparer Instance = new();
+
+    public bool Equals(IGridOccupant left, IGridOccupant right) =>
+        ReferenceEquals(left, right);
+
+    public int GetHashCode(IGridOccupant value) =>
+        value == null ? 0 : RuntimeHelpers.GetHashCode(value);
 }

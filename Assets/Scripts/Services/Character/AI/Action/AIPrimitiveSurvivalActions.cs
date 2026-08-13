@@ -5,6 +5,38 @@ public abstract class AIPrimitiveSurvivalAction : AIActionSet
     public override bool RequiresDestination => false;
     public override int InterruptPriority => 45;
 
+    public override bool RevalidateBeforeCommit(
+        CharacterActor actor,
+        BuildableObject evaluatedDestination,
+        out AIActionFailure failure)
+    {
+        if (CanStart(actor))
+        {
+            failure = AIActionFailure.None;
+            return true;
+        }
+
+        failure = AIActionFailure.Create(
+            AIActionFailureKind.CannotStart,
+            "Primitive fallback became invalid before commit.");
+        return false;
+    }
+
+    protected bool RevalidateAtExecution(CharacterActor actor)
+    {
+        if (CanStart(actor))
+        {
+            return true;
+        }
+
+        actor?.AddActivity(CharacterActivityEvent.InternalAi(
+            CharacterActivityOutcomes.Cancelled,
+            "primitive-stale-execution-blocked",
+            $"Primitive fallback cancelled at execution because authored service became available: action={GetType().Name}."));
+        actor?.Brain?.RequestImmediateReplan(clearFailures: true);
+        return false;
+    }
+
     protected static float PrimitiveScore(
         CharacterActor actor,
         CharacterCondition condition,
@@ -29,7 +61,7 @@ public abstract class AIPrimitiveSurvivalAction : AIActionSet
     /// role exists.  At emergency urgency an unusable/occupied facility may be
     /// bypassed so the actor cannot enter a deprivation death spiral.
     /// </summary>
-    protected static bool CanUsePrimitiveFallback(
+    public static bool CanUsePrimitiveFallback(
         CharacterActor actor,
         FacilityRole facilityRole,
         CharacterCondition condition)
@@ -39,26 +71,53 @@ public abstract class AIPrimitiveSurvivalAction : AIActionSet
             return false;
         }
 
-        // Coarse role presence, or even an indexed building on this grid, may
-        // still be outside the actor's reachable component. Only an
-        // actor-reachable authored fixture suppresses the primitive fallback.
-        // A temporarily occupied reachable fixture still remains a candidate
-        // (IsCandidate deliberately does not consume a visit slot), so it keeps
-        // the actor on the wait/retry path without mistaking global role bits
-        // for a usable local service.
-        GridPathSearchResult searchResult = actor.Brain?.GetPathSearch(actor);
-        if (searchResult != null
-            && FacilityCandidateScorer.HasCandidate(
-                actor,
-                searchResult,
-                facilityRole))
+        AIBrain brain = actor.Brain;
+        GridPathSearchResult searchResult = brain?.GetPathSearch(actor);
+        if (searchResult == null)
+        {
+            // A deferred path query is an explicit Pending state, not evidence
+            // that infrastructure is absent. Wait for the broker instead of
+            // committing a primitive action that may run for several seconds.
+            return brain?.IsPathSearchDeferred != true;
+        }
+
+        bool hasImmediateFacility = FacilityCandidateScorer.HasCandidate(
+            actor,
+            searchResult,
+            facilityRole);
+        if (hasImmediateFacility)
         {
             return false;
         }
 
-        // No reachable facility exists. This remains available at both routine
-        // and emergency urgency so a new settlement can survive before it
-        // builds its first fixture or while an isolated fixture is unreachable.
-        return true;
+        if (CharacterNeedAiThresholds.IsEmergency(actor, condition))
+        {
+            // Crossing the emergency line does not instantly invalidate an
+            // already reachable authored queue. Keep a five-point safety band
+            // in which a short reservation wait is preferable to an inferior
+            // primitive action. At the hard fallback line the actor bypasses
+            // occupancy so a long queue cannot create a death spiral.
+            if (FacilityCandidateScorer.HasReachableQueueableCandidate(
+                    actor,
+                    searchResult,
+                    facilityRole)
+                && actor.Stats != null
+                && actor.Stats.TryGetConditionValue(condition, out float value))
+            {
+                float hardFallback = Mathf.Max(
+                    0f,
+                    actor.Stats.GetNeedResponse(condition).emergencyStart - 10f);
+                return value <= hardFallback;
+            }
+
+            return true;
+        }
+
+        // At routine urgency a reachable, structurally valid facility remains
+        // the correct plan even while its capacity is temporarily occupied.
+        return !FacilityCandidateScorer.HasReachableQueueableCandidate(
+            actor,
+            searchResult,
+            facilityRole);
     }
 }

@@ -17,6 +17,11 @@ public sealed class AIPrimitiveBucketWash : AIPrimitiveSurvivalAction
             CharacterCondition.HYGIENE);
     public override float AdjustScore(CharacterActor actor, float baseScore) =>
         PrimitiveScore(actor, CharacterCondition.HYGIENE, baseScore);
-    public override void Execute(CharacterActor actor) =>
-        actor?.DeprivationCommands?.TryRunPrimitiveWash(actor, out _);
+    public override void Execute(CharacterActor actor)
+    {
+        if (RevalidateAtExecution(actor))
+        {
+            actor?.DeprivationCommands?.TryRunPrimitiveWash(actor, out _);
+        }
+    }
 }

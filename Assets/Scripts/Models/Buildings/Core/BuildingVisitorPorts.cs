@@ -239,7 +239,8 @@ public readonly struct BuildingMealUseSnapshot
         string displayName,
         int unitPrice,
         bool acceptedPending = false,
-        string operationId = "")
+        string operationId = "",
+        string failureDetail = "")
     {
         Success = success;
         FailureCode = failureCode ?? string.Empty;
@@ -247,6 +248,7 @@ public readonly struct BuildingMealUseSnapshot
         UnitPrice = unitPrice;
         AcceptedPending = acceptedPending;
         OperationId = operationId ?? string.Empty;
+        FailureDetail = failureDetail ?? string.Empty;
     }
 
     public bool Success { get; }
@@ -255,6 +257,7 @@ public readonly struct BuildingMealUseSnapshot
     public int UnitPrice { get; }
     public bool AcceptedPending { get; }
     public string OperationId { get; }
+    public string FailureDetail { get; }
 }
 
 public readonly struct BuildingRecreationalSubstanceUseSnapshot

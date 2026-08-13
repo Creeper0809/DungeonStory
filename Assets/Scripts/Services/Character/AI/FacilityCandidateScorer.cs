@@ -53,7 +53,7 @@ public static class FacilityCandidateScorer
                 continue;
             }
 
-            if (IsCandidate(actor, building, role, scoringContext, out _))
+            if (IsQueueableCandidate(actor, building, role, scoringContext, out _))
             {
                 result.Add(building);
             }
@@ -109,6 +109,58 @@ public static class FacilityCandidateScorer
         FacilityRole role)
     {
         return HasCandidate(actor, null, role, AcceptAnyCandidate);
+    }
+
+    /// <summary>
+    /// Returns whether the actor can reach authored service infrastructure
+    /// whose non-capacity requirements are valid. A full or reserved facility
+    /// remains infrastructure: routine self-care should wait for it instead of
+    /// incorrectly switching to primitive survival. Emergency self-care uses
+    /// <see cref="HasCandidate(CharacterActor, GridPathSearchResult, FacilityRole)"/>
+    /// so it may bypass temporary capacity pressure.
+    /// </summary>
+    public static bool HasReachableQueueableCandidate(
+        CharacterActor actor,
+        GridPathSearchResult searchResult,
+        FacilityRole role)
+    {
+        if (actor == null
+            || searchResult == null
+            || role == FacilityRole.None)
+        {
+            return false;
+        }
+
+        FacilityScoringContext scoringContext =
+            FacilityScoringContext.RequireFromActor(actor);
+        IReadOnlyList<BuildableObject> source =
+            GetCandidateSource(actor, searchResult, role);
+        int shortlistCount = BuildScoringShortlist(actor, source);
+        try
+        {
+            for (int sourceIndex = 0; sourceIndex < shortlistCount; sourceIndex++)
+            {
+                BuildableObject building = source.Count <= MaximumFullyScoredCandidates
+                    ? source[sourceIndex]
+                    : scoringShortlist[sourceIndex];
+                if (searchResult.ContainsVisitableOccupant(building)
+                    && IsQueueableCandidate(
+                        actor,
+                        building,
+                        role,
+                        scoringContext,
+                        out _))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        finally
+        {
+            ClearScoringShortlist(source, shortlistCount);
+        }
     }
 
     public static bool HasCandidate(
@@ -408,7 +460,13 @@ public static class FacilityCandidateScorer
             BuildableObject building = useThreadShortlist
                 ? scoringShortlist[index]
                 : source[index];
-            if (!CanScoreSelectionCandidate(building, searchResult))
+            if (!CanScoreSelectionCandidate(building, searchResult)
+                || !IsQueueableCandidate(
+                    actor,
+                    building,
+                    role,
+                    scoringContext,
+                    out _))
             {
                 continue;
             }
@@ -531,7 +589,86 @@ public static class FacilityCandidateScorer
             selectedScore = nearestScore;
         }
 
+        RecordDistantFacilitySelection(
+            actor,
+            role,
+            selectedBuilding,
+            selectedBreakdown,
+            selectedScore,
+            GetEstimatedTravelCells(actor, selectedBuilding, searchResult),
+            source,
+            safeCount,
+            useThreadShortlist,
+            selectedSourceIndex,
+            searchResult);
+
         return true;
+    }
+
+    private static void RecordDistantFacilitySelection(
+        CharacterActor actor,
+        FacilityRole role,
+        BuildableObject selected,
+        CharacterAiUtilityBreakdown selectedBreakdown,
+        float selectedScore,
+        float selectedTravel,
+        IReadOnlyList<BuildableObject> source,
+        int count,
+        bool useThreadShortlist,
+        int selectedSourceIndex,
+        GridPathSearchResult searchResult)
+    {
+        if (actor == null
+            || selected == null
+            || float.IsInfinity(selectedTravel))
+        {
+            return;
+        }
+
+        BuildableObject nearest = selected;
+        CharacterAiUtilityBreakdown nearestBreakdown = selectedBreakdown;
+        float nearestScore = selectedScore;
+        float nearestTravel = selectedTravel;
+        for (int index = 0; index < count; index++)
+        {
+            if (index == selectedSourceIndex || !scoredCandidateValid[index])
+            {
+                continue;
+            }
+
+            BuildableObject candidate = useThreadShortlist
+                ? scoringShortlist[index]
+                : source[index];
+            float travel = GetEstimatedTravelCells(actor, candidate, searchResult);
+            if (travel < nearestTravel
+                || (Mathf.Approximately(travel, nearestTravel)
+                    && candidate.id < nearest.id))
+            {
+                nearest = candidate;
+                nearestBreakdown = scoredCandidateBreakdowns[index];
+                nearestScore = scoredCandidateValues[index];
+                nearestTravel = travel;
+            }
+        }
+
+        float extraTravel = selectedTravel - nearestTravel;
+        if (nearest == selected || extraTravel < 4f)
+        {
+            return;
+        }
+
+        string selectedWhy = selectedBreakdown?.ToCompactString(6)
+            ?? $"score={selectedScore:0.###}";
+        string nearestWhy = nearestBreakdown?.ToCompactString(6)
+            ?? $"score={nearestScore:0.###}";
+        actor.AddActivity(CharacterActivityEvent.InternalAi(
+            CharacterActivityOutcomes.Observed,
+            "facility-distant-selection",
+            $"role={role}; selected={GetFacilityLabel(selected)}@{selected.centerPos}"
+            + $":score={selectedScore:0.###}:travel={selectedTravel:0.##}"
+            + $"; nearest={GetFacilityLabel(nearest)}@{nearest.centerPos}"
+            + $":score={nearestScore:0.###}:travel={nearestTravel:0.##}"
+            + $"; extraTravel={extraTravel:0.##}; selectedWhy={selectedWhy}; nearestWhy={nearestWhy}"));
     }
 
     private static void EnsureScoredCandidateBuffers(int count)
@@ -625,6 +762,52 @@ public static class FacilityCandidateScorer
 
         if (building is IRetailFacility shop
             && actor != null
+            && actor.TryGetAbility(out AbilityShopping shopping)
+            && !shopping.CanBuyFrom(shop, out rejectReason))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    internal static bool IsQueueableCandidate(
+        CharacterActor actor,
+        BuildableObject building,
+        FacilityRole role,
+        FacilityScoringContext scoringContext,
+        out string rejectReason)
+    {
+        rejectReason = string.Empty;
+        if (building == null)
+        {
+            rejectReason = "facility missing";
+            return false;
+        }
+
+        if (!building.SupportsFacilityRole(role))
+        {
+            rejectReason = "role mismatch";
+            return false;
+        }
+
+        if (!scoringContext.IsFacilityRoleAvailable(
+                building,
+                role,
+                out rejectReason)
+            || !building.CanQueueVisit(actor, out rejectReason))
+        {
+            return false;
+        }
+
+        if (role == FacilityRole.Meal
+            && CharacterWorkRoleUtility.TryGetWork(actor, out _)
+            && !HasPhysicalMealAvailable(actor, building, out rejectReason))
+        {
+            return false;
+        }
+
+        if (building is IRetailFacility shop
             && actor.TryGetAbility(out AbilityShopping shopping)
             && !shopping.CanBuyFrom(shop, out rejectReason))
         {
@@ -735,6 +918,58 @@ public static class FacilityCandidateScorer
         }
     }
 
+    public static string DescribeCandidateForDiagnostics(
+        CharacterActor actor,
+        BuildableObject building,
+        FacilityRole role,
+        GridPathSearchResult searchResult)
+    {
+        if (building == null)
+        {
+            return "facility=null";
+        }
+
+        FacilityScoringContext context =
+            FacilityScoringContext.RequireFromActor(actor);
+        bool queueable = IsQueueableCandidate(
+            actor,
+            building,
+            role,
+            context,
+            out string queueReason);
+        bool immediate = IsCandidate(
+            actor,
+            building,
+            role,
+            context,
+            out string immediateReason);
+        bool reachable = searchResult == null
+            || searchResult.ContainsVisitableOccupant(building);
+        CharacterAiUtilityBreakdown breakdown = null;
+        float score = queueable && reachable
+            ? ScoreCandidateWithBreakdown(
+                actor,
+                building,
+                role,
+                searchResult,
+                context,
+                out breakdown)
+            : 0f;
+        float travel = reachable
+            ? GetEstimatedTravelCells(actor, building, searchResult)
+            : float.PositiveInfinity;
+        string scoreDetail = queueable && reachable
+            ? (breakdown?.ToCompactString(6) ?? $"score={score:0.###}")
+            : string.Empty;
+        return $"facility={GetFacilityLabel(building)}@{building.centerPos}"
+            + $"; role={role}; reachable={reachable}; queueable={queueable}:{queueReason}"
+            + $"; immediate={immediate}:{immediateReason}; score={score:0.###}"
+            + $"; travel={travel:0.##}; users={building.CurrentUserCount}"
+            + $"; reservations={building.ActiveVisitReservationCount}"
+            + $"; waiting={building.WaitingVisitReservationCount}"
+            + $"; capacity={building.EffectiveCapacity}; why={scoreDetail}";
+    }
+
     private static float ScoreCandidateWithBreakdownCore(
         CharacterActor actor,
         BuildableObject building,
@@ -745,7 +980,7 @@ public static class FacilityCandidateScorer
     {
         breakdown = null;
         long stageStarted = BeginSlowFacilityStage(actor);
-        if (!IsCandidate(actor, building, role, scoringContext, out _))
+        if (!IsQueueableCandidate(actor, building, role, scoringContext, out _))
         {
             return 0f;
         }

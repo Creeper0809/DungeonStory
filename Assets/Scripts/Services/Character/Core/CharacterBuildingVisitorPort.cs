@@ -318,7 +318,8 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
                 meal.DisplayName,
                 meal.UnitPrice,
                 meal.IsAcceptedPending,
-                meal.OperationId.Value);
+                meal.OperationId.Value,
+                string.Join(",", meal.Parameters));
             return consumed;
         }
 
@@ -345,7 +346,8 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
                 meal.DisplayName,
                 meal.UnitPrice,
                 meal.IsAcceptedPending,
-                meal.OperationId.Value);
+                meal.OperationId.Value,
+                string.Join(",", meal.Parameters));
             return true;
         }
 

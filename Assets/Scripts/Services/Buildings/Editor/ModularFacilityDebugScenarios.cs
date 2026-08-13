@@ -920,27 +920,61 @@ public static class ModularFacilityDebugScenarios
             bool mealFirst = mealCore.TryReserveVisit(visitors[0], out string mealFirstReason);
             bool mealSameVisitor = mealCore.TryReserveVisit(visitors[0], out string mealSameReason);
             bool mealSecond = mealCore.TryReserveVisit(visitors[1], out string mealSecondReason);
-            bool mealThirdBlocked = !mealCore.TryReserveVisit(visitors[2], out string mealFullReason);
-            RecordAiCase(rows, failures, "dining_reservation_capacity",
+            bool mealThirdQueued = mealCore.TryReserveVisit(visitors[2], out string mealFullReason);
+            RecordAiCase(rows, failures, "dining_reservation_fifo_queue",
                 mealCore.EffectiveCapacity == 2
                 && mealFirst
                 && mealSameVisitor
                 && mealSecond
-                && mealCore.ActiveVisitReservationCount == 2
-                && mealThirdBlocked
-                && mealFullReason.Contains("수용 인원"),
+                && mealThirdQueued
+                && mealCore.ActiveVisitReservationCount == 3
+                && mealCore.WaitingVisitReservationCount == 1
+                && mealCore.GetVisitQueuePosition(visitors[2]) == 3,
                 $"capacity={mealCore.EffectiveCapacity}; reservations={mealCore.ActiveVisitReservationCount}; "
                 + $"first={mealFirst}:{mealFirstReason}; same={mealSameVisitor}:{mealSameReason}; "
-                + $"second={mealSecond}:{mealSecondReason}; thirdReason={mealFullReason}");
+                + $"second={mealSecond}:{mealSecondReason}; third={mealThirdQueued}:{mealFullReason}; "
+                + $"waiting={mealCore.WaitingVisitReservationCount}; position={mealCore.GetVisitQueuePosition(visitors[2])}");
 
             mealCore.ReleaseVisitReservation(visitors[1]);
-            bool mealThirdAfterRelease = mealCore.TryReserveVisit(visitors[2], out string mealReopenReason);
+            bool mealThirdAfterRelease = mealCore.CanVisit(visitors[2], out string mealReopenReason);
             RecordAiCase(rows, failures, "dining_queue_reopens_after_release",
                 mealThirdAfterRelease && mealCore.ActiveVisitReservationCount == 2,
                 $"admitted={mealThirdAfterRelease}; reservations={mealCore.ActiveVisitReservationCount}; reason={mealReopenReason}");
 
             mealCore.ReleaseVisitReservation(visitors[0]);
             mealCore.ReleaseVisitReservation(visitors[2]);
+
+            bool fifoOne = mealCore.TryReserveVisit(visitors[0], out _);
+            bool fifoTwo = mealCore.TryReserveVisit(visitors[1], out _);
+            bool fifoThree = mealCore.TryReserveVisit(visitors[2], out _);
+            bool fifoFour = mealCore.TryReserveVisit(visitors[3], out _);
+            int sequenceBeforeRefresh = mealCore.GetVisitQueuePosition(visitors[2]);
+            bool refreshedSameVisitor = mealCore.TryReserveVisit(visitors[2], out _);
+            int sequenceAfterRefresh = mealCore.GetVisitQueuePosition(visitors[2]);
+            mealCore.ReleaseVisitReservation(visitors[1]);
+            int thirdAfterMiddleCancel = mealCore.GetVisitQueuePosition(visitors[2]);
+            int fourthAfterMiddleCancel = mealCore.GetVisitQueuePosition(visitors[3]);
+            mealCore.ReleaseVisitReservation(visitors[0]);
+            bool thirdAdmittedAfterHeadCancel = mealCore.CanVisit(visitors[2], out _);
+            bool fourthAdmittedAfterHeadCancel = mealCore.CanVisit(visitors[3], out _);
+            RecordAiCase(rows, failures, "dining_fifo_cancel_and_refresh_stability",
+                fifoOne && fifoTwo && fifoThree && fifoFour
+                && refreshedSameVisitor
+                && sequenceBeforeRefresh == sequenceAfterRefresh
+                && sequenceBeforeRefresh == 3
+                && thirdAfterMiddleCancel == 2
+                && fourthAfterMiddleCancel == 3
+                && thirdAdmittedAfterHeadCancel
+                && fourthAdmittedAfterHeadCancel,
+                $"reserved={fifoOne}/{fifoTwo}/{fifoThree}/{fifoFour}; "
+                + $"refresh={sequenceBeforeRefresh}->{sequenceAfterRefresh}; "
+                + $"middleCancel={thirdAfterMiddleCancel}/{fourthAfterMiddleCancel}; "
+                + $"headCancelAdmit={thirdAdmittedAfterHeadCancel}/{fourthAdmittedAfterHeadCancel}");
+            foreach (CharacterActor visitor in visitors)
+            {
+                mealCore.ReleaseVisitReservation(visitor);
+            }
+
             bool bridgeReserved = mealCore.TryReserveVisit(
                 visitors[0],
                 out string bridgeReserveReason);
@@ -975,16 +1009,17 @@ public static class ModularFacilityDebugScenarios
             bool[] shopReservations = visitors.Take(3)
                 .Select(visitor => shop.TryReserveVisit(visitor, out _))
                 .ToArray();
-            bool shopFourthBlocked = !shop.TryReserveVisit(visitors[3], out string shopFullReason);
-            RecordAiCase(rows, failures, "shop_service_reservation_capacity",
+            bool shopFourthQueued = shop.TryReserveVisit(visitors[3], out string shopFullReason);
+            RecordAiCase(rows, failures, "shop_service_reservation_queue",
                 shop.HasAvailableStock
                 && shop.EffectiveCapacity == 3
                 && shopReservations.All(value => value)
-                && shop.ActiveVisitReservationCount == 3
-                && shopFourthBlocked
-                && shopFullReason.Contains("수용 인원"),
+                && shopFourthQueued
+                && shop.ActiveVisitReservationCount == 4
+                && shop.WaitingVisitReservationCount == 1,
                 $"stock={shop.CurrentStock}; capacity={shop.EffectiveCapacity}; "
-                + $"reservations={shop.ActiveVisitReservationCount}; fourthReason={shopFullReason}");
+                + $"reservations={shop.ActiveVisitReservationCount}; waiting={shop.WaitingVisitReservationCount}; "
+                + $"fourth={shopFourthQueued}:{shopFullReason}");
             foreach (CharacterActor visitor in visitors)
             {
                 shop.ReleaseVisitReservation(visitor);
@@ -1044,7 +1079,13 @@ public static class ModularFacilityDebugScenarios
     {
         GameObject actorObject = new GameObject(name);
         cleanup.Add(actorObject);
-        return actorObject.AddComponent<CharacterActor>();
+        CharacterActor actor = actorObject.AddComponent<CharacterActor>();
+        actor.EnsureRuntimeState();
+        actor.Identity.SetPersistentId(
+            "character:modular-facility:" + name
+                .ToLowerInvariant()
+                .Replace(' ', '-'));
+        return actor;
     }
 
     private static void RecordAiCase(
@@ -1676,6 +1717,7 @@ public static class ModularFacilityDebugScenarios
         BuildableObject building = factory.Create(grid, data, position);
         Require(building != null, $"Failed to create {data.objectName}.");
         building.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
+        building.ConstructDebugRules(DisabledDungeonDebugRuleQuery.Instance);
         building.ConstructBuildableObject(
             new BuildingResearchWorkPortAdapter(BlueprintResearchWorkService),
             FacilityCandidateCache,
@@ -1703,7 +1745,8 @@ public static class ModularFacilityDebugScenarios
                 new EmptyStockQuery(),
                 mealConsumptionRuntime: null,
                 waterFixtureUseRuntime: null,
-                wastewaterNetworkRuntime: null,
+                wastewaterNetworkRuntime:
+                    ModularFacilityWastewaterTransaction.Instance,
                 serviceSessionRuntime: null,
                 serviceRoomLinkRuntime: null,
                 stockCategoryCatalog: CharacterAiEditorTestDependencies.AuthoredGameplay);
@@ -1725,6 +1768,42 @@ public static class ModularFacilityDebugScenarios
             {
                 UnityEngine.Object.DestroyImmediate(building.gameObject);
             }
+        }
+    }
+
+    private sealed class ModularFacilityWastewaterTransaction :
+        IFluidWastewaterTransaction
+    {
+        internal static readonly ModularFacilityWastewaterTransaction Instance =
+            new ModularFacilityWastewaterTransaction();
+
+        public bool TryAddWastewater(
+            BuildableObject fixture,
+            float amount,
+            out float accepted,
+            out DomainFailure failure)
+        {
+            accepted = Mathf.Max(0f, amount);
+            failure = default;
+            return true;
+        }
+
+        public bool TryConsumeWastewater(
+            BuildableObject processor,
+            float amount,
+            out float consumed)
+        {
+            consumed = Mathf.Max(0f, amount);
+            return true;
+        }
+
+        public bool CanAcceptWastewater(
+            BuildableObject fixture,
+            float amount,
+            out DomainFailure failure)
+        {
+            failure = default;
+            return amount >= 0f;
         }
     }
 

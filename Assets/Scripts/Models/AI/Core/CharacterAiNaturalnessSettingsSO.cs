@@ -24,7 +24,7 @@ public sealed class CharacterAiNaturalnessSettingsSO : ScriptableObject
     [SerializeField, Min(0f)] private float freeFacilityTravelCells = 4f;
     [SerializeField, Min(0f)] private float facilityTravelUtilityCostPerCell = 0.015f;
     [SerializeField, Range(0f, 1f)] private float maximumFacilityTravelUtilityPenalty = 0.35f;
-    [SerializeField, Range(0f, 0.5f)] private float equivalentFacilityUtilityTolerance = 0.06f;
+    [SerializeField, Range(0f, 0.5f)] private float equivalentFacilityUtilityTolerance = 0.12f;
     [SerializeField, Min(0f)] private float equivalentFacilityMinimumTravelSavingsCells = 4f;
 
     public float SoftLockMinimumSeconds => Mathf.Max(0f, softLockMinimumSeconds);

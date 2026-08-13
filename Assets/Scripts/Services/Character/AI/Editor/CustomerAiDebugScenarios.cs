@@ -24,6 +24,10 @@ public static class CustomerAiDebugScenarios
         List<string> errors = new List<string>();
         RunScenario("Action score compensation", VerifyActionScoreCompensation, errors);
         RunScenario("Toilet and hygiene facility recovers needs", VerifyToiletAndHygieneFacilityRecovery, errors);
+        RunScenario(
+            "Routine primitive relief waits for occupied authored facility",
+            VerifyRoutinePrimitiveReliefWaitsForOccupiedFacility,
+            errors);
         RunScenario("목적지 없는 행동은 no action 처리", VerifyUnavailableDestinationActionsReportNoAction, errors);
         RunScenario("갈 수 없는 고점 행동 대신 대체 행동 선택", VerifyUnavailableHighScoreNeedSelectsReachableAction, errors);
 
@@ -368,6 +372,157 @@ public static class CustomerAiDebugScenarios
             && !washroomFacility.SupportsFacilityRole(FacilityRole.Toilet)
             && customer.stats[CharacterCondition.EXCRETION] > 5f
             && customer.stats[CharacterCondition.HYGIENE] > 10f;
+    }
+
+    private static bool VerifyRoutinePrimitiveReliefWaitsForOccupiedFacility()
+    {
+        using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
+        BuildableObject toilet = world.Place(
+            "P1_Toilet",
+            new Vector2Int(8, 0));
+        List<CharacterActor> occupants = new List<CharacterActor>();
+        int capacity = Mathf.Max(1, toilet.EffectiveCapacity);
+        for (int index = 0; index < capacity; index++)
+        {
+            CharacterActor occupant = world.CreateCustomer(
+                "Slime",
+                new Vector2Int(index, 0),
+                90f,
+                90f,
+                90f,
+                90f);
+            occupant.Identity.SetPersistentId(
+                $"character:qa:occupied-toilet:{index}");
+            occupants.Add(occupant);
+        }
+        CharacterActor waiting = world.CreateCustomer(
+            "Orc",
+            new Vector2Int(capacity + 1, 0),
+            90f,
+            90f,
+            90f,
+            90f);
+        waiting.Identity.SetPersistentId(
+            "character:qa:occupied-toilet:waiting");
+        PrimitiveFallbackProbe primitive =
+            ScriptableObject.CreateInstance<PrimitiveFallbackProbe>();
+        try
+        {
+            foreach (CharacterActor occupant in occupants)
+            {
+                if (!toilet.TryBeginUse(
+                        occupant.BuildingVisitor,
+                        out string reserveFailure))
+                {
+                    Debug.LogError(
+                        "Could not fill authored toilet for primitive fallback regression: "
+                        + reserveFailure);
+                    return false;
+                }
+            }
+
+            waiting.stats[CharacterCondition.EXCRETION] = 50f;
+            bool routineUsesPrimitive = primitive.CanUse(
+                waiting,
+                FacilityRole.Toilet,
+                CharacterCondition.EXCRETION);
+            bool waitingReserved = toilet.TryReserveVisit(
+                waiting.BuildingVisitor,
+                out string waitingReserveReason);
+            int waitingQueuePosition = toilet.GetVisitQueuePosition(
+                waiting.BuildingVisitor);
+            bool blockedUntilCapacity = !toilet.CanVisit(
+                waiting.BuildingVisitor,
+                out string waitingAdmissionReason);
+            waiting.stats[CharacterCondition.EXCRETION] = 15f;
+            bool emergencyUsesPrimitive = primitive.CanUse(
+                waiting,
+                FacilityRole.Toilet,
+                CharacterCondition.EXCRETION);
+            waiting.stats[CharacterCondition.EXCRETION] = 24f;
+            bool softEmergencyWaits = !primitive.CanUse(
+                waiting,
+                FacilityRole.Toilet,
+                CharacterCondition.EXCRETION);
+            toilet.EndUse(occupants[0].BuildingVisitor);
+            bool admittedAfterRelease = toilet.CanVisit(
+                waiting.BuildingVisitor,
+                out string admittedReason);
+            bool stalePrimitiveRejected = !primitive.RevalidateBeforeCommit(
+                waiting,
+                null,
+                out AIActionFailure staleFailure)
+                && staleFailure.Kind == AIActionFailureKind.CannotStart;
+            GridPathSearchResult search = waiting.Brain.GetPathSearch(waiting);
+            bool passed = !routineUsesPrimitive
+                && waitingReserved
+                && waitingQueuePosition == 1
+                && blockedUntilCapacity
+                && emergencyUsesPrimitive
+                && softEmergencyWaits
+                && admittedAfterRelease
+                && stalePrimitiveRejected;
+            if (!passed)
+            {
+                Debug.LogError(
+                    "Primitive relief did not distinguish occupied infrastructure "
+                    + "from missing infrastructure: "
+                    + $"routine={routineUsesPrimitive}; "
+                    + $"waitingReserved={waitingReserved}:{waitingReserveReason}; "
+                    + $"queuePosition={waitingQueuePosition}; "
+                    + $"blockedUntilCapacity={blockedUntilCapacity}:{waitingAdmissionReason}; "
+                    + $"emergency={emergencyUsesPrimitive}; "
+                    + $"softEmergencyWaits={softEmergencyWaits}; "
+                    + $"admittedAfterRelease={admittedAfterRelease}:{admittedReason}; "
+                    + $"stalePrimitiveRejected={stalePrimitiveRejected}; "
+                    + $"staleFailure={staleFailure}; "
+                    + $"need={waiting.stats[CharacterCondition.EXCRETION]}; "
+                    + $"response={waiting.Stats.GetNeedResponse(CharacterCondition.EXCRETION).routineStart}/"
+                    + $"{waiting.Stats.GetNeedResponse(CharacterCondition.EXCRETION).emergencyStart}; "
+                    + $"isEmergency={CharacterNeedAiThresholds.IsEmergency(waiting, CharacterCondition.EXCRETION)}; "
+                    + $"searchNull={search == null}; "
+                    + $"searchDeferred={waiting.Brain.IsPathSearchDeferred}; "
+                    + $"searchContains={search?.ContainsVisitableOccupant(toilet)}; "
+                    + $"queueableReachable={FacilityCandidateScorer.HasReachableQueueableCandidate(waiting, search, FacilityRole.Toilet)}; "
+                    + $"immediateReachable={FacilityCandidateScorer.HasCandidate(waiting, search, FacilityRole.Toilet)}; "
+                    + $"capacity={toilet.EffectiveCapacity}; "
+                    + $"users={toilet.CurrentUserCount}; "
+                    + $"reservations={toilet.ActiveVisitReservationCount}; "
+                    + $"canVisit={toilet.CanVisit(waiting.BuildingVisitor, out string visitReason)}; "
+                    + $"visitReason={visitReason}; "
+                    + $"canQueue={toilet.CanQueueVisit(waiting.BuildingVisitor, out string queueReason)}; "
+                    + $"queueReason={queueReason}");
+            }
+
+            return passed;
+        }
+        finally
+        {
+            toilet.ReleaseVisitReservation(waiting.BuildingVisitor);
+            foreach (CharacterActor occupant in occupants)
+            {
+                toilet.EndUse(occupant.BuildingVisitor);
+            }
+            Object.DestroyImmediate(primitive);
+        }
+    }
+
+    private sealed class PrimitiveFallbackProbe : AIPrimitiveSurvivalAction
+    {
+        public override bool CanStart(CharacterActor actor) =>
+            AIPrimitiveSurvivalAction.CanUsePrimitiveFallback(
+                actor,
+                FacilityRole.Toilet,
+                CharacterCondition.EXCRETION);
+
+        public bool CanUse(
+            CharacterActor actor,
+            FacilityRole role,
+            CharacterCondition condition) =>
+            AIPrimitiveSurvivalAction.CanUsePrimitiveFallback(
+                actor,
+                role,
+                condition);
     }
 
     private static bool VerifyVampireSelectsManaOrResearch()

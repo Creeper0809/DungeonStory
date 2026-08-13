@@ -62,6 +62,26 @@ public readonly struct CharacterPrimitiveSurvivalCompletedEvent
     public int PhysicalItemCount { get; }
 }
 
+public readonly struct CharacterPrimitiveSurvivalStartedEvent
+{
+    public CharacterPrimitiveSurvivalStartedEvent(
+        CharacterId characterId,
+        string actionId,
+        bool emergency,
+        float needValue)
+    {
+        CharacterId = characterId;
+        ActionId = actionId?.Trim() ?? string.Empty;
+        Emergency = emergency;
+        NeedValue = Mathf.Clamp(needValue, 0f, 100f);
+    }
+
+    public CharacterId CharacterId { get; }
+    public string ActionId { get; }
+    public bool Emergency { get; }
+    public float NeedValue { get; }
+}
+
 public interface ICharacterDeprivationQuery
 {
     bool HasActiveBreakdown(CharacterActor actor);

@@ -43,6 +43,16 @@ internal sealed class ShopCustomerInteractionService
     internal IEnumerator Interact(IBuildingVisitorPort actor)
     {
         owner.EnsureCustomerStockInitialized();
+        object currentAction = actor?.CurrentActionToken;
+        if (actor != null && !owner.CanVisit(actor, out _))
+        {
+            yield return owner.WaitForVisitAdmission(actor, currentAction);
+            if (!actor.IsCurrentAction(currentAction)
+                || actor.IsCurrentActionEnded)
+            {
+                yield break;
+            }
+        }
         if (!owner.TryBeginUse(actor, out string failureReason))
         {
             actor?.Shopping?.SetVisitOutcome(owner, BuildingVisitOutcome.Failed);
@@ -92,7 +102,7 @@ internal sealed class ShopCustomerInteractionService
             yield break;
         }
 
-        object currentAction = actor.CurrentActionToken;
+        currentAction = actor.CurrentActionToken;
         if (owner.Facility != null && owner.Facility.SupportsRole(FacilityRole.Meal))
         {
             if (serviceSession != null)
@@ -404,7 +414,8 @@ internal sealed class ShopCustomerInteractionService
                     false,
                     CharacterConsumablesFailureCode.PhysicalConsumptionFailed.ToString(),
                     string.Empty,
-                    0);
+                    0,
+                    failureDetail: "meal-action-timeout");
             }
         }
         if (!consumed)
@@ -416,7 +427,9 @@ internal sealed class ShopCustomerInteractionService
             actor?.RecordActivity(owner, new BuildingActivitySnapshot(
                 BuildingActivityKinds.FacilityUse,
                 BuildingActivityOutcomes.Failed,
-                failureCode,
+                string.IsNullOrWhiteSpace(meal.FailureDetail)
+                    ? failureCode
+                    : $"{failureCode}:{meal.FailureDetail}",
                 reasonCode: failureCode,
                 bubbleEligible: true));
             yield break;

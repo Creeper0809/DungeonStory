@@ -149,6 +149,16 @@ internal sealed class CharacterPrimitiveSurvivalRunner
             kind,
             intentKind,
             intentLease.Epoch);
+        CharacterCondition condition = GetCondition(kind);
+        float needValue = actor.Stats != null
+            && actor.Stats.TryGetConditionValue(condition, out float currentNeed)
+                ? currentNeed
+                : 0f;
+        events.Publish(new CharacterPrimitiveSurvivalStartedEvent(
+            actorId,
+            GetActionId(kind),
+            intentKind == CharacterActionIntentKind.EmergencyNeed,
+            needValue));
         actor.AddActivity(CharacterActivityEvent.InternalAi(
             CharacterActivityOutcomes.Started,
             "primitive-survival-start",
@@ -211,7 +221,12 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         CharacterActor actor,
         CharacterPrimitiveSurvivalActionKind kind)
     {
-        CharacterCondition condition = kind switch
+        return CharacterNeedAiThresholds.IsEmergency(actor, GetCondition(kind));
+    }
+
+    private static CharacterCondition GetCondition(
+        CharacterPrimitiveSurvivalActionKind kind) =>
+        kind switch
         {
             CharacterPrimitiveSurvivalActionKind.FieldMeal => CharacterCondition.HUNGER,
             CharacterPrimitiveSurvivalActionKind.FloorRest => CharacterCondition.SLEEP,
@@ -219,8 +234,17 @@ internal sealed class CharacterPrimitiveSurvivalRunner
             CharacterPrimitiveSurvivalActionKind.BucketWash => CharacterCondition.HYGIENE,
             _ => default
         };
-        return CharacterNeedAiThresholds.IsEmergency(actor, condition);
-    }
+
+    private static string GetActionId(
+        CharacterPrimitiveSurvivalActionKind kind) =>
+        kind switch
+        {
+            CharacterPrimitiveSurvivalActionKind.FieldMeal => "survival:field-meal",
+            CharacterPrimitiveSurvivalActionKind.FloorRest => "survival:floor-rest",
+            CharacterPrimitiveSurvivalActionKind.Latrine => "survival:primitive-latrine",
+            CharacterPrimitiveSurvivalActionKind.BucketWash => "survival:bucket-wash",
+            _ => "survival:primitive"
+        };
 
     private IEnumerator RunFieldMeal(
         CharacterActor actor,

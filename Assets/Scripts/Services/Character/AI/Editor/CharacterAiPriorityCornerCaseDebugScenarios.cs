@@ -25,6 +25,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
 
         RunScenario("AI action score edge cases", VerifyActionScoreEdgeCases, errors);
         RunScenario("AI action plan invariants", VerifyActionPlanInvariants, errors);
+        RunScenario("Candidate commit reuses decision evaluation", VerifyCandidateCommitReusesDecisionEvaluation, errors);
         RunScenario("AI selects next action after failed high-score destination", VerifyBrainSelectsNextActionAfterDestinationFailure, errors);
         RunScenario("AI tie keeps action order", VerifyBrainTieKeepsActionOrder, errors);
         RunScenario("Off priority excludes urgent automatic work", VerifyOffPriorityExcludesUrgentAutomaticWork, errors);
@@ -538,6 +539,59 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         }
     }
 
+    private static bool VerifyCandidateCommitReusesDecisionEvaluation()
+    {
+        using PriorityScenarioWorld world = new PriorityScenarioWorld();
+        CharacterActor character = world.CreateOwner(
+            "Owner_Slime",
+            Vector2Int.zero);
+        TestActionSet actionSet = CreateAction(
+            "Decision-local evaluation",
+            0.75f,
+            requiresDestination: false,
+            resolvesDestination: true);
+
+        try
+        {
+            character.ai.availableActions = new[]
+            {
+                new AIAction { actionset = actionSet }
+            };
+
+            bool selected = character.ai.TryFindBestScoredAction(
+                candidate => ReferenceEquals(candidate, actionSet),
+                out CharacterAiActionCandidate candidate);
+            int evaluationsBeforeCommit = actionSet.CanStartRequestCount;
+            AIActionFailure failure = AIActionFailure.None;
+            bool committed = selected
+                && character.ai.TryCommitActionCandidate(
+                    candidate,
+                    out failure);
+
+            bool passed = selected
+                && committed
+                && !failure.HasFailure
+                && evaluationsBeforeCommit == 1
+                && actionSet.CanStartRequestCount == 1
+                && character.ai.bestAction?.actionset == actionSet;
+            if (!passed)
+            {
+                Debug.LogError(
+                    "Decision-local candidate evaluation was not reused: "
+                    + $"selected={selected}; committed={committed}; "
+                    + $"before={evaluationsBeforeCommit}; "
+                    + $"after={actionSet.CanStartRequestCount}; "
+                    + $"failure={failure}");
+            }
+
+            return passed;
+        }
+        finally
+        {
+            Object.DestroyImmediate(actionSet);
+        }
+    }
+
     private static bool VerifyThirstOutranksWorkAndSocialWait()
     {
         using PriorityScenarioWorld world = new PriorityScenarioWorld();
@@ -639,6 +693,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
             && workExcluded
             && unavailableEmergencyFallsThrough;
     }
+
 
     private static TestActionSet CreateAction(
         string actionName,
@@ -850,8 +905,15 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         public bool RequireDestination { get; set; }
         public bool ResolveDestination { get; set; }
         public FixedScoreConsideration OwnedConsideration { get; set; }
+        public int CanStartRequestCount { get; private set; }
 
         public override bool RequiresDestination => RequireDestination;
+
+        public override bool CanStart(CharacterActor actor)
+        {
+            CanStartRequestCount++;
+            return actor != null;
+        }
 
         public override void Execute(CharacterActor actor)
         {
@@ -899,8 +961,6 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
             typeof(GridSystemManager).GetField("instance", BindingFlags.Static | BindingFlags.NonPublic);
         private static readonly FieldInfo GridField =
             typeof(GridSystemManager).GetField("<grid>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
-        private static readonly MethodInfo CharacterAwakeMethod =
-            typeof(CharacterActor).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic);
         private static readonly FieldInfo CharacterAiSchedulerInstanceField =
             typeof(CharacterAiScheduler).GetField("instance", BindingFlags.Static | BindingFlags.NonPublic);
 
@@ -981,6 +1041,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
 
             GameObject obj = new GameObject(ownerAssetName);
             objects.Add(obj);
+            obj.SetActive(false);
             obj.transform.position = Grid.GetWorldPos(position);
             obj.AddComponent<SpriteRenderer>();
             obj.AddComponent<CharacterActor>();
@@ -989,9 +1050,10 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
             obj.AddComponent<AbilityWork>();
             obj.AddComponent<AIBrain>();
             CharacterAiEditorTestDependencies.Inject(obj);
+            obj.SetActive(true);
 
             CharacterActor character = obj.GetComponent<CharacterActor>();
-            CharacterAwakeMethod?.Invoke(character, null);
+            character.EnsureRuntimeState();
             character.RefreshAbilityCache();
             character.Initialization(data);
             character.SetLifecycleState(CharacterLifecycleState.Active);

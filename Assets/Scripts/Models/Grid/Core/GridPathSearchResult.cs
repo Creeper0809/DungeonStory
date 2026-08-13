@@ -23,10 +23,8 @@ public class GridPathSearchResult
     private readonly GridMoveStep[] exactPath;
     private readonly int exactMoveCost;
     private Queue<GridMoveStep> ownedExactPath;
-    private HashSet<IGridOccupant> visitableOccupantSet;
-    private Dictionary<IGridOccupant, Vector2Int> visitableOccupantPositions;
-    private Dictionary<IGridOccupant, int> visitableOccupantMoveCosts;
-    private bool visitableOccupantPositionsBuilt;
+    private readonly Dictionary<IGridOccupant, GridVisitableOccupantAccess>
+        visitableOccupantAccess;
 
     internal GridPathSearchResult(
         Grid sourceGrid,
@@ -38,7 +36,8 @@ public class GridPathSearchResult
         int[] searchOrder,
         int searchOrderCount,
         int[] moveCost,
-        List<IGridOccupant> visitableOccupants)
+        List<IGridOccupant> visitableOccupants,
+        Dictionary<IGridOccupant, GridVisitableOccupantAccess> visitableOccupantAccess)
     {
         this.sourceGrid = sourceGrid;
         this.start = start;
@@ -52,6 +51,7 @@ public class GridPathSearchResult
         ExpandedNodeCount = searchOrderCount;
         this.moveCost = moveCost;
         this.visitableOccupants = visitableOccupants;
+        this.visitableOccupantAccess = visitableOccupantAccess;
         exactDestination = null;
         exactPath = null;
         exactMoveCost = int.MaxValue;
@@ -78,6 +78,7 @@ public class GridPathSearchResult
         searchOrderCount = 0;
         this.moveCost = Array.Empty<int>();
         visitableOccupants = new List<IGridOccupant>(0);
+        visitableOccupantAccess = new Dictionary<IGridOccupant, GridVisitableOccupantAccess>(0);
         exactDestination = destination;
         exactPath = path ?? Array.Empty<GridMoveStep>();
         exactMoveCost = moveCost;
@@ -105,6 +106,7 @@ public class GridPathSearchResult
         searchOrderCount = 0;
         this.moveCost = Array.Empty<int>();
         visitableOccupants = new List<IGridOccupant>(0);
+        visitableOccupantAccess = new Dictionary<IGridOccupant, GridVisitableOccupantAccess>(0);
         exactDestination = destination;
         exactPath = Array.Empty<GridMoveStep>();
         exactMoveCost = moveCost;
@@ -140,8 +142,7 @@ public class GridPathSearchResult
             return false;
         }
 
-        visitableOccupantSet ??= new HashSet<IGridOccupant>(visitableOccupants);
-        return visitableOccupantSet.Contains(occupant);
+        return visitableOccupantAccess.ContainsKey(occupant);
     }
 
     public int GetMoveDistanceTo(IGridOccupant destination)
@@ -173,9 +174,10 @@ public class GridPathSearchResult
             return int.MaxValue;
         }
 
-        EnsureVisitableOccupantPositionCache();
-        return visitableOccupantMoveCosts.TryGetValue(destination, out int cost)
-            ? cost
+        return visitableOccupantAccess.TryGetValue(
+                destination,
+                out GridVisitableOccupantAccess access)
+            ? access.MoveCost
             : int.MaxValue;
     }
 
@@ -576,48 +578,16 @@ public class GridPathSearchResult
 
     private bool TryGetVisitableOccupantPosition(IGridOccupant occupant, out Vector2Int position)
     {
-        EnsureVisitableOccupantPositionCache();
-        return visitableOccupantPositions.TryGetValue(occupant, out position);
-    }
-
-    private void EnsureVisitableOccupantPositionCache()
-    {
-        if (visitableOccupantPositionsBuilt)
+        if (visitableOccupantAccess.TryGetValue(
+                occupant,
+                out GridVisitableOccupantAccess access))
         {
-            return;
+            position = access.Position;
+            return true;
         }
 
-        visitableOccupantPositionsBuilt = true;
-        visitableOccupantSet ??= new HashSet<IGridOccupant>(visitableOccupants);
-        visitableOccupantPositions ??= new Dictionary<IGridOccupant, Vector2Int>();
-        visitableOccupantMoveCosts ??= new Dictionary<IGridOccupant, int>();
-        for (int index = 0; index < searchOrderCount; index++)
-        {
-            Vector2Int pos = sourceGrid.GetPositionFromCellIndex(searchOrder[index]);
-            GridCell cell = sourceGrid.GetGridCell(pos);
-            if (cell == null)
-            {
-                continue;
-            }
-
-            GridSearchScratch.SharedOccupants.Clear();
-            cell.FillAllOccupants(GridSearchScratch.SharedOccupants);
-            foreach (IGridOccupant occupant in GridSearchScratch.SharedOccupants)
-            {
-                if (occupant != null
-                    && visitableOccupantSet.Contains(occupant)
-                    && !visitableOccupantPositions.ContainsKey(occupant))
-                {
-                    visitableOccupantPositions.Add(occupant, pos);
-                    int cellIndex = sourceGrid.TryGetCellIndex(pos, out int resolvedIndex)
-                        ? resolvedIndex
-                        : -1;
-                    visitableOccupantMoveCosts.Add(
-                        occupant,
-                        cellIndex >= 0 ? moveCost[cellIndex] : int.MaxValue);
-                }
-            }
-        }
+        position = default;
+        return false;
     }
 
     private int GetMoveDistance(Vector2Int end)
@@ -670,5 +640,17 @@ public class GridPathSearchResult
         return distance >= Mathf.Max(0, minDistance)
             && (maxDistance <= 0 || distance <= maxDistance);
     }
+}
+
+internal readonly struct GridVisitableOccupantAccess
+{
+    public GridVisitableOccupantAccess(Vector2Int position, int moveCost)
+    {
+        Position = position;
+        MoveCost = moveCost;
+    }
+
+    public Vector2Int Position { get; }
+    public int MoveCost { get; }
 }
 

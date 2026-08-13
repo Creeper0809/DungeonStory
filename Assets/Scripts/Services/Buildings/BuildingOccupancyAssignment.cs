@@ -4,14 +4,27 @@ using UnityEngine;
 
 public sealed class BuildingOccupancy
 {
+    private readonly struct VisitReservation
+    {
+        public VisitReservation(float expiresAt, long sequence)
+        {
+            ExpiresAt = expiresAt;
+            Sequence = sequence;
+        }
+
+        public float ExpiresAt { get; }
+        public long Sequence { get; }
+    }
+
     private readonly BuildableObject owner;
-    private readonly Dictionary<CharacterId, float> visitReservations =
-        new Dictionary<CharacterId, float>();
+    private readonly Dictionary<CharacterId, VisitReservation> visitReservations =
+        new Dictionary<CharacterId, VisitReservation>();
     private readonly List<CharacterId> expiredVisitReservations =
         new List<CharacterId>();
     private readonly HashSet<CharacterId> activeUsers =
         new HashSet<CharacterId>();
     private float nextVisitReservationExpiry = float.PositiveInfinity;
+    private long nextVisitReservationSequence = 1L;
 
     public BuildingOccupancy(BuildableObject owner)
     {
@@ -29,15 +42,49 @@ public sealed class BuildingOccupancy
         }
     }
 
+    public int WaitingVisitReservationCount
+    {
+        get
+        {
+            PruneExpiredVisitReservations();
+            int immediatelyAdmissible = Mathf.Max(
+                0,
+                owner.EffectiveCapacity - activeUsers.Count);
+            return Mathf.Max(0, visitReservations.Count - immediatelyAdmissible);
+        }
+    }
+
     public void Reset()
     {
         activeUsers.Clear();
         visitReservations.Clear();
         expiredVisitReservations.Clear();
         nextVisitReservationExpiry = float.PositiveInfinity;
+        nextVisitReservationSequence = 1L;
     }
 
     public bool CanVisit(IBuildingCharacterPort visitor, out string failureReason)
+    {
+        return CanVisitCore(
+            visitor,
+            includeCapacity: true,
+            out failureReason);
+    }
+
+    public bool CanQueueVisit(
+        IBuildingCharacterPort visitor,
+        out string failureReason)
+    {
+        return CanVisitCore(
+            visitor,
+            includeCapacity: false,
+            out failureReason);
+    }
+
+    private bool CanVisitCore(
+        IBuildingCharacterPort visitor,
+        bool includeCapacity,
+        out string failureReason)
     {
         PruneExpiredVisitReservations();
         failureReason = string.Empty;
@@ -75,12 +122,9 @@ public sealed class BuildingOccupancy
         }
 
         CharacterId visitorId = GetVisitorId(visitor);
-        int effectiveCapacity = owner.EffectiveCapacity;
-        if (effectiveCapacity > 0
-            && activeUsers.Count + GetActiveVisitReservationCountExcept(visitorId)
-                >= effectiveCapacity)
+        if (includeCapacity
+            && !IsAdmissionReady(visitorId, out failureReason))
         {
-            failureReason = "\uC218\uC6A9 \uC778\uC6D0 \uCD08\uACFC";
             return false;
         }
 
@@ -110,7 +154,8 @@ public sealed class BuildingOccupancy
             return false;
         }
 
-        if (!CanVisit(visitor, out failureReason))
+        if (!CanQueueVisit(visitor, out failureReason)
+            || !IsAdmissionReady(visitorId, out failureReason))
         {
             return false;
         }
@@ -161,20 +206,32 @@ public sealed class BuildingOccupancy
             return false;
         }
 
-        if (!CanVisit(visitor, out failureReason))
+        if (!CanQueueVisit(visitor, out failureReason))
         {
             return false;
         }
 
         float expiry = Now + Mathf.Max(0.1f, seconds);
-        if (visitReservations.TryGetValue(visitorId, out float previousExpiry)
-            && previousExpiry <= nextVisitReservationExpiry
-            && expiry > previousExpiry)
+        if (visitReservations.TryGetValue(
+                visitorId,
+                out VisitReservation previous))
         {
-            nextVisitReservationExpiry = 0f;
-        }
+            if (previous.ExpiresAt <= nextVisitReservationExpiry
+                && expiry > previous.ExpiresAt)
+            {
+                nextVisitReservationExpiry = 0f;
+            }
 
-        visitReservations[visitorId] = expiry;
+            visitReservations[visitorId] = new VisitReservation(
+                expiry,
+                previous.Sequence);
+        }
+        else
+        {
+            visitReservations[visitorId] = new VisitReservation(
+                expiry,
+                nextVisitReservationSequence++);
+        }
         nextVisitReservationExpiry = Mathf.Min(nextVisitReservationExpiry, expiry);
         owner.NotifyOccupancyOrAssignmentChanged();
         return true;
@@ -188,11 +245,13 @@ public sealed class BuildingOccupancy
             return;
         }
 
-        float previousExpiry = visitReservations[visitorId];
+        VisitReservation previous = visitReservations[visitorId];
         float expiry = Now + Mathf.Max(0.1f, seconds);
-        visitReservations[visitorId] = expiry;
-        if (previousExpiry <= nextVisitReservationExpiry
-            && expiry > previousExpiry)
+        visitReservations[visitorId] = new VisitReservation(
+            expiry,
+            previous.Sequence);
+        if (previous.ExpiresAt <= nextVisitReservationExpiry
+            && expiry > previous.ExpiresAt)
         {
             nextVisitReservationExpiry = 0f;
         }
@@ -210,13 +269,15 @@ public sealed class BuildingOccupancy
             return;
         }
 
-        if (!visitReservations.TryGetValue(visitorId, out float expiry)
+        if (!visitReservations.TryGetValue(
+                visitorId,
+                out VisitReservation reservation)
             || !visitReservations.Remove(visitorId))
         {
             return;
         }
 
-        if (expiry <= nextVisitReservationExpiry)
+        if (reservation.ExpiresAt <= nextVisitReservationExpiry)
         {
             nextVisitReservationExpiry = 0f;
         }
@@ -224,13 +285,99 @@ public sealed class BuildingOccupancy
         owner.NotifyOccupancyOrAssignmentChanged();
     }
 
-    private int GetActiveVisitReservationCountExcept(CharacterId visitorId)
+    public int GetVisitQueuePosition(IBuildingCharacterPort visitor)
     {
         PruneExpiredVisitReservations();
-        return Mathf.Max(
+        CharacterId visitorId = GetVisitorId(visitor);
+        if (!visitorId.IsValid
+            || !visitReservations.TryGetValue(
+                visitorId,
+                out VisitReservation own))
+        {
+            return 0;
+        }
+
+        int ahead = 0;
+        foreach (KeyValuePair<CharacterId, VisitReservation> pair in visitReservations)
+        {
+            if (!pair.Key.Equals(visitorId) && pair.Value.Sequence < own.Sequence)
+            {
+                ahead++;
+            }
+        }
+
+        return ahead + 1;
+    }
+
+    private bool IsAdmissionReady(
+        CharacterId visitorId,
+        out string failureReason)
+    {
+        PruneExpiredVisitReservations();
+        failureReason = string.Empty;
+        int availableSlots = Mathf.Max(
             0,
-            visitReservations.Count
-            - (visitorId.IsValid && visitReservations.ContainsKey(visitorId) ? 1 : 0));
+            owner.EffectiveCapacity - activeUsers.Count);
+        if (availableSlots <= 0)
+        {
+            failureReason = visitReservations.ContainsKey(visitorId)
+                ? $"시설 대기열 {GetVisitQueuePositionById(visitorId)}번째"
+                : "수용 인원 초과";
+            return false;
+        }
+
+        if (!visitorId.IsValid
+            || !visitReservations.TryGetValue(
+                visitorId,
+                out VisitReservation own))
+        {
+            if (visitReservations.Count == 0)
+            {
+                return true;
+            }
+
+            failureReason = "기존 시설 대기열 우선";
+            return false;
+        }
+
+        int ahead = 0;
+        foreach (KeyValuePair<CharacterId, VisitReservation> pair in visitReservations)
+        {
+            if (!pair.Key.Equals(visitorId) && pair.Value.Sequence < own.Sequence)
+            {
+                ahead++;
+            }
+        }
+
+        if (ahead < availableSlots)
+        {
+            return true;
+        }
+
+        failureReason = $"시설 대기열 {ahead + 1}번째";
+        return false;
+    }
+
+    private int GetVisitQueuePositionById(CharacterId visitorId)
+    {
+        if (!visitorId.IsValid
+            || !visitReservations.TryGetValue(
+                visitorId,
+                out VisitReservation own))
+        {
+            return 0;
+        }
+
+        int ahead = 0;
+        foreach (KeyValuePair<CharacterId, VisitReservation> pair in visitReservations)
+        {
+            if (!pair.Key.Equals(visitorId) && pair.Value.Sequence < own.Sequence)
+            {
+                ahead++;
+            }
+        }
+
+        return ahead + 1;
     }
 
     private void PruneExpiredVisitReservations()
@@ -250,11 +397,11 @@ public sealed class BuildingOccupancy
         bool changed = false;
         float nextExpiry = float.PositiveInfinity;
         expiredVisitReservations.Clear();
-        foreach (KeyValuePair<CharacterId, float> pair in visitReservations)
+        foreach (KeyValuePair<CharacterId, VisitReservation> pair in visitReservations)
         {
-            if (pair.Key.IsValid && now < pair.Value)
+            if (pair.Key.IsValid && now < pair.Value.ExpiresAt)
             {
-                nextExpiry = Mathf.Min(nextExpiry, pair.Value);
+                nextExpiry = Mathf.Min(nextExpiry, pair.Value.ExpiresAt);
                 continue;
             }
 

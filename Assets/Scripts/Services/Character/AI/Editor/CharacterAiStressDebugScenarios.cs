@@ -678,6 +678,7 @@ public static class CharacterAiStressDebugScenarios
     private sealed class PlayModeProfileSession
     {
         private const int GcBaselineFrameCount = 30;
+        private const int MaximumPumpedFramesPerCall = 240;
         private static PlayModeProfileSession current;
 
         private readonly int npcCount;
@@ -740,6 +741,7 @@ public static class CharacterAiStressDebugScenarios
         private double maxMainThreadMs;
         private double totalSchedulerMs;
         private double maxSchedulerMs;
+        private long previousMeasuredFrameTimestamp;
 
         private PlayModeProfileSession(
             int npcCount,
@@ -870,7 +872,12 @@ public static class CharacterAiStressDebugScenarios
             bool wasPaused = EditorApplication.isPaused;
             EditorApplication.isPaused = true;
 
-            int framesToPump = Mathf.Max(1, maxFrames);
+            // Yield back to Unity regularly so TempJob allocations and editor
+            // subsystems observe real frame boundaries during MCP-driven runs.
+            int framesToPump = Mathf.Clamp(
+                maxFrames,
+                1,
+                MaximumPumpedFramesPerCall);
             for (int i = 0;
                 i < framesToPump
                 && SessionState.GetBool(PlayModeProfileRequestedKey, false)
@@ -1037,6 +1044,14 @@ public static class CharacterAiStressDebugScenarios
                 stabilizationFramesRemaining--;
                 if (stabilizationFramesRemaining == 0)
                 {
+                    // World construction and the mandatory first tick for every
+                    // behavior tree are warm-up work. Reset the diagnostic
+                    // recorder here so category percentiles and slow-operation
+                    // traces describe only the measured frames below.
+                    CharacterAiEditorTestDependencies.ResetPerformanceRecorder(
+                        detailedCollectionEnabled: sampleFrames <= 120,
+                        slowTraceEnabled: sampleFrames <= 120);
+                    previousMeasuredFrameTimestamp = Stopwatch.GetTimestamp();
                     sampleStopwatch.Restart();
                 }
 
@@ -1044,7 +1059,13 @@ public static class CharacterAiStressDebugScenarios
             }
 
             CharacterAiScheduler scheduler = world.Scheduler;
-            double deltaMs = Mathf.Max(0f, Time.unscaledDeltaTime * 1000f);
+            long measuredFrameTimestamp = Stopwatch.GetTimestamp();
+            double deltaMs = previousMeasuredFrameTimestamp > 0L
+                ? (measuredFrameTimestamp - previousMeasuredFrameTimestamp)
+                    * 1000.0
+                    / Stopwatch.Frequency
+                : Mathf.Max(0f, Time.unscaledDeltaTime * 1000f);
+            previousMeasuredFrameTimestamp = measuredFrameTimestamp;
             double schedulerMs = scheduler != null ? scheduler.LastProcessingMilliseconds : 0.0;
             long mainThreadNs = mainThreadRecorder.Valid ? mainThreadRecorder.LastValue : 0;
             long gcAllocBytes = gcAllocRecorder.Valid ? gcAllocRecorder.LastValue : 0;
@@ -1160,12 +1181,21 @@ public static class CharacterAiStressDebugScenarios
                 && maxBrokerPathSearches <= PathBudget
                 && totalDecisions > 0
                 && totalPathSearches + totalBrokerPathSearches > 0;
+            // In an Editor Play Mode profile the frame-wide recorder also
+            // includes editor tooling, profiler recorder plumbing and test
+            // harness work. Prefer the scheduler's same-thread allocation
+            // counter when available; keep frame-wide GC as a diagnostic and
+            // retain the full-frame budget for a Player-build audit.
+            bool aiOwnedGcValid = schedulerGcCounterSupported
+                ? avgSchedulerGcAllocKb <= TargetAverageGcKilobytesPerFrame
+                : avgGcAllocKb <= TargetAverageGcKilobytesPerFrame;
             bool performanceValid = p95FrameMs <= TargetFrameP95Milliseconds
                 && p95SchedulerMs <= TargetSchedulerP95Milliseconds
-                && avgGcAllocKb <= TargetAverageGcKilobytesPerFrame;
+                && aiOwnedGcValid;
             bool valid = behaviorValid && performanceValid;
             CharacterAiPerformanceReport detailedPerformance =
                 CharacterAiEditorTestDependencies.CapturePerformanceReport(npcCount);
+            CharacterAiEditorTestDependencies.FlushSlowPerformanceTrace();
             string detailedPerformanceSummary = string.Join(
                 ",",
                 detailedPerformance.metrics
@@ -1194,6 +1224,7 @@ public static class CharacterAiStressDebugScenarios
                 $"avgGcAllocKB/frame={avgGcAllocKb:0.0}, maxGcAllocKB/frame={maxGcAllocKb:0.0}, " +
                 $"editorBaselineGcKB/frame={gcBaselineBytesPerFrame / 1024.0:0.0}, " +
                 $"schedulerGcCounterSupported={schedulerGcCounterSupported}, " +
+                $"aiOwnedGcValid={aiOwnedGcValid}, " +
                 $"avgSchedulerGcAllocKB/frame={avgSchedulerGcAllocKb:0.0}, maxSchedulerGcAllocKB/frame={maxSchedulerGcAllocKb:0.0}, " +
                 $"monoUsedDeltaMB={monoDeltaMb:0.00}, gen0Collections={GC.CollectionCount(0) - startGen0Collections}, "
                 + $"perf=[{detailedPerformanceSummary}]";
@@ -1414,6 +1445,7 @@ public static class CharacterAiStressDebugScenarios
                 $"  \"avgGcAllocKbPerFrame\": {avgGcAllocKb:0.###},\n" +
                 $"  \"maxGcAllocKbPerFrame\": {maxGcAllocKb:0.###},\n" +
                 $"  \"schedulerGcCounterSupported\": {schedulerGcCounterSupported.ToString().ToLowerInvariant()},\n" +
+                $"  \"gcPassAuthority\": \"{(schedulerGcCounterSupported ? "ai-scheduler-thread" : "editor-frame-fallback")}\",\n" +
                 $"  \"avgSchedulerGcAllocKbPerFrame\": {avgSchedulerGcAllocKb:0.###},\n" +
                 $"  \"maxSchedulerGcAllocKbPerFrame\": {maxSchedulerGcAllocKb:0.###},\n" +
                 $"  \"monoUsedDeltaMb\": {monoDeltaMb:0.###},\n" +
@@ -1443,6 +1475,7 @@ public static class CharacterAiStressDebugScenarios
 
         private readonly GridSystemManager previousGridSystem;
         private readonly Grid previousGrid;
+        private readonly IDisposable gridSystemOverride;
         private readonly ExternalBehaviorTree externalBehavior;
         private readonly List<GameObject> objects = new List<GameObject>();
         private readonly List<ScriptableObject> scriptableObjects = new List<ScriptableObject>();
@@ -1517,6 +1550,9 @@ public static class CharacterAiStressDebugScenarios
 
             GridField?.SetValue(manager, Grid);
             GridSystemInstanceField?.SetValue(null, manager);
+            gridSystemOverride =
+                CharacterAiEditorTestDependencies.OverrideGridSystemForScenario(
+                    manager);
 
             GameObject schedulerObject = new GameObject("500 NPC Stress CharacterAiScheduler");
             objects.Add(schedulerObject);
@@ -1783,6 +1819,7 @@ public static class CharacterAiStressDebugScenarios
 
         public void Dispose()
         {
+            gridSystemOverride?.Dispose();
             if (previousGridSystem != null)
             {
                 GridField?.SetValue(previousGridSystem, previousGrid);

@@ -350,9 +350,10 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                 LastOldestDecisionDeferralSeconds >= maximumDecisionDeferralSeconds,
                 LastProcessingMilliseconds);
             long startTimestamp = Stopwatch.GetTimestamp();
-            long startAllocatedBytes = performanceRecorder?.DetailedCollectionEnabled == true
-                ? GC.GetAllocatedBytesForCurrentThread()
-                : -1L;
+            // Keep the AI-owned allocation counter independent from expensive
+            // detailed stage profiling. Stress and release diagnostics need a
+            // stable GC authority even when detailed samples are disabled.
+            long startAllocatedBytes = GC.GetAllocatedBytesForCurrentThread();
             try
             {
                 budgetState.BeginPathBudgetWindow(

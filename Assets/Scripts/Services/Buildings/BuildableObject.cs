@@ -479,7 +479,13 @@ public class BuildableObject : MonoBehaviour,
 
     public virtual bool isVisitable()
     {
-        return CanVisit((IBuildingCharacterPort)null, out _);
+        // Grid reachability represents structural access, not a momentary
+        // vacancy. If current capacity feeds this property, a full facility
+        // disappears from every actor's path-search result and AI misclassifies
+        // "occupied" as "missing/unreachable". Candidate commitment obtains a
+        // FIFO visit reservation; actual admission still calls CanVisit(actor),
+        // where capacity and queue order remain authoritative.
+        return CanQueueVisit((IBuildingCharacterPort)null, out _);
     }
 
     public void TriggerWorldInfoClick()
@@ -698,6 +704,11 @@ public class BuildableObject : MonoBehaviour,
     public bool CanVisit(IBuildingCharacterPort visitor, out string failureReason) =>
         Occupancy.CanVisit(visitor, out failureReason);
 
+    public bool CanQueueVisit(
+        IBuildingCharacterPort visitor,
+        out string failureReason) =>
+        Occupancy.CanQueueVisit(visitor, out failureReason);
+
     public bool TryBeginUse(IBuildingCharacterPort visitor, out string failureReason) =>
         Occupancy.TryBeginUse(visitor, out failureReason);
 
@@ -730,6 +741,91 @@ public class BuildableObject : MonoBehaviour,
 
     public void ReleaseVisitReservation(IBuildingCharacterPort visitor) =>
         Occupancy.ReleaseVisitReservation(visitor);
+
+    public int GetVisitQueuePosition(IBuildingCharacterPort visitor) =>
+        Occupancy.GetVisitQueuePosition(visitor);
+
+    public System.Collections.IEnumerator WaitForVisitAdmission(
+        IBuildingVisitorPort visitor,
+        object expectedAction,
+        float timeoutSeconds = 0f)
+    {
+        if (visitor == null)
+        {
+            yield break;
+        }
+
+        float patienceMultiplier = Mathf.Max(
+            0.25f,
+            visitor.VisitorSnapshot.PersonalityPatience
+            * visitor.VisitorSnapshot.ModelPatience);
+        float timeout = timeoutSeconds > 0f
+            ? timeoutSeconds
+            : Mathf.Clamp(20f * patienceMultiplier, 8f, 60f);
+        float startedAt = GameTime;
+        int lastReportedPosition = int.MinValue;
+        while (visitor.IsCurrentAction(expectedAction)
+            && !visitor.IsCurrentActionEnded)
+        {
+            if (!CanQueueVisit(visitor, out string queueFailure))
+            {
+                visitor.RecordActivity(this, new BuildingActivitySnapshot(
+                    BuildingActivityKinds.FacilityUse,
+                    BuildingActivityOutcomes.Failed,
+                    $"{GetVisitDisplayName()} 대기 중 이용 불가: {queueFailure}",
+                    actionId: "facility:queue",
+                    reasonCode: "queue-invalidated"));
+                yield break;
+            }
+
+            if (CanVisit(visitor, out _))
+            {
+                yield break;
+            }
+
+            int queuePosition = GetVisitQueuePosition(visitor);
+            if (queuePosition != lastReportedPosition)
+            {
+                lastReportedPosition = queuePosition;
+                visitor.SetActionPhase(
+                    "시설 대기",
+                    this,
+                    queuePosition > 0
+                        ? $"{queuePosition}번째"
+                        : "입장 확인 중");
+                visitor.RecordActivity(this, new BuildingActivitySnapshot(
+                    BuildingActivityKinds.FacilityUse,
+                    BuildingActivityOutcomes.Blocked,
+                    $"{GetVisitDisplayName()} {Mathf.Max(1, queuePosition)}번째 대기",
+                    actionId: "facility:queue",
+                    reasonCode: "capacity-queue",
+                    value: queuePosition));
+            }
+
+            RefreshVisitReservation(visitor, 12f);
+            if (GameTime - startedAt >= timeout)
+            {
+                visitor.RecordActivity(this, new BuildingActivitySnapshot(
+                    BuildingActivityKinds.FacilityUse,
+                    BuildingActivityOutcomes.Cancelled,
+                    $"{GetVisitDisplayName()} 대기 한계 초과",
+                    actionId: "facility:queue",
+                    reasonCode: "queue-timeout",
+                    value: GameTime - startedAt));
+                yield break;
+            }
+
+            yield return null;
+        }
+    }
+
+    public int WaitingVisitReservationCount =>
+        Occupancy.WaitingVisitReservationCount;
+
+    private string GetVisitDisplayName() =>
+        BuildingData != null && !string.IsNullOrWhiteSpace(BuildingData.objectName)
+            ? BuildingData.objectName
+            : name;
 
     public bool TryReserveWorker(
         IBuildingCharacterPort worker,

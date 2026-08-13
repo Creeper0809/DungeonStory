@@ -42,17 +42,48 @@ internal static class AIBrainCandidateCommitter
             return false;
         }
 
-        evaluator.RemoveEvaluation(action);
-        if (!evaluator.TryEvaluate(actor, action, out AIBrainActionEvaluation evaluation))
+        // Candidate selection already performed CanStart, destination
+        // resolution, and consideration scoring during this root decision.
+        // Re-evaluating here repeated the entire facility scan (including
+        // proximity/world-signal queries) immediately before committing the
+        // exact same candidate. Reuse that decision-local evaluation and let
+        // SetResolvedDestinationWithFailure revalidate mutable physical state
+        // such as destruction, path availability, and reservation ownership.
+        bool hasEvaluation = evaluator.TryGetCached(
+            action,
+            out AIBrainActionEvaluation evaluation);
+        if (!hasEvaluation
+            && !evaluator.TryEvaluate(actor, action, out evaluation))
         {
             failure = evaluation.Failure;
             actor.Blackboard?.ReportActionFailure(action.actionset, failure);
             return false;
         }
 
+        if (hasEvaluation && !evaluation.CanConsider)
+        {
+            failure = evaluation.Failure;
+            actor.Blackboard?.ReportActionFailure(action.actionset, failure);
+            return false;
+        }
+
+        BuildableObject evaluatedDestination =
+            candidate.Destination ?? evaluation.Destination;
+        if (!action.actionset.RevalidateBeforeCommit(
+                actor,
+                evaluatedDestination,
+                out failure))
+        {
+            evaluator.RemoveEvaluation(action);
+            actor.Blackboard?.ReportActionFailure(action.actionset, failure);
+            return false;
+        }
+
+        evaluator.RemoveEvaluation(action);
+
         if (action.SetResolvedDestinationWithFailure(
             actor,
-            candidate.Destination ?? evaluation.Destination,
+            evaluatedDestination,
             out failure))
         {
             return true;

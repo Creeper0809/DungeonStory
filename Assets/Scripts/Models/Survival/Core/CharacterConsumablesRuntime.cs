@@ -16,6 +16,20 @@ public sealed class CharacterConsumablesRuntime :
     private const float MedicalUseHealthRatio = 0.82f;
     private const string FacilityInputDestinationPrefix = "facility-input:";
 
+    private readonly struct MealOperationFailureState
+    {
+        internal MealOperationFailureState(
+            CharacterConsumablesFailureCode code,
+            string detail)
+        {
+            Code = code;
+            Detail = detail ?? string.Empty;
+        }
+
+        internal CharacterConsumablesFailureCode Code { get; }
+        internal string Detail { get; }
+    }
+
     private readonly ICharacterConsumablesWorldPort world;
     private readonly ICharacterConsumablesInventoryPort inventory;
     private readonly ICharacterConsumablesEventPort events;
@@ -23,6 +37,11 @@ public sealed class CharacterConsumablesRuntime :
     private readonly IRandomStream random;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly ICharacterNeedBalanceRuntime needBalance;
+    private readonly Dictionary<ConsumableOperationId, MealOperationFailureState>
+        mealOperationFailures = new();
+    private readonly Queue<ConsumableOperationId> mealOperationFailureOrder = new();
+    private readonly HashSet<ConsumableOperationId> queuedMealOperationFailures = new();
+    private const int MaximumRememberedMealOperationFailures = 64;
 
     private float RoutineHungerThreshold => needBalance
         .GetResponse(CharacterCondition.HUNGER)
@@ -143,7 +162,8 @@ public sealed class CharacterConsumablesRuntime :
                 facilityId,
                 true,
                 emergency,
-                out bool bufferRoutePending).Count > 0)
+                out _,
+                requireExactRoute: false).Count > 0)
         {
             return true;
         }
@@ -153,7 +173,6 @@ public sealed class CharacterConsumablesRuntime :
                 false,
                 emergency,
                 out bool sourceRoutePending).Count > 0
-            || bufferRoutePending
             || sourceRoutePending)
         {
             failure = new CharacterConsumablesFailure(
@@ -480,6 +499,7 @@ public sealed class CharacterConsumablesRuntime :
                 command.OperationId.Value);
             return false;
         }
+        mealOperationFailures.Remove(command.OperationId);
         if (ReadState.ActiveMealPlans.ContainsKey(command.OperationId))
         {
             return TryGetMealOperationResult(command.OperationId, out result)
@@ -662,10 +682,17 @@ public sealed class CharacterConsumablesRuntime :
             return true;
         }
 
+        bool hasFailure = mealOperationFailures.TryGetValue(
+            operationId,
+            out MealOperationFailureState failure);
         result = CharacterConsumablesMealResult.Failed(
-            CharacterConsumablesFailureCode.PhysicalConsumptionFailed,
+            hasFailure
+                ? failure.Code
+                : CharacterConsumablesFailureCode.PhysicalConsumptionFailed,
             operationId.Value,
-            "meal-operation-missing-or-aborted");
+            hasFailure
+                ? failure.Detail
+                : "meal-operation-missing-or-aborted");
         return false;
     }
 
@@ -734,13 +761,29 @@ public sealed class CharacterConsumablesRuntime :
         ConsumeMealCommand command,
         CharacterMealPlan plan)
     {
-        if (!TryGetActor(command.CharacterId, out CharacterConsumablesActorSnapshot actor)
-            || !TryGetMealFacility(command.FacilityId, out _)
-            || !inventory.TryGetMeal(
+        if (!TryGetActor(
+                command.CharacterId,
+                out CharacterConsumablesActorSnapshot actor))
+        {
+            AbortMealPlan(command, plan,
+                CharacterConsumablesFailureCode.CharacterMissing,
+                "meal-actor-missing-at-commit");
+            return false;
+        }
+        if (!TryGetMealFacility(command.FacilityId, out _))
+        {
+            AbortMealPlan(command, plan,
+                CharacterConsumablesFailureCode.FacilityMissing,
+                "meal-facility-missing-at-commit");
+            return false;
+        }
+        if (!inventory.TryGetMeal(
                 new ConsumableItemDefinitionId(plan.itemDefinitionId),
                 out CharacterConsumablesMealDefinitionSnapshot meal))
         {
-            AbortMealPlan(command, plan);
+            AbortMealPlan(command, plan,
+                CharacterConsumablesFailureCode.ItemDefinitionMissing,
+                "meal-definition-missing-at-commit");
             return false;
         }
 
@@ -753,25 +796,67 @@ public sealed class CharacterConsumablesRuntime :
         bool policyAllowed = IsMealAllowed(actor.Id, meal);
         bool contaminated = commitStack.Contamination > 0.01f;
         bool emergency = actor.Hunger <= EmergencyHungerThreshold;
-        if ((!policyAllowed || contaminated) && !emergency
-            || !inventory.RevalidateMealQuantity(
+        if ((!policyAllowed || contaminated) && !emergency)
+        {
+            AbortMealPlan(command, plan,
+                CharacterConsumablesFailureCode.PolicyForbidden,
+                "meal-policy-forbidden-at-commit");
+            return false;
+        }
+        if (!commitStack.StackId.IsValid)
+        {
+            AbortMealPlan(command, plan,
+                CharacterConsumablesFailureCode.ItemStackMissing,
+                "meal-stack-missing-at-commit");
+            return false;
+        }
+        if (commitStack.RemainingFreshnessSeconds <= 0f)
+        {
+            AbortMealPlan(command, plan,
+                CharacterConsumablesFailureCode.ItemNotConsumable,
+                "meal-spoiled-before-commit");
+            return false;
+        }
+        if (commitStack.Contamination > plan.beginContamination + 0.01f)
+        {
+            AbortMealPlan(command, plan,
+                CharacterConsumablesFailureCode.ItemNotConsumable,
+                "meal-contamination-changed-at-commit");
+            return false;
+        }
+        if (!inventory.RevalidateMealQuantity(
                 plan.mealQuantityLeaseId,
-                commitStackId)
-            || !IsAvailableMealBufferStack(commitStack, command.FacilityId)
-            || commitStack.RemainingFreshnessSeconds <= 0f
-            || commitStack.Contamination > plan.beginContamination + 0.01f
-            || !inventory.TryConsumeReservedMealQuantity(
+                commitStackId))
+        {
+            AbortMealPlan(command, plan,
+                CharacterConsumablesFailureCode.PhysicalConsumptionFailed,
+                "meal-lease-invalid-at-commit");
+            return false;
+        }
+        if (!IsAvailableMealBufferStack(commitStack, command.FacilityId))
+        {
+            AbortMealPlan(command, plan,
+                CharacterConsumablesFailureCode.ItemNotConsumable,
+                "meal-buffer-invalid-at-commit");
+            return false;
+        }
+        if (!inventory.TryConsumeReservedMealQuantity(
                 plan.mealQuantityLeaseId,
                 commitStackId,
                 1))
         {
-            AbortMealPlan(command, plan);
+            AbortMealPlan(
+                command,
+                plan,
+                CharacterConsumablesFailureCode.PhysicalConsumptionFailed,
+                "meal-quantity-commit-failed");
             return false;
         }
 
         plan.physicalConsumptionCommitted = true;
         plan.phase = CharacterMealPlanPhase.Completed;
         WriteState.ActiveMealPlans.Remove(command.OperationId);
+        mealOperationFailures.Remove(command.OperationId);
         world.ReleaseMealFacilitySlot(command.OperationId, command.FacilityId);
 
         CharacterConsumablesMealResult result =
@@ -804,7 +889,10 @@ public sealed class CharacterConsumablesRuntime :
 
     private void AbortMealPlan(
         ConsumeMealCommand command,
-        CharacterMealPlan plan)
+        CharacterMealPlan plan,
+        CharacterConsumablesFailureCode failureCode =
+            CharacterConsumablesFailureCode.PhysicalConsumptionFailed,
+        string failureDetail = "meal-operation-aborted")
     {
         if (plan != null)
         {
@@ -813,6 +901,22 @@ public sealed class CharacterConsumablesRuntime :
                 inventory.ReleaseMealQuantity(plan.mealQuantityLeaseId);
         }
         WriteState.ActiveMealPlans.Remove(command.OperationId);
+        if (command.OperationId.IsValid)
+        {
+            mealOperationFailures[command.OperationId] =
+                new MealOperationFailureState(failureCode, failureDetail);
+            if (queuedMealOperationFailures.Add(command.OperationId))
+            {
+                mealOperationFailureOrder.Enqueue(command.OperationId);
+            }
+            while (mealOperationFailureOrder.Count
+                   > MaximumRememberedMealOperationFailures)
+            {
+                ConsumableOperationId expired = mealOperationFailureOrder.Dequeue();
+                queuedMealOperationFailures.Remove(expired);
+                mealOperationFailures.Remove(expired);
+            }
+        }
         world.ReleaseMealFacilitySlot(command.OperationId, command.FacilityId);
     }
 
@@ -1426,7 +1530,8 @@ public sealed class CharacterConsumablesRuntime :
         BuildingInstanceId facilityId,
         bool bufferOnly,
         bool emergency,
-        out bool routePending)
+        out bool routePending,
+        bool requireExactRoute = true)
     {
         routePending = false;
         string destinationId = GetMealDestinationId(facilityId);
@@ -1530,6 +1635,13 @@ public sealed class CharacterConsumablesRuntime :
             .Take(7)
             .ToList();
         if (preciseCandidates.Count == 0)
+            return preciseCandidates;
+
+        // A facility-availability query answers whether this exact buffer owns
+        // a physically consumable serving. It must not turn a transient path
+        // budget deferral into DeliveryPending; navigation is revalidated by
+        // candidate commit and by the meal action itself.
+        if (!requireExactRoute)
             return preciseCandidates;
 
         CharacterMealRouteStatus actorRouteStatus = world.GetMealRouteStatus(
