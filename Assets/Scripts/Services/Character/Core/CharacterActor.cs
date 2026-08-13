@@ -579,6 +579,17 @@ public class CharacterActor : SerializedMonoBehaviour,
         }
 
         AIAction selectedAction = brain.bestAction;
+        if (selectedAction.HasStarted || brain.isExecuted)
+        {
+            // A multi-frame behavior-tree leaf is RUNNING after the first Execute.
+            // Re-entering Execute would start a second coroutine for the same
+            // intent. Treat the repeated request as an idempotent acknowledgement,
+            // retain the valid running action, and expose exact diagnostics.
+            brain.NotifyDuplicateExecutionSuppressed(selectedAction);
+            failure = AIActionFailure.None;
+            return true;
+        }
+
         BuildableObject selectedDestination = selectedAction.destination;
         if (!ReferenceEquals(selectedDestination, null)
             && (selectedDestination == null || selectedDestination.isDestroy))

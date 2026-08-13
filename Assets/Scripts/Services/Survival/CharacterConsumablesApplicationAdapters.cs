@@ -450,7 +450,7 @@ public sealed class CharacterConsumablesApplicationPorts :
                 new ItemQuantityReservationRequest(
                     stackId,
                     1,
-                    stack.StackSignature),
+                    stack.ReservationSignature),
                 out ItemQuantityLease lease,
                 out _))
         {

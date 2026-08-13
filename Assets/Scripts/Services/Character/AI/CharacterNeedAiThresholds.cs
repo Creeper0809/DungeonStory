@@ -35,6 +35,35 @@ public static class CharacterNeedAiThresholds
         return Mathf.Lerp(0.35f, 1f, urgency);
     }
 
+    public static float GetFacilityRoutineUtility(
+        CharacterActor actor,
+        FacilityRole roles)
+    {
+        const FacilityRole routineRoles = FacilityRole.Toilet
+            | FacilityRole.Hygiene
+            | FacilityRole.Entertainment;
+        if (roles == FacilityRole.None || (roles & ~routineRoles) != 0)
+        {
+            return FacilityCandidateScorer.GetNeedScore(actor, roles);
+        }
+
+        float utility = 0f;
+        Accumulate(FacilityRole.Toilet, CharacterCondition.EXCRETION);
+        Accumulate(FacilityRole.Hygiene, CharacterCondition.HYGIENE);
+        Accumulate(FacilityRole.Entertainment, CharacterCondition.FUN);
+        return utility;
+
+        void Accumulate(FacilityRole role, CharacterCondition condition)
+        {
+            if ((roles & role) == 0)
+            {
+                return;
+            }
+
+            utility = Mathf.Max(utility, GetRoutineUtility(actor, condition));
+        }
+    }
+
     public static bool IsEmergency(
         CharacterActor actor,
         CharacterCondition condition)

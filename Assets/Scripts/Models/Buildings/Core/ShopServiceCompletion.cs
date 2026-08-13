@@ -2,12 +2,12 @@ using System;
 
 public sealed class ShopServiceCompletion
 {
-    private readonly Action<IBuildingVisitorPort> endShopUse;
+    private readonly Action<IBuildingVisitorPort, bool> finishShopUse;
 
-    public ShopServiceCompletion(Action<IBuildingVisitorPort> endShopUse)
+    public ShopServiceCompletion(Action<IBuildingVisitorPort, bool> finishShopUse)
     {
-        this.endShopUse = endShopUse
-            ?? throw new ArgumentNullException(nameof(endShopUse));
+        this.finishShopUse = finishShopUse
+            ?? throw new ArgumentNullException(nameof(finishShopUse));
     }
 
     public void Finish(
@@ -38,6 +38,6 @@ public sealed class ShopServiceCompletion
             }
         }
 
-        endShopUse(actor);
+        finishShopUse(actor, completed);
     }
 }

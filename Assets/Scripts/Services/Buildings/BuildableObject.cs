@@ -712,6 +712,9 @@ public class BuildableObject : MonoBehaviour,
     public bool TryBeginUse(IBuildingCharacterPort visitor, out string failureReason) =>
         Occupancy.TryBeginUse(visitor, out failureReason);
 
+    public bool CompleteUse(IBuildingCharacterPort visitor) =>
+        Occupancy.CompleteUse(visitor);
+
     protected void PublishGameEvent<TEvent>(TEvent gameEvent)
     {
         GameEventBus.Publish(gameEvent);

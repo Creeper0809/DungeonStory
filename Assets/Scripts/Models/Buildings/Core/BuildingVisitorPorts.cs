@@ -271,6 +271,36 @@ public readonly struct BuildingMealUseSnapshot
     public bool AcceptedPending { get; }
     public string OperationId { get; }
     public string FailureDetail { get; }
+
+    public bool IsNoLongerNeeded =>
+        string.Equals(
+            FailureCode,
+            CharacterConsumablesFailureCode.PolicyForbidden.ToString(),
+            StringComparison.Ordinal)
+        && (HasFailureDetailToken("not-hungry")
+            || HasFailureDetailToken("meal-followup-cooldown"));
+
+    private bool HasFailureDetailToken(string token)
+    {
+        if (string.IsNullOrWhiteSpace(FailureDetail)
+            || string.IsNullOrWhiteSpace(token))
+        {
+            return false;
+        }
+
+        string[] values = FailureDetail.Split(',');
+        for (int index = 0; index < values.Length; index++)
+        {
+            if (string.Equals(
+                    values[index]?.Trim(),
+                    token,
+                    StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
 public readonly struct BuildingRecreationalSubstanceUseSnapshot

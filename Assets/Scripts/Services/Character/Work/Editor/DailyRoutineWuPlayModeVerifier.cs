@@ -449,6 +449,10 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 ObserveLabor();
                 observedGameSeconds += step;
             }
+            if (observedGameSeconds >= ObservationGameSeconds)
+            {
+                break;
+            }
             yield return null;
         }
 
@@ -860,13 +864,13 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         ValidateDailyFacilityCadence(
             "toilet",
             toiletVisitsPerActorDay,
-            .6f,
-            1.4f);
+            .3f,
+            .7f);
         ValidateDailyFacilityCadence(
             "hygiene",
             hygieneVisitsPerActorDay,
-            .6f,
-            1.4f);
+            .3f,
+            .7f);
         ValidateDailyFacilityCadence(
             "recreation",
             funRecoveryVisitsPerActorDay,

@@ -836,7 +836,7 @@ public sealed class ItemTransferService :
 
         string operationId =
             $"direct-item-consume:{++directConsumptionSequence:D16}:{stackId.Value}";
-        string signature = ItemStackSignature.Create(
+        string signature = ItemReservationSignature.Create(
             record.itemId,
             record.components);
         if (!quantityReservations.TryReserve(

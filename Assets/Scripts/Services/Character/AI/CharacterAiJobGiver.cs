@@ -798,9 +798,9 @@ public sealed class HygieneJobGiver : CharacterAiJobGiver
 
     protected override float GetDomainScore(CharacterActor actor, out string reason)
     {
-        float hygieneNeed = FacilityCandidateScorer.GetNeedScore(
+        float hygieneNeed = CharacterNeedAiThresholds.GetRoutineUtility(
             actor,
-            FacilityRole.Hygiene);
+            CharacterCondition.HYGIENE);
         reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
             ? $"hygieneNeed={hygieneNeed:0.###}"
             : "위생";
@@ -812,9 +812,9 @@ public sealed class HygieneJobGiver : CharacterAiJobGiver
         in CharacterAiDecisionContext context,
         out string reason)
     {
-        float hygieneNeed = FacilityCandidateScorer.GetNeedScore(
+        float hygieneNeed = CharacterNeedAiThresholds.GetRoutineUtility(
             actor,
-            FacilityRole.Hygiene);
+            CharacterCondition.HYGIENE);
         reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
             ? $"hygieneNeed={hygieneNeed:0.###}"
             : "위생";

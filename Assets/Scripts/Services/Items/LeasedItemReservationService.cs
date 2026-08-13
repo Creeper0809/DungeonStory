@@ -107,7 +107,7 @@ public sealed class LeasedItemReservationService : ILeasedItemReservationService
             requests.Add(new ItemQuantityReservationRequest(
                 (ItemStackId)requested.StackId,
                 requested.Quantity,
-                stack.StackSignature));
+                stack.ReservationSignature));
         }
         if (!reservations.TryReserveBatch(
                 owner,

@@ -83,7 +83,8 @@ public sealed class WorldItemRepository : IItemInstanceRepository
         int quantity,
         WorldItemStackState stackState,
         string destinationId = "",
-        string sourceStorageDestinationId = "")
+        string sourceStorageDestinationId = "",
+        IReadOnlyList<ItemInstanceComponentSaveData> components = null)
     {
         WorldItemStackRecord record = new()
         {
@@ -93,10 +94,39 @@ public sealed class WorldItemRepository : IItemInstanceRepository
             state = stackState,
             destinationId = destinationId?.Trim() ?? string.Empty,
             sourceStorageDestinationId =
-                sourceStorageDestinationId?.Trim() ?? string.Empty
+                sourceStorageDestinationId?.Trim() ?? string.Empty,
+            components = (components ?? Array.Empty<ItemInstanceComponentSaveData>())
+                .Where(component => component != null)
+                .Select(component => component.Clone())
+                .ToList()
         };
         Add(record);
         return record.stackId;
+    }
+
+    public bool SetEditorTestComponent(
+        string stackId,
+        ItemInstanceComponentSaveData component)
+    {
+        if (component == null
+            || string.IsNullOrWhiteSpace(component.componentTypeId)
+            || !RecordsById.TryGetValue(
+                stackId?.Trim() ?? string.Empty,
+                out WorldItemStackRecord record)
+            || record == null)
+        {
+            return false;
+        }
+
+        record.components ??= new List<ItemInstanceComponentSaveData>();
+        record.components.RemoveAll(existing => existing != null
+            && string.Equals(
+                existing.componentTypeId?.Trim(),
+                component.componentTypeId.Trim(),
+                StringComparison.Ordinal));
+        record.components.Add(component.Clone());
+        MarkChanged();
+        return true;
     }
 
     public void RemoveEditorTestStack(string stackId)

@@ -50,7 +50,7 @@ public static class FacilityCandidateScorer
 
         foreach (BuildableObject building in source)
         {
-            if (searchResult != null && !searchResult.ContainsVisitableOccupant(building))
+            if (!IsReachableFromSearch(actor, searchResult, building))
             {
                 continue;
             }
@@ -145,7 +145,7 @@ public static class FacilityCandidateScorer
                 BuildableObject building = source.Count <= MaximumFullyScoredCandidates
                     ? source[sourceIndex]
                     : scoringShortlist[sourceIndex];
-                if (searchResult.ContainsVisitableOccupant(building)
+                if (IsReachableFromSearch(actor, searchResult, building)
                     && IsQueueableCandidate(
                         actor,
                         building,
@@ -191,7 +191,7 @@ public static class FacilityCandidateScorer
                 BuildableObject building = source.Count <= MaximumFullyScoredCandidates
                     ? source[sourceIndex]
                     : scoringShortlist[sourceIndex];
-                if (!searchResult.ContainsVisitableOccupant(building)
+                if (!IsReachableFromSearch(actor, searchResult, building)
                     || !IsQueueableCandidate(
                         actor,
                         building,
@@ -540,7 +540,7 @@ public static class FacilityCandidateScorer
             BuildableObject building = useThreadShortlist
                 ? scoringShortlist[index]
                 : source[index];
-            if (!CanScoreSelectionCandidate(building, searchResult)
+            if (!CanScoreSelectionCandidate(actor, building, searchResult)
                 || !IsQueueableCandidate(
                     actor,
                     building,
@@ -765,13 +765,14 @@ public static class FacilityCandidateScorer
     }
 
     private static bool CanScoreSelectionCandidate(
+        CharacterActor actor,
         BuildableObject building,
         GridPathSearchResult searchResult)
     {
         return building != null
             && !building.isDestroy
             && (searchResult == null
-                || searchResult.ContainsVisitableOccupant(building));
+                || IsReachableFromSearch(actor, searchResult, building));
     }
 
     public static bool IsCandidate(
@@ -1023,8 +1024,7 @@ public static class FacilityCandidateScorer
             role,
             context,
             out string immediateReason);
-        bool reachable = searchResult == null
-            || searchResult.ContainsVisitableOccupant(building);
+        bool reachable = IsReachableFromSearch(actor, searchResult, building);
         CharacterAiUtilityBreakdown breakdown = null;
         float score = queueable && reachable
             ? ScoreCandidateWithBreakdown(
@@ -1434,7 +1434,7 @@ public static class FacilityCandidateScorer
         FacilityRole role,
         FacilityScoringContext scoringContext)
     {
-        if (searchResult != null && !searchResult.ContainsVisitableOccupant(building))
+        if (!IsReachableFromSearch(actor, searchResult, building))
         {
             return false;
         }
@@ -1626,6 +1626,11 @@ public static class FacilityCandidateScorer
 
         if (searchResult != null)
         {
+            if (actor != null && building.ContainsGridPosition(actor.GetNowXY()))
+            {
+                return 1f;
+            }
+
             int travelCost = searchResult.GetMoveCostTo(building);
             if (travelCost == int.MaxValue)
             {
@@ -1664,6 +1669,29 @@ public static class FacilityCandidateScorer
         }
 
         return 1f / (1f + bestEstimate);
+    }
+
+    private static bool IsReachableFromSearch(
+        CharacterActor actor,
+        GridPathSearchResult searchResult,
+        BuildableObject building)
+    {
+        if (building == null || building.isDestroy)
+        {
+            return false;
+        }
+
+        if (searchResult == null)
+        {
+            return true;
+        }
+
+        // A path flood normally records occupants reached from neighbouring
+        // walkable cells. When an actor is already standing on a facility's
+        // footprint there is no edge traversal, so that occupant can be absent
+        // from the result even though the service is at distance zero.
+        return searchResult.ContainsVisitableOccupant(building)
+            || actor != null && building.ContainsGridPosition(actor.GetNowXY());
     }
 
     private static float GetTravelOpportunityPenalty(

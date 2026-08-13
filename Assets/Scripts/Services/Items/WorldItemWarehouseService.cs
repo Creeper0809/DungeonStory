@@ -288,7 +288,7 @@ public sealed class WorldItemWarehouseService
                     Mathf.Min(
                         GetAvailableQuantity(selected),
                         Mathf.Max(1, quantity)),
-                    ItemStackSignature.Create(selected.itemId, selected.components)),
+                    ItemReservationSignature.Create(selected.itemId, selected.components)),
                 out quantityLease,
                 out _)
             : reservations.TryReserve(new[] { selected.stackId }, actorId);

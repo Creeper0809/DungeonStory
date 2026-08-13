@@ -2,7 +2,7 @@ using UnityEngine;
 
 public abstract class AIPrimitiveSurvivalAction : AIActionSet
 {
-    private const float PrimitiveFallbackCriticalNeedFloor = 5f;
+    private const float PrimitiveFallbackCriticalNeedFloor = 0.5f;
     public override bool RequiresDestination => false;
     public override int InterruptPriority => 45;
 

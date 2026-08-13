@@ -27,6 +27,9 @@ public class AIFacilityRoleAction : AIActionSet
         _ => GenericDescriptor
     };
 
+    public override bool IsContinuous => true;
+    public override float MinimumDuration => 0.5f;
+
     public FacilityRole Role
     {
         get => role;
@@ -41,6 +44,18 @@ public class AIFacilityRoleAction : AIActionSet
     public override void Execute(CharacterActor actor)
     {
         actor?.GetAbility<AbilityShopping>()?.StartSopping();
+    }
+
+    public override bool CanContinue(
+        CharacterActor actor,
+        AIAction runningAction,
+        out string stopReason)
+    {
+        stopReason = string.Empty;
+        return actor != null
+            && runningAction != null
+            && runningAction.HasStarted
+            && actor.TryGetAbility(out AbilityShopping _);
     }
 
     public override IReadOnlyList<BuildableObject> GetDestinationCandidates(
@@ -145,33 +160,6 @@ public class AIFacilityRoleAction : AIActionSet
 
     private static float GetOnDutySelfCareNeed(CharacterActor actor, FacilityRole role)
     {
-        float need = 0f;
-        if ((role & FacilityRole.Hygiene) != 0)
-        {
-            need = FacilityCandidateScorer.GetNeedScore(
-                actor,
-                FacilityRole.Hygiene);
-            if (need >= 0.1f) return need;
-        }
-
-        if ((role & FacilityRole.Toilet) != 0)
-        {
-            need = Mathf.Max(
-                need,
-                FacilityCandidateScorer.GetNeedScore(
-                    actor,
-                    FacilityRole.Toilet));
-        }
-
-        if ((role & FacilityRole.Entertainment) != 0)
-        {
-            need = Mathf.Max(
-                need,
-                CharacterNeedAiThresholds.GetRoutineUtility(
-                    actor,
-                    CharacterCondition.FUN));
-        }
-
-        return need;
+        return CharacterNeedAiThresholds.GetFacilityRoutineUtility(actor, role);
     }
 }

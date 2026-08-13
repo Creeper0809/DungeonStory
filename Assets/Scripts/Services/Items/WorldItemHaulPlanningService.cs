@@ -195,7 +195,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                 .Select(candidate => new ItemQuantityReservationRequest(
                     new ItemStackId(candidate.Stack.stackId),
                     candidate.Quantity,
-                    ItemStackSignature.Create(
+                    ItemReservationSignature.Create(
                         candidate.Stack.itemId,
                         candidate.Stack.components)))
                 .ToArray();

@@ -15,8 +15,10 @@ public readonly struct CharacterAiRuntimeDiagnosticsSnapshot
         long actionStarts, long actionSwitches, long sameActionRestarts,
         long phaseTransitions, long immediateReplans, long interruptedReplans,
         long executionFailures, long noActionFailures, long candidateRejections,
+        long duplicateExecutionSuppressions,
         long currentRepeatedFailureCount, long peakRepeatedFailureCount,
         AIActionFailureKind repeatedFailureKind,
+        string lastExecutionFailureDetail,
         long[] executionFailuresByKind, long[] candidateRejectionsByKind,
         long jobGiverEvaluationRejections,
         long[] jobGiverEvaluationRejectionsByBranchAndKind)
@@ -30,9 +32,11 @@ public readonly struct CharacterAiRuntimeDiagnosticsSnapshot
         ExecutionFailures = executionFailures;
         NoActionFailures = noActionFailures;
         CandidateRejections = candidateRejections;
+        DuplicateExecutionSuppressions = duplicateExecutionSuppressions;
         CurrentRepeatedFailureCount = currentRepeatedFailureCount;
         PeakRepeatedFailureCount = peakRepeatedFailureCount;
         RepeatedFailureKind = repeatedFailureKind;
+        LastExecutionFailureDetail = lastExecutionFailureDetail ?? string.Empty;
         this.executionFailuresByKind = executionFailuresByKind;
         this.candidateRejectionsByKind = candidateRejectionsByKind;
         JobGiverEvaluationRejections = jobGiverEvaluationRejections;
@@ -49,10 +53,12 @@ public readonly struct CharacterAiRuntimeDiagnosticsSnapshot
     public long ExecutionFailures { get; }
     public long NoActionFailures { get; }
     public long CandidateRejections { get; }
+    public long DuplicateExecutionSuppressions { get; }
     public long JobGiverEvaluationRejections { get; }
     public long CurrentRepeatedFailureCount { get; }
     public long PeakRepeatedFailureCount { get; }
     public AIActionFailureKind RepeatedFailureKind { get; }
+    public string LastExecutionFailureDetail { get; }
 
     public string FormatDeltaFrom(in CharacterAiRuntimeDiagnosticsSnapshot start)
     {
@@ -66,10 +72,19 @@ public readonly struct CharacterAiRuntimeDiagnosticsSnapshot
             .Append("; executionFailures=").Append(ExecutionFailures - start.ExecutionFailures)
             .Append("; noAction=").Append(NoActionFailures - start.NoActionFailures)
             .Append("; candidateRejections=").Append(CandidateRejections - start.CandidateRejections)
+            .Append("; duplicateExecutionSuppressions=")
+            .Append(DuplicateExecutionSuppressions - start.DuplicateExecutionSuppressions)
             .Append("; jobGiverEvaluationRejections=")
             .Append(JobGiverEvaluationRejections - start.JobGiverEvaluationRejections)
             .Append("; repeatedPeak=").Append(PeakRepeatedFailureCount)
             .Append('(').Append(RepeatedFailureKind).Append(')');
+        if (ExecutionFailures > start.ExecutionFailures)
+        {
+            builder.Append("; lastExecutionFailure=")
+                .Append(string.IsNullOrWhiteSpace(LastExecutionFailureDetail)
+                    ? "unknown"
+                    : LastExecutionFailureDetail);
+        }
         AppendKinds(builder, "executionByKind", executionFailuresByKind, start.executionFailuresByKind);
         AppendKinds(builder, "candidateByKind", candidateRejectionsByKind, start.candidateRejectionsByKind);
         AppendJobGiverRejections(

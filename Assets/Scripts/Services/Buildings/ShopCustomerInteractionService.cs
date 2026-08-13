@@ -589,6 +589,18 @@ internal sealed class ShopCustomerInteractionService
         }
         if (!consumed)
         {
+            if (meal.IsNoLongerNeeded)
+            {
+                const string cancellationReason = "meal-no-longer-needed";
+                shopping.SetVisitOutcome(owner, BuildingVisitOutcome.Abandoned);
+                actor?.RecordActivity(owner, new BuildingActivitySnapshot(
+                    BuildingActivityKinds.FacilityUse,
+                    BuildingActivityOutcomes.Cancelled,
+                    "Meal service retired because the need was already satisfied.",
+                    reasonCode: cancellationReason));
+                yield break;
+            }
+
             string failureCode = string.IsNullOrWhiteSpace(meal.FailureCode)
                 ? CharacterConsumablesFailureCode.PhysicalConsumptionFailed.ToString()
                 : meal.FailureCode;

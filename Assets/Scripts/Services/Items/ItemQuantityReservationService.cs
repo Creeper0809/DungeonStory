@@ -335,7 +335,7 @@ public sealed class ItemQuantityReservationService :
                     request.StackId);
                 return false;
             }
-            string signature = ItemStackSignature.Create(
+            string signature = ItemReservationSignature.Create(
                 record.itemId,
                 record.components);
             if (!string.Equals(
@@ -425,7 +425,7 @@ public sealed class ItemQuantityReservationService :
                 || record == null
                 || record.quantity < GetCachedReserved(slice.stackId)
                 || !string.Equals(
-                    ItemStackSignature.Create(record.itemId, record.components),
+                    ItemReservationSignature.Create(record.itemId, record.components),
                     slice.expectedStackSignature,
                     StringComparison.Ordinal))
             {
@@ -659,7 +659,7 @@ public sealed class ItemQuantityReservationService :
                         out WorldItemStackRecord record)
                     || record == null
                     || !string.Equals(
-                        ItemStackSignature.Create(record.itemId, record.components),
+                        ItemReservationSignature.Create(record.itemId, record.components),
                         slice.expectedStackSignature,
                         StringComparison.Ordinal))
                 {
@@ -846,7 +846,7 @@ public sealed class ItemQuantityReservationService :
                         out WorldItemStackRecord record)
                     || !string.Equals(record.itemId, hint.itemId, StringComparison.Ordinal)
                     || !string.Equals(
-                        ItemStackSignature.Create(record.itemId, record.components),
+                        ItemReservationSignature.Create(record.itemId, record.components),
                         hint.expectedStackSignature,
                         StringComparison.Ordinal))
                 {

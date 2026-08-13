@@ -44,6 +44,8 @@ public sealed class WorldItemStackSnapshot
     public IReadOnlyList<ItemInstanceComponentSaveData> Components { get; set; } =
         Array.Empty<ItemInstanceComponentSaveData>();
     public string StackSignature => ItemStackSignature.Create(ItemId, Components);
+    public string ReservationSignature =>
+        ItemReservationSignature.Create(ItemId, Components);
     public bool IsWaste => WasteOrigin != WasteOriginKind.Unknown;
     public bool HasUniqueMetadata => !string.IsNullOrWhiteSpace(SourceCharacterId);
     public float TotalWeight => UnitWeight * Quantity;

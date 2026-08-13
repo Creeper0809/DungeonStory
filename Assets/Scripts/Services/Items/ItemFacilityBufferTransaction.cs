@@ -197,7 +197,7 @@ internal static class ItemFacilityBufferTransaction
             .Select(value => new ItemQuantityReservationRequest(
                 new ItemStackId(value.StackId),
                 value.Quantity,
-                ItemStackSignature.Create(
+                ItemReservationSignature.Create(
                     repository.RecordsById[value.StackId].itemId,
                     repository.RecordsById[value.StackId].components)))
             .ToArray();

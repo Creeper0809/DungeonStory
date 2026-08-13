@@ -251,6 +251,31 @@ public static class ItemStackSignature
     }
 }
 
+/// <summary>
+/// Stable identity for a quantity reservation. Physical stack compatibility
+/// remains stricter and still includes exact freshness; a lease deliberately
+/// ignores only freshness because normal time passage mutates it while the
+/// reservation owner walks and eats. Current spoilage is validated separately
+/// at item use/commit boundaries.
+/// </summary>
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public static class ItemReservationSignature
+{
+    public static string Create(
+        string definitionId,
+        IEnumerable<ItemInstanceComponentSaveData> components)
+    {
+        return ItemStackSignature.Create(
+            definitionId,
+            (components ?? Array.Empty<ItemInstanceComponentSaveData>())
+            .Where(component => component != null
+                && !string.Equals(
+                    component.componentTypeId,
+                    ItemInstanceComponentIds.Freshness,
+                    StringComparison.Ordinal)));
+    }
+}
+
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public static class ItemInstanceComponentIds
 {

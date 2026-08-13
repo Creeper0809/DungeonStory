@@ -44,17 +44,7 @@ public class ConsiderationFacilityNeed : Consideration
         CharacterActor actor,
         FacilityRole role)
     {
-        // Recreation has an authored need threshold/resume curve.  Its job giver
-        // and action consideration must read the same authority or a candidate can
-        // be selected by one layer and suppressed (or repeated) by the other.
-        if (role == FacilityRole.Entertainment)
-        {
-            return CharacterNeedAiThresholds.GetRoutineUtility(
-                actor,
-                CharacterCondition.FUN);
-        }
-
-        return FacilityCandidateScorer.GetNeedScore(actor, role);
+        return CharacterNeedAiThresholds.GetFacilityRoutineUtility(actor, role);
     }
 
     private static bool CanEvaluateWithoutVisitBudget(CharacterActor actor, FacilityRole role)

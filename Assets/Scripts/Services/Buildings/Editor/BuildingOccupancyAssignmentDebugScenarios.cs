@@ -32,6 +32,7 @@ public static class BuildingOccupancyAssignmentDebugScenarios
         bool publicApiPreserved =
             typeof(BuildableObject).GetMethod(nameof(BuildableObject.CanVisit)) != null
             && typeof(BuildableObject).GetMethod(nameof(BuildableObject.TryBeginUse)) != null
+            && typeof(BuildableObject).GetMethod(nameof(BuildableObject.CompleteUse)) != null
             && typeof(BuildableObject).GetMethod(nameof(BuildableObject.TryReserveVisit)) != null
             && typeof(BuildableObject).GetMethod(nameof(BuildableObject.TryReserveWorker)) != null
             && typeof(BuildableObject).GetMethod(nameof(BuildableObject.GetWorkAssignmentStatus)) != null

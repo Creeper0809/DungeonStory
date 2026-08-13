@@ -71,6 +71,7 @@ public class AIBrain : CharacterAbility
     private AIBrainPathSearchSession pathSearchSession;
     private FacilityScoringContext facilityScoringContext;
     private AIActionFailure lastActionFailure = AIActionFailure.None;
+    private string lastExecutionFailureDetail = string.Empty;
     private AIActionSet lastFailedActionSet;
     private string currentActionDebugLabel = "\uB300\uAE30";
     private string currentActionPhase = string.Empty;
@@ -108,6 +109,7 @@ public class AIBrain : CharacterAbility
     private long noActionFailureCount;
     private long candidateRejectionCount;
     private long jobGiverEvaluationRejectionCount;
+    private long duplicateExecutionSuppressionCount;
     private long currentRepeatedFailureCount;
     private long peakRepeatedFailureCount;
     private AIActionFailureKind repeatedFailureKind;
@@ -150,6 +152,8 @@ public class AIBrain : CharacterAbility
     public long RuntimeImmediateReplanCount => immediateReplanCount;
     public long RuntimeExecutionFailureCount => executionFailureCount;
     public long RuntimeCandidateRejectionCount => candidateRejectionCount;
+    public long RuntimeDuplicateExecutionSuppressionCount =>
+        duplicateExecutionSuppressionCount;
     public long RuntimeJobGiverEvaluationRejectionCount =>
         jobGiverEvaluationRejectionCount;
     public long RuntimePeakRepeatedFailureCount => peakRepeatedFailureCount;
@@ -1096,6 +1100,7 @@ public class AIBrain : CharacterAbility
 
         bestAction.BindClock(gameClock);
         bestAction.MarkStarted(Now);
+        isExecuted = true;
         actionStartCount++;
         if (lastStartedActionSet == bestAction.actionset)
         {
@@ -1124,6 +1129,31 @@ public class AIBrain : CharacterAbility
                 $"{AIBrainDebugFormatter.GetDestinationLabel(bestAction.destination)} 선택",
                 0.1f);
         }
+        MarkDebugDirty();
+    }
+
+    internal void NotifyDuplicateExecutionSuppressed(AIAction action)
+    {
+        duplicateExecutionSuppressionCount++;
+        string actionLabel = GetActionLabel(action?.actionset);
+        currentActionPhaseDetail =
+            $"duplicate execution suppressed: {actionLabel}; count={duplicateExecutionSuppressionCount}";
+
+        // Keep normal frames allocation-free and avoid flooding the activity log
+        // if a broken behavior-tree leaf asks to execute the same RUNNING action
+        // every tick. The counter remains exact; evidence is emitted for the first
+        // four occurrences and then at powers of two.
+        if (duplicateExecutionSuppressionCount <= 4
+            || (duplicateExecutionSuppressionCount
+                & (duplicateExecutionSuppressionCount - 1)) == 0)
+        {
+            actor?.AddActivity(CharacterActivityEvent.InternalAi(
+                CharacterActivityOutcomes.Changed,
+                "duplicate-execution-suppressed",
+                $"AI duplicate execution suppressed: action={actionLabel}; "
+                + $"count={duplicateExecutionSuppressionCount}"));
+        }
+
         MarkDebugDirty();
     }
 
@@ -1588,9 +1618,11 @@ public class AIBrain : CharacterAbility
             executionFailureCount,
             noActionFailureCount,
             candidateRejectionCount,
+            duplicateExecutionSuppressionCount,
             currentRepeatedFailureCount,
             peakRepeatedFailureCount,
             repeatedFailureKind,
+            lastExecutionFailureDetail,
             (long[])executionFailuresByKind.Clone(),
             (long[])candidateRejectionsByKind.Clone(),
             jobGiverEvaluationRejectionCount,
@@ -1602,6 +1634,9 @@ public class AIBrain : CharacterAbility
         AIActionFailureKind kind,
         bool isNoAction)
     {
+        lastExecutionFailureDetail = lastActionFailure.HasFailure
+            ? lastActionFailure.ToString()
+            : kind.ToString();
         executionFailureCount++;
         if (isNoAction)
         {

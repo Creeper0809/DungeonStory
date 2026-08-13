@@ -4361,3 +4361,23 @@
 - Restored exact asynchronous meal failure detail propagation through the character building visitor adapter.
 - Re-ran Survival + AI priority + naturalness + customer contention suites: PASS.
 - Next: additional 5-day seeds, then 500-NPC fairness/performance and final save/console matrix.
+# 2026-08-13 seed 157183 AI reliability repair resumed
+
+- Recovered `task_plan.md`, `findings.md`, and `progress.md`, ran planning session catch-up, and confirmed clean branch checkpoint `7b644840`.
+- Re-established four source-level defects behind the failing five-day seed: duplicate selected-action execution, inconsistent toilet/hygiene routine thresholds, facility completion recorded at admission, and mutable freshness embedded in quantity-lease identity.
+- Began the invariant-first repair phase. Balance numbers and the 99 WU target remain unchanged until a clean five-day multi-seed run provides uncontaminated evidence.
+- Added an idempotent selected-action execution boundary. Duplicate behavior-tree execution requests preserve the running coroutine, increment a bounded diagnostic counter, and no longer call `Execute` twice.
+- Unified toilet, hygiene, and recreation selection/action/job-giver scoring on authored routine thresholds.
+- Split facility admission from successful completion. Admission now changes occupancy only; completed-use count, cleanliness cost, and visit events occur only through `CompleteUse`. Shop completion follows the same contract.
+- Added a lease-specific reservation signature that excludes only mutable freshness. Exact physical stack signatures remain unchanged, while quality and other material mutations still invalidate the lease. Added focused physical-item regression coverage.
+- Recoverable Unity MCP command-wrapper error: unqualified `CompilationPipeline` resolved inside the dynamic `Unity.*` namespace and produced command-only CS0234. No project source compiled or changed. Retry uses the fully qualified `UnityEditor.Compilation.CompilationPipeline` name.
+- Recoverable focused-run command error: `ModularFacilityDebugScenarios.RunAll` is void and has no boolean/logging overload. The dynamic wrapper failed to compile before executing any scenario. Retry calls the actual void contract; project compilation remains clean.
+- Unity MCP project refresh/compilation completed with Console Warning/Error `0/0`.
+- Focused priority-corner, physical-item, and modular-facility suites passed. The new action idempotency, completion-at-success, and freshness-stable lease regressions all executed in those suites.
+- Customer AI, staff duty, naturalness/continuation, and dark-survival suites passed together through Unity MCP; the shared routine-threshold change did not regress those live decision paths.
+- Real Unity domain reload caught project CS0246 in `Facility.cs`: the new invariant exception needed `using System`. The requested five-day run did not enter PlayMode. Added the import; all pre-reload dynamic test results will be rerun after a fresh project compile rather than treated as final evidence.
+- After the import repair, a fresh Unity domain reload completed and the full focused AI reliability matrix passed again.
+- Recoverable MCP policy error: a dynamic command containing direct `File.Delete` for the stale request was rejected as unsupported interaction. No state changed. The request already contains the intended seed and will be consumed by the normal verifier on the clean PlayMode retry.
+- Added the exact last runtime execution failure to the bounded per-actor five-day diagnostics. Clean Unity compilation, priority-corner, physical-item, modular-facility, and customer suites passed with Console Warning/Error `0/0`.
+- Re-ran seed `157183` for five days. Physical/central construction matched within `0.002 WU`, harmful stalls/primitive fallbacks/duplicate execution suppressions were zero, and the remaining meal failure was identified exactly as stale `not-hungry` policy state. The run failed only the separate toilet cadence upper bound (`0.8` vs `0.7`).
+- Implemented a benign stale-meal classification for `not-hungry` and snack follow-up cooldown. Facilities and meal shops now abandon the obsolete visit without reporting an AI execution failure or consuming stock; ritual policy and physical commit failures stay visible. Added focused classification and stock-preservation regressions. Unity recompile and rerun are next.

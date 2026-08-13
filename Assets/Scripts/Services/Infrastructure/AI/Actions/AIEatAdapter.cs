@@ -12,6 +12,8 @@ public class AIEat : AIActionSet
         "work:eat");
 
     public override CharacterAiActionDescriptor Descriptor => ActionDescriptor;
+    public override bool IsContinuous => true;
+    public override float MinimumDuration => 0.5f;
     public override bool CanStart(CharacterActor actor)
     {
         return CanUseVisitorAction(actor);
@@ -27,6 +29,18 @@ public class AIEat : AIActionSet
     public override void Execute(CharacterActor actor)
     {
         actor?.GetAbility<AbilityShopping>()?.StartSopping();
+    }
+
+    public override bool CanContinue(
+        CharacterActor actor,
+        AIAction runningAction,
+        out string stopReason)
+    {
+        stopReason = string.Empty;
+        return actor != null
+            && runningAction != null
+            && runningAction.HasStarted
+            && actor.TryGetAbility(out AbilityShopping _);
     }
 
     public override IReadOnlyList<BuildableObject> GetDestinationCandidates(

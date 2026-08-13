@@ -172,6 +172,18 @@ public sealed class BuildingOccupancy
             failureReason = "이미 시설 이용 중";
             return false;
         }
+        owner.NotifyOccupancyOrAssignmentChanged();
+        return true;
+    }
+
+    public bool CompleteUse(IBuildingCharacterPort visitor)
+    {
+        CharacterId visitorId = GetVisitorId(visitor);
+        if (!visitorId.IsValid || !activeUsers.Remove(visitorId))
+        {
+            return false;
+        }
+
         owner.RecordFacilityUse(visitor);
         return true;
     }

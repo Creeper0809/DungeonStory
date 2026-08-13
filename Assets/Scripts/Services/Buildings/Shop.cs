@@ -320,9 +320,21 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         MarkFacilityDynamicStateDirty();
     }
 
-    internal void EndShopUse(IBuildingVisitorPort actor)
+    internal void EndShopUse(IBuildingVisitorPort actor, bool completed)
     {
-        EndUse(actor);
+        if (!completed)
+        {
+            EndUse(actor);
+            return;
+        }
+
+        if (!CompleteUse(actor))
+        {
+            throw new InvalidOperationException(
+                $"Shop completion lost its active occupancy: "
+                + $"shop={RequirePersistentInstanceId().Value}; "
+                + $"actor={actor?.BuildingCharacterId.Value ?? "<missing>"}.");
+        }
     }
 
     internal string DisplayNameForActivity => objectNameOrDefault();

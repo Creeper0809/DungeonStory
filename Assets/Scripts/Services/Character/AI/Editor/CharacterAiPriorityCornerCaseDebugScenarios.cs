@@ -25,6 +25,8 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
 
         RunScenario("AI action score edge cases", VerifyActionScoreEdgeCases, errors);
         RunScenario("AI action plan invariants", VerifyActionPlanInvariants, errors);
+        RunScenario("Running AI action execution is idempotent", VerifyRunningActionExecutionIsIdempotent, errors);
+        RunScenario("Multi-frame self-care actions retain lifecycle ownership", VerifySelfCareActionLifecycleContracts, errors);
         RunScenario("Destroyed committed destination reports exact execution failure", VerifyDestroyedCommittedDestinationFailure, errors);
         RunScenario("Repeated execution failures survive action restart diagnostics", VerifyRepeatedFailureDiagnosticsAcrossRestarts, errors);
         RunScenario("Facility destruction aborts an in-flight interaction", VerifyFacilityDestructionAbortsInFlightInteraction, errors);
@@ -596,6 +598,85 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         finally
         {
             Object.DestroyImmediate(actionSet);
+        }
+    }
+
+    private static bool VerifyRunningActionExecutionIsIdempotent()
+    {
+        using PriorityScenarioWorld world = new PriorityScenarioWorld();
+        CharacterActor character = world.CreateOwner("Owner_Slime", Vector2Int.zero);
+        TestActionSet actionSet = CreateAction(
+            "Idempotent running action",
+            1f,
+            requiresDestination: false,
+            resolvesDestination: true);
+
+        try
+        {
+            character.ai.bestAction = new AIAction(
+                actionSet,
+                AIActionPlan.WithoutDestination);
+            character.ai.isBestActionEnd = false;
+            character.ai.isExecuted = false;
+            CharacterAiRuntimeDiagnosticsSnapshot before =
+                character.ai.CaptureRuntimeDiagnostics();
+
+            bool first = character.TryExecuteSelectedAiAction();
+            bool second = character.TryExecuteSelectedAiAction();
+            CharacterAiRuntimeDiagnosticsSnapshot after =
+                character.ai.CaptureRuntimeDiagnostics();
+
+            return first
+                && second
+                && actionSet.ExecuteCount == 1
+                && character.ai.bestAction.HasStarted
+                && character.ai.isExecuted
+                && after.ActionStarts - before.ActionStarts == 1
+                && after.DuplicateExecutionSuppressions
+                    - before.DuplicateExecutionSuppressions == 1;
+        }
+        finally
+        {
+            Object.DestroyImmediate(actionSet);
+        }
+    }
+
+    private static bool VerifySelfCareActionLifecycleContracts()
+    {
+        using PriorityScenarioWorld world = new PriorityScenarioWorld();
+        CharacterActor actor = world.CreateOwner("Owner_Slime", Vector2Int.zero);
+        AIEat eat = ScriptableObject.CreateInstance<AIEat>();
+        AIRest rest = ScriptableObject.CreateInstance<AIRest>();
+        AIFacilityRoleAction toilet =
+            ScriptableObject.CreateInstance<AIFacilityRoleAction>();
+        AIFacilityRoleAction hygiene =
+            ScriptableObject.CreateInstance<AIFacilityRoleAction>();
+        AIFacilityRoleAction recreation =
+            ScriptableObject.CreateInstance<AIFacilityRoleAction>();
+        toilet.Role = FacilityRole.Toilet;
+        hygiene.Role = FacilityRole.Hygiene;
+        recreation.Role = FacilityRole.Entertainment;
+
+        try
+        {
+            AIActionSet[] actions = { eat, rest, toilet, hygiene, recreation };
+            return actions.All(action =>
+            {
+                AIAction running = new(action, AIActionPlan.WithoutDestination);
+                running.MarkStarted(0f);
+                return action.IsContinuous
+                    && action.MinimumDuration > 0f
+                    && action.AllowsSurvivalEmergencyInterrupt
+                    && action.CanContinue(actor, running, out _);
+            });
+        }
+        finally
+        {
+            Object.DestroyImmediate(eat);
+            Object.DestroyImmediate(rest);
+            Object.DestroyImmediate(toilet);
+            Object.DestroyImmediate(hygiene);
+            Object.DestroyImmediate(recreation);
         }
     }
 
@@ -1173,6 +1254,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         public BuildableObject ResolvedDestination { get; set; }
         public FixedScoreConsideration OwnedConsideration { get; set; }
         public int CanStartRequestCount { get; private set; }
+        public int ExecuteCount { get; private set; }
 
         public override bool RequiresDestination => RequireDestination;
 
@@ -1184,6 +1266,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
 
         public override void Execute(CharacterActor actor)
         {
+            ExecuteCount++;
         }
 
         public override bool TryResolveDestinationWithFailure(

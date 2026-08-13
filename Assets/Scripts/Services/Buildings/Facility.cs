@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Linq;
 using UnityEngine;
@@ -540,6 +541,25 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             }
             if (!mealConsumed)
             {
+                if (mealResult.IsNoLongerNeeded)
+                {
+                    const string cancellationReason = "meal-no-longer-needed";
+                    if (serviceSession != null)
+                    {
+                        serviceSessionRuntime.CancelSession(
+                            serviceSession.SessionId,
+                            cancellationReason);
+                    }
+                    actor.RecordActivity(this, new BuildingActivitySnapshot(
+                        BuildingActivityKinds.FacilityUse,
+                        BuildingActivityOutcomes.Cancelled,
+                        $"{interactionFacilityLabel} meal plan retired because the need was already satisfied.",
+                        reasonCode: cancellationReason));
+                    EndUse(actor);
+                    SetVisitOutcome(actor, this, BuildingVisitOutcome.Abandoned);
+                    yield break;
+                }
+
                 string failureCode = mealConsumptionRuntime == null
                     ? "InvalidCommand"
                     : string.IsNullOrWhiteSpace(mealResult.FailureCode)
@@ -672,7 +692,13 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 serviceSession.SessionId,
                 completionFailure.Code.ToString());
         }
-        EndUse(actor);
+        if (!CompleteUse(actor))
+        {
+            throw new InvalidOperationException(
+                $"Facility completion lost its active occupancy: "
+                + $"facility={RequirePersistentInstanceId().Value}; "
+                + $"actor={actor?.BuildingCharacterId.Value ?? "<missing>"}.");
+        }
     }
 
     public FacilityAssignmentStatus GetWorkerAssignmentStatus(IBuildingVisitorPort actor)

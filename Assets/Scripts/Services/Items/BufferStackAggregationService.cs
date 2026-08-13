@@ -627,7 +627,7 @@ public sealed class BufferStackAggregationService :
                         originStackId = string.IsNullOrWhiteSpace(movingSlice.originStackId)
                             ? movingSlice.stackId
                             : movingSlice.originStackId,
-                        expectedStackSignature = ItemStackSignature.Create(
+                        expectedStackSignature = ItemReservationSignature.Create(
                             target.itemId,
                             target.components),
                         quantity = assigned

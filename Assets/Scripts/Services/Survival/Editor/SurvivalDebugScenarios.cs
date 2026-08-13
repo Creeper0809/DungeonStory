@@ -37,10 +37,49 @@ public static class SurvivalDebugScenarios
         Run("consumables_save_payload", VerifyConsumablesSavePayload, errors);
         Run("consumables_typed_failures", VerifyConsumablesTypedFailures, errors);
         Run("consumables_physical_exactly_once", VerifyConsumablesPhysicalExactlyOnce, errors);
+        Run("stale_meal_need_is_benign_cancellation", VerifyStaleMealNeedClassification, errors);
         Run("meal_four_second_commit_and_spoil_abort", VerifyMealFourSecondCommitAndSpoilAbort, errors);
         Run("tavern_recreational_substance_service", VerifyTavernRecreationalSubstanceService, errors);
         Run("consumables_strict_restore", VerifyConsumablesStrictRestore, errors);
         return errors;
+    }
+
+    private static string VerifyStaleMealNeedClassification()
+    {
+        BuildingMealUseSnapshot noLongerHungry = new(
+            false,
+            CharacterConsumablesFailureCode.PolicyForbidden.ToString(),
+            string.Empty,
+            0,
+            failureDetail: "owner,not-hungry");
+        BuildingMealUseSnapshot followupCooldown = new(
+            false,
+            CharacterConsumablesFailureCode.PolicyForbidden.ToString(),
+            string.Empty,
+            0,
+            failureDetail: "owner,meal-followup-cooldown");
+        BuildingMealUseSnapshot ritualFast = new(
+            false,
+            CharacterConsumablesFailureCode.PolicyForbidden.ToString(),
+            string.Empty,
+            0,
+            failureDetail: "owner,ritual-fast");
+        BuildingMealUseSnapshot physicalFailure = new(
+            false,
+            CharacterConsumablesFailureCode.PhysicalConsumptionFailed.ToString(),
+            string.Empty,
+            0,
+            failureDetail: "meal-lease-invalid-at-commit");
+
+        Require(noLongerHungry.IsNoLongerNeeded,
+            "a satisfied hunger need was still classified as an execution failure");
+        Require(followupCooldown.IsNoLongerNeeded,
+            "an already-satisfied snack follow-up was still classified as an execution failure");
+        Require(!ritualFast.IsNoLongerNeeded,
+            "an authored ritual policy rejection was hidden as a benign cancellation");
+        Require(!physicalFailure.IsNoLongerNeeded,
+            "a physical meal commit failure was hidden as a benign cancellation");
+        return "not-hungry/followup=benign; ritual/physical=typed-failure";
     }
 
     private static string VerifyMealFourSecondCommitAndSpoilAbort()
@@ -118,6 +157,7 @@ public static class SurvivalDebugScenarios
                 "meal action fixture failed to spawn first serving");
             WorldItemStackSnapshot firstStack = items.GetAllStacks().Single(stack =>
                 stack.ItemId == FoodId);
+            actor.stats[CharacterCondition.HUNGER] = 50f;
             actor.PathSearchBroker?.BeginFrame(
                 0,
                 enforceBudget: true,
@@ -138,6 +178,22 @@ public static class SurvivalDebugScenarios
                 && pending.FailureCode == CharacterConsumablesFailureCode.DeliveryPending
                 && items.GetAllStacks().Single(stack => stack.StackId == firstStack.StackId).ReservedQuantity == 1,
                 "meal was not held as a four-second reserved action");
+            int quantityBeforeStaleAttempt = items.GetAllStacks()
+                .Single(stack => stack.StackId == firstStack.StackId)
+                .Quantity;
+            actor.stats[CharacterCondition.HUNGER] = 80f;
+            Require(!runtime.TryConsumeMeal(
+                    CharacterPersistentIdentity.Require(actor),
+                    facility.RequirePersistentInstanceId(),
+                    out CharacterConsumablesMealResult staleNeed)
+                && staleNeed.FailureCode
+                    == CharacterConsumablesFailureCode.PolicyForbidden
+                && staleNeed.Parameters.Contains("not-hungry")
+                && items.GetAllStacks()
+                    .Single(stack => stack.StackId == firstStack.StackId)
+                    .Quantity == quantityBeforeStaleAttempt,
+                "a stale already-satisfied meal decision consumed stock or lost its typed cancellation reason");
+            actor.stats[CharacterCondition.HUNGER] = 50f;
             DungeonCharacterConsumablesSaveData activeSave = runtime.Capture();
             Require(activeSave.activeMealPlans.Count == 1
                 && activeSave.activeMealPlans[0].planId == firstCommand.OperationId.Value,

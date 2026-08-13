@@ -441,7 +441,7 @@ public static class CustomerAiDebugScenarios
                 waiting,
                 FacilityRole.Toilet,
                 CharacterCondition.EXCRETION);
-            waiting.stats[CharacterCondition.EXCRETION] = 1f;
+            waiting.stats[CharacterCondition.EXCRETION] = 0.1f;
             bool criticalEmergencyUsesPrimitive = primitive.CanUse(
                 waiting,
                 FacilityRole.Toilet,
@@ -460,7 +460,14 @@ public static class CustomerAiDebugScenarios
                 null,
                 out AIActionFailure staleFailure)
                 && staleFailure.Kind == AIActionFailureKind.CannotStart;
+            waiting.transform.position = world.Grid.GetWorldPos(toilet.centerPos);
+            waiting.Brain.ClearPathSearchCache();
             GridPathSearchResult search = waiting.Brain.GetPathSearch(waiting);
+            bool actorOnFacilityFootprintIsReachable =
+                FacilityCandidateScorer.HasReachableQueueableCandidate(
+                    waiting,
+                    search,
+                    FacilityRole.Toilet);
             bool passed = !routineUsesPrimitive
                 && waitingReserved
                 && waitingQueuePosition == 1
@@ -469,7 +476,8 @@ public static class CustomerAiDebugScenarios
                 && criticalEmergencyUsesPrimitive
                 && softEmergencyWaits
                 && admittedAfterRelease
-                && stalePrimitiveRejected;
+                && stalePrimitiveRejected
+                && actorOnFacilityFootprintIsReachable;
             if (!passed)
             {
                 Debug.LogError(
@@ -484,6 +492,7 @@ public static class CustomerAiDebugScenarios
                     + $"softEmergencyWaits={softEmergencyWaits}; "
                     + $"admittedAfterRelease={admittedAfterRelease}:{admittedReason}; "
                     + $"stalePrimitiveRejected={stalePrimitiveRejected}; "
+                    + $"onFootprintReachable={actorOnFacilityFootprintIsReachable}; "
                     + $"staleFailure={staleFailure}; "
                     + $"need={waiting.stats[CharacterCondition.EXCRETION]}; "
                     + $"response={waiting.Stats.GetNeedResponse(CharacterCondition.EXCRETION).routineStart}/"

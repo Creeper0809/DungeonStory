@@ -42,6 +42,7 @@ public static class PhysicalItemDebugScenarios
         Run("warehouse_stored_stack_consumption", VerifyWarehouseStoredStackConsumption, lines, errors);
         Run("transient_reservation_persistence", VerifyTransientReservationPersistence, lines, errors);
         Run("quantity_lease_ten_of_ten", VerifyQuantityLeaseTenOfTen, lines, errors);
+        Run("quantity_lease_survives_freshness_decay", VerifyQuantityLeaseSurvivesFreshnessDecay, lines, errors);
         Run("quantity_batch_atomic_rollback", VerifyQuantityBatchAtomicRollback, lines, errors);
         Run("quantity_exact_atomic_consume", VerifyQuantityExactAtomicConsume, lines, errors);
         Run("direct_consume_respects_foreign_lease", VerifyDirectConsumeRespectsForeignLease, lines, errors);
@@ -988,6 +989,109 @@ public static class PhysicalItemDebugScenarios
             && reservations.GetReservedQuantity(new ItemStackId(second)) == 0,
             "failed batch left partial reservations");
         return $"failure={failure.Code}; first=0; second=0";
+    }
+
+    private static string VerifyQuantityLeaseSurvivesFreshnessDecay()
+    {
+        WorldItemRepository repository = new(
+            new GuidPersistentIdGenerator(),
+            new DungeonRuntimeAggregateRootStore());
+        List<ItemInstanceComponentSaveData> components = new()
+        {
+            CreateFreshnessComponent(120d),
+            CreateQualityComponent("decent")
+        };
+        string stackId = repository.AddEditorTestStack(
+            PreservedRationItemId,
+            1,
+            WorldItemStackState.FacilityBuffer,
+            "facility:qa:meal-buffer",
+            components: components);
+
+        ItemQuantityReservationService reservations = new(
+            repository,
+            EditorNullItemMarkerPresenter.Instance,
+            new UnityGameClock());
+        string reservationSignature = ItemReservationSignature.Create(
+            PreservedRationItemId,
+            components);
+        Require(reservations.TryReserve(
+                "meal:qa:freshness-decay",
+                "character:qa:freshness-decay",
+                ItemReservationPurpose.Meal,
+                "meal:facility:qa:meal-buffer:preserved-ration",
+                new ItemQuantityReservationRequest(
+                    new ItemStackId(stackId),
+                    1,
+                    reservationSignature),
+                out ItemQuantityLease lease,
+                out DomainFailure reserveFailure),
+            $"freshness lease failed: {reserveFailure}");
+
+        // Normal aging changes the physical stack signature but must not make the
+        // reservation owner lose its own quantity while walking or eating.
+        Require(repository.SetEditorTestComponent(
+                stackId,
+                CreateFreshnessComponent(115d)),
+            "failed to age the reserved editor-test stack");
+        Require(reservations.Revalidate(
+                lease.leaseId,
+                out _,
+                out DomainFailure freshnessFailure),
+            $"normal freshness decay invalidated lease: {freshnessFailure}");
+
+        // A quality mutation is not time passage and must still invalidate the
+        // lease rather than silently substituting a materially different item.
+        Require(repository.SetEditorTestComponent(
+                stackId,
+                CreateQualityComponent("poor")),
+            "failed to mutate the reserved editor-test stack quality");
+        Require(!reservations.Revalidate(
+                lease.leaseId,
+                out _,
+                out DomainFailure qualityFailure)
+            && qualityFailure.Code == FailureCode.ItemReservationSliceInvalid,
+            $"quality mutation did not invalidate lease: {qualityFailure}");
+
+        return $"lease={lease.leaseId}; freshness=120->115; qualityFailure={qualityFailure.Code}";
+    }
+
+    private static ItemInstanceComponentSaveData CreateFreshnessComponent(double remainingSeconds)
+    {
+        return new ItemInstanceComponentSaveData
+        {
+            componentTypeId = ItemInstanceComponentIds.Freshness,
+            schemaVersion = 1,
+            affectsStacking = true,
+            values = new List<ItemStateValueSaveData>
+            {
+                new()
+                {
+                    key = "remaining-seconds",
+                    kind = ItemStateValueKind.Decimal,
+                    decimalValue = remainingSeconds
+                }
+            }
+        };
+    }
+
+    private static ItemInstanceComponentSaveData CreateQualityComponent(string quality)
+    {
+        return new ItemInstanceComponentSaveData
+        {
+            componentTypeId = ItemInstanceComponentIds.Quality,
+            schemaVersion = 1,
+            affectsStacking = true,
+            values = new List<ItemStateValueSaveData>
+            {
+                new()
+                {
+                    key = "tier",
+                    kind = ItemStateValueKind.String,
+                    stringValue = quality
+                }
+            }
+        };
     }
 
     private static string VerifyQuantityPartialExtraction()

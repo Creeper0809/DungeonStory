@@ -430,7 +430,7 @@ internal sealed class CharacterPrimitiveSurvivalRunner
                 new ItemQuantityReservationRequest(
                     (ItemStackId)water.StackId,
                     1,
-                    water.StackSignature),
+                    water.ReservationSignature),
                 out ItemQuantityLease lease,
                 out _))
         {

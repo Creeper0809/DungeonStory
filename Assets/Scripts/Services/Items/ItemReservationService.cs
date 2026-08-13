@@ -125,7 +125,7 @@ public sealed class ItemReservationService : IItemReservationService
             .Select((requested, index) => new ItemQuantityReservationRequest(
                 new ItemStackId(requested.StackId),
                 requested.Quantity,
-                ItemStackSignature.Create(
+                ItemReservationSignature.Create(
                     selected[index].itemId,
                     selected[index].components)))
             .ToArray();

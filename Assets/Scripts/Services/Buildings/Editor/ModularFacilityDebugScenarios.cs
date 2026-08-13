@@ -981,16 +981,25 @@ public static class ModularFacilityDebugScenarios
             bool bridgeUse = mealCore.TryBeginUse(
                 visitors[0].BuildingVisitor,
                 out string bridgeUseReason);
+            int completedBeforeBridgeAdmission = mealCore.FacilityState.completedUses;
             RecordAiCase(rows, failures, "dining_actor_adapter_identity",
                 bridgeReserved
                 && bridgeUse
                 && mealCore.ActiveVisitReservationCount == 0
-                && mealCore.CurrentUserCount == 1,
+                && mealCore.CurrentUserCount == 1
+                && mealCore.FacilityState.completedUses == completedBeforeBridgeAdmission,
                 $"reserved={bridgeReserved}:{bridgeReserveReason}; "
                 + $"use={bridgeUse}:{bridgeUseReason}; "
-                + $"reservations={mealCore.ActiveVisitReservationCount}; "
-                + $"users={mealCore.CurrentUserCount}");
-            mealCore.EndUse(visitors[0].BuildingVisitor);
+                 + $"reservations={mealCore.ActiveVisitReservationCount}; "
+                 + $"users={mealCore.CurrentUserCount}; "
+                 + $"completed={mealCore.FacilityState.completedUses}");
+            bool bridgeCompleted = mealCore.CompleteUse(visitors[0].BuildingVisitor);
+            RecordAiCase(rows, failures, "dining_completion_is_not_admission",
+                bridgeCompleted
+                && mealCore.CurrentUserCount == 0
+                && mealCore.FacilityState.completedUses == completedBeforeBridgeAdmission + 1,
+                $"completed={bridgeCompleted}; users={mealCore.CurrentUserCount}; "
+                + $"uses={completedBeforeBridgeAdmission}->{mealCore.FacilityState.completedUses}");
 
             bool useFirst = mealCore.TryBeginUse(visitors[0], out string useFirstReason);
             bool useSecond = mealCore.TryBeginUse(visitors[1], out string useSecondReason);
