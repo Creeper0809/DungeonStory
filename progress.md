@@ -4389,3 +4389,19 @@
 - Priority lifecycle and work-amount focused regressions pass through Unity MCP; compilation and Console Warning/Error are 0/0.
 - Same-seed five-day evidence now has zero facility action replacements, interrupted replans, execution failures, harmful stalls, and primitive survival fallbacks. The only remaining verifier failure is the separate authored toilet cadence mismatch (0.8 vs old 0.3-0.7).
 - Next: broad AI/save scenario matrix, additional deterministic seeds, then 500-NPC lifecycle/performance and final Console/save evidence.
+
+# 2026-08-13 AI lifecycle invariant continuation
+
+- Restored the pushed clean checkpoint `77533d69`, Unity MCP connection, Console `0/0`, and the active planning/game-AI/Unity scripting guidance.
+- Added a dedicated two-second `orphan-work-action` detector to the natural five-day verifier with work-run, coroutine, ownership, action phase, destination, failure and decision-route evidence.
+- Ran the live-value calibrator experiment and rejected it from this AI patch: it exposed a separate balance-model mismatch and would have left an unrelated failing calibration. The calibrator source was restored unchanged; the discrepancy remains documented for the later need-balance task.
+- Added runtime orphan Work recovery at the active coroutine ownership boundary and made any recovery a five-day verifier failure. Added a focused regression for the exact ownerless Work state.
+- Fixed Work-target destruction finalization ordering: record typed `Destroyed` without an early protected replan, then clean skill/environment/workwear/worker owners, terminal the expected action, and wake the scheduler.
+- Added an `AIDrink` deferred-action boundary. Retry timers no longer masquerade as running actions; rejected starts wake immediately while accepted deferred starts wake only at their authored retry time.
+- Wrapped selected `AIActionSet.Execute` in a terminal exception boundary and added a lifecycle-transition cleanup API used by non-active states plus actor disable/destroy. Focused regressions prove exactly one `OnStop`, released ownership, typed failure, and later reactivation.
+- Added approved-work progress revision and five-day watchdogs for `isWorking` with no WU delta, need queues that do not advance, and need services that exceed authored bounded deadlines.
+- Unity MCP compilation, focused priority lifecycle regressions, the broad AI matrix, and 100-NPC synchronous stress passed. The five-day seed `157182` run is in progress.
+- Finished the seed `157182` rerun on the final P0 lifecycle sources. AI execution failures, no-action failures, candidate rejections, duplicate starts, interaction replacements, protected replans, orphan recoveries and harmful stalls are all zero; approved-work, need-queue and need-service watchdogs did not fire.
+- Added an allocation-free per-brain 32-event typed lifecycle trace and emitted it into the long-run report. Repeated progress text no longer consumes trace slots unless phase or destination actually changes.
+- Hardened the debug formatter so a partially injected stress fixture reports its failure rather than throwing while calculating carry weight.
+- The global five-day result remains red only for the independent hygiene cadence balance mismatch (`0.533` vs `0.6~1.0`). AI reliability evidence is green; the balance gate remains unchanged.

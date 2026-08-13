@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -212,7 +213,7 @@ public sealed class WorkCommandHandler
             && candidate.UrgencyScore >= 60f;
     }
 
-    public IEnumerator SuppressPriorityTarget()
+    public IEnumerator SuppressPriorityTarget(Func<bool> ownsAction = null)
     {
         CharacterActor actor = work.WorkerActor;
         if (actor == null || actor.Brain == null)
@@ -224,6 +225,9 @@ public sealed class WorkCommandHandler
         AbilityMove move = work.WorkerMove;
         CharacterActor target = prioritySuppressTarget;
         AIAction currentAction = actor.Brain.bestAction;
+        bool OwnsAction() => ownsAction?.Invoke() ?? ReferenceEquals(
+            actor?.Brain?.bestAction,
+            currentAction);
         if (!WorkCommandResolver.TryResolveSuppressCommand(
                 actor,
                 target,
@@ -242,8 +246,11 @@ public sealed class WorkCommandHandler
                 reasonCode: errorMessage,
                 sentiment: -0.7f,
                 bubbleEligible: true));
-            ClearPriorityWorkTarget();
-            actor.Brain.isBestActionEnd = true;
+            if (OwnsAction())
+            {
+                ClearPriorityWorkTarget();
+                actor.Brain.isBestActionEnd = true;
+            }
             yield break;
         }
 
@@ -258,8 +265,11 @@ public sealed class WorkCommandHandler
                 reasonCode: "missing-movement",
                 sentiment: -0.7f,
                 bubbleEligible: true));
-            ClearPriorityWorkTarget();
-            actor.Brain.isBestActionEnd = true;
+            if (OwnsAction())
+            {
+                ClearPriorityWorkTarget();
+                actor.Brain.isBestActionEnd = true;
+            }
             yield break;
         }
 
@@ -280,8 +290,11 @@ public sealed class WorkCommandHandler
                     reasonCode: failureReason,
                     sentiment: -0.7f,
                     bubbleEligible: true));
-                ClearPriorityWorkTarget();
-                actor.Brain.isBestActionEnd = true;
+                if (OwnsAction())
+                {
+                    ClearPriorityWorkTarget();
+                    actor.Brain.isBestActionEnd = true;
+                }
                 yield break;
             }
 
@@ -296,13 +309,17 @@ public sealed class WorkCommandHandler
                 && !target.IsDead
                 && actor != null
                 && !actor.IsDead
+                && OwnsAction()
                 && defenseRuntime.TryGetEngagement(invasionIntruder, out _))
             {
                 yield return null;
             }
 
-            ClearPriorityWorkTarget();
-            actor.Brain.isBestActionEnd = true;
+            if (OwnsAction())
+            {
+                ClearPriorityWorkTarget();
+                actor.Brain.isBestActionEnd = true;
+            }
             yield break;
         }
 
@@ -313,7 +330,11 @@ public sealed class WorkCommandHandler
             actionId: "combat:suppress",
             targetId: CharacterPersistentIdentity.Require(target).Value,
             targetName: target.name));
-        while (target != null && !target.IsDead && actor != null && !actor.IsDead)
+        while (target != null
+            && !target.IsDead
+            && actor != null
+            && !actor.IsDead
+            && OwnsAction())
         {
             Vector2Int targetPos = work.WorkGridResolver.GetGridPosition(activeGrid, target);
             Vector2Int actorPos = work.WorkGridResolver.GetGridPosition(activeGrid, actor);
@@ -336,6 +357,11 @@ public sealed class WorkCommandHandler
                 }
 
                 yield return move.MoveByPath(path, currentAction);
+                if (!OwnsAction())
+                {
+                    yield break;
+                }
+
                 continue;
             }
 
@@ -388,10 +414,17 @@ public sealed class WorkCommandHandler
             }
 
             yield return new WaitForSeconds(Mathf.Max(0.1f, work.SuppressAttackInterval));
+            if (!OwnsAction())
+            {
+                yield break;
+            }
         }
 
-        ClearPriorityWorkTarget();
-        actor.Brain.isBestActionEnd = true;
+        if (OwnsAction())
+        {
+            ClearPriorityWorkTarget();
+            actor.Brain.isBestActionEnd = true;
+        }
     }
 
     private bool CanReachSuppressTarget(

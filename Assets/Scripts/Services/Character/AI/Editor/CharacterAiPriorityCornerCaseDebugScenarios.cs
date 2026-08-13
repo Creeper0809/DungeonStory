@@ -26,6 +26,9 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         RunScenario("AI action score edge cases", VerifyActionScoreEdgeCases, errors);
         RunScenario("AI action plan invariants", VerifyActionPlanInvariants, errors);
         RunScenario("Running AI action execution is idempotent", VerifyRunningActionExecutionIsIdempotent, errors);
+        RunScenario("AI Execute exception terminates the expected action", VerifyExecutionExceptionTerminatesExpectedAction, errors);
+        RunScenario("Lifecycle transition releases action ownership", VerifyLifecycleTransitionReleasesActionOwnership, errors);
+        RunScenario("Orphan Work action is recovered at coroutine boundary", VerifyOrphanWorkActionRecovery, errors);
         RunScenario("Multi-frame self-care actions retain lifecycle ownership", VerifySelfCareActionLifecycleContracts, errors);
         RunScenario("Workforce replans preserve running non-work actions", VerifyWorkforceReplanPreservesRunningNonWorkAction, errors);
         RunScenario("Destroyed committed destination reports exact execution failure", VerifyDestroyedCommittedDestinationFailure, errors);
@@ -642,6 +645,84 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         }
     }
 
+    private static bool VerifyExecutionExceptionTerminatesExpectedAction()
+    {
+        using PriorityScenarioWorld world = new PriorityScenarioWorld();
+        CharacterActor actor = world.CreateOwner("Owner_Slime", Vector2Int.zero);
+        TestActionSet actionSet = CreateAction(
+            "Throwing action",
+            1f,
+            requiresDestination: false,
+            resolvesDestination: true);
+        actionSet.ThrowOnExecute = true;
+
+        try
+        {
+            actor.ai.bestAction = new AIAction(
+                actionSet,
+                AIActionPlan.WithoutDestination);
+            actor.ai.isBestActionEnd = false;
+            actor.ai.isExecuted = false;
+            CharacterAiRuntimeDiagnosticsSnapshot before =
+                actor.ai.CaptureRuntimeDiagnostics();
+
+            bool executed = actor.TryExecuteSelectedAiAction();
+            CharacterAiRuntimeDiagnosticsSnapshot after =
+                actor.ai.CaptureRuntimeDiagnostics();
+
+            return !executed
+                && actionSet.ExecuteCount == 1
+                && actionSet.StopCount == 1
+                && actor.ai.bestAction == null
+                && !actor.ai.isExecuted
+                && actor.ai.isBestActionEnd
+                && after.ExecutionFailures - before.ExecutionFailures == 1
+                && after.LastExecutionFailureDetail.Contains(
+                    nameof(InvalidOperationException),
+                    StringComparison.Ordinal);
+        }
+        finally
+        {
+            Object.DestroyImmediate(actionSet);
+        }
+    }
+
+    private static bool VerifyLifecycleTransitionReleasesActionOwnership()
+    {
+        using PriorityScenarioWorld world = new PriorityScenarioWorld();
+        CharacterActor actor = world.CreateOwner("Owner_Slime", Vector2Int.zero);
+        TestActionSet actionSet = CreateAction(
+            "Lifecycle-owned action",
+            1f,
+            requiresDestination: false,
+            resolvesDestination: true);
+
+        try
+        {
+            actor.ai.bestAction = new AIAction(
+                actionSet,
+                AIActionPlan.WithoutDestination);
+            actor.ai.isBestActionEnd = false;
+            actor.ai.NotifyActionStarted();
+
+            actor.SetLifecycleState(CharacterLifecycleState.Downed);
+            bool stopped = actionSet.StopCount == 1
+                && actor.ai.bestAction == null
+                && !actor.ai.isExecuted
+                && !actor.ai.isBestActionEnd
+                && actor.CurrentLifecycleState == CharacterLifecycleState.Downed;
+
+            actor.SetLifecycleState(CharacterLifecycleState.Active);
+            return stopped
+                && actor.CurrentLifecycleState == CharacterLifecycleState.Active
+                && actor.ai.isBestActionEnd;
+        }
+        finally
+        {
+            Object.DestroyImmediate(actionSet);
+        }
+    }
+
     private static bool VerifySelfCareActionLifecycleContracts()
     {
         using PriorityScenarioWorld world = new PriorityScenarioWorld();
@@ -685,6 +766,45 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
             Object.DestroyImmediate(toilet);
             Object.DestroyImmediate(hygiene);
             Object.DestroyImmediate(recreation);
+        }
+    }
+
+    private static bool VerifyOrphanWorkActionRecovery()
+    {
+        using PriorityScenarioWorld world = new PriorityScenarioWorld();
+        CharacterActor actor = world.CreateOwner("Owner_Slime", Vector2Int.zero);
+        AbilityWork work = actor.GetComponent<AbilityWork>();
+        AIWork workActionSet = ScriptableObject.CreateInstance<AIWork>();
+        try
+        {
+            AIAction running = new(workActionSet, AIActionPlan.WithoutDestination);
+            actor.ai.bestAction = running;
+            actor.ai.isBestActionEnd = false;
+            actor.ai.NotifyActionStarted();
+            work.isWorking = false;
+            CharacterAiRuntimeDiagnosticsSnapshot before =
+                actor.ai.CaptureRuntimeDiagnostics();
+
+            typeof(AbilityWork).GetMethod(
+                    "ClearActiveWorkRoutine",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.Invoke(
+                    work,
+                    new object[] { work.ActiveWorkRunIdForDiagnostics });
+            CharacterAiRuntimeDiagnosticsSnapshot after =
+                actor.ai.CaptureRuntimeDiagnostics();
+
+            return actor.ai.isBestActionEnd
+                && !actor.ai.isExecuted
+                && after.OrphanWorkActionRecoveries
+                    - before.OrphanWorkActionRecoveries == 1
+                && after.LastOrphanWorkActionRecoveryDetail.Contains(
+                    "active-work-coroutine-finalized",
+                    StringComparison.Ordinal);
+        }
+        finally
+        {
+            Object.DestroyImmediate(workActionSet);
         }
     }
 
@@ -1324,6 +1444,8 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         public FixedScoreConsideration OwnedConsideration { get; set; }
         public int CanStartRequestCount { get; private set; }
         public int ExecuteCount { get; private set; }
+        public int StopCount { get; private set; }
+        public bool ThrowOnExecute { get; set; }
 
         public override bool RequiresDestination => RequireDestination;
 
@@ -1336,6 +1458,18 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         public override void Execute(CharacterActor actor)
         {
             ExecuteCount++;
+            if (ThrowOnExecute)
+            {
+                throw new InvalidOperationException("forced execute failure");
+            }
+        }
+
+        public override void OnStop(
+            CharacterActor actor,
+            AIAction runningAction,
+            string reason)
+        {
+            StopCount++;
         }
 
         public override bool TryResolveDestinationWithFailure(

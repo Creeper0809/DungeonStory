@@ -82,10 +82,12 @@ public class AbilityWork : CharacterAbility
     private float routineOperateCooldownUntil;
     private Coroutine activeWorkRoutine;
     private Coroutine activeWorkCheckRoutine;
+    private Coroutine activeSuppressRoutine;
     private int activeWorkRunId;
     private float activeWorkStartedAt = -1f;
     private WorkTypeId lastFailedWorkTypeId;
     private float lastFailedWorkAt = -1f;
+    private long approvedWorkProgressRevision;
 
     public BuildableObject PriorityWorkTarget => CommandHandler.PriorityWorkTarget;
     public bool HasUrgentPriorityWork => CommandHandler.HasUrgentPriorityTarget();
@@ -95,6 +97,8 @@ public class AbilityWork : CharacterAbility
     public bool HasActiveWorkRoutineForDiagnostics => activeWorkRoutine != null;
     public bool HasRoutineNeedWorkBlockForDiagnostics =>
         DutyController.HasRoutineNeedWorkBlock;
+    public long ApprovedWorkProgressRevisionForDiagnostics =>
+        approvedWorkProgressRevision;
     public CharacterActor PrioritySuppressActor => CommandHandler.PrioritySuppressActor;
     public bool HasPrioritySuppressTarget => CommandHandler.HasPrioritySuppressTarget;
     internal FacilityWorkType PriorityWorkType => CommandHandler.PriorityWorkType;
@@ -173,6 +177,15 @@ public class AbilityWork : CharacterAbility
         {
             lastFailedWorkTypeId = default;
             lastFailedWorkAt = -1f;
+        }
+    }
+
+    internal void RecordApprovedWorkProgressForDiagnostics(float amount)
+    {
+        if (amount > 0f && !float.IsNaN(amount) && !float.IsInfinity(amount))
+        {
+            approvedWorkProgressRevision = checked(
+                approvedWorkProgressRevision + 1L);
         }
     }
 
@@ -636,7 +649,12 @@ public class AbilityWork : CharacterAbility
 
         if (CanExecuteSuppressCommand(requestedWorkType))
         {
-            StartCoroutine(CommandHandler.SuppressPriorityTarget());
+            StopActiveSuppressRoutine();
+            AIAction expectedAction = actor?.Brain?.bestAction;
+            int suppressRunId = checked(activeWorkRunId + 1);
+            activeWorkRunId = suppressRunId;
+            activeSuppressRoutine = StartCoroutine(
+                RunSuppressPriorityTarget(suppressRunId, expectedAction));
             return;
         }
 
@@ -1145,7 +1163,10 @@ public class AbilityWork : CharacterAbility
         if (IsActiveWorkRun(runId))
         {
             activeWorkRoutine = null;
-            if (actor?.Brain?.isBestActionEnd == true)
+            bool recoveredOrphan = actor?.Brain?.RecoverOrphanedWorkAction(
+                runId,
+                "active-work-coroutine-finalized-with-live-work-action") == true;
+            if (!recoveredOrphan && actor?.Brain?.isBestActionEnd == true)
             {
                 // Wake only after the coroutine has returned its worker slot,
                 // reservations, accounting and resume intent. Waking at the
@@ -1297,6 +1318,7 @@ public class AbilityWork : CharacterAbility
     {
         StopActiveWorkRoutine();
         StopActiveWorkCheckRoutine();
+        StopActiveSuppressRoutine();
     }
 
     private void StopActiveWorkRoutine()
@@ -1322,9 +1344,36 @@ public class AbilityWork : CharacterAbility
         activeWorkCheckRoutine = null;
     }
 
-    private IEnumerator SuppressPriorityTarget()
+    private void StopActiveSuppressRoutine()
     {
-        return CommandHandler.SuppressPriorityTarget();
+        if (activeSuppressRoutine == null)
+        {
+            return;
+        }
+
+        StopCoroutine(activeSuppressRoutine);
+        activeSuppressRoutine = null;
+    }
+
+    private IEnumerator RunSuppressPriorityTarget(
+        int runId,
+        AIAction expectedAction)
+    {
+        yield return CommandHandler.SuppressPriorityTarget(
+            () => IsSuppressRunCurrent(runId, expectedAction));
+        if (runId == activeWorkRunId)
+        {
+            activeSuppressRoutine = null;
+        }
+    }
+
+    private bool IsSuppressRunCurrent(int runId, AIAction expectedAction)
+    {
+        AIBrain brain = actor?.Brain;
+        return runId == activeWorkRunId
+            && brain != null
+            && !brain.isBestActionEnd
+            && ReferenceEquals(brain.bestAction, expectedAction);
     }
 
     private bool TryEvaluateWorkTarget(

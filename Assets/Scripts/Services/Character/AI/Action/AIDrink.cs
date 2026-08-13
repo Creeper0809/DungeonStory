@@ -37,6 +37,32 @@ public sealed class AIDrink : AIActionSet
 
     public override void Execute(CharacterActor actor)
     {
-        actor?.DeprivationCommands?.TryRunRoutineDrink(actor, out _);
+        AIBrain brain = actor?.Brain;
+        AIAction expectedAction = brain?.bestAction;
+        string status = string.Empty;
+        bool accepted = actor?.DeprivationCommands?
+            .TryRunRoutineDrink(actor, out status) == true;
+        if (brain == null || brain.IsExternallyDrivenActionActive)
+        {
+            return;
+        }
+
+        // Safe-drink planning may intentionally defer because of its retry
+        // cooldown, per-frame admission budget, or temporary lack of water.
+        // Deferred is not a running action: the runner owns a timer and wakes
+        // the scheduler later. Keeping AIDrink started here suppresses Execute
+        // forever and leaves the character staring at an ownerless action.
+        bool deferred = brain.DeferExpectedActionWithoutImmediateDecision(
+            expectedAction,
+            accepted
+                ? status
+                : string.IsNullOrWhiteSpace(status)
+                    ? "routine-drink-start-rejected"
+                    : status);
+        if (deferred && !accepted)
+        {
+            brain.RequestImmediateDecision(
+                "Routine drink start was rejected before a retry timer was acquired.");
+        }
     }
 }

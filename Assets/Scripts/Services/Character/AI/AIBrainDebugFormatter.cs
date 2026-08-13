@@ -136,11 +136,15 @@ internal static class AIBrainDebugFormatter
 
         CharacterCarryInventory carry = actor.GetComponent<CharacterCarryInventory>();
         IWorldItemStackRuntime itemRuntime = actor.WorldItemStackRuntime;
-        float currentWeight = carry != null
-            ? carry.GetCurrentWeight(itemRuntime?.CatalogProvider)
+        IDungeonItemCatalogProvider catalogProvider =
+            itemRuntime?.CatalogProvider;
+        float currentWeight = carry != null && catalogProvider != null
+            ? carry.GetCurrentWeight(catalogProvider)
             : 0f;
-        float maxWeight = carry != null
-            ? carry.GetMaxAllowedWeight(itemRuntime?.HaulingSettingsProvider)
+        IItemHaulingSettingsProvider haulingSettings =
+            itemRuntime?.HaulingSettingsProvider;
+        float maxWeight = carry != null && haulingSettings != null
+            ? carry.GetMaxAllowedWeight(haulingSettings)
             : 0f;
         return $"\n운반 계획: {haul.CurrentPlanSummary}"
             + $"\n적재: {currentWeight:0.#}/{maxWeight:0.#}kg"

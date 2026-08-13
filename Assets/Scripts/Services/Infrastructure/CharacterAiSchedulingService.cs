@@ -73,12 +73,14 @@ public sealed class CharacterAiSchedulingService :
 
     public bool ShouldShowCharacterFeedback(CharacterActor actor)
     {
-        return ResolveScheduler().ShouldShowCharacterFeedbackFor(actor);
+        return TryResolveScheduler(out CharacterAiScheduler resolvedScheduler)
+            && resolvedScheduler.ShouldShowCharacterFeedbackFor(actor);
     }
 
     public bool ShouldCollectDetailedDiagnostics(CharacterActor actor)
     {
-        return ResolveScheduler().ShouldCollectDetailedDiagnosticsFor(actor);
+        return TryResolveScheduler(out CharacterAiScheduler resolvedScheduler)
+            && resolvedScheduler.ShouldCollectDetailedDiagnosticsFor(actor);
     }
 
     public int GetMovementFrameStride(CharacterActor actor)

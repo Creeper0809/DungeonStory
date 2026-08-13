@@ -461,16 +461,18 @@ public sealed class WorkTaskExecutor
                     AIActionFailure.Create(
                         AIActionFailureKind.Destroyed,
                         "work-target-destroyed-after-execution"),
-                    requestImmediateReplan: true);
+                    requestImmediateReplan: false);
                 CharacterSkillRuntimeEffects.EndWork(actor);
                 characterEnvironment.ClearWorkContext(
                     new CharacterId(actor?.Identity?.PersistentId));
-                currentAction?.ReleaseReservation(actor);
+                ReturnEnvironmentalWorkwear(actor);
+                facility.DeallocateWorker(visitor);
                 work.isWorking = false;
                 if (work.IsActiveWorkRun(runId))
                 {
                     work.AssignWork(null, FacilityWorkType.None);
                 }
+                EndAiAction(actor, currentAction);
                 work.ClearActiveWorkRoutine(runId);
                 yield break;
             }
@@ -1512,10 +1514,7 @@ public sealed class WorkTaskExecutor
             work.ClearPriorityWorkTarget();
         }
 
-        if (actor != null && actor.Brain != null)
-        {
-            actor.Brain.isBestActionEnd = true;
-        }
+        EndAiAction(actor, currentAction);
     }
 
     private bool ShouldAbortWorkRun(int runId, CharacterActor actor)
@@ -1657,6 +1656,7 @@ public sealed class WorkTaskExecutor
         {
             RecordEmergencyAccounting(actor, amount, remainingWork);
             approvedProficiencyWork += amount;
+            work.RecordApprovedWorkProgressForDiagnostics(amount);
             PublishWorkStarted(actor, work.AssignedWorkTypeId);
             if (allowAccident)
                 TryTriggerWorkAccident(actor, amount);

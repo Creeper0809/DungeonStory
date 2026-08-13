@@ -869,6 +869,11 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 failures.Add(
                     $"{observation.ActorName} lost ownership of {observation.InteractionActionReplacementDelta} active facility interaction(s); inspect cumulative AI lifecycle diagnostics.");
             }
+            if (observation.OrphanWorkActionRecoveryDelta > 0)
+            {
+                failures.Add(
+                    $"{observation.ActorName} required {observation.OrphanWorkActionRecoveryDelta} orphan Work action lifecycle recovery event(s); inspect cumulative AI lifecycle diagnostics.");
+            }
         }
 
         int toiletVisits = GetFacilityVisitCount(FacilityRole.Toilet);
@@ -939,6 +944,10 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             report.AppendLine(
                 observation.DescribeRuntimeState()
                 + $"; nextDecisionDelay={nextDecisionDelay:0.###}");
+            report.AppendLine(
+                $"aiTrace actor={observation.ActorName}; "
+                + (observation.Actor?.Brain?.CaptureRuntimeDiagnostics()
+                    .FormatRecentTrace() ?? "none"));
             CharacterLog log = observation.Actor?.LogComponent;
             if (log?.ActivityEntries == null)
             {
@@ -2305,12 +2314,22 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         private float urgentUnservedSeconds;
         private float movementStallSeconds;
         private float activePhaseStallSeconds;
+        private float orphanWorkActionSeconds;
+        private float workProgressStallSeconds;
+        private float needQueueStallSeconds;
+        private float needServiceStallSeconds;
         private float longestHarmfulStallSeconds;
         private int harmfulStallEpisodes;
         private string previousActiveSignature = string.Empty;
         private bool urgentStallReported;
         private bool movementStallReported;
         private bool activePhaseStallReported;
+        private bool orphanWorkActionReported;
+        private bool workProgressStallReported;
+        private bool needQueueStallReported;
+        private bool needServiceStallReported;
+        private long lastWorkProgressRevision;
+        private bool hasWorkProgressRevision;
         private RoutineNeedKind activeTravelKind;
         private float activeTravelSeconds;
         private float activeTravelDistance;
@@ -2363,6 +2382,16 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                     - diagnosticsStart.InteractionActionReplacements;
             }
         }
+        public long OrphanWorkActionRecoveryDelta
+        {
+            get
+            {
+                CharacterAiRuntimeDiagnosticsSnapshot end =
+                    actor?.Brain?.CaptureRuntimeDiagnostics() ?? default;
+                return end.OrphanWorkActionRecoveries
+                    - diagnosticsStart.OrphanWorkActionRecoveries;
+            }
+        }
 
         public void StabilizeNeutralHealth()
         {
@@ -2395,6 +2424,12 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 ResetNoProgressWindows();
                 previousNeedKind = RoutineNeedKind.None;
                 string workPhase = actor.Brain?.CurrentActionPhase ?? string.Empty;
+                ObserveApprovedWorkProgress(
+                    seconds,
+                    moving,
+                    workPhase,
+                    work,
+                    actor.Brain);
                 if (moving || IsMovementPhase(workPhase)
                     || workPhase.Contains("접근", StringComparison.Ordinal)
                     || workPhase.Contains("이탈", StringComparison.Ordinal))
@@ -2412,6 +2447,8 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 }
                 return;
             }
+
+            ResetWorkProgressWindow();
 
             AIBrain brain = actor.Brain;
             CharacterAiBranch branch = brain?.bestAction?.actionset?.Branch
@@ -2640,6 +2677,52 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 return;
             }
 
+            bool activeAction = brain.IsExternallyDrivenActionActive
+                || (brain.bestAction != null && !brain.isBestActionEnd);
+            bool orphanWorkAction = branch == CharacterAiBranch.Work
+                && activeAction
+                && brain.isExecuted
+                && work != null
+                && !work.isWorking
+                && !work.HasActiveWorkRoutineForDiagnostics
+                && !work.HasRoutineNeedWorkBlockForDiagnostics;
+            if (orphanWorkAction)
+            {
+                orphanWorkActionSeconds += seconds;
+                longestHarmfulStallSeconds = Mathf.Max(
+                    longestHarmfulStallSeconds,
+                    orphanWorkActionSeconds);
+                if (orphanWorkActionSeconds >= 2f
+                    && !orphanWorkActionReported)
+                {
+                    RecordStall(
+                        "orphan-work-action",
+                        orphanWorkActionSeconds,
+                        "none",
+                        CharacterAiBranch.None,
+                        branch,
+                        actionLabel,
+                        actionPhase,
+                        brain);
+                    orphanWorkActionReported = true;
+                }
+
+                // Do not also classify the same ownership defect as a generic
+                // inactive phase or movement stall. The dedicated evidence has
+                // the work-run and coroutine state needed to find the leak.
+                urgentUnservedSeconds = 0f;
+                movementStallSeconds = 0f;
+                activePhaseStallSeconds = 0f;
+                urgentStallReported = false;
+                movementStallReported = false;
+                activePhaseStallReported = false;
+                previousActiveSignature = string.Empty;
+                return;
+            }
+
+            orphanWorkActionSeconds = 0f;
+            orphanWorkActionReported = false;
+
             bool urgent = NeedSnapshot.Capture(actor).TryGetMostUrgent(
                 actor,
                 out string urgentNeed,
@@ -2647,9 +2730,6 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             bool servicingNeed = needKind != RoutineNeedKind.None
                 && !IsMovementPhase(actionPhase)
                 && !IsQueuePhase(actionPhase);
-            bool activeAction = brain.IsExternallyDrivenActionActive
-                || (brain.bestAction != null && !brain.isBestActionEnd);
-
             if (urgent && needKind == RoutineNeedKind.None && !moving)
             {
                 urgentUnservedSeconds += seconds;
@@ -2696,6 +2776,58 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             string activeSignature = string.Concat(
                 ((int)branch).ToString(), "|", actionLabel, "|", actionPhase,
                 "|", brain.CurrentDestinationDebugLabel);
+
+            bool waitingForNeedFacility = activeAction
+                && needKind != RoutineNeedKind.None
+                && IsQueuePhase(actionPhase)
+                && !moving;
+            if (waitingForNeedFacility
+                && string.Equals(activeSignature, previousActiveSignature,
+                    StringComparison.Ordinal))
+            {
+                needQueueStallSeconds += seconds;
+                longestHarmfulStallSeconds = Mathf.Max(
+                    longestHarmfulStallSeconds,
+                    needQueueStallSeconds);
+                if (needQueueStallSeconds >= 30f && !needQueueStallReported)
+                {
+                    RecordStall("need-queue-not-advancing", needQueueStallSeconds,
+                        urgentNeed, urgentBranch, branch, actionLabel,
+                        actionPhase, brain);
+                    needQueueStallReported = true;
+                }
+            }
+            else
+            {
+                needQueueStallSeconds = 0f;
+                needQueueStallReported = false;
+            }
+
+            if (activeAction
+                && servicingNeed
+                && string.Equals(activeSignature, previousActiveSignature,
+                    StringComparison.Ordinal))
+            {
+                needServiceStallSeconds += seconds;
+                longestHarmfulStallSeconds = Mathf.Max(
+                    longestHarmfulStallSeconds,
+                    needServiceStallSeconds);
+                float serviceDeadline = GetNeedServiceStallDeadline(needKind);
+                if (needServiceStallSeconds >= serviceDeadline
+                    && !needServiceStallReported)
+                {
+                    RecordStall("need-service-not-completing", needServiceStallSeconds,
+                        urgentNeed, urgentBranch, branch, actionLabel,
+                        actionPhase, brain);
+                    needServiceStallReported = true;
+                }
+            }
+            else
+            {
+                needServiceStallSeconds = 0f;
+                needServiceStallReported = false;
+            }
+
             bool activePhaseNotProgressing = activeAction
                 && !servicingNeed
                 && !IsQueuePhase(actionPhase)
@@ -2725,14 +2857,86 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             previousActiveSignature = activeSignature;
         }
 
+        private void ObserveApprovedWorkProgress(
+            float seconds,
+            bool moving,
+            string actionPhase,
+            AbilityWork work,
+            AIBrain brain)
+        {
+            long revision = work.ApprovedWorkProgressRevisionForDiagnostics;
+            bool phaseCanApplyWork = !moving
+                && !IsMovementPhase(actionPhase)
+                && !IsQueuePhase(actionPhase)
+                && brain?.HasRunningWorkAction == true;
+            if (!hasWorkProgressRevision || revision != lastWorkProgressRevision)
+            {
+                lastWorkProgressRevision = revision;
+                hasWorkProgressRevision = true;
+                workProgressStallSeconds = 0f;
+                workProgressStallReported = false;
+                return;
+            }
+
+            if (!phaseCanApplyWork)
+            {
+                workProgressStallSeconds = 0f;
+                workProgressStallReported = false;
+                return;
+            }
+
+            workProgressStallSeconds += seconds;
+            longestHarmfulStallSeconds = Mathf.Max(
+                longestHarmfulStallSeconds,
+                workProgressStallSeconds);
+            if (workProgressStallSeconds >= 15f && !workProgressStallReported)
+            {
+                RecordStall(
+                    "work-approved-wu-not-advancing",
+                    workProgressStallSeconds,
+                    "none",
+                    CharacterAiBranch.None,
+                    CharacterAiBranch.Work,
+                    brain.CurrentActionDebugLabel,
+                    actionPhase,
+                    brain);
+                workProgressStallReported = true;
+            }
+        }
+
+        private void ResetWorkProgressWindow()
+        {
+            workProgressStallSeconds = 0f;
+            workProgressStallReported = false;
+            hasWorkProgressRevision = false;
+        }
+
+        private static float GetNeedServiceStallDeadline(RoutineNeedKind kind) =>
+            kind switch
+            {
+                RoutineNeedKind.Sleep => 65f,
+                RoutineNeedKind.Recreation => 25f,
+                RoutineNeedKind.Toilet => 15f,
+                RoutineNeedKind.Hygiene => 15f,
+                RoutineNeedKind.Meal => 12f,
+                RoutineNeedKind.Drink => 12f,
+                _ => 15f
+            };
+
         private void ResetNoProgressWindows()
         {
             urgentUnservedSeconds = 0f;
             movementStallSeconds = 0f;
             activePhaseStallSeconds = 0f;
+            orphanWorkActionSeconds = 0f;
+            needQueueStallSeconds = 0f;
+            needServiceStallSeconds = 0f;
             urgentStallReported = false;
             movementStallReported = false;
             activePhaseStallReported = false;
+            orphanWorkActionReported = false;
+            needQueueStallReported = false;
+            needServiceStallReported = false;
             previousActiveSignature = string.Empty;
         }
 

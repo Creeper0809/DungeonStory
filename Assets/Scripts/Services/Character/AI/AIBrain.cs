@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using VContainer;
 public class AIBrain : CharacterAbility
 {
+    private const int RuntimeTraceCapacity = 32;
     private static readonly int FailureKindCount =
         Enum.GetValues(typeof(AIActionFailureKind)).Length;
     private static readonly int BranchCount =
@@ -116,6 +117,8 @@ public class AIBrain : CharacterAbility
     private string lastInteractionActionReplacementDetail = string.Empty;
     private long protectedRunningActionReplanCount;
     private string lastProtectedRunningActionReplanDetail = string.Empty;
+    private long orphanWorkActionRecoveryCount;
+    private string lastOrphanWorkActionRecoveryDetail = string.Empty;
     private long currentRepeatedFailureCount;
     private long peakRepeatedFailureCount;
     private AIActionFailureKind repeatedFailureKind;
@@ -132,6 +135,12 @@ public class AIBrain : CharacterAbility
         new AIActionFailureKind[BranchCount];
     private readonly string[] currentJobGiverRejectedReasonByBranch =
         new string[BranchCount];
+    private readonly CharacterAiRuntimeTraceEvent[] runtimeTrace =
+        new CharacterAiRuntimeTraceEvent[RuntimeTraceCapacity];
+    private int runtimeTraceWriteIndex;
+    private int runtimeTraceCount;
+    private long runtimeTraceSequence;
+    private long currentActionEpoch;
     public bool IsPathSearchDeferred => pathSearchSession?.IsDeferred == true;
     public bool IsActionScoringPending => candidateSelector?.IsPending == true;
 
@@ -170,6 +179,8 @@ public class AIBrain : CharacterAbility
         interactionActionReplacementCount;
     public long RuntimeProtectedRunningActionReplanCount =>
         protectedRunningActionReplanCount;
+    public long RuntimeOrphanWorkActionRecoveryCount =>
+        orphanWorkActionRecoveryCount;
     public long RuntimeJobGiverEvaluationRejectionCount =>
         jobGiverEvaluationRejectionCount;
     public long RuntimePeakRepeatedFailureCount => peakRepeatedFailureCount;
@@ -975,7 +986,7 @@ public class AIBrain : CharacterAbility
         isExecuted = false;
         isBestActionEnd = false;
         pathSearchSession?.Clear();
-        RequireCandidateSelector().Reset();
+        candidateSelector?.Reset();
         MarkDebugDirty();
     }
 
@@ -1173,6 +1184,8 @@ public class AIBrain : CharacterAbility
         currentDestinationDebugLabel = AIBrainDebugFormatter.GetDestinationLabel(bestAction.destination);
         currentActionPhase = "\uC2DC\uC791";
         currentActionPhaseDetail = string.Empty;
+        currentActionEpoch = checked(currentActionEpoch + 1L);
+        RecordRuntimeTrace(CharacterAiRuntimeTraceKind.ActionStarted);
         nextActionSwitchAllowedAt = Now + GetMinimumPersistenceSeconds(bestAction.actionset);
         actor?.AiMemory?.RecordDecision(
             bestAction.actionset.Branch,
@@ -1215,6 +1228,159 @@ public class AIBrain : CharacterAbility
         MarkDebugDirty();
     }
 
+    internal bool RecoverOrphanedWorkAction(int workRunId, string reason)
+    {
+        if (!HasRunningWorkAction || !isExecuted)
+        {
+            return false;
+        }
+
+        orphanWorkActionRecoveryCount++;
+        lastOrphanWorkActionRecoveryDetail =
+            $"run={workRunId}; reason={reason ?? string.Empty}; "
+            + $"action={GetActionLabel(bestAction?.actionset)}; "
+            + $"phase={currentActionPhase}; detail={currentActionPhaseDetail}; "
+            + $"destination={currentDestinationDebugLabel}";
+        bestAction?.ReleaseReservation(actor);
+        isBestActionEnd = true;
+        isExecuted = false;
+        RecordRuntimeTrace(CharacterAiRuntimeTraceKind.OrphanRecovery);
+        actor?.AddActivity(CharacterActivityEvent.InternalAi(
+            CharacterActivityOutcomes.Failed,
+            "orphan-work-action-recovered",
+            $"AI work lifecycle recovered: {lastOrphanWorkActionRecoveryDetail}"));
+        MarkDebugDirty();
+        RequestImmediateDecision(
+            "Orphaned Work action ended after coroutine ownership was released.");
+        return true;
+    }
+
+    internal bool DeferExpectedActionWithoutImmediateDecision(
+        AIAction expectedAction,
+        string reason)
+    {
+        if (expectedAction == null
+            || !ReferenceEquals(bestAction, expectedAction))
+        {
+            return false;
+        }
+
+        expectedAction.ReleaseReservation(actor);
+        actor?.GetAbility<AbilityMove>()?.CancelActiveMovement();
+        actor?.Blackboard?.ClearCommitment(
+            CharacterAiInterruptReason.ManualReplan,
+            reason ?? "Deferred action retry.");
+        bestAction = null;
+        currentActionDebugLabel = "Deferred retry";
+        currentActionPhase = "Deferred";
+        currentActionPhaseDetail = reason ?? string.Empty;
+        currentDestinationDebugLabel = string.Empty;
+        destinationFailedThisDecision.Clear();
+        ClearPathSearchCache();
+        isExecuted = false;
+        RecordRuntimeTrace(CharacterAiRuntimeTraceKind.DeferredRetry);
+
+        // The executor owns the retry timer and will wake the scheduler at the
+        // authored retry tick. Setting isBestActionEnd here would immediately
+        // schedule the same action again and turn a bounded retry into a hot
+        // decision loop.
+        decisionPending = false;
+        pathSearchSession?.Clear();
+        RequireCandidateSelector().Reset();
+        MarkDebugDirty();
+        return true;
+    }
+
+    internal void FailExpectedActionExecution(
+        AIAction expectedAction,
+        AIActionFailure failure,
+        Exception exception)
+    {
+        if (expectedAction == null
+            || !ReferenceEquals(bestAction, expectedAction))
+        {
+            return;
+        }
+
+        ReportRuntimeActionFailure(failure, requestImmediateReplan: false);
+        try
+        {
+            expectedAction.actionset?.OnStop(
+                actor,
+                expectedAction,
+                failure.Reason);
+        }
+        catch (Exception stopException)
+        {
+            Debug.LogException(stopException, actor);
+        }
+
+        expectedAction.ReleaseReservation(actor);
+        queuedAction?.ReleaseReservation(actor);
+        actor?.GetAbility<AbilityMove>()?.CancelActiveMovement();
+        actor?.Blackboard?.ClearCommitment(
+            CharacterAiInterruptReason.ManualReplan,
+            failure.Reason);
+        if (ReferenceEquals(bestAction, expectedAction))
+        {
+            bestAction = null;
+        }
+        queuedAction = null;
+        currentActionPhase = "Execution failed";
+        currentActionPhaseDetail = exception != null
+            ? exception.GetType().Name + ": " + exception.Message
+            : failure.Reason;
+        currentDestinationDebugLabel = string.Empty;
+        destinationFailedThisDecision.Clear();
+        ClearPathSearchCache();
+        isExecuted = false;
+        isBestActionEnd = true;
+        pathSearchSession?.Clear();
+        RequireCandidateSelector().Reset();
+        MarkDebugDirty();
+    }
+
+    public void StopAllAiForLifecycleTransition(string reason)
+    {
+        AIAction actionToStop = bestAction;
+        try
+        {
+            actionToStop?.actionset?.OnStop(
+                actor,
+                actionToStop,
+                reason ?? "lifecycle-transition");
+        }
+        catch (Exception exception)
+        {
+            Debug.LogException(exception, actor);
+        }
+
+        actionToStop?.ReleaseReservation(actor);
+        queuedAction?.ReleaseReservation(actor);
+        actor?.GetAbility<AbilityMove>()?.CancelActiveMovement();
+        actor?.Blackboard?.ForceClearCommitment(
+            CharacterAiInterruptReason.ManualReplan,
+            reason ?? "lifecycle-transition");
+        bestAction = null;
+        queuedAction = null;
+        manualCommandActive = false;
+        externallyDrivenActionActive = false;
+        externalIntentOwnerId = string.Empty;
+        externalIntentKind = CharacterActionIntentKind.None;
+        currentActionDebugLabel = "Inactive";
+        currentActionPhase = "Lifecycle transition";
+        currentActionPhaseDetail = reason ?? string.Empty;
+        currentDestinationDebugLabel = string.Empty;
+        destinationFailedThisDecision.Clear();
+        ClearPathSearchCache();
+        isExecuted = false;
+        decisionPending = false;
+        RecordRuntimeTrace(CharacterAiRuntimeTraceKind.LifecycleCleanup);
+        pathSearchSession?.Clear();
+        candidateSelector?.Reset();
+        MarkDebugDirty();
+    }
+
     internal void NotifyInteractionActionReplaced(
         string detail,
         BuildableObject facility)
@@ -1246,8 +1412,13 @@ public class AIBrain : CharacterAbility
         string nextDestination = destination != null
             ? AIBrainDebugFormatter.GetDestinationLabel(destination)
             : currentDestinationDebugLabel;
-        if (!string.Equals(currentActionPhase, nextPhase, StringComparison.Ordinal)
-            || !string.Equals(currentDestinationDebugLabel, nextDestination, StringComparison.Ordinal))
+        bool transitioned =
+            !string.Equals(currentActionPhase, nextPhase, StringComparison.Ordinal)
+            || !string.Equals(
+                currentDestinationDebugLabel,
+                nextDestination,
+                StringComparison.Ordinal);
+        if (transitioned)
         {
             phaseTransitionCount++;
         }
@@ -1256,6 +1427,11 @@ public class AIBrain : CharacterAbility
         if (destination != null)
         {
             currentDestinationDebugLabel = nextDestination;
+        }
+
+        if (transitioned)
+        {
+            RecordRuntimeTrace(CharacterAiRuntimeTraceKind.PhaseChanged);
         }
 
         MarkDebugDirty();
@@ -1566,6 +1742,7 @@ public class AIBrain : CharacterAbility
             return;
         }
 
+        RecordRuntimeTrace(CharacterAiRuntimeTraceKind.ActionTerminal);
         bestAction.ReleaseReservation(actor);
     }
 
@@ -1714,6 +1891,8 @@ public class AIBrain : CharacterAbility
             lastInteractionActionReplacementDetail,
             protectedRunningActionReplanCount,
             lastProtectedRunningActionReplanDetail,
+            orphanWorkActionRecoveryCount,
+            lastOrphanWorkActionRecoveryDetail,
             currentRepeatedFailureCount,
             peakRepeatedFailureCount,
             repeatedFailureKind,
@@ -1721,7 +1900,8 @@ public class AIBrain : CharacterAbility
             (long[])executionFailuresByKind.Clone(),
             (long[])candidateRejectionsByKind.Clone(),
             jobGiverEvaluationRejectionCount,
-            (long[])jobGiverEvaluationRejectionsByBranchAndKind.Clone());
+            (long[])jobGiverEvaluationRejectionsByBranchAndKind.Clone(),
+            CopyRuntimeTrace());
     }
 
     private void TrackExecutionFailure(
@@ -1738,6 +1918,9 @@ public class AIBrain : CharacterAbility
             noActionFailureCount++;
         }
         IncrementFailureKind(executionFailuresByKind, kind);
+        RecordRuntimeTrace(
+            CharacterAiRuntimeTraceKind.ExecutionFailure,
+            kind);
 
         float repeatedFailureWindow = Mathf.Max(
             5f,
@@ -1772,6 +1955,60 @@ public class AIBrain : CharacterAbility
         {
             counts[index]++;
         }
+    }
+
+    private void RecordRuntimeTrace(
+        CharacterAiRuntimeTraceKind kind,
+        AIActionFailureKind failureKind = AIActionFailureKind.None)
+    {
+        AIAction action = bestAction;
+        int actionDefinitionId = action?.actionset != null
+            ? action.actionset.GetInstanceID()
+            : 0;
+        int destinationId = action?.destination != null
+            ? action.destination.GetInstanceID()
+            : 0;
+        int phaseCode = string.IsNullOrEmpty(currentActionPhase)
+            ? 0
+            : StringComparer.Ordinal.GetHashCode(currentActionPhase);
+        long sequence = checked(runtimeTraceSequence + 1L);
+        runtimeTraceSequence = sequence;
+        runtimeTrace[runtimeTraceWriteIndex] = new CharacterAiRuntimeTraceEvent(
+            sequence,
+            currentActionEpoch,
+            Now,
+            kind,
+            action?.actionset?.Branch ?? CharacterAiBranch.None,
+            failureKind,
+            actionDefinitionId,
+            destinationId,
+            phaseCode);
+        runtimeTraceWriteIndex = (runtimeTraceWriteIndex + 1)
+            % RuntimeTraceCapacity;
+        runtimeTraceCount = Mathf.Min(
+            RuntimeTraceCapacity,
+            runtimeTraceCount + 1);
+    }
+
+    private CharacterAiRuntimeTraceEvent[] CopyRuntimeTrace()
+    {
+        if (runtimeTraceCount == 0)
+        {
+            return Array.Empty<CharacterAiRuntimeTraceEvent>();
+        }
+
+        CharacterAiRuntimeTraceEvent[] copy =
+            new CharacterAiRuntimeTraceEvent[runtimeTraceCount];
+        int start = runtimeTraceCount == RuntimeTraceCapacity
+            ? runtimeTraceWriteIndex
+            : 0;
+        for (int index = 0; index < runtimeTraceCount; index++)
+        {
+            copy[index] = runtimeTrace[
+                (start + index) % RuntimeTraceCapacity];
+        }
+
+        return copy;
     }
 
     public int GetDebugHash()

@@ -371,6 +371,7 @@ public class CharacterActor : SerializedMonoBehaviour,
     private void OnDisable()
     {
         lifecycleCoordinator.OnDisabled(
+            this,
             visual,
             runtimeBridge,
             presentationBridge);
@@ -378,7 +379,7 @@ public class CharacterActor : SerializedMonoBehaviour,
 
     private void OnDestroy()
     {
-        lifecycleCoordinator.OnDestroyed(runtimeBridge, presentationBridge);
+        lifecycleCoordinator.OnDestroyed(this, runtimeBridge, presentationBridge);
     }
 
     private void OrganizeRuntimeHierarchy()
@@ -606,9 +607,24 @@ public class CharacterActor : SerializedMonoBehaviour,
             : selectedAction.actionset.GetType().Name;
         brain.NotifyActionStarted();
         blackboard?.Commit(selectedAction, actionName);
-        selectedAction.actionset.Execute(this);
-        failure = AIActionFailure.None;
-        return true;
+        try
+        {
+            selectedAction.actionset.Execute(this);
+            failure = AIActionFailure.None;
+            return true;
+        }
+        catch (System.Exception exception)
+        {
+            failure = AIActionFailure.Create(
+                AIActionFailureKind.CannotStart,
+                $"{actionName} Execute threw {exception.GetType().Name}: {exception.Message}",
+                selectedDestination);
+            brain.FailExpectedActionExecution(
+                selectedAction,
+                failure,
+                exception);
+            return false;
+        }
     }
 
     public List<BuildableObject> GetReachableBuilding()

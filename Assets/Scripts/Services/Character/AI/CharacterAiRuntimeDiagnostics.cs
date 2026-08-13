@@ -10,6 +10,7 @@ public readonly struct CharacterAiRuntimeDiagnosticsSnapshot
     private readonly long[] executionFailuresByKind;
     private readonly long[] candidateRejectionsByKind;
     private readonly long[] jobGiverEvaluationRejectionsByBranchAndKind;
+    private readonly CharacterAiRuntimeTraceEvent[] recentTrace;
 
     public CharacterAiRuntimeDiagnosticsSnapshot(
         long actionStarts, long actionSwitches, long sameActionRestarts,
@@ -21,12 +22,15 @@ public readonly struct CharacterAiRuntimeDiagnosticsSnapshot
         string lastInteractionActionReplacementDetail,
         long protectedRunningActionReplans,
         string lastProtectedRunningActionReplanDetail,
+        long orphanWorkActionRecoveries,
+        string lastOrphanWorkActionRecoveryDetail,
         long currentRepeatedFailureCount, long peakRepeatedFailureCount,
         AIActionFailureKind repeatedFailureKind,
         string lastExecutionFailureDetail,
         long[] executionFailuresByKind, long[] candidateRejectionsByKind,
         long jobGiverEvaluationRejections,
-        long[] jobGiverEvaluationRejectionsByBranchAndKind)
+        long[] jobGiverEvaluationRejectionsByBranchAndKind,
+        CharacterAiRuntimeTraceEvent[] recentTrace)
     {
         ActionStarts = actionStarts;
         ActionSwitches = actionSwitches;
@@ -45,6 +49,9 @@ public readonly struct CharacterAiRuntimeDiagnosticsSnapshot
         ProtectedRunningActionReplans = protectedRunningActionReplans;
         LastProtectedRunningActionReplanDetail =
             lastProtectedRunningActionReplanDetail ?? string.Empty;
+        OrphanWorkActionRecoveries = orphanWorkActionRecoveries;
+        LastOrphanWorkActionRecoveryDetail =
+            lastOrphanWorkActionRecoveryDetail ?? string.Empty;
         CurrentRepeatedFailureCount = currentRepeatedFailureCount;
         PeakRepeatedFailureCount = peakRepeatedFailureCount;
         RepeatedFailureKind = repeatedFailureKind;
@@ -54,6 +61,7 @@ public readonly struct CharacterAiRuntimeDiagnosticsSnapshot
         JobGiverEvaluationRejections = jobGiverEvaluationRejections;
         this.jobGiverEvaluationRejectionsByBranchAndKind =
             jobGiverEvaluationRejectionsByBranchAndKind;
+        this.recentTrace = recentTrace;
     }
 
     public long ActionStarts { get; }
@@ -71,11 +79,34 @@ public readonly struct CharacterAiRuntimeDiagnosticsSnapshot
     public string LastInteractionActionReplacementDetail { get; }
     public long ProtectedRunningActionReplans { get; }
     public string LastProtectedRunningActionReplanDetail { get; }
+    public long OrphanWorkActionRecoveries { get; }
+    public string LastOrphanWorkActionRecoveryDetail { get; }
     public long JobGiverEvaluationRejections { get; }
     public long CurrentRepeatedFailureCount { get; }
     public long PeakRepeatedFailureCount { get; }
     public AIActionFailureKind RepeatedFailureKind { get; }
     public string LastExecutionFailureDetail { get; }
+
+    public string FormatRecentTrace()
+    {
+        if (recentTrace == null || recentTrace.Length == 0)
+        {
+            return "none";
+        }
+
+        StringBuilder builder = new StringBuilder(recentTrace.Length * 96);
+        for (int index = 0; index < recentTrace.Length; index++)
+        {
+            if (index > 0)
+            {
+                builder.Append(" | ");
+            }
+
+            recentTrace[index].AppendTo(builder);
+        }
+
+        return builder.ToString();
+    }
 
     public string FormatDeltaFrom(in CharacterAiRuntimeDiagnosticsSnapshot start)
     {
@@ -95,6 +126,8 @@ public readonly struct CharacterAiRuntimeDiagnosticsSnapshot
             .Append(InteractionActionReplacements - start.InteractionActionReplacements)
             .Append("; protectedRunningActionReplans=")
             .Append(ProtectedRunningActionReplans - start.ProtectedRunningActionReplans)
+            .Append("; orphanWorkActionRecoveries=")
+            .Append(OrphanWorkActionRecoveries - start.OrphanWorkActionRecoveries)
             .Append("; jobGiverEvaluationRejections=")
             .Append(JobGiverEvaluationRejections - start.JobGiverEvaluationRejections)
             .Append("; repeatedPeak=").Append(PeakRepeatedFailureCount)
@@ -126,6 +159,13 @@ public readonly struct CharacterAiRuntimeDiagnosticsSnapshot
                 .Append(string.IsNullOrWhiteSpace(LastProtectedRunningActionReplanDetail)
                     ? "unknown"
                     : LastProtectedRunningActionReplanDetail);
+        }
+        if (OrphanWorkActionRecoveries > start.OrphanWorkActionRecoveries)
+        {
+            builder.Append("; lastOrphanWorkActionRecovery=")
+                .Append(string.IsNullOrWhiteSpace(LastOrphanWorkActionRecoveryDetail)
+                    ? "unknown"
+                    : LastOrphanWorkActionRecoveryDetail);
         }
         AppendKinds(builder, "executionByKind", executionFailuresByKind, start.executionFailuresByKind);
         AppendKinds(builder, "candidateByKind", candidateRejectionsByKind, start.candidateRejectionsByKind);

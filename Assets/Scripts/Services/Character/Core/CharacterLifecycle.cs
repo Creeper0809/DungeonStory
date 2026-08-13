@@ -341,6 +341,14 @@ public class CharacterLifecycle : SerializedMonoBehaviour
 
     public void SetLifecycleState(CharacterLifecycleState nextState)
     {
+        CharacterLifecycleState previousState = lifecycleState;
+        if (nextState != CharacterLifecycleState.Active
+            && actor?.Brain != null)
+        {
+            actor.Brain.StopAllAiForLifecycleTransition(
+                $"lifecycle:{previousState}->{nextState}");
+        }
+
         lifecycleState = nextState;
         if (nextState != CharacterLifecycleState.Active)
         {
@@ -363,10 +371,9 @@ public class CharacterLifecycle : SerializedMonoBehaviour
 
         if (actor.Brain == null) return;
 
-        actor.Brain.bestAction = null;
-        actor.Brain.isExecuted = false;
-        actor.Brain.isBestActionEnd = false;
-        actor.Brain.ClearPathSearchCache();
+        // The transition cleanup above owns action stop, reservations,
+        // movement and blackboard commitment. Do not clear bestAction by field
+        // assignment here: that bypasses every executor's OnStop contract.
     }
 
     public Vector2Int GetNowXY()

@@ -2681,9 +2681,9 @@ Phase 156 current evidence:
 
 Phase 157 AI reliability continuation (2026-08-13):
 - [x] Re-establish a clean Git/Unity MCP baseline and run the 12 focused AI/facility/survival scenario groups with Console 0/0.
-- [ ] Preserve exact execution failure authority through decision result, blackboard, bounded diagnostics and long-run report instead of collapsing it to a generic message.
+- [x] Preserve exact execution failure authority through decision result, blackboard, bounded diagnostics and long-run report. Each actor now owns an allocation-free 32-event typed lifecycle ring; five-day reports format it only at capture time.
 - [ ] Add destructive/stale cross-scenarios for facility destruction, route invalidation, quantity lease loss, spoilage, queue cancellation and actor lifecycle change while an action is running.
-- [ ] Run natural-time multi-seed five-day routines and the 500-NPC scheduler profile without bulk `EditorApplication.Step()` artifacts.
+- [ ] Run natural-time multi-seed five-day routines and the 500-NPC scheduler profile without bulk `EditorApplication.Step()` artifacts. Seed 157182 now has AI failures/stalls/recoveries 0 and remains globally red only for the separate hygiene cadence target `0.533 < 0.6`; additional seeds remain open.
 - [ ] Prove save/restore continuation and final Console Warning/Error 0/0 before declaring the AI reliability boundary complete.
   - 2026-08-13 concurrency/fairness checkpoint: retail stock commits are now atomic after delay and the two-buyer/one-unit regression passes. The scheduler's authored 16-decision ceiling is preserved while a bounded live-backlog floor prevents starvation; the clean 500-NPC run reports starvation `0`, max deferral `1.083s`, scheduler p95 `2.498ms`, and scheduler-owned GC `0 B/frame`. Whole Editor frame p95 is still `19.07ms`, so performance and the wider reliability boundary remain open.
 

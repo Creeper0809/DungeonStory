@@ -96,19 +96,23 @@ public sealed class CharacterActorLifecycleCoordinator
     }
 
     public void OnDisabled(
+        CharacterActor actor,
         CharacterVisual visual,
         CharacterActorRuntimeBridge runtimeBridge,
         CharacterActorPresentationBridge presentationBridge)
     {
+        actor?.Brain?.StopAllAiForLifecycleTransition("actor-disabled");
         visual?.RestoreTraversalVisibility();
         presentationBridge?.OnActorDisabled();
         runtimeBridge?.OnActorDisabled();
     }
 
     public void OnDestroyed(
+        CharacterActor actor,
         CharacterActorRuntimeBridge runtimeBridge,
         CharacterActorPresentationBridge presentationBridge)
     {
+        actor?.Brain?.StopAllAiForLifecycleTransition("actor-destroyed");
         presentationBridge?.OnActorDestroyed();
         runtimeBridge?.OnActorDestroyed();
     }
