@@ -24,6 +24,7 @@ internal sealed class ShopCustomerInteractionService
 
     private readonly Shop owner;
     private readonly Func<Vector3> worldPositionProvider;
+    private readonly string ownerDisplayName;
     private int waitingCheckoutCount;
     private bool checkoutServiceAlertRaised;
     private float nextCheckoutAbandonAlertTime;
@@ -35,6 +36,7 @@ internal sealed class ShopCustomerInteractionService
         this.owner = owner ?? throw new ArgumentNullException(nameof(owner));
         this.worldPositionProvider = worldPositionProvider
             ?? throw new ArgumentNullException(nameof(worldPositionProvider));
+        ownerDisplayName = owner.CustomerDisplayName;
     }
 
     internal int WaitingCheckoutCount => waitingCheckoutCount;
@@ -50,6 +52,12 @@ internal sealed class ShopCustomerInteractionService
             if (!actor.IsCurrentAction(currentAction)
                 || actor.IsCurrentActionEnded)
             {
+                AbortInteraction(
+                    actor,
+                    serviceSession: null,
+                    selection: null,
+                    BuildingInteractionFailureKind.ActionReplaced,
+                    "action-replaced-while-waiting-for-shop");
                 yield break;
             }
         }
@@ -116,6 +124,20 @@ internal sealed class ShopCustomerInteractionService
                 actor,
                 shopable,
                 currentAction);
+            if (!TryContinueInteraction(
+                    actor,
+                    currentAction,
+                    out BuildingInteractionFailureKind mealFailure,
+                    out string mealFailureDetail))
+            {
+                AbortInteraction(
+                    actor,
+                    serviceSession,
+                    selection: null,
+                    mealFailure,
+                    mealFailureDetail);
+                yield break;
+            }
             owner.CustomerServiceCompletion.Finish(
                 actor,
                 serviceSession?.SessionId,
@@ -147,7 +169,35 @@ internal sealed class ShopCustomerInteractionService
                     actor.VisitorSnapshot.Position),
                 0.7f,
                 currentAction);
+            if (!TryContinueInteraction(
+                    actor,
+                    currentAction,
+                    out BuildingInteractionFailureKind interactionFailure,
+                    out string interactionFailureDetail))
+            {
+                AbortInteraction(
+                    actor,
+                    serviceSession,
+                    selection,
+                    interactionFailure,
+                    interactionFailureDetail);
+                yield break;
+            }
             yield return Linger(actor, 0.1f, currentAction);
+            if (!TryContinueInteraction(
+                    actor,
+                    currentAction,
+                    out interactionFailure,
+                    out interactionFailureDetail))
+            {
+                AbortInteraction(
+                    actor,
+                    serviceSession,
+                    selection,
+                    interactionFailure,
+                    interactionFailureDetail);
+                yield break;
+            }
             if (selectedItemId == -1) continue;
 
             RemainStock remainStock = owner.CustomerInventory.Stocks.FirstOrDefault(
@@ -189,6 +239,20 @@ internal sealed class ShopCustomerInteractionService
             actor.VisitorSnapshot.Position);
         actor.SetActionPhase("\uACC4\uC0B0\uB300 \uC774\uB3D9", owner);
         yield return actor.MoveTo(endPos, 1f, currentAction);
+        if (!TryContinueInteraction(
+                actor,
+                currentAction,
+                out BuildingInteractionFailureKind checkoutFailure,
+                out string checkoutFailureDetail))
+        {
+            AbortInteraction(
+                actor,
+                serviceSession,
+                selection,
+                checkoutFailure,
+                checkoutFailureDetail);
+            yield break;
+        }
         CheckoutWaitSession checkoutWaitSession = new CheckoutWaitSession();
         bool requiresManagedAttendant = serviceSession == null
             ? owner.RequiresCustomerServingWorker()
@@ -203,6 +267,20 @@ internal sealed class ShopCustomerInteractionService
             yield return WaitForServingWorkerWithPatience(
                 actor,
                 checkoutWaitSession);
+            if (!TryContinueInteraction(
+                    actor,
+                    currentAction,
+                    out checkoutFailure,
+                    out checkoutFailureDetail))
+            {
+                AbortInteraction(
+                    actor,
+                    serviceSession,
+                    selection,
+                    checkoutFailure,
+                    checkoutFailureDetail);
+                yield break;
+            }
         }
         if (checkoutWaitSession.Abandoned
             || shopable.LastVisitOutcome == BuildingVisitOutcome.Abandoned)
@@ -241,6 +319,20 @@ internal sealed class ShopCustomerInteractionService
             ServiceSessionStage.Service,
             out _);
         yield return RunCheckoutService(actor);
+        if (!TryContinueInteraction(
+                actor,
+                currentAction,
+                out checkoutFailure,
+                out checkoutFailureDetail))
+        {
+            AbortInteraction(
+                actor,
+                serviceSession,
+                selection,
+                checkoutFailure,
+                checkoutFailureDetail);
+            yield break;
+        }
         if (owner.TryResolveCheckoutCrime(actor, cart))
         {
             ReleaseShoppingSelectionBuffer(selection);
@@ -256,6 +348,7 @@ internal sealed class ShopCustomerInteractionService
 
         int usedMoney = 0;
         int purchaseCount = 0;
+        string lastPurchaseCommitFailure = "no-purchasable-item";
         foreach (RemainStock remainStock in cart)
         {
             if (remainStock == null || remainStock.stock <= 0)
@@ -271,7 +364,36 @@ internal sealed class ShopCustomerInteractionService
                 continue;
             }
 
-            yield return shopable.Purchase(remainStock, pricedStock.cost);
+            BuildingRetailPurchaseCommitResult purchaseCommit =
+                new BuildingRetailPurchaseCommitResult();
+            yield return shopable.Purchase(
+                remainStock,
+                pricedStock.cost,
+                currentAction,
+                owner,
+                purchaseCommit);
+            if (!TryContinueInteraction(
+                    actor,
+                    currentAction,
+                    out checkoutFailure,
+                    out checkoutFailureDetail))
+            {
+                AbortInteraction(
+                    actor,
+                    serviceSession,
+                    selection,
+                    checkoutFailure,
+                    checkoutFailureDetail);
+                yield break;
+            }
+            if (!purchaseCommit.IsResolved || !purchaseCommit.Committed)
+            {
+                lastPurchaseCommitFailure = purchaseCommit.IsResolved
+                    ? purchaseCommit.FailureCode
+                    : "purchase-port-returned-without-result";
+                continue;
+            }
+
             purchaseCount++;
             owner.PublishCustomerGameEvent(new FacilityStockConsumedEvent(
                 actor,
@@ -282,7 +404,6 @@ internal sealed class ShopCustomerInteractionService
             {
                 usedMoney += pricedStock.cost;
             }
-            remainStock.stock--;
             owner.MarkCustomerFacilityStateDirty();
         }
 
@@ -294,7 +415,7 @@ internal sealed class ShopCustomerInteractionService
                 BuildingActivityKinds.Shopping,
                 BuildingActivityOutcomes.Failed,
                 $"{owner.CustomerDisplayName} 이용 실패: 구매 가능한 상품 없음",
-                reasonCode: "no-purchasable-item",
+                reasonCode: lastPurchaseCommitFailure,
                 bubbleEligible: true));
             owner.CustomerServiceCompletion.Finish(
                 actor,
@@ -343,13 +464,13 @@ internal sealed class ShopCustomerInteractionService
         actor.ApplyRoomExperience(owner.CustomerRoomEnvironmentExperienceService, owner, "shopping");
         shopable.SetVisitOutcome(owner, BuildingVisitOutcome.Completed);
         ReleaseShoppingSelectionBuffer(selection);
-        yield return PurchaseCompleteDelay;
         owner.CustomerServiceCompletion.Finish(
             actor,
             serviceSession?.SessionId,
             true,
             string.Empty,
             owner.CustomerServiceSessionCompletion);
+        yield return PurchaseCompleteDelay;
     }
 
     private IEnumerator RunPhysicalMealService(
@@ -364,7 +485,39 @@ internal sealed class ShopCustomerInteractionService
                 actor.VisitorSnapshot.Position),
             0.7f,
             currentAction);
+        if (!TryContinueInteraction(
+                actor,
+                currentAction,
+                out BuildingInteractionFailureKind interactionFailure,
+                out string interactionFailureDetail))
+        {
+            shopping.SetVisitOutcome(null, BuildingVisitOutcome.Abandoned);
+            if (interactionFailure != BuildingInteractionFailureKind.ActionReplaced)
+            {
+                actor?.ReportInteractionFailure(
+                    interactionFailure,
+                    $"{ownerDisplayName}: {interactionFailureDetail}",
+                    owner != null && !owner.isDestroy ? owner : null);
+            }
+            yield break;
+        }
         yield return Linger(actor, 0.1f, currentAction);
+        if (!TryContinueInteraction(
+                actor,
+                currentAction,
+                out interactionFailure,
+                out interactionFailureDetail))
+        {
+            shopping.SetVisitOutcome(null, BuildingVisitOutcome.Abandoned);
+            if (interactionFailure != BuildingInteractionFailureKind.ActionReplaced)
+            {
+                actor?.ReportInteractionFailure(
+                    interactionFailure,
+                    $"{ownerDisplayName}: {interactionFailureDetail}",
+                    owner != null && !owner.isDestroy ? owner : null);
+            }
+            yield break;
+        }
 
         // The consumables runtime owns the authored four-second physical meal action.
         // A second facility linger here would double-count meal time.
@@ -389,6 +542,22 @@ internal sealed class ShopCustomerInteractionService
             while (Time.realtimeSinceStartup < deadline)
             {
                 yield return null;
+                if (!TryContinueInteraction(
+                        actor,
+                        currentAction,
+                        out interactionFailure,
+                        out interactionFailureDetail))
+                {
+                    shopping.SetVisitOutcome(null, BuildingVisitOutcome.Abandoned);
+                    if (interactionFailure != BuildingInteractionFailureKind.ActionReplaced)
+                    {
+                        actor?.ReportInteractionFailure(
+                            interactionFailure,
+                            $"{ownerDisplayName}: {interactionFailureDetail}",
+                            owner != null && !owner.isDestroy ? owner : null);
+                    }
+                    yield break;
+                }
                 if (!actor.TryGetMealConsumptionResult(
                         owner.CustomerMealConsumptionRuntime,
                         meal.OperationId,
@@ -440,7 +609,26 @@ internal sealed class ShopCustomerInteractionService
         {
             if (shopping.CanPay(meal.UnitPrice))
             {
-                yield return shopping.PayForService(meal.UnitPrice);
+                yield return shopping.PayForService(
+                    meal.UnitPrice,
+                    currentAction,
+                    owner);
+                if (!TryContinueInteraction(
+                        actor,
+                        currentAction,
+                        out BuildingInteractionFailureKind paymentFailure,
+                        out string paymentFailureDetail))
+                {
+                    shopping.SetVisitOutcome(null, BuildingVisitOutcome.Abandoned);
+                    if (paymentFailure != BuildingInteractionFailureKind.ActionReplaced)
+                    {
+                        actor.ReportInteractionFailure(
+                            paymentFailure,
+                            $"{owner.CustomerDisplayName}: {paymentFailureDetail}",
+                            owner);
+                    }
+                    yield break;
+                }
                 revenue = Mathf.Max(0, meal.UnitPrice);
                 if (revenue > 0)
                 {
@@ -776,6 +964,99 @@ internal sealed class ShopCustomerInteractionService
 
             timer += owner.CustomerGameDeltaTime;
             yield return null;
+        }
+    }
+
+    private bool TryContinueInteraction(
+        IBuildingVisitorPort actor,
+        object expectedAction,
+        out BuildingInteractionFailureKind failureKind,
+        out string failureDetail)
+    {
+        if (owner == null || owner.isDestroy)
+        {
+            failureKind = BuildingInteractionFailureKind.FacilityDestroyed;
+            failureDetail = "shop-destroyed-during-interaction";
+            return false;
+        }
+        if (actor == null)
+        {
+            failureKind = BuildingInteractionFailureKind.ActorUnavailable;
+            failureDetail = "actor-missing-during-shop-interaction";
+            return false;
+        }
+        try
+        {
+            if (!actor.VisitorSnapshot.IsRuntimeActive)
+            {
+                failureKind = BuildingInteractionFailureKind.ActorUnavailable;
+                failureDetail = "actor-inactive-during-shop-interaction";
+                return false;
+            }
+        }
+        catch (MissingReferenceException)
+        {
+            failureKind = BuildingInteractionFailureKind.ActorUnavailable;
+            failureDetail = "actor-destroyed-during-shop-interaction";
+            return false;
+        }
+        if (expectedAction != null
+            && (!actor.IsCurrentAction(expectedAction)
+                || actor.IsCurrentActionEnded))
+        {
+            failureKind = BuildingInteractionFailureKind.ActionReplaced;
+            failureDetail = "action-replaced-during-shop-interaction";
+            return false;
+        }
+
+        failureKind = BuildingInteractionFailureKind.None;
+        failureDetail = string.Empty;
+        return true;
+    }
+
+    private void AbortInteraction(
+        IBuildingVisitorPort actor,
+        ServiceSessionSnapshot serviceSession,
+        ShoppingSelectionBuffer selection,
+        BuildingInteractionFailureKind failureKind,
+        string failureDetail)
+    {
+        if (selection != null)
+        {
+            ReleaseShoppingSelectionBuffer(selection);
+        }
+
+        string detail = string.IsNullOrWhiteSpace(failureDetail)
+            ? failureKind.ToString()
+            : failureDetail;
+        bool ownerAlive = owner != null && !owner.isDestroy;
+        if (ownerAlive)
+        {
+            actor?.Shopping?.SetVisitOutcome(owner, BuildingVisitOutcome.Abandoned);
+            owner.CustomerServiceCompletion.Finish(
+                actor,
+                serviceSession?.SessionId,
+                false,
+                detail,
+                owner.CustomerServiceSessionCompletion);
+            actor?.RecordActivity(owner, new BuildingActivitySnapshot(
+                BuildingActivityKinds.Shopping,
+                BuildingActivityOutcomes.Cancelled,
+                $"{ownerDisplayName} interaction aborted: {detail}",
+                actionId: "shop:interaction",
+                reasonCode: detail));
+        }
+        else
+        {
+            actor?.Shopping?.SetVisitOutcome(null, BuildingVisitOutcome.Abandoned);
+        }
+
+        if (failureKind != BuildingInteractionFailureKind.ActionReplaced)
+        {
+            actor?.ReportInteractionFailure(
+                failureKind,
+                $"{ownerDisplayName}: {detail}",
+                ownerAlive ? owner : null);
         }
     }
 }

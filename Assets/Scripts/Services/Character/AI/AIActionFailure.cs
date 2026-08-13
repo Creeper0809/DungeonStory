@@ -41,6 +41,10 @@ public readonly struct AIActionFailure
     {
         return kind switch
         {
+            AIActionFailureKind.FacilityAdmissionRejected => "Facility admission rejected.",
+            AIActionFailureKind.FacilityServiceUnavailable => "Facility service unavailable.",
+            AIActionFailureKind.ResourceUnavailable => "Required facility resource unavailable.",
+            AIActionFailureKind.ConsumptionFailed => "Physical consumption failed.",
             AIActionFailureKind.None => string.Empty,
             AIActionFailureKind.NoAction => "행동 없음",
             AIActionFailureKind.Cooldown => "쿨다운",

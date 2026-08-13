@@ -548,19 +548,55 @@ public class CharacterActor : SerializedMonoBehaviour,
 
     public bool TryExecuteSelectedAiAction()
     {
+        return TryExecuteSelectedAiAction(out _);
+    }
+
+    internal bool TryExecuteSelectedAiAction(out AIActionFailure failure)
+    {
         EnsureRuntimeState();
-        if (brain == null || brain.bestAction == null || brain.bestAction.actionset == null)
+        if (brain == null)
         {
+            failure = AIActionFailure.Create(
+                AIActionFailureKind.NoAction,
+                "AIBrain is missing.");
+            return false;
+        }
+
+        if (!CanRunAi)
+        {
+            failure = AIActionFailure.Create(
+                AIActionFailureKind.CannotStart,
+                $"AI cannot execute in lifecycle state {CurrentLifecycleState}.");
+            return false;
+        }
+
+        if (brain.bestAction == null || brain.bestAction.actionset == null)
+        {
+            failure = AIActionFailure.Create(
+                AIActionFailureKind.NoAction,
+                "No selected AI action is available for execution.");
             return false;
         }
 
         AIAction selectedAction = brain.bestAction;
+        BuildableObject selectedDestination = selectedAction.destination;
+        if (!ReferenceEquals(selectedDestination, null)
+            && (selectedDestination == null || selectedDestination.isDestroy))
+        {
+            failure = AIActionFailure.Create(
+                AIActionFailureKind.Destroyed,
+                "Selected destination was destroyed before execution.",
+                selectedDestination);
+            return false;
+        }
+
         string actionName = !string.IsNullOrWhiteSpace(selectedAction.actionset.actionName)
             ? selectedAction.actionset.actionName
             : selectedAction.actionset.GetType().Name;
         brain.NotifyActionStarted();
         blackboard?.Commit(selectedAction, actionName);
         selectedAction.actionset.Execute(this);
+        failure = AIActionFailure.None;
         return true;
     }
 

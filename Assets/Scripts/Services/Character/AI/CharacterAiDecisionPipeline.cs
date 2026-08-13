@@ -455,20 +455,40 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             : GetBranchForActionSet(selectedAction?.actionset);
         if (selectedAction == null || selectedAction.actionset == null)
         {
-            return CharacterAiDecisionRules.Result(false, branch, taskName, "No selected AI action.", blackboard);
+            AIActionFailure failure = AIActionFailure.Create(
+                AIActionFailureKind.NoAction,
+                "No selected AI action.");
+            actor.Brain?.ReportRuntimeActionFailure(
+                failure,
+                requestImmediateReplan: true);
+            return CharacterAiDecisionRules.Result(
+                false,
+                branch,
+                taskName,
+                $"{failure.Kind}: {failure}",
+                blackboard);
         }
 
-        bool executed = actor.TryExecuteSelectedAiAction();
+        bool executed = actor.TryExecuteSelectedAiAction(
+            out AIActionFailure executionFailure);
         if (executed)
         {
             blackboard.RefreshCommitment(selectedAction);
+        }
+        else
+        {
+            actor.Brain?.ReportRuntimeActionFailure(
+                executionFailure,
+                requestImmediateReplan: true);
         }
 
         return CharacterAiDecisionRules.Result(
             executed,
             branch,
             taskName,
-            executed ? GetActionLabel(selectedAction.actionset) : "Selected action could not execute.",
+            executed
+                ? GetActionLabel(selectedAction.actionset)
+                : $"{executionFailure.Kind}: {executionFailure}",
             blackboard);
     }
 
@@ -850,9 +870,11 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         CharacterAiDecisionTickResult runResult = RunSelectedAction(actor, taskName, branchOverride);
         AIAction selectedAction = actor.Brain.bestAction;
         string actionLabel = GetActionLabel(selectedAction?.actionset);
-        string status = captureDetails
-            ? $"{actionLabel} · {bestCandidate.DebugSummary}"
-            : actionLabel;
+        string status = !runResult.Handled
+            ? runResult.Status
+            : captureDetails
+                ? $"{actionLabel} · {bestCandidate.DebugSummary}"
+                : actionLabel;
         actor.AiMemory?.RecordDecision(
             branchOverride,
             CharacterAiUtilityText.GetIntention(bestCandidate.Branch),
@@ -1023,7 +1045,9 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
                 runResult.Handled,
                 branchOverride,
                 taskName,
-                GetActionLabel(actor.Brain.bestAction?.actionset),
+                runResult.Handled
+                    ? GetActionLabel(actor.Brain.bestAction?.actionset)
+                    : runResult.Status,
                 blackboard);
         }
 

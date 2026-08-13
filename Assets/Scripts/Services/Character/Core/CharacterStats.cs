@@ -317,6 +317,23 @@ public class CharacterStats :
         CharacterCondition condition) =>
         RequireNeedStateService().GetResponse(condition);
 
+    public float GetExpectedTimedNeedLoss(
+        CharacterCondition condition,
+        float elapsedSeconds)
+    {
+        CharacterNeedDecayBatch decay = RequireNeedStateService()
+            .CalculateTimedDecay(actor, Mathf.Max(0f, elapsedSeconds));
+        return condition switch
+        {
+            CharacterCondition.HUNGER => decay.Hunger,
+            CharacterCondition.THIRST => decay.Thirst,
+            CharacterCondition.FUN => decay.Fun,
+            CharacterCondition.EXCRETION => decay.Excretion,
+            CharacterCondition.HYGIENE => decay.Hygiene,
+            _ => 0f
+        };
+    }
+
     private void ApplyWorkDepletion(
         CharacterCondition condition,
         float elapsedSeconds)

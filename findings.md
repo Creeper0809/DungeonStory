@@ -1,5 +1,37 @@
 # DungeonStory Current Findings
 
+## 2026-08-13 queue-aware fallback rerun findings
+
+- The same five-day live verifier now passes after replacing the fixed primitive-survival cutoff with projected need at the earliest queueable authored service ETA.
+- Primitive latrine use fell from one false fallback to zero; typed meal execution failures fell from one to zero; harmful stalls, no-action failures and repeated execution failures are all zero.
+- Actual labor increased from `52.524` to `62.485 WU/actor-day` (+18.96%) and output-equivalent labor increased from `48.190` to `57.321 WU/actor-day`. This confirms that the prior loss was AI arbitration/queue behavior, not a balance target that should be preserved.
+- The five-day time budget is now `80.977s` active work, `27.940s` work transit, `0.449s` work queue, `36.020s` need service, `23.921s` need travel, `0.676s` need queue, `2.958s` other travel and `7.059s` idle/other per actor-day. Remaining non-work time is mostly authored service and travel rather than hidden AI failure.
+- Food and water authority remained conserved: 15 physical meals/15 events and 16 physical water units/16 events; active meal plans ended at zero.
+- The broad priority and customer/facility suites both pass. Their earlier order-dependent failures were test-fixture defects: a permissive room policy returned a null operational profile, and an assertion counted character-initialization replans instead of measuring the scenario delta.
+- A stale editor-created `qa-destroy-ref` facility was found in `GameplayScene` by the scene leak validator and removed through Unity MCP. Console startup must be rechecked before closure.
+
+## 2026-08-13 five-day queue/fallback findings
+
+- The latest real five-day run completed 900 game seconds with three live founders, zero captured Console issues, zero harmful no-progress episodes, and `52.524 actual WU/actor-day`; it is not a pass because one primitive latrine fallback executed while an authored toilet was reachable.
+- The primitive trace is causal: at game time `426.535`, Leon had excretion `14.308`; the toilet was on the same cell, structurally queueable, capacity 1, and occupied by one user. The fixed `emergencyStart - 10` rule treated this short occupancy as a missing facility and ran the primitive action even though the authored toilet became free before completion.
+- Primitive fallback must therefore compare projected need after real service ETA, not a fixed need threshold. The ETA now includes estimated travel, active users, reservations ahead, effective capacity, authored use duration, and the actor stay-duration multiplier; timed need loss comes from the same `CharacterNeedStateService` authority as runtime decay.
+- The five-day report also retained one typed `ConsumptionFailed` meal execution failure and recovered without repetition (`repeatedPeak=1`). The final state still showed `PhysicalConsumptionFailed` detail, so meal-plan contention remains a diagnostic/follow-up item even though physical stock/event totals stayed conserved.
+- Focused customer AI regression initially failed because the delayed-purchase test depended on optional authored shop inventory. The transaction guard itself was correct; replacing the fixture with an isolated synthetic `RemainStock` made the action-replacement assertion deterministic and the full customer suite passed.
+- A broad priority-corner suite invoked immediately after the customer suite exposed order-dependent fixture failures (`P1_RestRoom` admission rejected before first yield and destroyed-destination selection false). This is separate from the queue-ETA change and must be isolated before accepting the broad suite as evidence.
+
+## 2026-08-13 AI runtime intersection findings
+
+- The short isolated AI suites were already green, so the remaining failures are state-transition intersections rather than basic scoring: target destruction, action replacement, coroutine resumption, reservation invalidation, and long-run retries.
+- `RunSelectedAction` discarded structured `AIActionFailure` data and returned one generic sentence. This made different causes look identical in reports and made the repeated-failure counters less actionable.
+- `Facility.Linger` correctly stopped when the action token changed, but the outer coroutine continued after `yield return Linger(...)`. That allowed an obsolete interaction to progress into recovery, payment, completion, or occupancy cleanup.
+- A facility can be destroyed between coroutine yields. Any post-yield Unity object access must be guarded; presentation labels also need capture before the first yield.
+- The repeated-failure streak was reset by `NotifyActionStarted`, so a start-fail-replan-start loop never appeared as repeated failure. The streak now uses action+failure identity and a bounded time window instead.
+- `SetVisitOutcome` accepts a null target for teardown cleanup, but the former abort path only called it while the facility was still alive. Destruction during an interaction could therefore leave the shopping visitor state at `InProgress`; abort now clears it to `Abandoned` even when the Unity target has already been destroyed.
+- Action replacement is not itself an execution failure. The obsolete coroutine releases only its own facility occupancy and records abandonment; it must not request a replan that would erase the already-selected replacement action.
+- Facility resource acquisition was ordered too early: water was consumed before movement, seat settling and service waiting. A later target destruction or action replacement could therefore spend clean water without applying the facility effect. Water/drain validation and consumption need to occur at the physical commit boundary after the last interruptible wait.
+- Facility admission, service-session, plumbing, recreational-consumption and meal-consumption failures currently create activity facts but do not all reach `AIBrain` execution diagnostics. A five-day report can therefore claim zero execution failures while visible facility attempts repeatedly fail.
+- `ShopCustomerInteractionService` has the same outer-coroutine continuation defect as `Facility`: movement/linger/checkout/purchase coroutines can stop internally when the action token changes, while the caller proceeds into cart, payment, stock decrement and revenue. Purchase/payment commit also happens after an internal delay without revalidating the owning action token.
+
 ## 2026-08-13 AI conflict and performance findings
 
 - Yes: the roughly 20 WU result was primarily an AI/runtime conflict result, not the neutral-adult labor balance. Corrected five-day samples currently span 54.721-62.944 actual WU/adult-day. The old authored 99 WU assumption is also not validated by live play and must not be restored as the target merely because the conflicts were fixed.
@@ -4702,3 +4734,31 @@
 - The trace also surfaced an opaque `PhysicalConsumptionFailed` facility event. `TryGetMealOperationResult` previously discarded the actual aborted-plan reason after removing the active plan. A bounded operation-failure map now retains the terminal failure code/detail long enough for the waiting facility coroutine to report the real commit/revalidation outcome; successful/retried operations clear it.
 - A second five-day sample had no `facility-distant-selection` event, proving the proximity equivalence nudge fired. Its remaining apparent 30-31-cell detours between facilities only 2-3 coordinate units apart were a verifier defect: grid `y` is a floor, not a visual row. The compact-layout helper selected facilities on floors 0 and 2 and then treated Manhattan displacement as local. AI correctly routed through stairs. The fixture now requires actors, all five facilities, and the construction site to share the origin floor and fails setup otherwise.
 - Terminal meal failure diagnostics are intentionally bounded to 64 distinct operation IDs. A HashSet prevents repeated aborts of the same operation from consuming the FIFO budget; successful reuse clears the current failure entry.
+## 2026-08-13 AI 진단 감사 발견
+
+- 짧은 독립 회귀 12개 묶음은 모두 통과하고 Unity Console도 0/0이므로 현재 문제는 기본 행동 정의 누락보다는 장기 상태 교차, 실행 도중 권위 변경, 또는 진단 정보 소실 가능성이 높다.
+- `AIBrain`과 `CharacterAiRuntimeDiagnosticsSnapshot`에는 `NoAction`, 실행 실패, 후보 거절, JobGiver 분기별 거절과 반복 실패 최고치가 이미 있다. 새 카운터 체계를 중복 도입할 필요는 없다.
+- 반면 `CharacterAiDecisionPipeline.RunSelectedAction`은 `TryExecuteSelectedAiAction()`의 false 결과를 받을 때 `AIBrain.LastActionFailure`를 전달하지 않고 고정 문구로 바꾼다. 이 경로를 지나면 숫자상 실패는 보이지만 실제 NoPath/Destroyed/Occupied/CannotStart 이유가 결정 결과와 블랙보드 진단에서 사라진다.
+- 기존 부하 도구의 다량 `EditorApplication.Step()` 호출은 Unity `JobTempAlloc` 수명 경고를 만들었다. 공식 장기 검증은 Start 후 자연 Editor 업데이트를 기다리고, 강제 Pump는 소수 프레임 개발 보조로만 제한해야 한다.
+# 2026-08-13 AI concurrency and scheduler fairness findings
+
+- Retail checkout had a real time-of-check/time-of-use race: two customers could both pass `stock > 0`, resume after the feedback delay, commit buyer state twice, and drive one remaining unit to `-1`.
+- The purchase coroutine had no commit result, so the shop caller treated every returned coroutine as success. A typed resolved/committed/failure result is required across the visitor-port boundary.
+- The scheduler's earlier actor-count safety logic silently widened the authored 16-decision ceiling. After restoring the hard ceiling, the strengthened 500-NPC audit exposed starvation rather than hiding it with burst work.
+- `CharacterAiDecisionSchedule.Count` used heap entries, including invalidated reschedule tombstones, instead of live `dueTimes`; this inflated backlog accounting.
+- A fixed minimum of one decision per frame cannot service 500 live requests inside the authored 2-second deferral bound. The fair service floor must derive from live scheduled actors and the target service horizon, remain under the authored hard ceiling, and be honored before the time-budget break.
+- Using an uncapped slow-frame delta in that floor creates positive feedback: a hitch demands more decisions in the same frame. The delta is now bounded to two target frames.
+- MCP dynamic-command compilation success is not project compilation authority. The first shop edit briefly left two project CS0246 errors while a command still ran against the old assembly. Every source change now requires editor compile-state plus Console evidence.
+- The PlayMode profiler request flag could survive a rejected PlayMode entry. A stale EditMode request must be recovered explicitly and leave `stale-profile-request-recovered` evidence.
+- Repeated `EditorApplication.Step()` inside an MCP command recursively enters PlayerLoop and causes TempJob warnings/errors. The verifier now requests the normal editor loop instead of bulk-stepping.
+- Latest clean normal-loop 500-NPC fairness evidence: starvation `0`, maximum deferral `1.083s`, scheduler p95 `2.498ms`, scheduler-owned GC `0 B/frame`. Whole Editor frame p95 remains `19.07ms`, so overall 60-fps performance is not closed.
+# 2026-08-13 AI multi-seed/runtime-lifecycle findings
+
+- Seed `157181` initially failed only the physical construction vs central output-equivalent causal check: `805.851` vs `805.240 WU`.
+- Two independent long-run defects were proven:
+  - `WorkTaskExecutor` discarded sub-milli labor/output carries at every routine-need operation boundary.
+  - `WorkOrderRecord.completedWork` accumulated thousands of small deltas directly in a `float`, drifting above the milli-WU ledger.
+- The executor now preserves cumulative carries across operation boundaries. Work orders accumulate runtime progress in `double preciseCompletedWork` while retaining the existing float save contract.
+- A teardown race also reproduced: the 5-day verifier removed a `ConstructionSite` while a work coroutine was finalizing, producing `MissingReferenceException` at `assignedTarget.name`. Finalization now detects Unity fake-null targets, emits typed `Destroyed / work-target-destroyed-after-execution`, releases reservations/context, and replans without dereferencing the target.
+- Corrected seed `157181` passed five days: physical construction `768.725 WU`, central output equivalent `768.723 WU` (difference `0.002 WU`), harmful stalls `0`, console exception `0`.
+- One recovered meal commit failure was still displayed as generic `PhysicalConsumptionFailed`. The core runtime already authored exact details, but `CharacterBuildingVisitorPort.TryGetMealConsumptionResult` discarded the failed result when the runtime returned `false`. The adapter now preserves failure code and parameters so `meal-lease-invalid-at-commit`, `meal-quantity-commit-failed`, etc. reach facility activity and AI blackboard diagnostics.

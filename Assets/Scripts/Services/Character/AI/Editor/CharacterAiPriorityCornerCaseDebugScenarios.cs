@@ -25,6 +25,10 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
 
         RunScenario("AI action score edge cases", VerifyActionScoreEdgeCases, errors);
         RunScenario("AI action plan invariants", VerifyActionPlanInvariants, errors);
+        RunScenario("Destroyed committed destination reports exact execution failure", VerifyDestroyedCommittedDestinationFailure, errors);
+        RunScenario("Repeated execution failures survive action restart diagnostics", VerifyRepeatedFailureDiagnosticsAcrossRestarts, errors);
+        RunScenario("Facility destruction aborts an in-flight interaction", VerifyFacilityDestructionAbortsInFlightInteraction, errors);
+        RunScenario("Action replacement aborts only the obsolete interaction", VerifyActionReplacementAbortsOnlyObsoleteInteraction, errors);
         RunScenario("Candidate commit reuses decision evaluation", VerifyCandidateCommitReusesDecisionEvaluation, errors);
         RunScenario("AI selects next action after failed high-score destination", VerifyBrainSelectsNextActionAfterDestinationFailure, errors);
         RunScenario("AI tie keeps action order", VerifyBrainTieKeepsActionOrder, errors);
@@ -539,6 +543,268 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         }
     }
 
+    private static bool VerifyDestroyedCommittedDestinationFailure()
+    {
+        using PriorityScenarioWorld world = new PriorityScenarioWorld();
+        CharacterActor character = world.CreateOwner("Owner_Slime", Vector2Int.zero);
+        BuildableObject destination = world.Place("P1_RestRoom", new Vector2Int(4, 0));
+        TestActionSet actionSet = CreateAction(
+            "Destroyed destination action",
+            1f,
+            requiresDestination: true,
+            resolvesDestination: true);
+        actionSet.ResolvedDestination = destination;
+
+        try
+        {
+            CharacterAiRuntimeDiagnosticsSnapshot before =
+                character.ai.CaptureRuntimeDiagnostics();
+            character.ai.availableActions = new[]
+            {
+                new AIAction { actionset = actionSet }
+            };
+            bool selected = character.ai.DecideAction();
+            destination.DestroySelf();
+
+            CharacterAiDecisionTickResult result =
+                new CharacterAiDecisionPipeline(
+                    NoCharacterDeprivationBoundary.Instance,
+                    NoCharacterDeprivationBoundary.Instance)
+                .RunSelectedAction(character, "destroyed-destination-regression");
+            CharacterAiRuntimeDiagnosticsSnapshot diagnostics =
+                character.ai.CaptureRuntimeDiagnostics();
+
+            bool passed = selected
+                && !result.Handled
+                && result.Status.Contains(AIActionFailureKind.Destroyed.ToString())
+                && character.ai.LastActionFailure.Kind == AIActionFailureKind.Destroyed
+                && diagnostics.ExecutionFailures - before.ExecutionFailures == 1
+                && diagnostics.ImmediateReplans - before.ImmediateReplans == 1
+                && character.ai.bestAction == null;
+            if (!passed)
+            {
+                Debug.LogError(
+                    $"Destroyed destination diagnostic: selected={selected}, handled={result.Handled}, " +
+                    $"status={result.Status}, lastFailure={character.ai.LastActionFailure.Kind}, " +
+                    $"executionFailureDelta={diagnostics.ExecutionFailures - before.ExecutionFailures}, " +
+                    $"immediateReplanDelta={diagnostics.ImmediateReplans - before.ImmediateReplans}, " +
+                    $"bestActionNull={character.ai.bestAction == null}.");
+            }
+
+            return passed;
+        }
+        finally
+        {
+            Object.DestroyImmediate(actionSet);
+        }
+    }
+
+    private static bool VerifyRepeatedFailureDiagnosticsAcrossRestarts()
+    {
+        using PriorityScenarioWorld world = new PriorityScenarioWorld();
+        CharacterActor character = world.CreateOwner("Owner_Slime", Vector2Int.zero);
+        TestActionSet actionSet = CreateAction(
+            "Repeated failure action",
+            1f,
+            requiresDestination: false,
+            resolvesDestination: true);
+
+        try
+        {
+            character.ai.bestAction = new AIAction(
+                actionSet,
+                AIActionPlan.WithoutDestination);
+            AIActionFailure failure = AIActionFailure.Create(
+                AIActionFailureKind.CannotStart,
+                "forced repeated start failure");
+            for (int i = 0; i < 3; i++)
+            {
+                character.ai.NotifyActionStarted();
+                ReportRuntimeActionFailureForTest(
+                    character.ai,
+                    failure,
+                    requestImmediateReplan: false);
+            }
+
+            CharacterAiRuntimeDiagnosticsSnapshot diagnostics =
+                character.ai.CaptureRuntimeDiagnostics();
+            return diagnostics.ExecutionFailures == 3
+                && diagnostics.CurrentRepeatedFailureCount == 3
+                && diagnostics.PeakRepeatedFailureCount == 3
+                && diagnostics.RepeatedFailureKind == AIActionFailureKind.CannotStart;
+        }
+        finally
+        {
+            Object.DestroyImmediate(actionSet);
+        }
+    }
+
+    private static void ReportRuntimeActionFailureForTest(
+        AIBrain brain,
+        AIActionFailure failure,
+        bool requestImmediateReplan)
+    {
+        MethodInfo method = typeof(AIBrain).GetMethod(
+            "ReportRuntimeActionFailure",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        if (method == null)
+        {
+            throw new MissingMethodException(
+                typeof(AIBrain).FullName,
+                "ReportRuntimeActionFailure");
+        }
+
+        method.Invoke(
+            brain,
+            new object[] { failure, requestImmediateReplan });
+    }
+
+    private static bool VerifyFacilityDestructionAbortsInFlightInteraction()
+    {
+        using PriorityScenarioWorld world = new PriorityScenarioWorld();
+        CharacterActor actor = world.CreateOwner("Owner_Slime", Vector2Int.zero);
+        Facility facility = world.Place("P1_RestRoom", new Vector2Int(4, 0)) as Facility;
+        TestActionSet actionSet = CreateAction(
+            "In-flight destroyed facility",
+            1f,
+            requiresDestination: true,
+            resolvesDestination: true);
+        actionSet.ResolvedDestination = facility;
+
+        try
+        {
+            if (facility == null)
+            {
+                return false;
+            }
+
+            actor.stats[CharacterCondition.SLEEP] = 10f;
+            float sleepBefore = actor.stats[CharacterCondition.SLEEP];
+            AIAction action = new AIAction(
+                actionSet,
+                AIActionPlan.AtDestination(facility));
+            actor.ai.bestAction = action;
+            actor.ai.isBestActionEnd = false;
+            actor.GetAbility<AbilityShopping>()?.BeginVisitInteraction(facility);
+
+            IEnumerator interaction = facility.Interact(actor.BuildingVisitor);
+            bool reachedFirstYield = interaction.MoveNext();
+            int usersBeforeDestroy = facility.CurrentUserCount;
+            facility.CanQueueVisit(actor.BuildingVisitor, out string queueReasonBeforeDestroy);
+            facility.CanVisit(actor.BuildingVisitor, out string visitReasonBeforeDestroy);
+            facility.DestroySelf();
+            bool yieldedAfterDestroy = interaction.MoveNext();
+            CharacterAiRuntimeDiagnosticsSnapshot diagnostics =
+                actor.ai.CaptureRuntimeDiagnostics();
+            ShoppingVisitOutcome outcome =
+                actor.GetAbility<AbilityShopping>()?.LastVisitOutcome
+                ?? ShoppingVisitOutcome.None;
+
+            bool passed = reachedFirstYield
+                && usersBeforeDestroy == 1
+                && !yieldedAfterDestroy
+                && Mathf.Approximately(actor.stats[CharacterCondition.SLEEP], sleepBefore)
+                && outcome == ShoppingVisitOutcome.Abandoned
+                && diagnostics.ExecutionFailures == 1
+                && actor.ai.LastActionFailure.Kind == AIActionFailureKind.Destroyed
+                && actor.ai.bestAction == null;
+            if (!passed)
+            {
+                Debug.LogError(
+                    "In-flight facility destruction detail: "
+                    + $"firstYield={reachedFirstYield}; users={usersBeforeDestroy}; "
+                    + $"id={actor.Identity?.PersistentId}; queue={queueReasonBeforeDestroy}; visit={visitReasonBeforeDestroy}; "
+                    + $"afterDestroyYield={yieldedAfterDestroy}; "
+                    + $"sleep={sleepBefore:0.###}->{actor.stats[CharacterCondition.SLEEP]:0.###}; "
+                    + $"outcome={outcome}; failures={diagnostics.ExecutionFailures}; "
+                    + $"lastFailure={actor.ai.LastActionFailure.Kind}; "
+                    + $"bestAction={actor.ai.bestAction != null}.");
+            }
+            return passed;
+        }
+        finally
+        {
+            Object.DestroyImmediate(actionSet);
+        }
+    }
+
+    private static bool VerifyActionReplacementAbortsOnlyObsoleteInteraction()
+    {
+        using PriorityScenarioWorld world = new PriorityScenarioWorld();
+        CharacterActor actor = world.CreateOwner("Owner_Slime", Vector2Int.zero);
+        Facility facility = world.Place("P1_RestRoom", new Vector2Int(4, 0)) as Facility;
+        TestActionSet obsoleteActionSet = CreateAction(
+            "Obsolete facility interaction",
+            1f,
+            requiresDestination: true,
+            resolvesDestination: true);
+        TestActionSet replacementActionSet = CreateAction(
+            "Replacement action",
+            1f,
+            requiresDestination: false,
+            resolvesDestination: true);
+        obsoleteActionSet.ResolvedDestination = facility;
+
+        try
+        {
+            if (facility == null)
+            {
+                return false;
+            }
+
+            actor.stats[CharacterCondition.SLEEP] = 10f;
+            float sleepBefore = actor.stats[CharacterCondition.SLEEP];
+            AIAction obsoleteAction = new AIAction(
+                obsoleteActionSet,
+                AIActionPlan.AtDestination(facility));
+            AIAction replacementAction = new AIAction(
+                replacementActionSet,
+                AIActionPlan.WithoutDestination);
+            actor.ai.bestAction = obsoleteAction;
+            actor.ai.isBestActionEnd = false;
+            actor.GetAbility<AbilityShopping>()?.BeginVisitInteraction(facility);
+
+            IEnumerator interaction = facility.Interact(actor.BuildingVisitor);
+            bool reachedFirstYield = interaction.MoveNext();
+            int usersBeforeReplacement = facility.CurrentUserCount;
+            facility.CanQueueVisit(actor.BuildingVisitor, out string queueReasonBeforeReplacement);
+            facility.CanVisit(actor.BuildingVisitor, out string visitReasonBeforeReplacement);
+            actor.ai.bestAction = replacementAction;
+            bool yieldedAfterReplacement = interaction.MoveNext();
+            CharacterAiRuntimeDiagnosticsSnapshot diagnostics =
+                actor.ai.CaptureRuntimeDiagnostics();
+            ShoppingVisitOutcome outcome =
+                actor.GetAbility<AbilityShopping>()?.LastVisitOutcome
+                ?? ShoppingVisitOutcome.None;
+
+            bool passed = reachedFirstYield
+                && usersBeforeReplacement == 1
+                && !yieldedAfterReplacement
+                && facility.CurrentUserCount == 0
+                && Mathf.Approximately(actor.stats[CharacterCondition.SLEEP], sleepBefore)
+                && outcome == ShoppingVisitOutcome.Abandoned
+                && diagnostics.ExecutionFailures == 0
+                && ReferenceEquals(actor.ai.bestAction, replacementAction);
+            if (!passed)
+            {
+                Debug.LogError(
+                    "Action replacement interaction detail: "
+                    + $"firstYield={reachedFirstYield}; users={usersBeforeReplacement}->{facility.CurrentUserCount}; "
+                    + $"id={actor.Identity?.PersistentId}; queue={queueReasonBeforeReplacement}; visit={visitReasonBeforeReplacement}; "
+                    + $"afterReplacementYield={yieldedAfterReplacement}; "
+                    + $"sleep={sleepBefore:0.###}->{actor.stats[CharacterCondition.SLEEP]:0.###}; "
+                    + $"outcome={outcome}; failures={diagnostics.ExecutionFailures}; "
+                    + $"replacementPreserved={ReferenceEquals(actor.ai.bestAction, replacementAction)}.");
+            }
+            return passed;
+        }
+        finally
+        {
+            Object.DestroyImmediate(obsoleteActionSet);
+            Object.DestroyImmediate(replacementActionSet);
+        }
+    }
+
     private static bool VerifyCandidateCommitReusesDecisionEvaluation()
     {
         using PriorityScenarioWorld world = new PriorityScenarioWorld();
@@ -904,6 +1170,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
     {
         public bool RequireDestination { get; set; }
         public bool ResolveDestination { get; set; }
+        public BuildableObject ResolvedDestination { get; set; }
         public FixedScoreConsideration OwnedConsideration { get; set; }
         public int CanStartRequestCount { get; private set; }
 
@@ -940,6 +1207,12 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
                 return false;
             }
 
+            if (ResolvedDestination != null)
+            {
+                destination = ResolvedDestination;
+                return true;
+            }
+
             failure = AIActionFailure.Create(
                 AIActionFailureKind.NoDestination,
                 "test destination not configured");
@@ -967,6 +1240,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         private readonly GridSystemManager previousGridSystem;
         private readonly CharacterAiScheduler previousScheduler;
         private readonly List<GameObject> objects = new List<GameObject>();
+        private int nextCharacterId = 1;
 
         public PriorityScenarioWorld(int width = 16)
         {
@@ -1009,7 +1283,9 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
             }
 
             objects.Add(building.gameObject);
-            CharacterAiEditorTestDependencies.Inject(building);
+            CharacterAiEditorTestDependencies.InjectWithRoomPolicy(
+                building,
+                PermissivePriorityRoomPolicy.Instance);
             building.SetGrid(Grid);
             building.Initialization(buildingData, position);
             bool registered = Grid.RegisterOccupant(
@@ -1056,6 +1332,8 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
             character.EnsureRuntimeState();
             character.RefreshAbilityCache();
             character.Initialization(data);
+            character.Identity.SetPersistentId(
+                $"character:priority-corner:{nextCharacterId++:D4}");
             character.SetLifecycleState(CharacterLifecycleState.Active);
             return character;
         }
@@ -1070,6 +1348,48 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
             {
                 Object.DestroyImmediate(obj);
             }
+        }
+    }
+
+    private sealed class PermissivePriorityRoomPolicy : IBuildingRoomPolicyPort
+    {
+        public static readonly PermissivePriorityRoomPolicy Instance = new();
+
+        public bool IsFacilityRoleAvailable(
+            IBuildingWorldEntryPort building,
+            FacilityRole requestedRole,
+            out string rejectReason)
+        {
+            rejectReason = string.Empty;
+            return true;
+        }
+
+        public float GetRoomUtilityScore(
+            IBuildingWorldEntryPort building,
+            FacilityRole role) => 1f;
+
+        public int GetEffectiveCapacity(IBuildingWorldEntryPort building) =>
+            building is BuildableObject buildable && buildable.Facility != null
+                ? Mathf.Max(1, buildable.Facility.capacity)
+                : 1;
+
+        public BuildingRoomOperationalSnapshot GetOperationalProfile(
+            IBuildingWorldEntryPort building)
+        {
+            int capacity = GetEffectiveCapacity(building);
+            IReadOnlyList<IBuildingWorldEntryPort> parts = building != null
+                ? new[] { building }
+                : Array.Empty<IBuildingWorldEntryPort>();
+            return new BuildingRoomOperationalSnapshot(
+                parts,
+                hasRoom: true,
+                isUsableRoom: true,
+                qualityScore: 1f,
+                seatCapacity: capacity,
+                tableCapacity: capacity,
+                serviceCapacity: capacity,
+                retailCategory: StockCategory.General,
+                storage: new Dictionary<StockCategory, int>());
         }
     }
 

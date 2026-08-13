@@ -98,6 +98,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     public float LastOldestDecisionDeferralSeconds => budgetState.LastOldestDecisionDeferralSeconds;
     public float MaximumObservedDecisionDeferralSeconds => budgetState.MaximumObservedDecisionDeferralSeconds;
     public bool LastBudgetExhausted { get; private set; }
+    public int LastFairnessDecisionFloor { get; private set; }
     public ExternalBehaviorTree CharacterAiExternalBehavior => characterAiExternalBehavior;
     public bool IsDrivingAi => enabled && driveCharacterUpdates;
     public int CurrentDecisionBudget => budgetState.CurrentDecisionBudget;
@@ -307,6 +308,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         cumulativeStarvedDecisionCount = 0L;
         cumulativeSkippedDecisionCount = 0L;
         cumulativeLegacyFallbackCount = 0L;
+        LastFairnessDecisionFloor = 0;
         LastBudgetExhausted = false;
     }
 
@@ -369,6 +371,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                 LastProcessedDecisionCount = 0;
                 LastBehaviorTreeTickCount = 0;
                 LastLegacyFallbackCount = 0;
+                LastFairnessDecisionFloor = 0;
                 LastBudgetExhausted = false;
 
                 if (actors.Count == 0)
@@ -382,9 +385,13 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                     budgetSettings,
                     actors.Count);
                 int decisionSafetyLimit = Mathf.Clamp(
-                    Mathf.Max(maxDecisionsPerFrame, actors.Count),
-                    64,
+                    maxDecisionsPerFrame,
+                    1,
                     4096);
+                int guaranteedDecisionFloor = ResolveFairnessDecisionFloor(
+                    DecisionSchedule.Count,
+                    decisionSafetyLimit);
+                LastFairnessDecisionFloor = guaranteedDecisionFloor;
                 while (actors.Count > 0
                     && LastProcessedDecisionCount < decisionSafetyLimit
                     && DecisionSchedule.TryPeekDue(
@@ -399,11 +406,8 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                     bool urgent = urgentDecisionRequests.Contains(actor);
                     bool starved = now - scheduled.DueTime
                         >= maximumDecisionDeferralSeconds;
-                    bool withinCountBudget =
-                        LastProcessedDecisionCount < decisionCountBudget;
-                    int guaranteedDecisionFloor = Mathf.Min(
-                        actors.Count,
-                        Mathf.Max(1, minDecisionsPerFrame));
+                    bool withinCountBudget = LastProcessedDecisionCount
+                        < Mathf.Max(decisionCountBudget, guaranteedDecisionFloor);
                     bool withinTimeBudget =
                         LastProcessedDecisionCount < guaranteedDecisionFloor
                         || elapsedBeforeDecision + predictedDecisionMilliseconds
@@ -483,7 +487,8 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                     }
                     double elapsedMilliseconds =
                         GetElapsedMilliseconds(startTimestamp);
-                    if (elapsedMilliseconds >= budgetState.CurrentFrameBudgetMilliseconds)
+                    if (LastProcessedDecisionCount >= guaranteedDecisionFloor
+                        && elapsedMilliseconds >= budgetState.CurrentFrameBudgetMilliseconds)
                     {
                         LastBudgetExhausted = true;
                         break;
@@ -670,6 +675,38 @@ public sealed class CharacterAiScheduler : MonoBehaviour
             && selectedAction.actionset != null
             && !selectedAction.HasStarted
             && !brain.isBestActionEnd;
+    }
+
+    private int ResolveFairnessDecisionFloor(
+        int scheduledActorCount,
+        int decisionSafetyLimit)
+    {
+        if (scheduledActorCount <= 0)
+        {
+            return 0;
+        }
+
+        float targetFrameSeconds = Mathf.Max(
+            0.001f,
+            targetFrameMilliseconds / 1000f);
+        float observedFrameSeconds = uiClock != null
+            // A slow frame must not demand proportionally more AI work in
+            // that same frame. Cap the service horizon at two target frames
+            // so fairness catches up gradually without a positive feedback
+            // loop that turns a hitch into a decision burst.
+            ? Mathf.Clamp(
+                uiClock.DeltaTime,
+                targetFrameSeconds,
+                targetFrameSeconds * 2f)
+            : targetFrameSeconds;
+        int serviceFloor = Mathf.CeilToInt(
+            scheduledActorCount
+            * observedFrameSeconds
+            / Mathf.Max(0.1f, maximumDecisionDeferralSeconds));
+        return Mathf.Clamp(
+            Mathf.Max(minDecisionsPerFrame, serviceFloor),
+            1,
+            decisionSafetyLimit);
     }
 
     private static void ConfigureBehaviorManagerForManualTick()

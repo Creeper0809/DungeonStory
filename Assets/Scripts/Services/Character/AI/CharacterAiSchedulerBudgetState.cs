@@ -373,10 +373,10 @@ internal sealed class CharacterAiSchedulerBudgetState
         CharacterAiSchedulerBudgetSettings settings,
         int actorCount)
     {
-        return Mathf.Clamp(
-            Mathf.Max(settings.MaxDecisionsPerFrame, actorCount),
-            64,
-            4096);
+        // MaxDecisionsPerFrame is an authored hard ceiling. Actor count affects
+        // backlog and deferral telemetry, but must never silently widen the
+        // per-frame decision budget at settlement scale.
+        return Mathf.Clamp(settings.MaxDecisionsPerFrame, 1, 4096);
     }
 
     private static int ResolvePathSearchSafetyLimit(

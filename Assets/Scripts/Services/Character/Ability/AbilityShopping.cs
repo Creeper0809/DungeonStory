@@ -140,10 +140,17 @@ public class AbilityShopping : CharacterAbility
                 || Mathf.Max(0, amount) <= holdingMoney);
     }
 
-    public IEnumerator PayForService(int amount)
+    public IEnumerator PayForService(
+        int amount,
+        AIAction expectedAction,
+        BuildableObject expectedFacility)
     {
         EnsureSpendingProjection();
         yield return PurchaseFeedbackDelay;
+        if (!CanCommitShoppingTransaction(expectedAction, expectedFacility))
+        {
+            yield break;
+        }
         if (!IsInternalStaffUse())
         {
             holdingMoney -= Mathf.Max(0, amount);
@@ -576,8 +583,18 @@ public class AbilityShopping : CharacterAbility
         float multiplier = actor != null && actor.Stats != null ? actor.Stats.GetConsumptionMultiplier() : 1f;
         return Mathf.Max(1, Mathf.RoundToInt(baseCount * multiplier));
     }
-    public IEnumerator BuyItem(RemainStock item, int purchaseCost)
+    public IEnumerator BuyItem(
+        RemainStock item,
+        int purchaseCost,
+        AIAction expectedAction,
+        BuildableObject expectedFacility,
+        BuildingRetailPurchaseCommitResult commitResult)
     {
+        if (commitResult == null)
+        {
+            throw new ArgumentNullException(nameof(commitResult));
+        }
+
         EnsureSpendingProjection();
         IShopStockCatalog catalog = shopStockCatalog
             ?? throw new InvalidOperationException($"{nameof(AbilityShopping)} requires {nameof(IShopStockCatalog)} injection.");
@@ -587,9 +604,32 @@ public class AbilityShopping : CharacterAbility
         }
 
         yield return PurchaseFeedbackDelay;
+        if (!CanCommitShoppingTransaction(expectedAction, expectedFacility))
+        {
+            commitResult.Reject("shopping-action-no-longer-authoritative");
+            yield break;
+        }
+
+        if (item == null || item.stock <= 0)
+        {
+            commitResult.Reject("shop-stock-depleted-before-commit");
+            yield break;
+        }
+
+        int normalizedCost = Mathf.Max(0, purchaseCost);
+        if (!IsInternalStaffUse() && holdingMoney < normalizedCost)
+        {
+            commitResult.Reject("shopping-funds-changed-before-commit");
+            yield break;
+        }
+
+        // Unity coroutines resume on the main thread. Stock, payment and the
+        // commit result are therefore mutated without a yield between them so
+        // a second customer cannot purchase the same final unit.
+        item.stock--;
         if (!IsInternalStaffUse())
         {
-            holdingMoney -= Mathf.Max(0, purchaseCost);
+            holdingMoney -= normalizedCost;
         }
 
         if (!IsInternalStaffUse() && iteminfo != null)
@@ -601,6 +641,21 @@ public class AbilityShopping : CharacterAbility
         {
             events.Onbuy(actor?.BuildingVisitor);
         }
+
+        commitResult.Commit();
+    }
+
+    private bool CanCommitShoppingTransaction(
+        AIAction expectedAction,
+        BuildableObject expectedFacility)
+    {
+        return actor != null
+            && actor.CanRunAi
+            && actor.Brain != null
+            && ReferenceEquals(actor.Brain.bestAction, expectedAction)
+            && !actor.Brain.isBestActionEnd
+            && expectedFacility != null
+            && !expectedFacility.isDestroy;
     }
 
     private void EnsureSpendingProjection()

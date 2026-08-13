@@ -2,6 +2,7 @@ using UnityEngine;
 
 public abstract class AIPrimitiveSurvivalAction : AIActionSet
 {
+    private const float PrimitiveFallbackCriticalNeedFloor = 5f;
     public override bool RequiresDestination => false;
     public override int InterruptPriority => 45;
 
@@ -92,22 +93,23 @@ public abstract class AIPrimitiveSurvivalAction : AIActionSet
 
         if (CharacterNeedAiThresholds.IsEmergency(actor, condition))
         {
-            // Crossing the emergency line does not instantly invalidate an
-            // already reachable authored queue. Keep a five-point safety band
-            // in which a short reservation wait is preferable to an inferior
-            // primitive action. At the hard fallback line the actor bypasses
-            // occupancy so a long queue cannot create a death spiral.
-            if (FacilityCandidateScorer.HasReachableQueueableCandidate(
+            // An occupied facility is not the same as absent infrastructure.
+            // Compare the need that will remain after travel, queue waves, and
+            // the actor's own service time. Primitive fallback is allowed only
+            // when that real wait would cross the critical floor.
+            if (FacilityCandidateScorer.TryGetMinimumQueueableServiceEta(
                     actor,
                     searchResult,
-                    facilityRole)
+                    facilityRole,
+                    out float serviceEta)
                 && actor.Stats != null
                 && actor.Stats.TryGetConditionValue(condition, out float value))
             {
-                float hardFallback = Mathf.Max(
-                    0f,
-                    actor.Stats.GetNeedResponse(condition).emergencyStart - 10f);
-                return value <= hardFallback;
+                float projectedValue = value
+                    - actor.Stats.GetExpectedTimedNeedLoss(
+                        condition,
+                        serviceEta);
+                return projectedValue <= PrimitiveFallbackCriticalNeedFloor;
             }
 
             return true;

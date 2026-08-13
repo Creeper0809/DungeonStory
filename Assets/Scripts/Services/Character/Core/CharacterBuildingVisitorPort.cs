@@ -151,6 +151,37 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
         Brain?.SetActionPhase(phase, destination as BuildableObject, detail);
     }
 
+    void IBuildingVisitorPort.ReportInteractionFailure(
+        BuildingInteractionFailureKind failureKind,
+        string detail,
+        IBuildingWorldEntryPort destination)
+    {
+        AIActionFailureKind aiFailureKind = failureKind switch
+        {
+            BuildingInteractionFailureKind.FacilityDestroyed =>
+                AIActionFailureKind.Destroyed,
+            BuildingInteractionFailureKind.ActorUnavailable =>
+                AIActionFailureKind.CannotStart,
+            BuildingInteractionFailureKind.ActionReplaced =>
+                AIActionFailureKind.CannotStart,
+            BuildingInteractionFailureKind.AdmissionRejected =>
+                AIActionFailureKind.FacilityAdmissionRejected,
+            BuildingInteractionFailureKind.ServiceUnavailable =>
+                AIActionFailureKind.FacilityServiceUnavailable,
+            BuildingInteractionFailureKind.ResourceUnavailable =>
+                AIActionFailureKind.ResourceUnavailable,
+            BuildingInteractionFailureKind.ConsumptionFailed =>
+                AIActionFailureKind.ConsumptionFailed,
+            _ => AIActionFailureKind.Unknown
+        };
+        Brain?.ReportRuntimeActionFailure(
+            AIActionFailure.Create(
+                aiFailureKind,
+                detail,
+                destination as BuildableObject),
+            requestImmediateReplan: true);
+    }
+
     IEnumerator IBuildingVisitorPort.MoveTo(
         Vector3 position,
         float speed,
@@ -335,11 +366,11 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
         string operationId,
         out BuildingMealUseSnapshot result)
     {
-        if (mealRuntime is IMealConsumptionRuntime runtime
-            && runtime.TryGetMealOperationResult(
-                new ConsumableOperationId(operationId),
-                out MealConsumptionResult meal))
+        if (mealRuntime is IMealConsumptionRuntime runtime)
         {
+            bool resolvedSuccessfully = runtime.TryGetMealOperationResult(
+                new ConsumableOperationId(operationId),
+                out MealConsumptionResult meal);
             result = new BuildingMealUseSnapshot(
                 meal.Success,
                 meal.Success ? string.Empty : meal.FailureCode.ToString(),
@@ -348,7 +379,10 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
                 meal.IsAcceptedPending,
                 meal.OperationId.Value,
                 string.Join(",", meal.Parameters));
-            return true;
+            // A false return is a resolved operation failure, not a missing
+            // result. Preserve its typed parameters so the facility, AI
+            // blackboard, and activity trace expose the actual commit cause.
+            return resolvedSuccessfully;
         }
 
         result = new BuildingMealUseSnapshot(
@@ -528,13 +562,38 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
 
         public bool CanPay(int amount) => Shopping?.CanPayAmount(amount) == true;
 
-        public IEnumerator Purchase(object stockToken, int cost) =>
+        public IEnumerator Purchase(
+            object stockToken,
+            int cost,
+            object expectedAction,
+            IBuildingWorldEntryPort expectedFacility,
+            BuildingRetailPurchaseCommitResult commitResult) =>
             stockToken is RemainStock stock && Shopping != null
-                ? Shopping.BuyItem(stock, cost)
-                : EmptyBuildingPortRoutine();
+                ? Shopping.BuyItem(
+                    stock,
+                    cost,
+                    expectedAction as AIAction,
+                    expectedFacility as BuildableObject,
+                    commitResult)
+                : RejectPurchase(commitResult, "shopping-port-unavailable");
 
-        public IEnumerator PayForService(int amount) =>
-            Shopping?.PayForService(amount) ?? EmptyBuildingPortRoutine();
+        private static IEnumerator RejectPurchase(
+            BuildingRetailPurchaseCommitResult commitResult,
+            string failureCode)
+        {
+            commitResult?.Reject(failureCode);
+            yield break;
+        }
+
+        public IEnumerator PayForService(
+            int amount,
+            object expectedAction,
+            IBuildingWorldEntryPort expectedFacility) =>
+            Shopping?.PayForService(
+                amount,
+                expectedAction as AIAction,
+                expectedFacility as BuildableObject)
+            ?? EmptyBuildingPortRoutine();
 
         public void SetVisitOutcome(
             IBuildingWorldEntryPort building,

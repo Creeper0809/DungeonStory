@@ -118,6 +118,10 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 $"{interactionFacilityLabel} 이용 실패: {visitFailure}",
                 reasonCode: visitFailure,
                 bubbleEligible: true));
+            actor?.ReportInteractionFailure(
+                BuildingInteractionFailureKind.AdmissionRejected,
+                $"{interactionFacilityLabel}: {visitFailure}",
+                this);
             yield break;
         }
 
@@ -128,6 +132,13 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 || !actor.IsCurrentAction(currentAction)
                 || actor.IsCurrentActionEnded)
             {
+                AbortInteraction(
+                    actor,
+                    interactionFacilityLabel,
+                    serviceSession: null,
+                    useStarted: false,
+                    BuildingInteractionFailureKind.ActionReplaced,
+                    "action-replaced-while-waiting-for-facility");
                 yield break;
             }
 
@@ -140,6 +151,10 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                     $"{interactionFacilityLabel} 대기 종료: {visitFailure}",
                     actionId: "facility:queue",
                     reasonCode: "queue-not-admitted"));
+                actor.ReportInteractionFailure(
+                    BuildingInteractionFailureKind.AdmissionRejected,
+                    $"{interactionFacilityLabel}: {visitFailure}",
+                    this);
                 yield break;
             }
         }
@@ -168,57 +183,16 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 $"{interactionFacilityLabel} 이용 실패",
                 reasonCode: serviceFailureCode,
                 bubbleEligible: true));
+            actor?.ReportInteractionFailure(
+                BuildingInteractionFailureKind.ServiceUnavailable,
+                $"{interactionFacilityLabel}: {serviceFailureCode}",
+                this);
             yield break;
         }
 
         WaterFixtureUseTicket fixtureUseTicket = default;
         BuildingWaterFixtureAbility waterFixture =
             BuildingData?.GetAbility<BuildingWaterFixtureAbility>();
-        if (waterFixture != null
-            && waterFixture.wastewaterPerUse > 0f
-            && !wastewaterNetworkRuntime.CanAcceptWastewater(
-                this,
-                waterFixture.wastewaterPerUse,
-                out DomainFailure drainFailure))
-        {
-            string drainFailureCode = drainFailure.Code.ToString();
-            if (serviceSession != null)
-            {
-                serviceSessionRuntime.CancelSession(
-                    serviceSession.SessionId,
-                    drainFailureCode);
-            }
-            actor?.RecordActivity(this, new BuildingActivitySnapshot(
-                BuildingActivityKinds.FacilityUse,
-                BuildingActivityOutcomes.Failed,
-                $"{interactionFacilityLabel} 이용 실패: {drainFailureCode}",
-                reasonCode: drainFailureCode,
-                bubbleEligible: true));
-            yield break;
-        }
-        if (waterFixtureUseRuntime != null
-            && waterFixture != null
-            && !waterFixtureUseRuntime.TryBeginUse(
-                this,
-                out fixtureUseTicket,
-                out DomainFailure plumbingFailure))
-        {
-            string plumbingFailureCode = plumbingFailure.Code.ToString();
-            if (serviceSession != null)
-            {
-                serviceSessionRuntime.CancelSession(
-                    serviceSession.SessionId,
-                    plumbingFailureCode);
-            }
-            actor?.RecordActivity(this, new BuildingActivitySnapshot(
-                BuildingActivityKinds.FacilityUse,
-                BuildingActivityOutcomes.Failed,
-                $"{interactionFacilityLabel} 이용 실패: {plumbingFailureCode}",
-                reasonCode: plumbingFailureCode,
-                bubbleEligible: true));
-            yield break;
-        }
-
         if (!TryBeginUse(actor, out string failureReason))
         {
             if (serviceSession != null)
@@ -233,6 +207,10 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 $"{interactionFacilityLabel} 이용 실패: {failureReason}",
                 reasonCode: failureReason,
                 bubbleEligible: true));
+            actor?.ReportInteractionFailure(
+                BuildingInteractionFailureKind.AdmissionRejected,
+                $"{interactionFacilityLabel}: {failureReason}",
+                this);
             yield break;
         }
 
@@ -245,6 +223,10 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                     "이동 능력이 없어 서비스를 시작할 수 없습니다.");
             }
             EndUse(actor);
+            actor?.ReportInteractionFailure(
+                BuildingInteractionFailureKind.ActorUnavailable,
+                $"{interactionFacilityLabel}: actor-cannot-move",
+                this);
             yield break;
         }
 
@@ -253,8 +235,38 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             actor.VisitorSnapshot.Position);
         actor.SetActionPhase("\uC2DC\uC124 \uC811\uADFC", this);
         yield return actor.MoveTo(usePosition, 0.7f, currentAction);
+        if (!TryContinueInteraction(
+                actor,
+                currentAction,
+                out BuildingInteractionFailureKind interactionFailure,
+                out string interactionFailureDetail))
+        {
+            AbortInteraction(
+                actor,
+                interactionFacilityLabel,
+                serviceSession,
+                useStarted: true,
+                interactionFailure,
+                interactionFailureDetail);
+            yield break;
+        }
         actor.SetActionPhase("\uC790\uB9AC \uC7A1\uAE30", this);
         yield return Linger(actor, 0.12f, currentAction);
+        if (!TryContinueInteraction(
+                actor,
+                currentAction,
+                out interactionFailure,
+                out interactionFailureDetail))
+        {
+            AbortInteraction(
+                actor,
+                interactionFacilityLabel,
+                serviceSession,
+                useStarted: true,
+                interactionFailure,
+                interactionFailureDetail);
+            yield break;
+        }
         if (serviceSession != null
             && serviceSession.Contract != null)
         {
@@ -270,6 +282,21 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                     actor,
                     serviceSession.Contract.receptionSeconds,
                     currentAction);
+                if (!TryContinueInteraction(
+                        actor,
+                        currentAction,
+                        out interactionFailure,
+                        out interactionFailureDetail))
+                {
+                    AbortInteraction(
+                        actor,
+                        interactionFacilityLabel,
+                        serviceSession,
+                        useStarted: true,
+                        interactionFailure,
+                        interactionFailureDetail);
+                    yield break;
+                }
             }
             if ((serviceSession.Contract.activeStages
                     & ServiceProcessStageMask.Waiting) != 0)
@@ -283,6 +310,21 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                     actor,
                     serviceSession.Contract.waitingSeconds,
                     currentAction);
+                if (!TryContinueInteraction(
+                        actor,
+                        currentAction,
+                        out interactionFailure,
+                        out interactionFailureDetail))
+                {
+                    AbortInteraction(
+                        actor,
+                        interactionFacilityLabel,
+                        serviceSession,
+                        useStarted: true,
+                        interactionFailure,
+                        interactionFailureDetail);
+                    yield break;
+                }
             }
         }
         if (serviceHub?.serviceCategory == ServiceCategory.Dining
@@ -300,6 +342,21 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                     actor.VisitorSnapshot.Position),
                 0.7f,
                 currentAction);
+            if (!TryContinueInteraction(
+                    actor,
+                    currentAction,
+                    out interactionFailure,
+                    out interactionFailureDetail))
+            {
+                AbortInteraction(
+                    actor,
+                    interactionFacilityLabel,
+                    serviceSession,
+                    useStarted: true,
+                    interactionFailure,
+                    interactionFailureDetail);
+                yield break;
+            }
         }
 
         BuildingRecreationalSubstanceServiceAbility recreation =
@@ -325,6 +382,54 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
         if (duration > 0f && !usesPhysicalMealAction)
         {
             yield return Linger(actor, duration, currentAction);
+            if (!TryContinueInteraction(
+                    actor,
+                    currentAction,
+                    out interactionFailure,
+                    out interactionFailureDetail))
+            {
+                AbortInteraction(
+                    actor,
+                    interactionFacilityLabel,
+                    serviceSession,
+                    useStarted: true,
+                    interactionFailure,
+                    interactionFailureDetail);
+                yield break;
+            }
+        }
+
+        // Water and drain capacity are committed only after every interruptible
+        // movement/wait/service phase has completed. From here to the physical
+        // use result there is no voluntary action yield, so a replaced action or
+        // demolished facility cannot consume water without receiving the effect.
+        if (waterFixture != null
+            && waterFixture.wastewaterPerUse > 0f
+            && !wastewaterNetworkRuntime.CanAcceptWastewater(
+                this,
+                waterFixture.wastewaterPerUse,
+                out DomainFailure drainFailure))
+        {
+            AbortForResourceFailure(
+                actor,
+                interactionFacilityLabel,
+                serviceSession,
+                drainFailure.Code.ToString());
+            yield break;
+        }
+        if (waterFixtureUseRuntime != null
+            && waterFixture != null
+            && !waterFixtureUseRuntime.TryBeginUse(
+                this,
+                out fixtureUseTicket,
+                out DomainFailure plumbingFailure))
+        {
+            AbortForResourceFailure(
+                actor,
+                interactionFacilityLabel,
+                serviceSession,
+                plumbingFailure.Code.ToString());
+            yield break;
         }
 
         BuildingMealUseSnapshot mealResult = default;
@@ -350,6 +455,10 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                     reasonCode: failureCode,
                     bubbleEligible: true));
                 EndUse(actor);
+                actor.ReportInteractionFailure(
+                    BuildingInteractionFailureKind.ConsumptionFailed,
+                    $"{interactionFacilityLabel}: {failureCode}",
+                    this);
                 yield break;
             }
 
@@ -385,6 +494,21 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 while (Time.realtimeSinceStartup < deadline)
                 {
                     yield return null;
+                    if (!TryContinueInteraction(
+                            actor,
+                            currentAction,
+                            out interactionFailure,
+                            out interactionFailureDetail))
+                    {
+                        AbortInteraction(
+                            actor,
+                            interactionFacilityLabel,
+                            serviceSession,
+                            useStarted: true,
+                            interactionFailure,
+                            interactionFailureDetail);
+                        yield break;
+                    }
                     if (!actor.TryGetMealConsumptionResult(
                             mealConsumptionRuntime,
                             mealResult.OperationId,
@@ -436,6 +560,12 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                     reasonCode: failureCode,
                     bubbleEligible: true));
                 EndUse(actor);
+                actor.ReportInteractionFailure(
+                    BuildingInteractionFailureKind.ConsumptionFailed,
+                    string.IsNullOrWhiteSpace(mealResult.FailureDetail)
+                        ? $"{interactionFacilityLabel}: {failureCode}"
+                        : $"{interactionFacilityLabel}: {failureCode}:{mealResult.FailureDetail}",
+                    this);
                 yield break;
             }
         }
@@ -461,6 +591,21 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 actor,
                 serviceSession.Contract.paymentSeconds,
                 currentAction);
+            if (!TryContinueInteraction(
+                    actor,
+                    currentAction,
+                    out interactionFailure,
+                    out interactionFailureDetail))
+            {
+                AbortInteraction(
+                    actor,
+                    interactionFacilityLabel,
+                    serviceSession,
+                    useStarted: true,
+                    interactionFailure,
+                    interactionFailureDetail);
+                yield break;
+            }
         }
         if (serviceSession?.Contract != null
             && (serviceSession.Contract.activeStages
@@ -475,10 +620,40 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 actor,
                 serviceSession.Contract.cleanupSeconds,
                 currentAction);
+            if (!TryContinueInteraction(
+                    actor,
+                    currentAction,
+                    out interactionFailure,
+                    out interactionFailureDetail))
+            {
+                AbortInteraction(
+                    actor,
+                    interactionFacilityLabel,
+                    serviceSession,
+                    useStarted: true,
+                    interactionFailure,
+                    interactionFailureDetail);
+                yield break;
+            }
         }
         else
         {
             yield return Linger(actor, 0.12f, currentAction);
+            if (!TryContinueInteraction(
+                    actor,
+                    currentAction,
+                    out interactionFailure,
+                    out interactionFailureDetail))
+            {
+                AbortInteraction(
+                    actor,
+                    interactionFacilityLabel,
+                    serviceSession,
+                    useStarted: true,
+                    interactionFailure,
+                    interactionFailureDetail);
+                yield break;
+            }
         }
         actor.RecordActivity(this, new BuildingActivitySnapshot(
             BuildingActivityKinds.FacilityUse,
@@ -626,6 +801,135 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
 
             timer += GameDeltaTime;
             yield return null;
+        }
+    }
+
+    private bool TryContinueInteraction(
+        IBuildingVisitorPort actor,
+        object expectedAction,
+        out BuildingInteractionFailureKind failureKind,
+        out string failureDetail)
+    {
+        if (this == null || isDestroy)
+        {
+            failureKind = BuildingInteractionFailureKind.FacilityDestroyed;
+            failureDetail = "facility-destroyed-during-interaction";
+            return false;
+        }
+
+        if (actor == null)
+        {
+            failureKind = BuildingInteractionFailureKind.ActorUnavailable;
+            failureDetail = "actor-missing-during-interaction";
+            return false;
+        }
+
+        try
+        {
+            if (!actor.VisitorSnapshot.IsRuntimeActive)
+            {
+                failureKind = BuildingInteractionFailureKind.ActorUnavailable;
+                failureDetail = "actor-inactive-during-interaction";
+                return false;
+            }
+        }
+        catch (MissingReferenceException)
+        {
+            failureKind = BuildingInteractionFailureKind.ActorUnavailable;
+            failureDetail = "actor-destroyed-during-interaction";
+            return false;
+        }
+
+        if (expectedAction != null
+            && (!actor.IsCurrentAction(expectedAction)
+                || actor.IsCurrentActionEnded))
+        {
+            failureKind = BuildingInteractionFailureKind.ActionReplaced;
+            failureDetail = "action-replaced-during-interaction";
+            return false;
+        }
+
+        failureKind = BuildingInteractionFailureKind.None;
+        failureDetail = string.Empty;
+        return true;
+    }
+
+    private void AbortInteraction(
+        IBuildingVisitorPort actor,
+        string facilityLabel,
+        ServiceSessionSnapshot serviceSession,
+        bool useStarted,
+        BuildingInteractionFailureKind failureKind,
+        string failureDetail)
+    {
+        string detail = string.IsNullOrWhiteSpace(failureDetail)
+            ? failureKind.ToString()
+            : failureDetail;
+        if (serviceSession != null)
+        {
+            serviceSessionRuntime?.CancelSession(serviceSession.SessionId, detail);
+        }
+
+        bool facilityAlive = this != null && !isDestroy;
+        if (actor != null)
+        {
+            if (facilityAlive && useStarted)
+            {
+                EndUse(actor);
+            }
+            else if (facilityAlive)
+            {
+                ReleaseVisitReservation(actor);
+            }
+
+            SetVisitOutcome(
+                actor,
+                facilityAlive ? this : null,
+                BuildingVisitOutcome.Abandoned);
+            actor.RecordActivity(facilityAlive ? this : null, new BuildingActivitySnapshot(
+                BuildingActivityKinds.FacilityUse,
+                BuildingActivityOutcomes.Cancelled,
+                $"{facilityLabel} interaction aborted: {detail}",
+                actionId: "facility:interaction",
+                reasonCode: detail));
+        }
+
+        if (failureKind != BuildingInteractionFailureKind.ActionReplaced)
+        {
+            actor?.ReportInteractionFailure(
+                failureKind,
+                $"{facilityLabel}: {detail}",
+                facilityAlive ? this : null);
+        }
+    }
+
+    private void AbortForResourceFailure(
+        IBuildingVisitorPort actor,
+        string facilityLabel,
+        ServiceSessionSnapshot serviceSession,
+        string failureCode)
+    {
+        string code = string.IsNullOrWhiteSpace(failureCode)
+            ? "facility-resource-unavailable"
+            : failureCode;
+        if (serviceSession != null)
+        {
+            serviceSessionRuntime?.CancelSession(serviceSession.SessionId, code);
+        }
+        if (actor != null)
+        {
+            EndUse(actor);
+            SetVisitOutcome(actor, this, BuildingVisitOutcome.Failed);
+            actor.RecordActivity(this, new BuildingActivitySnapshot(
+                BuildingActivityKinds.FacilityUse,
+                BuildingActivityOutcomes.Failed,
+                $"{facilityLabel} use failed: {code}",
+                reasonCode: code,
+                bubbleEligible: true));
+            actor.ReportInteractionFailure(
+                BuildingInteractionFailureKind.ResourceUnavailable,
+                $"{facilityLabel}: {code}",
+                this);
         }
     }
 

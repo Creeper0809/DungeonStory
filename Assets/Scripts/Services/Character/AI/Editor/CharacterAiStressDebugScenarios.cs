@@ -678,7 +678,6 @@ public static class CharacterAiStressDebugScenarios
     private sealed class PlayModeProfileSession
     {
         private const int GcBaselineFrameCount = 30;
-        private const int MaximumPumpedFramesPerCall = 240;
         private static PlayModeProfileSession current;
 
         private readonly int npcCount;
@@ -715,10 +714,12 @@ public static class CharacterAiStressDebugScenarios
         private int totalBrokerPathCacheHits;
         private int totalBrokerPathBudgetDeferrals;
         private int maxDecisions;
+        private int maxFairnessDecisionFloor;
         private int maxPathSearches;
         private int maxBrokerPathSearches;
         private int maxBrokerPathCacheHits;
         private int maxBrokerPathBudgetDeferrals;
+        private int budgetExhaustedFrames;
         private int framesOver16Ms;
         private int framesOver33Ms;
         private int mainThreadSamples;
@@ -779,8 +780,23 @@ public static class CharacterAiStressDebugScenarios
         {
             if (SessionState.GetBool(PlayModeProfileRequestedKey, false))
             {
-                UnityEngine.Debug.LogWarning("500 NPC Play Mode profile is already running.");
-                return;
+                if (EditorApplication.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode)
+                {
+                    UnityEngine.Debug.LogWarning("500 NPC Play Mode profile is already running.");
+                    return;
+                }
+
+                // Entering Play Mode can be rejected by Unity after the
+                // request bit is set (for example, when a project compile
+                // error is discovered). A later retry must not be blocked by
+                // that orphaned SessionState flag.
+                SessionState.SetBool(PlayModeProfileRequestedKey, false);
+                SessionState.SetString(
+                    PlayModeProfileReportKey,
+                    "aborted=True, reason=stale-profile-request-recovered");
+                current = null;
+                UnityEngine.Debug.LogWarning(
+                    "Recovered a stale 500 NPC Play Mode profile request left before Play Mode entry.");
             }
 
             SessionState.SetBool(PlayModeProfileRequestedKey, true);
@@ -869,29 +885,13 @@ public static class CharacterAiStressDebugScenarios
 
             PlayModeProfileSession session = EnsureCurrent();
             session.BeginIfNeeded();
-            bool wasPaused = EditorApplication.isPaused;
-            EditorApplication.isPaused = true;
-
-            // Yield back to Unity regularly so TempJob allocations and editor
-            // subsystems observe real frame boundaries during MCP-driven runs.
-            int framesToPump = Mathf.Clamp(
-                maxFrames,
-                1,
-                MaximumPumpedFramesPerCall);
-            for (int i = 0;
-                i < framesToPump
-                && SessionState.GetBool(PlayModeProfileRequestedKey, false)
-                && EditorApplication.isPlaying;
-                i++)
-            {
-                EditorApplication.Step();
-                session.SampleCurrentFrame();
-            }
-
-            if (EditorApplication.isPlaying)
-            {
-                EditorApplication.isPaused = wasPaused;
-            }
+            // Unity_RunCommand already executes inside the editor player loop.
+            // Calling EditorApplication.Step repeatedly from here recursively
+            // re-enters PlayerLoop and can leak TempJob allocations. Resume the
+            // ordinary loop and request one future update instead; the profile
+            // session samples through OnEditorUpdate across real frames.
+            EditorApplication.isPaused = false;
+            EditorApplication.QueuePlayerLoopUpdate();
         }
 
         private void BeginIfNeeded()
@@ -989,6 +989,9 @@ public static class CharacterAiStressDebugScenarios
                     totalBrokerPathCacheHits += warmupScheduler.LastBrokerPathCacheHitCount;
                     totalBrokerPathBudgetDeferrals += warmupScheduler.LastBrokerPathBudgetDeferralCount;
                     maxDecisions = Mathf.Max(maxDecisions, warmupScheduler.LastProcessedDecisionCount);
+                    maxFairnessDecisionFloor = Mathf.Max(
+                        maxFairnessDecisionFloor,
+                        warmupScheduler.LastFairnessDecisionFloor);
                     maxPathSearches = Mathf.Max(maxPathSearches, warmupScheduler.LastPathSearchCount);
                     maxBrokerPathSearches = Mathf.Max(maxBrokerPathSearches, warmupScheduler.LastBrokerPathSearchCount);
                     maxBrokerPathCacheHits = Mathf.Max(maxBrokerPathCacheHits, warmupScheduler.LastBrokerPathCacheHitCount);
@@ -1122,10 +1125,17 @@ public static class CharacterAiStressDebugScenarios
                 totalBrokerPathCacheHits += scheduler.LastBrokerPathCacheHitCount;
                 totalBrokerPathBudgetDeferrals += scheduler.LastBrokerPathBudgetDeferralCount;
                 maxDecisions = Mathf.Max(maxDecisions, scheduler.LastProcessedDecisionCount);
+                maxFairnessDecisionFloor = Mathf.Max(
+                    maxFairnessDecisionFloor,
+                    scheduler.LastFairnessDecisionFloor);
                 maxPathSearches = Mathf.Max(maxPathSearches, scheduler.LastPathSearchCount);
                 maxBrokerPathSearches = Mathf.Max(maxBrokerPathSearches, scheduler.LastBrokerPathSearchCount);
                 maxBrokerPathCacheHits = Mathf.Max(maxBrokerPathCacheHits, scheduler.LastBrokerPathCacheHitCount);
                 maxBrokerPathBudgetDeferrals = Mathf.Max(maxBrokerPathBudgetDeferrals, scheduler.LastBrokerPathBudgetDeferralCount);
+                if (scheduler.LastBudgetExhausted)
+                {
+                    budgetExhaustedFrames++;
+                }
             }
 
             if (samples >= sampleFrames)
@@ -1155,6 +1165,16 @@ public static class CharacterAiStressDebugScenarios
                 character != null
                 && character.BehaviorTree != null
                 && character.BehaviorTree.DungeonStoryTickCount > 0);
+            int minimumTreeTicks = world.Characters
+                .Where(character => character?.BehaviorTree != null)
+                .Select(character => character.BehaviorTree.DungeonStoryTickCount)
+                .DefaultIfEmpty(0)
+                .Min();
+            int maximumTreeTicks = world.Characters
+                .Where(character => character?.BehaviorTree != null)
+                .Select(character => character.BehaviorTree.DungeonStoryTickCount)
+                .DefaultIfEmpty(0)
+                .Max();
 
             double avgDeltaMs = samples > 0 ? totalDeltaMs / samples : 0.0;
             double avgSchedulerMs = samples > 0 ? totalSchedulerMs / samples : 0.0;
@@ -1171,16 +1191,38 @@ public static class CharacterAiStressDebugScenarios
             double monoDeltaMb = (endMonoUsedBytes - startMonoUsedBytes) / 1024.0 / 1024.0;
             double p95FrameMs = Percentile(frameTimesMs, 0.95);
             double p95SchedulerMs = Percentile(schedulerTimesMs, 0.95);
-            bool behaviorValid = scheduler != null
-                && scheduler.RegisteredCharacterCount == npcCount
-                && touchedCharacters > 0
-                && tickedTrees == npcCount
-                && withActions == npcCount
-                && maxDecisions <= DecisionBudget
-                && maxPathSearches <= PathBudget
-                && maxBrokerPathSearches <= PathBudget
-                && totalDecisions > 0
-                && totalPathSearches + totalBrokerPathSearches > 0;
+            List<string> behaviorViolations = new List<string>();
+            if (scheduler == null)
+                behaviorViolations.Add("scheduler-missing");
+            if (scheduler != null && scheduler.RegisteredCharacterCount != npcCount)
+                behaviorViolations.Add($"registered:{scheduler.RegisteredCharacterCount}!={npcCount}");
+            if (touchedCharacters <= 0)
+                behaviorViolations.Add("no-character-progress");
+            if (tickedTrees != npcCount)
+                behaviorViolations.Add($"ticked-trees:{tickedTrees}!={npcCount}");
+            if (withActions != npcCount)
+                behaviorViolations.Add($"with-actions:{withActions}!={npcCount}");
+            if (maxDecisions > DecisionBudget)
+                behaviorViolations.Add($"decision-budget:{maxDecisions}>{DecisionBudget}");
+            if (maxPathSearches > PathBudget)
+                behaviorViolations.Add($"path-budget:{maxPathSearches}>{PathBudget}");
+            if (maxBrokerPathSearches > PathBudget)
+                behaviorViolations.Add($"broker-path-budget:{maxBrokerPathSearches}>{PathBudget}");
+            if (totalDecisions <= 0)
+                behaviorViolations.Add("no-decisions");
+            if (totalPathSearches + totalBrokerPathSearches <= 0)
+                behaviorViolations.Add("no-path-searches");
+            if (scheduler != null && scheduler.CumulativeStarvedDecisionCount > 0)
+                behaviorViolations.Add(
+                    $"starved-decisions:{scheduler.CumulativeStarvedDecisionCount}");
+            if (scheduler != null
+                && scheduler.MaximumObservedDecisionDeferralSeconds > 2f)
+            {
+                behaviorViolations.Add(
+                    $"decision-deferral:{scheduler.MaximumObservedDecisionDeferralSeconds:0.###}>2");
+            }
+            bool behaviorValid = behaviorViolations.Count == 0;
+            string behaviorFailure = string.Join(",", behaviorViolations);
             // In an Editor Play Mode profile the frame-wide recorder also
             // includes editor tooling, profiler recorder plumbing and test
             // harness work. Prefer the scheduler's same-thread allocation
@@ -1206,9 +1248,11 @@ public static class CharacterAiStressDebugScenarios
 
             string report =
                 $"valid={valid}, behaviorValid={behaviorValid}, performanceValid={performanceValid}, "
+                + $"behaviorFailure={behaviorFailure}, "
                 + $"grid={world.Grid.width}x{world.Grid.height}, "
                 + $"npc={npcCount}, registered={(scheduler != null ? scheduler.RegisteredCharacterCount : 0)}, " +
                 $"active={touchedCharacters}, pending={pendingCharacters}, withActions={withActions}, tickedTrees={tickedTrees}, " +
+                $"treeTicksMinMax={minimumTreeTicks}/{maximumTreeTicks}, " +
                 $"warmupFrames={warmupSamples}, warmupWallMs={warmupStopwatch.Elapsed.TotalMilliseconds:0.0}, warmupCleanupMs={warmupCleanupMs:0.0}, " +
                 $"samples={samples}, sampleWallMs={sampleStopwatch.Elapsed.TotalMilliseconds:0.0}, "
                 + $"creationFrames={creationFrames}, creationMs={creationMs:0.0}, maxCreationFrameMs={maxCreationFrameMs:0.0}, " +
@@ -1217,7 +1261,12 @@ public static class CharacterAiStressDebugScenarios
                 $"avgMainThreadMs={avgMainThreadMs:0.00}, maxMainThreadMs={maxMainThreadMs:0.00}, mainThreadSamples={mainThreadSamples}, " +
                 $"avgSchedulerMs={avgSchedulerMs:0.000}, p95SchedulerMs={p95SchedulerMs:0.000}, maxSchedulerMs={maxSchedulerMs:0.000}, " +
                 $"totalDecisions={totalDecisions}, maxDecisions/frame={maxDecisions}, " +
-                $"totalPathSearches={totalPathSearches}, maxPathSearches/frame={maxPathSearches}, " +
+                $"maxFairnessFloor={maxFairnessDecisionFloor}, " +
+                $"budgetExhaustedFrames={budgetExhaustedFrames}, "
+                + $"starvedDecisions={scheduler?.CumulativeStarvedDecisionCount ?? 0}, "
+                + $"oldestDeferral={(scheduler?.LastOldestDecisionDeferralSeconds ?? 0f):0.###}s, "
+                + $"maxDeferral={(scheduler?.MaximumObservedDecisionDeferralSeconds ?? 0f):0.###}s, "
+                + $"totalPathSearches={totalPathSearches}, maxPathSearches/frame={maxPathSearches}, " +
                 $"brokerPathSearches={totalBrokerPathSearches}, brokerCacheHits={totalBrokerPathCacheHits}, " +
                 $"brokerBudgetDeferrals={totalBrokerPathBudgetDeferrals}, maxBrokerPathSearches/frame={maxBrokerPathSearches}, " +
                 $"maxBrokerCacheHits/frame={maxBrokerPathCacheHits}, maxBrokerBudgetDeferrals/frame={maxBrokerPathBudgetDeferrals}, " +
@@ -1237,7 +1286,10 @@ public static class CharacterAiStressDebugScenarios
                 pendingCharacters,
                 withActions,
                 tickedTrees,
+                minimumTreeTicks,
+                maximumTreeTicks,
                 behaviorValid,
+                behaviorFailure,
                 performanceValid,
                 avgDeltaMs,
                 p95FrameMs,
@@ -1383,7 +1435,10 @@ public static class CharacterAiStressDebugScenarios
             int pendingCharacters,
             int withActions,
             int tickedTrees,
+            int minimumTreeTicks,
+            int maximumTreeTicks,
             bool behaviorValid,
+            string behaviorFailure,
             bool performanceValid,
             double avgFrameMs,
             double p95FrameMs,
@@ -1403,6 +1458,7 @@ public static class CharacterAiStressDebugScenarios
                 "{\n" +
                 $"  \"valid\": {valid.ToString().ToLowerInvariant()},\n" +
                 $"  \"behaviorValid\": {behaviorValid.ToString().ToLowerInvariant()},\n" +
+                $"  \"behaviorFailure\": \"{EscapeJson(behaviorFailure)}\",\n" +
                 $"  \"performanceValid\": {performanceValid.ToString().ToLowerInvariant()},\n" +
                 $"  \"npc\": {npcCount},\n" +
                 $"  \"gridWidth\": {world.Grid.width},\n" +
@@ -1419,6 +1475,8 @@ public static class CharacterAiStressDebugScenarios
                 $"  \"pending\": {pendingCharacters},\n" +
                 $"  \"withActions\": {withActions},\n" +
                 $"  \"tickedTrees\": {tickedTrees},\n" +
+                $"  \"minimumTreeTicks\": {minimumTreeTicks},\n" +
+                $"  \"maximumTreeTicks\": {maximumTreeTicks},\n" +
                 $"  \"samples\": {samples},\n" +
                 $"  \"warmupFrames\": {warmupSamples},\n" +
                 $"  \"warmupWallMs\": {warmupStopwatch.Elapsed.TotalMilliseconds:0.###},\n" +
@@ -1434,6 +1492,11 @@ public static class CharacterAiStressDebugScenarios
                 $"  \"maxSchedulerMs\": {maxSchedulerMs:0.###},\n" +
                 $"  \"totalDecisions\": {totalDecisions},\n" +
                 $"  \"maxDecisionsPerFrame\": {maxDecisions},\n" +
+                $"  \"maxFairnessDecisionFloor\": {maxFairnessDecisionFloor},\n" +
+                $"  \"budgetExhaustedFrames\": {budgetExhaustedFrames},\n" +
+                $"  \"starvedDecisions\": {world.Scheduler?.CumulativeStarvedDecisionCount ?? 0},\n" +
+                $"  \"oldestDecisionDeferralSeconds\": {(world.Scheduler?.LastOldestDecisionDeferralSeconds ?? 0f):0.###},\n" +
+                $"  \"maximumDecisionDeferralSeconds\": {(world.Scheduler?.MaximumObservedDecisionDeferralSeconds ?? 0f):0.###},\n" +
                 $"  \"totalPathSearches\": {totalPathSearches},\n" +
                 $"  \"maxPathSearchesPerFrame\": {maxPathSearches},\n" +
                 $"  \"brokerPathSearches\": {totalBrokerPathSearches},\n" +

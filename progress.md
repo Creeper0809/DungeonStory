@@ -1,5 +1,38 @@
 # DungeonStory Progress
 
+## 2026-08-13 queue-aware AI rerun passed
+
+- Added queue/service ETA projection to primitive survival selection using the live timed-need decay authority, active users, reservations, capacity, facility duration and travel estimate.
+- Updated occupied-toilet regressions so a short queue waits at ordinary emergency pressure while a genuinely critical projected need still permits primitive relief.
+- Repaired the priority-corner test room policy to return a complete operational profile and changed execution/replan assertions to scenario deltas; the full priority suite passes.
+- Re-ran the customer/meal/facility/shop suite; it passes.
+- Re-ran the real 900-game-second, three-founder observation through Unity MCP. Result is PASS: `62.485 actual WU/actor-day`, zero primitive fallback, zero execution failure, zero harmful stall and exact physical food/water accounting.
+- Removed a stale uninitialized `qa-destroy-ref` scene object through Unity MCP. Remaining gate is a clean PlayMode startup/Console check, followed by save-round-trip and broader multi-seed evidence before declaring WU balance complete.
+
+## 2026-08-13 five-day AI queue/fallback continuation
+
+- Fixed two editor-test compilation errors that had prevented the requested five-day run from entering PlayMode: the priority test now invokes the internal diagnostic hook through a bounded reflection helper, and the delayed shop transaction fixture no longer directly accesses an internal shop property across assembly boundaries.
+- Ran the real five-day daily-routine verifier through Unity MCP. Result: `52.524 actual WU/actor-day`, `48.190 output-equivalent WU/actor-day`, 16 physical meals, 18 physical drinks, zero harmful stalls, and one typed meal consumption failure. The report failed only because one primitive latrine action bypassed a temporarily occupied but reachable toilet.
+- Added queue-aware primitive fallback projection. It estimates travel plus capacity/reservation service waves, applies the authored facility duration and actor stay multiplier, and subtracts the authoritative timed need decay before deciding whether the critical fallback floor will be crossed.
+- Extended `CharacterStats` with a read-only expected timed need-loss query backed by `CharacterNeedStateService`; no second depletion formula or saved authority was introduced.
+- Updated the occupied-toilet regression so need 15 waits for the short authored queue while need 1 still permits emergency primitive fallback. The full customer AI focused suite passes through Unity MCP after the change.
+- The immediately following broad priority suite remains red due order-dependent test-world admission/selection setup and is the next isolation target before rerunning the five-day sample.
+
+## 2026-08-13 AI runtime failure preservation and facility coroutine guards
+
+- `CharacterAiDecisionPipeline` and `CharacterActor` now preserve the exact execution failure kind/reason instead of collapsing every failed execution into a generic message.
+- `AIBrain.ReportRuntimeActionFailure` records failures in runtime diagnostics, the blackboard, and character activity history before requesting a replan.
+- `Facility.Interact` now revalidates the actor, expected action token, and facility lifetime after every coroutine yield and during pending meal consumption.
+- A destroyed facility or unavailable actor now aborts the interaction without applying recovery/completion side effects; an intentional action replacement only cleans up the old interaction and does not cancel the replacement.
+- Tight repeated failures are now tracked across action restarts within a bounded time window. Starting the same action no longer erases the evidence needed to detect a retry loop.
+- Unity MCP refresh/compile passed and Console remained Error 0 / Warning 0 after these changes.
+- Added live-object coroutine regressions that begin an actual facility visit, then destroy the facility or replace the action at the first yielded movement frame. Both pass through Unity MCP: no recovery side effect, no stale completion, occupancy is cleared for replacement, the replacement action survives, and destruction records one typed `Destroyed` execution failure and replan.
+- Corrected destroyed-facility abort cleanup so `AbilityShopping.LastVisitOutcome` cannot remain `InProgress` after its target Unity object disappears.
+- Added typed runtime failure kinds for facility admission, service availability, required resources and physical consumption; facility rejection paths now feed the same bounded AI diagnostics used by five-day reports instead of only writing a narrative activity fact.
+- Moved clean-water/drain acquisition from facility entry to the final physical commit boundary after movement, seat settling and service waits. An interrupted use no longer spends water before any need recovery can occur.
+- Hardened shop browsing, checkout, meal service and transaction commits with action-token/facility revalidation after every yield. Purchase/payment now revalidate their owning action after feedback delay before touching money, inventory or on-buy effects.
+- Added a focused replaced-transaction regression: after the purchase delay begins, replacing the AI action leaves money unchanged and preserves the replacement action. Customer AI, facility and priority suites pass with Console 0/0.
+
 ## 2026-08-13 AI collision, 500-NPC performance and five-day live WU
 
 - The prior roughly 20 WU/adult-day observation was not a valid balance baseline. Meal-buffer path-budget coupling, competing routine intent paths and invalid fixture floor topology suppressed ordinary work. The corrected same-floor five-day verifier now passes with zero harmful stalls and zero committed execution failures.
@@ -4300,3 +4333,31 @@
 - Bounded the terminal meal-operation diagnostic memory to 64 distinct operation IDs. Unity MCP compilation, all survival groups, customer AI and priority-corner regressions remain green with Console Warning/Error `0/0`.
 - Recoverable Unity MCP diagnostic-command error: a dynamic command attempted `FindObjectsByType<CharacterActor>` but its wrapper did not reference Sirenix.Serialization, causing command-only CS0311/CS0012. No project compilation or source was affected. The next diagnostic resolves `CharacterActor` through the already-registered world service instead of directly using the Sirenix-derived type in the dynamic command.
 - Diagnostic-command attempt 2 also failed at the dynamic wrapper boundary because it does not reference VContainer. Again, no project assembly/source changed. Rather than repeating an incompatible reflection command, fixture setup itself will emit per-floor candidate counts into its deterministic failure report.
+## 2026-08-13 AI 오류 전수 점검 재개
+
+- Git 기준선 `fd5ac0bb`에서 작업을 재개했다. 워크트리는 시작 시 clean이며 Unity MCP 연결이 정상임을 확인했다.
+- 이전 강제 프레임 전진 도구가 남긴 `JobTempAlloc` 경고 3건을 과거 도구 인공 산출물로 분리했다. 콘솔을 비운 뒤 이후 검증은 자연 PlayMode 진행을 사용한다.
+- Unity MCP로 Customer AI, priority corner, naturalness, staff duty, work priority, direct command, owner, discontent, rebellion response, facility, modular facility, survival의 12개 핵심 묶음을 실행했다. 모든 반환형 묶음은 PASS, void 묶음은 예외 없이 완료했으며 Console Warning/Error는 0/0이다.
+- 코드 감사에서 `CharacterAiRuntimeDiagnosticsSnapshot`은 실패 종류별 계수는 보존하지만 `CharacterAiDecisionPipeline.RunSelectedAction`이 실행 실패 상세를 `Selected action could not execute.`로 축약하는 진단 손실 경로를 확인했다. 장기 반복 실패의 캐릭터/행동/목적지/단계/경로/예약 원인을 보존하도록 다음 수정 대상으로 확정했다.
+# 2026-08-13 AI concurrency and fairness continuation
+
+- Added an atomic retail purchase commit result across `IBuildingShoppingVisitorPort`, the character adapter, `AbilityShopping`, and `ShopCustomerInteractionService`.
+- Purchase commit now revalidates action authority, facility lifetime, stock, and funds after the feedback delay; stock/payment/carry/on-buy mutation has no intervening yield. Exact failures propagate to customer activity diagnostics.
+- Added a two-customer/one-unit regression. It proves exactly one commit, stock `1 -> 0`, total spend `25`, and loser failure `shop-stock-depleted-before-commit`. Replaced-action regression now also proves typed rejection. The compiled full customer AI suite passes through Unity MCP.
+- Fixed project compile verification after catching and repairing a missing `System` import that a dynamic command initially masked. Fresh project Console returned Warning/Error `0/0`.
+- Recovered stale 500-NPC profile requests left by failed PlayMode entry and made the recovery reason explicit.
+- Strengthened the 500-NPC report with behavior failure codes, budget-exhausted frames, starvation/deferral data, min/max tree ticks, and fairness floor evidence.
+- Restored the authored 16-decision hard ceiling and added a bounded live-backlog service floor. Fairness retest improved starvation `266 -> 0` and max deferral `4.357s -> 1.083s`.
+- Removed recursive bulk `EditorApplication.Step()` from the MCP profiler path. The clean normal-loop run has scheduler p95 `2.498ms` and scheduler-owned GC `0 B/frame`; whole Editor frame p95 `19.07ms` remains an open performance failure.
+- Goal remains active: save/restore competition, multi-run five-day routine stability, whole-frame attribution, final diagnostic/UI and Console gates are not complete.
+# 2026-08-13 AI multi-seed continuation
+
+- Diagnosed seed 157181 5-day causal mismatch rather than widening verifier tolerance.
+- Fixed sub-milli accounting loss across routine need interruptions.
+- Replaced long-run float work-order accumulation with precise runtime accumulation compatible with existing saves.
+- Reproduced and fixed destroyed work-target coroutine finalization race.
+- Re-ran work amount regression: PASS.
+- Re-ran seed 157181 for five game days: PASS, physical/central delta 0.002 WU, no MissingReferenceException.
+- Restored exact asynchronous meal failure detail propagation through the character building visitor adapter.
+- Re-ran Survival + AI priority + naturalness + customer contention suites: PASS.
+- Next: additional 5-day seeds, then 500-NPC fairness/performance and final save/console matrix.

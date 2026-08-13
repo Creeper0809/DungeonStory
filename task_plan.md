@@ -3,6 +3,13 @@
 ## Phase 157B - AI no-progress and decision-conflict hardening (in progress)
 
 - [x] Add bounded action lifecycle, replan and committed failure counters.
+- [x] Preserve exact execution failure kind/reason through the decision pipeline, blackboard, activity history and bounded counters.
+- [x] Guard facility coroutines against destroyed targets and replaced actions after every yield.
+- [x] Keep tight repeated failures visible across action restarts with a bounded diagnostic window.
+- [x] Prove in-flight facility destruction and action replacement with real actor/facility coroutine regressions, including visit state, occupancy, recovery and replacement preservation.
+- [x] Move facility resource consumption to the final commit boundary and route committed facility failures into typed AI diagnostics.
+- [x] Apply post-yield action/facility validation and commit-token ownership to shop browsing, checkout, purchases and meal service.
+- [x] Prove delayed purchase cannot commit money/on-buy effects after its owning AI action is replaced.
 - [x] Add five-day branch dwell and harmful no-progress evidence.
 - [x] Add bounded hierarchical job-giver rejection counters by branch and failure kind.
 - [x] Include selected utility, route, mood/macro bias and typed rejection evidence in stall reports.
@@ -11,9 +18,13 @@
 - [x] Pass focused survival priority, destination failure, path deferral, work interruption, naturalness and emergency-thirst routing regressions.
 - [ ] Pass save round-trip and Console Warning/Error gates; update the long-run evidence report.
 
-Current unit: rerun the isolated five-day observation after adding Drink to emergency selection, removing emergency Wait as a successful terminal fallback, and retaining per-need JobGiver rejection evidence. Any remaining stall must identify the rejected need branch rather than only the last unrelated Work rejection.
+Current unit: the queue-aware five-day rerun passes at `62.485 WU/actor-day`, with primitive fallback, meal execution failures and harmful stalls all zero. Recheck a clean PlayMode startup after deleting the stale scene object, then complete save-round-trip and multi-seed evidence before replacing the provisional baseline.
 
 2026-08-13 current unit update: local meal-buffer availability no longer depends on a transient exact-path budget. Three corrected same-floor samples now produce 54.721-62.944 actual WU/adult-day with zero harmful stalls; the latest passes all cadence and physical-consumption gates. FIFO refresh/cancellation, meal spoil-abort diagnostics and 500-NPC performance pass focused audits. Finish facility-destruction/save-round-trip proof, then run multi-seed and technology-stage WU matrices before replacing the provisional baseline.
+
+2026-08-13 queue projection update: a new five-day run produced `52.524 WU/adult-day` and zero harmful stalls but caught one real priority conflict: a same-cell toilet occupied for one short service caused emergency primitive latrine fallback. Replace the fixed emergency-minus-ten cutoff with projected need after travel/queue/service ETA, isolate the order-dependent priority-corner fixture failure, then rerun the same five-day gate. Retain the one typed meal `ConsumptionFailed` as a separate contention signal until its operation detail is captured or eliminated.
+
+2026-08-13 queue projection result: the same five-day gate now passes at `62.485 WU/adult-day`; the false primitive fallback and the meal `ConsumptionFailed` are both zero. Priority-corner and customer suites pass. A stale uninitialized editor fixture was removed from the scene; clean startup, save round-trip and multi-seed evidence remain.
 
 ## Phase 157 - Single worker-intent authority and live WU recovery (in progress)
 
@@ -2668,6 +2679,14 @@ Phase 156 current evidence:
 
 #### Phase 157 technology-stage WU, project caps, emergency labor, alert hysteresis and population flow (in progress)
 
+Phase 157 AI reliability continuation (2026-08-13):
+- [x] Re-establish a clean Git/Unity MCP baseline and run the 12 focused AI/facility/survival scenario groups with Console 0/0.
+- [ ] Preserve exact execution failure authority through decision result, blackboard, bounded diagnostics and long-run report instead of collapsing it to a generic message.
+- [ ] Add destructive/stale cross-scenarios for facility destruction, route invalidation, quantity lease loss, spoilage, queue cancellation and actor lifecycle change while an action is running.
+- [ ] Run natural-time multi-seed five-day routines and the 500-NPC scheduler profile without bulk `EditorApplication.Step()` artifacts.
+- [ ] Prove save/restore continuation and final Console Warning/Error 0/0 before declaring the AI reliability boundary complete.
+  - 2026-08-13 concurrency/fairness checkpoint: retail stock commits are now atomic after delay and the two-buyer/one-unit regression passes. The scheduler's authored 16-decision ceiling is preserved while a bounded live-backlog floor prevents starvation; the clean 500-NPC run reports starvation `0`, max deferral `1.083s`, scheduler p95 `2.498ms`, and scheduler-owned GC `0 B/frame`. Whole Editor frame p95 is still `19.07ms`, so performance and the wider reliability boundary remain open.
+
 - [x] Define the authoritative 180-second day, 99-WU neutral baseline, actual/output-equivalent/realized-growth/guaranteed-growth channels and technology ROI contracts without double-counting time and throughput. All live character work loops now feed approved work through one accounting gate, and automatic production records only the bill progress physically accepted by the production authority. Physical loss producers remain open.
 - [x] Add project worker caps and the approved deterministic contribution curves for facilities, landmarks and 1/2/4-person research; expose marginal completion-time evidence. Research and grand-project execution are connected. Ordinary facilities author Small/Medium/Industrial 2/3/4 caps, parallel reservations, automatic slot filling, diminished project contribution with raw-labor accounting and marginal UI. The focused Unity MCP PlayMode vertical consumed two units from a physical lumber stack (4 -> 2), delivered the exact construction BOM, joined three live founders to an Industrial project, and accepted exactly 2.60 WU from the 1.00/0.85/0.75 curve with maximum/automatic cap 4; `Artifacts/QA/construction-project-playmode-report.txt` passes with captured Warning/Error 0/0.
 - [x] Assign one validated `EmergencyWorkFlags` contract to all 31 work types. Stricter facility/recipe/stage reclassification is exposed by the runtime API and remains to be authored at individual stage consumers.
@@ -2743,3 +2762,12 @@ Phase 157 current errors:
 - Movement, facility use, item leases, and work suspension carry the committed epoch. Completion from an older epoch is ignored and cleans up only its own reservations.
 - Routine service stores one suspended work intent and resumes it only after the same committed routine intent succeeds. Failure re-enters arbitration; it does not silently choose another service.
 - Balance status remains `밸런스 기준 배정` until the five-day live trace is sustainable.
+# Current AI stabilization continuation (2026-08-13)
+
+- [x] Diagnose seed 157181 five-day failure without relaxing causal tolerance.
+- [x] Fix labor/project precision drift across interrupted work operations.
+- [x] Fix work-target destruction during coroutine finalization.
+- [x] Preserve typed meal-commit failure details through visitor adapter.
+- [ ] Run additional five-day seeds and correct any scenario-specific failure.
+- [ ] Re-run 500-NPC fairness/frame/GC evidence.
+- [ ] Run save/restore, console, and integrated AI regression matrix.

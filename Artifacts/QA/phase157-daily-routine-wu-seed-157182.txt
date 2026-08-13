@@ -1,0 +1,183 @@
+﻿# Phase 157 daily-routine live WU trace
+scene=Assets/Scenes/GameplayScene.unity
+observedGameSeconds=900
+observedDays=5
+runSeed=157182
+actors=3
+activeActorsAtEnd=3
+quarantinedNonFixtureActors=0
+capturedIssues=0
+
+## Central labor channels observed during the window
+actualLaborWU=852.295
+outputEquivalentWU=788.685
+laborDayRollovers=5
+convertedProcessWU=0.083
+domainAutomationWU=0
+lossWU=63.693
+essentialMaintenanceWU=0
+equipmentFacilityMaintenanceWU=0
+
+## Physical consumable authority
+food item=food:preserved-ration; start=144; end=129; stockDepletion=15; consumedEvents=15
+water item=resource:clean-water; start=44; end=28; stockDepletion=16; consumedEvents=16
+mealsPerActorDay=1; expectedMealsPerActorDay=1.2; drinksPerActorDay=1.067
+actualLaborWuPerActorDay=56.82; outputEquivalentWuPerActorDay=52.579
+activeMealPlans=0; completedMealOperations=15
+safeDrink requests=19; planFailures=0; started=19; running=0; arrivals=19; interactions=19; successes=18; finished=19; moveFailures=0; missingPath=0; cancelled=0; maxPath=13; maxDuration=20.836
+event=water actor=character:staff:157182:01; source=stack:7d7daf7f51cb46b0a8d99b45921bf392; amount=1; quality=Clean
+event=water actor=owner; source=stack:7d7daf7f51cb46b0a8d99b45921bf392; amount=1; quality=Clean
+event=water actor=character:staff:157182:02; source=stack:7d7daf7f51cb46b0a8d99b45921bf392; amount=1; quality=Clean
+event=meal actor=Leon; operation=consumable-operation:auto:v1:0000000000000001; item=food:preserved-ration; nutrition=36
+event=meal actor=Roma; operation=consumable-operation:auto:v1:0000000000000002; item=food:preserved-ration; nutrition=36
+event=meal actor=Arin; operation=consumable-operation:auto:v1:0000000000000003; item=food:preserved-ration; nutrition=36
+event=water actor=character:staff:157182:01; source=stack:7d7daf7f51cb46b0a8d99b45921bf392; amount=1; quality=Clean
+event=water actor=character:staff:157182:02; source=stack:7d7daf7f51cb46b0a8d99b45921bf392; amount=1; quality=Clean
+event=meal actor=Roma; operation=consumable-operation:auto:v1:0000000000000004; item=food:preserved-ration; nutrition=36
+event=water actor=owner; source=stack:7d7daf7f51cb46b0a8d99b45921bf392; amount=1; quality=Clean
+event=meal actor=Leon; operation=consumable-operation:auto:v1:0000000000000005; item=food:preserved-ration; nutrition=36
+event=meal actor=Arin; operation=consumable-operation:auto:v1:0000000000000006; item=food:preserved-ration; nutrition=36
+event=water actor=character:staff:157182:01; source=stack:7d7daf7f51cb46b0a8d99b45921bf392; amount=1; quality=Clean
+event=meal actor=Roma; operation=consumable-operation:auto:v1:0000000000000007; item=food:preserved-ration; nutrition=36
+event=water actor=owner; source=stack:7d7daf7f51cb46b0a8d99b45921bf392; amount=1; quality=Clean
+event=water actor=character:staff:157182:02; source=stack:7d7daf7f51cb46b0a8d99b45921bf392; amount=1; quality=Clean
+event=meal actor=Leon; operation=consumable-operation:auto:v1:0000000000000008; item=food:preserved-ration; nutrition=36
+event=meal actor=Arin; operation=consumable-operation:auto:v1:0000000000000009; item=food:preserved-ration; nutrition=36
+event=water actor=character:staff:157182:01; source=stack:7d7daf7f51cb46b0a8d99b45921bf392; amount=1; quality=Clean
+event=water actor=owner; source=stack:7d7daf7f51cb46b0a8d99b45921bf392; amount=1; quality=Clean
+event=meal actor=Arin; operation=consumable-operation:auto:v1:0000000000000010; item=food:preserved-ration; nutrition=36
+event=meal actor=Roma; operation=consumable-operation:auto:v1:0000000000000011; item=food:preserved-ration; nutrition=36
+event=water actor=character:staff:157182:02; source=stack:7d7daf7f51cb46b0a8d99b45921bf392; amount=1; quality=Clean
+event=meal actor=Leon; operation=consumable-operation:auto:v1:0000000000000012; item=food:preserved-ration; nutrition=36
+event=water actor=character:staff:157182:01; source=stack:7d7daf7f51cb46b0a8d99b45921bf392; amount=1; quality=Clean
+event=meal actor=Roma; operation=consumable-operation:auto:v1:0000000000000013; item=food:preserved-ration; nutrition=36
+event=meal actor=Arin; operation=consumable-operation:auto:v1:0000000000000014; item=food:preserved-ration; nutrition=36
+event=water actor=character:staff:157182:02; source=stack:7d7daf7f51cb46b0a8d99b45921bf392; amount=1; quality=Clean
+event=water actor=owner; source=stack:7d7daf7f51cb46b0a8d99b45921bf392; amount=1; quality=Clean
+event=meal actor=Leon; operation=consumable-operation:auto:v1:0000000000000015; item=food:preserved-ration; nutrition=36
+event=water actor=character:staff:157182:01; source=stack:7d7daf7f51cb46b0a8d99b45921bf392; amount=1; quality=Clean
+
+## Per-actor sampled game seconds
+| actor | work active | work transit | work queue | meal service | drink service | sleep service | toilet service | hygiene service | recreation service | need travel | need queue | other travel | idle/other | total | visits M/D/S/T/H/R | need start -> end |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|
+| Arin | 318.5 | 122.6 | 4.0 | 28.0 | 5.0 | 94.8 | 32.2 | 30.1 | 59.5 | 114.4 | 22.3 | 19.1 | 49.7 | 900.0 | 5/5/2/4/6/6 | H85/T100/S100/F80/E100/Y100/M91 -> H52/T65/S60/F76/E88/Y88/M100 |
+| Leon | 344.9 | 148.8 | 0.0 | 28.1 | 4.1 | 84.8 | 24.8 | 32.2 | 22.8 | 164.6 | 12.4 | 8.7 | 23.8 | 900.0 | 5/6/4/4/6/3 | H85/T100/S100/F80/E100/Y100/M94 -> H52/T68/S100/F84/E90/Y99/M100 |
+| Roma | 447.4 | 125.1 | 1.5 | 21.9 | 3.8 | 63.7 | 20.8 | 27.8 | 24.6 | 137.0 | 0.0 | 11.4 | 14.9 | 900.0 | 5/6/2/5/7/3 | H85/T100/S100/F80/E100/Y100/M91 -> H46/T93/S61/F68/E73/Y55/M100 |
+
+## Mean time channels per actor-day
+workActive=74.055
+workTransit=26.43
+workQueue=0.367
+needService=40.6
+needTravel=27.732
+needQueue=2.311
+otherTravel=2.615
+idleOther=5.89
+sampledSeconds=2700; expected=2700; delta=0
+
+## Need travel attribution
+actor=Arin; Meal:seconds=34.261:distance=28:segments=4, Hygiene:seconds=31.201:distance=25:segments=5, Drink:seconds=16.927:distance=14:segments=5, Toilet:seconds=16.833:distance=14:segments=2, Recreation:seconds=15.187:distance=10.087:segments=3
+needTravelSegment actor=Arin; kind=Recreation; seconds=4.418; worldDistance=2; displacementCells=2; start=(26, 0); end=(28, 0); destination=휴식용소파
+needTravelSegment actor=Arin; kind=Hygiene; seconds=6.752; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=세면대
+needTravelSegment actor=Arin; kind=Drink; seconds=0.997; worldDistance=1; displacementCells=1; start=(28, 0); end=(27, 0); destination=
+needTravelSegment actor=Arin; kind=Meal; seconds=7.824; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=배식카운터
+needTravelSegment actor=Arin; kind=Toilet; seconds=7.119; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=변기
+needTravelSegment actor=Arin; kind=Recreation; seconds=9.543; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=휴식용소파
+needTravelSegment actor=Arin; kind=Drink; seconds=3.692; worldDistance=4; displacementCells=4; start=(21, 0); end=(25, 0); destination=
+needTravelSegment actor=Arin; kind=Recreation; seconds=1.226; worldDistance=1.087; displacementCells=1; start=(25, 0); end=(26, 0); destination=휴식용소파
+needTravelSegment actor=Arin; kind=Meal; seconds=8.009; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=배식카운터
+needTravelSegment actor=Arin; kind=Hygiene; seconds=9.431; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=세면대
+needTravelSegment actor=Arin; kind=Drink; seconds=2.134; worldDistance=1; displacementCells=1; start=(28, 0); end=(27, 0); destination=
+needTravelSegment actor=Arin; kind=Meal; seconds=11.175; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=배식카운터
+actor=Leon; Hygiene:seconds=42.988:distance=24:segments=4, Sleep:seconds=42.618:distance=21:segments=3, Meal:seconds=33.461:distance=16:segments=4, Toilet:seconds=23.131:distance=14:segments=2, Drink:seconds=19.918:distance=9.498:segments=6, Recreation:seconds=2.492:distance=1.661:segments=1
+needTravelSegment actor=Leon; kind=Drink; seconds=5.306; worldDistance=1.498; displacementCells=1; start=(17, 0); end=(16, 0); destination=
+needTravelSegment actor=Leon; kind=Recreation; seconds=2.492; worldDistance=1.661; displacementCells=2; start=(16, 0); end=(18, 0); destination=휴식용소파
+needTravelSegment actor=Leon; kind=Hygiene; seconds=13.535; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=세면대
+needTravelSegment actor=Leon; kind=Drink; seconds=1.701; worldDistance=1; displacementCells=1; start=(28, 0); end=(27, 0); destination=
+needTravelSegment actor=Leon; kind=Meal; seconds=1.699; worldDistance=1; displacementCells=1; start=(27, 0); end=(28, 0); destination=배식카운터
+needTravelSegment actor=Leon; kind=Toilet; seconds=11.118; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=변기
+needTravelSegment actor=Leon; kind=Hygiene; seconds=13.352; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=세면대
+needTravelSegment actor=Leon; kind=Drink; seconds=1.692; worldDistance=1; displacementCells=1; start=(28, 0); end=(27, 0); destination=
+needTravelSegment actor=Leon; kind=Meal; seconds=2.981; worldDistance=1; displacementCells=1; start=(27, 0); end=(28, 0); destination=배식카운터
+needTravelSegment actor=Leon; kind=Sleep; seconds=14.652; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=휴식용소파
+needTravelSegment actor=Leon; kind=Toilet; seconds=12.013; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=변기
+needTravelSegment actor=Leon; kind=Hygiene; seconds=11.22; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=세면대
+actor=Roma; Hygiene:seconds=48.522:distance=40.931:segments=7, Toilet:seconds=35.986:distance=29:segments=5, Recreation:seconds=21.18:distance=14:segments=3, Drink:seconds=13.865:distance=12:segments=6, Sleep:seconds=8.985:distance=8:segments=2, Meal:seconds=8.421:distance=9:segments=3
+needTravelSegment actor=Roma; kind=Recreation; seconds=1.438; worldDistance=0; displacementCells=1; start=(27, 0); end=(28, 0); destination=휴식용소파
+needTravelSegment actor=Roma; kind=Hygiene; seconds=9.61; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=세면대
+needTravelSegment actor=Roma; kind=Drink; seconds=1.086; worldDistance=1; displacementCells=1; start=(28, 0); end=(27, 0); destination=
+needTravelSegment actor=Roma; kind=Sleep; seconds=0.982; worldDistance=1; displacementCells=1; start=(27, 0); end=(28, 0); destination=휴식용소파
+needTravelSegment actor=Roma; kind=Meal; seconds=6.393; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=배식카운터
+needTravelSegment actor=Roma; kind=Toilet; seconds=7.091; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=변기
+needTravelSegment actor=Roma; kind=Hygiene; seconds=9.809; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=세면대
+needTravelSegment actor=Roma; kind=Drink; seconds=0.989; worldDistance=1; displacementCells=1; start=(28, 0); end=(27, 0); destination=
+needTravelSegment actor=Roma; kind=Meal; seconds=1.011; worldDistance=1; displacementCells=1; start=(27, 0); end=(28, 0); destination=배식카운터
+needTravelSegment actor=Roma; kind=Sleep; seconds=8.003; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=간이침대
+needTravelSegment actor=Roma; kind=Toilet; seconds=9.117; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=변기
+needTravelSegment actor=Roma; kind=Hygiene; seconds=8.764; worldDistance=7; displacementCells=7; start=(21, 0); end=(28, 0); destination=세면대
+
+## Cumulative AI lifecycle and harmful-stall diagnostics
+actor=Arin; starts=60; switches=41; restarts=19; phases=217; replans=35; interruptedReplans=0; executionFailures=0; noAction=0; candidateRejections=0; jobGiverEvaluationRejections=85; repeatedPeak=0(None); executionByKind=none; candidateByKind=none; jobGiverByBranchKind=Eat/CandidateEvaluationDeferred:6,Rest/CannotStart:22,Rest/CandidateEvaluationDeferred:2,Work/CannotStart:37,Work/NoWork:26,Work/CandidateEvaluationDeferred:23,Toilet/CandidateEvaluationDeferred:4,Hygiene/CandidateEvaluationDeferred:6; harmfulStalls=0; longestHarmfulStall=3.756; branches=Rest:94.042, LeisureVisit:74.663, Toilet:63.151, Eat:62.226, Hygiene:60.226, RoutineUtility:59.082, Wait:41.574, Work:5.631
+actor=Leon; starts=46; switches=38; restarts=8; phases=200; replans=32; interruptedReplans=0; executionFailures=0; noAction=0; candidateRejections=0; jobGiverEvaluationRejections=59; repeatedPeak=0(None); executionByKind=none; candidateByKind=none; jobGiverByBranchKind=Eat/CandidateEvaluationDeferred:5,Rest/CannotStart:10,Rest/CandidateEvaluationDeferred:4,Work/CannotStart:39,Work/NoWork:10,Work/CandidateEvaluationDeferred:18,Toilet/CandidateEvaluationDeferred:4,Hygiene/CandidateEvaluationDeferred:6; harmfulStalls=0; longestHarmfulStall=2.34; branches=Rest:126.054, Hygiene:84.094, Eat:61.53, RoutineUtility:57.322, Toilet:44.278, LeisureVisit:25.318, Wait:7.715
+actor=Roma; starts=44; switches=43; restarts=1; phases=210; replans=30; interruptedReplans=0; executionFailures=0; noAction=0; candidateRejections=1; jobGiverEvaluationRejections=49; repeatedPeak=0(None); executionByKind=none; candidateByKind=PathSearchDeferred:1; jobGiverByBranchKind=Eat/CandidateEvaluationDeferred:6,Rest/CandidateEvaluationDeferred:2,Work/CannotStart:40,Work/NoWork:9,Work/CandidateEvaluationDeferred:25,Toilet/CandidateEvaluationDeferred:6,Hygiene/CandidateEvaluationDeferred:7; harmfulStalls=0; longestHarmfulStall=2.394; branches=Hygiene:74.71, Rest:71.319, Toilet:54.813, RoutineUtility:48.985, LeisureVisit:45.758, Eat:30.355, Work:1.544
+
+## Completed authored facility uses
+toilet=13; hygiene=17; recreationBranch=9; funRecovery=13; rest=8
+perActorDay toilet=0.867; hygiene=1.133; recreationBranch=0.6; funRecovery=0.867
+primitive=none
+
+## Final live actor diagnostics
+scheduler enabled=True; driving=True; registered=3; lastProcessed=0; cumulativeProcessed=683; starved=0; skipped=236; budget=4; pathBudget=3; pathUsed=0; brokerPathUsed=0; brokerDeferrals=0; exhausted=False; processingMs=0.004
+actor=Arin; id=character:staff:157182:02; species=Slime; role=Regular; dead=False; health=100/100; pos=(28, 0); area=DungeonInterior; duty=OnDuty; offDuty=False; canWork=False; constructPriority=Priority1; rejected=; decisionPending=False; actionEnded=False; external=False; externalOwner=; externalKind=None; externalEpoch=6; externalTransitions=6; externalPreemptions=0; externalRejected=0; staleCompletions=0; branch=Rest; action=휴식; phase=시설 이용; detail=50s; destination=간이침대; failure=; workActive=False; workType=; workTarget=none; decisionRoute=BT=RoutineUtility/Run Routine Utility status=휴식 CommitBreak=ManualReplan: Immediate replan with cleared failures.; selectedUtility=; blackboardFailure=; trace=; nextDecisionDelay=0
+activity actor=Arin; kind=activity:duty; outcome=outcome:changed; action=; target=; reason=routine-need-interrupt; fact=생리 욕구로 작업 중단: 식사 필요
+activity actor=Arin; kind=activity:work; outcome=outcome:returned; action=work:construct; target=building:3009623e53fe47cc89b3f7e7f0cb8ccf; reason=routine-need-resume; fact=생리 욕구를 해결해 중단했던 작업으로 복귀 준비
+activity actor=Arin; kind=activity:facility-use; outcome=outcome:completed; action=; target=building:81f1678d100d41fb942f90795735f6c9; reason=; fact=보존 배급식 식사 완료
+activity actor=Arin; kind=activity:work; outcome=outcome:started; action=work:construct; target=building:3009623e53fe47cc89b3f7e7f0cb8ccf; reason=; fact=작업 시작 · 건설 · QA neutral routine long construction
+activity actor=Arin; kind=activity:work; outcome=outcome:cancelled; action=work:construct; target=building:3009623e53fe47cc89b3f7e7f0cb8ccf; reason=음수 필요; fact=작업 종료: 음수 필요
+activity actor=Arin; kind=activity:duty; outcome=outcome:changed; action=; target=; reason=routine-need-interrupt; fact=생리 욕구로 작업 중단: 음수 필요
+activity actor=Arin; kind=activity:work; outcome=outcome:started; action=work:construct; target=building:3009623e53fe47cc89b3f7e7f0cb8ccf; reason=; fact=작업 시작 · 건설 · QA neutral routine long construction
+activity actor=Arin; kind=activity:work; outcome=outcome:progress; action=work:construct; target=building:3009623e53fe47cc89b3f7e7f0cb8ccf; reason=work-progress; fact=건설 진행 34%
+activity actor=Arin; kind=activity:work; outcome=outcome:cancelled; action=work:construct; target=building:3009623e53fe47cc89b3f7e7f0cb8ccf; reason=휴식 필요; fact=작업 종료: 휴식 필요
+activity actor=Arin; kind=activity:duty; outcome=outcome:changed; action=; target=; reason=routine-need-interrupt; fact=생리 욕구로 작업 중단: 휴식 필요
+activity actor=Arin; kind=activity:facility-use; outcome=outcome:completed; action=; target=building:eb24b34d372240d3a777e8a327262221; reason=; fact=세면대 이용 완료
+activity actor=Arin; kind=activity:facility-use; outcome=outcome:completed; action=; target=building:1cb96b0e357f47fd80ce3802c87a2997; reason=; fact=변기 이용 완료
+actor=Leon; id=owner; species=Slime; role=Owner; dead=False; health=100/100; pos=(28, 0); area=DungeonInterior; duty=OnDuty; offDuty=False; canWork=False; constructPriority=Priority1; rejected=켜진 작업 우선순위가 없습니다; decisionPending=False; actionEnded=False; external=False; externalOwner=; externalKind=None; externalEpoch=6; externalTransitions=6; externalPreemptions=0; externalRejected=0; staleCompletions=0; branch=Wait; action=대기; phase=짧은 대화; detail=다음 행동을 찾으며 움직이는 중; destination=없음; failure=; workActive=False; workType=; workTarget=none; decisionRoute=BT=RoutineUtility/Run Routine Utility status=대기 CommitBreak=ManualReplan: Immediate replan with cleared failures.; selectedUtility=; blackboardFailure=; trace=; nextDecisionDelay=0.07
+activity actor=Leon; kind=activity:health; outcome=outcome:changed; action=health:injury-severity; target=; reason=; fact=부상도 변경: 0%
+activity actor=Leon; kind=activity:facility-use; outcome=outcome:completed; action=; target=building:51ebf49af29447468bb4c35bd77821ff; reason=; fact=간이침대 이용 완료
+activity actor=Leon; kind=activity:work; outcome=outcome:started; action=work:construct; target=building:3009623e53fe47cc89b3f7e7f0cb8ccf; reason=; fact=작업 시작 · 건설 · QA neutral routine long construction
+activity actor=Leon; kind=activity:work; outcome=outcome:cancelled; action=work:construct; target=building:3009623e53fe47cc89b3f7e7f0cb8ccf; reason=식사 필요; fact=작업 종료: 식사 필요
+activity actor=Leon; kind=activity:duty; outcome=outcome:changed; action=; target=; reason=routine-need-interrupt; fact=생리 욕구로 작업 중단: 식사 필요
+activity actor=Leon; kind=activity:facility-use; outcome=outcome:completed; action=; target=building:81f1678d100d41fb942f90795735f6c9; reason=; fact=보존 배급식 식사 완료
+activity actor=Leon; kind=activity:facility-use; outcome=outcome:blocked; action=facility:queue; target=building:eb24b34d372240d3a777e8a327262221; reason=capacity-queue; fact=세면대 1번째 대기
+activity actor=Leon; kind=activity:facility-use; outcome=outcome:completed; action=; target=building:eb24b34d372240d3a777e8a327262221; reason=; fact=세면대 이용 완료
+activity actor=Leon; kind=activity:facility-use; outcome=outcome:blocked; action=facility:queue; target=building:1cb96b0e357f47fd80ce3802c87a2997; reason=capacity-queue; fact=변기 1번째 대기
+activity actor=Leon; kind=activity:facility-use; outcome=outcome:completed; action=; target=building:1cb96b0e357f47fd80ce3802c87a2997; reason=; fact=변기 이용 완료
+activity actor=Leon; kind=activity:facility-use; outcome=outcome:completed; action=; target=building:4169efa4936543e2b74483a24883b52e; reason=; fact=휴식용소파 이용 완료
+activity actor=Leon; kind=activity:facility-use; outcome=outcome:completed; action=; target=building:eb24b34d372240d3a777e8a327262221; reason=; fact=세면대 이용 완료
+actor=Roma; id=character:staff:157182:01; species=Slime; role=Regular; dead=False; health=100/100; pos=(28, 0); area=DungeonInterior; duty=OnDuty; offDuty=False; canWork=False; constructPriority=Priority1; rejected=; decisionPending=False; actionEnded=False; external=False; externalOwner=; externalKind=None; externalEpoch=7; externalTransitions=7; externalPreemptions=0; externalRejected=0; staleCompletions=0; branch=Hygiene; action=위생; phase=시설 이용; detail=3.5s; destination=세면대; failure=; workActive=False; workType=; workTarget=none; decisionRoute=BT=RoutineUtility/Run Routine Utility status=위생 CommitBreak=ManualReplan: Immediate replan with cleared failures.; selectedUtility=; blackboardFailure=None: 경로 탐색 예산 대기; trace=; nextDecisionDelay=0
+activity actor=Roma; kind=activity:work; outcome=outcome:progress; action=work:construct; target=building:3009623e53fe47cc89b3f7e7f0cb8ccf; reason=work-progress; fact=건설 진행 32%
+activity actor=Roma; kind=activity:work; outcome=outcome:cancelled; action=work:construct; target=building:3009623e53fe47cc89b3f7e7f0cb8ccf; reason=배변 필요; fact=작업 종료: 배변 필요
+activity actor=Roma; kind=activity:duty; outcome=outcome:changed; action=; target=; reason=routine-need-interrupt; fact=생리 욕구로 작업 중단: 배변 필요
+activity actor=Roma; kind=activity:work; outcome=outcome:returned; action=work:construct; target=building:3009623e53fe47cc89b3f7e7f0cb8ccf; reason=routine-need-resume; fact=생리 욕구를 해결해 중단했던 작업으로 복귀 준비
+activity actor=Roma; kind=activity:facility-use; outcome=outcome:completed; action=; target=building:1cb96b0e357f47fd80ce3802c87a2997; reason=; fact=변기 이용 완료
+activity actor=Roma; kind=activity:work; outcome=outcome:started; action=work:construct; target=building:3009623e53fe47cc89b3f7e7f0cb8ccf; reason=; fact=작업 시작 · 건설 · QA neutral routine long construction
+activity actor=Roma; kind=activity:work; outcome=outcome:progress; action=work:construct; target=building:3009623e53fe47cc89b3f7e7f0cb8ccf; reason=work-progress; fact=건설 진행 35%
+activity actor=Roma; kind=activity:work; outcome=outcome:cancelled; action=work:construct; target=building:3009623e53fe47cc89b3f7e7f0cb8ccf; reason=음수 필요; fact=작업 종료: 음수 필요
+activity actor=Roma; kind=activity:duty; outcome=outcome:changed; action=; target=; reason=routine-need-interrupt; fact=생리 욕구로 작업 중단: 음수 필요
+activity actor=Roma; kind=activity:work; outcome=outcome:started; action=work:construct; target=building:3009623e53fe47cc89b3f7e7f0cb8ccf; reason=; fact=작업 시작 · 건설 · QA neutral routine long construction
+activity actor=Roma; kind=activity:work; outcome=outcome:cancelled; action=work:construct; target=building:3009623e53fe47cc89b3f7e7f0cb8ccf; reason=식사 필요; fact=작업 종료: 식사 필요
+activity actor=Roma; kind=activity:duty; outcome=outcome:changed; action=; target=; reason=routine-need-interrupt; fact=생리 욕구로 작업 중단: 식사 필요
+mealFacility id=building:81f1678d100d41fb942f90795735f6c9; users=0; reservations=0; capacity=3; pos=(28, 0)
+## Fixture meal-candidate diagnostics
+actor=Arin; facility=배식카운터@(28, 0); role=Meal; reachable=True; queueable=True:; immediate=True:; score=0.684; travel=0; users=0; reservations=0; waiting=0; capacity=3; why=score=0.684
+actor=Leon; facility=배식카운터@(28, 0); role=Meal; reachable=True; queueable=True:; immediate=True:; score=0.708; travel=0; users=0; reservations=0; waiting=0; capacity=3; why=score=0.708
+actor=Roma; facility=배식카운터@(28, 0); role=Meal; reachable=True; queueable=True:; immediate=True:; score=0.716; travel=0; users=0; reservations=0; waiting=0; capacity=3; why=score=0.716
+fixtureWorkforce project=construction:work:000001; scale=IndustrialFacility; activeNow=0; peakActive=3; peakEffective=2.6; max=4; automaticLimit=4; nextContribution=1
+fixtureOrder status=InProgress; measuredStart=0; measuredEnd=788.686; measuredDelta=788.686; required=2248; destination=construction:9201:21:0; reservedWorker=character:staff:157182:01
+
+## Diagnostics
+[WARN] Fixture: neutral 22C/clean/lit environmental field, three founders placed on distinct interior hallway cells, three local meal slots plus four other live need facilities, measured-day consumables deferred until after warmup, onboarding redistribution disabled, and a physically supplied industrial construction order
+[WARN] Recreation selection preflight: actor=Roma; rolePresent=True; usable=True; evaluated=True; valid=True; domain=0.705; action=0.585; utility=0.416; destination=QA_DailyRoutine_Facility_5; directPrepared=True; directDestination=QA_DailyRoutine_Facility_5; directFailure=None:; selectorFailure=None:; pending=False; available=1[AIFacilityRoleAction:canStart=True:consideration=0.705:personality=1:final=0.705:role=Entertainment]; reason=여가
+[WARN] Steady-state warmup completed for 130 game seconds before the measured day.
+[WARN] Measured-day supplies: accessible physical starter food 'food:preserved-ration' in 4 meal buffers and water 'resource:clean-water'.
+RESULT=PASS; failures=0; warnings=4; capturedIssues=0

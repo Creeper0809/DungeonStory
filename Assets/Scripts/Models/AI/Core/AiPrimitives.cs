@@ -214,7 +214,11 @@ public enum AIActionFailureKind
 
     // Appended to preserve the serialized numeric values of the legacy kinds.
     CandidateEvaluationDeferred,
-    FacilityCandidateDeferred
+    FacilityCandidateDeferred,
+    FacilityAdmissionRejected,
+    FacilityServiceUnavailable,
+    ResourceUnavailable,
+    ConsumptionFailed
 }
 
 public static class CharacterAiActionTags

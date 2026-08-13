@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,6 +10,18 @@ public enum BuildingVisitOutcome
     Completed = 2,
     Failed = 3,
     Abandoned = 4
+}
+
+public enum BuildingInteractionFailureKind
+{
+    None = 0,
+    ActorUnavailable = 1,
+    ActionReplaced = 2,
+    FacilityDestroyed = 3,
+    AdmissionRejected = 4,
+    ServiceUnavailable = 5,
+    ResourceUnavailable = 6,
+    ConsumptionFailed = 7
 }
 
 public static class BuildingActivityKinds
@@ -289,11 +302,54 @@ public interface IBuildingShoppingVisitorPort
     int GetShoppingCount();
     int SelectOffer(IReadOnlyList<BuildingRetailOfferSnapshot> offers);
     bool CanPay(int amount);
-    IEnumerator Purchase(object stockToken, int cost);
-    IEnumerator PayForService(int amount);
+    IEnumerator Purchase(
+        object stockToken,
+        int cost,
+        object expectedAction,
+        IBuildingWorldEntryPort expectedFacility,
+        BuildingRetailPurchaseCommitResult commitResult);
+    IEnumerator PayForService(
+        int amount,
+        object expectedAction,
+        IBuildingWorldEntryPort expectedFacility);
     void SetVisitOutcome(
         IBuildingWorldEntryPort building,
         BuildingVisitOutcome outcome);
+}
+
+public sealed class BuildingRetailPurchaseCommitResult
+{
+    public bool IsResolved { get; private set; }
+    public bool Committed { get; private set; }
+    public string FailureCode { get; private set; } = string.Empty;
+
+    public void Commit()
+    {
+        if (IsResolved)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(BuildingRetailPurchaseCommitResult)} was resolved more than once.");
+        }
+
+        IsResolved = true;
+        Committed = true;
+        FailureCode = string.Empty;
+    }
+
+    public void Reject(string failureCode)
+    {
+        if (IsResolved)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(BuildingRetailPurchaseCommitResult)} was resolved more than once.");
+        }
+
+        IsResolved = true;
+        Committed = false;
+        FailureCode = string.IsNullOrWhiteSpace(failureCode)
+            ? "purchase-commit-rejected"
+            : failureCode.Trim();
+    }
 }
 
 public interface IBuildingWorkforceReplanPort
@@ -312,6 +368,10 @@ public interface IBuildingVisitorPort : IBuildingCharacterPort
         string phase,
         IBuildingWorldEntryPort destination,
         string detail = null);
+    void ReportInteractionFailure(
+        BuildingInteractionFailureKind failureKind,
+        string detail,
+        IBuildingWorldEntryPort destination);
     IEnumerator MoveTo(Vector3 position, float speed, object expectedAction);
     IEnumerator MoveToGrid(Vector2Int position);
     void SetWorldPosition(Vector3 position);

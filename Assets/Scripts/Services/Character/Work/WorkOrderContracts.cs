@@ -147,6 +147,10 @@ internal sealed class WorkOrderRecord
     public Vector2Int position;
     public float requiredWork;
     public float completedWork;
+    // Runtime accumulation authority. Repeatedly adding small deltas to a
+    // float produced visible long-run drift from the milli-WU labor ledger.
+    // Save contracts remain float-compatible; restore seeds this value once.
+    public double preciseCompletedWork;
     public string materialDestinationId = string.Empty;
     public string reservedWorkerPersistentId = string.Empty;
     public WorkerSelectionPolicySaveData workerPolicy =
@@ -176,6 +180,7 @@ internal sealed class WorkOrderRecord
             position = position,
             requiredWork = requiredWork,
             completedWork = completedWork,
+            preciseCompletedWork = preciseCompletedWork,
             materialDestinationId = materialDestinationId,
             reservedWorkerPersistentId = reservedWorkerPersistentId,
             workerPolicy = workerPolicy?.CloneNormalized()

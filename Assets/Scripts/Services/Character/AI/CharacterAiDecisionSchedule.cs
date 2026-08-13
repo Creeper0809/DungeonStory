@@ -22,7 +22,9 @@ internal sealed class CharacterAiDecisionSchedule
             ?? throw new ArgumentNullException(nameof(dueTimes));
     }
 
-    public int Count => heap.Count;
+    // The heap can contain invalidated entries after an earlier reschedule.
+    // dueTimes is the authority for actors that actually own a live request.
+    public int Count => dueTimes.Count;
 
     public void Clear()
     {

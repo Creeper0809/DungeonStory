@@ -200,8 +200,11 @@ public sealed class WorkTaskExecutor
         currentRunId = runId;
         activeEmergencyOperationId = string.Empty;
         emergencyAccountingSequence = 0L;
-        actualLaborMilliWuCarry = 0d;
-        projectOutputMilliWuCarry = 0d;
+        // Do not discard sub-milli WU remainders when an actor stops and later
+        // resumes work. Routine needs create many short operations, and flooring
+        // each operation independently makes the settlement ledger drift below
+        // the authoritative physical project progress. The carries belong to
+        // this executor's cumulative accounting stream, not to one operation.
         latestApprovedLaborMilliWu = 0L;
         emergencySuspensionRequested = false;
         emergencySuspended = false;
@@ -446,6 +449,29 @@ public sealed class WorkTaskExecutor
             {
                 work.isWorking = false;
                 WorkDebugLog.LogEnd(actor, "작업량 완료");
+            }
+
+            // The target can be removed by completion, teardown, save restore,
+            // or another concurrent system while this coroutine is yielding.
+            // Never dereference the Unity fake-null object during finalization.
+            if (assignedTarget == null)
+            {
+                actor?.Brain?.ReportRuntimeActionFailure(
+                    AIActionFailure.Create(
+                        AIActionFailureKind.Destroyed,
+                        "work-target-destroyed-after-execution"),
+                    requestImmediateReplan: true);
+                CharacterSkillRuntimeEffects.EndWork(actor);
+                characterEnvironment.ClearWorkContext(
+                    new CharacterId(actor?.Identity?.PersistentId));
+                currentAction?.ReleaseReservation(actor);
+                work.isWorking = false;
+                if (work.IsActiveWorkRun(runId))
+                {
+                    work.AssignWork(null, FacilityWorkType.None);
+                }
+                work.ClearActiveWorkRoutine(runId);
+                yield break;
             }
 
             bool routineNeedInterrupted =
@@ -1832,8 +1858,8 @@ public sealed class WorkTaskExecutor
         emergencyAccountingSequence = checked(emergencyAccountingSequence + 1L);
         string operationId = activeEmergencyOperationId;
         activeEmergencyOperationId = string.Empty;
-        actualLaborMilliWuCarry = 0d;
-        projectOutputMilliWuCarry = 0d;
+        // Preserve the cumulative sub-milli carries across operation boundaries.
+        // They are consumed by the next approved work delta for this actor.
         latestApprovedLaborMilliWu = 0L;
         EmergencyAccountingResult result = emergencyWorkAccounting.Remove(
             new EmergencyWorkCompletion(

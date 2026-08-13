@@ -112,6 +112,7 @@ public class AIBrain : CharacterAbility
     private long peakRepeatedFailureCount;
     private AIActionFailureKind repeatedFailureKind;
     private AIActionSet repeatedFailureActionSet;
+    private float repeatedFailureLastAt = float.NegativeInfinity;
     private AIActionSet lastStartedActionSet;
     private CharacterAiBranch currentJobGiverRejectedBranch;
     private AIActionFailureKind currentJobGiverRejectedFailureKind;
@@ -1105,7 +1106,6 @@ public class AIBrain : CharacterAbility
             actionSwitchCount++;
         }
         lastStartedActionSet = bestAction.actionset;
-        ResetRepeatedExecutionFailureStreak();
         currentActionDebugLabel = GetActionLabel(bestAction.actionset);
         currentDestinationDebugLabel = AIBrainDebugFormatter.GetDestinationLabel(bestAction.destination);
         currentActionPhase = "\uC2DC\uC791";
@@ -1543,6 +1543,39 @@ public class AIBrain : CharacterAbility
         MarkDebugDirty();
     }
 
+    internal void ReportRuntimeActionFailure(
+        AIActionFailure failure,
+        bool requestImmediateReplan)
+    {
+        AIActionSet actionSet = bestAction?.actionset;
+        if (actionSet != null)
+        {
+            RecordActionFailure(actionSet, failure);
+        }
+        else
+        {
+            lastFailedActionSet = null;
+            lastActionFailure = failure.HasFailure
+                ? failure
+                : AIActionFailure.Create(AIActionFailureKind.Unknown);
+            TrackExecutionFailure(
+                null,
+                lastActionFailure.Kind,
+                isNoAction: lastActionFailure.Kind == AIActionFailureKind.NoAction);
+            actor?.Blackboard?.ReportActionFailure(null, lastActionFailure);
+            actor?.AddActivity(CharacterActivityEvent.InternalAi(
+                CharacterActivityOutcomes.Failed,
+                lastActionFailure.Kind.ToString(),
+                $"AI execution failed: {lastActionFailure}"));
+            MarkDebugDirty();
+        }
+
+        if (requestImmediateReplan)
+        {
+            RequestImmediateReplan(clearFailures: false);
+        }
+    }
+
     public CharacterAiRuntimeDiagnosticsSnapshot CaptureRuntimeDiagnostics()
     {
         return new CharacterAiRuntimeDiagnosticsSnapshot(
@@ -1576,7 +1609,15 @@ public class AIBrain : CharacterAbility
         }
         IncrementFailureKind(executionFailuresByKind, kind);
 
-        if (kind == repeatedFailureKind && actionSet == repeatedFailureActionSet)
+        float repeatedFailureWindow = Mathf.Max(
+            5f,
+            Mathf.Max(0.1f, actionFailureCooldown) * 4f);
+        bool withinRepeatedFailureWindow =
+            repeatedFailureLastAt > float.NegativeInfinity
+            && Now - repeatedFailureLastAt <= repeatedFailureWindow;
+        if (withinRepeatedFailureWindow
+            && kind == repeatedFailureKind
+            && actionSet == repeatedFailureActionSet)
         {
             currentRepeatedFailureCount++;
         }
@@ -1591,13 +1632,7 @@ public class AIBrain : CharacterAbility
         {
             peakRepeatedFailureCount = currentRepeatedFailureCount;
         }
-    }
-
-    private void ResetRepeatedExecutionFailureStreak()
-    {
-        currentRepeatedFailureCount = 0L;
-        repeatedFailureKind = AIActionFailureKind.None;
-        repeatedFailureActionSet = null;
+        repeatedFailureLastAt = Now;
     }
 
     private static void IncrementFailureKind(long[] counts, AIActionFailureKind kind)

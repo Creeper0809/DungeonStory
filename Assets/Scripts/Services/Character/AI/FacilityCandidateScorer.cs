@@ -6,6 +6,8 @@ using UnityEngine;
 public static class FacilityCandidateScorer
 {
     private const int MaximumFullyScoredCandidates = 20;
+    private const float EstimatedFacilityTravelSecondsPerCell = 1f;
+    private const float PhysicalMealServiceSeconds = 4f;
     private static readonly System.Predicate<BuildableObject> AcceptAnyCandidate = _ => true;
 
     [System.ThreadStatic]
@@ -156,6 +158,84 @@ public static class FacilityCandidateScorer
             }
 
             return false;
+        }
+        finally
+        {
+            ClearScoringShortlist(source, shortlistCount);
+        }
+    }
+
+    public static bool TryGetMinimumQueueableServiceEta(
+        CharacterActor actor,
+        GridPathSearchResult searchResult,
+        FacilityRole role,
+        out float etaSeconds)
+    {
+        etaSeconds = float.PositiveInfinity;
+        if (actor == null
+            || searchResult == null
+            || role == FacilityRole.None)
+        {
+            return false;
+        }
+
+        FacilityScoringContext scoringContext =
+            FacilityScoringContext.RequireFromActor(actor);
+        IReadOnlyList<BuildableObject> source =
+            GetCandidateSource(actor, searchResult, role);
+        int shortlistCount = BuildScoringShortlist(actor, source);
+        try
+        {
+            for (int sourceIndex = 0; sourceIndex < shortlistCount; sourceIndex++)
+            {
+                BuildableObject building = source.Count <= MaximumFullyScoredCandidates
+                    ? source[sourceIndex]
+                    : scoringShortlist[sourceIndex];
+                if (!searchResult.ContainsVisitableOccupant(building)
+                    || !IsQueueableCandidate(
+                        actor,
+                        building,
+                        role,
+                        scoringContext,
+                        out _))
+                {
+                    continue;
+                }
+
+                int capacity = Mathf.Max(1, building.EffectiveCapacity);
+                int ownQueuePosition = building.GetVisitQueuePosition(
+                    actor.BuildingVisitor);
+                int reservationsAhead = ownQueuePosition > 0
+                    ? ownQueuePosition - 1
+                    : building.ActiveVisitReservationCount;
+                int peopleAhead = Mathf.Max(0, building.CurrentUserCount)
+                    + Mathf.Max(0, reservationsAhead);
+                int serviceWaves = Mathf.Max(
+                    1,
+                    Mathf.CeilToInt((peopleAhead + 1f) / capacity));
+                float serviceSeconds = building.Facility != null
+                    ? Mathf.Max(0.1f, building.Facility.useDuration)
+                    : 1f;
+                if ((role & FacilityRole.Meal) != 0)
+                {
+                    serviceSeconds = Mathf.Max(
+                        serviceSeconds,
+                        PhysicalMealServiceSeconds);
+                }
+                serviceSeconds *= Mathf.Max(
+                    0.1f,
+                    actor.BuildingVisitor.VisitorSnapshot.StayDurationMultiplier);
+                float travelSeconds = GetEstimatedTravelCells(
+                        actor,
+                        building,
+                        searchResult)
+                    * EstimatedFacilityTravelSecondsPerCell;
+                float candidateEta = travelSeconds
+                    + serviceWaves * serviceSeconds;
+                etaSeconds = Mathf.Min(etaSeconds, candidateEta);
+            }
+
+            return !float.IsInfinity(etaSeconds);
         }
         finally
         {

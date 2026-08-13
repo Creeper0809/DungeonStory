@@ -484,6 +484,7 @@ public sealed class WorkOrderRuntime :
                 balanceWorkCalculator?.CalculateConstruction(building)
                     ?? building.GetRequiredWork(BuiltInWorkTypeIds.Construct)),
             completedWork = 0f,
+            preciseCompletedWork = 0d,
             materialDestinationId = BuildConstructionDestinationId(building, position),
             status = WorkOrderStatus.WaitingForMaterials,
             workerPolicy = building.Abilities?
@@ -846,10 +847,10 @@ public sealed class WorkOrderRuntime :
         float acceptedWork = Mathf.Min(
             Mathf.Max(0f, amount),
             Mathf.Max(0f, order.requiredWork - order.completedWork));
-        order.completedWork = Mathf.Clamp(
-            order.completedWork + acceptedWork,
-            0f,
-            Mathf.Max(0.1f, order.requiredWork));
+        order.preciseCompletedWork = Math.Min(
+            Math.Max(0.1d, order.requiredWork),
+            Math.Max(0d, order.preciseCompletedWork + acceptedWork));
+        order.completedWork = (float)order.preciseCompletedWork;
         if (worker != null && acceptedWork > 0f)
         {
             CraftContributionAccumulator contribution =
@@ -1082,6 +1083,7 @@ public sealed class WorkOrderRuntime :
         }
 
         order.completedWork = order.requiredWork;
+        order.preciseCompletedWork = order.requiredWork;
         return CompleteOrder(order, target, out _, out message);
     }
 
@@ -1152,6 +1154,7 @@ public sealed class WorkOrderRuntime :
         }
         order.status = WorkOrderStatus.Completed;
         order.completedWork = order.requiredWork;
+        order.preciseCompletedWork = order.requiredWork;
         ordersById.Remove(order.workOrderId);
         BumpWorkOrderCandidates();
 
@@ -1691,6 +1694,9 @@ public sealed class WorkOrderRuntime :
             position = new Vector2Int(source.gridX, source.gridY),
             requiredWork = Mathf.Max(0.1f, source.requiredWork),
             completedWork = Mathf.Clamp(source.completedWork, 0f, Mathf.Max(0.1f, source.requiredWork)),
+            preciseCompletedWork = Math.Min(
+                Math.Max(0.1d, source.requiredWork),
+                Math.Max(0d, source.completedWork)),
             materialDestinationId = source.materialDestinationId ?? string.Empty,
             reservedWorkerPersistentId = source.reservedWorkerPersistentId ?? string.Empty,
             workerPolicy = source.workerPolicy?.CloneNormalized()
@@ -1956,6 +1962,7 @@ public sealed class WorkOrderRuntime :
             position = completedBuilding.centerPos,
             requiredWork = estimate.RequiredWork,
             completedWork = 0f,
+            preciseCompletedWork = 0d,
             materialDestinationId = $"quality-recovery:{pipeline.pipelineId}",
             workerPolicy = pipeline.workerPolicy?.CloneNormalized()
                 ?? WorkerSelectionPolicySaveData.Anyone(

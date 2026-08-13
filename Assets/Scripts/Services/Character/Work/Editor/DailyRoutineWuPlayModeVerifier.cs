@@ -19,6 +19,8 @@ public static class DailyRoutineWuPlayModeVerifier
     public const string ReportPath = "Artifacts/QA/phase157-daily-routine-wu-playmode.txt";
     private const string GameplayScenePath = "Assets/Scenes/GameplayScene.unity";
     private static bool runnerCreated;
+    private const string RequestedSeedSessionKey =
+        "DungeonStory.DailyRoutineWu.RequestedSeed";
 
     static DailyRoutineWuPlayModeVerifier()
     {
@@ -31,10 +33,19 @@ public static class DailyRoutineWuPlayModeVerifier
     [MenuItem("DungeonStory/Debug/QA/Request Phase 157 Daily Routine WU")]
     public static void RequestRunFromMenu()
     {
+        RequestRun(157_180);
+    }
+
+    public static void RequestRun(int runSeed)
+    {
         Directory.CreateDirectory("Temp");
         Directory.CreateDirectory("Artifacts/QA");
         File.Delete(ReportPath);
-        File.WriteAllText(RequestPath, DateTime.UtcNow.ToString("O"));
+        int normalizedSeed = runSeed != 0 ? runSeed : 1;
+        SessionState.SetInt(RequestedSeedSessionKey, normalizedSeed);
+        File.WriteAllText(
+            RequestPath,
+            $"seed={normalizedSeed};requestedUtc={DateTime.UtcNow:O}");
     }
 
     private static void OnEditorUpdate()
@@ -84,6 +95,8 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
     private const float SteadyStateWarmupGameSeconds = 130f;
     private const int ObservationGameSpeed = 5;
     private const float WarmupRealtimeSeconds = 1.5f;
+    private const string RequestedSeedSessionKey =
+        "DungeonStory.DailyRoutineWu.RequestedSeed";
 
     private readonly List<string> failures = new();
     private readonly List<string> warnings = new();
@@ -156,6 +169,7 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
     private CharacterActor[] fixtureActors = Array.Empty<CharacterActor>();
     private int quarantinedNonFixtureActorCount;
     private int finalActiveActorCount;
+    private int requestedRunSeed;
     private AiDirectorRuntime suspendedAiDirector;
     private LocalLlmRequestQueue suspendedLlmQueue;
 
@@ -164,6 +178,9 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         Directory.CreateDirectory("Artifacts/QA");
         Application.logMessageReceived += OnLogMessageReceived;
         originalTimeScale = Time.timeScale;
+        requestedRunSeed = SessionState.GetInt(
+            RequestedSeedSessionKey,
+            157_180);
 
         yield return null;
         yield return null;
@@ -638,7 +655,7 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
 
         bool created = preparation.TryCreatePreparedSnapshot(
             DungeonDifficulty.Normal,
-            157_180,
+            requestedRunSeed,
             out PreparedStartPartySnapshot snapshot,
             out string snapshotMessage);
         preparation.Cancel();
@@ -698,6 +715,7 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         report.AppendLine($"scene={SceneManager.GetActiveScene().path}");
         report.AppendLine($"observedGameSeconds={observedGameSeconds:0.###}");
         report.AppendLine($"observedDays={ObservationDays}");
+        report.AppendLine($"runSeed={requestedRunSeed}");
         report.AppendLine($"actors={observations.Count}");
         report.AppendLine($"activeActorsAtEnd={finalActiveActorCount}");
         report.AppendLine($"quarantinedNonFixtureActors={quarantinedNonFixtureActorCount}");
@@ -973,6 +991,12 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             report.AppendLine("[CONSOLE] " + issue);
         }
         report.AppendLine($"RESULT={(failures.Count == 0 && capturedIssues.Count == 0 ? "PASS" : "FAIL")}; failures={failures.Count}; warnings={warnings.Count}; capturedIssues={capturedIssues.Count}");
+        string seededReportPath =
+            $"Artifacts/QA/phase157-daily-routine-wu-seed-{requestedRunSeed}.txt";
+        File.WriteAllText(
+            seededReportPath,
+            report.ToString(),
+            Encoding.UTF8);
         File.WriteAllText(
             DailyRoutineWuPlayModeVerifier.ReportPath,
             report.ToString(),

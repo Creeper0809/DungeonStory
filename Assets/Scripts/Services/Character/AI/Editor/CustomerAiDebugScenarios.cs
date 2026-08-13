@@ -37,6 +37,8 @@ public static class CustomerAiDebugScenarios
         RunScenario("뱀파이어는 마나/연구 선호", VerifyVampireSelectsManaOrResearch, errors);
         RunScenario("이용 불가 시설 제외", VerifyUnavailableFacilitiesAreExcluded, errors);
         RunScenario("무인 상점 셀프 계산과 직원 위험 감소", VerifyUnstaffedShopAllowsSelfServiceCheckout, errors);
+        RunScenario("Replaced shop transaction cannot commit money or on-buy effects", VerifyReplacedShopTransactionCannotCommit, errors);
+        RunScenario("Concurrent shop buyers cannot oversell one stock unit", VerifyConcurrentShopBuyersCannotOversellSingleStock, errors);
         RunScenario("Checkout patience stages scale by personality and queue", VerifyCheckoutPatienceStages, errors);
         RunScenario("Abandoned checkout preserves another shopping attempt", VerifyAbandonedCheckoutPreservesVisit, errors);
         RunScenario("Abandoned checkout creates personal facility memory", VerifyCheckoutComplaintCreatesFacilityMemory, errors);
@@ -435,7 +437,12 @@ public static class CustomerAiDebugScenarios
                 waiting.BuildingVisitor,
                 out string waitingAdmissionReason);
             waiting.stats[CharacterCondition.EXCRETION] = 15f;
-            bool emergencyUsesPrimitive = primitive.CanUse(
+            bool shortEmergencyWaits = !primitive.CanUse(
+                waiting,
+                FacilityRole.Toilet,
+                CharacterCondition.EXCRETION);
+            waiting.stats[CharacterCondition.EXCRETION] = 1f;
+            bool criticalEmergencyUsesPrimitive = primitive.CanUse(
                 waiting,
                 FacilityRole.Toilet,
                 CharacterCondition.EXCRETION);
@@ -458,7 +465,8 @@ public static class CustomerAiDebugScenarios
                 && waitingReserved
                 && waitingQueuePosition == 1
                 && blockedUntilCapacity
-                && emergencyUsesPrimitive
+                && shortEmergencyWaits
+                && criticalEmergencyUsesPrimitive
                 && softEmergencyWaits
                 && admittedAfterRelease
                 && stalePrimitiveRejected;
@@ -471,7 +479,8 @@ public static class CustomerAiDebugScenarios
                     + $"waitingReserved={waitingReserved}:{waitingReserveReason}; "
                     + $"queuePosition={waitingQueuePosition}; "
                     + $"blockedUntilCapacity={blockedUntilCapacity}:{waitingAdmissionReason}; "
-                    + $"emergency={emergencyUsesPrimitive}; "
+                    + $"shortEmergencyWaits={shortEmergencyWaits}; "
+                    + $"criticalEmergency={criticalEmergencyUsesPrimitive}; "
                     + $"softEmergencyWaits={softEmergencyWaits}; "
                     + $"admittedAfterRelease={admittedAfterRelease}:{admittedReason}; "
                     + $"stalePrimitiveRejected={stalePrimitiveRejected}; "
@@ -712,6 +721,135 @@ public static class CustomerAiDebugScenarios
                 + $"contextRaises={customerContextRaisesCrime}, reason={workerReason}");
         }
         return valid;
+    }
+
+    private static bool VerifyReplacedShopTransactionCannotCommit()
+    {
+        using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
+        Shop shop = world.Place("P1_GeneralStore", new Vector2Int(4, 0)) as Shop;
+        CharacterActor customer = world.CreateCustomer(
+            "Slime",
+            Vector2Int.zero,
+            90f,
+            90f,
+            10f,
+            20f);
+        AbilityShopping shopping = customer.GetAbility<AbilityShopping>();
+        if (shop == null || shopping == null)
+        {
+            return false;
+        }
+
+        RemainStock stock = new RemainStock(
+            id: int.MinValue + 157,
+            itemName: "QA delayed purchase",
+            cost: 25,
+            stock: 1,
+            onbuy: Array.Empty<OnBuyItemSO>());
+
+        SetHoldingMoney(customer, 500);
+        AIActionSet firstSet = Resources.Load<AIActionSet>("SO/AI/Action/Shopping");
+        AIActionSet replacementSet = Resources.Load<AIActionSet>("SO/AI/Action/LookAround");
+        AIAction first = new AIAction(firstSet, AIActionPlan.AtDestination(shop));
+        AIAction replacement = new AIAction(replacementSet, AIActionPlan.WithoutDestination);
+        customer.ai.bestAction = first;
+        customer.ai.isBestActionEnd = false;
+        int moneyBefore = GetHoldingMoney(customer);
+
+        BuildingRetailPurchaseCommitResult commitResult = new BuildingRetailPurchaseCommitResult();
+        IEnumerator purchase = shopping.BuyItem(stock, 25, first, shop, commitResult);
+        bool reachedDelay = purchase.MoveNext();
+        customer.ai.bestAction = replacement;
+        bool continuedAfterReplacement = purchase.MoveNext();
+        int moneyAfter = GetHoldingMoney(customer);
+
+        bool passed = reachedDelay
+            && !continuedAfterReplacement
+            && moneyAfter == moneyBefore
+            && commitResult.IsResolved
+            && !commitResult.Committed
+            && commitResult.FailureCode == "shopping-action-no-longer-authoritative"
+            && ReferenceEquals(customer.ai.bestAction, replacement);
+        if (!passed)
+        {
+            Debug.LogError(
+                "Replaced shop transaction detail: "
+                + $"delay={reachedDelay}; continued={continuedAfterReplacement}; "
+                + $"money={moneyBefore}->{moneyAfter}; "
+                + $"replacement={ReferenceEquals(customer.ai.bestAction, replacement)}.");
+        }
+        return passed;
+    }
+
+    private static bool VerifyConcurrentShopBuyersCannotOversellSingleStock()
+    {
+        using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
+        Shop shop = world.Place("P1_GeneralStore", new Vector2Int(4, 0)) as Shop;
+        CharacterActor firstCustomer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 20f);
+        CharacterActor secondCustomer = world.CreateCustomer("Slime", new Vector2Int(0, 1), 90f, 90f, 10f, 20f);
+        AbilityShopping firstShopping = firstCustomer?.GetAbility<AbilityShopping>();
+        AbilityShopping secondShopping = secondCustomer?.GetAbility<AbilityShopping>();
+        if (shop == null || firstShopping == null || secondShopping == null)
+        {
+            return false;
+        }
+
+        RemainStock stock = new RemainStock(
+            id: int.MinValue + 158,
+            itemName: "QA contested final stock",
+            cost: 25,
+            stock: 1,
+            onbuy: Array.Empty<OnBuyItemSO>());
+        SetHoldingMoney(firstCustomer, 500);
+        SetHoldingMoney(secondCustomer, 500);
+
+        AIActionSet shoppingSet = Resources.Load<AIActionSet>("SO/AI/Action/Shopping");
+        AIAction firstAction = new AIAction(shoppingSet, AIActionPlan.AtDestination(shop));
+        AIAction secondAction = new AIAction(shoppingSet, AIActionPlan.AtDestination(shop));
+        firstCustomer.ai.bestAction = firstAction;
+        firstCustomer.ai.isBestActionEnd = false;
+        secondCustomer.ai.bestAction = secondAction;
+        secondCustomer.ai.isBestActionEnd = false;
+
+        int firstMoneyBefore = GetHoldingMoney(firstCustomer);
+        int secondMoneyBefore = GetHoldingMoney(secondCustomer);
+        BuildingRetailPurchaseCommitResult firstResult = new BuildingRetailPurchaseCommitResult();
+        BuildingRetailPurchaseCommitResult secondResult = new BuildingRetailPurchaseCommitResult();
+        IEnumerator firstPurchase = firstShopping.BuyItem(stock, 25, firstAction, shop, firstResult);
+        IEnumerator secondPurchase = secondShopping.BuyItem(stock, 25, secondAction, shop, secondResult);
+
+        bool firstReachedCommitDelay = firstPurchase.MoveNext();
+        bool secondReachedCommitDelay = secondPurchase.MoveNext();
+        bool firstContinued = firstPurchase.MoveNext();
+        bool secondContinued = secondPurchase.MoveNext();
+
+        int firstMoneyAfter = GetHoldingMoney(firstCustomer);
+        int secondMoneyAfter = GetHoldingMoney(secondCustomer);
+        int committedCount = (firstResult.Committed ? 1 : 0) + (secondResult.Committed ? 1 : 0);
+        int totalMoneySpent = (firstMoneyBefore - firstMoneyAfter) + (secondMoneyBefore - secondMoneyAfter);
+        bool passed = firstReachedCommitDelay
+            && secondReachedCommitDelay
+            && !firstContinued
+            && !secondContinued
+            && firstResult.IsResolved
+            && secondResult.IsResolved
+            && committedCount == 1
+            && stock.stock == 0
+            && totalMoneySpent == 25
+            && secondResult.FailureCode == "shop-stock-depleted-before-commit";
+        if (!passed)
+        {
+            Debug.LogError(
+                "Concurrent shop purchase detail: "
+                + $"delays={firstReachedCommitDelay}/{secondReachedCommitDelay}; "
+                + $"continued={firstContinued}/{secondContinued}; "
+                + $"resolved={firstResult.IsResolved}/{secondResult.IsResolved}; "
+                + $"committed={firstResult.Committed}/{secondResult.Committed}; "
+                + $"failures={firstResult.FailureCode}/{secondResult.FailureCode}; "
+                + $"stock={stock.stock}; spent={totalMoneySpent}.");
+        }
+
+        return passed;
     }
 
     private static bool VerifyCheckoutPatienceStages()
@@ -1113,6 +1251,15 @@ public static class CustomerAiDebugScenarios
         AbilityShopping shopping = character.GetAbility<AbilityShopping>();
         FieldInfo field = typeof(AbilityShopping).GetField("holdingMoney", BindingFlags.Instance | BindingFlags.NonPublic);
         field?.SetValue(shopping, money);
+    }
+
+    private static int GetHoldingMoney(CharacterActor character)
+    {
+        AbilityShopping shopping = character.GetAbility<AbilityShopping>();
+        FieldInfo field = typeof(AbilityShopping).GetField(
+            "holdingMoney",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        return field != null ? (int)field.GetValue(shopping) : int.MinValue;
     }
 
     private static void ClearShopStock(BuildableObject building)

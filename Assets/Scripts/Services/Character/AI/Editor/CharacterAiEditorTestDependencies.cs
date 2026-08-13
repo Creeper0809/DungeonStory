@@ -936,7 +936,17 @@ internal static class CharacterAiEditorTestDependencies
 
     public static void Inject(BuildableObject building)
     {
-        Inject(building, BlueprintResearch);
+        Inject(building, BlueprintResearch, RoomPolicy);
+    }
+
+    public static void InjectWithRoomPolicy(
+        BuildableObject building,
+        IBuildingRoomPolicyPort roomPolicy)
+    {
+        Inject(
+            building,
+            BlueprintResearch,
+            roomPolicy ?? throw new ArgumentNullException(nameof(roomPolicy)));
     }
 
     public static void Inject(
@@ -945,18 +955,20 @@ internal static class CharacterAiEditorTestDependencies
     {
         Inject(
             building,
-            new EditorBlueprintResearchWorkService(blueprintResearchRuntime));
+            new EditorBlueprintResearchWorkService(blueprintResearchRuntime),
+            RoomPolicy);
     }
 
     private static void Inject(
         BuildableObject building,
-        IBlueprintResearchWorkService blueprintResearch)
+        IBlueprintResearchWorkService blueprintResearch,
+        IBuildingRoomPolicyPort roomPolicy)
     {
         building?.ConstructPersistentIdentity(PersistentIds);
         building?.ConstructBuildableObject(
             new BuildingResearchWorkPortAdapter(blueprintResearch),
             FacilityCandidates,
-            RoomPolicy,
+            roomPolicy,
             worldRegistry: (IBuildingWorldRegistryPort)WorldRegistry,
             abilityRuntimeDispatcher: BuildingAbilities,
             gameClock: GameClock, combatEquipmentRuntime: null, worldItemStackRuntime: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
