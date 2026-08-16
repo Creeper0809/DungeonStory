@@ -277,7 +277,7 @@ public static class DungeonWorldSimulationRegistration
             .As<ITextileMaterialCatalog>();
         builder.Register<ResourceMaterialEconomicProfileCatalog>(Lifetime.Singleton)
             .As<IMaterialEconomicProfileCatalog>();
-        builder.Register<V23BalanceWorkCalculator>(Lifetime.Singleton)
+        builder.Register<V27BalanceWorkCalculator>(Lifetime.Singleton)
             .As<IBalanceWorkCalculator>()
             .As<IRecipeBalanceWorkCalculator>();
         builder.Register<V23MaterialSalvageCalculator>(Lifetime.Singleton)

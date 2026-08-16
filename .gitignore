@@ -113,6 +113,10 @@ docs/*
 !docs/game-design/
 docs/game-design/*
 !docs/game-design/whole-game-balance-baseline.md
+!docs/game-design/v27-balance-critical-approvals.json
+!docs/generated/
+docs/generated/*
+!docs/generated/V27_Balance_Before_After.md
 .planning/
 
 # Local V25 narrative-model training environment

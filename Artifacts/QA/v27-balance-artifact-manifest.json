@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "v27.1",
+  "generatorVersion": "v27.3.0",
+  "sourceDigest": "e9a720c7eb2fa42a0f8b47c3fa92aa1b63d685d2950463639d19584c0d8fa9ae",
+  "rowCount": 83675,
+  "csvByteHash": "88ba54a611314e7079a20192fb7e67f36bb1c8d9d80e4de28a4cf274b3156fa2",
+  "markdownByteHash": "a6750653f8f7ddd5a7066ffcbf018e7384ca647df5cf7653602044abc9f4be5f",
+  "auditByteHash": "4c1ff9648532e63d165d2e6b02a8f70b3ee12616b346c1524b4916306353124e",
+  "anomalyGraphByteHash": "5312119c70f0077ce47c3eb5f3408914d0295253319732a608bd71b0e382ff57",
+  "economy256EvidenceHash": "fa6d5eb9cfd031a60b8191249ad4f128fd01d5fe7d1fae1c6a0fb32d37ee0d0b",
+  "verticalSliceFullLoopEvidenceHash": "8e0973ae6d24f610040e66ca3c84df19fb2920addd9423b56c1cf64eac10d430",
+  "assetRollbackEvidenceHash": "01baeb07f901e3efaaeae15d5fc8591f8a9b0e8b75542fa1950f1a23c206168b",
+  "approvalDigest": "c182943162274305fb9360a653ed7fb757783b3ce007c61d3ca67ddfcbda1128",
+  "assetPatchDigest": "d23e244ed9fc26d9803a8a0110cb6d544602df5407937de25dc245fe74eb0751",
+  "analyzerSourceHash": "cc8011fa35b8484383439e7609b219547b9716d85b383c557dee4ce091a39d63",
+  "analyzerDllHash": "585c016c623fabf22ac5fef5cd0b86803813c5da286360fadc21e77494c73212",
+  "criticalCount": 0,
+  "collapsedCriticalCount": 9,
+  "approvedCount": 793,
+  "sccCount": 313,
+  "integrityFailureCount": 0,
+  "balanceBaselineRecordIds": ["architecture:v27-whitebox-ledger-pipeline","architecture:v27-whitebox-ledger-pipeline-evidence-gate-v1","balance:v27:logging-cooking-dismantle-vertical-slice","architecture:v27-survival-cook-output-authority","balance:v27:item-market-asymmetric-price-authority"]
+}
