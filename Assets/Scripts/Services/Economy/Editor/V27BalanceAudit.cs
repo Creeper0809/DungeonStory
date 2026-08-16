@@ -25,7 +25,7 @@ public static class V27BalanceAudit
         "architecture:v27-survival-cook-output-authority";
     public const string MarketBaselineRecordId =
         "balance:v27:item-market-asymmetric-price-authority";
-    private const string GeneratorVersion = "v27.3.0";
+    private const string GeneratorVersion = "v27.4.0";
     private const decimal LaborScale = 2.25m;
 
     [MenuItem("DungeonStory/V27/Generate Audit-Only Whole-Game Ledger")]
@@ -2842,6 +2842,8 @@ public static class V27BalanceAudit
             V27BalanceVerticalSlicePlayModeVerifier.ReportPath);
         string rollbackEvidence = ProjectAbsolutePath(
             V27BalanceAssetRollbackDebugScenarios.ReportPath);
+        string marketEvidence = ProjectAbsolutePath(
+            V27BalanceMarketDebugScenarios.ReportPath);
         WriteJsonProperty(writer, "economy256EvidenceHash",
             File.Exists(economyEvidence)
                 ? HashFile(economyEvidence)
@@ -2853,6 +2855,10 @@ public static class V27BalanceAudit
         WriteJsonProperty(writer, "assetRollbackEvidenceHash",
             File.Exists(rollbackEvidence)
                 ? HashFile(rollbackEvidence)
+                : HashText(string.Empty), true);
+        WriteJsonProperty(writer, "marketAuthorityEvidenceHash",
+            File.Exists(marketEvidence)
+                ? HashFile(marketEvidence)
                 : HashText(string.Empty), true);
         WriteJsonProperty(writer, "approvalDigest", approvalHash, true);
         WriteJsonProperty(writer, "assetPatchDigest", assetPatchDigest, true);
@@ -3177,6 +3183,7 @@ public static class V27BalanceAudit
             "Assets/Scripts/Services/Economy/Editor/V27BalanceAssetApplication.cs",
             "Assets/Scripts/Services/Economy/Editor/V27BalanceAssetRollbackDebugScenarios.cs",
             "Assets/Scripts/Services/Economy/Editor/V27BalanceEconomySimulationDebugScenarios.cs",
+            "Assets/Scripts/Services/Economy/Editor/V27BalanceMarketDebugScenarios.cs",
             "Assets/Scripts/Services/Economy/Editor/V27BalanceVerticalSlicePlayModeVerifier.cs",
             "Assets/Scripts/Services/Economy/V27BalanceWorkCalculator.cs",
             "Assets/Scripts/Models/Buildings/Core/StockCategoryCatalog.cs",
