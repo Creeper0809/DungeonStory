@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211905666712487
-    - rid: 7737211905666712488
-    - rid: 7737211905666712489
-    - rid: 7737211905666712490
-    - rid: 7737211905666712491
+    - rid: 7737211981804077097
+    - rid: 7737211981804077098
+    - rid: 7737211981804077099
+    - rid: 7737211981804077100
+    - rid: 7737211981804077101
   width: 1
   height: 1
   layer: 1
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712487
+    - rid: 7737211981804077097
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: WS18
-    - rid: 7737211905666712488
+    - rid: 7737211981804077098
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,10 +87,11 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211905666712489
+    - rid: 7737211981804077099
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
         constructionWorkRequired: 19.2
         repairWorkRequired: 10
         cleanWorkRequired: 6.25
@@ -110,14 +111,14 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: component:machine-parts
           amount: 3
-    - rid: 7737211905666712490
+    - rid: 7737211981804077100
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - production-support
         - support:smoke-hood
-    - rid: 7737211905666712491
+    - rid: 7737211981804077101
       type: {class: BuildingProductionSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionSupportAbility

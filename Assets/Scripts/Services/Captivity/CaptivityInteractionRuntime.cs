@@ -99,6 +99,20 @@ internal sealed class CaptivityInteractionRuntime
         state.interactionMaterialsConsumed = handler.MaterialRequirements.Count == 0;
         state.completedInteractionWork = 0f;
         state.requiredInteractionWork = Mathf.Max(1f, handler.RequiredWork);
+        AIBrain wardenBrain = warden?.Brain;
+        if (wardenBrain == null)
+        {
+            state.status = CaptivityStatus.Confined;
+            Clear(state);
+            failureReason =
+                "The assigned warden has no AI brain.";
+            return false;
+        }
+
+        // Wake the selected actor, but do not force Warden work before its
+        // physical inputs arrive. A one-worker settlement must remain free to
+        // haul the reserved interaction input first.
+        wardenBrain.RequestImmediateReplan(clearFailures: false);
         state.lastResult = $"{handler.DisplayName} 준비";
         return true;
     }
@@ -174,6 +188,51 @@ internal sealed class CaptivityInteractionRuntime
         status = state.lastResult;
         state.status = CaptivityStatus.Confined;
         Clear(state);
+        return true;
+    }
+
+    public bool IsReady(string captiveId, out string reason)
+    {
+        reason = string.Empty;
+        CaptiveState state = actors.FindState(captiveId);
+        if (state == null
+            || state.status != CaptivityStatus.Interaction
+            || !interactions.TryGet(
+                state.currentInteractionId,
+                out ICaptivityInteractionHandler handler))
+        {
+            reason = "No active captive interaction was found.";
+            return false;
+        }
+
+        if (state.interactionMaterialsConsumed
+            || handler.MaterialRequirements.Count == 0)
+        {
+            return true;
+        }
+
+        IReadOnlyList<WorldItemStackSnapshot> stacks = itemRuntime.GetAllStacks();
+        foreach (KeyValuePair<StockCategory, int> requirement in
+                 handler.MaterialRequirements.Where(entry => entry.Value > 0))
+        {
+            int delivered = stacks
+                .Where(stack => stack != null
+                    && stack.State == WorldItemStackState.FacilityBuffer
+                    && string.Equals(
+                        stack.DestinationId,
+                        state.interactionMaterialDestinationId,
+                        StringComparison.Ordinal)
+                    && stack.StockCategory == requirement.Key)
+                .Sum(stack => stack.AvailableQuantity);
+            if (delivered < requirement.Value)
+            {
+                reason =
+                    $"Interaction input pending: {requirement.Key} "
+                    + $"{delivered}/{requirement.Value}.";
+                return false;
+            }
+        }
+
         return true;
     }
 

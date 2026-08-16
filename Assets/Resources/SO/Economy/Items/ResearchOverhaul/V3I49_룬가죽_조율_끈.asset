@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 99
   features:
-  - rid: 7737211905658585974
-  - rid: 7737211905658585975
-  - rid: 7737211905660420780
+  - rid: 7737211981816660815
+  - rid: 7737211981816660816
+  - rid: 7737211981816660817
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585974
+    - rid: 7737211981816660815
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:rune-module-tuning
-    - rid: 7737211905658585975
+    - rid: 7737211981816660816
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1152
         sharedIntermediate: 0
-    - rid: 7737211905660420780
+    - rid: 7737211981816660817
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.5987379

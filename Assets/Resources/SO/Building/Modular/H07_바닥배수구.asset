@@ -59,6 +59,8 @@ MonoBehaviour:
     - rid: 7737211921440178772
     - rid: 7737211921440178773
     - rid: 7737211921440178774
+    - rid: 7737211981800669388
+    - rid: 7737211981804077618
   width: 1
   height: 1
   layer: 5
@@ -137,3 +139,21 @@ MonoBehaviour:
         abilityId: BuildingVentilationAbility
         hygieneRiskReduction: 18
         smokeRiskReduction: 8
+    - rid: 7737211981800669388
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 0
+          capacity: 1
+          useDuration: 1
+          requiredWorkers: 0
+          supportedWorkTypes: 536870912
+          disabledWhenDamaged: 1
+    - rid: 7737211981804077618
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 4
+        maxThroughput: 20
+        normallyOpen: 1

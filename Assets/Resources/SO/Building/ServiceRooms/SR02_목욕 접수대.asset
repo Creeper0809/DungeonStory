@@ -53,12 +53,12 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211921440178945
-    - rid: 7737211921440178946
-    - rid: 7737211921440178947
-    - rid: 7737211921440178948
-    - rid: 7737211921440178949
-    - rid: 7737211921440178950
+    - rid: 7737211981804077134
+    - rid: 7737211981804077135
+    - rid: 7737211981804077136
+    - rid: 7737211981804077137
+    - rid: 7737211981804077138
+    - rid: 7737211981804077139
   width: 2
   height: 1
   layer: 1
@@ -74,7 +74,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211921440178945
+    - rid: 7737211981804077134
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -83,7 +83,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7737211921440178946
+    - rid: 7737211981804077135
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -109,23 +109,23 @@ MonoBehaviour:
           amount: 4
         - itemId: material:iron-ingot
           amount: 1
-    - rid: 7737211921440178947
+    - rid: 7737211981804077136
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: SR02
-    - rid: 7737211921440178948
+    - rid: 7737211981804077137
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211921440178949
+    - rid: 7737211981804077138
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - ServiceRoom
         - Stage
-    - rid: 7737211921440178950
+    - rid: 7737211981804077139
       type: {class: BuildingServiceSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceSupportAbility

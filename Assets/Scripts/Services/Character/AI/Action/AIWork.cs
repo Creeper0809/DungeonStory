@@ -133,7 +133,16 @@ public class AIWork : AIActionSet
 
         if (actor != null && actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = true;
+            AIAction expectedAction = actor.Brain.bestAction;
+            actor.Brain.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.Unsupported,
+                    "Work ability is unavailable."),
+                requestImmediateReplan: false);
+            actor.Brain.EndExpectedAction(
+                expectedAction,
+                CharacterAiActionTerminalKind.Failed,
+                clearFailures: false);
         }
     }
 

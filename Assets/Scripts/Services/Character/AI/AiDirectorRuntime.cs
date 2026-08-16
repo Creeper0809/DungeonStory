@@ -330,6 +330,49 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// Publishes a fully-authored mood impulse through the same validation and
+    /// macro-promotion boundary used by the director.  Gameplay incident and
+    /// narrative adapters use this command instead of mutating a character's
+    /// blackboard directly.
+    /// </summary>
+    public bool TryPublishMoodImpulse(
+        CharacterActor actor,
+        CharacterMoodImpulse impulse,
+        out string error)
+    {
+        if (actor == null || actor.Blackboard == null || !actor.CanRunAi)
+        {
+            error = "Mood impulse actor is unavailable for AI.";
+            return false;
+        }
+
+        if (impulse == null
+            || impulse.type == CharacterMoodImpulseType.None
+            || impulse.strength <= 0f
+            || impulse.strength > 1f)
+        {
+            error = "Mood impulse type and strength are invalid.";
+            return false;
+        }
+
+        if (!ValidateMoodImpulseTarget(impulse, out error))
+        {
+            return false;
+        }
+
+        actor.Blackboard.SetMoodImpulse(impulse);
+        ApplyMoodImpulseSideEffects(actor, impulse);
+        lastAppliedMoodImpulseType = impulse.type;
+        lastAppliedMoodImpulseActorName = actor.name;
+        lastAppliedMoodImpulseDebug =
+            $"published={impulse.type} reason={impulse.reason}";
+        lastError = string.Empty;
+        aiSchedulingService?.RequestImmediateDecision(actor);
+        error = string.Empty;
+        return true;
+    }
+
     private void OnMacroGoalResult(CharacterActor actor, LocalLlmResult result)
     {
         if (actor == null || actor.Blackboard == null)

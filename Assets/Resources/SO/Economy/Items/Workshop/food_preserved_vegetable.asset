@@ -30,34 +30,36 @@ MonoBehaviour:
   unitWeight: 0.55
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 11
+  unitPrice: 27
   features:
-  - rid: 7737211905660420504
-  - rid: 7737211905666712556
-  - rid: 7737211905666712557
-  - rid: 7737211905666712558
+  - rid: 7737211981804077207
+  - rid: 7737211981804077208
+  - rid: 7737211981804077209
+  - rid: 7737211981804077921
   references:
     version: 2
     RefIds:
-    - rid: 7737211905660420504
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.5999909
-    - rid: 7737211905666712556
+    - rid: 7737211981804077207
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:vegan
-    - rid: 7737211905666712557
+    - rid: 7737211981804077208
       type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         quality: 3
-        nutrition: 24
+        qualityBand: 1
+        servingRole: 0
+        nutrition: 40
         mood: 2
         freshnessSeconds: 1440
         preserved: 1
-    - rid: 7737211905666712558
+    - rid: 7737211981804077209
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2
         ingredientTags: 1
         sharedIntermediate: 0
+    - rid: 7737211981804077921
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.5999909

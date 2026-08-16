@@ -35,7 +35,7 @@ MonoBehaviour:
   features:
   - rid: 7737211905660420835
   - rid: 7737211905660420836
-  - rid: 7737211905660420837
+  - rid: 7737211981818757214
   references:
     version: 2
     RefIds:
@@ -49,7 +49,7 @@ MonoBehaviour:
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:textile:layered
-    - rid: 7737211905660420837
+    - rid: 7737211981818757214
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.61123395

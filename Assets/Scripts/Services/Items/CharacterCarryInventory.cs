@@ -85,7 +85,10 @@ public sealed class CharacterCarryInventoryRegistry :
 
     public void Exit(CharacterId characterId, string key)
     {
-        ThrowIfDisposed();
+        // Scope disposal may precede CharacterActor.OnDisable during scene
+        // teardown. Exit is a cleanup operation, so repeating it after the
+        // registry has discarded all state is already satisfied.
+        if (disposed) return;
         if (!characterId.IsValid || string.IsNullOrWhiteSpace(key))
         {
             return;
@@ -111,7 +114,10 @@ public sealed class CharacterCarryInventoryRegistry :
 
     public void EndWork(CharacterId characterId)
     {
-        ThrowIfDisposed();
+        // EndWork is deliberately idempotent across the DI-scope/MonoBehaviour
+        // teardown boundary. Starting new work after disposal still fails in
+        // BeginWork, but ending an already-discarded run must not throw.
+        if (disposed) return;
         if (!characterId.IsValid
             || !skillStates.TryGetValue(characterId, out CharacterSkillState state))
         {
@@ -124,6 +130,10 @@ public sealed class CharacterCarryInventoryRegistry :
 
     public float GetWorkSpeedMultiplier(CharacterId characterId)
     {
+        // Unlike carry lookup, which is teardown-safe and reports no active
+        // inventory after scope disposal, this is a skill-state query. A
+        // disposed scoped owner must never masquerade as a valid neutral
+        // state, otherwise stale roots remain observationally usable.
         ThrowIfDisposed();
         return characterId.IsValid
             && skillStates.TryGetValue(characterId, out CharacterSkillState state)
@@ -134,7 +144,7 @@ public sealed class CharacterCarryInventoryRegistry :
 
     public void Reset(CharacterId characterId)
     {
-        ThrowIfDisposed();
+        if (disposed) return;
         if (characterId.IsValid)
         {
             skillStates.Remove(characterId);
@@ -143,7 +153,7 @@ public sealed class CharacterCarryInventoryRegistry :
 
     public void ResetAll()
     {
-        ThrowIfDisposed();
+        if (disposed) return;
         skillStates.Clear();
     }
 
@@ -708,6 +718,10 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
         CharacterCarriedItemSaveData existing = carriedItems.FirstOrDefault(item => item != null
             && string.IsNullOrWhiteSpace(carriedStackId)
             && string.IsNullOrWhiteSpace(item.carriedStackId)
+            && string.Equals(
+                item.ownerOperationId,
+                ownerOperationId?.Trim() ?? string.Empty,
+                StringComparison.Ordinal)
             && string.Equals(item.itemId, itemId, StringComparison.Ordinal)
             && string.Equals(item.sourceStackId, sourceStackId, StringComparison.Ordinal)
             && string.Equals(item.itemInstanceId, typedInstanceId.Value, StringComparison.Ordinal)
@@ -882,6 +896,59 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
         return consumedAll;
     }
 
+    public bool TryConsumeCarriedStack(
+        string carriedStackId,
+        string itemId,
+        int quantity = 1)
+    {
+        string normalizedStackId = carriedStackId?.Trim() ?? string.Empty;
+        int remaining = Mathf.Max(0, quantity);
+        int requested = remaining;
+        if (normalizedStackId.Length == 0 || remaining <= 0)
+            return false;
+
+        int available = carriedItems
+            .Where(item => item != null
+                && item.quantity > 0
+                && string.Equals(
+                    item.carriedStackId,
+                    normalizedStackId,
+                    StringComparison.Ordinal)
+                && (string.IsNullOrWhiteSpace(itemId)
+                    || string.Equals(item.itemId, itemId, StringComparison.Ordinal)))
+            .Sum(item => item.quantity);
+        if (available < remaining)
+            return false;
+
+        for (int index = carriedItems.Count - 1;
+             index >= 0 && remaining > 0;
+             index--)
+        {
+            CharacterCarriedItemSaveData item = carriedItems[index];
+            if (item == null
+                || item.quantity <= 0
+                || !string.Equals(
+                    item.carriedStackId,
+                    normalizedStackId,
+                    StringComparison.Ordinal)
+                || !string.IsNullOrWhiteSpace(itemId)
+                && !string.Equals(item.itemId, itemId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            int consumed = Mathf.Min(remaining, item.quantity);
+            item.quantity -= consumed;
+            remaining -= consumed;
+            if (item.quantity <= 0)
+                carriedItems.RemoveAt(index);
+        }
+
+        if (remaining != requested)
+            Changed?.Invoke();
+        return remaining == 0;
+    }
+
     public List<CharacterCarriedItemSaveData> RemoveAllItems()
     {
         List<CharacterCarriedItemSaveData> result = carriedItems
@@ -908,6 +975,82 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
             Changed?.Invoke();
         }
         return result;
+    }
+
+    public List<CharacterCarriedItemSaveData> RemoveItemsOwnedByOperations(
+        IReadOnlyCollection<string> ownerOperationIds)
+    {
+        HashSet<string> owners = new HashSet<string>(
+            (ownerOperationIds ?? Array.Empty<string>())
+                .Select(value => value?.Trim() ?? string.Empty)
+                .Where(value => value.Length > 0),
+            StringComparer.Ordinal);
+        List<CharacterCarriedItemSaveData> result = new List<CharacterCarriedItemSaveData>();
+        if (owners.Count == 0)
+        {
+            return result;
+        }
+
+        for (int index = carriedItems.Count - 1; index >= 0; index--)
+        {
+            CharacterCarriedItemSaveData item = carriedItems[index];
+            if (item == null
+                || item.quantity <= 0
+                || !owners.Contains(item.ownerOperationId?.Trim() ?? string.Empty))
+            {
+                continue;
+            }
+
+            result.Add(CloneCarriedItem(item));
+            carriedItems.RemoveAt(index);
+        }
+
+        result.Reverse();
+        if (result.Count > 0)
+        {
+            Changed?.Invoke();
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Relinquishes a retiring scene actor's current-world carry after the
+    /// detached restore actor for the same persistent character has received
+    /// the restored snapshot. The two inventories are intentionally allowed to
+    /// differ: loading an older save replaces current-world state. This is an
+    /// authority handoff, not an item drop, so OnDisable must see the retiring
+    /// inventory empty and must never materialize discarded-current-world items
+    /// into the restored item repository.
+    /// </summary>
+    public bool TryRelinquishToRestoredAuthority(
+        CharacterCarryInventory restoredReplacement,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (restoredReplacement == null || restoredReplacement == this)
+        {
+            failureReason = "restored replacement inventory unavailable";
+            return false;
+        }
+
+        CharacterId retiringId = CharacterId;
+        CharacterId replacementId = restoredReplacement.CharacterId;
+        if (!retiringId.IsValid
+            || !replacementId.IsValid
+            || !retiringId.Equals(replacementId))
+        {
+            failureReason =
+                $"restore authority character mismatch "
+                + $"{retiringId.Value}!={replacementId.Value}";
+            return false;
+        }
+
+        if (carriedItems.Count > 0)
+        {
+            carriedItems.Clear();
+            Changed?.Invoke();
+        }
+        return true;
     }
 
     public CharacterCarryInventorySaveData Capture()

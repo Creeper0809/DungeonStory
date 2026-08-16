@@ -596,6 +596,34 @@ public static class OffenseAggregateSaveValidation
             RequireId(battle.battleId, "strategic battle ID");
             Require(battle.decks.Count is >= 1 and <= 5,
                 $"Strategic battle '{battle.battleId}' must contain one to five command decks.");
+            foreach (OffenseCommandDeckStateData deck in battle.decks)
+            {
+                RequireId(deck.characterId,
+                    $"strategic battle '{battle.battleId}' deck character ID");
+                foreach (OffenseCommandCardStateData card in
+                         (deck.drawPile ?? new List<OffenseCommandCardStateData>())
+                         .Concat(deck.discardPile
+                             ?? new List<OffenseCommandCardStateData>())
+                         .Concat(deck.candidates
+                             ?? new List<OffenseCommandCardStateData>()))
+                {
+                    Require(card != null
+                            && Enum.IsDefined(
+                                typeof(OffenseBattleActionType),
+                                card.actionType),
+                        $"Strategic battle '{battle.battleId}' has an invalid card action type.");
+                }
+            }
+            foreach (OffenseEnemyIntentStateData intent in
+                     battle.enemyIntents
+                     ?? new List<OffenseEnemyIntentStateData>())
+            {
+                Require(intent != null
+                        && Enum.IsDefined(
+                            typeof(OffenseBattleActionType),
+                            intent.actionType),
+                    $"Strategic battle '{battle.battleId}' has an invalid enemy action type.");
+            }
         }
 
         HashSet<string> mitigationSiteIds = new HashSet<string>(

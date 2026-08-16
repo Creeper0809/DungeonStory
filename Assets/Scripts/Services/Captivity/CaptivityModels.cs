@@ -21,6 +21,11 @@ public interface ICaptiveLaborQuery
         out string reason);
 }
 
+public interface ICaptivityWorkReadinessQuery
+{
+    bool IsInteractionReady(string captiveId, out string reason);
+}
+
 public interface ICaptivityCommandService
 {
     bool TryOrderCapture(

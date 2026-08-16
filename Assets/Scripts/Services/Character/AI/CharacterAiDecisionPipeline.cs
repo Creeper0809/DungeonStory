@@ -6,6 +6,9 @@ using UnityEngine;
 
 public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
 {
+    private static readonly CharacterBreakdownKind[] BreakdownKinds =
+        (CharacterBreakdownKind[])Enum.GetValues(
+            typeof(CharacterBreakdownKind));
     private static readonly ProfilerMarker EmergencyDecisionMarker =
         new ProfilerMarker("CharacterAi.EmergencyDecision");
     private static readonly ProfilerMarker EmergencyPrepareMarker =
@@ -131,6 +134,46 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             return routine;
         }
 
+        if (actor?.Brain != null
+            && actor.Brain.TryConsumePreferredActionHardFailureDecision(
+                out AIActionFailure preferredFailure,
+                out CharacterAiPreferredActionFailureSource failureSource))
+        {
+            // An explicit preferred action failed terminally in this decision.
+            // Preserve that typed result as the decision outcome and let the
+            // scheduler retry at its bounded failure cadence. Committing an
+            // unrelated Wait/Haul here overwrites the root cause and creates a
+            // false successful epoch between the command and its next plan.
+            return CharacterAiDecisionRules.Result(
+                false,
+                CharacterAiBranch.RoutineUtility,
+                "Preferred Action Hard Failure",
+                $"{failureSource}:{preferredFailure.Kind}:"
+                    + preferredFailure.ToString(),
+                blackboard);
+        }
+
+        // Destination commit can legitimately yield after the candidate has
+        // been scored (for example while an incremental exact path consumes
+        // its next broker slice). That state is scheduler-owned backpressure,
+        // not an Idle decision. Starting ambient idle here used to clear the
+        // pending path state, report the root as handled, and strand the
+        // preferred survival action until the ordinary cadence tick.
+        if (actor?.Brain != null
+            && (actor.Brain.IsActionScoringPending
+                || actor.Brain.IsPathSearchDeferred
+                || actor.Brain.IsPreferredActionDeferred))
+        {
+            return CharacterAiDecisionRules.Result(
+                true,
+                CharacterAiBranch.RoutineUtility,
+                "Deferred Routine Retry",
+                actor.Brain.LastActionFailure.HasFailure
+                    ? actor.Brain.LastActionFailure.ToString()
+                    : "Routine candidate evaluation is deferred.",
+                blackboard);
+        }
+
         return RunIdleBehavior(actor, blackboard);
     }
 
@@ -186,17 +229,41 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
     public CharacterAiDecisionTickResult RunDeprivationBreakdown(CharacterActor actor)
     {
         CharacterBlackboard blackboard = actor != null ? actor.Blackboard : null;
+        CharacterBreakdownKind breakdownKind = ResolveActiveBreakdownKind(actor);
         if (!deprivationCommands.TryRunActiveBreakdown(actor, out string status))
         {
             return CharacterAiDecisionRules.Result(false, CharacterAiBranch.DeprivationBreakdown, "Run Deprivation Breakdown", "활성 붕괴 없음", blackboard);
         }
 
+        if (breakdownKind == CharacterBreakdownKind.None)
+        {
+            throw new InvalidOperationException(
+                "A deprivation breakdown ran without a typed active kind.");
+        }
+
+        blackboard?.RecordHandledDeprivationBreakdown(breakdownKind);
         blackboard?.SetIntent(
             CharacterAiBranch.DeprivationBreakdown,
             status,
             "Run Deprivation Breakdown",
             status);
         return CharacterAiDecisionRules.Result(true, CharacterAiBranch.DeprivationBreakdown, "Run Deprivation Breakdown", status, blackboard);
+    }
+
+    private CharacterBreakdownKind ResolveActiveBreakdownKind(
+        CharacterActor actor)
+    {
+        for (int index = 0; index < BreakdownKinds.Length; index++)
+        {
+            CharacterBreakdownKind kind = BreakdownKinds[index];
+            if (kind != CharacterBreakdownKind.None
+                && deprivationQuery.HasBreakdownKind(actor, kind))
+            {
+                return kind;
+            }
+        }
+
+        return CharacterBreakdownKind.None;
     }
 
     public bool HasLockedAction(CharacterActor actor)
@@ -351,7 +418,9 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             return true;
         }
 
-        if (CharacterNeedAiThresholds.IsEmergency(actor, CharacterCondition.HUNGER)
+        if (CharacterNeedAiThresholds.IsEmergencyOrImminentPhysicalHarm(
+                actor,
+                CharacterCondition.HUNGER)
             && (deprivationQuery.NeedsPrimitiveMeal(actor, out _)
                 || FacilityCandidateScorer.HasUsableCandidate(actor, FacilityRole.Meal)))
         {
@@ -412,6 +481,21 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         if (!blackboard.TryGetCachedJobGiverCandidate(branch, out CharacterAiJobCandidate jobCandidate)
             && !jobGiver.TryEvaluate(actor, out jobCandidate))
         {
+            if (jobGiver.MatchesPreferredAction(actor.Brain)
+                && actor.Brain.TryRetainPreferredBranchDeferred(
+                    branch,
+                    jobCandidate.ActionCandidate.Failure))
+            {
+                actor.Brain.PreservePreferredDeferredDecisionOwnership();
+            }
+            else if (jobGiver.MatchesPreferredAction(actor.Brain))
+            {
+                actor.Brain.RetirePreferredBranchAfterHardFailure(
+                    branch,
+                    jobCandidate.ActionCandidate.Failure,
+                    CharacterAiPreferredActionFailureSource
+                        .JobGiverActionEvaluation);
+            }
             return CharacterAiDecisionRules.Result(
                 false,
                 branch,
@@ -426,6 +510,14 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         if (!actor.Brain.TryCommitActionCandidate(jobCandidate.ActionCandidate, out AIActionFailure failure))
         {
             blackboard.ReportActionFailure(null, failure);
+            if (jobGiver.MatchesPreferredAction(actor.Brain))
+            {
+                actor.Brain.RetirePreferredBranchAfterHardFailure(
+                    branch,
+                    failure,
+                    CharacterAiPreferredActionFailureSource
+                        .JobGiverCandidateCommit);
+            }
             return CharacterAiDecisionRules.Result(false, branch, taskName, failure.ToString(), blackboard);
         }
 
@@ -750,6 +842,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         CharacterAiJobCandidate bestCandidate = default;
         float bestAdjustedUtility = float.MinValue;
         bool hasCandidate = false;
+        bool bestCandidatePreferred = false;
         bool captureDetails = actor.ShouldCollectDetailedAiDiagnostics;
         FacilityRole availableFacilityRoles =
             CharacterAiJobGiver.ResolveAvailableFacilityRoles(actor);
@@ -784,6 +877,8 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             CharacterAiDecisionContext context = GetDecisionContext(
                 actor,
                 jobGiver.Branch);
+            bool jobGiverPreferred =
+                jobGiver.MatchesPreferredAction(actor.Brain);
 
             float domainScore = jobGiver.EvaluateDomain(
                 actor,
@@ -806,15 +901,39 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
                         candidate.ActionCandidate.Failure,
                         candidate.Reason);
                 }
-                if (candidate.ActionCandidate.Failure.IsDeferred
-                    && actor.Brain.IsActionScoringPending)
+                bool preferredDeferred = jobGiverPreferred
+                    && actor.Brain.TryRetainPreferredBranchDeferred(
+                        jobGiver.Branch,
+                        candidate.ActionCandidate.Failure);
+                if ((candidate.ActionCandidate.Failure.IsDeferred
+                        && actor.Brain.IsActionScoringPending)
+                    || preferredDeferred)
                 {
+                    if (preferredDeferred)
+                    {
+                        actor.Brain
+                            .PreservePreferredDeferredDecisionOwnership();
+                    }
                     failureSummary = "행동 후보를 나누어 평가하는 중";
                     return CharacterAiDecisionRules.Result(
                         true,
                         branchOverride,
                         taskName,
                         failureSummary,
+                        blackboard);
+                }
+                if (jobGiverPreferred)
+                {
+                    actor.Brain.RetirePreferredBranchAfterHardFailure(
+                        jobGiver.Branch,
+                        candidate.ActionCandidate.Failure,
+                        CharacterAiPreferredActionFailureSource
+                            .JobGiverActionEvaluation);
+                    return CharacterAiDecisionRules.Result(
+                        false,
+                        branchOverride,
+                        taskName,
+                        candidate.DebugSummary,
                         blackboard);
                 }
 
@@ -843,11 +962,16 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
                     $"{candidate.DebugSummary} group={multiplier:0.##}");
             }
 
-            if (!hasCandidate || adjusted > bestAdjustedUtility)
+            bool candidatePreferred = jobGiverPreferred;
+            if (!hasCandidate
+                || (candidatePreferred && !bestCandidatePreferred)
+                || (candidatePreferred == bestCandidatePreferred
+                    && adjusted > bestAdjustedUtility))
             {
                 bestCandidate = candidate;
                 bestAdjustedUtility = adjusted;
                 hasCandidate = true;
+                bestCandidatePreferred = candidatePreferred;
             }
         }
 
@@ -864,6 +988,27 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         {
             blackboard.ReportActionFailure(null, failure);
             failureSummary = failure.ToString();
+            if (bestCandidatePreferred
+                && actor.Brain.TryRetainPreferredBranchDeferred(
+                    bestCandidate.Branch,
+                    failure))
+            {
+                actor.Brain.PreservePreferredDeferredDecisionOwnership();
+                return CharacterAiDecisionRules.Result(
+                    true,
+                    branchOverride,
+                    taskName,
+                    failureSummary,
+                    blackboard);
+            }
+            if (bestCandidatePreferred)
+            {
+                actor.Brain.RetirePreferredBranchAfterHardFailure(
+                    bestCandidate.Branch,
+                    failure,
+                    CharacterAiPreferredActionFailureSource
+                        .JobGiverCandidateCommit);
+            }
             return CharacterAiDecisionRules.Result(false, branchOverride, taskName, failureSummary, blackboard);
         }
 
@@ -958,16 +1103,28 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         {
             int bestIndex = -1;
             float bestRank = float.MinValue;
+            bool bestPreferred = false;
             for (int index = 0; index < jobGiverCount; index++)
             {
-                if ((remainingMask & (1 << index)) == 0
-                    || jobGiverRankBuffer[index] <= bestRank)
+                if ((remainingMask & (1 << index)) == 0)
+                {
+                    continue;
+                }
+
+                CharacterAiJobGiver rankedJobGiver = jobGivers[index];
+                bool preferred = rankedJobGiver != null
+                    && rankedJobGiver.MatchesPreferredAction(actor.Brain);
+                if (bestIndex >= 0
+                    && ((!preferred && bestPreferred)
+                        || (preferred == bestPreferred
+                            && jobGiverRankBuffer[index] <= bestRank)))
                 {
                     continue;
                 }
 
                 bestIndex = index;
                 bestRank = jobGiverRankBuffer[index];
+                bestPreferred = preferred;
             }
 
             if (bestIndex < 0)
@@ -992,12 +1149,37 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
                     jobGiver.Branch,
                     lastFailure,
                     candidate.Reason);
-                if (lastFailure.IsDeferred
-                    && actor.Brain.IsActionScoringPending)
+                bool preferredDeferred = bestPreferred
+                    && actor.Brain.TryRetainPreferredBranchDeferred(
+                        jobGiver.Branch,
+                        lastFailure);
+                if ((lastFailure.IsDeferred
+                        && actor.Brain.IsActionScoringPending)
+                    || preferredDeferred)
                 {
+                    if (preferredDeferred)
+                    {
+                        actor.Brain
+                            .PreservePreferredDeferredDecisionOwnership();
+                    }
                     failureSummary = "행동 후보를 나누어 평가하는 중";
                     return CharacterAiDecisionRules.Result(
                         true,
+                        branchOverride,
+                        taskName,
+                        failureSummary,
+                        blackboard);
+                }
+                if (bestPreferred)
+                {
+                    actor.Brain.RetirePreferredBranchAfterHardFailure(
+                        jobGiver.Branch,
+                        lastFailure,
+                        CharacterAiPreferredActionFailureSource
+                            .JobGiverActionEvaluation);
+                    failureSummary = candidate.DebugSummary;
+                    return CharacterAiDecisionRules.Result(
+                        false,
                         branchOverride,
                         taskName,
                         failureSummary,
@@ -1023,11 +1205,41 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
 
             blackboard.RecordSelectedJobGiverUtility(candidate);
             if (!actor.Brain.TryCommitActionCandidate(
-                candidate.ActionCandidate,
-                out AIActionFailure failure))
+                    candidate.ActionCandidate,
+                    out AIActionFailure failure))
             {
                 blackboard.ReportActionFailure(null, failure);
                 lastFailure = failure;
+                if (bestPreferred
+                    && actor.Brain.TryRetainPreferredBranchDeferred(
+                        candidate.Branch,
+                        failure))
+                {
+                    actor.Brain
+                        .PreservePreferredDeferredDecisionOwnership();
+                    failureSummary = failure.ToString();
+                    return CharacterAiDecisionRules.Result(
+                        true,
+                        branchOverride,
+                        taskName,
+                        failureSummary,
+                        blackboard);
+                }
+                if (bestPreferred)
+                {
+                    actor.Brain.RetirePreferredBranchAfterHardFailure(
+                        candidate.Branch,
+                        failure,
+                        CharacterAiPreferredActionFailureSource
+                            .JobGiverCandidateCommit);
+                    failureSummary = failure.ToString();
+                    return CharacterAiDecisionRules.Result(
+                        false,
+                        branchOverride,
+                        taskName,
+                        failureSummary,
+                        blackboard);
+                }
                 continue;
             }
 
@@ -1118,14 +1330,14 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
     {
         ICharacterAiJobGiverCatalog catalog = RequireJobGiverCatalog(actor);
         jobGiverBuffer.Clear();
-        if (CharacterNeedAiThresholds.IsEmergency(
+        if (CharacterNeedAiThresholds.IsEmergencyOrImminentPhysicalHarm(
                 actor,
                 CharacterCondition.HUNGER))
         {
             AddUniqueJobGiver(catalog.GetFood);
         }
 
-        if (CharacterNeedAiThresholds.IsEmergency(
+        if (CharacterNeedAiThresholds.IsEmergencyOrImminentPhysicalHarm(
                 actor,
                 CharacterCondition.THIRST))
         {
@@ -1179,6 +1391,11 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         if (context.IsWorker)
         {
             AddUniqueJobGiver(catalog.Work);
+            if (context.IsOffDuty)
+            {
+                AddUniqueJobGiver(catalog.Shopping);
+                AddUniqueJobGiver(catalog.LookAround);
+            }
             AddUniqueJobGiver(catalog.Wait);
         }
         else

@@ -10,8 +10,11 @@ public sealed class AbilityCaptiveEscape : MonoBehaviour
     private IGameClock clock;
     private Coroutine routine;
     private string activeCaptiveId = string.Empty;
+    private System.IDisposable activeEscapePass;
+    private bool escapeExecutionActive;
 
-    public bool IsEscaping => routine != null;
+    public bool IsEscaping => escapeExecutionActive;
+    public bool HasEscapePassForDiagnostics => activeEscapePass != null;
 
     public void Configure(ICaptiveEscapeAbilityPort port, IGameClock clock)
     {
@@ -21,7 +24,9 @@ public sealed class AbilityCaptiveEscape : MonoBehaviour
 
     public void StartEscape(string captiveId)
     {
-        CancelCurrent(reportFailure: false, string.Empty);
+        CancelCurrent(
+            reportFailure: escapeExecutionActive,
+            reason: "escape-restarted");
         if (port == null
             || clock == null
             || !CaptiveEscapeAbilityRules.TryNormalizeId(
@@ -32,7 +37,9 @@ public sealed class AbilityCaptiveEscape : MonoBehaviour
         }
 
         activeCaptiveId = normalizedId;
-        routine = StartCoroutine(EscapeRoutine(activeCaptiveId));
+        escapeExecutionActive = true;
+        Coroutine started = StartCoroutine(EscapeRoutine(activeCaptiveId));
+        routine = escapeExecutionActive ? started : null;
     }
 
     private IEnumerator EscapeRoutine(string captiveId)
@@ -46,7 +53,7 @@ public sealed class AbilityCaptiveEscape : MonoBehaviour
             yield break;
         }
 
-        using System.IDisposable pass = port.BeginEscapePass(captiveId);
+        ReplaceEscapePass(port.BeginEscapePass(captiveId));
         port.SetActionPhase("탈출 경로로 이동 중", destination);
 
         float elapsed = 0f;
@@ -81,8 +88,10 @@ public sealed class AbilityCaptiveEscape : MonoBehaviour
 
         if (port.IsAlive && port.Position == destination)
         {
+            escapeExecutionActive = false;
             activeCaptiveId = string.Empty;
             routine = null;
+            ReleaseEscapePass();
             port.CompleteEscape(captiveId);
             yield break;
         }
@@ -94,25 +103,74 @@ public sealed class AbilityCaptiveEscape : MonoBehaviour
 
     private void Fail(string reason)
     {
+        if (!escapeExecutionActive)
+        {
+            return;
+        }
+
         string captiveId = activeCaptiveId;
+        escapeExecutionActive = false;
         activeCaptiveId = string.Empty;
         routine = null;
-        port?.FailEscape(captiveId, reason);
+        ReleaseEscapePass();
+        if (!string.IsNullOrWhiteSpace(captiveId))
+        {
+            port?.FailEscape(captiveId, reason);
+        }
     }
 
     private void CancelCurrent(bool reportFailure, string reason)
     {
+        bool wasActive = escapeExecutionActive;
+        string captiveId = activeCaptiveId;
+        escapeExecutionActive = false;
         if (routine != null)
         {
             StopCoroutine(routine);
             routine = null;
         }
 
-        if (reportFailure && !string.IsNullOrWhiteSpace(activeCaptiveId))
+        ReleaseEscapePass();
+        if (reportFailure
+            && wasActive
+            && !string.IsNullOrWhiteSpace(captiveId))
         {
-            port?.FailEscape(activeCaptiveId, reason);
+            port?.FailEscape(captiveId, reason);
         }
 
         activeCaptiveId = string.Empty;
+    }
+
+    [GameplayInternalOnly(
+        "Character lifecycle termination must synchronously close the escape action and its temporary door pass before Unity can stop its coroutine.",
+        "CharacterActor.ReleaseTransientAiOwnership")]
+    public void StopForLifecycleTransition(string reason)
+    {
+        CancelCurrent(
+            reportFailure: escapeExecutionActive,
+            reason: string.IsNullOrWhiteSpace(reason)
+                ? "escape-actor-lifecycle-ended"
+                : reason.Trim());
+    }
+
+    private void ReplaceEscapePass(System.IDisposable pass)
+    {
+        ReleaseEscapePass();
+        activeEscapePass = pass;
+    }
+
+    private void ReleaseEscapePass()
+    {
+        System.IDisposable pass = activeEscapePass;
+        activeEscapePass = null;
+        pass?.Dispose();
+    }
+
+    private void OnDisable()
+    {
+        if (Application.isPlaying)
+        {
+            StopForLifecycleTransition("escape-actor-disabled");
+        }
     }
 }

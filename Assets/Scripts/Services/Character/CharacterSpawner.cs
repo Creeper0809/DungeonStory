@@ -9,8 +9,25 @@ using UnityEngine;
 using UnityEngine.Pool;
 using VContainer;
 
+public enum CharacterSpawnRejection
+{
+    None = 0,
+    OwnerUnavailable,
+    PoolUnavailable,
+    DefinitionMissing,
+    RecruitmentLocked,
+    RegularCustomerIneligible,
+    PopulationProfileNotCreated,
+    PopulationProfilePreparing,
+    PopulationProfileAlreadyVisiting,
+    PopulationProfileUnavailable,
+    EntryUnavailable,
+    PrefabInvalid
+}
+
 public class CharacterSpawner : BuildableObject,IInteractable
 {
+    private const float FallbackOutsideSpawnDistance = 1f;
     public CharacterSO[] characters;
     public GameObject characterPrefab;
     [SerializeField] private Transform outsideSpawnPoint;
@@ -31,6 +48,16 @@ public class CharacterSpawner : BuildableObject,IInteractable
     private IOwnerRunManagerProvider ownerRunManagerProvider;
     private IBuildingWorldQuery buildingWorldQuery;
     private IRandomStream respawnRandomStream;
+    private bool scopeTeardownStarted;
+    private long visitorExitHandoffAttemptCount;
+    private long visitorExitHandoffCompletedCount;
+    private string lastVisitorExitPersistentId = string.Empty;
+    private string lastVisitorExitHandoffStage = string.Empty;
+
+    public long VisitorExitHandoffAttemptCount => visitorExitHandoffAttemptCount;
+    public long VisitorExitHandoffCompletedCount => visitorExitHandoffCompletedCount;
+    public string LastVisitorExitPersistentId => lastVisitorExitPersistentId;
+    public string LastVisitorExitHandoffStage => lastVisitorExitHandoffStage;
 
     [Inject]
     public void Construct(
@@ -66,6 +93,7 @@ public class CharacterSpawner : BuildableObject,IInteractable
         respawnRandomStream = (randomStreamProvider
             ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
             .Get("character-spawner");
+        scopeTeardownStarted = false;
         sceneAdapter.ResetInjectedProjection();
     }
 
@@ -128,7 +156,7 @@ public class CharacterSpawner : BuildableObject,IInteractable
 
     public IEnumerator StartSpawn()
     {
-        while (true)
+        while (!scopeTeardownStarted)
         {
             EnsureRuntimeState();
 
@@ -145,26 +173,61 @@ public class CharacterSpawner : BuildableObject,IInteractable
     }
     void Update()
     {
+        // Scene components can receive an Update between activation and the
+        // hierarchy injection build callback. The spawner has no authoritative
+        // clock until that callback completes, and it must not advance while
+        // its owning scope is being torn down.
+        if (scopeTeardownStarted || !HasInjectedGameClock)
+        {
+            return;
+        }
+
         respawnSchedule.Advance(GameDeltaTime);
     }
-    public bool TrySpawnCharacter(int id)
+
+    internal void PrepareForScopeTeardown()
     {
+        if (scopeTeardownStarted)
+        {
+            return;
+        }
+
+        scopeTeardownStarted = true;
+        StopAllCoroutines();
+        // ObjectPool itself is managed state and is rebuilt after a domain
+        // reload. Destroy its inactive inventory now, through the injected
+        // factory, so those GameObjects cannot become unowned orphan pools.
+        characterPool?.Clear();
+        characterPool = null;
+    }
+
+    public bool TrySpawnCharacter(int id) =>
+        TrySpawnCharacter(id, out _);
+
+    public bool TrySpawnCharacter(
+        int id,
+        out CharacterSpawnRejection rejection)
+    {
+        rejection = CharacterSpawnRejection.None;
         EnsureRuntimeState();
         if (ownerRunManagerProvider == null
             || !ownerRunManagerProvider.TryGetManager(out OwnerRunManager ownerManager)
             || ownerManager.CurrentOwnerActor == null)
         {
+            rejection = CharacterSpawnRejection.OwnerUnavailable;
             return false;
         }
 
         if (characterPool == null)
         {
+            rejection = CharacterSpawnRejection.PoolUnavailable;
             Debug.LogWarning("캐릭터 프리팹이 없어 캐릭터를 스폰할 수 없습니다.");
             return false;
         }
 
         if (!sceneAdapter.TryGetCharacter(id, out CharacterSO characterData))
         {
+            rejection = CharacterSpawnRejection.DefinitionMissing;
             Debug.LogWarning($"스폰할 캐릭터 데이터를 찾지 못했습니다. id: {id}");
             return false;
         }
@@ -181,12 +244,14 @@ public class CharacterSpawner : BuildableObject,IInteractable
                 species?.homeFactionId,
                 recruitmentUnlocked))
         {
+            rejection = CharacterSpawnRejection.RecruitmentLocked;
             return false;
         }
 
         RegularCustomerState regularCustomerState = GetRegularCustomerState();
         if (!RegularCustomerService.CanSpawnAsCustomer(characterData, regularCustomerState))
         {
+            rejection = CharacterSpawnRejection.RegularCustomerIneligible;
             return false;
         }
 
@@ -195,12 +260,14 @@ public class CharacterSpawner : BuildableObject,IInteractable
             respawnSchedule.UnavailableProfileIds);
         if (worldProfile == null)
         {
+            rejection = DiagnosePopulationRejection(characterData.id);
             return false;
         }
 
         if (!TryGetEntryGridPosition(out Vector2Int resolvedEntryGridPosition))
         {
             worldProfile.isVisiting = false;
+            rejection = CharacterSpawnRejection.EntryUnavailable;
             return false;
         }
 
@@ -212,6 +279,7 @@ public class CharacterSpawner : BuildableObject,IInteractable
             Debug.LogWarning("캐릭터 프리팹에 CharacterActor 컴포넌트가 없습니다.");
             characterPool.Release(spawnedCharacterGameobject);
             worldProfile.isVisiting = false;
+            rejection = CharacterSpawnRejection.PrefabInvalid;
             return false;
         }
 
@@ -229,6 +297,35 @@ public class CharacterSpawner : BuildableObject,IInteractable
             id,
             respawnTime);
         return true;
+    }
+
+    private CharacterSpawnRejection DiagnosePopulationRejection(int characterDataId)
+    {
+        WorldCharacterProfile[] matching = characterPopulationService.Profiles
+            .Where(profile => profile != null
+                && profile.characterDataId == characterDataId)
+            .ToArray();
+        if (matching.Length == 0)
+        {
+            return CharacterSpawnRejection.PopulationProfileNotCreated;
+        }
+
+        if (matching.Any(profile => profile.isAlive
+                && !profile.isStaff
+                && !profile.isVisiting
+                && !profile.IsReady))
+        {
+            return CharacterSpawnRejection.PopulationProfilePreparing;
+        }
+
+        if (matching.Any(profile => profile.isAlive
+                && !profile.isStaff
+                && profile.isVisiting))
+        {
+            return CharacterSpawnRejection.PopulationProfileAlreadyVisiting;
+        }
+
+        return CharacterSpawnRejection.PopulationProfileUnavailable;
     }
 
     private IEnumerator EnterWhenPrepared(
@@ -275,7 +372,21 @@ public class CharacterSpawner : BuildableObject,IInteractable
             return outsideSpawnPoint.position;
         }
 
-        return transform.position;
+        // The scene spawner is a catalog/runtime component, not an authored
+        // exterior waypoint. Its transform can be tens of world units away from
+        // the resolved entrance after grid-origin changes. Using that transform
+        // directly made every visitor walk across the whole world outside the
+        // grid before the release handoff. Preserve only its authored side as a
+        // direction hint and keep the fallback waypoint adjacent to the actual
+        // production entrance.
+        Vector3 entry = GetEntryDoorWorldPosition();
+        Vector3 direction = transform.position - entry;
+        direction.z = 0f;
+        if (direction.sqrMagnitude <= 0.0001f)
+        {
+            direction = Vector3.right;
+        }
+        return entry + direction.normalized * FallbackOutsideSpawnDistance;
     }
 
     public Vector3 GetEntryDoorWorldPosition()
@@ -422,14 +533,77 @@ public class CharacterSpawner : BuildableObject,IInteractable
     {
         RequireCharacterObjectFactory().Destroy(poolGo);
     }
+
+    /// <summary>
+    /// Retires a transient customer whose population binding belonged to the
+    /// character world that was replaced by a committed restore. This boundary
+    /// deliberately does not call CharacterPopulationService.ReleaseVisitor:
+    /// the restored population aggregate is already authoritative at commit.
+    /// </summary>
+    public bool RetireVisitorForWorldRestore(
+        CharacterActor actor,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (actor == null)
+        {
+            return true;
+        }
+
+        CharacterIdentity identity = actor.Identity;
+        if (identity == null || identity.Data == null)
+        {
+            failureReason = "restore retirement requires an initialized character";
+            return false;
+        }
+        if (actor.IsOwner || identity.CharacterType != CharacterType.Customer)
+        {
+            failureReason =
+                $"restore retirement only accepts transient customers: "
+                + $"id={identity.PersistentId};type={identity.CharacterType};owner={actor.IsOwner}";
+            return false;
+        }
+
+        // ObjectPool.Release invokes OnReturnedToPool synchronously. The
+        // lifecycle/active guard therefore also makes repeated restore cleanup
+        // idempotent without maintaining a second ownership registry.
+        if (!actor.gameObject.activeSelf
+            || actor.CurrentLifecycleState == CharacterLifecycleState.Despawned)
+        {
+            return true;
+        }
+
+        actor.ReleaseTransientAiOwnership("character-world-restore-retirement");
+        if (characterPool != null)
+        {
+            characterPool.Release(actor.gameObject);
+        }
+        else
+        {
+            actor.SetLifecycleState(CharacterLifecycleState.Despawned);
+            actor.gameObject.SetActive(false);
+        }
+        return true;
+    }
+
     public IEnumerator Interact(CharacterActor actor) =>
         Interact(actor?.BuildingVisitor);
 
     public IEnumerator Interact(IBuildingVisitorPort visitor)
     {
+        // The exit traversal changes lifecycle state at its terminal boundary.
+        // That transition releases the movement coroutine which invoked this
+        // method, so the authoritative population/pool handoff must happen
+        // eagerly when Interact is called, not on the iterator's first MoveNext.
+        CompleteInteraction(visitor);
+        return YieldAfterInteraction();
+    }
+
+    private void CompleteInteraction(IBuildingVisitorPort visitor)
+    {
         if (visitor == null)
         {
-            yield break;
+            return;
         }
         if (!CharacterBuildingVisitorAdapter.TryGetActor(
                 visitor,
@@ -440,15 +614,19 @@ public class CharacterSpawner : BuildableObject,IInteractable
         }
 
         CharacterIdentity identity = actor != null ? actor.Identity : null;
-        if (identity == null || identity.Data == null) yield break;
+        if (identity == null || identity.Data == null) return;
 
         EnsureRuntimeState();
         bool isStaffProfile = characterPopulationService != null
             && characterPopulationService.TryGetProfile(actor, out WorldCharacterProfile profile)
             && profile != null
             && profile.isStaff;
-        if (CharacterWorkRoleUtility.TryGetWork(actor, out _)
-            || identity.CharacterType == CharacterType.NPC
+        // AbilityWork is injected on the shared character prefab, so component
+        // presence is not staff ownership. Treating it as a work-role authority
+        // reactivated every real Customer at the exit instead of releasing the
+        // visitor profile and returning the actor to the pool. Population staff
+        // state and the persistent NPC identity are the production authorities.
+        if (identity.CharacterType == CharacterType.NPC
             || isStaffProfile)
         {
             if (isStaffProfile)
@@ -460,24 +638,35 @@ public class CharacterSpawner : BuildableObject,IInteractable
             actor.SetLifecycleState(CharacterLifecycleState.Active);
             actor.gameObject.SetActive(true);
             characterPopulationService?.RefreshProfile(actor);
-            yield break;
+            return;
         }
 
         string profileId = identity.PersistentId;
+        visitorExitHandoffAttemptCount++;
+        lastVisitorExitPersistentId = profileId ?? string.Empty;
+        lastVisitorExitHandoffStage = "visitor-exit:handoff-started";
         respawnSchedule.MarkDisabled(profileId);
 
         characterPopulationService?.ReleaseVisitor(actor);
+        lastVisitorExitHandoffStage = "visitor-exit:population-released";
 
         if (characterPool != null)
         {
             characterPool.Release(actor.gameObject);
+            lastVisitorExitHandoffStage = "visitor-exit:pool-released";
         }
         else
         {
             actor.SetLifecycleState(CharacterLifecycleState.Despawned);
             actor.gameObject.SetActive(false);
+            lastVisitorExitHandoffStage = "visitor-exit:deactivated";
         }
 
+        visitorExitHandoffCompletedCount++;
+    }
+
+    private static IEnumerator YieldAfterInteraction()
+    {
         yield return null;
     }
 }

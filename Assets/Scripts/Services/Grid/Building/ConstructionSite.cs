@@ -298,6 +298,7 @@ public sealed class ConstructionSite : BuildableObject,
 
         workers.Add(actor);
         workerSlots[actor] = slotIndex;
+        TrackAllocatedWorkerOwnership(actor);
         ReleaseWorkerReservation(actor);
         MarkFacilityDynamicStateDirty();
         if (actor == null || !actor.VisitorSnapshot.CanMove)
@@ -336,6 +337,7 @@ public sealed class ConstructionSite : BuildableObject,
             : new Vector3(0f, WorkerStandOffsetY, 0f);
         workerOffsets.Remove(actor);
         workerSlots.Remove(actor);
+        UntrackAllocatedWorkerOwnership(actor);
         // Deallocation is an instantaneous ownership cleanup, not a movement
         // phase: SetWorldPosition below restores the visitor immediately. Do
         // not overwrite the AI action phase here because the work executor has
@@ -450,7 +452,13 @@ public sealed class ConstructionSite : BuildableObject,
                 expiredWorkerReservations.Add(pair.Key);
         }
         for (int index = 0; index < expiredWorkerReservations.Count; index++)
-            workerReservations.Remove(expiredWorkerReservations[index]);
+        {
+            CharacterId characterId = expiredWorkerReservations[index];
+            workerReservations.Remove(characterId);
+            UntrackTransientOwnership(
+                characterId,
+                BuildingTransientOwnershipKind.WorkerReservation);
+        }
         if (expiredWorkerReservations.Count > 0)
             MarkFacilityDynamicStateDirty();
     }

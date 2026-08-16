@@ -23,6 +23,7 @@ internal sealed class FluidNetworkRuntime :
     private readonly IWorldFilthQuery filth;
     private readonly IGameClock clock;
     private readonly IFacilityCapabilityQuery facilities;
+    private readonly IBuildingFacilityStateChangePort facilityStateChanges;
     private readonly FluidNetworkStateStore stateStore;
     private readonly FluidNetworkProjectionAdapter projectionAdapter;
     private readonly Dictionary<string, float> nextBackflowAt =
@@ -38,6 +39,7 @@ internal sealed class FluidNetworkRuntime :
         IWorldFilthQuery filth,
         IGameClock clock,
         IFacilityCapabilityQuery facilities,
+        IBuildingFacilityStateChangePort facilityStateChanges,
         DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         this.topologyRuntime = topologyRuntime
@@ -48,6 +50,8 @@ internal sealed class FluidNetworkRuntime :
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.facilities = facilities
             ?? throw new ArgumentNullException(nameof(facilities));
+        this.facilityStateChanges = facilityStateChanges
+            ?? throw new ArgumentNullException(nameof(facilityStateChanges));
         stateStore = new FluidNetworkStateStore(
             aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore)));
@@ -229,14 +233,33 @@ internal sealed class FluidNetworkRuntime :
         }
 
         EnsureTopology();
-        if (!projectionAdapter.TryResolveState(
-                consumer,
-                out FluidNodeState state)
-            || string.IsNullOrWhiteSpace(destinationId))
+        if (consumer == null || string.IsNullOrWhiteSpace(destinationId))
         {
             failure = new DomainFailure(
                 FailureCode.FluidManualWaterUnavailable);
             return false;
+        }
+
+        // Manual containers are the fallback for facilities without authored
+        // plumbing. Requiring a clean-water/wastewater topology node here made
+        // that fallback impossible for the very facilities that need it (for
+        // example the early emergency surgery table). Keep the remainder in
+        // the same persistent fluid state store, keyed by the facility's stable
+        // industrial identity when no network node exists.
+        if (!projectionAdapter.TryResolveState(
+                consumer,
+                out FluidNodeState state))
+        {
+            string manualNodeId =
+                IndustrialInfrastructureIdentity.GetNodeId(consumer);
+            if (string.IsNullOrWhiteSpace(manualNodeId))
+            {
+                failure = new DomainFailure(
+                    FailureCode.FluidManualWaterUnavailable);
+                return false;
+            }
+
+            state = stateStore.EnsureState(manualNodeId);
         }
 
         int requiredContainers = Mathf.Max(
@@ -429,8 +452,11 @@ internal sealed class FluidNetworkRuntime :
                 FailureCode.FluidMaintenanceUnavailable);
         }
 
+        bool changed = state.Blockage > 0.0001f;
         state.Blockage = 0f;
         stateStore.Touch();
+        if (changed)
+            facilityStateChanges.MarkDynamicStateDirty();
         return InfrastructureCommandResult.Success();
     }
 
@@ -486,8 +512,11 @@ internal sealed class FluidNetworkRuntime :
                 FailureCode.FluidMaintenanceUnavailable);
         }
 
+        bool changed = state.Leak > 0.0001f;
         state.Leak = 0f;
         stateStore.Touch();
+        if (changed)
+            facilityStateChanges.MarkDynamicStateDirty();
         return InfrastructureCommandResult.Success();
     }
 
@@ -994,10 +1023,13 @@ internal sealed class FluidNetworkRuntime :
                 building,
                 out FluidNodeState state))
         {
+            float previous = state.Blockage;
             state.Blockage = Mathf.Clamp(
                 state.Blockage + Mathf.Max(1f, amount * 2f),
                 0f,
                 100f);
+            if (!Mathf.Approximately(previous, state.Blockage))
+                facilityStateChanges.MarkDynamicStateDirty();
         }
 
         filth.AddFilth(

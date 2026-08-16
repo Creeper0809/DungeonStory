@@ -35,6 +35,7 @@ internal sealed class CharacterAiSchedulerBudgetState
     public int CurrentPathSearchBudget => Mathf.Max(0, currentPathSearchBudget);
     public int LastPathSearchCount { get; private set; }
     public int LastBrokerPathSearchCount { get; private set; }
+    public int LastBrokerUrgentOverdraftPathSearchCount { get; private set; }
     public int LastBrokerUnboundedPathSearchCount { get; private set; }
     public int LastBrokerPathCacheHitCount { get; private set; }
     public int LastBrokerPathBudgetDeferralCount { get; private set; }
@@ -45,6 +46,12 @@ internal sealed class CharacterAiSchedulerBudgetState
     public float LastOldestDecisionDeferralSeconds { get; private set; }
     public float MaximumObservedDecisionDeferralSeconds =>
         maximumObservedDecisionDeferralSeconds;
+
+    public void ResetMaximumObservedDecisionDeferral()
+    {
+        maximumObservedDecisionDeferralSeconds = 0f;
+        LastOldestDecisionDeferralSeconds = 0f;
+    }
 
     public void Clear(CharacterAiSchedulerBudgetSettings settings, int actorCount)
     {
@@ -75,6 +82,7 @@ internal sealed class CharacterAiSchedulerBudgetState
     {
         LastPathSearchCount = 0;
         LastBrokerPathSearchCount = 0;
+        LastBrokerUrgentOverdraftPathSearchCount = 0;
         LastBrokerUnboundedPathSearchCount = 0;
         LastBrokerPathCacheHitCount = 0;
         LastBrokerPathBudgetDeferralCount = 0;
@@ -137,6 +145,7 @@ internal sealed class CharacterAiSchedulerBudgetState
         pathSearchesThisFrame = 0;
         LastPathSearchCount = 0;
         LastBrokerPathSearchCount = 0;
+        LastBrokerUrgentOverdraftPathSearchCount = 0;
         LastBrokerUnboundedPathSearchCount = 0;
         LastBrokerPathCacheHitCount = 0;
         LastBrokerPathBudgetDeferralCount = 0;
@@ -290,6 +299,8 @@ internal sealed class CharacterAiSchedulerBudgetState
     {
         LastPathSearchCount = pathSearchesThisFrame;
         LastBrokerPathSearchCount = pathSearchBroker.SearchesThisFrame;
+        LastBrokerUrgentOverdraftPathSearchCount =
+            pathSearchBroker.UrgentOverdraftSearchesThisFrame;
         LastBrokerUnboundedPathSearchCount = pathSearchBroker.UnboundedSearchesThisFrame;
         LastBrokerPathCacheHitCount = pathSearchBroker.CacheHitsThisFrame;
         LastBrokerPathBudgetDeferralCount = pathSearchBroker.BudgetDeferralsThisFrame;
@@ -332,6 +343,7 @@ internal sealed class CharacterAiSchedulerBudgetState
         pathSearchesThisFrame = 0;
         LastPathSearchCount = 0;
         LastBrokerPathSearchCount = 0;
+        LastBrokerUrgentOverdraftPathSearchCount = 0;
         LastBrokerUnboundedPathSearchCount = 0;
         LastBrokerPathCacheHitCount = 0;
         LastBrokerPathBudgetDeferralCount = 0;
@@ -430,13 +442,10 @@ internal sealed class CharacterAiSchedulerBudgetState
 
         double desiredBudgetMilliseconds = baselineMilliseconds
             + Math.Max(0.0, headroomMilliseconds) * settings.FrameHeadroomShare;
-        if (lastProcessingMilliseconds > settings.TargetAiMilliseconds)
-        {
-            desiredBudgetMilliseconds *= Math.Max(
-                0.2,
-                settings.TargetAiMilliseconds
-                / Math.Max(settings.TargetAiMilliseconds, lastProcessingMilliseconds));
-        }
+        // Frame headroom is the authority for throttling. Applying a second
+        // reduction from the previous AI slice punished one unavoidable path
+        // spike for several subsequent frames even when the actual frame clock
+        // was healthy, producing decision starvation under a large backlog.
 
         desiredBudgetMilliseconds = Math.Clamp(
             desiredBudgetMilliseconds,

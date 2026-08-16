@@ -40,6 +40,14 @@ public class AbilityShopping : CharacterAbility
     private int decisionStateFacilityVersion = int.MinValue;
     private bool cachedCanLookAround;
     private bool cachedShouldExitDungeon;
+    private Coroutine shoppingRoutine;
+    private bool shoppingExecutionActive;
+    private AIAction activeShoppingAction;
+    private BuildableObject activeShoppingTarget;
+    private Action activeShoppingTargetDestroyedHandler;
+#if UNITY_EDITOR
+    public Action<AIAction> DebugBeforeShoppingRoutineStart;
+#endif
 
     public int visitCount { get; private set; }
     public int lookAroundCount { get; private set; }
@@ -57,6 +65,8 @@ public class AbilityShopping : CharacterAbility
         }
     }
     public ShoppingVisitOutcome LastVisitOutcome { get; private set; }
+    public bool HasActiveShoppingRoutineForDiagnostics => shoppingExecutionActive;
+    public BuildableObject CurrentVisitTargetForDiagnostics => currentVisitTarget;
 
     [Inject]
     public void ConstructAbilityShopping(
@@ -234,16 +244,25 @@ public class AbilityShopping : CharacterAbility
             return;
         }
 
+        StopShopping("shopping-restarted");
         move?.CancelActiveMovement();
-        StartCoroutine(Shopping());
-    }
-    private IEnumerator Shopping()
-    {
-        AIAction action = actor != null && actor.Brain != null
+        activeShoppingAction = actor != null && actor.Brain != null
             ? actor.Brain.bestAction
             : null;
+        SubscribeToActiveTargetDestruction(activeShoppingAction);
+        shoppingExecutionActive = true;
+#if UNITY_EDITOR
+        DebugBeforeShoppingRoutineStart?.Invoke(activeShoppingAction);
+#endif
+        Coroutine started = StartCoroutine(Shopping(activeShoppingAction));
+        shoppingRoutine = shoppingExecutionActive ? started : null;
+    }
+    private IEnumerator Shopping(AIAction action)
+    {
         if (action == null || action.destination == null)
         {
+            bool destinationWasDestroyed = action != null
+                && !ReferenceEquals(action.destination, null);
             actor?.AddActivity(CharacterActivityEvent.Create(
                 CharacterActivityKinds.Shopping,
                 CharacterActivityOutcomes.Failed,
@@ -252,7 +271,23 @@ public class AbilityShopping : CharacterAbility
                 reasonCode: "missing-destination",
                 sentiment: -0.7f,
                 bubbleEligible: true));
-            CompleteCurrentShoppingAction(action, clearFailures: false);
+            if (destinationWasDestroyed)
+            {
+                FailCurrentShoppingAction(
+                    action,
+                    AIActionFailure.Create(
+                        AIActionFailureKind.Destroyed,
+                        "Facility destination was destroyed before approach.",
+                        action.destination));
+                FinishShoppingRoutine(action);
+                yield break;
+            }
+            FailCurrentShoppingAction(
+                action,
+                AIActionFailure.Create(
+                    AIActionFailureKind.NoDestination,
+                    "Shopping action has no destination."));
+            FinishShoppingRoutine(action);
             yield break;
         }
 
@@ -270,8 +305,13 @@ public class AbilityShopping : CharacterAbility
                 actionId: "shopping:visit",
                 reasonCode: "missing-movement-context",
                 bubbleEligible: true));
-            action.ReleaseReservation(actor);
-            CompleteCurrentShoppingAction(action, clearFailures: false);
+            FailCurrentShoppingAction(
+                action,
+                AIActionFailure.Create(
+                    AIActionFailureKind.Unsupported,
+                    "Shopping action has no movement context.",
+                    action.destination));
+            FinishShoppingRoutine(action);
             yield break;
         }
 
@@ -281,6 +321,18 @@ public class AbilityShopping : CharacterAbility
             || actor.Brain.bestAction != action)
         {
             action.ReleaseReservation(actor);
+            FinishShoppingRoutine(action);
+            yield break;
+        }
+        if (action.destination == null || action.destination.isDestroy)
+        {
+            FailCurrentShoppingAction(
+                action,
+                AIActionFailure.Create(
+                    AIActionFailureKind.Destroyed,
+                    "Facility destination was destroyed during approach.",
+                    action.destination));
+            FinishShoppingRoutine(action);
             yield break;
         }
         Vector2Int actorGridPosition = grid.GetXY(transform.position);
@@ -289,6 +341,33 @@ public class AbilityShopping : CharacterAbility
         {
             BeginVisitInteraction(action.destination);
             yield return shop.Interact(actor?.BuildingVisitor);
+            if (action.destination == null || action.destination.isDestroy)
+            {
+                action.ReleaseReservation(actor);
+                if (actor?.Brain != null
+                    && ReferenceEquals(actor.Brain.bestAction, action))
+                {
+                    if (actor.Brain.LastActionFailure.Kind
+                        != AIActionFailureKind.Destroyed)
+                    {
+                        FailCurrentShoppingAction(
+                            action,
+                            AIActionFailure.Create(
+                                AIActionFailureKind.Destroyed,
+                                "Facility destination was destroyed during interaction.",
+                                action.destination));
+                    }
+                    else
+                    {
+                        actor.Brain.EndExpectedAction(
+                            action,
+                            CharacterAiActionTerminalKind.Failed,
+                            clearFailures: false);
+                    }
+                }
+                FinishShoppingRoutine(action);
+                yield break;
+            }
             if (LastVisitOutcome == ShoppingVisitOutcome.InProgress)
             {
                 SetVisitOutcome(
@@ -316,13 +395,163 @@ public class AbilityShopping : CharacterAbility
                 reasonCode: "destination-unreachable",
                 bubbleEligible: true));
             action.ReleaseReservation(actor);
+            if (LastVisitOutcome == ShoppingVisitOutcome.InProgress)
+            {
+                SetVisitOutcome(
+                    action.destination,
+                    ShoppingVisitOutcome.Failed);
+            }
+            if (actor?.Brain != null
+                && ReferenceEquals(actor.Brain.bestAction, action)
+                && !actor.Brain.LastActionFailure.HasFailure)
+            {
+                actor.Brain.ReportRuntimeActionFailure(
+                    AIActionFailure.Create(
+                        AIActionFailureKind.NoPath,
+                        "Shopping destination was not reached.",
+                        action.destination),
+                    requestImmediateReplan: false);
+            }
         }
-        CompleteCurrentShoppingAction(action, clearFailures: true);
+        CharacterAiActionTerminalKind terminalKind = LastVisitOutcome switch
+        {
+            ShoppingVisitOutcome.Completed => CharacterAiActionTerminalKind.Completed,
+            ShoppingVisitOutcome.Abandoned => CharacterAiActionTerminalKind.Cancelled,
+            _ => CharacterAiActionTerminalKind.Failed
+        };
+        CompleteCurrentShoppingAction(
+            action,
+            clearFailures: terminalKind == CharacterAiActionTerminalKind.Completed,
+            terminalKind);
+        FinishShoppingRoutine(action);
+    }
+
+    public void StopShopping(string reason)
+    {
+        shoppingExecutionActive = false;
+        Coroutine routine = shoppingRoutine;
+        shoppingRoutine = null;
+        if (routine != null)
+        {
+            StopCoroutine(routine);
+        }
+
+        move?.CancelActiveMovement();
+        AIAction action = activeShoppingAction;
+        activeShoppingAction = null;
+        UnsubscribeFromActiveTargetDestruction();
+        action?.ReleaseReservation(actor);
+        BuildableObject target = currentVisitTarget;
+        currentVisitTarget = null;
+        if (target != null && actor != null)
+        {
+            target.ReleaseTransientCharacterOwnership(
+                actor.BuildingVisitor,
+                reason);
+        }
+        if (LastVisitOutcome == ShoppingVisitOutcome.InProgress)
+        {
+            LastVisitOutcome = ShoppingVisitOutcome.Abandoned;
+        }
+    }
+
+    private void FinishShoppingRoutine(AIAction expectedAction)
+    {
+        if (!ReferenceEquals(activeShoppingAction, expectedAction))
+        {
+            return;
+        }
+
+        shoppingRoutine = null;
+        shoppingExecutionActive = false;
+        activeShoppingAction = null;
+        UnsubscribeFromActiveTargetDestruction();
+        currentVisitTarget = null;
+    }
+
+    private void SubscribeToActiveTargetDestruction(AIAction action)
+    {
+        UnsubscribeFromActiveTargetDestruction();
+        BuildableObject target = action?.destination;
+        if (target == null)
+        {
+            return;
+        }
+
+        activeShoppingTarget = target;
+        activeShoppingTargetDestroyedHandler = () =>
+        {
+            AIBrain brain = actor != null ? actor.Brain : null;
+            AIAction expectedAction = activeShoppingAction;
+            BuildableObject destroyedTarget = activeShoppingTarget;
+            if (brain == null
+                || expectedAction == null
+                || !ReferenceEquals(brain.bestAction, expectedAction))
+            {
+                return;
+            }
+
+            expectedAction.ReleaseReservation(actor);
+            brain.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.Destroyed,
+                    "Facility destination was destroyed during the active visit action.",
+                    destroyedTarget),
+                requestImmediateReplan: false);
+            brain.EndExpectedAction(
+                expectedAction,
+                CharacterAiActionTerminalKind.Failed,
+                clearFailures: false);
+        };
+        target.OnBuildingDestroyed += activeShoppingTargetDestroyedHandler;
+    }
+
+    private void UnsubscribeFromActiveTargetDestruction()
+    {
+        if (!ReferenceEquals(activeShoppingTarget, null)
+            && activeShoppingTargetDestroyedHandler != null)
+        {
+            activeShoppingTarget.OnBuildingDestroyed -=
+                activeShoppingTargetDestroyedHandler;
+        }
+        activeShoppingTarget = null;
+        activeShoppingTargetDestroyedHandler = null;
+    }
+
+    private void OnDisable()
+    {
+        if (Application.isPlaying)
+        {
+            StopShopping("shopping-ability-disabled");
+        }
+    }
+
+    private void FailCurrentShoppingAction(
+        AIAction expectedAction,
+        AIActionFailure failure)
+    {
+        AIBrain brain = actor != null ? actor.Brain : null;
+        if (brain == null
+            || expectedAction == null
+            || !ReferenceEquals(brain.bestAction, expectedAction))
+        {
+            return;
+        }
+
+        expectedAction.ReleaseReservation(actor);
+        brain.ReportRuntimeActionFailure(
+            failure,
+            requestImmediateReplan: false);
+        brain.EndExpectedAction(
+            expectedAction,
+            CharacterAiActionTerminalKind.Failed,
+            clearFailures: false);
     }
 
     private void CompleteCurrentShoppingAction(
         AIAction expectedAction,
-        bool clearFailures)
+        bool clearFailures,
+        CharacterAiActionTerminalKind terminalKind = CharacterAiActionTerminalKind.Cancelled)
     {
         AIBrain brain = actor != null ? actor.Brain : null;
         if (brain == null
@@ -331,8 +560,7 @@ public class AbilityShopping : CharacterAbility
             return;
         }
 
-        brain.isBestActionEnd = true;
-        brain.RequestImmediateReplan(clearFailures);
+        brain.EndExpectedAction(expectedAction, terminalKind, clearFailures);
     }
 
     public void RegisterVisit(BuildableObject building)

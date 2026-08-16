@@ -21,11 +21,13 @@ public interface IOffenseBattleRuntime
         out OffenseBattleCommandResult result);
     bool TryExecuteCommand(OffenseBattleCommand command, out OffenseBattleCommandResult result);
     bool TryExecutePlannedCommand(
+        int directorTurn,
         string actorId,
         string targetId,
+        OffenseBattleActionType actionType,
         string abilityId,
         out OffenseBattleCommandResult result);
-    bool FinalizePlannedTurn();
+    bool FinalizePlannedTurn(int directorTurn, out string failureReason);
     bool TryGetActor(string persistentId, out CharacterActor actor);
     IReadOnlyList<EnemyIndividualSaveData> GetEnemyIndividuals();
     OffenseBattlePersistenceState CapturePersistentState();
@@ -36,6 +38,54 @@ public interface IOffenseBattleRuntime
     void ClearForPersistentRestore();
     void SetBattleViewVisible(bool visible);
     void ClearCompletedBattle();
+}
+
+/// <summary>
+/// Read-only production evidence for the enemy tactical decision pipeline.
+/// The battle runtime owns this trace so a verifier does not have to invoke
+/// the tactical service or session command executor directly.
+/// </summary>
+public interface IOffenseEnemyTacticalTraceQuery
+{
+    IReadOnlyList<OffenseEnemyTacticalExecutionTrace> EnemyTacticalTrace { get; }
+}
+
+public readonly struct OffenseEnemyTacticalExecutionTrace
+{
+    public OffenseEnemyTacticalExecutionTrace(
+        long sequence,
+        string battleId,
+        string actorId,
+        EnemyTacticalIntentKind intent,
+        OffenseBattleActionType command,
+        long commandId,
+        string targetId,
+        string abilityId,
+        bool accepted,
+        string terminalMessage)
+    {
+        Sequence = sequence;
+        BattleId = battleId ?? string.Empty;
+        ActorId = actorId ?? string.Empty;
+        Intent = intent;
+        Command = command;
+        CommandId = commandId;
+        TargetId = targetId ?? string.Empty;
+        AbilityId = abilityId ?? string.Empty;
+        Accepted = accepted;
+        TerminalMessage = terminalMessage ?? string.Empty;
+    }
+
+    public long Sequence { get; }
+    public string BattleId { get; }
+    public string ActorId { get; }
+    public EnemyTacticalIntentKind Intent { get; }
+    public OffenseBattleActionType Command { get; }
+    public long CommandId { get; }
+    public string TargetId { get; }
+    public string AbilityId { get; }
+    public bool Accepted { get; }
+    public string TerminalMessage { get; }
 }
 
 public sealed class OffenseBattleRestoreCandidate
@@ -66,6 +116,7 @@ public sealed class OffenseBattleRestoreCandidate
 
 public sealed class OffenseBattleRuntime :
     IOffenseBattleRuntime,
+    IOffenseEnemyTacticalTraceQuery,
     IStartable,
     IDisposable
 {
@@ -90,6 +141,9 @@ public sealed class OffenseBattleRuntime :
     private IDisposable ownerRunEndedSubscription;
     private string activeEncounterId = string.Empty;
     private List<EnemyIndividualSaveData> activeEnemyIndividuals = new();
+    private readonly List<OffenseEnemyTacticalExecutionTrace> enemyTacticalTrace =
+        new List<OffenseEnemyTacticalExecutionTrace>(64);
+    private long enemyTacticalTraceSequence;
 
     public OffenseBattleRuntime(
         ICharacterWorldSaveService characterSaveService,
@@ -140,6 +194,8 @@ public sealed class OffenseBattleRuntime :
     public OffenseBattleSession Session { get; private set; }
     public bool HasActiveBattle => Session != null && !Session.IsComplete;
     public bool IsBattleViewVisible { get; private set; }
+    public IReadOnlyList<OffenseEnemyTacticalExecutionTrace> EnemyTacticalTrace =>
+        enemyTacticalTrace;
     public event Action StateChanged;
     public event Action<OffenseBattleSession> BattleCompleted;
 
@@ -171,6 +227,8 @@ public sealed class OffenseBattleRuntime :
             message = "이미 진행 중인 전투가 있습니다.";
             return false;
         }
+
+        ResetEnemyTacticalTrace();
 
         actorsById.Clear();
         List<OffenseBattleCombatant> combatants = new List<OffenseBattleCombatant>();
@@ -274,8 +332,10 @@ public sealed class OffenseBattleRuntime :
     }
 
     public bool TryExecutePlannedCommand(
+        int directorTurn,
         string actorId,
         string targetId,
+        OffenseBattleActionType actionType,
         string abilityId,
         out OffenseBattleCommandResult result)
     {
@@ -287,10 +347,22 @@ public sealed class OffenseBattleRuntime :
             return false;
         }
 
-        OffenseBattleActionType actionType = string.IsNullOrWhiteSpace(abilityId)
-            || string.Equals(abilityId, "basic", StringComparison.Ordinal)
-                ? OffenseBattleActionType.BasicAttack
-                : OffenseBattleActionType.Ability;
+        if (!Session.PreparePlannedRound(
+                directorTurn,
+                out string preparationFailure))
+        {
+            result = new OffenseBattleCommandResult(false, preparationFailure);
+            return false;
+        }
+
+        if (actionType == OffenseBattleActionType.Ability
+            && string.IsNullOrWhiteSpace(abilityId))
+        {
+            result = new OffenseBattleCommandResult(
+                false,
+                "Strategic Ability command is missing its source ability ID.");
+            return false;
+        }
         OffenseBattleCommand command = new OffenseBattleCommand(
             Session.LastProcessedCommandId + 1,
             actorId,
@@ -318,15 +390,23 @@ public sealed class OffenseBattleRuntime :
         return true;
     }
 
-    public bool FinalizePlannedTurn()
+    public bool FinalizePlannedTurn(int directorTurn, out string failureReason)
     {
         if (Session == null)
+        {
+            failureReason = "There is no active battle session to finalize.";
+            return false;
+        }
+
+        if (!Session.FinalizePlannedRound(directorTurn, out failureReason))
         {
             return false;
         }
 
         StateChanged?.Invoke();
-        return RaiseCompletionIfNeeded();
+        RaiseCompletionIfNeeded();
+        failureReason = string.Empty;
+        return true;
     }
 
     public bool TryGetActor(string persistentId, out CharacterActor actor)
@@ -595,19 +675,58 @@ public sealed class OffenseBattleRuntime :
                 Session,
                 individual);
             OffenseBattleCommand command = ToCommand(decision);
-            if (!TryExecuteSessionCommand(command, out _))
+            bool accepted = TryExecuteSessionCommand(
+                command,
+                out OffenseBattleCommandResult result);
+            RecordEnemyTacticalTrace(decision, command, accepted, result);
+            if (!accepted)
             {
                 decision = enemyTactics.Decide(
                     Session,
                     individual,
                     allowAbility: false);
                 command = ToCommand(decision);
-                if (!TryExecuteSessionCommand(command, out _)) break;
+                accepted = TryExecuteSessionCommand(
+                    command,
+                    out result);
+                RecordEnemyTacticalTrace(decision, command, accepted, result);
+                if (!accepted) break;
             }
             StateChanged?.Invoke();
         }
 
         RaiseCompletionIfNeeded();
+    }
+
+    private void ResetEnemyTacticalTrace()
+    {
+        enemyTacticalTrace.Clear();
+        enemyTacticalTraceSequence = 0;
+    }
+
+    private void RecordEnemyTacticalTrace(
+        EnemyTacticalDecision decision,
+        OffenseBattleCommand command,
+        bool accepted,
+        OffenseBattleCommandResult result)
+    {
+        const int capacity = 256;
+        if (enemyTacticalTrace.Count >= capacity)
+        {
+            enemyTacticalTrace.RemoveAt(0);
+        }
+
+        enemyTacticalTrace.Add(new OffenseEnemyTacticalExecutionTrace(
+            ++enemyTacticalTraceSequence,
+            Session?.BattleId,
+            command?.ActorId,
+            decision.Intent,
+            command?.ActionType ?? OffenseBattleActionType.BasicAttack,
+            command?.CommandId ?? 0,
+            command?.TargetId,
+            command?.AbilityId,
+            accepted,
+            result?.Message));
     }
 
     private OffenseBattleCommand ToCommand(EnemyTacticalDecision decision)
@@ -872,6 +991,16 @@ public sealed class OffenseBattleRuntime :
         }
 
         combatant.ApplyBodyHealth(bodyHealthQuery.GetSnapshot(actor));
+        CharacterPerformanceSnapshot arcane = performance.Evaluate(
+            actor,
+            CharacterPerformanceFormulaIds.ArcanePower);
+        if (!arcane.IsApplicable)
+        {
+            throw new InvalidOperationException(
+                arcane.Failure?.Message
+                ?? $"Arcane power is unavailable for battle combatant '{combatant.PersistentId}'.");
+        }
+        combatant.SetArcanePowerMultiplier(arcane.Value);
     }
 
     private void SynchronizeAlliedBodyHealth()

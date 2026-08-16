@@ -230,20 +230,60 @@ internal sealed class InvasionIntruderExecutionCoordinator
                 yield break;
             }
 
+            DefenseEngagement pendingIntercept = null;
+            bool hasPendingIntercept =
+                host.DefenseEngagement?.TryGetEngagement(
+                    host.Runtime,
+                    out pendingIntercept) == true
+                && pendingIntercept != null
+                && pendingIntercept.State is DefenseEngagementState.InterceptPlanned
+                    or DefenseEngagementState.Dispatching
+                    or DefenseEngagementState.ReserveWaiting;
+            if (hasPendingIntercept
+                && host.Actor.GetNowXY() == pendingIntercept.IntruderStopCell)
+            {
+                // The guard owns the other side of the intercept. Hold the
+                // planned cell even when the guard movement finishes on a later
+                // frame instead of resuming the route toward a moving owner.
+                host.PriorityTarget = null;
+                host.State = InvasionIntruderState.InterceptPlanned;
+                yield return null;
+                continue;
+            }
+
             host.Elapsed += Mathf.Max(0.01f, host.Settings.repathIntervalSeconds);
-            Queue<GridMoveStep> path = host.CreateNextPath(
-                grid,
-                host.HasFinalDefenseTarget
-                    ? host.FinalDefenseTarget
-                    : owner.GetNowXY(),
-                out bool direct,
-                out BuildableObject priorityTarget);
+            Queue<GridMoveStep> path;
+            bool direct;
+            BuildableObject priorityTarget;
+            if (hasPendingIntercept)
+            {
+                // The intercept planner chose this stop from a production-live
+                // intruder route. Once committed, subsequent owner movement or
+                // awareness replans must not make the intruder bypass it.
+                path = grid.GetMovePathTo(
+                    host.Actor.GetNowXY(),
+                    pendingIntercept.IntruderStopCell);
+                direct = true;
+                priorityTarget = null;
+            }
+            else
+            {
+                path = host.CreateNextPath(
+                    grid,
+                    host.HasFinalDefenseTarget
+                        ? host.FinalDefenseTarget
+                        : owner.GetNowXY(),
+                    out direct,
+                    out priorityTarget);
+            }
             host.PriorityTarget = priorityTarget;
-            host.State = priorityTarget != null
-                ? InvasionIntruderState.MovingToFacility
-                : direct
-                    ? InvasionIntruderState.MovingToOwner
-                    : InvasionIntruderState.Searching;
+            host.State = hasPendingIntercept
+                ? InvasionIntruderState.InterceptPlanned
+                : priorityTarget != null
+                    ? InvasionIntruderState.MovingToFacility
+                    : direct
+                        ? InvasionIntruderState.MovingToOwner
+                        : InvasionIntruderState.Searching;
 
             if (host.HasBreachedDungeonInterior
                 && !(host.DefenseEngagement?.ShouldHoldIntruder(host.Runtime) ?? false)
@@ -254,8 +294,18 @@ internal sealed class InvasionIntruderExecutionCoordinator
                     + host.Settings.facilityDamageIntervalSeconds;
             }
 
-            if (path.Count == 0)
+            if (path == null || path.Count == 0)
             {
+                if (hasPendingIntercept)
+                {
+                    host.DefenseEngagement?.NotifyIntruderInterceptPathUnavailable(
+                        host.Runtime,
+                        $"No route from {host.Actor.GetNowXY()} to committed intercept cell "
+                        + $"{pendingIntercept.IntruderStopCell}.");
+                    yield return null;
+                    continue;
+                }
+
                 if (host.HasFinalDefenseTarget)
                 {
                     host.HasFinalDefenseTarget = false;

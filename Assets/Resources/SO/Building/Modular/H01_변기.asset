@@ -61,6 +61,8 @@ MonoBehaviour:
     - rid: 7737211921440178326
     - rid: 7737211921440178327
     - rid: 7737211921440178328
+    - rid: 7737211981816660631
+    - rid: 7737211981816660632
   width: 1
   height: 1
   layer: 1
@@ -125,7 +127,7 @@ MonoBehaviour:
           capacity: 1
           useDuration: 3.5
           requiredWorkers: 0
-          supportedWorkTypes: 12
+          supportedWorkTypes: 536870924
           disabledWhenDamaged: 1
     - rid: 7737211921440178325
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
@@ -159,3 +161,20 @@ MonoBehaviour:
       data:
         abilityId: BuildingCleaningAbility
         restoredCleanliness: 100
+    - rid: 7737211981816660631
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 6
+        maxThroughput: 20
+        normallyOpen: 1
+    - rid: 7737211981816660632
+      type: {class: BuildingWaterFixtureAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWaterFixtureAbility
+        cleanWaterPerUse: 0.25
+        wastewaterPerUse: 0.25
+        minimumQuality: 0
+        allowsManualWaterFallback: 1
+        allowsDryFallback: 1
+        manualWasteItemId: resource:manure

@@ -5,7 +5,8 @@ using DungeonStory.Foundation;
 using UnityEngine;
 
 public sealed class SurgeryRestoreCoordinator :
-    IDungeonRestoreTransactionParticipant
+    IDungeonRestoreTransactionParticipant,
+    IDungeonSaveRestoreCompletedHook
 {
     private const string RestoreParticipantId = "525.world.surgery";
 
@@ -87,8 +88,67 @@ public sealed class SurgeryRestoreCoordinator :
                 "A surgery restore candidate was staged more than once.");
         }
 
+        FacilityBufferDestinationClaim[] destinationClaims =
+            BuildActiveMaterialDestinationClaims(candidate.State);
+        if (!resources.DestinationClaimCommands.TryReplaceOwnedClaims(
+                SurgeryMaterialDestinationAuthority.OwnerDomain,
+                destinationClaims,
+                out FacilityBufferDestinationClaimFailureCode failureCode,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Could not stage surgery material destination claims: "
+                + $"{failureCode}: {failureReason}");
+        }
+
         stateStore.Replace(candidate.State);
         restoreCandidatePrepared = true;
+    }
+
+    private FacilityBufferDestinationClaim[]
+        BuildActiveMaterialDestinationClaims(SurgeryAggregateState candidate)
+    {
+        if (candidate == null)
+            throw new ArgumentNullException(nameof(candidate));
+
+        Dictionary<string, BuildableObject> facilitiesById =
+            world.Buildings.Buildings
+                .Where(building => building != null
+                    && !building.isDestroy
+                    && building.BuildingData?.Facility != null
+                    && building.PersistentInstanceId.IsValid)
+                .Select(building => new
+                {
+                    Id = content.Facilities.GetFacilityId(building),
+                    Building = building
+                })
+                .Where(entry => !string.IsNullOrWhiteSpace(entry.Id))
+                .GroupBy(entry => entry.Id, StringComparer.Ordinal)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Single().Building,
+                    StringComparer.Ordinal);
+
+        List<FacilityBufferDestinationClaim> claims = new();
+        foreach (SurgeryOrder order in candidate.Orders
+                     .Where(order => order?.IsActive == true))
+        {
+            if (!facilitiesById.TryGetValue(
+                    order.facilityId,
+                    out BuildableObject facility))
+            {
+                throw new InvalidOperationException(
+                    $"Active surgery order '{order.orderId}' has no exact live "
+                    + $"facility '{order.facilityId}' for material destination restore.");
+            }
+
+            claims.Add(
+                SurgeryMaterialDestinationAuthority.CreateClaim(
+                    order,
+                    facility.centerPos));
+        }
+
+        return claims.ToArray();
     }
 
     public void BeginRestoreCandidate()
@@ -178,6 +238,23 @@ public sealed class SurgeryRestoreCoordinator :
         finally
         {
             ResetTransactionState();
+        }
+    }
+
+    public void OnRestoreCompleted()
+    {
+        // Participant completion runs in reverse order, before restored
+        // characters are published and AI-eligible. The whole-save hook is the
+        // first boundary where a persisted clinical order can lawfully wake a
+        // worker. Without it, the serialized doctor/order link survives but no
+        // transient AIWork owner is recreated, so the operation can remain
+        // stranded until an unrelated scheduler wake.
+        if (stateStore.ActiveOrders.Count > 0)
+        {
+            resources.Workforce.RequestOneWorkerToReplanFor(
+                BuiltInWorkTypeIds.Surgery,
+                clearFailures: true,
+                forceInterrupt: false);
         }
     }
 

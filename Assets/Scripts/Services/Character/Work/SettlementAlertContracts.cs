@@ -47,7 +47,9 @@ public readonly struct SettlementSuspendedWorkSnapshot
         string targetBuildingId,
         long alertEpochId,
         long suspendedAtAbsoluteHour,
-        bool progressExternallyPersisted)
+        bool progressExternallyPersisted,
+        float inlineCompletedWork = 0f,
+        float inlineRequiredWork = 0f)
     {
         CharacterId = characterId?.Trim() ?? string.Empty;
         WorkTypeId = workTypeId;
@@ -55,6 +57,8 @@ public readonly struct SettlementSuspendedWorkSnapshot
         AlertEpochId = alertEpochId;
         SuspendedAtAbsoluteHour = suspendedAtAbsoluteHour;
         ProgressExternallyPersisted = progressExternallyPersisted;
+        InlineCompletedWork = inlineCompletedWork;
+        InlineRequiredWork = inlineRequiredWork;
     }
 
     public string CharacterId { get; }
@@ -63,6 +67,15 @@ public readonly struct SettlementSuspendedWorkSnapshot
     public long AlertEpochId { get; }
     public long SuspendedAtAbsoluteHour { get; }
     public bool ProgressExternallyPersisted { get; }
+    public float InlineCompletedWork { get; }
+    public float InlineRequiredWork { get; }
+    public bool HasInlineProgress => InlineRequiredWork > 0f
+        && InlineCompletedWork >= 0f
+        && InlineCompletedWork < InlineRequiredWork
+        && !float.IsNaN(InlineCompletedWork)
+        && !float.IsInfinity(InlineCompletedWork)
+        && !float.IsNaN(InlineRequiredWork)
+        && !float.IsInfinity(InlineRequiredWork);
 }
 
 public readonly struct SettlementAlertSnapshot
@@ -166,6 +179,10 @@ public interface ISettlementAlertService
     EmergencyAccountingResult MarkSuspendedWorkResumed(
         string characterId,
         long epochId);
+    EmergencyAccountingResult MarkSuspendedWorkAbandoned(
+        string characterId,
+        long epochId,
+        string reasonCode);
 }
 
 public interface ISettlementAlertPersistence

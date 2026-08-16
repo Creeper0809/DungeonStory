@@ -41,6 +41,8 @@ public readonly struct AIActionFailure
     {
         return kind switch
         {
+            AIActionFailureKind.PathSearchStarved =>
+                "Path search remained deferred beyond the starvation gate.",
             AIActionFailureKind.FacilityAdmissionRejected => "Facility admission rejected.",
             AIActionFailureKind.FacilityServiceUnavailable => "Facility service unavailable.",
             AIActionFailureKind.ResourceUnavailable => "Required facility resource unavailable.",

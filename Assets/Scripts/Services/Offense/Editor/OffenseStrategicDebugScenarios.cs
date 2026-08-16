@@ -555,17 +555,88 @@ public static class OffenseStrategicDebugScenarios
             generatedCards.Count == 8,
             "개인 명령 덱이 8장으로 구성되지 않았습니다.");
         Require(
-            generatedCards[0].sourceSkillId.Length == 0
+            generatedCards[0].actionType == OffenseBattleActionType.BasicAttack
+            && generatedCards[0].sourceSkillId.Length == 0
+            && generatedCards[1].actionType == OffenseBattleActionType.Advance
             && generatedCards[1].sourceSkillId.Length == 0,
-            "무기 기본기 두 장이 생성 액티브를 복제했습니다.");
+            "전략 덱의 기본 공격과 전진 행동 권위가 명시되지 않았습니다.");
         Require(
             generatedCards[0].displayName == "기본 공격"
-            && generatedCards[1].displayName == "견제 공격",
-            "무기 기본기 이름이 계획된 한국어 이름과 다릅니다.");
+            && generatedCards[1].displayName == "전진",
+            "기본 공격과 전진 카드 이름이 계획된 한국어 이름과 다릅니다.");
         Require(
             generatedCards.Skip(2).All(
-                card => card.sourceSkillId == statusOnlyAbility.Id),
+                card => card.actionType == OffenseBattleActionType.Ability
+                    && card.sourceSkillId == statusOnlyAbility.Id),
             "일반 기술 카드가 캐릭터 액티브와 연결되지 않았습니다.");
+
+        OffenseBattleCombatant frontAlly = new OffenseBattleCombatant(
+            "ally:liveness",
+            "전열 검증원",
+            "human",
+            OffenseBattleTeam.Allies,
+            new OffenseBattleStats(60f, 8f, 7f, 6f, 7f, 6f),
+            60f,
+            formation: OffenseFormationSlot.Front);
+        OffenseBattleCombatant protectedObjective = new OffenseBattleCombatant(
+            "ally:objective",
+            "보호 대상",
+            "human",
+            OffenseBattleTeam.Allies,
+            new OffenseBattleStats(60f, 1f, 1f, 1f, 1f, 1f),
+            60f,
+            formation: OffenseFormationSlot.Rear,
+            participatesInInitiative: false);
+        OffenseBattleCombatant rearEnemy = new OffenseBattleCombatant(
+            "enemy:liveness",
+            "후열 근접 적",
+            "human",
+            OffenseBattleTeam.Enemies,
+            new OffenseBattleStats(60f, 8f, 7f, 6f, 7f, 6f),
+            60f,
+            formation: OffenseFormationSlot.Rear);
+        OffenseBattleSession livenessSession = new OffenseBattleSession(
+            "battle:liveness",
+            "expedition:liveness",
+            "site:liveness",
+            "후열 근접 교착 검증",
+            DungeonDifficulty.Normal,
+            new[] { frontAlly, protectedObjective, rearEnemy },
+            OffenseEditorTestDependencies.CreateCombatResolution(),
+            OffenseEditorTestDependencies.CreateCombatEquipmentRuntime());
+        IReadOnlyList<OffenseBattleMemberDeckSeed> livenessDecks =
+            OffenseStrategicBattleSetupFactory.CreateMemberDecks(
+                livenessSession);
+        IReadOnlyList<OffenseEnemyIntentStateData> livenessIntents =
+            OffenseStrategicBattleSetupFactory.CreateEnemyIntents(
+                livenessSession);
+        Require(
+            livenessDecks.Count == 1
+            && livenessDecks[0].characterId == frontAlly.PersistentId
+            && livenessDecks[0].cards.Count(card =>
+                card.actionType == OffenseBattleActionType.Advance) >= 1,
+            "비선제 보호 대상이 덱을 소유하거나 전진 카드가 누락되었습니다.");
+        Require(
+            livenessIntents.Count == 1
+            && livenessIntents[0].enemyId == rearEnemy.PersistentId
+            && livenessIntents[0].actionType == OffenseBattleActionType.Advance
+            && livenessIntents[0].targetCharacterId == rearEnemy.PersistentId,
+            "후열 근접 적이 불법 기본 공격 대신 명시적 전진 의도를 만들지 않았습니다.");
+        Require(
+            livenessSession.PreparePlannedRound(1, out string livenessReason)
+            && livenessSession.TryExecutePlannedCommand(
+                new OffenseBattleCommand(
+                    1,
+                    rearEnemy.PersistentId,
+                    livenessIntents[0].actionType,
+                    livenessIntents[0].targetCharacterId,
+                    livenessIntents[0].actionId),
+                out OffenseBattleCommandResult livenessResult)
+            && livenessResult.Accepted
+            && rearEnemy.Formation == OffenseFormationSlot.Middle
+            && livenessSession.LastProcessedCommandId == 1,
+            "후열 근접 적의 typed 전진 명령이 진형과 command ID를 진행시키지 않았습니다. "
+                + livenessReason);
 
         RecordingResolutionAdapter adapter = new RecordingResolutionAdapter();
         OffenseBattleDirector director = new OffenseBattleDirector(adapter);
@@ -592,6 +663,7 @@ public static class OffenseStrategicDebugScenarios
 
         foreach (OffenseCommandDeckStateData deck in director.State.decks)
         {
+            deck.candidates[0].actionType = OffenseBattleActionType.Advance;
             Require(director.TryCommitCommand(
                     deck.characterId,
                     deck.candidates[0].instanceId,
@@ -604,18 +676,229 @@ public static class OffenseStrategicDebugScenarios
         IReadOnlyList<OffenseResolvedCommand> resolved = director.ResolveTurn();
         Require(resolved.Count == 2, "두 아군 명령이 모두 해결되지 않았습니다.");
         Require(
+            resolved[0].execution.Outcome == OffenseCommandOutcome.ClashLost
+            && resolved[1].execution.Outcome == OffenseCommandOutcome.Executed
+            && adapter.Requests.Count(request =>
+                request.actionType == OffenseBattleActionType.Advance) == 1,
+            "clash를 통과한 카드의 typed 전진 행동이 resolution request에 보존되지 않았습니다.");
+        Require(
             adapter.Requests.Count(request => request.actorId == "enemy:1") == 1,
             "하나의 적 의도가 여러 번 실행되었습니다.");
         Require(
             adapter.Requests.Count(request => request.actorId == "enemy:2") == 1,
             "가로채지 않은 적 의도가 실행되지 않았습니다.");
         Require(adapter.FinalizeCount == 1, "한 명령열이 한 번만 마감되지 않았습니다.");
+
+        RecordingResolutionAdapter unavailableAdapter =
+            new RecordingResolutionAdapter();
+        unavailableAdapter.UnavailableActorIds.Add("ally:unavailable");
+        unavailableAdapter.FinalizationFailuresRemaining = 1;
+        OffenseBattleDirector unavailableDirector =
+            new OffenseBattleDirector(unavailableAdapter);
+        OffenseBattleMemberDeckSeed unavailableDeck = CreateDeck(
+            "ally:unavailable",
+            OffenseFormationPosition.FrontLeft);
+        foreach (OffenseCommandCardStateData card in unavailableDeck.cards)
+        {
+            card.executionStages = 3;
+            card.speed = 999;
+            card.power = 999;
+        }
+        OffenseEnemyIntentStateData survivingIntent = CreateIntent(
+            "intent:survives-unavailable",
+            "enemy:survives-unavailable",
+            "ally:unavailable");
+        survivingIntent.executionStages = 1;
+        survivingIntent.speed = 1;
+        survivingIntent.threat = 1;
+        Require(unavailableDirector.TryStartBattle(
+                "battle:unavailable-interception",
+                new[] { unavailableDeck },
+                new[] { survivingIntent },
+                117,
+                out reason),
+            reason);
+        Require(unavailableDirector.TryDrawTurn(out reason), reason);
+        OffenseCommandDeckStateData unavailableDraw =
+            unavailableDirector.State.decks[0];
+        Require(unavailableDirector.TryCommitCommand(
+                unavailableDraw.characterId,
+                unavailableDraw.candidates[0].instanceId,
+                survivingIntent.intentId,
+                survivingIntent.enemyId,
+                out reason),
+            reason);
+        IReadOnlyList<OffenseResolvedCommand> unavailableResolved =
+            unavailableDirector.ResolveTurn();
+        Require(
+            unavailableResolved.Count == 1
+            && unavailableResolved[0].execution.Outcome
+                == OffenseCommandOutcome.Unavailable
+            && unavailableResolved[0].execution.FailureReason
+                == "focused-unavailable",
+            "실행 불가 아군 명령이 typed Unavailable로 보존되지 않았습니다.");
+        Require(
+            unavailableAdapter.Requests.Count(request =>
+                request.actorId == survivingIntent.enemyId
+                && request.survivingExecutionStages
+                    == survivingIntent.executionStages) == 1,
+            "실행 불가 아군 명령이 가로챈 적 의도를 공짜로 소모했습니다.");
+        Require(
+            unavailableDirector.LastResolvedEnemyIntents.Count == 1
+            && unavailableDirector.LastResolvedEnemyIntents[0]
+                .intentId == survivingIntent.intentId
+            && unavailableDirector.LastResolvedEnemyIntents[0]
+                .requestedExecutionStages == survivingIntent.executionStages
+            && unavailableDirector.LastResolvedEnemyIntents[0]
+                .retainedFullExecutionStages
+            && unavailableDirector.LastResolvedEnemyIntents[0]
+                .execution.Outcome == OffenseCommandOutcome.Executed,
+            "실행 불가 가로채기 뒤 적 의도의 full-stage typed 결과가 보존되지 않았습니다.");
+        Require(
+            !unavailableDirector.LastTurnFinalization.Succeeded
+            && unavailableDirector.LastTurnFinalization.FailureReason
+                == "focused-finalization-failure"
+            && unavailableDirector.State.commandQueue.Count == 1,
+            "마감 실패가 typed reason과 재시도 가능한 명령열을 보존하지 않았습니다.");
+        int requestCountAfterResolution = unavailableAdapter.Requests.Count;
+        int failedFinalizeCount = unavailableAdapter.FinalizeCount;
+        IReadOnlyList<OffenseResolvedCommand> retriedResolution =
+            unavailableDirector.ResolveTurn();
+        Require(
+            unavailableDirector.LastTurnFinalization.Succeeded
+            && unavailableAdapter.FinalizeCount == failedFinalizeCount + 1
+            && unavailableAdapter.Requests.Count == requestCountAfterResolution
+            && unavailableDirector.State.commandQueue.Count == 0
+            && retriedResolution.Count == unavailableResolved.Count,
+            "마감 재시도가 명령·적 의도를 중복 실행하거나 완료 커밋에 실패했습니다.");
+        int finalizeCountAfterResolution = unavailableAdapter.FinalizeCount;
+        IReadOnlyList<OffenseResolvedCommand> duplicateResolution =
+            unavailableDirector.ResolveTurn();
+        Require(
+            ReferenceEquals(duplicateResolution, unavailableDirector.LastResolvedTurn)
+            && unavailableAdapter.Requests.Count == requestCountAfterResolution
+            && unavailableAdapter.FinalizeCount == finalizeCountAfterResolution,
+            "완료된 같은 명령열을 두 번 resolve하여 planned round를 중복 처리했습니다.");
+
+        RecordingResolutionAdapter terminalAdapter =
+            new RecordingResolutionAdapter();
+        OffenseBattleDirector terminalDirector =
+            new OffenseBattleDirector(terminalAdapter);
+        OffenseBattleMemberDeckSeed terminalDeck = CreateDeck(
+            "ally:terminal-reentry",
+            OffenseFormationPosition.FrontLeft);
+        OffenseEnemyIntentStateData terminalIntent = CreateIntent(
+            "intent:terminal-reentry",
+            "enemy:terminal-reentry",
+            terminalDeck.characterId);
+        Require(terminalDirector.TryStartBattle(
+                "battle:terminal-reentry",
+                new[] { terminalDeck },
+                new[] { terminalIntent },
+                221,
+                out reason),
+            reason);
+        Require(terminalDirector.TryDrawTurn(out reason), reason);
+        OffenseBattleDirectorStateData terminalStateSnapshot =
+            terminalDirector.State;
+        Require(terminalDirector.TryCommitCommand(
+                terminalDeck.characterId,
+                terminalStateSnapshot.decks[0].candidates[0].instanceId,
+                terminalIntent.intentId,
+                terminalIntent.enemyId,
+                out reason),
+            reason);
+        terminalAdapter.FinalizeAction = terminalDirector.Clear;
+        IReadOnlyList<OffenseResolvedCommand> terminalResolved =
+            terminalDirector.ResolveTurn();
+        Require(terminalDirector.State == null
+            && terminalResolved.Count == 1
+            && terminalDirector.LastResolvedTurn.Count == 1
+            && terminalDirector.LastTurnFinalization.Succeeded,
+            "전투 terminal 재진입이 완료 trace를 유실하거나 예외 없이 종료되지 못했습니다.");
+        Require(terminalStateSnapshot.commandQueue.Count == 0
+            && terminalStateSnapshot.decks[0].candidates.Count == 0
+            && terminalStateSnapshot.finalizedTurn == terminalStateSnapshot.turn,
+            "terminal 중 제거된 director 상태의 카드·queue·finalized fence가 exact cleanup되지 않았습니다.");
+
+        RecordingResolutionAdapter replacementAdapter =
+            new RecordingResolutionAdapter();
+        OffenseBattleDirector replacementDirector =
+            new OffenseBattleDirector(replacementAdapter);
+        OffenseBattleMemberDeckSeed replacedDeck = CreateDeck(
+            "ally:replaced-state",
+            OffenseFormationPosition.FrontLeft);
+        OffenseEnemyIntentStateData replacedIntent = CreateIntent(
+            "intent:replaced-state",
+            "enemy:replaced-state",
+            replacedDeck.characterId);
+        Require(replacementDirector.TryStartBattle(
+                "battle:replaced-state-old",
+                new[] { replacedDeck },
+                new[] { replacedIntent },
+                222,
+                out reason),
+            reason);
+        Require(replacementDirector.TryDrawTurn(out reason), reason);
+        Require(replacementDirector.TryCommitCommand(
+                replacedDeck.characterId,
+                replacementDirector.State.decks[0].candidates[0].instanceId,
+                replacedIntent.intentId,
+                replacedIntent.enemyId,
+                out reason),
+            reason);
+        OffenseBattleMemberDeckSeed replacementDeck = CreateDeck(
+            "ally:replacement-state",
+            OffenseFormationPosition.MiddleLeft);
+        OffenseEnemyIntentStateData replacementIntent = CreateIntent(
+            "intent:replacement-state",
+            "enemy:replacement-state",
+            replacementDeck.characterId);
+        OffenseBattleDirectorStateData replacementState = null;
+        replacementAdapter.FinalizeAction = () =>
+        {
+            replacementDirector.Clear();
+            if (!replacementDirector.TryStartBattle(
+                    "battle:replacement-state-new",
+                    new[] { replacementDeck },
+                    new[] { replacementIntent },
+                    223,
+                    out string replacementReason)
+                || !replacementDirector.TryDrawTurn(out replacementReason))
+            {
+                throw new InvalidOperationException(replacementReason);
+            }
+
+            replacementState = replacementDirector.State;
+        };
+        string replacementFailure = string.Empty;
+        try
+        {
+            replacementDirector.ResolveTurn();
+        }
+        catch (InvalidOperationException exception)
+        {
+            replacementFailure = exception.Message;
+        }
+
+        Require(replacementFailure.Contains("state was replaced")
+            && ReferenceEquals(replacementDirector.State, replacementState)
+            && replacementState != null
+            && replacementState.turn == 1
+            && replacementState.commandQueue.Count == 0
+            && replacementState.decks[0].candidates.Count == 2
+            && replacementDirector.LastResolvedTurn.Count == 0
+            && replacementDirector.LastResolvedEnemyIntents.Count == 0
+            && replacementDirector.LastTurnFinalization.Succeeded,
+            "이전 finalizer가 non-null replacement state의 pending/trace/card 소유권을 덮어썼습니다.");
         Require(director.TryReplaceEnemyIntents(
                 new[] { CreateIntent("intent:next", "enemy:1", "ally:2") },
                 out reason),
             reason);
         Require(director.TryDrawTurn(out reason), reason);
-        Require(director.State.turn == 2, "다음 턴 카드가 갱신되지 않았습니다.");
+        Require(director.State.turn == 2
+                && director.LastResolvedTurn.Count == 2,
+            "다음 턴 draw가 완료된 직전 resolution trace를 지웠습니다.");
     }
 
     private static void VerifyPhysicalExpeditionPacking()
@@ -635,11 +918,14 @@ public static class OffenseStrategicDebugScenarios
                 ?.SetValue(staging, new Vector2Int(9, 4));
             RecordingProductionItemGateway items =
                 new RecordingProductionItemGateway();
+            FacilityBufferDestinationClaimRegistry destinationClaims = new();
             DungeonOffensePreparationService preparation =
                 new DungeonOffensePreparationService(
                     new EmptyWarehouseInventoryQuery(),
                     items,
-                    new FixedExteriorZoneQuery(staging));
+                    new FixedExteriorZoneQuery(staging),
+                    destinationClaims,
+                    destinationClaims);
             OffenseSupplyLoadout loadout = new OffenseSupplyLoadout();
             loadout.Add(OffenseSupplyType.Rations, 2);
 
@@ -650,6 +936,24 @@ public static class OffenseStrategicDebugScenarios
                     "packing:cancel",
                     out string message),
                 message);
+            string cancelDestination = "expedition:packing:cancel";
+            Require(
+                destinationClaims.TryGetClaim(
+                    cancelDestination,
+                    staging.centerPos,
+                    out FacilityBufferDestinationClaim cancelClaim)
+                && cancelClaim.AnchorKind
+                    == FacilityBufferDestinationAnchorKind.ReservedTarget
+                && string.Equals(
+                    cancelClaim.OwnerDomain,
+                    "offense.expedition-supply",
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    cancelClaim.OwnerOperationId,
+                    "packing:cancel",
+                    StringComparison.Ordinal)
+                && cancelClaim.OwnerFacilityId == null,
+                "원정 보급 집결지의 exact ReservedTarget claim이 없습니다.");
             OffenseSupplyPackingSnapshot pending =
                 preparation.GetPackingSnapshot("packing:cancel");
             Require(
@@ -667,23 +971,176 @@ public static class OffenseStrategicDebugScenarios
                 savedPacking.Count == 1
                 && savedPacking[0].costs.Sum(cost => cost.amount) == 2,
                 "운반 중 보급 패키지가 저장되지 않았습니다.");
+
+            OffenseSupplyPackingStateData transactionPackage =
+                new OffenseSupplyPackingStateData
+                {
+                    packageId = "packing:transaction-restored",
+                    destinationId = "expedition:packing:transaction-restored",
+                    stagingX = staging.centerPos.x,
+                    stagingY = staging.centerPos.y,
+                    consumed = false,
+                    costs = new List<OffenseSupplyPackingItemStateData>
+                    {
+                        new OffenseSupplyPackingItemStateData
+                        {
+                            itemId = "food:preserved-ration",
+                            amount = 2
+                        }
+                    }
+                };
+            preparation.BeginRestoreCandidate();
+            destinationClaims.BeginRestoreCandidate();
+            FacilityBufferDestinationClaim foreignCandidateClaim = new(
+                "qa:foreign-buffer-destination",
+                new Vector2Int(3, 7),
+                "qa.foreign-domain",
+                "qa:foreign-operation",
+                ownerFacilityId: null,
+                FacilityBufferDestinationAnchorKind.ReservedTarget);
+            Require(
+                destinationClaims.TryClaim(
+                    foreignCandidateClaim,
+                    out FacilityBufferDestinationClaimFailureCode foreignFailure,
+                    out string foreignReason),
+                $"foreign candidate claim staging failed: {foreignFailure}: {foreignReason}");
+            bool preparationPublished = false;
+            bool claimsPublished = false;
+            try
+            {
+                preparation.RestorePackingState(new[] { transactionPackage });
+                Require(
+                    preparation.GetPackingSnapshot("packing:cancel").Exists
+                    && !preparation.GetPackingSnapshot(
+                        "packing:transaction-restored").Exists
+                    && destinationClaims.TryGetClaim(
+                        cancelDestination,
+                        staging.centerPos,
+                        out _),
+                    "restore staging이 publish 전에 live package/claim을 변경했습니다.");
+
+                preparation.PublishRestoreCandidate();
+                preparationPublished = true;
+                Require(
+                    !preparation.GetPackingSnapshot("packing:cancel").Exists
+                    && preparation.GetPackingSnapshot(
+                        "packing:transaction-restored").Exists
+                    && destinationClaims.TryGetClaim(
+                        cancelDestination,
+                        staging.centerPos,
+                        out _),
+                    "package participant publish 경계가 claim publish와 분리되지 않았습니다.");
+
+                destinationClaims.PublishRestoreCandidate();
+                claimsPublished = true;
+                Require(
+                    destinationClaims.TryGetClaim(
+                        transactionPackage.destinationId,
+                        transactionPackage.StagingPosition,
+                        out FacilityBufferDestinationClaim transactionClaim)
+                    && string.Equals(
+                        transactionClaim.OwnerOperationId,
+                        transactionPackage.packageId,
+                        StringComparison.Ordinal)
+                    && destinationClaims.TryGetClaim(
+                        foreignCandidateClaim.DestinationId,
+                        foreignCandidateClaim.DropPosition,
+                        out _),
+                    "claim participant가 staged 원정 목적지를 publish하지 않았습니다.");
+                Require(
+                    !destinationClaims.TryClaim(
+                        new FacilityBufferDestinationClaim(
+                            "qa:post-publish-mutation",
+                            new Vector2Int(4, 7),
+                            "qa.foreign-domain",
+                            "qa:post-publish-operation",
+                            ownerFacilityId: null,
+                            FacilityBufferDestinationAnchorKind.ReservedTarget),
+                        out FacilityBufferDestinationClaimFailureCode
+                            postPublishFailure,
+                        out _)
+                    && postPublishFailure
+                        == FacilityBufferDestinationClaimFailureCode
+                            .RestoreMutationAfterPublish,
+                    "claim registry가 restore publish 뒤 mutation을 fail-loud하지 않았습니다.");
+
+                destinationClaims.RollbackPublishedRestoreCandidate();
+                claimsPublished = false;
+                preparation.RollbackPublishedRestoreCandidate();
+                preparationPublished = false;
+                Require(
+                    preparation.GetPackingSnapshot("packing:cancel").Exists
+                    && !preparation.GetPackingSnapshot(
+                        "packing:transaction-restored").Exists
+                    && destinationClaims.TryGetClaim(
+                        cancelDestination,
+                        staging.centerPos,
+                        out _)
+                    && !destinationClaims.TryGetClaim(
+                        transactionPackage.destinationId,
+                        transactionPackage.StagingPosition,
+                        out _)
+                    && !destinationClaims.TryGetClaim(
+                        foreignCandidateClaim.DestinationId,
+                        foreignCandidateClaim.DropPosition,
+                        out _),
+                    "later restore failure 뒤 package/claim live image가 함께 rollback되지 않았습니다.");
+            }
+            finally
+            {
+                if (claimsPublished)
+                    destinationClaims.RollbackPublishedRestoreCandidate();
+                else
+                    destinationClaims.DiscardRestoreCandidate();
+                if (preparationPublished)
+                    preparation.RollbackPublishedRestoreCandidate();
+                else
+                    preparation.DiscardRestoreCandidate();
+            }
+
+            FacilityBufferDestinationClaimRegistry restoredDestinationClaims =
+                new();
             DungeonOffensePreparationService restoredPreparation =
                 new DungeonOffensePreparationService(
                     new EmptyWarehouseInventoryQuery(),
                     items,
-                    new FixedExteriorZoneQuery(staging));
+                    new FixedExteriorZoneQuery(staging),
+                    restoredDestinationClaims,
+                    restoredDestinationClaims);
             restoredPreparation.RestorePackingState(savedPacking);
             Require(
                 restoredPreparation.GetPackingSnapshot("packing:cancel")
                     .IsInTransit
-                && items.RequestedAmount == 2,
+                && items.RequestedAmount == 2
+                && restoredDestinationClaims.TryGetClaim(
+                    cancelDestination,
+                    staging.centerPos,
+                    out FacilityBufferDestinationClaim restoredClaim)
+                && restoredClaim.AnchorKind
+                    == FacilityBufferDestinationAnchorKind.ReservedTarget
+                && string.Equals(
+                    restoredClaim.OwnerDomain,
+                    "offense.expedition-supply",
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    restoredClaim.OwnerOperationId,
+                    "packing:cancel",
+                    StringComparison.Ordinal)
+                && restoredDestinationClaims.CaptureClaims().Count == 1,
                 "로드 후 보급 패키지 또는 기존 물리 예약이 중복 없이 복원되지 않았습니다.");
             preparation = restoredPreparation;
+            destinationClaims = restoredDestinationClaims;
 
             preparation.ReturnSupplies(loadout, "packing:cancel");
             Require(
                 items.ReleasedAmount == 2
-                && !preparation.GetPackingSnapshot("packing:cancel").Exists,
+                && string.Equals(
+                    items.LastReleasedDestinationId,
+                    cancelDestination,
+                    StringComparison.Ordinal)
+                && items.LastReleasedPosition == staging.centerPos
+                && !preparation.GetPackingSnapshot("packing:cancel").Exists
+                && destinationClaims.CaptureClaims().Count == 0,
                 "출정 취소 시 예약 물자가 정상 운반 흐름으로 반환되지 않았습니다.");
 
             Require(
@@ -706,7 +1163,8 @@ public static class OffenseStrategicDebugScenarios
                 preparation.GetPackingSnapshot("packing:depart");
             Require(
                 consumed.Consumed
-                && items.ConsumedAmount == 2,
+                && items.ConsumedAmount == 2
+                && destinationClaims.CaptureClaims().Count == 0,
                 "실제 출발 시 집결지 보급품을 정확히 소비하지 않았습니다.");
         }
         finally
@@ -725,11 +1183,14 @@ public static class OffenseStrategicDebugScenarios
                 stagingObject.AddComponent<ExteriorZoneMarker>();
             RecordingProductionItemGateway items =
                 new RecordingProductionItemGateway();
+            FacilityBufferDestinationClaimRegistry destinationClaims = new();
             DungeonOffensePreparationService preparation =
                 new DungeonOffensePreparationService(
                     new EmptyWarehouseInventoryQuery(),
                     items,
-                    new FixedExteriorZoneQuery(staging));
+                    new FixedExteriorZoneQuery(staging),
+                    destinationClaims,
+                    destinationClaims);
             OffenseSupplyLoadout loadout = new OffenseSupplyLoadout();
             loadout.Add(OffenseSupplyType.Tools, 2);
 
@@ -764,6 +1225,19 @@ public static class OffenseStrategicDebugScenarios
 
     private static void VerifySaveRoundTrip()
     {
+        GameObject stagingObject = new GameObject(
+            "OffenseSaveRoundTripStagingFixture");
+        ExteriorZoneMarker staging =
+            stagingObject.AddComponent<ExteriorZoneMarker>();
+        typeof(BuildableObject)
+            .GetProperty(
+                nameof(BuildableObject.centerPos),
+                System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.Public
+                | System.Reflection.BindingFlags.NonPublic)
+            ?.SetValue(staging, new Vector2Int(8, 3));
+        try
+        {
         const int worldSeed = 170017;
         const string expeditionId = "save:travel";
         EditorContentCatalog catalog = LoadCatalog();
@@ -797,7 +1271,7 @@ public static class OffenseStrategicDebugScenarios
                 new OffenseSupplyPackingStateData
                 {
                     packageId = "package:save",
-                    destinationId = "expedition-staging:save",
+                    destinationId = "expedition:package:save",
                     stagingX = 8,
                     stagingY = 3,
                     consumed = false,
@@ -917,11 +1391,14 @@ public static class OffenseStrategicDebugScenarios
                 new MutableGameClock(),
                 workforce: null,
                 facilityCandidates: null);
+        FacilityBufferDestinationClaimRegistry restoredDestinationClaims = new();
         DungeonOffensePreparationService restoredPreparation =
             new DungeonOffensePreparationService(
                 new EmptyWarehouseInventoryQuery(),
                 new RecordingProductionItemGateway(),
-                new FixedExteriorZoneQuery(null));
+                new FixedExteriorZoneQuery(staging),
+                restoredDestinationClaims,
+                restoredDestinationClaims);
         OffenseWorldStateSaveCodec restoredSection = new OffenseWorldStateSaveCodec(
             restoredWorld,
             restoredTravel,
@@ -971,6 +1448,28 @@ public static class OffenseStrategicDebugScenarios
         Require(
             restoredPreparation.CapturePackingState().Count == 1,
             "집결 중인 실물 보급 패키지가 복원되지 않았습니다.");
+        Require(
+            restoredDestinationClaims.TryGetClaim(
+                "expedition:package:save",
+                staging.centerPos,
+                out FacilityBufferDestinationClaim restoredClaim)
+            && restoredClaim.AnchorKind
+                == FacilityBufferDestinationAnchorKind.ReservedTarget
+            && string.Equals(
+                restoredClaim.OwnerDomain,
+                "offense.expedition-supply",
+                StringComparison.Ordinal)
+            && string.Equals(
+                restoredClaim.OwnerOperationId,
+                "package:save",
+                StringComparison.Ordinal)
+            && restoredClaim.OwnerFacilityId == null,
+            "집결 중인 보급 패키지의 exact ReservedTarget claim이 복원되지 않았습니다.");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(stagingObject);
+        }
     }
 
     private static OffenseBattleMemberDeckSeed CreateDeck(
@@ -985,6 +1484,7 @@ public static class OffenseStrategicDebugScenarios
                 .Select(index => new OffenseCommandCardStateData
                 {
                     instanceId = $"{characterId}:card:{index}",
+                    actionType = OffenseBattleActionType.BasicAttack,
                     sourceSkillId = string.Empty,
                     displayName = $"검증 카드 {index + 1}",
                     tacticalTag = (OffenseTacticalTag)(1 + index % 5),
@@ -1007,6 +1507,7 @@ public static class OffenseStrategicDebugScenarios
             intentId = intentId,
             enemyId = enemyId,
             targetCharacterId = targetId,
+            actionType = OffenseBattleActionType.BasicAttack,
             displayName = "검증 공격",
             tacticalTag = OffenseTacticalTag.Break,
             executionStages = 3,
@@ -1414,6 +1915,9 @@ public static class OffenseStrategicDebugScenarios
         public int ConsumedAmount { get; private set; }
         public int ReleasedAmount { get; private set; }
         public Vector2Int LastDestinationPosition { get; private set; }
+        public string LastReleasedDestinationId { get; private set; } =
+            string.Empty;
+        public Vector2Int LastReleasedPosition { get; private set; }
 
         public int CountDelivered(string itemId, string destinationId)
         {
@@ -1491,6 +1995,16 @@ public static class OffenseStrategicDebugScenarios
             string destinationId,
             Vector2Int releasePosition)
         {
+            LastReleasedDestinationId = destinationId?.Trim() ?? string.Empty;
+            LastReleasedPosition = releasePosition;
+            if (!string.Equals(
+                    requestedDestinationId,
+                    LastReleasedDestinationId,
+                    StringComparison.Ordinal)
+                || releasePosition != LastDestinationPosition)
+            {
+                return 0;
+            }
             int released = RequestedAmount;
             ReleasedAmount += released;
             deliveredAmount = 0;
@@ -1550,20 +2064,42 @@ public static class OffenseStrategicDebugScenarios
         public readonly List<OffenseCommandExecutionRequest> Requests =
             new List<OffenseCommandExecutionRequest>();
         public int FinalizeCount { get; private set; }
+        public int FinalizationFailuresRemaining { get; set; }
+        public Action FinalizeAction { get; set; }
+        public readonly HashSet<string> UnavailableActorIds =
+            new HashSet<string>(StringComparer.Ordinal);
 
         public OffenseCommandExecutionResult Execute(
             OffenseCommandExecutionRequest request)
         {
             Requests.Add(request);
+            if (UnavailableActorIds.Contains(request.actorId))
+            {
+                return new OffenseCommandExecutionResult(
+                    OffenseCommandOutcome.Unavailable,
+                    false,
+                    request.targetCombatantId,
+                    "focused-unavailable");
+            }
             return new OffenseCommandExecutionResult(
                 OffenseCommandOutcome.Executed,
                 true,
                 request.targetCombatantId);
         }
 
-        public void FinalizeTurn()
+        public OffenseTurnFinalizationResult FinalizeTurn(int directorTurn)
         {
             FinalizeCount++;
+            if (FinalizationFailuresRemaining > 0)
+            {
+                FinalizationFailuresRemaining--;
+                return new OffenseTurnFinalizationResult(
+                    false,
+                    "focused-finalization-failure");
+            }
+
+            FinalizeAction?.Invoke();
+            return new OffenseTurnFinalizationResult(true, string.Empty);
         }
     }
 

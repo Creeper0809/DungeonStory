@@ -12,6 +12,7 @@ using VContainer.Unity;
 public sealed class WorldItemStackRuntime :
     IWorldItemStackRuntime,
     IWorldItemQuantityLeaseRuntime,
+    IWorldItemCarryRecoveryRuntime,
     IPhysicalItemRestoreStaging,
     IWorldItemMarkerDataSource,
     IHaulPlanBuilder,
@@ -42,6 +43,8 @@ public sealed class WorldItemStackRuntime :
     private readonly WorldItemTheftService theftService;
     private readonly WorldItemPersistenceService persistence;
     private readonly WorldItemWarehouseService warehouseService;
+    private readonly IHaulDeliveryIntentQuery haulDeliveryIntentQuery;
+    private readonly IHaulDeliveryIntentCommand haulDeliveryIntentCommands;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private int projectedRestoreRevision;
 
@@ -86,6 +89,8 @@ public sealed class WorldItemStackRuntime :
             ?? throw new ArgumentNullException(nameof(persistence));
         this.warehouseService = warehouseService
             ?? throw new ArgumentNullException(nameof(warehouseService));
+        haulDeliveryIntentQuery = itemRepository.HaulDeliveryIntents;
+        haulDeliveryIntentCommands = itemRepository.HaulDeliveryIntents;
     }
 
     public IDungeonItemCatalogProvider CatalogProvider => catalogProvider;
@@ -94,6 +99,104 @@ public sealed class WorldItemStackRuntime :
         itemQueryService.StoredItemMarkersVisible;
     public int ItemStackVersion => itemRepository.ItemStackVersion;
     public int HaulJobVersion => itemRepository.HaulJobVersion;
+    public int GetCommittedHaulDeliveryQuantity(
+        string destinationId,
+        string itemId) =>
+        haulDeliveryIntentQuery.GetCommittedQuantity(destinationId, itemId);
+
+    public bool TryCommitHaulPickup(
+        string ownerOperationId,
+        CharacterCarryInventory inventory,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string operationId = ownerOperationId?.Trim() ?? string.Empty;
+        if (inventory == null
+            || reservationService is not ItemReservationService reservationAuthority
+            || !haulDeliveryIntentQuery.TryCapture(
+                operationId,
+                out HaulDeliveryIntentSaveData intent)
+            || !reservationAuthority.QuantityReservations.TryGetLeasesByOwner(
+                operationId,
+                out IReadOnlyList<ItemQuantityLease> leases))
+        {
+            failureReason = "haul-pickup-lease-authority-missing:" + operationId;
+            return false;
+        }
+
+        string expectedCohort =
+            $"haul:{intent.destinationKind}:{intent.destinationId}";
+        CharacterCarriedItemSaveData[] carried = inventory.Items
+            .Where(item => item != null
+                && string.Equals(
+                    item.ownerOperationId?.Trim(),
+                    operationId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (carried.Length == 0)
+        {
+            failureReason = "haul-pickup-physical-commitment-missing:" + operationId;
+            return false;
+        }
+
+        HashSet<string> matchedLeaseIds = new(StringComparer.Ordinal);
+        foreach (CharacterCarriedItemSaveData item in carried)
+        {
+            string signature = ItemReservationSignature.Create(
+                item.itemId,
+                item.components);
+            ItemQuantityLease lease = leases.SingleOrDefault(candidate =>
+                candidate != null
+                && candidate.purpose == ItemReservationPurpose.Hauling
+                && candidate.remainingQuantity == item.quantity
+                && candidate.slices != null
+                && candidate.slices.Count == 1
+                && string.Equals(
+                    candidate.ownerCharacterId,
+                    intent.ownerCharacterId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    candidate.aggregationCohortId,
+                    expectedCohort,
+                    StringComparison.Ordinal)
+                && candidate.slices[0] != null
+                && candidate.slices[0].quantity == item.quantity
+                && string.Equals(
+                    candidate.slices[0].stackId,
+                    item.carriedStackId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    candidate.slices[0].expectedStackSignature,
+                    signature,
+                    StringComparison.Ordinal));
+            DomainFailure failure = DomainFailure.None;
+            if (lease == null
+                || !matchedLeaseIds.Add(lease.leaseId)
+                || !reservationAuthority.QuantityReservations.Revalidate(
+                    lease.leaseId,
+                    out ItemQuantityLease revalidated,
+                    out failure)
+                || revalidated.remainingQuantity != item.quantity)
+            {
+                failureReason =
+                    $"haul-pickup-lease-mismatch:{operationId}:{item.carriedStackId}:{failure}";
+                return false;
+            }
+        }
+
+        return haulDeliveryIntentCommands.TryCommitPickup(
+            operationId,
+            inventory,
+            out failureReason);
+    }
+
+    public bool TryCaptureHaulDeliveryIntent(
+        string ownerOperationId,
+        out HaulDeliveryIntentSaveData intent) =>
+        haulDeliveryIntentQuery.TryCapture(ownerOperationId, out intent);
+
+    public bool ReleaseHaulDeliveryIntent(string ownerOperationId) =>
+        haulDeliveryIntentCommands.Remove(ownerOperationId);
     public void Start()
     {
         itemMarkerPresenter.Initialize(this);
@@ -567,6 +670,88 @@ public sealed class WorldItemStackRuntime :
             out failureReason);
     }
 
+    public bool TryReserveAvailableItemForDirectPickup(
+        CharacterActor actor,
+        string itemId,
+        int quantity,
+        ItemReservationPurpose purpose,
+        string ownerOperationId,
+        out WorldItemReservedStackQuantity reservation,
+        out Vector2Int pickupStandPosition,
+        out string failureReason)
+    {
+        reservation = default;
+        pickupStandPosition = default;
+        failureReason = string.Empty;
+        string operationId = ownerOperationId?.Trim() ?? string.Empty;
+        if (actor == null
+            || string.IsNullOrWhiteSpace(itemId)
+            || quantity <= 0
+            || operationId.Length == 0
+            || !gridSystemProvider.TryGetGrid(out Grid grid))
+        {
+            failureReason = "items.pickup.invalid_request";
+            return false;
+        }
+
+        string actorId = characterIdRegistry.GetOrAssignPersistentId(actor);
+        WorldItemStackRecord selected = stacks
+            .Where(record => record != null
+                && record.quantity > 0
+                && record.state is WorldItemStackState.Loose
+                    or WorldItemStackState.Stored
+                && !record.forbidden
+                && record.quantity - record.reservedQuantity >= quantity
+                && string.Equals(record.itemId, itemId, StringComparison.Ordinal))
+            .Select(record => new
+            {
+                Record = record,
+                HasStand = TryResolveDirectPickupStandCell(
+                    grid,
+                    record.position,
+                    out Vector2Int stand),
+                Stand = stand
+            })
+            .Where(candidate => candidate.HasStand)
+            .OrderBy(candidate => Manhattan(actor.GetNowXY(), candidate.Stand))
+            .ThenBy(candidate => candidate.Record.state == WorldItemStackState.Loose ? 0 : 1)
+            .ThenBy(candidate => candidate.Record.stackId, StringComparer.Ordinal)
+            .FirstOrDefault()?.Record;
+        if (selected == null
+            || !TryResolveDirectPickupStandCell(
+                grid,
+                selected.position,
+                out pickupStandPosition))
+        {
+            failureReason = "items.pickup.available_item_unavailable";
+            return false;
+        }
+
+        if (!itemTransferService.TryReserveAvailableStackForDirectPickup(
+                actorId,
+                operationId,
+                purpose,
+                selected.stackId,
+                quantity,
+                out ItemQuantityLease lease,
+                out DomainFailure failure))
+        {
+            failureReason = failure.ToString();
+            return false;
+        }
+
+        reservation = new WorldItemReservedStackQuantity(
+            selected.stackId,
+            selected.itemId,
+            quantity,
+            selected.position,
+            WorldItemHaulDestinationKind.Warehouse,
+            selected.destinationId,
+            lease.leaseId,
+            operationId);
+        return true;
+    }
+
     public bool TryReserveBestHaulJob(
         CharacterActor actor,
         out WorldItemHaulJob job,
@@ -647,6 +832,21 @@ public sealed class WorldItemStackRuntime :
             out failureReason);
     }
 
+    public bool TryDepositCarriedItems(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        IWarehouseFacility warehouse,
+        IReadOnlyCollection<string> ownerOperationIds,
+        out string failureReason)
+    {
+        return itemTransferService.TryDepositCarriedItems(
+            actor,
+            inventory,
+            warehouse,
+            ownerOperationIds,
+            out failureReason);
+    }
+
     public bool TryDepositCarriedItemsToFacility(
         CharacterActor actor,
         CharacterCarryInventory inventory,
@@ -659,6 +859,23 @@ public sealed class WorldItemStackRuntime :
             inventory,
             destinationPosition,
             destinationId,
+            out failureReason);
+    }
+
+    public bool TryDepositCarriedItemsToFacility(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        Vector2Int destinationPosition,
+        string destinationId,
+        IReadOnlyCollection<string> ownerOperationIds,
+        out string failureReason)
+    {
+        return itemTransferService.TryDepositCarriedItemsToFacility(
+            actor,
+            inventory,
+            destinationPosition,
+            destinationId,
+            ownerOperationIds,
             out failureReason);
     }
 
@@ -716,6 +933,65 @@ public sealed class WorldItemStackRuntime :
             out DomainFailure failure);
         failureReason = renewed ? string.Empty : failure.ToString();
         return renewed;
+    }
+
+    public bool TryRevalidateQuantityLease(
+        string leaseId,
+        out string failureReason)
+    {
+        if (reservationService is not ItemReservationService reservationAuthority)
+        {
+            failureReason = "quantity reservation authority unavailable";
+            return false;
+        }
+
+        bool valid = reservationAuthority.QuantityReservations.Revalidate(
+            leaseId,
+            out _,
+            out DomainFailure failure);
+        failureReason = valid ? string.Empty : failure.ToString();
+        return valid;
+    }
+
+    public bool ReleaseQuantityLease(
+        string leaseId,
+        ItemReservationReleaseReason reason) =>
+        itemTransferService.ReleaseQuantityReservation(leaseId, reason);
+
+    public bool TryDropCarriedItems(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        out string failureReason)
+    {
+        if (itemTransferService is ICarriedItemDropService dropService)
+        {
+            return dropService.TryDropCarriedItems(
+                actor,
+                inventory,
+                out failureReason);
+        }
+
+        failureReason = "carried item drop service unavailable";
+        return false;
+    }
+
+    public bool TryDropCarriedItems(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        IReadOnlyCollection<string> ownerOperationIds,
+        out string failureReason)
+    {
+        if (itemTransferService is ICarriedItemDropService dropService)
+        {
+            return dropService.TryDropCarriedItems(
+                actor,
+                inventory,
+                ownerOperationIds,
+                out failureReason);
+        }
+
+        failureReason = "carried item drop service unavailable";
+        return false;
     }
 
     public bool TryClearReservation(string stackId)
@@ -933,13 +1209,27 @@ public sealed class WorldItemStackRuntime :
                     || target.state == WorldItemStackState.FacilityOutputBuffer
                         ? releasePosition
                         : oldPosition;
-                RemoveRecord(target);
-                Spawn(
-                    itemId,
-                    quantity,
-                    loosePosition,
-                    WorldItemStackState.Loose,
-                    string.Empty);
+                if (!string.IsNullOrWhiteSpace(target.itemInstanceId))
+                {
+                    target.state = WorldItemStackState.Loose;
+                    target.destinationId = string.Empty;
+                    target.sourceStorageDestinationId = string.Empty;
+                    target.hasDestinationPosition = false;
+                    target.destinationPosition = default;
+                    target.reservedByPersistentId = string.Empty;
+                    MarkStacksChanged();
+                    loosePosition = oldPosition;
+                }
+                else
+                {
+                    RemoveRecord(target);
+                    Spawn(
+                        itemId,
+                        quantity,
+                        loosePosition,
+                        WorldItemStackState.Loose,
+                        string.Empty);
+                }
                 RefreshMarkerAt(loosePosition);
             }
 
@@ -1096,6 +1386,29 @@ public sealed class WorldItemStackRuntime :
     {
         itemRepository.Remove(record);
     }
+
+    private static bool TryResolveDirectPickupStandCell(
+        Grid grid,
+        Vector2Int itemPosition,
+        out Vector2Int stand)
+    {
+        stand = default;
+        if (grid != null
+            && grid.IsValidGridPos(itemPosition)
+            && grid.IsWalkable(itemPosition))
+        {
+            stand = itemPosition;
+            return true;
+        }
+        return grid != null
+            && grid.TryFindNearbyWalkablePositionOnSameFloor(
+                itemPosition,
+                out stand,
+                maxDistance: 1);
+    }
+
+    private static int Manhattan(Vector2Int a, Vector2Int b) =>
+        Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
 
     private void MarkStacksChanged()
     {

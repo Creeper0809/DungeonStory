@@ -1316,7 +1316,7 @@ public sealed class WorkOrderRuntime :
         WorkOrderRecord order,
         string itemId)
     {
-        return itemStackRuntime.GetAllStacks()
+        int worldQuantity = itemStackRuntime.GetAllStacks()
             .Where(stack => stack != null
                 && string.Equals(
                     stack.DestinationId,
@@ -1332,6 +1332,11 @@ public sealed class WorkOrderRuntime :
                         && !string.IsNullOrWhiteSpace(
                             stack.SourceStorageDestinationId))))
             .Sum(stack => stack.Quantity);
+        int carriedQuantity = itemStackRuntime
+            .GetCommittedHaulDeliveryQuantity(
+                order.materialDestinationId,
+                itemId);
+        return worldQuantity + carriedQuantity;
     }
 
     private bool HasAvailableInstallationKit(string itemId)
@@ -2047,11 +2052,27 @@ public sealed class WorkOrderRuntime :
             facilityCandidateCache?.Clear();
         }
 
-        return TryFinishFacilityRecoveryAndRebuild(
+        bool followUpCompleted = TryFinishFacilityRecoveryAndRebuild(
             order,
             pipeline,
             building,
             out message);
+        if (!followUpCompleted && order.facilityRemovedForRetry)
+        {
+            // The worker-owned dismantle phase is already complete and cannot
+            // be rolled back: the facility was removed and recovery outputs
+            // may already have been spawned.  Output-space/material/rebuild
+            // continuation is an order-owned background phase driven by Tick.
+            // Report the accepted labor as completed instead of turning the
+            // irreversible success into a failed AI action.
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                message = "Facility dismantled; recovery or rebuild is pending.";
+            }
+            return true;
+        }
+
+        return followUpCompleted;
     }
 
     private void ContinuePendingFacilityRecoveries()

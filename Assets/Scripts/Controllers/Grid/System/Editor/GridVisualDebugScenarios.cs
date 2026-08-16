@@ -706,6 +706,12 @@ public static class GridVisualDebugScenarios
                 false,
                 "Grid visual fixture has no blueprint research runtime.");
         }
+
+        public BlueprintResearchWorkResult ApplyApprovedResearchWork(
+            CharacterActor researcher,
+            BuildableObject researchFacility,
+            float approvedWorkUnits) =>
+            ApplyResearchWork(researcher, researchFacility, approvedWorkUnits);
     }
 
     private sealed class TestGridOccupant : IGridOccupant

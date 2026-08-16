@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using BehaviorDesigner.Runtime;
+using DungeonStory.Foundation;
 using UnityEditor;
 using Unity.Profiling;
 using UnityEngine;
@@ -16,13 +17,19 @@ public static class CharacterAiStressDebugScenarios
     private const int NpcCount = 500;
     private static readonly int[] ScaleNpcCounts = { 100, 300, NpcCount };
     private const int SimulationFrames = 180;
+    private const int SynchronousWarmupFrames = 180;
     private const int DecisionBudget = 16;
     private const int PathBudget = 8;
     private const double TargetFrameP95Milliseconds = 1000.0 / 60.0;
     private const double TargetSchedulerP95Milliseconds = 4.0;
     private const double TargetAverageGcKilobytesPerFrame = 64.0;
+    private const double TargetMaximumGcKilobytesPerFrame = 256.0;
     private const int MaximumSynchronousNpcCount = 100;
     private const int PlayModeCreationBatchSize = 8;
+    private const string RuntimeDiagnosticsGateVersion =
+        "ai-runtime-gate-v3";
+    private const string VerifierRevision =
+        "character-ai-stress-v4-20260814";
     private const string PlayModeProfileRequestedKey = "DungeonStory.CharacterAiStress.PlayModeProfile.Requested";
     private const string PlayModeProfileNpcCountKey = "DungeonStory.CharacterAiStress.PlayModeProfile.NpcCount";
     private const string PlayModeProfileWarmupFramesKey = "DungeonStory.CharacterAiStress.PlayModeProfile.WarmupFrames";
@@ -30,9 +37,13 @@ public static class CharacterAiStressDebugScenarios
     private const string PlayModeProfileExitWhenDoneKey = "DungeonStory.CharacterAiStress.PlayModeProfile.ExitWhenDone";
     private const string PlayModeProfileReportKey = "DungeonStory.CharacterAiStress.PlayModeProfile.Report";
     private const string ProfileReportPath = "docs/implementation-reports/ai-play-mode-profile-latest.json";
+    private const string Synchronous100ReportPath =
+        "docs/implementation-reports/ai-sync-100-stress-latest.json";
     private const string StressGridWidthEnvironmentKey = "DUNGEON_AI_STRESS_GRID_WIDTH";
     private const string StressGridHeightEnvironmentKey = "DUNGEON_AI_STRESS_GRID_HEIGHT";
     private const string StressActiveFloorCountEnvironmentKey = "DUNGEON_AI_STRESS_ACTIVE_FLOORS";
+    private const string StressDetailedDecisionProfileEnvironmentKey =
+        "DUNGEON_AI_STRESS_DETAILED_DECISIONS";
     private const string StressFacilityCountEnvironmentKey = "DUNGEON_AI_STRESS_FACILITY_COUNT";
     private const string StressRoomSpanEnvironmentKey = "DUNGEON_AI_STRESS_ROOM_SPAN";
     private const string DenseGridAiProfileReportEnvironmentKey = "DUNGEON_AI_DENSE_REPORT";
@@ -42,11 +53,61 @@ public static class CharacterAiStressDebugScenarios
         "docs/implementation-reports/navigation-dense-dungeon-profile-latest.json";
 
     [Serializable]
+    private sealed class SynchronousAiProfileResult
+    {
+        public bool valid;
+        public string measurementScope;
+        public string utc;
+        public string verifierRevision;
+        public string runtimeDiagnosticsGate;
+        public int npcCount;
+        public int registered;
+        public int pendingAtEnd;
+        public int charactersWithActions;
+        public int tickedTrees;
+        public int schedulerTouched;
+        public int typedExemptions;
+        public int lifecycleViolations;
+        public int pathConservationViolations;
+        public int reservationConservationViolations;
+        public int branchConservationViolations;
+        public int schedulerDelayViolations;
+        public long minimumSchedulerProcessDelta;
+        public long maximumSchedulerProcessDelta;
+        public long minimumTreeTickDelta;
+        public long maximumTreeTickDelta;
+        public long starvedDecisionDelta;
+        public float oldestDecisionDeferralSeconds;
+        public float maximumDecisionDeferralSeconds;
+        public int invariantViolations;
+        public int orphanRecoveries;
+        public int failureLoops;
+        public int totalDecisions;
+        public int maxDecisionsPerFrame;
+        public int totalBehaviorTreeTicks;
+        public int maxBehaviorTreeTicksPerFrame;
+        public int totalPathSearches;
+        public int maxPathSearchesPerFrame;
+        public int totalBrokerPathSearches;
+        public int maxBrokerPathSearchesPerFrame;
+        public int brokerCacheHits;
+        public int brokerPathBudgetDeferrals;
+        public int schedulerAllocationSamples;
+        public double schedulerAverageAllocatedKb;
+        public double schedulerMaximumAllocatedKb;
+        public double elapsedMs;
+        public string gameplayEvidence;
+        public string summary;
+    }
+
+    [Serializable]
     private sealed class LargeGridAiProfileResult
     {
         public bool valid;
         public string measurementScope;
         public string utc;
+        public string verifierRevision;
+        public string runtimeDiagnosticsGate;
         public string processor;
         public int processorCount;
         public int systemMemoryMb;
@@ -83,6 +144,7 @@ public static class CharacterAiStressDebugScenarios
         public double maxSchedulerMs;
         public double averageAllocatedKb;
         public double maxAllocatedKb;
+        public int allocationSamples;
         public int registered;
         public int tickedTrees;
         public int charactersWithActions;
@@ -96,12 +158,33 @@ public static class CharacterAiStressDebugScenarios
         public int maxUnboundedSearchesPerTick;
         public int brokerCacheHits;
         public int brokerBudgetDeferrals;
+        public int actorsTickedDuringSample;
+        public int schedulerTouched;
+        public int healthyActivityTouched;
+        public int pendingAtEnd;
+        public long minimumSchedulerProcessDelta;
+        public long maximumSchedulerProcessDelta;
+        public long minimumTreeTickDelta;
+        public long maximumTreeTickDelta;
+        public int lifecycleViolations;
+        public int pathConservationViolations;
+        public int reservationConservationViolations;
+        public int branchConservationViolations;
+        public int schedulerDelayViolations;
+        public long invariantAnomalyDelta;
+        public long orphanRecoveryDelta;
+        public long failureLoopDelta;
+        public long starvedDecisionDelta;
+        public float oldestDecisionDeferralSeconds;
+        public float maximumDecisionDeferralSeconds;
+        public float maximumInitialDecisionDeferralSeconds;
         public CharacterAiPerformanceReport performance;
         public string failure;
     }
 
     private sealed class FixedSchedulerService : ICharacterAiSchedulingService
     {
+        public bool IsSchedulerAvailable => true;
         private readonly CharacterAiScheduler scheduler;
 
         public FixedSchedulerService(CharacterAiScheduler scheduler)
@@ -121,6 +204,21 @@ public static class CharacterAiStressDebugScenarios
         public double GetDecisionWorkSliceMilliseconds(CharacterActor actor) =>
             scheduler.GetDecisionWorkSliceMillisecondsFor(actor);
         public void ResetPathSearchBudgetForDebug() => scheduler.ResetPathSearchBudgetForDebugInstance();
+    }
+
+    private sealed class FixedProfileClock : IGameClock, IUiClock
+    {
+        private float time;
+        public float DeltaTime => 1f / 60f;
+        public float Time => time;
+        public int FrameCount { get; private set; }
+        public bool IsPaused => false;
+
+        public void Advance(float deltaTime)
+        {
+            time += Mathf.Max(0f, deltaTime);
+            FrameCount++;
+        }
     }
 
     public static string LastReport { get; private set; } = string.Empty;
@@ -177,26 +275,19 @@ public static class CharacterAiStressDebugScenarios
 
     public static bool RunAll(bool logSuccess)
     {
-        return RunForCount(NpcCount, logSuccess);
+        LastReport = "RunAll is not pass evidence: synchronous validation is capped at "
+            + $"{MaximumSynchronousNpcCount}. Use StartPlayModeProfile(500, ...) instead.";
+        if (logSuccess) UnityEngine.Debug.LogWarning(LastReport);
+        return false;
     }
 
     public static bool RunScaleSuite(bool logSuccess)
     {
-        List<string> reports = new List<string>();
-        bool valid = true;
-        foreach (int npcCount in ScaleNpcCounts)
-        {
-            valid &= RunForCount(npcCount, logSuccess);
-            reports.Add($"{npcCount}: {LastReport}");
-        }
-
-        LastScaleReport = string.Join("\n", reports);
-        if (logSuccess || !valid)
-        {
-            UnityEngine.Debug.Log($"100/300/500 NPC AI stress suite valid={valid}\n{LastScaleReport}");
-        }
-
-        return valid;
+        LastScaleReport = "RunScaleSuite is not pass evidence because 300/500 exceed the "
+            + $"{MaximumSynchronousNpcCount}-NPC synchronous cap. RunForCount(100) and "
+            + "StartPlayModeProfile(300/500, ...) are separate required gates.";
+        if (logSuccess) UnityEngine.Debug.LogWarning(LastScaleReport);
+        return false;
     }
 
     public static bool RunForCount(int npcCount, bool logSuccess)
@@ -215,8 +306,24 @@ public static class CharacterAiStressDebugScenarios
         world.PlaceFacilities();
         world.CreateCustomers(npcCount);
 
-        CharacterAiEditorTestDependencies.ResetPerformanceRecorder();
-        Stopwatch stopwatch = Stopwatch.StartNew();
+        Dictionary<CharacterActor, CharacterAiRuntimeGateSnapshot>
+            runtimeGateBaselines = new();
+        Dictionary<CharacterActor, long> behaviorTreeTickBaselines = new();
+        foreach (CharacterActor character in world.Characters)
+        {
+            if (character?.Brain != null)
+            {
+                character.Brain.ResetSchedulerDelayTelemetryForDiagnostics();
+                runtimeGateBaselines[character] =
+                    character.Brain.CaptureRuntimeGateSnapshot();
+            }
+            if (character?.BehaviorTree != null)
+            {
+                behaviorTreeTickBaselines[character] =
+                    character.BehaviorTree.DungeonStoryTickCount;
+            }
+        }
+
         int maxDecisions = 0;
         int maxPathSearches = 0;
         int maxBrokerPathSearches = 0;
@@ -230,9 +337,16 @@ public static class CharacterAiStressDebugScenarios
         int totalBrokerPathBudgetDeferrals = 0;
         int totalBehaviorTreeTicks = 0;
 
-        for (int frame = 0; frame < SimulationFrames; frame++)
+        // Registration is intentionally spread over 1.5 seconds and off-screen
+        // actors may wait another 1.5 seconds for their first decision. Keep the
+        // fairness baseline before this horizon so every actor must receive its
+        // initial scheduler/BT service, but exclude the horizon from timing/GC and
+        // steady-state scheduler-delay measurements below. The synchronous fixture
+        // has no player loop, so actors that start a multi-frame movement during
+        // warmup correctly remain RUNNING and do not need another BT decision.
+        for (int frame = 0; frame < SynchronousWarmupFrames; frame++)
         {
-            world.Scheduler.RunManualTick(1f / 60f);
+            world.RunSchedulerTick(1f / 60f);
             maxDecisions = Mathf.Max(maxDecisions, world.Scheduler.LastProcessedDecisionCount);
             maxPathSearches = Mathf.Max(maxPathSearches, world.Scheduler.LastPathSearchCount);
             maxBrokerPathSearches = Mathf.Max(maxBrokerPathSearches, world.Scheduler.LastBrokerPathSearchCount);
@@ -245,6 +359,44 @@ public static class CharacterAiStressDebugScenarios
             totalBrokerPathCacheHits += world.Scheduler.LastBrokerPathCacheHitCount;
             totalBrokerPathBudgetDeferrals += world.Scheduler.LastBrokerPathBudgetDeferralCount;
             totalBehaviorTreeTicks += world.Scheduler.LastBehaviorTreeTickCount;
+        }
+        foreach (CharacterActor character in world.Characters)
+        {
+            character?.Brain?.ResetSchedulerDelayTelemetryForDiagnostics();
+        }
+        world.Scheduler.ResetDecisionDeferralTelemetryForDiagnostics();
+        long starvedDecisionBaseline =
+            world.Scheduler.CumulativeStarvedDecisionCount;
+
+        CharacterAiEditorTestDependencies.ResetPerformanceRecorder();
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        long totalSchedulerAllocatedBytes = 0L;
+        long maximumSchedulerAllocatedBytes = 0L;
+        int schedulerAllocationSamples = 0;
+
+        for (int frame = 0; frame < SimulationFrames; frame++)
+        {
+            world.RunSchedulerTick(1f / 60f);
+            maxDecisions = Mathf.Max(maxDecisions, world.Scheduler.LastProcessedDecisionCount);
+            maxPathSearches = Mathf.Max(maxPathSearches, world.Scheduler.LastPathSearchCount);
+            maxBrokerPathSearches = Mathf.Max(maxBrokerPathSearches, world.Scheduler.LastBrokerPathSearchCount);
+            maxBrokerPathCacheHits = Mathf.Max(maxBrokerPathCacheHits, world.Scheduler.LastBrokerPathCacheHitCount);
+            maxBrokerPathBudgetDeferrals = Mathf.Max(maxBrokerPathBudgetDeferrals, world.Scheduler.LastBrokerPathBudgetDeferralCount);
+            maxBehaviorTreeTicks = Mathf.Max(maxBehaviorTreeTicks, world.Scheduler.LastBehaviorTreeTickCount);
+            totalDecisions += world.Scheduler.LastProcessedDecisionCount;
+            totalPathSearches += world.Scheduler.LastPathSearchCount;
+            totalBrokerPathSearches += world.Scheduler.LastBrokerPathSearchCount;
+            totalBrokerPathCacheHits += world.Scheduler.LastBrokerPathCacheHitCount;
+            totalBrokerPathBudgetDeferrals += world.Scheduler.LastBrokerPathBudgetDeferralCount;
+            totalBehaviorTreeTicks += world.Scheduler.LastBehaviorTreeTickCount;
+            if (world.Scheduler.LastAllocatedBytes >= 0L)
+            {
+                totalSchedulerAllocatedBytes += world.Scheduler.LastAllocatedBytes;
+                maximumSchedulerAllocatedBytes = Math.Max(
+                    maximumSchedulerAllocatedBytes,
+                    world.Scheduler.LastAllocatedBytes);
+                schedulerAllocationSamples++;
+            }
         }
 
         stopwatch.Stop();
@@ -291,8 +443,143 @@ public static class CharacterAiStressDebugScenarios
         GridSystemManager gridSystemManager = Object.FindFirstObjectByType<GridSystemManager>();
         bool gridReady = gridSystemManager != null && gridSystemManager.grid == world.Grid;
 
+        int typedExemptions = world.Characters.Count(IsTypedStressExemption);
+        int schedulerTouched = world.Characters.Count(character =>
+        {
+            if (IsTypedStressExemption(character)) return true;
+            if (character?.Brain == null
+                || !runtimeGateBaselines.TryGetValue(character, out var start))
+            {
+                return false;
+            }
+            CharacterAiRuntimeGateSnapshot end =
+                character.Brain.CaptureRuntimeGateSnapshot();
+            return end.SchedulerProcesses > start.SchedulerProcesses;
+        });
+        int lifecycleViolations = world.Characters.Count(character =>
+        {
+            if (character?.Brain == null
+                || !runtimeGateBaselines.TryGetValue(character, out var start))
+            {
+                return !IsTypedStressExemption(character);
+            }
+            CharacterAiRuntimeGateSnapshot end =
+                character.Brain.CaptureRuntimeGateSnapshot();
+            return !end.ConservesLifecycleFrom(in start);
+        });
+        int pathConservationViolations = world.Characters.Count(character =>
+        {
+            if (character?.Brain == null
+                || !runtimeGateBaselines.TryGetValue(character, out var start))
+                return !IsTypedStressExemption(character);
+            CharacterAiRuntimeGateSnapshot end =
+                character.Brain.CaptureRuntimeGateSnapshot();
+            return !end.ConservesPathsFrom(in start);
+        });
+        int reservationConservationViolations = world.Characters.Count(character =>
+        {
+            if (character?.Brain == null
+                || !runtimeGateBaselines.TryGetValue(character, out var start))
+                return !IsTypedStressExemption(character);
+            CharacterAiRuntimeGateSnapshot end =
+                character.Brain.CaptureRuntimeGateSnapshot();
+            return !end.ConservesReservationsFrom(in start);
+        });
+        int branchConservationViolations = world.Characters.Count(character =>
+        {
+            if (character?.Brain == null
+                || !runtimeGateBaselines.TryGetValue(character, out var start))
+                return !IsTypedStressExemption(character);
+            CharacterAiRuntimeGateSnapshot end =
+                character.Brain.CaptureRuntimeGateSnapshot();
+            return !end.ConservesObservedBranchesFrom(in start);
+        });
+        int schedulerDelayViolations = world.Characters.Count(character =>
+            !IsTypedStressExemption(character)
+            && character?.Brain?.MaximumSchedulerDelaySeconds > 2f);
+        long minimumSchedulerProcesses = world.Characters
+            .Where(character => !IsTypedStressExemption(character))
+            .Select(character =>
+            {
+                if (character?.Brain == null
+                    || !runtimeGateBaselines.TryGetValue(
+                        character,
+                        out CharacterAiRuntimeGateSnapshot start))
+                {
+                    return 0L;
+                }
+                CharacterAiRuntimeGateSnapshot end =
+                    character.Brain.CaptureRuntimeGateSnapshot();
+                return end.SchedulerProcesses - start.SchedulerProcesses;
+            })
+            .DefaultIfEmpty(0L)
+            .Min();
+        long maximumSchedulerProcesses = world.Characters
+            .Where(character => !IsTypedStressExemption(character))
+            .Select(character =>
+            {
+                if (character?.Brain == null
+                    || !runtimeGateBaselines.TryGetValue(
+                        character,
+                        out CharacterAiRuntimeGateSnapshot start))
+                    return 0L;
+                CharacterAiRuntimeGateSnapshot end =
+                    character.Brain.CaptureRuntimeGateSnapshot();
+                return end.SchedulerProcesses - start.SchedulerProcesses;
+            })
+            .DefaultIfEmpty(0L)
+            .Max();
+        long minimumTreeTickDelta = world.Characters
+            .Where(character => !IsTypedStressExemption(character))
+            .Select(character =>
+            {
+                if (character?.BehaviorTree == null
+                    || !behaviorTreeTickBaselines.TryGetValue(
+                        character,
+                        out long startTicks))
+                {
+                    return 0L;
+                }
+                return character.BehaviorTree.DungeonStoryTickCount
+                    - startTicks;
+            })
+            .DefaultIfEmpty(0L)
+            .Min();
+        long maximumTreeTickDelta = world.Characters
+            .Where(character => !IsTypedStressExemption(character))
+            .Select(character =>
+            {
+                if (character?.BehaviorTree == null
+                    || !behaviorTreeTickBaselines.TryGetValue(
+                        character,
+                        out long startTicks))
+                    return 0L;
+                return character.BehaviorTree.DungeonStoryTickCount
+                    - startTicks;
+            })
+            .DefaultIfEmpty(0L)
+            .Max();
+        double averageSchedulerAllocatedKb = schedulerAllocationSamples > 0
+            ? totalSchedulerAllocatedBytes / 1024d / schedulerAllocationSamples
+            : 0d;
+        double maximumSchedulerAllocatedKb =
+            maximumSchedulerAllocatedBytes / 1024d;
+        int invariantViolations = world.Characters.Count(character =>
+            character?.Brain?.RuntimeInvariantAnomalyCount > 0L);
+        int orphanRecoveries = world.Characters.Count(character =>
+            character?.Brain?.RuntimeOrphanWorkActionRecoveryCount > 0L);
+        int failureLoops = world.Characters.Count(character =>
+            character?.Brain?.RuntimeFailureLoopCount > 0L);
+        long starvedDecisionDelta = Math.Max(
+            0L,
+            world.Scheduler.CumulativeStarvedDecisionCount
+                - starvedDecisionBaseline);
+        float oldestDecisionDeferralSeconds =
+            world.Scheduler.LastOldestDecisionDeferralSeconds;
+        float maximumDecisionDeferralSeconds =
+            world.Scheduler.MaximumObservedDecisionDeferralSeconds;
         bool valid = world.Scheduler.RegisteredCharacterCount == npcCount
-            && touchedCharacters > 0
+            && schedulerTouched == npcCount
             && tickedTrees == npcCount
             && withActions == npcCount
             && maxDecisions <= DecisionBudget
@@ -300,20 +587,106 @@ public static class CharacterAiStressDebugScenarios
             && maxBrokerPathSearches <= PathBudget
             && totalDecisions > 0
             && totalBehaviorTreeTicks > 0
-            && totalPathSearches + totalBrokerPathSearches > 0;
+            && totalPathSearches + totalBrokerPathSearches > 0
+            && lifecycleViolations == 0
+            && pathConservationViolations == 0
+            && reservationConservationViolations == 0
+            && branchConservationViolations == 0
+            && schedulerDelayViolations == 0
+            && minimumSchedulerProcesses > 0L
+            && minimumTreeTickDelta > 0L
+            && schedulerAllocationSamples == SimulationFrames
+            && averageSchedulerAllocatedKb
+                <= TargetAverageGcKilobytesPerFrame
+            && maximumSchedulerAllocatedKb
+                <= TargetMaximumGcKilobytesPerFrame
+            && invariantViolations == 0
+            && orphanRecoveries == 0
+            && failureLoops == 0
+            && starvedDecisionDelta == 0L
+            && oldestDecisionDeferralSeconds <= 2f
+            && maximumDecisionDeferralSeconds <= 2f;
 
         LastReport =
-            $"valid={valid}, registered={world.Scheduler.RegisteredCharacterCount}, " +
+            $"valid={valid}, verifierRevision={VerifierRevision}, runtimeDiagnosticsGate={RuntimeDiagnosticsGateVersion}, registered={world.Scheduler.RegisteredCharacterCount}, " +
             $"pending={pendingCharacters}, withActions={withActions}, tickedTrees={tickedTrees}, gridReady={gridReady}, " +
             $"pathBudgetActive={world.Scheduler.IsPathBudgetActiveForDebug}, touched={touchedCharacters}, " +
+            $"schedulerTouched={schedulerTouched}, typedExemptions={typedExemptions}, lifecycleViolations={lifecycleViolations}, pathConservationViolations={pathConservationViolations}, reservationConservationViolations={reservationConservationViolations}, branchConservationViolations={branchConservationViolations}, schedulerDelayViolations={schedulerDelayViolations}, schedulerProcessDeltaMinMax={minimumSchedulerProcesses}/{maximumSchedulerProcesses}, treeTickDeltaMinMax={minimumTreeTickDelta}/{maximumTreeTickDelta}, gameplayEvidence=N/A(sync-no-player-loop), invariantViolations={invariantViolations}, orphanRecoveries={orphanRecoveries}, failureLoops={failureLoops}, " +
+            $"starvedDecisionDelta={starvedDecisionDelta}, oldestDecisionDeferralSeconds={oldestDecisionDeferralSeconds:0.###}, maximumDecisionDeferralSeconds={maximumDecisionDeferralSeconds:0.###}, " +
             $"totalDecisions={totalDecisions}, maxDecisions/frame={maxDecisions}, " +
             $"totalBtTicks={totalBehaviorTreeTicks}, maxBtTicks/frame={maxBehaviorTreeTicks}, " +
             $"totalPathSearches={totalPathSearches}, maxPathSearches/frame={maxPathSearches}, " +
             $"brokerPathSearches={totalBrokerPathSearches}, brokerCacheHits={totalBrokerPathCacheHits}, " +
             $"brokerBudgetDeferrals={totalBrokerPathBudgetDeferrals}, maxBrokerPathSearches/frame={maxBrokerPathSearches}, " +
             $"maxBrokerCacheHits/frame={maxBrokerPathCacheHits}, maxBrokerBudgetDeferrals/frame={maxBrokerPathBudgetDeferrals}, " +
-            $"perf=[{performanceSummary}], branches={branches}, samples={samples}, " +
+            $"schedulerGcSamples={schedulerAllocationSamples}/{SimulationFrames}, schedulerGcAvgKb={averageSchedulerAllocatedKb:0.###}, schedulerGcMaxKb={maximumSchedulerAllocatedKb:0.###}, perf=[{performanceSummary}], branches={branches}, samples={samples}, " +
             $"elapsedMs={stopwatch.Elapsed.TotalMilliseconds:0.0}";
+
+        if (npcCount == MaximumSynchronousNpcCount)
+        {
+            SynchronousAiProfileResult durableResult =
+                new SynchronousAiProfileResult
+                {
+                    valid = valid,
+                    measurementScope =
+                        "synchronous scheduler/behavior-tree/path-budget and runtime ownership accounting; no Unity player loop, movement coroutine, rendering, or facility service completion",
+                    utc = DateTime.UtcNow.ToString("O"),
+                    verifierRevision = VerifierRevision,
+                    runtimeDiagnosticsGate = RuntimeDiagnosticsGateVersion,
+                    npcCount = npcCount,
+                    registered = world.Scheduler.RegisteredCharacterCount,
+                    pendingAtEnd = pendingCharacters,
+                    charactersWithActions = withActions,
+                    tickedTrees = tickedTrees,
+                    schedulerTouched = schedulerTouched,
+                    typedExemptions = typedExemptions,
+                    lifecycleViolations = lifecycleViolations,
+                    pathConservationViolations =
+                        pathConservationViolations,
+                    reservationConservationViolations =
+                        reservationConservationViolations,
+                    branchConservationViolations =
+                        branchConservationViolations,
+                    schedulerDelayViolations = schedulerDelayViolations,
+                    minimumSchedulerProcessDelta = minimumSchedulerProcesses,
+                    maximumSchedulerProcessDelta = maximumSchedulerProcesses,
+                    minimumTreeTickDelta = minimumTreeTickDelta,
+                    maximumTreeTickDelta = maximumTreeTickDelta,
+                    starvedDecisionDelta = starvedDecisionDelta,
+                    oldestDecisionDeferralSeconds =
+                        oldestDecisionDeferralSeconds,
+                    maximumDecisionDeferralSeconds =
+                        maximumDecisionDeferralSeconds,
+                    invariantViolations = invariantViolations,
+                    orphanRecoveries = orphanRecoveries,
+                    failureLoops = failureLoops,
+                    totalDecisions = totalDecisions,
+                    maxDecisionsPerFrame = maxDecisions,
+                    totalBehaviorTreeTicks = totalBehaviorTreeTicks,
+                    maxBehaviorTreeTicksPerFrame = maxBehaviorTreeTicks,
+                    totalPathSearches = totalPathSearches,
+                    maxPathSearchesPerFrame = maxPathSearches,
+                    totalBrokerPathSearches = totalBrokerPathSearches,
+                    maxBrokerPathSearchesPerFrame = maxBrokerPathSearches,
+                    brokerCacheHits = totalBrokerPathCacheHits,
+                    brokerPathBudgetDeferrals =
+                        totalBrokerPathBudgetDeferrals,
+                    schedulerAllocationSamples = schedulerAllocationSamples,
+                    schedulerAverageAllocatedKb =
+                        averageSchedulerAllocatedKb,
+                    schedulerMaximumAllocatedKb =
+                        maximumSchedulerAllocatedKb,
+                    elapsedMs = stopwatch.Elapsed.TotalMilliseconds,
+                    gameplayEvidence = "N/A(sync-no-player-loop)",
+                    summary = LastReport
+                };
+            Directory.CreateDirectory(
+                Path.GetDirectoryName(Synchronous100ReportPath)
+                    ?? Directory.GetCurrentDirectory());
+            File.WriteAllText(
+                Synchronous100ReportPath,
+                JsonUtility.ToJson(durableResult, true));
+        }
 
         if (logSuccess || !valid)
         {
@@ -323,20 +696,57 @@ public static class CharacterAiStressDebugScenarios
         return valid;
     }
 
+    private static bool IsTypedStressExemption(CharacterActor character) =>
+        character == null || !character.CanRunAi;
+
     public static bool RunConfiguredLargeGrid500Profile(bool logSuccess)
     {
-        return RunConfiguredLargeGridProfile(
-            NpcCount,
-            logSuccess,
-            facilityDense: false);
+        return RunConfigured1024Profile(logSuccess, facilityDense: false);
     }
 
     public static bool RunConfiguredDenseDungeon500Profile(bool logSuccess)
     {
-        return RunConfiguredLargeGridProfile(
-            NpcCount,
-            logSuccess,
-            facilityDense: true);
+        return RunConfigured1024Profile(logSuccess, facilityDense: true);
+    }
+
+    private static bool RunConfigured1024Profile(
+        bool logSuccess,
+        bool facilityDense)
+    {
+        string previousWidth = Environment.GetEnvironmentVariable(
+            StressGridWidthEnvironmentKey);
+        string previousHeight = Environment.GetEnvironmentVariable(
+            StressGridHeightEnvironmentKey);
+        string previousFloors = Environment.GetEnvironmentVariable(
+            StressActiveFloorCountEnvironmentKey);
+        try
+        {
+            Environment.SetEnvironmentVariable(
+                StressGridWidthEnvironmentKey,
+                "1024");
+            Environment.SetEnvironmentVariable(
+                StressGridHeightEnvironmentKey,
+                "1024");
+            Environment.SetEnvironmentVariable(
+                StressActiveFloorCountEnvironmentKey,
+                "3");
+            return RunConfiguredLargeGridProfile(
+                NpcCount,
+                logSuccess,
+                facilityDense);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(
+                StressGridWidthEnvironmentKey,
+                previousWidth);
+            Environment.SetEnvironmentVariable(
+                StressGridHeightEnvironmentKey,
+                previousHeight);
+            Environment.SetEnvironmentVariable(
+                StressActiveFloorCountEnvironmentKey,
+                previousFloors);
+        }
     }
 
     public static bool RunConfiguredLargeGridProfile(
@@ -350,9 +760,11 @@ public static class CharacterAiStressDebugScenarios
         LargeGridAiProfileResult result = new LargeGridAiProfileResult
         {
             measurementScope = facilityDense
-                ? "real building objects, room scan, facility churn, scheduler-only forced 16 replans/tick; no movement or rendering"
-                : "scheduler-only; forced 16 replans/tick; no movement, rendering, or presentation",
+                ? "real building objects, room scan, facility churn, full-population invalidation fairness; no movement or rendering"
+                : "scheduler-only; full-population invalidation fairness; no movement, rendering, or presentation",
             utc = DateTime.UtcNow.ToString("O"),
+            verifierRevision = VerifierRevision,
+            runtimeDiagnosticsGate = RuntimeDiagnosticsGateVersion,
             processor = SystemInfo.processorType,
             processorCount = SystemInfo.processorCount,
             systemMemoryMb = SystemInfo.systemMemorySize,
@@ -369,7 +781,11 @@ public static class CharacterAiStressDebugScenarios
             {
                 result.requestedFacilityCount = ReadEnvironmentInt(
                     StressFacilityCountEnvironmentKey,
-                    8192,
+                    // 1024 columns / 16 cells per room * 4 authored slots
+                    // * 3 active floors. Asking for 8192 exceeded even the
+                    // physical fixture capacity and made the profile abort
+                    // before any AI work was measured.
+                    768,
                     1,
                     32768);
                 int roomSpan = ReadEnvironmentInt(
@@ -426,6 +842,11 @@ public static class CharacterAiStressDebugScenarios
             }
 
             world.CreateCustomers(npcCount);
+            // Actor registration may apply the production scheduling profile.
+            // Reassert the diagnostic hard ceilings after the full population
+            // exists so this profile measures the authored 4 ms service slice
+            // instead of a stale bootstrap/default budget.
+            world.ConfigureDiagnosticBudgets(DecisionBudget, PathBudget);
             setup.Stop();
 
             result.setupMs = setup.Elapsed.TotalMilliseconds;
@@ -443,12 +864,12 @@ public static class CharacterAiStressDebugScenarios
                      && character.BehaviorTree.DungeonStoryTickCount == 0);
                  bootstrapTick++)
             {
-                world.Scheduler.RunManualTick(1f / 60f);
+                world.RunSchedulerTick(1f / 60f);
             }
 
             for (int tick = 0; tick < warmupTicks; tick++)
             {
-                world.Scheduler.RunManualTick(1f / 60f);
+                world.RunSchedulerTick(1f / 60f);
                 result.totalUnboundedSearches +=
                     world.Scheduler.LastBrokerUnboundedPathSearchCount;
                 result.maxUnboundedSearchesPerTick = Mathf.Max(
@@ -460,8 +881,21 @@ public static class CharacterAiStressDebugScenarios
                 + $"{result.totalUnboundedSearches}, "
                 + $"maxUnbounded/tick={result.maxUnboundedSearchesPerTick}");
 
+            bool detailedDecisionProfile = string.Equals(
+                Environment.GetEnvironmentVariable(
+                    StressDetailedDecisionProfileEnvironmentKey),
+                "1",
+                StringComparison.Ordinal);
             CharacterAiEditorTestDependencies.ResetPerformanceRecorder(
-                detailedCollectionEnabled: true);
+                // Performance authority mirrors the release configuration.
+                // Detailed per-stage Stopwatch/List tracing is a separate
+                // diagnostic pass and must not contaminate the p95 gate.
+                detailedCollectionEnabled: detailedDecisionProfile,
+                slowTraceEnabled: detailedDecisionProfile);
+            // Warmup may have run while an earlier diagnostic left detailed
+            // tracing enabled. Do not carry those instrumented per-actor cost
+            // estimates into the release-configuration sample window.
+            world.ConfigureDiagnosticBudgets(DecisionBudget, PathBudget);
             GC.Collect();
             GC.WaitForPendingFinalizers();
             GC.Collect();
@@ -471,12 +905,42 @@ public static class CharacterAiStressDebugScenarios
             long totalAllocatedBytes = 0L;
             long maxAllocatedBytes = 0L;
             int allocatedSamples = 0;
+            int[] tickBaseline = world.Characters
+                .Select(character => character?.BehaviorTree?.DungeonStoryTickCount ?? 0)
+                .ToArray();
+            ForceFullPopulationReplan(world);
+            foreach (CharacterActor character in world.Characters)
+            {
+                character?.Brain?.ResetSchedulerDelayTelemetryForDiagnostics();
+            }
+            // Warmup requests can already be overdue. A full-population
+            // invalidation sample must measure latency from the invalidation
+            // boundary rather than inheriting an older due time that
+            // Schedule() deliberately preserves for normal runtime fairness.
+            world.Scheduler.ResetDecisionQueueForDiagnostics();
+            world.Scheduler.ResetDecisionDeferralTelemetryForDiagnostics();
+            Dictionary<CharacterActor, CharacterAiRuntimeGateSnapshot>
+                runtimeGateBaselines = new();
+            Dictionary<CharacterActor, long> orphanRecoveryBaselines = new();
+            foreach (CharacterActor character in world.Characters)
+            {
+                if (character?.Brain == null)
+                {
+                    continue;
+                }
+
+                runtimeGateBaselines[character] =
+                    character.Brain.CaptureRuntimeGateSnapshot();
+                orphanRecoveryBaselines[character] =
+                    character.Brain.RuntimeOrphanWorkActionRecoveryCount;
+            }
+            long starvedDecisionBaseline =
+                world.Scheduler.CumulativeStarvedDecisionCount;
 
             for (int tick = 0; tick < sampleTicks; tick++)
             {
-                ForceDecisionBatch(world, tick);
                 long started = Stopwatch.GetTimestamp();
-                world.Scheduler.RunManualTick(1f / 60f);
+                world.RunSchedulerTick(1f / 60f);
                 tickTimes.Add(
                     (Stopwatch.GetTimestamp() - started)
                     * 1000.0
@@ -530,6 +994,7 @@ public static class CharacterAiStressDebugScenarios
             result.maxAllocatedKb = allocatedSamples > 0
                 ? maxAllocatedBytes / 1024.0
                 : -1.0;
+            result.allocationSamples = allocatedSamples;
             result.registered = world.Scheduler.RegisteredCharacterCount;
             result.tickedTrees = world.Characters.Count(character =>
                 character != null
@@ -542,6 +1007,131 @@ public static class CharacterAiStressDebugScenarios
                 && character.ai.availableActions.Length > 0);
             result.performance =
                 CharacterAiEditorTestDependencies.CapturePerformanceReport(npcCount);
+            if (detailedDecisionProfile)
+            {
+                CharacterAiEditorTestDependencies.FlushSlowPerformanceTrace();
+            }
+            result.actorsTickedDuringSample = world.Characters
+                .Where((character, index) => character?.BehaviorTree != null
+                    && character.BehaviorTree.DungeonStoryTickCount
+                        > tickBaseline[index])
+                .Count();
+            result.pendingAtEnd = world.Characters.Count(character =>
+                character != null && character.IsAiDecisionPending);
+            result.minimumSchedulerProcessDelta = long.MaxValue;
+            result.minimumTreeTickDelta = long.MaxValue;
+            for (int index = 0; index < world.Characters.Count; index++)
+            {
+                CharacterActor character = world.Characters[index];
+                if (IsTypedStressExemption(character))
+                {
+                    result.schedulerTouched++;
+                    result.healthyActivityTouched++;
+                    continue;
+                }
+
+                if (character?.Brain == null
+                    || !runtimeGateBaselines.TryGetValue(
+                        character,
+                        out CharacterAiRuntimeGateSnapshot startGate))
+                {
+                    result.lifecycleViolations++;
+                    continue;
+                }
+
+                CharacterAiRuntimeGateSnapshot endGate =
+                    character.Brain.CaptureRuntimeGateSnapshot();
+                long schedulerProcessDelta =
+                    endGate.SchedulerProcesses - startGate.SchedulerProcesses;
+                result.minimumSchedulerProcessDelta = Math.Min(
+                    result.minimumSchedulerProcessDelta,
+                    schedulerProcessDelta);
+                result.maximumSchedulerProcessDelta = Math.Max(
+                    result.maximumSchedulerProcessDelta,
+                    schedulerProcessDelta);
+                if (schedulerProcessDelta > 0L)
+                {
+                    result.schedulerTouched++;
+                }
+                if (endGate.HasHealthyActivityFrom(in startGate))
+                {
+                    result.healthyActivityTouched++;
+                }
+
+                long treeTickDelta = character.BehaviorTree != null
+                    ? character.BehaviorTree.DungeonStoryTickCount
+                        - tickBaseline[index]
+                    : 0L;
+                result.minimumTreeTickDelta = Math.Min(
+                    result.minimumTreeTickDelta,
+                    treeTickDelta);
+                result.maximumTreeTickDelta = Math.Max(
+                    result.maximumTreeTickDelta,
+                    treeTickDelta);
+
+                if (!endGate.ConservesLifecycleFrom(in startGate))
+                    result.lifecycleViolations++;
+                if (!endGate.ConservesPathsFrom(in startGate))
+                    result.pathConservationViolations++;
+                if (!endGate.ConservesReservationsFrom(in startGate))
+                    result.reservationConservationViolations++;
+                if (!endGate.ConservesObservedBranchesFrom(in startGate))
+                    result.branchConservationViolations++;
+                if (endGate.MaximumSchedulerDelayMilliseconds > 2000)
+                    result.schedulerDelayViolations++;
+
+                result.invariantAnomalyDelta += Math.Max(
+                    0L,
+                    endGate.InvariantAnomalies - startGate.InvariantAnomalies);
+                result.failureLoopDelta += Math.Max(
+                    0L,
+                    endGate.FailureLoops - startGate.FailureLoops);
+                if (orphanRecoveryBaselines.TryGetValue(
+                    character,
+                    out long orphanRecoveryBaseline))
+                {
+                    result.orphanRecoveryDelta += Math.Max(
+                        0L,
+                        character.Brain.RuntimeOrphanWorkActionRecoveryCount
+                            - orphanRecoveryBaseline);
+                }
+            }
+            if (result.minimumSchedulerProcessDelta == long.MaxValue)
+                result.minimumSchedulerProcessDelta = 0L;
+            if (result.minimumTreeTickDelta == long.MaxValue)
+                result.minimumTreeTickDelta = 0L;
+            result.starvedDecisionDelta = Math.Max(
+                0L,
+                world.Scheduler.CumulativeStarvedDecisionCount
+                    - starvedDecisionBaseline);
+            result.oldestDecisionDeferralSeconds =
+                world.Scheduler.LastOldestDecisionDeferralSeconds;
+            result.maximumDecisionDeferralSeconds =
+                world.Scheduler.MaximumObservedDecisionDeferralSeconds;
+            float sampleHorizonSeconds = sampleTicks / 60f;
+            result.maximumInitialDecisionDeferralSeconds = 0f;
+            for (int index = 0; index < world.Characters.Count; index++)
+            {
+                CharacterActor character = world.Characters[index];
+                if (character?.BehaviorTree == null
+                    || character.BehaviorTree.DungeonStoryTickCount
+                        <= tickBaseline[index])
+                {
+                    result.maximumInitialDecisionDeferralSeconds =
+                        sampleHorizonSeconds;
+                    break;
+                }
+
+                result.maximumInitialDecisionDeferralSeconds = Mathf.Max(
+                    result.maximumInitialDecisionDeferralSeconds,
+                    character.Brain?.MaximumSchedulerDelaySeconds ?? 0f);
+            }
+            if (world.SchedulerDecisionLimit != DecisionBudget)
+            {
+                throw new InvalidOperationException(
+                    $"Large-grid scheduler decision limit drifted: "
+                    + $"{world.SchedulerDecisionLimit} != {DecisionBudget}.");
+            }
 
             result.valid = result.gridWidth == 1024
                 && result.gridHeight == 1024
@@ -549,15 +1139,34 @@ public static class CharacterAiStressDebugScenarios
                 && result.tickedTrees == npcCount
                 && result.charactersWithActions == npcCount
                 && result.totalDecisions > 0
+                && result.actorsTickedDuringSample == npcCount
+                && result.schedulerTouched == npcCount
+                && result.minimumSchedulerProcessDelta > 0L
+                && result.minimumTreeTickDelta > 0L
+                && result.maximumInitialDecisionDeferralSeconds <= 2f
+                && result.maximumDecisionDeferralSeconds <= 2f
+                && result.oldestDecisionDeferralSeconds <= 2f
+                && result.starvedDecisionDelta == 0L
                 && result.totalPathSearches + result.totalBrokerSearches > 0
                 && result.totalUnboundedSearches == 0
                 && result.maxDecisionsPerTick <= DecisionBudget
                 && result.maxPathSearchesPerTick <= PathBudget
                 && result.maxBrokerSearchesPerTick <= PathBudget
+                && result.lifecycleViolations == 0
+                && result.pathConservationViolations == 0
+                && result.reservationConservationViolations == 0
+                && result.branchConservationViolations == 0
+                && result.schedulerDelayViolations == 0
+                && result.invariantAnomalyDelta == 0L
+                && result.orphanRecoveryDelta == 0L
+                && result.failureLoopDelta == 0L
+                && result.p95TickMs <= TargetFrameP95Milliseconds
                 && result.p95SchedulerMs <= TargetSchedulerP95Milliseconds
-                && (result.averageAllocatedKb < 0
-                    || result.averageAllocatedKb
-                        <= TargetAverageGcKilobytesPerFrame);
+                && result.allocationSamples == sampleTicks
+                && result.averageAllocatedKb
+                    <= TargetAverageGcKilobytesPerFrame
+                && result.maxAllocatedKb
+                    <= TargetMaximumGcKilobytesPerFrame;
             if (facilityDense)
             {
                 result.valid = result.valid
@@ -617,8 +1226,19 @@ public static class CharacterAiStressDebugScenarios
             return;
         }
 
-        int baseIndex = tick * DecisionBudget;
-        for (int offset = 0; offset < DecisionBudget; offset++)
+        // A full action cancellation is much heavier than a production wake-up.
+        // Rotate one actor per tick so all 500 actors are sampled without
+        // manufacturing synchronized bursts that the production cadence
+        // deliberately spreads across frames.
+        const int forcedCount = 1;
+        int baseIndex = tick * forcedCount;
+        // At the observed ~0.55ms full decision cost, forcing all 16 authored
+        // safety slots in one synthetic tick guarantees an 8-9ms burst and
+        // measures the hard ceiling rather than the 4ms adaptive scheduler.
+        // Force only the amount that can fit the production target; the
+        // scheduler's own backlog/fairness logic remains responsible for the
+        // rest.
+        for (int offset = 0; offset < forcedCount; offset++)
         {
             CharacterActor actor =
                 world.Characters[(baseIndex + offset) % world.Characters.Count];
@@ -627,8 +1247,27 @@ public static class CharacterAiStressDebugScenarios
                 continue;
             }
 
+            // This diagnostic intentionally measures forced replanning. A
+            // regular wake-up preserves an in-flight action by contract, so it
+            // cannot manufacture a decision sample once every actor owns a
+            // running action. Terminate through the typed cancellation path
+            // before scheduling the next decision.
+            actor.Brain?.StopCurrentActionForReplan(
+                "large-grid-stress-forced-replan");
             actor.Brain?.RequestImmediateReplan(clearFailures: true);
             world.Scheduler.RequestImmediateDecisionFor(actor);
+        }
+    }
+
+    private static void ForceFullPopulationReplan(StressWorld world)
+    {
+        if (world == null) return;
+        foreach (CharacterActor actor in world.Characters)
+        {
+            if (actor == null) continue;
+            actor.Brain?.StopCurrentActionForReplan(
+                "large-grid-population-invalidation");
+            actor.Brain?.RequestImmediateReplan(clearFailures: true);
         }
     }
 
@@ -689,6 +1328,11 @@ public static class CharacterAiStressDebugScenarios
         private readonly List<GameObject> disabledSceneRoots = new List<GameObject>();
         private readonly Stopwatch sampleStopwatch = new Stopwatch();
         private readonly Stopwatch warmupStopwatch = new Stopwatch();
+        private readonly Dictionary<CharacterActor, CharacterAiRuntimeGateSnapshot>
+            runtimeGateBaselines =
+                new Dictionary<CharacterActor, CharacterAiRuntimeGateSnapshot>();
+        private readonly Dictionary<CharacterActor, long>
+            behaviorTreeTickBaselines = new Dictionary<CharacterActor, long>();
 
         private StressWorld world;
         private Scene previousScene;
@@ -743,6 +1387,7 @@ public static class CharacterAiStressDebugScenarios
         private double totalSchedulerMs;
         private double maxSchedulerMs;
         private long previousMeasuredFrameTimestamp;
+        private long starvedDecisionBaseline;
 
         private PlayModeProfileSession(
             int npcCount,
@@ -974,6 +1619,13 @@ public static class CharacterAiStressDebugScenarios
             }
 
             lastFrame = frame;
+            // StressWorld uses a deterministic clock so synchronous profiles
+            // are reproducible. In PlayMode the scheduler is driven by Unity's
+            // Update rather than RunSchedulerTick, so advance that same clock
+            // once per real player frame; otherwise DynamicFrameWorkBudget
+            // treats the entire 600-frame sample as one frame and accumulates
+            // consumed time forever.
+            world.AdvanceProfileClock(Time.unscaledDeltaTime);
             bool hasUntickedTree = world.Characters.Any(character =>
                 character != null
                 && character.BehaviorTree != null
@@ -1054,6 +1706,31 @@ public static class CharacterAiStressDebugScenarios
                     CharacterAiEditorTestDependencies.ResetPerformanceRecorder(
                         detailedCollectionEnabled: sampleFrames <= 120,
                         slowTraceEnabled: sampleFrames <= 120);
+                    world.ConfigureDiagnosticBudgets(
+                        DecisionBudget,
+                        PathBudget);
+                    ForceFullPopulationReplan(world);
+                    world.Scheduler.ResetDecisionQueueForDiagnostics();
+                    world.Scheduler.ResetDecisionDeferralTelemetryForDiagnostics();
+                    starvedDecisionBaseline =
+                        world.Scheduler.CumulativeStarvedDecisionCount;
+                    runtimeGateBaselines.Clear();
+                    behaviorTreeTickBaselines.Clear();
+                    foreach (CharacterActor character in world.Characters)
+                    {
+                        if (character?.Brain != null)
+                        {
+                            character.Brain
+                                .ResetSchedulerDelayTelemetryForDiagnostics();
+                            runtimeGateBaselines[character] =
+                                character.Brain.CaptureRuntimeGateSnapshot();
+                        }
+                        if (character?.BehaviorTree != null)
+                        {
+                            behaviorTreeTickBaselines[character] =
+                                character.BehaviorTree.DungeonStoryTickCount;
+                        }
+                    }
                     previousMeasuredFrameTimestamp = Stopwatch.GetTimestamp();
                     sampleStopwatch.Restart();
                 }
@@ -1192,12 +1869,142 @@ public static class CharacterAiStressDebugScenarios
             double p95FrameMs = Percentile(frameTimesMs, 0.95);
             double p95SchedulerMs = Percentile(schedulerTimesMs, 0.95);
             List<string> behaviorViolations = new List<string>();
+            long measuredStarvedDecisions = Math.Max(
+                0L,
+                (scheduler?.CumulativeStarvedDecisionCount ?? 0L)
+                    - starvedDecisionBaseline);
             if (scheduler == null)
                 behaviorViolations.Add("scheduler-missing");
             if (scheduler != null && scheduler.RegisteredCharacterCount != npcCount)
                 behaviorViolations.Add($"registered:{scheduler.RegisteredCharacterCount}!={npcCount}");
-            if (touchedCharacters <= 0)
-                behaviorViolations.Add("no-character-progress");
+            int typedExemptions = world.Characters.Count(IsTypedStressExemption);
+            int typedTouched = 0;
+            int schedulerTouched = 0;
+            int lifecycleViolations = 0;
+            int schedulerDelayViolations = 0;
+            int invariantViolations = 0;
+            int orphanRecoveries = 0;
+            int failureLoops = 0;
+            long minimumMeasuredTreeTickDelta = long.MaxValue;
+            long maximumMeasuredTreeTickDelta = 0L;
+            long minimumSchedulerProcessDelta = long.MaxValue;
+            long maximumSchedulerProcessDelta = 0L;
+            const int maximumActorDiagnostics = 32;
+            List<string> untouchedActorDiagnostics = new List<string>();
+            List<string> failureLoopActorDiagnostics = new List<string>();
+            foreach (CharacterActor character in world.Characters)
+            {
+                if (IsTypedStressExemption(character))
+                {
+                    typedTouched++;
+                    schedulerTouched++;
+                    continue;
+                }
+                if (character?.Brain == null)
+                {
+                    lifecycleViolations++;
+                    if (untouchedActorDiagnostics.Count < maximumActorDiagnostics)
+                    {
+                        untouchedActorDiagnostics.Add(
+                            $"actor={character?.name ?? "null"};brain=missing");
+                    }
+                    continue;
+                }
+                CharacterAiRuntimeGateSnapshot end =
+                    character.Brain.CaptureRuntimeGateSnapshot();
+                runtimeGateBaselines.TryGetValue(
+                    character,
+                    out CharacterAiRuntimeGateSnapshot start);
+                long schedulerProcessDelta =
+                    end.SchedulerProcesses - start.SchedulerProcesses;
+                if (schedulerProcessDelta > 0L)
+                {
+                    schedulerTouched++;
+                }
+                minimumSchedulerProcessDelta = Math.Min(
+                    minimumSchedulerProcessDelta,
+                    schedulerProcessDelta);
+                maximumSchedulerProcessDelta = Math.Max(
+                    maximumSchedulerProcessDelta,
+                    schedulerProcessDelta);
+                long startTreeTicks = behaviorTreeTickBaselines.TryGetValue(
+                    character,
+                    out long treeBaseline)
+                        ? treeBaseline
+                        : character.BehaviorTree != null
+                            ? character.BehaviorTree.DungeonStoryTickCount
+                            : 0L;
+                long treeTickDelta =
+                    (character.BehaviorTree != null
+                        ? character.BehaviorTree.DungeonStoryTickCount
+                        : 0L)
+                    - startTreeTicks;
+                minimumMeasuredTreeTickDelta = Math.Min(
+                    minimumMeasuredTreeTickDelta,
+                    treeTickDelta);
+                maximumMeasuredTreeTickDelta = Math.Max(
+                    maximumMeasuredTreeTickDelta,
+                    treeTickDelta);
+                if (end.HasHealthyActivityFrom(in start))
+                {
+                    typedTouched++;
+                }
+                else if (untouchedActorDiagnostics.Count < maximumActorDiagnostics)
+                {
+                    untouchedActorDiagnostics.Add(FormatActorGateDiagnostic(
+                        character,
+                        in start,
+                        in end));
+                }
+                if (!end.ConservesLifecycleFrom(in start)
+                    || !end.ConservesPathsFrom(in start)
+                    || !end.ConservesReservationsFrom(in start)
+                    || !end.ConservesObservedBranchesFrom(in start))
+                    lifecycleViolations++;
+                if (end.MaximumSchedulerDelayMilliseconds > 2000)
+                    schedulerDelayViolations++;
+                if (end.InvariantAnomalies > start.InvariantAnomalies)
+                    invariantViolations++;
+                if (character.Brain.RuntimeOrphanWorkActionRecoveryCount > 0L)
+                    orphanRecoveries++;
+                if (end.FailureLoops > start.FailureLoops)
+                {
+                    failureLoops++;
+                    if (failureLoopActorDiagnostics.Count < maximumActorDiagnostics)
+                    {
+                        failureLoopActorDiagnostics.Add(FormatActorGateDiagnostic(
+                            character,
+                            in start,
+                            in end));
+                    }
+                }
+            }
+            if (typedTouched != npcCount)
+                behaviorViolations.Add($"typed-touched:{typedTouched}!={npcCount}");
+            if (schedulerTouched != npcCount)
+                behaviorViolations.Add(
+                    $"scheduler-touched:{schedulerTouched}!={npcCount}");
+            if (minimumMeasuredTreeTickDelta == long.MaxValue)
+                minimumMeasuredTreeTickDelta = 0L;
+            if (minimumSchedulerProcessDelta == long.MaxValue)
+                minimumSchedulerProcessDelta = 0L;
+            if (minimumMeasuredTreeTickDelta <= 0L)
+                behaviorViolations.Add(
+                    $"measured-tree-tick-min:{minimumMeasuredTreeTickDelta}");
+            if (minimumSchedulerProcessDelta <= 0L)
+                behaviorViolations.Add(
+                    $"scheduler-process-min:{minimumSchedulerProcessDelta}");
+            if (lifecycleViolations > 0)
+                behaviorViolations.Add($"lifecycle-conservation:{lifecycleViolations}");
+            if (schedulerDelayViolations > 0)
+                behaviorViolations.Add(
+                    $"actor-scheduler-delay:{schedulerDelayViolations}");
+            if (invariantViolations > 0)
+                behaviorViolations.Add($"invariant-anomalies:{invariantViolations}");
+            if (orphanRecoveries > 0)
+                behaviorViolations.Add($"orphan-recoveries:{orphanRecoveries}");
+            if (failureLoops > 0)
+                behaviorViolations.Add($"failure-loops:{failureLoops}");
             if (tickedTrees != npcCount)
                 behaviorViolations.Add($"ticked-trees:{tickedTrees}!={npcCount}");
             if (withActions != npcCount)
@@ -1212,9 +2019,9 @@ public static class CharacterAiStressDebugScenarios
                 behaviorViolations.Add("no-decisions");
             if (totalPathSearches + totalBrokerPathSearches <= 0)
                 behaviorViolations.Add("no-path-searches");
-            if (scheduler != null && scheduler.CumulativeStarvedDecisionCount > 0)
+            if (measuredStarvedDecisions > 0)
                 behaviorViolations.Add(
-                    $"starved-decisions:{scheduler.CumulativeStarvedDecisionCount}");
+                    $"starved-decisions:{measuredStarvedDecisions}");
             if (scheduler != null
                 && scheduler.MaximumObservedDecisionDeferralSeconds > 2f)
             {
@@ -1230,7 +2037,10 @@ public static class CharacterAiStressDebugScenarios
             // retain the full-frame budget for a Player-build audit.
             bool aiOwnedGcValid = schedulerGcCounterSupported
                 ? avgSchedulerGcAllocKb <= TargetAverageGcKilobytesPerFrame
-                : avgGcAllocKb <= TargetAverageGcKilobytesPerFrame;
+                    && maxSchedulerGcAllocKb
+                        <= TargetMaximumGcKilobytesPerFrame
+                : avgGcAllocKb <= TargetAverageGcKilobytesPerFrame
+                    && maxGcAllocKb <= TargetMaximumGcKilobytesPerFrame;
             bool performanceValid = p95FrameMs <= TargetFrameP95Milliseconds
                 && p95SchedulerMs <= TargetSchedulerP95Milliseconds
                 && aiOwnedGcValid;
@@ -1248,11 +2058,15 @@ public static class CharacterAiStressDebugScenarios
 
             string report =
                 $"valid={valid}, behaviorValid={behaviorValid}, performanceValid={performanceValid}, "
+                + $"runtimeDiagnosticsGate={RuntimeDiagnosticsGateVersion}, "
                 + $"behaviorFailure={behaviorFailure}, "
                 + $"grid={world.Grid.width}x{world.Grid.height}, "
                 + $"npc={npcCount}, registered={(scheduler != null ? scheduler.RegisteredCharacterCount : 0)}, " +
                 $"active={touchedCharacters}, pending={pendingCharacters}, withActions={withActions}, tickedTrees={tickedTrees}, " +
+                $"typedTouched={typedTouched}, schedulerTouched={schedulerTouched}, typedExemptions={typedExemptions}, lifecycleViolations={lifecycleViolations}, schedulerDelayViolations={schedulerDelayViolations}, invariantViolations={invariantViolations}, orphanRecoveries={orphanRecoveries}, failureLoops={failureLoops}, " +
                 $"treeTicksMinMax={minimumTreeTicks}/{maximumTreeTicks}, " +
+                $"measuredTreeTickDeltaMinMax={minimumMeasuredTreeTickDelta}/{maximumMeasuredTreeTickDelta}, " +
+                $"schedulerProcessDeltaMinMax={minimumSchedulerProcessDelta}/{maximumSchedulerProcessDelta}, " +
                 $"warmupFrames={warmupSamples}, warmupWallMs={warmupStopwatch.Elapsed.TotalMilliseconds:0.0}, warmupCleanupMs={warmupCleanupMs:0.0}, " +
                 $"samples={samples}, sampleWallMs={sampleStopwatch.Elapsed.TotalMilliseconds:0.0}, "
                 + $"creationFrames={creationFrames}, creationMs={creationMs:0.0}, maxCreationFrameMs={maxCreationFrameMs:0.0}, " +
@@ -1263,7 +2077,7 @@ public static class CharacterAiStressDebugScenarios
                 $"totalDecisions={totalDecisions}, maxDecisions/frame={maxDecisions}, " +
                 $"maxFairnessFloor={maxFairnessDecisionFloor}, " +
                 $"budgetExhaustedFrames={budgetExhaustedFrames}, "
-                + $"starvedDecisions={scheduler?.CumulativeStarvedDecisionCount ?? 0}, "
+                + $"starvedDecisions={measuredStarvedDecisions}, "
                 + $"oldestDeferral={(scheduler?.LastOldestDecisionDeferralSeconds ?? 0f):0.###}s, "
                 + $"maxDeferral={(scheduler?.MaximumObservedDecisionDeferralSeconds ?? 0f):0.###}s, "
                 + $"totalPathSearches={totalPathSearches}, maxPathSearches/frame={maxPathSearches}, " +
@@ -1276,7 +2090,9 @@ public static class CharacterAiStressDebugScenarios
                 $"aiOwnedGcValid={aiOwnedGcValid}, " +
                 $"avgSchedulerGcAllocKB/frame={avgSchedulerGcAllocKb:0.0}, maxSchedulerGcAllocKB/frame={maxSchedulerGcAllocKb:0.0}, " +
                 $"monoUsedDeltaMB={monoDeltaMb:0.00}, gen0Collections={GC.CollectionCount(0) - startGen0Collections}, "
-                + $"perf=[{detailedPerformanceSummary}]";
+                + $"perf=[{detailedPerformanceSummary}], "
+                + $"untouchedActors=[{string.Join(" | ", untouchedActorDiagnostics)}], "
+                + $"failureLoopActors=[{string.Join(" | ", failureLoopActorDiagnostics)}]";
 
             SessionState.SetString(PlayModeProfileReportKey, report);
             WriteProfileReport(
@@ -1428,6 +2244,45 @@ public static class CharacterAiStressDebugScenarios
             return sortedValues[index];
         }
 
+        private static string FormatActorGateDiagnostic(
+            CharacterActor character,
+            in CharacterAiRuntimeGateSnapshot start,
+            in CharacterAiRuntimeGateSnapshot end)
+        {
+            if (character == null) return "actor=null";
+            AIBrain brain = character.Brain;
+            string actorId = CharacterPersistentIdentity.TryGet(
+                character,
+                out CharacterId persistentId)
+                    ? persistentId.Value
+                    : character.name;
+            AIActionFailure? failure = brain != null
+                ? brain.LastActionFailure
+                : (AIActionFailure?)null;
+            return
+                $"actor={actorId};pos={character.transform.position};"
+                + $"action={brain?.CurrentActionDebugLabel};"
+                + $"phase={brain?.CurrentActionPhase};runtimePhase={brain?.CurrentRuntimePhase};"
+                + $"destination={brain?.CurrentDestinationDebugLabel};"
+                + $"failure={failure?.Kind}:{failure?.Reason};"
+                + $"gameplayProgress={end.GameplayProgressRevision - start.GameplayProgressRevision};"
+                + $"queueHeartbeats={end.FacilityQueueHeartbeats - start.FacilityQueueHeartbeats};"
+                + $"serviceHeartbeats={end.FacilityServiceHeartbeats - start.FacilityServiceHeartbeats};"
+                + $"runtimeProgress={end.ProgressRevision - start.ProgressRevision};"
+                + $"schedulerProcesses={end.SchedulerProcesses - start.SchedulerProcesses};"
+                + $"schedulerDelayMs={end.MaximumSchedulerDelayMilliseconds};"
+                + $"starts={end.ActionStarts - start.ActionStarts};"
+                + $"terminals={end.ActionTerminals - start.ActionTerminals};"
+                + $"live={end.LiveActions};paths={end.PathRequests - start.PathRequests}/"
+                + $"{end.PathResults - start.PathResults}/{end.LivePathRequests};"
+                + $"reservations={end.ReservationAcquires - start.ReservationAcquires}/"
+                + $"{end.ReservationReleases - start.ReservationReleases}/{end.LiveReservations};"
+                + $"retries={end.RetrySchedules - start.RetrySchedules}/"
+                + $"{end.RetryAttempts - start.RetryAttempts};"
+                + $"failureLoops={end.FailureLoops - start.FailureLoops};"
+                + $"branches=[{end.FormatObservedBranchesFrom(in start)}]";
+        }
+
         private void WriteProfileReport(
             bool valid,
             string report,
@@ -1460,6 +2315,10 @@ public static class CharacterAiStressDebugScenarios
                 $"  \"behaviorValid\": {behaviorValid.ToString().ToLowerInvariant()},\n" +
                 $"  \"behaviorFailure\": \"{EscapeJson(behaviorFailure)}\",\n" +
                 $"  \"performanceValid\": {performanceValid.ToString().ToLowerInvariant()},\n" +
+                $"  \"measurementScope\": \"isolated PlayMode stress world with live scheduler, behavior trees, action selection and movement coroutines; no production scene rendering or long-running economy/service simulation\",\n" +
+                $"  \"utc\": \"{DateTime.UtcNow:O}\",\n" +
+                $"  \"verifierRevision\": \"{VerifierRevision}\",\n" +
+                $"  \"runtimeDiagnosticsGate\": \"{RuntimeDiagnosticsGateVersion}\",\n" +
                 $"  \"npc\": {npcCount},\n" +
                 $"  \"gridWidth\": {world.Grid.width},\n" +
                 $"  \"gridHeight\": {world.Grid.height},\n" +
@@ -1494,7 +2353,7 @@ public static class CharacterAiStressDebugScenarios
                 $"  \"maxDecisionsPerFrame\": {maxDecisions},\n" +
                 $"  \"maxFairnessDecisionFloor\": {maxFairnessDecisionFloor},\n" +
                 $"  \"budgetExhaustedFrames\": {budgetExhaustedFrames},\n" +
-                $"  \"starvedDecisions\": {world.Scheduler?.CumulativeStarvedDecisionCount ?? 0},\n" +
+                $"  \"starvedDecisions\": {Math.Max(0L, (world.Scheduler?.CumulativeStarvedDecisionCount ?? 0L) - starvedDecisionBaseline)},\n" +
                 $"  \"oldestDecisionDeferralSeconds\": {(world.Scheduler?.LastOldestDecisionDeferralSeconds ?? 0f):0.###},\n" +
                 $"  \"maximumDecisionDeferralSeconds\": {(world.Scheduler?.MaximumObservedDecisionDeferralSeconds ?? 0f):0.###},\n" +
                 $"  \"totalPathSearches\": {totalPathSearches},\n" +
@@ -1540,6 +2399,10 @@ public static class CharacterAiStressDebugScenarios
         private readonly Grid previousGrid;
         private readonly IDisposable gridSystemOverride;
         private readonly ExternalBehaviorTree externalBehavior;
+        private readonly FixedProfileClock profileClock;
+        private readonly IGridPathSearchBroker profilePathSearchBroker;
+        private readonly IDynamicFrameWorkBudget profileFrameWorkBudget;
+        private readonly IFacilityCandidateCache profileFacilityCandidateCache;
         private readonly List<GameObject> objects = new List<GameObject>();
         private readonly List<ScriptableObject> scriptableObjects = new List<ScriptableObject>();
         private readonly Dictionary<string, BuildingSO> buildingDataByAssetPath =
@@ -1623,20 +2486,68 @@ public static class CharacterAiStressDebugScenarios
             Scheduler = schedulerObject.AddComponent<CharacterAiScheduler>();
             Scheduling = new FixedSchedulerService(Scheduler);
             SetPrivateField(Scheduler, "registerExistingSceneCharacters", false);
-            CharacterAiEditorTestDependencies.Inject(Scheduler);
+            profileClock = new FixedProfileClock();
+            profilePathSearchBroker = new GridPathSearchBroker(
+                profileClock,
+                doorAccessQuery: null,
+                performanceRecorder: null,
+                costPolicy: null);
+            profileFrameWorkBudget = new DynamicFrameWorkBudget(
+                profileClock,
+                profileClock);
+            profileFacilityCandidateCache = new FacilityCandidateCacheStore(
+                CharacterAiEditorTestDependencies.WorldRegistry,
+                frameWorkBudget: profileFrameWorkBudget);
+            Scheduler.Construct(
+                CharacterAiEditorTestDependencies.WorldRegistry,
+                CharacterAiEditorTestDependencies.TestMainCameraProvider,
+                CharacterAiEditorTestDependencies.TestBehaviorTreeConfigurator,
+                profilePathSearchBroker,
+                profileClock,
+                profileFrameWorkBudget,
+                CharacterAiEditorTestDependencies.TestPerformanceRecorder,
+                profileClock,
+                profileFacilityCandidateCache,
+                playerStaffCommands: null,
+                debugRules: DisabledDungeonDebugRuleQuery.Instance);
             Scheduler.ClearRegistrationsForDebug();
             SetPrivateField(Scheduler, "characterAiExternalBehavior", externalBehavior);
-            SetPrivateField(Scheduler, "maxDecisionsPerFrame", DecisionBudget);
-            SetPrivateField(Scheduler, "maxPathSearchesPerFrame", PathBudget);
-            SetPrivateField(Scheduler, "visibleDecisionInterval", 0.01f);
-            SetPrivateField(Scheduler, "offscreenDecisionInterval", 0.01f);
-            SetPrivateField(Scheduler, "ownerDecisionInterval", 0.01f);
-            SetPrivateField(Scheduler, "retryDelay", 0.01f);
+            // The 1024-grid profile targets the same 4ms AI slice as release.
+            // A 16-decision hard ceiling allows the fairness floor to create an
+            // artificial 8-10ms burst in this synchronous harness. Bound this
+            // configuration to the measured large-grid service capacity.
+            Scheduler.ConfigureDiagnosticBudgets(DecisionBudget, PathBudget);
+            SetPrivateField(Scheduler, "visibleDecisionInterval", 0.35f);
+            SetPrivateField(Scheduler, "offscreenDecisionInterval", 1.5f);
+            SetPrivateField(Scheduler, "ownerDecisionInterval", 0.2f);
+            SetPrivateField(Scheduler, "retryDelay", 0.05f);
+            SetPrivateField(Scheduler, "registrationSpreadSeconds", 1.5f);
+            SetPrivateField(Scheduler, "minDecisionsPerFrame", 1);
+            SetPrivateField(Scheduler, "maximumDecisionDeferralSeconds", 2f);
         }
 
         public Grid Grid { get; }
         public CharacterAiScheduler Scheduler { get; }
         public ICharacterAiSchedulingService Scheduling { get; }
+        public int SchedulerDecisionLimit =>
+            Scheduler.MaximumDecisionsPerFrameForDiagnostics;
+        public void ConfigureDiagnosticBudgets(
+            int maximumDecisionsPerFrame,
+            int maximumPathSearchesPerFrame)
+        {
+            Scheduler.ConfigureDiagnosticBudgets(
+                maximumDecisionsPerFrame,
+                maximumPathSearchesPerFrame);
+        }
+        public void RunSchedulerTick(float deltaTime)
+        {
+            profileClock.Advance(deltaTime);
+            Scheduler.RunManualTick(deltaTime);
+        }
+        public void AdvanceProfileClock(float deltaTime)
+        {
+            profileClock.Advance(deltaTime);
+        }
         public List<CharacterActor> Characters { get; } = new List<CharacterActor>();
         public int ActiveFloorCount => activeFloorCount;
         public int DenseFacilityCount => denseFacilities.Count(building =>
@@ -2011,13 +2922,26 @@ public static class CharacterAiStressDebugScenarios
             obj.AddComponent<AbilityMove>();
             obj.AddComponent<AbilityShopping>();
             AIBrain brain = obj.AddComponent<AIBrain>();
-            brain.availableActions = AiDebugScenarioActionFactory.CreateCustomerActions();
+            // The isolated scheduler profile has no authored dungeon entry or
+            // CharacterSpawner. ExitDungeon is therefore outside its stated
+            // scope and would only exercise a missing fixture dependency.
+            brain.availableActions = AiDebugScenarioActionFactory
+                .CreateCustomerActions()
+                .Where(action => action?.actionset?.Branch
+                    != CharacterAiBranch.ExitDungeon)
+                .ToArray();
             BehaviorTree behaviorTree = obj.AddComponent<BehaviorTree>();
             behaviorTree.StartWhenEnabled = false;
             behaviorTree.ExternalBehavior = externalBehavior;
             CharacterActor character = obj.AddComponent<CharacterActor>();
             CharacterAwakeMethod?.Invoke(character, null);
-            CharacterAiEditorTestDependencies.Inject(obj, Scheduling);
+            CharacterAiEditorTestDependencies.Inject(
+                obj,
+                Scheduling,
+                profileClock,
+                profilePathSearchBroker,
+                profileFrameWorkBudget,
+                profileFacilityCandidateCache);
 
             CharacterSO data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
                 CharacterType.Customer,
@@ -2031,6 +2955,14 @@ public static class CharacterAiStressDebugScenarios
             ApplyStressPersona(obj.GetComponent<CustomerPersonaRuntime>(), speciesTag);
             obj.transform.position = Grid.GetWorldPos(position);
             character.Initialization(data);
+            // Character initialization augments all visitor action sets with
+            // ExitDungeon. The isolated scheduler profile deliberately has no
+            // authored entry/spawner, so remove that out-of-scope action after
+            // the production normalization pass.
+            brain.availableActions = brain.availableActions
+                .Where(action => action?.actionset?.Branch
+                    != CharacterAiBranch.ExitDungeon)
+                .ToArray();
             character.SetLifecycleState(CharacterLifecycleState.Active);
             character.stats[CharacterCondition.HUNGER] = hunger;
             character.stats[CharacterCondition.SLEEP] = sleep;
@@ -2063,8 +2995,16 @@ public static class CharacterAiStressDebugScenarios
 
         private static void SetPrivateField(object target, string fieldName, object value)
         {
-            FieldInfo field = target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
-            field?.SetValue(target, value);
+            FieldInfo field = target?.GetType().GetField(
+                fieldName,
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            if (field == null)
+            {
+                throw new MissingFieldException(
+                    target?.GetType().FullName ?? "<null>",
+                    fieldName);
+            }
+            field.SetValue(target, value);
         }
     }
 
@@ -2076,12 +3016,25 @@ public static class CharacterAiStressDebugScenarios
         public bool IsGridMovement => true;
     }
 
-    private sealed class TestStairOccupant : IGridOccupant, IGridMovementOccupant
+    private sealed class TestStairOccupant :
+        IGridOccupant,
+        IGridMovementOccupant,
+        IGridMovementHandler
     {
         public int GridId => -1;
         public bool IsGridDestroyed => false;
         public bool IsGridVisitable => false;
         public bool IsGridMovement => true;
         public GridMoveType GridMoveType => GridMoveType.Stair;
+
+        public System.Collections.IEnumerator Traverse(
+            IBuildingVisitorPort actor,
+            GridMoveStep step)
+        {
+            if (actor != null)
+            {
+                yield return actor.MoveToGrid(step.To);
+            }
+        }
     }
 }

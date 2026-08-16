@@ -463,7 +463,9 @@ public readonly struct CombatStatSnapshot
         float strength,
         float toughness,
         float dexterity,
-        float healthMultiplier = 1f)
+        float healthMultiplier = 1f,
+        float arcanePowerMultiplier = 1f,
+        bool hasArcanePowerMultiplier = false)
     {
         Melee = Mathf.Max(0f, melee);
         Shooting = Mathf.Max(0f, shooting);
@@ -473,6 +475,8 @@ public readonly struct CombatStatSnapshot
         Toughness = Mathf.Max(0f, toughness);
         Dexterity = Mathf.Max(0f, dexterity);
         HealthMultiplier = Mathf.Max(0f, healthMultiplier);
+        ArcanePowerMultiplier = Mathf.Max(0f, arcanePowerMultiplier);
+        HasArcanePowerMultiplier = hasArcanePowerMultiplier;
     }
 
     public float Melee { get; }
@@ -483,6 +487,13 @@ public readonly struct CombatStatSnapshot
     public float Toughness { get; }
     public float Dexterity { get; }
     public float HealthMultiplier { get; }
+    /// <summary>
+    /// True when the combat-domain snapshot, rather than the active world
+    /// character registry, owns the arcane projection for this participant.
+    /// Detached campaign battle combatants must set this bit explicitly.
+    /// </summary>
+    public bool HasArcanePowerMultiplier { get; }
+    public float ArcanePowerMultiplier { get; }
 }
 
 public readonly struct CombatCoverSnapshot

@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 22
   features:
-  - rid: 7737211905658585677
-  - rid: 7737211905658585678
-  - rid: 7737211905660420700
+  - rid: 7737211981816660429
+  - rid: 7737211981816660430
+  - rid: 7737211981816660431
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585677
+    - rid: 7737211981816660429
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:life:seasonal-calendar
-    - rid: 7737211905658585678
+    - rid: 7737211981816660430
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211905660420700
+    - rid: 7737211981816660431
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.60448116

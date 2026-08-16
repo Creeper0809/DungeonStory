@@ -9,6 +9,13 @@ public enum CaptivityAbilityAccessKind
     CaptiveEscape
 }
 
+public enum WildlifeDeliveryStandResolution
+{
+    Failed = 0,
+    Pending = 1,
+    Ready = 2
+}
+
 public interface ICaptiveEscapeAbilityPort
 {
     bool IsAlive { get; }
@@ -26,6 +33,11 @@ public interface ICaptiveEscapeAbilityPort
 
 public interface ICaptiveEscortAbilityPort
 {
+    bool TryBeginActionOwnership(
+        string captiveId,
+        out string failureReason);
+    bool HasActionOwnership();
+    void EndActionOwnership(bool clearFailures);
     bool TryGetState(
         string captiveId,
         out CaptiveState state,
@@ -50,6 +62,12 @@ public interface ICaptiveEscortAbilityPort
 
 public interface IWildlifeCaptureTransportAbilityPort
 {
+    bool TryBeginActionOwnership(
+        string wildlifeId,
+        out string failureReason);
+    bool HasActionOwnership();
+    void EndActionOwnership(bool clearFailures);
+    void CancelActionOwnership();
     bool TryGetTransportState(
         string wildlifeId,
         out CapturedWildlifeState state,
@@ -60,7 +78,20 @@ public interface IWildlifeCaptureTransportAbilityPort
         Vector2Int destination,
         CaptivityAbilityAccessKind accessKind,
         out IEnumerator movement);
+    bool TryCreatePickupMovement(
+        Vector2Int wildlifePosition,
+        out IEnumerator movement);
+    bool TryCreateDeliveryMovement(
+        Vector2Int destination,
+        out IEnumerator movement);
+    bool TryValidateMovementArrival(
+        Vector2Int destination,
+        out string failureReason);
     bool TryBeginCarry(string wildlifeId, out string failureReason);
+    WildlifeDeliveryStandResolution ResolveDeliveryStand(
+        string wildlifeId,
+        out CapturedWildlifeState state,
+        out string failureReason);
     IDisposable BeginTransportPass(string wildlifeId);
     bool TryCompleteCarry(string wildlifeId, out string failureReason);
     void FailCarry(string wildlifeId, string reason);

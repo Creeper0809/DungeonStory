@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using VContainer.Unity;
 
 /// <summary>
@@ -16,6 +17,8 @@ public sealed class FacilityEvolutionActivationProjection :
 
     private int observedBuildingVersion = -1;
     private int observedFacilityStateVersion = -1;
+    private bool isReconciling;
+    private bool reconcilePending;
 
     public FacilityEvolutionActivationProjection(
         IBuildingWorldQuery buildings,
@@ -42,28 +45,70 @@ public sealed class FacilityEvolutionActivationProjection :
 
     private void Reconcile(bool force)
     {
+        if (isReconciling)
+        {
+            reconcilePending = true;
+            return;
+        }
+
         int buildingVersion = buildings.BuildingVersion;
         int facilityStateVersion = facilityStateVersions.DynamicStateVersion;
-        if (!force
+        bool mustReconcile = force || reconcilePending;
+        reconcilePending = false;
+        if (!mustReconcile
             && observedBuildingVersion == buildingVersion
             && observedFacilityStateVersion == facilityStateVersion)
         {
             return;
         }
 
-        observedBuildingVersion = buildingVersion;
-        observedFacilityStateVersion = facilityStateVersion;
-        foreach (BuildableObject building in buildings.Buildings)
+        IReadOnlyList<BuildableObject> currentBuildings =
+            buildings.Buildings ?? Array.Empty<BuildableObject>();
+        BuildableObject[] pass = new BuildableObject[currentBuildings.Count];
+        for (int index = 0; index < currentBuildings.Count; index++)
         {
-            if (building == null
-                || building.isDestroy
-                || !building.TryGetComponent(
-                    out FacilityEvolutionStateComponent _))
+            pass[index] = currentBuildings[index];
+        }
+
+        bool completed = false;
+        isReconciling = true;
+        try
+        {
+            foreach (BuildableObject building in pass)
             {
-                continue;
+                if (building == null
+                    || building.isDestroy
+                    || !building.TryGetComponent(
+                        out FacilityEvolutionStateComponent _))
+                {
+                    continue;
+                }
+
+                evolution.RefreshRoomActivation(building);
             }
 
-            evolution.RefreshRoomActivation(building);
+            bool authorityChanged = buildings.BuildingVersion != buildingVersion
+                || facilityStateVersions.DynamicStateVersion
+                    != facilityStateVersion;
+            if (authorityChanged || reconcilePending)
+            {
+                reconcilePending = true;
+            }
+            else
+            {
+                observedBuildingVersion = buildingVersion;
+                observedFacilityStateVersion = facilityStateVersion;
+            }
+
+            completed = true;
+        }
+        finally
+        {
+            isReconciling = false;
+            if (!completed)
+            {
+                reconcilePending = true;
+            }
         }
     }
 }

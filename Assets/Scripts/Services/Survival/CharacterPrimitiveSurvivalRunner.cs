@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
 
@@ -25,6 +26,8 @@ internal sealed class CharacterPrimitiveSurvivalRunner
     private const float FloorRestSeconds = 60f;
     private const float LatrineSeconds = 6f;
     private const float BucketWashSeconds = 6f;
+    private const float AuthoredFacilityRecheckSeconds = 1f;
+    private const int MaximumFieldMealSourceChanges = 4;
     private const string CleanWaterItemId = "resource:clean-water";
 
     private readonly CharacterBreakdownWorld world;
@@ -116,22 +119,16 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         }
 
         CharacterId actorId = CharacterPersistentIdentity.Require(actor);
+        CharacterActionIntentKind intentKind = ResolveIntentKind(actor, kind);
         if (runningActions.TryGetValue(
                 actorId,
                 out RunningPrimitiveAction running)
-            && (IsEmergency(actor, kind)
-                    ? CharacterActionIntentKind.EmergencyNeed
-                    : CharacterActionIntentKind.RoutineNeed)
-                <= running.IntentKind)
+            && intentKind <= running.IntentKind)
         {
             status = GetLabel(running.Kind) + " 진행 중";
             return true;
         }
 
-        CharacterActionIntentKind intentKind =
-            IsEmergency(actor, kind)
-                ? CharacterActionIntentKind.EmergencyNeed
-                : CharacterActionIntentKind.RoutineNeed;
         if (actor.Brain == null
             || !actor.Brain.TryBeginExternallyDrivenAction(
                 IntentOwnerPrefix + kind,
@@ -157,7 +154,7 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         events.Publish(new CharacterPrimitiveSurvivalStartedEvent(
             actorId,
             GetActionId(kind),
-            intentKind == CharacterActionIntentKind.EmergencyNeed,
+            intentKind >= CharacterActionIntentKind.EmergencyNeed,
             needValue));
         actor.AddActivity(CharacterActivityEvent.InternalAi(
             CharacterActivityOutcomes.Started,
@@ -211,9 +208,12 @@ internal sealed class CharacterPrimitiveSurvivalRunner
             {
                 runningActions.Remove(actorId);
             }
-            actor?.Brain?.EndExternallyDrivenAction(
-                intentLease,
-                clearFailures: true);
+            if (actor?.Brain?.IsExternalIntentCurrent(intentLease) == true)
+            {
+                actor.Brain.EndExternallyDrivenAction(
+                    intentLease,
+                    clearFailures: true);
+            }
         }
     }
 
@@ -221,7 +221,26 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         CharacterActor actor,
         CharacterPrimitiveSurvivalActionKind kind)
     {
-        return CharacterNeedAiThresholds.IsEmergency(actor, GetCondition(kind));
+        CharacterCondition condition = GetCondition(kind);
+        return kind == CharacterPrimitiveSurvivalActionKind.FieldMeal
+            ? CharacterNeedAiThresholds.IsEmergencyOrImminentPhysicalHarm(
+                actor,
+                condition)
+            : CharacterNeedAiThresholds.IsEmergency(actor, condition);
+    }
+
+    private static CharacterActionIntentKind ResolveIntentKind(
+        CharacterActor actor,
+        CharacterPrimitiveSurvivalActionKind kind)
+    {
+        if (!IsEmergency(actor, kind))
+        {
+            return CharacterActionIntentKind.RoutineNeed;
+        }
+
+        return CharacterNeedAiThresholds.GetEmergencyIntentKind(
+            actor,
+            GetCondition(kind));
     }
 
     private static CharacterCondition GetCondition(
@@ -248,8 +267,18 @@ internal sealed class CharacterPrimitiveSurvivalRunner
 
     private IEnumerator RunFieldMeal(
         CharacterActor actor,
-        CharacterActionIntentLease intentLease)
+        CharacterActionIntentLease intentLease,
+        int sourceRevision = 0)
     {
+        if (!ContinuePrimitiveFallback(
+                actor,
+                CharacterPrimitiveSurvivalActionKind.FieldMeal,
+                intentLease,
+                "before-source-selection"))
+        {
+            yield break;
+        }
+
         if (!fieldMeals.TryFindFieldMeal(
                 actor,
                 out ItemStackId stackId,
@@ -262,14 +291,63 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         }
 
         yield return movement.MoveNear(actor, position, 1);
-        if (!CanCommit(actor, intentLease) || !IsAliveAndNear(actor, position, 1))
+        if (!ContinuePrimitiveFallback(
+                actor,
+                CharacterPrimitiveSurvivalActionKind.FieldMeal,
+                intentLease,
+                "after-approach"))
+        {
+            yield break;
+        }
+        if (!IsAliveAndNear(actor, position, 1))
         {
             RecordFailure(actor, CharacterPrimitiveSurvivalActionKind.FieldMeal,
                 "field-meal-approach-failed",
                 $"leaseCurrent={CanCommit(actor, intentLease)}; actor={actor?.GetNowXY()}; target={position}");
             yield break;
         }
-        yield return WaitGameSeconds(actor, intentLease, FieldMealSeconds);
+        if (!IsCurrentFieldMealSource(
+                actor,
+                stackId,
+                position,
+                sourceRevision,
+                "approach"))
+        {
+            if (sourceRevision >= MaximumFieldMealSourceChanges)
+            {
+                RecordFailure(actor, CharacterPrimitiveSurvivalActionKind.FieldMeal,
+                    "field-meal-source-churn",
+                    $"Physical meal source changed more than {MaximumFieldMealSourceChanges} times during one action.");
+                yield break;
+            }
+
+            yield return RunFieldMeal(actor, intentLease, sourceRevision + 1);
+            yield break;
+        }
+        yield return WaitGameSeconds(
+            actor,
+            CharacterPrimitiveSurvivalActionKind.FieldMeal,
+            intentLease,
+            FieldMealSeconds);
+        if (CanCommit(actor, intentLease)
+            && !IsCurrentFieldMealSource(
+                actor,
+                stackId,
+                position,
+                sourceRevision,
+                "commit"))
+        {
+            if (sourceRevision >= MaximumFieldMealSourceChanges)
+            {
+                RecordFailure(actor, CharacterPrimitiveSurvivalActionKind.FieldMeal,
+                    "field-meal-source-churn",
+                    $"Physical meal source changed more than {MaximumFieldMealSourceChanges} times during one action.");
+                yield break;
+            }
+
+            yield return RunFieldMeal(actor, intentLease, sourceRevision + 1);
+            yield break;
+        }
         if (CanCommit(actor, intentLease)
             && IsAliveAndNear(actor, position, 1)
             && fieldMeals.TryConsumeFieldMeal(actor, stackId, out MealConsumptionResult result)
@@ -286,7 +364,7 @@ internal sealed class CharacterPrimitiveSurvivalRunner
                 bubbleEligible: true));
             PublishCompleted(actor, "survival:field-meal", result.Nutrition, 1);
         }
-        else
+        else if (CanCommit(actor, intentLease))
         {
             RecordFailure(actor, CharacterPrimitiveSurvivalActionKind.FieldMeal,
                 "field-meal-commit-failed",
@@ -294,12 +372,45 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         }
     }
 
+    private bool IsCurrentFieldMealSource(
+        CharacterActor actor,
+        ItemStackId expectedStackId,
+        Vector2Int expectedPosition,
+        int sourceRevision,
+        string phase)
+    {
+        WorldItemStackSnapshot current = world
+            .GetStacksAt(expectedPosition, includeStored: true)
+            .FirstOrDefault(candidate => candidate != null
+                && string.Equals(
+                    candidate.StackId,
+                    expectedStackId.Value,
+                    StringComparison.Ordinal)
+                && candidate.AvailableQuantity > 0
+                && candidate.State is WorldItemStackState.Loose
+                    or WorldItemStackState.Stored);
+        if (current != null)
+        {
+            return true;
+        }
+
+        actor?.AddActivity(CharacterActivityEvent.InternalAi(
+            CharacterActivityOutcomes.Changed,
+            "field-meal-source-replan",
+            $"Field meal source changed: phase={phase}; revision={sourceRevision}; expected={expectedStackId.Value}@{expectedPosition}."));
+        return false;
+    }
+
     private IEnumerator RunFloorRest(
         CharacterActor actor,
         CharacterActionIntentLease intentLease)
     {
         Vector2Int position = actor.GetNowXY();
-        yield return WaitGameSeconds(actor, intentLease, FloorRestSeconds);
+        yield return WaitGameSeconds(
+            actor,
+            CharacterPrimitiveSurvivalActionKind.FloorRest,
+            intentLease,
+            FloorRestSeconds);
         if (!CanCommit(actor, intentLease) || !IsAliveAndNear(actor, position, 0))
         {
             yield break;
@@ -331,6 +442,15 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         CharacterActor actor,
         CharacterActionIntentLease intentLease)
     {
+        if (!ContinuePrimitiveFallback(
+                actor,
+                CharacterPrimitiveSurvivalActionKind.Latrine,
+                intentLease,
+                "before-position-selection"))
+        {
+            yield break;
+        }
+
         if (!TryGetDesignatedLatrinePosition(actor, out Vector2Int target))
         {
             RecordFailure(actor, CharacterPrimitiveSurvivalActionKind.Latrine,
@@ -339,19 +459,37 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         }
 
         yield return movement.MoveNear(actor, target, 0);
-        if (!CanCommit(actor, intentLease) || !IsAliveAndNear(actor, target, 0))
+        if (!ContinuePrimitiveFallback(
+                actor,
+                CharacterPrimitiveSurvivalActionKind.Latrine,
+                intentLease,
+                "after-approach"))
+        {
+            yield break;
+        }
+        if (!IsAliveAndNear(actor, target, 0)
+            || !IsCurrentPrimitiveLatrineTarget(target))
         {
             RecordFailure(actor, CharacterPrimitiveSurvivalActionKind.Latrine,
                 "latrine-approach-failed",
-                $"leaseCurrent={CanCommit(actor, intentLease)}; actor={actor?.GetNowXY()}; target={target}");
+                $"leaseCurrent={CanCommit(actor, intentLease)}; actor={actor?.GetNowXY()}; target={target}; validTarget={IsCurrentPrimitiveLatrineTarget(target)}");
             yield break;
         }
-        yield return WaitGameSeconds(actor, intentLease, LatrineSeconds);
-        if (!CanCommit(actor, intentLease) || !IsAliveAndNear(actor, target, 0))
+        yield return WaitGameSeconds(
+            actor,
+            CharacterPrimitiveSurvivalActionKind.Latrine,
+            intentLease,
+            LatrineSeconds);
+        if (!CanCommit(actor, intentLease))
+        {
+            yield break;
+        }
+        if (!IsAliveAndNear(actor, target, 0)
+            || !IsCurrentPrimitiveLatrineTarget(target))
         {
             RecordFailure(actor, CharacterPrimitiveSurvivalActionKind.Latrine,
-                "latrine-commit-failed",
-                $"leaseCurrent={CanCommit(actor, intentLease)}; actor={actor?.GetNowXY()}; target={target}");
+                "latrine-target-invalidated",
+                $"leaseCurrent={CanCommit(actor, intentLease)}; actor={actor?.GetNowXY()}; target={target}; validTarget={IsCurrentPrimitiveLatrineTarget(target)}");
             yield break;
         }
 
@@ -394,6 +532,15 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         CharacterId actorId,
         CharacterActionIntentLease intentLease)
     {
+        if (!ContinuePrimitiveFallback(
+                actor,
+                CharacterPrimitiveSurvivalActionKind.BucketWash,
+                intentLease,
+                "before-water-selection"))
+        {
+            yield break;
+        }
+
         if (!world.TryFindBestAvailableStack(
                 actor.GetNowXY(),
                 itemId => string.Equals(itemId, CleanWaterItemId, StringComparison.Ordinal)
@@ -409,12 +556,20 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         // Do not hold an unserialized item lease while walking or washing. The
         // water is reserved and committed atomically at the final action frame.
         yield return movement.MoveNear(actor, water.Position, 1);
-        if (!CanCommit(actor, intentLease)
+        if (!ContinuePrimitiveFallback(
+                actor,
+                CharacterPrimitiveSurvivalActionKind.BucketWash,
+                intentLease,
+                "after-approach")
             || !IsAliveAndNear(actor, water.Position, 1))
         {
             yield break;
         }
-        yield return WaitGameSeconds(actor, intentLease, BucketWashSeconds);
+        yield return WaitGameSeconds(
+            actor,
+            CharacterPrimitiveSurvivalActionKind.BucketWash,
+            intentLease,
+            BucketWashSeconds);
         if (!CanCommit(actor, intentLease)
             || !IsAliveAndNear(actor, water.Position, 1))
         {
@@ -467,15 +622,74 @@ internal sealed class CharacterPrimitiveSurvivalRunner
 
     private IEnumerator WaitGameSeconds(
         CharacterActor actor,
+        CharacterPrimitiveSurvivalActionKind kind,
         CharacterActionIntentLease intentLease,
         float seconds)
     {
         float until = clock.Time + Mathf.Max(0f, seconds);
+        float nextFacilityRecheckAt = clock.Time;
         while (clock.Time < until && CanCommit(actor, intentLease))
         {
+            if (clock.Time >= nextFacilityRecheckAt)
+            {
+                nextFacilityRecheckAt = clock.Time
+                    + AuthoredFacilityRecheckSeconds;
+                if (!ContinuePrimitiveFallback(
+                        actor,
+                        kind,
+                        intentLease,
+                        "timed-service-recheck"))
+                {
+                    yield break;
+                }
+            }
+
             yield return null;
         }
     }
+
+    private static bool ContinuePrimitiveFallback(
+        CharacterActor actor,
+        CharacterPrimitiveSurvivalActionKind kind,
+        in CharacterActionIntentLease intentLease,
+        string phase)
+    {
+        if (!CanCommit(actor, intentLease))
+        {
+            return false;
+        }
+
+        FacilityRole facilityRole = GetFacilityRole(kind);
+        CharacterCondition condition = GetCondition(kind);
+        if (facilityRole == FacilityRole.None
+            || AIPrimitiveSurvivalAction.CanUsePrimitiveFallback(
+                actor,
+                facilityRole,
+                condition))
+        {
+            return true;
+        }
+
+        actor.AddActivity(CharacterActivityEvent.InternalAi(
+            CharacterActivityOutcomes.Cancelled,
+            "primitive-yielded-to-authored-facility",
+            $"Primitive survival yielded to an authored facility: kind={kind}; phase={phase}; role={facilityRole}."));
+        actor.Brain.EndExternallyDrivenAction(
+            intentLease,
+            clearFailures: false);
+        return false;
+    }
+
+    private static FacilityRole GetFacilityRole(
+        CharacterPrimitiveSurvivalActionKind kind) =>
+        kind switch
+        {
+            CharacterPrimitiveSurvivalActionKind.FieldMeal => FacilityRole.Meal,
+            CharacterPrimitiveSurvivalActionKind.FloorRest => FacilityRole.Rest,
+            CharacterPrimitiveSurvivalActionKind.Latrine => FacilityRole.Toilet,
+            CharacterPrimitiveSurvivalActionKind.BucketWash => FacilityRole.Hygiene,
+            _ => FacilityRole.None
+        };
 
     private static bool CanCommit(
         CharacterActor actor,
@@ -532,6 +746,13 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         }
         position = best.Position;
         return true;
+    }
+
+    private bool IsCurrentPrimitiveLatrineTarget(Vector2Int target)
+    {
+        return world.TryGetGrid(out Grid grid)
+            && grid.IsValidGridPos(target)
+            && grid.IsWalkable(target);
     }
 
     private static void RecordFailure(

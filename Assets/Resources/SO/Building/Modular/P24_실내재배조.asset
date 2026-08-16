@@ -55,12 +55,13 @@ MonoBehaviour:
     items:
     - rid: 7737211921440178951
     - rid: 7737211921440178952
-    - rid: 7737211921440178953
     - rid: 7737211921440178954
     - rid: 7737211921440178955
     - rid: 7737211921440178956
     - rid: 7737211921440178957
     - rid: 7737211921440178958
+    - rid: 7737211981804077417
+    - rid: 7737211981804077418
   width: 3
   height: 1
   layer: 1
@@ -88,12 +89,6 @@ MonoBehaviour:
         tags:
         - crop-plot
         - crop-indoor
-    - rid: 7737211921440178953
-      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionWorkstationAbility
-        workstationTag: workstation:hydroponics
-        stockSensorInstallationItemId: component:stock-sensor-panel
     - rid: 7737211921440178954
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
@@ -173,3 +168,31 @@ MonoBehaviour:
           amount: 1
         - itemId: supply:nitrate-fertilizer
           amount: 1
+    - rid: 7737211981804077417
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:hydroponics
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211981804077418
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 4
+        outputCapacities:
+        - itemId: material:lead-ingot
+          capacity: 24
+        - itemId: material:lead-shot
+          capacity: 96
+        - itemId: material:black-powder
+          capacity: 48
+        - itemId: material:paper
+          capacity: 64
+        - itemId: ammo:paper-cartridge
+          capacity: 120
+        - itemId: component:machine-parts
+          capacity: 16
+        - itemId: component:precision-parts
+          capacity: 16
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}

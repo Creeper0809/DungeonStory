@@ -56,12 +56,16 @@ internal sealed class WorkTargetEvaluator
         WorkPriorityProfile priorities = work.WorkPriorities
             ?? WorkPriorityProfile.CreateDefault();
 
-        if (building == null || building.isDestroy)
+        if (building == null
+            || building.isDestroy
+            || !building.gameObject.activeInHierarchy)
         {
             return Reject(
                 building,
                 "시설이 없습니다",
-                building != null && building.isDestroy
+                building != null
+                    && (building.isDestroy
+                        || !building.gameObject.activeInHierarchy)
                     ? AIActionFailureKind.Destroyed
                     : AIActionFailureKind.NoDestination,
                 out bestCandidate,
@@ -148,6 +152,14 @@ internal sealed class WorkTargetEvaluator
 
             FacilityWorkType workType = legacyType;
             WorkTypeId workTypeId = definition.WorkTypeId;
+            if (workTypeId == BuiltInWorkTypeIds.Rest)
+            {
+                lastWorkTypeFailure = AIActionFailure.Create(
+                    AIActionFailureKind.Unsupported,
+                    "Rest is owned by AIRest and cannot run through AIWork.",
+                    building);
+                continue;
+            }
             if (captiveLaborQuery != null
                 && !captiveLaborQuery.IsWorkAllowed(
                     work.WorkerActor,
@@ -185,8 +197,14 @@ internal sealed class WorkTargetEvaluator
                     workTypeId,
                     work.WorkerActor,
                     building,
-                    out _))
+                    out string policyFailureReason))
             {
+                lastWorkTypeFailure = AIActionFailure.Create(
+                    AIActionFailureKind.ResourceUnavailable,
+                    string.IsNullOrWhiteSpace(policyFailureReason)
+                        ? $"Work policy rejected '{workTypeId.Value}'."
+                        : policyFailureReason,
+                    building);
                 continue;
             }
 

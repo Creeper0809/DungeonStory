@@ -36,12 +36,14 @@ internal sealed class WorldItemRepositoryState
     internal bool HaulableCacheDirty { get; set; } = true;
     internal int ItemStackVersion { get; set; }
     internal int HaulJobVersion { get; set; }
+    internal long NextHaulOperationSequence { get; set; } = 1;
 }
 
 public sealed class WorldItemRepository : IItemInstanceRepository
 {
     private readonly IPersistentIdGenerator persistentIds;
     private readonly DungeonRuntimeAggregateRootStore rootStore;
+    private readonly HaulDeliveryIntentRuntime haulDeliveryIntents;
 
     private WorldItemRepositoryState state =>
         rootStore.GetOrCreate(() => new WorldItemRepositoryState());
@@ -54,9 +56,11 @@ public sealed class WorldItemRepository : IItemInstanceRepository
             ?? throw new ArgumentNullException(nameof(persistentIds));
         this.rootStore = rootStore
             ?? throw new ArgumentNullException(nameof(rootStore));
+        haulDeliveryIntents = new HaulDeliveryIntentRuntime(this);
     }
 
     internal DungeonRuntimeAggregateRootStore AggregateRootStore => rootStore;
+    internal HaulDeliveryIntentRuntime HaulDeliveryIntents => haulDeliveryIntents;
 
     internal List<WorldItemStackRecord> Records => state.Records;
 
@@ -76,6 +80,9 @@ public sealed class WorldItemRepository : IItemInstanceRepository
 
     public int ItemStackVersion => state.ItemStackVersion;
     public int HaulJobVersion => state.HaulJobVersion;
+    internal long NextHaulOperationSequence => state.NextHaulOperationSequence;
+
+    internal event Action<string> StackRemoving;
 
 #if UNITY_EDITOR
     public string AddEditorTestStack(
@@ -84,7 +91,8 @@ public sealed class WorldItemRepository : IItemInstanceRepository
         WorldItemStackState stackState,
         string destinationId = "",
         string sourceStorageDestinationId = "",
-        IReadOnlyList<ItemInstanceComponentSaveData> components = null)
+        IReadOnlyList<ItemInstanceComponentSaveData> components = null,
+        Vector2Int position = default)
     {
         WorldItemStackRecord record = new()
         {
@@ -92,6 +100,7 @@ public sealed class WorldItemRepository : IItemInstanceRepository
             itemId = itemId?.Trim() ?? string.Empty,
             quantity = quantity,
             state = stackState,
+            position = position,
             destinationId = destinationId?.Trim() ?? string.Empty,
             sourceStorageDestinationId =
                 sourceStorageDestinationId?.Trim() ?? string.Empty,
@@ -142,6 +151,45 @@ public sealed class WorldItemRepository : IItemInstanceRepository
 
         Remove(record);
     }
+
+    public bool TryRemoveEditorTestStack(string stackId)
+    {
+        string normalizedStackId = stackId?.Trim() ?? string.Empty;
+        if (!RecordsById.TryGetValue(
+                normalizedStackId,
+                out WorldItemStackRecord record))
+        {
+            return false;
+        }
+
+        Remove(record);
+        return true;
+    }
+
+    public void SetEditorTestQuantity(string stackId, int quantity)
+    {
+        string normalizedStackId = stackId?.Trim() ?? string.Empty;
+        if (quantity < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(quantity));
+        }
+        if (!RecordsById.TryGetValue(
+                normalizedStackId,
+                out WorldItemStackRecord record))
+        {
+            throw new InvalidOperationException(
+                $"Unknown test stack '{stackId}'.");
+        }
+
+        if (quantity == 0)
+        {
+            Remove(record);
+            return;
+        }
+
+        record.quantity = quantity;
+        MarkChanged();
+    }
 #endif
 
     internal bool HaulableCacheDirty
@@ -153,12 +201,17 @@ public sealed class WorldItemRepository : IItemInstanceRepository
     internal WorldItemRepositoryState CreateDetachedState(
         IEnumerable<WorldItemStackRecord> records,
         IReadOnlyDictionary<string, CombatEquipmentInstance> equipment,
-        IReadOnlyDictionary<string, EquipmentModuleInstance> modules)
+        IReadOnlyDictionary<string, EquipmentModuleInstance> modules,
+        long nextHaulOperationSequence)
     {
         WorldItemRepositoryState detached = new()
         {
             ItemStackVersion = state.ItemStackVersion,
-            HaulJobVersion = state.HaulJobVersion
+            HaulJobVersion = state.HaulJobVersion,
+            NextHaulOperationSequence = nextHaulOperationSequence > 0
+                ? nextHaulOperationSequence
+                : throw new ArgumentOutOfRangeException(
+                    nameof(nextHaulOperationSequence))
         };
         foreach (KeyValuePair<string, CombatEquipmentInstance> pair in
                  equipment ?? new Dictionary<string, CombatEquipmentInstance>())
@@ -200,6 +253,22 @@ public sealed class WorldItemRepository : IItemInstanceRepository
 
     internal string AllocateItemInstanceId() =>
         persistentIds.NewItemInstanceId().Value;
+
+    internal string AllocateHaulDeliveryOperationId(string ownerCharacterId)
+    {
+        string owner = ownerCharacterId?.Trim() ?? string.Empty;
+        if (owner.Length == 0)
+            throw new ArgumentException("Haul operation requires an owner.", nameof(ownerCharacterId));
+        string operationId;
+        do
+        {
+            long sequence = state.NextHaulOperationSequence;
+            state.NextHaulOperationSequence = checked(sequence + 1L);
+            operationId = HaulDeliveryOperationIdentity.Format(owner, sequence);
+        }
+        while (haulDeliveryIntents.TryCapture(operationId, out _));
+        return operationId;
+    }
 
     ItemInstanceId IItemInstanceRepository.AllocateItemInstanceId() =>
         persistentIds.NewItemInstanceId();
@@ -374,6 +443,8 @@ public sealed class WorldItemRepository : IItemInstanceRepository
         {
             return;
         }
+
+        StackRemoving?.Invoke(record.stackId);
 
         PrioritizedHaulStackIds.Remove(record.stackId);
         Records.Remove(record);

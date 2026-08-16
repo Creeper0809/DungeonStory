@@ -1,37 +1,41 @@
 PARTY_SETUP=PASS; 준비한 사장과 직원으로 새 런을 시작했습니다.
 RUNTIME=PASS; actors=2; scene=GameplayScene
-MEDICAL_PREFLIGHT_ATOMIC=PASS; orders=0; errors=Character medical order sequence cannot be negative. | Character medical sequence -1 is below saved order sequence 0.
-COMBAT_COMMAND_PREFLIGHT_ATOMIC=PASS; commands=0; errors=Combat-command payload has missing collections or a negative sequence.
-DEFENSE_TACTICAL_PREFLIGHT_ATOMIC=PASS; reservations=0; errors=Defense-tactical payload has a negative sequence or missing reservation list.
-EQUIPMENT_MAINTENANCE_PREFLIGHT_ATOMIC=PASS; orders=0; errors=Equipment-maintenance payload has missing collections or a negative sequence.
-CAPTIVITY_PREFLIGHT_ATOMIC=PASS; captives=0; revision=0; errors=Captivity sequences cannot be negative.
-CIRCUS_PREFLIGHT_ATOMIC=PASS; orders=0; revision=0; errors=Circus order sequence cannot be negative. | Circus order sequence -1 is below saved order sequence 0.
+MEDICAL_PREFLIGHT_ATOMIC=PASS; orders=0; errors=Section 'combat.medical' failed preflight: Character-medical restore candidate is invalid: Character medical payload version 2 is not supported; expected 3.
+COMBAT_COMMAND_PREFLIGHT_ATOMIC=PASS; commands=0; errors=Section 'combat.commands' failed preflight: Combat-command restore candidate is invalid: Combat-command payload has missing collections or a negative sequence.
+DEFENSE_TACTICAL_PREFLIGHT_ATOMIC=PASS; reservations=0; errors=Section 'combat.defense-tactics' failed preflight: Defense-tactical restore candidate is invalid: Defense-tactical payload has a negative sequence or missing reservation list.
+EQUIPMENT_MAINTENANCE_PREFLIGHT_ATOMIC=PASS; orders=0; errors=Section 'combat.equipment-maintenance' failed preflight: Equipment-maintenance restore candidate is invalid: Equipment-maintenance payload has missing collections or a negative sequence.
+CAPTIVITY_PREFLIGHT_ATOMIC=PASS; captives=0; revision=0; errors=Section 'captivity' failed preflight: Captivity restore candidate is invalid: Captivity sequences cannot be negative. | Section 'circus' failed preflight: Circus restore candidate is invalid: Circus restore requires the captivity section candidate to be prepared first.
+CIRCUS_PREFLIGHT_ATOMIC=PASS; orders=0; revision=0; errors=Section 'circus' failed preflight: Circus restore candidate is invalid: Circus order sequence cannot be negative. | Circus order sequence -1 is below saved order sequence 0.
 RESTORE_CANDIDATE_CLEANUP=PASS; aggregateStaging=False; characterCandidate=False
-POINTER_ACTOR_LAYOUT=PASS; Sion=(18, 0); Dion=(26, 0)
-RANGED_LOADOUT=PASS; Sion: assigned=True; active=True; ammo=True; reason=
-RANGED_LOADOUT=PASS; Dion: assigned=True; active=True; ammo=True; reason=
-POINTER_MULTI_SELECT=PASS; selected=Sion,Dion
+COMBAT_COMMAND_LATE_PARTICIPANT=PASS; rollbackExact=True; completed=True; candidateStance=True; aiPaused=True; combatActive=True; publish=2; complete=1; errors=
+POINTER_ACTOR_LAYOUT=PASS; Roma=(20, 0); Arin=(26, 0)
+RANGED_LOADOUT=PASS; Roma: assigned=True; active=True; ammo=True; reason=
+RANGED_LOADOUT=PASS; Arin: assigned=True; active=True; ammo=True; reason=
+POINTER_MULTI_SELECT=PASS; selected=Roma,Arin
 COMMAND_BAR=PASS; 전투 명령 바와 태세 버튼 표시
 POINTER_COMBAT_STANCE=PASS; 다중 선택 전투 태세 활성화
 RELOAD_BUTTON=PASS; 재장전 버튼 표시
-POINTER_RELOAD=PASS; staff:101175578:01=1, staff:101175578:02=1
+POINTER_RELOAD=PASS; character:staff:6037906:01=1, character:staff:6037906:02=1
 TACTICAL_BUTTONS=PASS; 사격 모드와 사격 중지 버튼 표시
 TACTICAL_PROFILE=PASS; rescuer=Aimed->Rapid/False->True; second=Aimed->Rapid/False->True
 CAPTURE=PASS; Artifacts/QA/combat-v14-command-bar.png
 STANCE_RELEASE=PASS; 생활 AI 복귀 전 태세와 명령 해제
-POINTER_ACTOR_LAYOUT=PASS; Sion=(18, 0); Dion=(26, 0)
+POINTER_ACTOR_LAYOUT=PASS; Roma=(18, 0); Arin=(26, 0)
 MEDICAL_FACILITY=PASS; available=2
 DOWNED=PASS; state=Downed; order=medical:1; canRunAi=False
 RESCUE_BUTTON=PASS; 구조 명령 버튼 표시
-MEDICINE=PASS; physical-buffered=5
-POINTER_RESCUE_COMMAND=PASS; attempts=1; selected=Sion; mode=None; stance=True; notice=1명 구조; terminal=
+MEDICINE=PASS; physical-buffered=7
+POINTER_RESCUE_COMMAND=PASS; attempts=1; selected=Roma; mode=None; stance=True; notice=1명 구조; terminal=
 CAPTURE=PASS; Artifacts/QA/combat-v14-rescue-carry.png
 CAPTURE=PASS; Artifacts/QA/combat-v14-treatment.png
 RESCUE_COMMAND_RELEASED=PASS; 회복 이벤트에서 구조 명령과 구조 코루틴 정리
 FIELD_STABILIZATION=PASS; 현장 안정화 진행 또는 완료
 PHYSICAL_RESCUE=PASS; carrying=True; parented=True
 BED_TREATMENT=PASS; treating=True
-RECOVERY_HYSTERESIS=PASS; state=Active; downed=False; consciousness=0.66; mobility=0.47; blood=0
+RECOVERY_HYSTERESIS=PASS; state=Active; downed=False; consciousness=1; mobility=0.32; blood=0
+COMBAT_COMMAND_SEQUENCE_EXHAUSTED_ATOMIC=PASS; restored=True; issued=False; reason=전투 명령 ID를 더 발급할 수 없습니다.; sequence=2147483647
+DEFENSE_TACTICAL_SEQUENCE_EXHAUSTED_ATOMIC=PASS; setup=True/; reserved=False; reason=다른 전투원이 이미 예약한 위치입니다.; sequence=2147483647
+CHARACTER_MEDICAL_SEQUENCE_EXHAUSTED_ATOMIC=PASS; restored=True; failed=True; sequence=2147483647; lifecycle=Downed->Downed; aiPaused=False->False
 CONSOLE_ERRORS=PASS; 
 CONSOLE_WARNINGS=PASS; 
 RESULT=PASS; failures=0; 

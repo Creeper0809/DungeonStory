@@ -63,6 +63,10 @@ public static class ResearchTreeDebugScenarios
             "Discarded restore candidate preserves live research",
             VerifyDiscardedRestoreLeavesLiveResearchUntouched,
             failures);
+        Verify(
+            "Research archive destination claim restore and rollback",
+            VerifyResearchArchiveDestinationClaimRestoreAndRollback,
+            failures);
 
         foreach (string failure in failures)
         {
@@ -364,7 +368,9 @@ public static class ResearchTreeDebugScenarios
             new ProgressionSceneRuntimeReferences(null, source.Runtime, null),
             new EditorCatalog(),
             new EmptyKnowledgeRuntime(),
-            catalog);
+            catalog,
+            CreateEmptyRestoreWorldCandidates(),
+            new FacilityBufferDestinationClaimRegistry());
         string captured = sourceSection.Capture();
 
         using RuntimeScope restored = new RuntimeScope(catalog, archive);
@@ -372,7 +378,9 @@ public static class ResearchTreeDebugScenarios
             new ProgressionSceneRuntimeReferences(null, restored.Runtime, null),
             new EditorCatalog(),
             new EmptyKnowledgeRuntime(),
-            catalog);
+            catalog,
+            CreateEmptyRestoreWorldCandidates(),
+            new FacilityBufferDestinationClaimRegistry());
         DungeonGameRestoreReport restoreReport = new DungeonGameRestoreReport();
         restoredSection.Restore(captured, 5, restoreReport);
         bool roundTrip = restoreReport.Success
@@ -446,11 +454,15 @@ public static class ResearchTreeDebugScenarios
             new ProgressionSceneRuntimeReferences(null, source.Runtime, null),
             new EditorCatalog(),
             new EmptyKnowledgeRuntime(),
-            catalog).Capture();
+            catalog,
+            CreateEmptyRestoreWorldCandidates(),
+            new FacilityBufferDestinationClaimRegistry()).Capture();
 
         using RuntimeScope target = new RuntimeScope(catalog, archive);
         target.Runtime.State.Projects.GetProgress(project.ProjectId)
             .Restore(7f, project);
+        FacilityBufferDestinationClaimRegistry targetClaims =
+            new FacilityBufferDestinationClaimRegistry();
         BlueprintResearchSaveSection targetSection =
             new BlueprintResearchSaveSection(
                 new ProgressionSceneRuntimeReferences(
@@ -459,7 +471,9 @@ public static class ResearchTreeDebugScenarios
                     null),
                 new EditorCatalog(),
                 new EmptyKnowledgeRuntime(),
-                catalog);
+                catalog,
+                CreateEmptyRestoreWorldCandidates(),
+                targetClaims);
 
         ResearchScenarioSaveSection workDependency =
             new ResearchScenarioSaveSection(
@@ -483,7 +497,11 @@ public static class ResearchTreeDebugScenarios
                 lateFailure
             },
             target.RootStore,
-            new IDungeonRestoreTransactionParticipant[] { observer });
+            new IDungeonRestoreTransactionParticipant[]
+            {
+                targetClaims,
+                observer
+            });
         List<DungeonSaveSectionEnvelope> envelopes = registry.CaptureAll();
         envelopes.First(envelope => string.Equals(
                 envelope.sectionId,
@@ -502,6 +520,177 @@ public static class ResearchTreeDebugScenarios
                 7f)
             && !target.Runtime.State.Projects.ContainsInQueue(project.ProjectId)
             && target.RootStore.PublishedRestoreRevision == 1;
+    }
+
+    private static bool VerifyResearchArchiveDestinationClaimRestoreAndRollback()
+    {
+        ResearchProjectSO[] projects = LoadProjects();
+        ResourceResearchProjectCatalog catalog =
+            new ResourceResearchProjectCatalog(projects);
+        MutableArchiveQuery archive = new MutableArchiveQuery();
+        using RuntimeScope source = new RuntimeScope(catalog, archive);
+        string payload = new BlueprintResearchSaveSection(
+            new ProgressionSceneRuntimeReferences(null, source.Runtime, null),
+            new EditorCatalog(),
+            new EmptyKnowledgeRuntime(),
+            catalog,
+            CreateEmptyRestoreWorldCandidates(),
+            new FacilityBufferDestinationClaimRegistry()).Capture();
+
+        using ResearchArchiveRestoreWorld world =
+            ResearchArchiveRestoreWorld.Create();
+        FacilityBufferDestinationClaim expected =
+            ResearchBlueprintArchiveDestinationAuthority.CreateClaim(
+                world.Archive);
+
+        bool publishedExactlyOnce;
+        using (RuntimeScope target = new RuntimeScope(catalog, archive))
+        {
+            FacilityBufferDestinationClaimRegistry claims =
+                new FacilityBufferDestinationClaimRegistry();
+            BlueprintResearchSaveSection section =
+                CreateResearchSection(
+                    target.Runtime,
+                    catalog,
+                    world.Candidates,
+                    claims);
+            DungeonSaveSectionRegistry registry =
+                CreateResearchRegistry(
+                    section,
+                    target.RootStore,
+                    claims);
+            List<DungeonSaveSectionEnvelope> envelopes =
+                CaptureWithResearchPayload(registry, payload);
+            DungeonGameRestoreReport report = new DungeonGameRestoreReport();
+            bool restored = registry.RestoreAll(envelopes, report);
+            FacilityBufferDestinationClaim[] published = claims.CaptureClaims()
+                .Where(claim => claim != null
+                    && string.Equals(
+                        claim.OwnerDomain,
+                        ResearchBlueprintArchiveDestinationAuthority.OwnerDomain,
+                        StringComparison.Ordinal))
+                .ToArray();
+            publishedExactlyOnce = restored
+                && report.Success
+                && published.Length == 1
+                && ResearchBlueprintArchiveDestinationAuthority.ClaimsMatch(
+                    published[0],
+                    expected);
+        }
+
+        bool rollbackRestoredPreviousImage;
+        using (RuntimeScope target = new RuntimeScope(catalog, archive))
+        {
+            FacilityBufferDestinationClaimRegistry claims =
+                new FacilityBufferDestinationClaimRegistry();
+            FacilityBufferDestinationClaim sentinel =
+                new FacilityBufferDestinationClaim(
+                    "research-archive:building:research-rollback-sentinel",
+                    new Vector2Int(7, 0),
+                    ResearchBlueprintArchiveDestinationAuthority.OwnerDomain,
+                    "research-archive:building:research-rollback-sentinel",
+                    ownerFacilityId: null,
+                    FacilityBufferDestinationAnchorKind.ReservedTarget);
+            if (!claims.TryReplaceOwnedClaims(
+                    ResearchBlueprintArchiveDestinationAuthority.OwnerDomain,
+                    new[] { sentinel },
+                    out _,
+                    out _))
+            {
+                return false;
+            }
+
+            BlueprintResearchSaveSection section =
+                CreateResearchSection(
+                    target.Runtime,
+                    catalog,
+                    world.Candidates,
+                    claims);
+            DungeonSaveSectionRegistry registry =
+                CreateResearchRegistry(
+                    section,
+                    target.RootStore,
+                    claims,
+                    new FailingResearchPublishParticipant());
+            List<DungeonSaveSectionEnvelope> envelopes =
+                CaptureWithResearchPayload(registry, payload);
+            DungeonGameRestoreReport report = new DungeonGameRestoreReport();
+            bool restored = registry.RestoreAll(envelopes, report);
+            FacilityBufferDestinationClaim[] afterRollback =
+                claims.CaptureClaims().ToArray();
+            rollbackRestoredPreviousImage = !restored
+                && !report.Success
+                && afterRollback.Length == 1
+                && ResearchBlueprintArchiveDestinationAuthority.ClaimsMatch(
+                    afterRollback[0],
+                    sentinel)
+                && !claims.TryGetClaim(
+                    expected.DestinationId,
+                    expected.DropPosition,
+                    out _);
+        }
+
+        return publishedExactlyOnce && rollbackRestoredPreviousImage;
+    }
+
+    private static BlueprintResearchSaveSection CreateResearchSection(
+        BlueprintResearchRuntime runtime,
+        IResearchProjectCatalog catalog,
+        IRestoreWorldCandidateQuery candidates,
+        IFacilityBufferDestinationClaimCommand claims) =>
+        new BlueprintResearchSaveSection(
+            new ProgressionSceneRuntimeReferences(null, runtime, null),
+            new EditorCatalog(),
+            new EmptyKnowledgeRuntime(),
+            catalog,
+            candidates,
+            claims);
+
+    private static DungeonSaveSectionRegistry CreateResearchRegistry(
+        BlueprintResearchSaveSection section,
+        DungeonRuntimeAggregateRootStore rootStore,
+        FacilityBufferDestinationClaimRegistry claims,
+        params IDungeonRestoreTransactionParticipant[] trailingParticipants)
+    {
+        IDungeonRestoreTransactionParticipant[] participants =
+            new IDungeonRestoreTransactionParticipant[] { claims }
+            .Concat(trailingParticipants
+                ?? Array.Empty<IDungeonRestoreTransactionParticipant>())
+            .ToArray();
+        return new DungeonSaveSectionRegistry(
+            new IDungeonSaveSection[]
+            {
+                new ResearchScenarioSaveSection(
+                    WorkOrdersSaveSection.Id,
+                    DungeonSaveRestorePhase.RuntimeState),
+                section
+            },
+            rootStore,
+            participants);
+    }
+
+    private static List<DungeonSaveSectionEnvelope> CaptureWithResearchPayload(
+        DungeonSaveSectionRegistry registry,
+        string payload)
+    {
+        List<DungeonSaveSectionEnvelope> envelopes = registry.CaptureAll();
+        envelopes.First(envelope => string.Equals(
+                envelope.sectionId,
+                BlueprintResearchSaveSection.Id,
+                StringComparison.Ordinal))
+            .payloadJson = payload;
+        return envelopes;
+    }
+
+    private static IRestoreWorldCandidateQuery
+        CreateEmptyRestoreWorldCandidates()
+    {
+        RestoreWorldCandidateIndex candidates =
+            new RestoreWorldCandidateIndex();
+        candidates.SetFacilityCandidate(
+            new Grid(1, 1),
+            Array.Empty<BuildableObject>());
+        return candidates;
     }
 
     private static ResearchProjectSO[] LoadProjects()
@@ -582,6 +771,212 @@ public static class ResearchTreeDebugScenarios
         public void Dispose()
         {
             Object.DestroyImmediate(root);
+        }
+    }
+
+    private sealed class ResearchArchiveRestoreWorld : IDisposable
+    {
+        private readonly List<BuildableObject> buildings =
+            new List<BuildableObject>();
+        private readonly List<BuildingSO> syntheticDefinitions =
+            new List<BuildingSO>();
+
+        private ResearchArchiveRestoreWorld()
+        {
+            Grid = new Grid(8, 1);
+        }
+
+        private void Initialize()
+        {
+            for (int x = 0; x <= 6; x++)
+            {
+                if (!Grid.RegisterOccupant(
+                        new ResearchHallwayOccupant(),
+                        GridLayer.Hallway,
+                        new[] { new Vector2Int(x, 0) },
+                        false))
+                {
+                    throw new InvalidOperationException(
+                        $"Research restore hallway registration failed at ({x},0).");
+                }
+            }
+
+            BuildingSO door = CreateSyntheticDefinition(
+                "Research restore door",
+                990001,
+                BuildingCategory.None,
+                BuildingRuntimeArchetypeKind.Door,
+                FacilityRole.None);
+            BuildingSO researchFixture = CreateSyntheticDefinition(
+                "Research restore fixture",
+                990002,
+                BuildingCategory.Special,
+                BuildingRuntimeArchetypeKind.Facility,
+                FacilityRole.Research);
+            BuildingSO wall = CreateSyntheticDefinition(
+                "Research restore wall",
+                990003,
+                BuildingCategory.Wall,
+                BuildingRuntimeArchetypeKind.Generic,
+                FacilityRole.None);
+            BuildingSO archiveDefinition = AssetDatabase.FindAssets(
+                    "t:BuildingSO",
+                    new[] { "Assets/Resources/SO/Building/Modular" })
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
+                .Single(definition => definition != null
+                    && definition.GetAbility<BuildingFacilityPartAbility>()?.code
+                        == "Q03"
+                    && definition.GetAbility<BuildingResearchArchiveAbility>()
+                        != null);
+
+            Place(door, new Vector2Int(1, 0), "door");
+            Archive = Place(
+                archiveDefinition,
+                new Vector2Int(3, 0),
+                "archive");
+            Place(researchFixture, new Vector2Int(4, 0), "research-fixture");
+            Place(wall, new Vector2Int(6, 0), "wall");
+
+            RoomLayout rooms = RoomDetector.Build(Grid);
+            if (!rooms.TryGetRoom(Archive, out RoomInstance archiveRoom)
+                || !ResearchBlueprintArchiveDestinationAuthority
+                    .IsEligibleRoom(archiveRoom))
+            {
+                throw new InvalidOperationException(
+                    "Research restore candidate did not produce an eligible Q03 room.");
+            }
+
+            RestoreWorldCandidateIndex candidates =
+                new RestoreWorldCandidateIndex();
+            candidates.SetFacilityCandidate(Grid, buildings.ToArray());
+            Candidates = candidates;
+        }
+
+        public Grid Grid { get; }
+        public BuildableObject Archive { get; private set; }
+        public IRestoreWorldCandidateQuery Candidates { get; private set; }
+
+        public static ResearchArchiveRestoreWorld Create()
+        {
+            ResearchArchiveRestoreWorld world =
+                new ResearchArchiveRestoreWorld();
+            try
+            {
+                world.Initialize();
+                return world;
+            }
+            catch
+            {
+                world.Dispose();
+                throw;
+            }
+        }
+
+        public void Dispose()
+        {
+            for (int index = buildings.Count - 1; index >= 0; index--)
+            {
+                BuildableObject building = buildings[index];
+                if (building == null)
+                    continue;
+                if (building.IsDetachedRestoreCandidate)
+                    building.DiscardDetachedRestore();
+                else
+                    Object.DestroyImmediate(building.gameObject);
+            }
+            foreach (BuildingSO definition in syntheticDefinitions)
+            {
+                if (definition != null)
+                    Object.DestroyImmediate(definition);
+            }
+        }
+
+        private BuildableObject Place(
+            BuildingSO definition,
+            Vector2Int position,
+            string suffix)
+        {
+            BuildableObject building = new GridBuildingObjectFactory()
+                .CreateDetached(Grid, definition, position)
+                ?? throw new InvalidOperationException(
+                    $"Research restore building '{suffix}' creation failed.");
+            building.PrepareForDetachedRestore();
+            CharacterAiEditorTestDependencies.InjectWithRoomPolicy(
+                building,
+                new RoomFacilityPolicyService(new RoomLayoutCache()));
+            building.RestorePersistentIdentity(
+                new BuildingInstanceId(
+                    $"building:research-archive-restore:{suffix}"));
+            building.SetGrid(Grid);
+            building.Initialization(definition, position);
+            if (!Grid.RegisterOccupant(
+                    building,
+                    definition.layer,
+                    definition.GetGridPosList(position),
+                    definition.Placement.IsMovement))
+            {
+                building.DiscardDetachedRestore();
+                throw new InvalidOperationException(
+                    $"Research restore building '{suffix}' registration failed.");
+            }
+            buildings.Add(building);
+            return building;
+        }
+
+        private BuildingSO CreateSyntheticDefinition(
+            string name,
+            int id,
+            BuildingCategory category,
+            BuildingRuntimeArchetypeKind archetype,
+            FacilityRole role)
+        {
+            BuildingSO definition = ScriptableObject.CreateInstance<BuildingSO>();
+            syntheticDefinitions.Add(definition);
+            definition.id = id;
+            definition.objectName = name;
+            definition.width = 1;
+            definition.height = 1;
+            definition.layer = GridLayer.Building;
+            definition.category = category;
+            definition.runtimeArchetype = archetype;
+            definition.unlocked = true;
+            definition.Facility = new FacilityData
+            {
+                roles = role,
+                capacity = role == FacilityRole.None ? 0 : 1,
+                useDuration = role == FacilityRole.None ? 0f : 1f,
+                disabledWhenDamaged = true
+            };
+            return definition;
+        }
+    }
+
+    private sealed class ResearchHallwayOccupant : IGridOccupant
+    {
+        public int GridId => 0;
+        public bool IsGridDestroyed => false;
+        public bool IsGridVisitable => false;
+        public bool IsGridMovement => true;
+    }
+
+    private sealed class FailingResearchPublishParticipant :
+        IDungeonRestoreTransactionParticipant
+    {
+        public string ParticipantId => "999.research.debug.publish-failure";
+
+        public void BeginRestoreCandidate()
+        {
+        }
+
+        public void PublishRestoreCandidate()
+        {
+            throw new InvalidOperationException(
+                "Injected research participant publication failure.");
+        }
+
+        public void DiscardRestoreCandidate()
+        {
         }
     }
 
@@ -723,6 +1118,11 @@ public static class ResearchTreeDebugScenarios
             CharacterActor researcher,
             BuildableObject facility,
             float seconds) => default;
+
+        public BlueprintResearchWorkResult ApplyApprovedWork(
+            CharacterActor researcher,
+            BuildableObject facility,
+            float approvedWorkUnits) => default;
 
         public IReadOnlyList<KnowledgeResidueTaskSaveData> Capture() =>
             Array.Empty<KnowledgeResidueTaskSaveData>();

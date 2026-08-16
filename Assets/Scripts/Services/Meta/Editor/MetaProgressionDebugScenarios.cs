@@ -676,6 +676,7 @@ public static class MetaProgressionDebugScenarios
         public bool TryQueueRegionReconnaissance(string regionId, out string message) { message = string.Empty; return false; }
         public bool HasProcessingWorkFor(BuildableObject facility) => false;
         public BlueprintResearchWorkResult ApplyWork(CharacterActor researcher, BuildableObject facility, float seconds) => default;
+        public BlueprintResearchWorkResult ApplyApprovedWork(CharacterActor researcher, BuildableObject facility, float approvedWorkUnits) => default;
         public IReadOnlyList<KnowledgeResidueTaskSaveData> Capture() => Array.Empty<KnowledgeResidueTaskSaveData>();
         public KnowledgeResidueRestoreCandidate PrepareRestore(IEnumerable<KnowledgeResidueTaskSaveData> tasks) =>
             new KnowledgeResidueRestoreCandidate(new KnowledgeResidueAggregateState());

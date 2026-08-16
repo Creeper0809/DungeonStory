@@ -383,6 +383,8 @@ public interface IBuildingVisitorPort : IBuildingCharacterPort
         string phase,
         IBuildingWorldEntryPort destination,
         string detail = null);
+    void NotifyFacilityQueueHeartbeat(int queuePosition);
+    void NotifyFacilityServiceHeartbeat();
     void ReportInteractionFailure(
         BuildingInteractionFailureKind failureKind,
         string detail,

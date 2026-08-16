@@ -64,8 +64,10 @@ public sealed class CharacterDeprivationWorldDependencies
         IWorldWaterQuery waterQuery,
         IRoomLayoutCache roomLayoutCache,
         ICharacterAiWorldRegistry worldRegistry,
+        ICharacterLifetimeQuery characterLifetime,
         IFacilityCandidateCache facilityCandidateCache,
-        ISurvivalFoodQuery survivalFoodRuntime)
+        ISurvivalFoodQuery survivalFoodRuntime,
+        IEnvironmentWorkPolicy environmentWorkPolicy)
     {
         GridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
@@ -79,10 +81,14 @@ public sealed class CharacterDeprivationWorldDependencies
             ?? throw new ArgumentNullException(nameof(roomLayoutCache));
         WorldRegistry = worldRegistry
             ?? throw new ArgumentNullException(nameof(worldRegistry));
+        CharacterLifetime = characterLifetime
+            ?? throw new ArgumentNullException(nameof(characterLifetime));
         FacilityCandidateCache = facilityCandidateCache
             ?? throw new ArgumentNullException(nameof(facilityCandidateCache));
         SurvivalFoodRuntime = survivalFoodRuntime
             ?? throw new ArgumentNullException(nameof(survivalFoodRuntime));
+        EnvironmentWorkPolicy = environmentWorkPolicy
+            ?? throw new ArgumentNullException(nameof(environmentWorkPolicy));
     }
 
     public IGridSystemProvider GridSystemProvider { get; }
@@ -91,8 +97,10 @@ public sealed class CharacterDeprivationWorldDependencies
     public IWorldWaterQuery WaterQuery { get; }
     public IRoomLayoutCache RoomLayoutCache { get; }
     public ICharacterAiWorldRegistry WorldRegistry { get; }
+    public ICharacterLifetimeQuery CharacterLifetime { get; }
     public IFacilityCandidateCache FacilityCandidateCache { get; }
     public ISurvivalFoodQuery SurvivalFoodRuntime { get; }
+    public IEnvironmentWorkPolicy EnvironmentWorkPolicy { get; }
 }
 
 public sealed class CharacterDeprivationSystemDependencies
@@ -791,12 +799,14 @@ internal sealed class CharacterDeprivationPersistenceCoordinator
 {
     private readonly CharacterDeprivationStateStore stateStore;
     private readonly ICharacterAiWorldRegistry worldRegistry;
+    private readonly ICharacterLifetimeQuery characterLifetime;
     private readonly IWorldFilthQuery filthQuery;
     private readonly IWorldWaterQuery waterQuery;
 
     internal CharacterDeprivationPersistenceCoordinator(
         CharacterDeprivationStateStore stateStore,
         ICharacterAiWorldRegistry worldRegistry,
+        ICharacterLifetimeQuery characterLifetime,
         IWorldFilthQuery filthQuery,
         IWorldWaterQuery waterQuery)
     {
@@ -804,6 +814,8 @@ internal sealed class CharacterDeprivationPersistenceCoordinator
             ?? throw new ArgumentNullException(nameof(stateStore));
         this.worldRegistry = worldRegistry
             ?? throw new ArgumentNullException(nameof(worldRegistry));
+        this.characterLifetime = characterLifetime
+            ?? throw new ArgumentNullException(nameof(characterLifetime));
         this.filthQuery = filthQuery
             ?? throw new ArgumentNullException(nameof(filthQuery));
         this.waterQuery = waterQuery
@@ -812,13 +824,34 @@ internal sealed class CharacterDeprivationPersistenceCoordinator
 
     internal DungeonDarkSurvivalSaveData Capture()
     {
+        HashSet<CharacterId> persistentIds = new HashSet<CharacterId>(
+            (characterLifetime.AllCharacters ?? Array.Empty<CharacterActor>())
+                .Where(CharacterWorldPersistenceRules.IsPersistentActor)
+                .Select(actor => actor.BuildingCharacterId));
+        List<WorldFilthSaveData> capturedFilth = filthQuery.CaptureFilth()
+            .Select(CloneFilth)
+            .ToList();
+        foreach (WorldFilthSaveData filth in capturedFilth)
+        {
+            if (!string.IsNullOrWhiteSpace(filth.sourceCharacterId)
+                && !persistentIds.Contains(
+                    new CharacterId(filth.sourceCharacterId)))
+            {
+                filth.sourceCharacterId = string.Empty;
+            }
+        }
+
         return new DungeonDarkSurvivalSaveData
         {
             version = DungeonDarkSurvivalSaveData.CurrentVersion,
             nextFilthSequence = filthQuery.NextFilthSequence,
             nextWaterSequence = waterQuery.NextWaterSequence,
-            characters = stateStore.Capture(),
-            filth = filthQuery.CaptureFilth(),
+            characters = stateStore.Capture()
+                .Where(state => state != null
+                    && persistentIds.Contains(
+                        new CharacterId(state.characterId)))
+                .ToList(),
+            filth = capturedFilth,
             waterSources = waterQuery.CaptureWaterSources()
         };
     }
@@ -855,6 +888,36 @@ internal sealed class CharacterDeprivationPersistenceCoordinator
             waterRestore.BuildRestoreCandidate(
                 source.waterSources.Select(CloneWater).ToArray(),
                 source.nextWaterSequence));
+    }
+
+    internal static void ValidatePayloadShape(
+        DungeonDarkSurvivalSaveData saveData)
+    {
+        DungeonDarkSurvivalSaveData source = RequireCurrent(saveData);
+        if (source.characters == null)
+        {
+            throw new InvalidOperationException(
+                "Dark-survival payload is missing character states.");
+        }
+
+        HashSet<CharacterId> payloadCharacterIds = new HashSet<CharacterId>();
+        foreach (CharacterDeprivationState state in source.characters)
+        {
+            CharacterId characterId = new CharacterId(state?.characterId);
+            CharacterDeprivationStateStore.RequireCharacterId(characterId);
+            payloadCharacterIds.Add(characterId);
+        }
+
+        // Preflight is intentionally independent of the current live world.
+        // Exact cross-section ownership is checked again while staging, after
+        // characters.world has published its detached candidate view.
+        _ = CharacterDeprivationStateStore.BuildValidatedAggregate(
+            source.characters,
+            payloadCharacterIds);
+        ValidateWorldPayload(
+            source,
+            payloadCharacterIds,
+            requireKnownFilthSources: false);
     }
 
     internal void PublishRestoreCandidate(DarkSurvivalRestoreCandidate candidate)

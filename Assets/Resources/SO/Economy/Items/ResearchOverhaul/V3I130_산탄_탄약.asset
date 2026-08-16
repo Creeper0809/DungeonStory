@@ -31,28 +31,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 18
   features:
-  - rid: 7737211905658585858
-  - rid: 7737211905658585859
-  - rid: 7737211905658585860
-  - rid: 7737211905660420745
+  - rid: 7737211981816660667
+  - rid: 7737211981816660668
+  - rid: 7737211981816660669
+  - rid: 7737211981816660670
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585858
+    - rid: 7737211981816660667
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:scatter-cartridge
-    - rid: 7737211905658585859
+    - rid: 7737211981816660668
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:standard-ammunition
-    - rid: 7737211905658585860
+    - rid: 7737211981816660669
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 512
         sharedIntermediate: 0
-    - rid: 7737211905660420745
+    - rid: 7737211981816660670
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6085475

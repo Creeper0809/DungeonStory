@@ -369,6 +369,11 @@ public interface IMealConsumptionRuntime :
 {
 }
 
+public interface ICharacterMealOperationCancellation
+{
+    int CancelActiveMealOperations(CharacterActor actor, string reason);
+}
+
 public interface ICharacterSubstanceRuntime :
     ICharacterSubstanceQuery,
     ICharacterSubstanceCommand

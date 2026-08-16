@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public sealed class FoundationSessionSaveSection :
     DungeonStrictJsonSaveSection<GameSessionSaveData, FoundationSessionRestoreCandidate>,
@@ -51,13 +52,61 @@ public sealed class CharacterLifeSaveSection :
 {
     public const string Id = "characters.life";
     private readonly ICharacterLifePersistence persistence;
-    public CharacterLifeSaveSection(ICharacterLifePersistence persistence) =>
+    private readonly ICharacterLifeQuery query;
+    private readonly ICharacterLifeCommand commands;
+    private readonly ICharacterWorldPersistenceIdentityQuery persistentCharacters;
+    private readonly ICharacterLifetimeQuery characterLifetime;
+    private readonly ICharacterLifePublicationService lifePublication;
+
+    public CharacterLifeSaveSection(
+        ICharacterLifePersistence persistence,
+        ICharacterLifeQuery query,
+        ICharacterLifeCommand commands,
+        ICharacterWorldPersistenceIdentityQuery persistentCharacters,
+        ICharacterLifetimeQuery characterLifetime,
+        ICharacterLifePublicationService lifePublication)
+    {
         this.persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
+        this.query = query ?? throw new ArgumentNullException(nameof(query));
+        this.commands = commands ?? throw new ArgumentNullException(nameof(commands));
+        this.persistentCharacters = persistentCharacters
+            ?? throw new ArgumentNullException(nameof(persistentCharacters));
+        this.characterLifetime = characterLifetime
+            ?? throw new ArgumentNullException(nameof(characterLifetime));
+        this.lifePublication = lifePublication
+            ?? throw new ArgumentNullException(nameof(lifePublication));
+    }
     public override string SectionId => Id;
     public override int SectionVersion => CharacterLifeWorldSaveData.CurrentVersion;
     public override DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.Characters;
     public override IReadOnlyList<string> DependsOn => new[] { CharacterWorldSaveSection.Id };
-    protected override CharacterLifeWorldSaveData CapturePayload() => persistence.Capture();
+    protected override CharacterLifeWorldSaveData CapturePayload()
+    {
+        HashSet<CharacterId> persistentIds = new(
+            persistentCharacters.GetPersistentCharacterIds()
+                ?? Array.Empty<CharacterId>());
+        CharacterActor[] persistentActors = (characterLifetime.AllCharacters
+                ?? Array.Empty<CharacterActor>())
+            .Where(CharacterWorldPersistenceRules.IsPersistentActor)
+            .Where(actor => CharacterPersistentIdentity.TryGet(actor, out CharacterId id)
+                && persistentIds.Contains(id))
+            .ToArray();
+        foreach (CharacterActor actor in persistentActors)
+        {
+            lifePublication.EnsureRegistered(actor);
+        }
+
+        CharacterId[] staleIds = query.Records
+            .Select(record => record.CharacterId)
+            .Where(id => !persistentIds.Contains(id))
+            .ToArray();
+        foreach (CharacterId staleId in staleIds)
+        {
+            commands.Remove(staleId);
+        }
+
+        return persistence.Capture();
+    }
     protected override CharacterLifeRestoreCandidate BuildRestoreCandidate(CharacterLifeWorldSaveData payload) =>
         persistence.PrepareRestore(payload);
     protected override void PublishRestoreCandidate(CharacterLifeRestoreCandidate candidate) =>

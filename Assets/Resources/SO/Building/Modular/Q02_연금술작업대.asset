@@ -55,7 +55,6 @@ MonoBehaviour:
     items:
     - rid: 7737211921440178661
     - rid: 7737211921440178662
-    - rid: 7737211921440178663
     - rid: 7737211921440178664
     - rid: 7737211921440178665
     - rid: 7737211921440178666
@@ -63,6 +62,9 @@ MonoBehaviour:
     - rid: 7737211921440178668
     - rid: 7737211921440178669
     - rid: 7737211921440178670
+    - rid: 7737211981804077300
+    - rid: 7737211981804077301
+    - rid: 7737211992021139769
   width: 2
   height: 1
   layer: 1
@@ -89,12 +91,6 @@ MonoBehaviour:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - alchemy
-    - rid: 7737211921440178663
-      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionWorkstationAbility
-        workstationTag: workstation:alchemy-basic
-        stockSensorInstallationItemId: component:stock-sensor-panel
     - rid: 7737211921440178664
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
@@ -186,3 +182,40 @@ MonoBehaviour:
         abilityId: BuildingProductionAbility
         outputCategory: 3
         amount: 3
+    - rid: 7737211981804077300
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:alchemy-basic
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211981804077301
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 4
+        outputCapacities:
+        - itemId: material:lead-ingot
+          capacity: 24
+        - itemId: material:lead-shot
+          capacity: 96
+        - itemId: material:black-powder
+          capacity: 48
+        - itemId: material:paper
+          capacity: 64
+        - itemId: ammo:paper-cartridge
+          capacity: 120
+        - itemId: component:machine-parts
+          capacity: 16
+        - itemId: component:precision-parts
+          capacity: 16
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}
+    - rid: 7737211992021139769
+      type: {class: BuildingResearchCapacityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingResearchCapacityAbility
+        contributions:
+        - capability: 0
+          capacity: 1
+        - capability: 5
+          capacity: 1

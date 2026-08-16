@@ -27,6 +27,8 @@ public sealed class SurgeryRuntime :
     private readonly ICaptivityRuntime captivity;
     private readonly IBuildingWorldQuery buildings;
     private readonly IWorldItemStackRuntime items;
+    private readonly IFacilityBufferDestinationClaimQuery destinationClaims;
+    private readonly IFacilityBufferDestinationClaimCommand destinationClaimCommands;
     private readonly ICharacterBodyHealthQuery bodyHealth;
     private readonly IAnatomyHealthRuntime anatomy;
     private readonly IWildlifeAnatomyHealthRuntime wildlifeAnatomy;
@@ -92,6 +94,8 @@ public sealed class SurgeryRuntime :
         patientTransport = requiredWorld.PatientTransport;
         bodyHealth = requiredWorld.BodyHealthQuery;
         items = requiredResources.Items;
+        destinationClaims = requiredResources.DestinationClaims;
+        destinationClaimCommands = requiredResources.DestinationClaimCommands;
         anatomy = requiredResources.Anatomy;
         wildlifeAnatomy = requiredResources.WildlifeAnatomy;
         workforce = requiredResources.Workforce;
@@ -190,10 +194,27 @@ public sealed class SurgeryRuntime :
                 continue;
             }
 
+            if (refreshMaterials
+                && IsClinicalStage(order.state)
+                && !HasLiveDoctorWorkOwnership(order))
+            {
+                // A current-format restore intentionally does not serialize
+                // transient AIWork/coroutine ownership. Keep the aggregate
+                // doctor link, but re-admit the exact surgery through the
+                // production workforce boundary once candidate publication is
+                // ready. The same fence also repairs any other orphaned
+                // clinical-stage action without duplicating a live owner.
+                workforce.RequestOneWorkerToReplanFor(
+                    BuiltInWorkTypeIds.Surgery,
+                    clearFailures: true,
+                    forceInterrupt: true);
+            }
+
             if (order.state == SurgeryOrderState.Recovering)
             {
                 if (clock.Time >= order.recoveryUntil)
                 {
+                    ReleaseMaterialDestination(order);
                     order.state = SurgeryOrderState.Completed;
                     order.statusData.Set(SurgeryStatusCode.RecoveryCompleted);
                     ReleasePatient(order);
@@ -205,10 +226,32 @@ public sealed class SurgeryRuntime :
             if (refreshMaterials)
             {
                 surgeryLogistics.RequestMissingMaterials(order, facility);
+                bool processFluidReady = order.processFluidConsumed
+                    || processFluids.EnsureCycleSupply(
+                        facility,
+                        BuiltInWorkTypeIds.Surgery,
+                        out _);
+                if (!processFluidReady)
+                {
+                    // EnsureCycleSupply is polled until the physical input arrives.
+                    // Repeated destructive replans cancel the very AIHaul that owns
+                    // the requested medicine/water lease, so subsequent polls are
+                    // wake-up hints only. The request-creation boundary performs the
+                    // one urgent interruption when new material is actually routed.
+                    workforce.RequestOneHaulerToReplan(
+                        clearFailures: true,
+                        forceInterrupt: false);
+                }
             }
 
             bool patientReady = surgeryLogistics.EnsureAdmission(order, facility);
-            bool materialsReady = surgeryLogistics.AreRequiredMaterialsReady(order);
+            // Once the clinical action has consumed its physical materials,
+            // the destination buffer is expected to be empty. Requiring the
+            // already-consumed items to remain buffered would regress a
+            // restored (or briefly interrupted) clinical stage back to
+            // MaterialsWaiting and request the same inputs again.
+            bool materialsReady = order.materialsConsumed
+                || surgeryLogistics.AreRequiredMaterialsReady(order);
             if (!patientReady)
             {
                 order.state = SurgeryOrderState.PatientWaiting;
@@ -220,6 +263,18 @@ public sealed class SurgeryRuntime :
                 order.state = SurgeryOrderState.MaterialsWaiting;
                 order.statusData.Set(
                     SurgeryStatusCode.MaterialsDeliveryPending);
+                continue;
+            }
+
+            if (!order.processFluidConsumed
+                && !processFluids.EnsureCycleSupply(
+                    facility,
+                    BuiltInWorkTypeIds.Surgery,
+                    out _))
+            {
+                order.state = SurgeryOrderState.MaterialsWaiting;
+                order.statusData.Set(
+                    SurgeryStatusCode.ProcessFluidUnavailable);
                 continue;
             }
 
@@ -245,6 +300,28 @@ public sealed class SurgeryRuntime :
             }
         }
     }
+
+    private bool HasLiveDoctorWorkOwnership(SurgeryOrder order)
+    {
+        if (order == null || string.IsNullOrWhiteSpace(order.doctorId))
+        {
+            return false;
+        }
+
+        CharacterActor assignedDoctor = SurgicalSubjectResolver.FindCharacter(
+            characters,
+            order.doctorId);
+        AbilityWork work = assignedDoctor?.GetComponent<AbilityWork>();
+        return assignedDoctor?.Brain?.HasRunningWorkAction == true
+            && work != null
+            && work.AssignedWorkTypeId == BuiltInWorkTypeIds.Surgery;
+    }
+
+    private static bool IsClinicalStage(SurgeryOrderState state) =>
+        state is SurgeryOrderState.Anesthetizing
+            or SurgeryOrderState.Incision
+            or SurgeryOrderState.Procedure
+            or SurgeryOrderState.Suturing;
 
     private void TryScheduleAutomaticEmergencySurgery()
     {
@@ -598,10 +675,18 @@ public sealed class SurgeryRuntime :
             && !processFluids.TryConsumeCycle(
                 facility,
                 BuiltInWorkTypeIds.Surgery,
-                out _))
+                out DomainFailure processFluidFailure))
         {
-            failure = new DomainFailure(FailureCode.SurgeryMaterialUnavailable);
+            failure = processFluidFailure.IsFailure
+                ? processFluidFailure
+                : new DomainFailure(FailureCode.SurgeryMaterialUnavailable);
             order.statusData.Set(SurgeryStatusCode.ProcessFluidUnavailable);
+            // Manual process-water fallback creates a physical delivery order.
+            // Wake one hauler immediately; otherwise an urgent surgery can sit
+            // paused indefinitely until an unrelated routine haul scan happens.
+            workforce.RequestOneHaulerToReplan(
+                clearFailures: true,
+                forceInterrupt: false);
             return false;
         }
 
@@ -727,9 +812,17 @@ public sealed class SurgeryRuntime :
         }
         else
         {
-            order.statusData.Set(
-                SurgeryStatusCode.ProcedurePaused,
-                order.orderId);
+            // Preserve the actionable resource/environment reason produced by
+            // the failed work tick. A generic pause label hid the missing-water
+            // delivery and made both AI recovery and UI diagnosis opaque.
+            if (order.statusData?.code is not SurgeryStatusCode.ProcessFluidUnavailable
+                and not SurgeryStatusCode.MaterialsDeliveryPending
+                and not SurgeryStatusCode.EnvironmentUnsafe)
+            {
+                order.statusData.Set(
+                    SurgeryStatusCode.ProcedurePaused,
+                    order.orderId);
+            }
         }
     }
 
@@ -901,7 +994,8 @@ public sealed class SurgeryRuntime :
             selectedPartInstanceId = selectedPartInstanceId?.Trim() ?? string.Empty,
             preferredDoctorId = normalizedDoctorId,
             facilityId = facilities.GetFacilityId(facility.PrimaryFacility),
-            materialDestinationId = $"surgery-materials:{id}",
+            materialDestinationId =
+                SurgeryMaterialDestinationAuthority.BuildDestinationId(id),
             state = SurgeryOrderState.PatientWaiting,
             requiredWork = procedure.RequiredWork,
             anesthesiaWork = procedure.RequiredWork * 0.15f,
@@ -915,11 +1009,36 @@ public sealed class SurgeryRuntime :
             },
             createdAt = clock.Time
         };
+        FacilityBufferDestinationClaim destinationClaim =
+            SurgeryMaterialDestinationAuthority.CreateClaim(
+                order,
+                facility.PrimaryFacility.centerPos);
+        if (!destinationClaimCommands.TryClaim(
+                destinationClaim,
+                out FacilityBufferDestinationClaimFailureCode claimFailure,
+                out string claimReason))
+        {
+            if (!string.IsNullOrWhiteSpace(order.selectedPartInstanceId))
+            {
+                parts.ReleaseReservation(
+                    order.selectedPartInstanceId,
+                    order.orderId);
+            }
+
+            failure = new DomainFailure(
+                FailureCode.SurgeryMaterialUnavailable,
+                $"destination-claim:{claimFailure}:{claimReason}");
+            order = null;
+            return false;
+        }
         orderSequence = nextOrderSequence;
         orders.Add(order);
         surgeryLogistics.RequestMissingMaterials(order, facility.PrimaryFacility);
         surgeryLogistics.PrepareAdmission(order, facility.PrimaryFacility);
-        workforce.RequestOneHaulerToReplan(forceInterrupt: true);
+        // RequestMissingMaterials performs the single urgent handoff when it
+        // creates a delivery. This second signal must not destroy that new haul
+        // ownership in the same scheduling boundary.
+        workforce.RequestOneHaulerToReplan(forceInterrupt: false);
         workforce.RequestOneWorkerToReplanFor(
             BuiltInWorkTypeIds.Surgery,
             forceInterrupt: true);
@@ -1051,6 +1170,7 @@ public sealed class SurgeryRuntime :
                     failure = new DomainFailure(
                         FailureCode.SurgeryEffectHandlerMissing,
                         effect?.GetType().Name ?? string.Empty);
+                    ReleaseMaterialDestination(order);
                     order.state = SurgeryOrderState.Failed;
                     order.statusData.Set(SurgeryStatusCode.ProcedurePaused);
                     return false;
@@ -1062,6 +1182,7 @@ public sealed class SurgeryRuntime :
                         facility,
                         out failure))
                 {
+                    ReleaseMaterialDestination(order);
                     order.state = SurgeryOrderState.Failed;
                     order.statusData.Set(SurgeryStatusCode.ProcedurePaused);
                     return false;
@@ -1103,6 +1224,7 @@ public sealed class SurgeryRuntime :
         }
         ApplyFailureConsequences(order);
         order.incisionOpen = false;
+        ReleaseMaterialDestination(order);
         order.state = SurgeryOrderState.Failed;
         order.statusData.Set(order.failureSeverity switch
         {
@@ -1215,23 +1337,43 @@ public sealed class SurgeryRuntime :
             return;
         }
 
-        order.state = SurgeryOrderState.Cancelled;
-        order.statusData.Set(SurgeryStatusCode.Cancelled);
-        order.doctorId = string.Empty;
+        ReleaseMaterialDestination(order);
         if (!string.IsNullOrWhiteSpace(order.selectedPartInstanceId))
         {
             parts.ReleaseReservation(order.selectedPartInstanceId, order.orderId);
         }
 
-        Vector2Int releasePosition = TryResolveFacility(
-            order.facilityId,
-            out BuildableObject facility)
-            ? facility.centerPos
-            : new Vector2Int(order.admissionX, order.admissionY);
+        order.state = SurgeryOrderState.Cancelled;
+        order.statusData.Set(SurgeryStatusCode.Cancelled);
+        order.doctorId = string.Empty;
+        ReleasePatient(order);
+    }
+
+    private void ReleaseMaterialDestination(SurgeryOrder order)
+    {
+        if (!SurgeryMaterialDestinationAuthority.TryGetOwnedClaim(
+                destinationClaims,
+                order,
+                out FacilityBufferDestinationClaim claim))
+        {
+            throw new InvalidOperationException(
+                $"Active surgery order '{order?.orderId ?? "<missing>"}' "
+                + "has no exact material destination claim.");
+        }
+
         items.ReleaseStacksByDestination(
             order.materialDestinationId,
-            releasePosition);
-        ReleasePatient(order);
+            claim.DropPosition);
+        if (!destinationClaimCommands.TryRevoke(
+                claim,
+                out FacilityBufferDestinationClaimFailureCode failureCode,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                $"Could not revoke surgery material destination "
+                + $"'{order.materialDestinationId}': {failureCode}: "
+                + failureReason);
+        }
     }
 
     private void ReleasePatient(SurgeryOrder order)

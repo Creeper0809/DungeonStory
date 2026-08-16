@@ -54,6 +54,14 @@ public sealed class BuildingOccupancy
         }
     }
 
+    public IReadOnlyList<CharacterId> CaptureVisitReservationIdsForDiagnostics()
+    {
+        PruneExpiredVisitReservations();
+        CharacterId[] ids = new CharacterId[visitReservations.Count];
+        visitReservations.Keys.CopyTo(ids, 0);
+        return ids;
+    }
+
     public void Reset()
     {
         activeUsers.Clear();
@@ -294,6 +302,9 @@ public sealed class BuildingOccupancy
             nextVisitReservationExpiry = 0f;
         }
 
+        owner.UntrackTransientOwnership(
+            visitorId,
+            BuildingTransientOwnershipKind.VisitReservation);
         owner.NotifyOccupancyOrAssignmentChanged();
     }
 
@@ -423,6 +434,9 @@ public sealed class BuildingOccupancy
         foreach (CharacterId visitorId in expiredVisitReservations)
         {
             visitReservations.Remove(visitorId);
+            owner.UntrackTransientOwnership(
+                visitorId,
+                BuildingTransientOwnershipKind.VisitReservation);
             changed = true;
         }
 
@@ -500,7 +514,7 @@ public sealed class BuildingAssignment
     public void RefreshWorkerReservation(IBuildingCharacterPort worker, float seconds)
     {
         PruneExpiredWorkerReservation();
-        if (worker == null || workerReservation != worker)
+        if (!IsSameWorker(workerReservation, worker))
         {
             return;
         }
@@ -511,19 +525,40 @@ public sealed class BuildingAssignment
     public bool HasWorkerReservationForOther(IBuildingCharacterPort worker)
     {
         PruneExpiredWorkerReservation();
-        return workerReservation != null && workerReservation != worker;
+        return workerReservation != null
+            && !IsSameWorker(workerReservation, worker);
     }
 
     public void ReleaseWorkerReservation(IBuildingCharacterPort worker)
     {
-        if (worker == null || workerReservation != worker)
+        if (!IsSameWorker(workerReservation, worker))
         {
             return;
         }
 
+        CharacterId workerId = workerReservation.BuildingCharacterId;
         workerReservation = null;
         workerReservationUntil = 0f;
+        owner.UntrackTransientOwnership(
+            workerId,
+            BuildingTransientOwnershipKind.WorkerReservation);
         owner.NotifyOccupancyOrAssignmentChanged();
+    }
+
+    private static bool IsSameWorker(
+        IBuildingCharacterPort left,
+        IBuildingCharacterPort right)
+    {
+        if (left == null || right == null)
+        {
+            return false;
+        }
+
+        CharacterId leftId = left.BuildingCharacterId;
+        CharacterId rightId = right.BuildingCharacterId;
+        return leftId.IsValid
+            && rightId.IsValid
+            && leftId.Equals(rightId);
     }
 
     public FacilityAssignmentStatus GetWorkAssignmentStatus(WorkTypeId workTypeId)

@@ -32,28 +32,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 11
   features:
-  - rid: 7737211905660420125
-  - rid: 7737211905660420126
-  - rid: 7737211905660420127
-  - rid: 7737211905660420821
+  - rid: 7737211981818757167
+  - rid: 7737211981818757168
+  - rid: 7737211981818757169
+  - rid: 7737211981818757170
   references:
     version: 2
     RefIds:
-    - rid: 7737211905660420125
+    - rid: 7737211981818757167
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:pathogen-observation
-    - rid: 7737211905660420126
+    - rid: 7737211981818757168
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737211905660420127
+    - rid: 7737211981818757169
       type: {class: PathogenSampleItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         diseaseId: disease:mana-pox
-    - rid: 7737211905660420821
+    - rid: 7737211981818757170
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.58359313

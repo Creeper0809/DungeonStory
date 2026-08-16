@@ -79,7 +79,8 @@ public static class DungeonAiRegistration
         builder.Register<CharacterAiSchedulingService>(Lifetime.Singleton)
             .As<ICharacterAiSchedulingService>()
             .As<ICharacterAiDiagnosticsQuery>();
-        builder.RegisterEntryPoint<CharacterAlarmResponseRuntime>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<CharacterAlarmResponseRuntime>(Lifetime.Singleton)
+            .AsSelf();
         builder.Register<CharacterMoodImpulseQuery>(Lifetime.Singleton)
             .As<ICharacterMoodImpulseQuery>();
         builder.Register<CharacterSocialMemoryFactory>(Lifetime.Singleton)

@@ -131,7 +131,7 @@ public static class StartPartyPreparationPlayModeVerifier
 
         Time.timeScale = 0f;
         bool committed = commitService.TryCommit(out message);
-        CharacterActor[] staff = CharacterActorCollection.DistinctByGameObject(
+        CharacterActor[] allStaff = CharacterActorCollection.DistinctByGameObject(
             UnityEngine.Object.FindObjectsByType<CharacterActor>(
                 FindObjectsInactive.Include,
                 FindObjectsSortMode.None))
@@ -141,9 +141,20 @@ public static class StartPartyPreparationPlayModeVerifier
                     "character:staff:",
                     StringComparison.Ordinal))
             .ToArray();
+        CharacterActor[] staff = allStaff
+            .Where(actor => actor.gameObject.activeInHierarchy)
+            .ToArray();
+        CharacterActor[] inactiveStaff = allStaff
+            .Where(actor => !actor.gameObject.activeInHierarchy)
+            .ToArray();
         string actors = string.Join(",", staff.Select(actor =>
             $"{actor.name}:{actor.GetInstanceID()}:{actor.Identity.PersistentId}:active={actor.gameObject.activeInHierarchy}"));
-        return $"committed={committed}; message={message}; staff={staff.Length}; actors={actors}; diagnostics={diagnosticsQuery?.LastReport ?? string.Empty}";
+        CharacterSpawner spawner = UnityEngine.Object.FindFirstObjectByType<CharacterSpawner>(
+            FindObjectsInactive.Include);
+        return $"committed={committed}; message={message}; liveStaff={staff.Length}; "
+            + $"inactiveStaffObjects={inactiveStaff.Length}; "
+            + $"customerPoolInactive={spawner?.characterPool?.CountInactive ?? 0}; "
+            + $"actors={actors}; diagnostics={diagnosticsQuery?.LastReport ?? string.Empty}";
     }
 }
 

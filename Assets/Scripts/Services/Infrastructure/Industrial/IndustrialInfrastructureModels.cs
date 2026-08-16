@@ -443,6 +443,10 @@ public interface IWaterFixtureUseRuntime
 
 public interface IProcessFluidUseRuntime
 {
+    bool EnsureCycleSupply(
+        BuildableObject facility,
+        WorkTypeId workTypeId,
+        out DomainFailure failure);
     bool TryConsumeCycle(
         BuildableObject facility,
         WorkTypeId workTypeId,

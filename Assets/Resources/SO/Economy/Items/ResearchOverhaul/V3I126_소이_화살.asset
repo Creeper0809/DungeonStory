@@ -31,28 +31,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 21
   features:
-  - rid: 7737211905658585642
-  - rid: 7737211905658585643
-  - rid: 7737211905658585644
-  - rid: 7737211905660420686
+  - rid: 7737211981816660378
+  - rid: 7737211981816660379
+  - rid: 7737211981816660380
+  - rid: 7737211981816660381
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585642
+    - rid: 7737211981816660378
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:incendiary-arrow
-    - rid: 7737211905658585643
+    - rid: 7737211981816660379
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:black-powder
-    - rid: 7737211905658585644
+    - rid: 7737211981816660380
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 512
         sharedIntermediate: 0
-    - rid: 7737211905660420686
+    - rid: 7737211981816660381
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.60997975

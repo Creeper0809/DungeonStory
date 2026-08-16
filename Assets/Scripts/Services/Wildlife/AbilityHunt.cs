@@ -9,12 +9,34 @@ public sealed class AbilityHunt : MonoBehaviour
     private IWildlifeRuntime wildlifeRuntime;
     private Coroutine huntingRoutine;
     private WildlifeHuntJob activeJob;
+    private bool huntExecutionActive;
+#if UNITY_EDITOR
+    private IGridPathSearchBroker pathSearchOverrideForDiagnostics;
+#endif
 
-    public bool IsHunting => huntingRoutine != null;
+    public bool IsHunting => huntExecutionActive;
+
+#if UNITY_EDITOR
+    public IGridPathSearchBroker DebugReplacePathSearchBroker(
+        IGridPathSearchBroker replacement)
+    {
+        IGridPathSearchBroker previous = pathSearchOverrideForDiagnostics;
+        pathSearchOverrideForDiagnostics = replacement;
+        return previous;
+    }
+#endif
 
     private void Awake()
     {
         CacheReferences();
+    }
+
+    private void OnDisable()
+    {
+        if (Application.isPlaying)
+        {
+            StopHunting("hunter-disabled");
+        }
     }
 
     public static AbilityHunt Ensure(
@@ -79,7 +101,9 @@ public sealed class AbilityHunt : MonoBehaviour
         CacheReferences();
         if (actor == null || move == null || wildlifeRuntime == null)
         {
-            EndAiAction();
+            FailAiAction(
+                AIActionFailureKind.Unsupported,
+                "Hunt runtime collaborators are unavailable.");
             return;
         }
 
@@ -90,12 +114,17 @@ public sealed class AbilityHunt : MonoBehaviour
                 out string reason))
         {
             actor.Brain?.SetActionPhase("사냥 대기", null, reason);
-            EndAiAction();
+            FailAiAction(AIActionFailureKind.NoWork, reason);
             return;
         }
 
         activeJob = job;
-        huntingRoutine = StartCoroutine(HuntRoutine(job));
+        huntExecutionActive = true;
+        Coroutine started = StartCoroutine(HuntRoutine(job));
+        // A coroutine can terminate before its first yield.  In that case the
+        // terminal path has already cleared huntExecutionActive and the
+        // returned completed handle must not resurrect IsHunting.
+        huntingRoutine = huntExecutionActive ? started : null;
     }
 
     public void StopHunting(string reason)
@@ -106,6 +135,7 @@ public sealed class AbilityHunt : MonoBehaviour
             huntingRoutine = null;
         }
 
+        huntExecutionActive = false;
         ReleaseReservation(activeJob);
         activeJob = default;
     }
@@ -114,7 +144,13 @@ public sealed class AbilityHunt : MonoBehaviour
     {
         if (job.Target == null || wildlifeRuntime == null || !TryGetGrid(out Grid grid))
         {
-            EndAiAction();
+            FailAiAction(
+                job.Target == null
+                    ? AIActionFailureKind.Destroyed
+                    : AIActionFailureKind.NoGrid,
+                job.Target == null
+                    ? "Hunt target is unavailable."
+                    : "Hunt grid or runtime is unavailable.");
             yield break;
         }
 
@@ -127,7 +163,9 @@ public sealed class AbilityHunt : MonoBehaviour
             if (IsActionCancelled(expectedAction))
             {
                 ReleaseReservation(job);
-                EndAiAction();
+                EndAiAction(
+                    CharacterAiActionTerminalKind.Cancelled,
+                    clearFailures: false);
                 yield break;
             }
 
@@ -141,15 +179,27 @@ public sealed class AbilityHunt : MonoBehaviour
                 }
 
                 string reloadMessage = string.Empty;
-                if (IsActionCancelled(expectedAction)
-                    || !wildlifeRuntime.TryReloadHuntWeapon(actor, out reloadMessage))
+                if (IsActionCancelled(expectedAction))
+                {
+                    ReleaseReservation(job);
+                    EndAiAction(
+                        CharacterAiActionTerminalKind.Cancelled,
+                        clearFailures: false);
+                    yield break;
+                }
+
+                if (!wildlifeRuntime.TryReloadHuntWeapon(actor, out reloadMessage))
                 {
                     actor.Brain?.SetActionPhase(
                         "사냥 중단",
                         null,
                         string.IsNullOrWhiteSpace(reloadMessage) ? "재장전 실패" : reloadMessage);
                     ReleaseReservation(job);
-                    EndAiAction();
+                    FailAiAction(
+                        AIActionFailureKind.ResourceUnavailable,
+                        string.IsNullOrWhiteSpace(reloadMessage)
+                            ? "Hunt weapon reload failed."
+                            : reloadMessage);
                     yield break;
                 }
             }
@@ -160,7 +210,7 @@ public sealed class AbilityHunt : MonoBehaviour
                     grid,
                     actor.GetNowXY()))
             {
-                Queue<GridMoveStep> path = actor.PathSearchBroker?.GetMovePath(
+                Queue<GridMoveStep> path = GetPathSearchBroker()?.GetMovePath(
                     grid,
                     actor.GetNowXY(),
                     position => wildlifeRuntime != null
@@ -176,23 +226,48 @@ public sealed class AbilityHunt : MonoBehaviour
                         null,
                         "공격 가능한 위치가 없습니다.");
                     ReleaseReservation(job);
-                    EndAiAction();
+                    FailAiAction(
+                        AIActionFailureKind.NoPath,
+                        "No attack position is reachable for the hunt target.");
                     yield break;
                 }
 
                 actor.Brain?.SetActionPhase("사냥 위치로 이동", null, job.Target.DisplayName);
                 yield return move.MoveByPath(path, expectedAction);
-                if (IsActionCancelled(expectedAction)
-                    || (move.LastGridMoveWasBlocked
-                        && !wildlifeRuntime.CanAttackHuntTargetFrom(
-                            actor,
-                            job.Target,
-                            grid,
-                            actor.GetNowXY())))
+                if (IsActionCancelled(expectedAction))
                 {
                     ReleaseReservation(job);
-                    EndAiAction();
+                    EndAiAction(
+                        CharacterAiActionTerminalKind.Cancelled,
+                        clearFailures: false);
                     yield break;
+                }
+
+                if (job.Target == null || !job.Target.IsAlive)
+                {
+                    break;
+                }
+
+                bool canAttackFromCurrentCell =
+                    wildlifeRuntime.CanAttackHuntTargetFrom(
+                        actor,
+                        job.Target,
+                        grid,
+                        actor.GetNowXY());
+                if (move.LastGridMoveWasBlocked && !canAttackFromCurrentCell)
+                {
+                    ReleaseReservation(job);
+                    FailAiAction(
+                        AIActionFailureKind.NoPath,
+                        "The hunt path became blocked.");
+                    yield break;
+                }
+
+                // Wildlife can move while the hunter follows the resolved path.
+                // Re-enter pursuit if the target left the approved attack cell.
+                if (!canAttackFromCurrentCell)
+                {
+                    continue;
                 }
             }
 
@@ -204,7 +279,7 @@ public sealed class AbilityHunt : MonoBehaviour
             {
                 actor.Brain?.SetActionPhase("사냥 중단", null, attackMessage);
                 ReleaseReservation(job);
-                EndAiAction();
+                FailAiAction(AIActionFailureKind.CannotStart, attackMessage);
                 yield break;
             }
 
@@ -217,10 +292,30 @@ public sealed class AbilityHunt : MonoBehaviour
                 Mathf.Max(0.15f, wildlifeRuntime.GetHuntAttackInterval(actor)));
         }
 
+        if (job.Target != null && job.Target.IsAlive)
+        {
+            ReleaseReservation(job);
+            activeJob = default;
+            FailAiAction(
+                AIActionFailureKind.CannotStart,
+                "Hunt attack safety limit was exhausted before the target was defeated.");
+            yield break;
+        }
+
+        if (job.Target == null)
+        {
+            ReleaseReservation(job);
+            activeJob = default;
+            FailAiAction(
+                AIActionFailureKind.Destroyed,
+                "The reserved hunt target despawned before hunt completion.");
+            yield break;
+        }
+
         ReleaseReservation(job);
         huntingRoutine = null;
         activeJob = default;
-        EndAiAction();
+        EndAiAction(CharacterAiActionTerminalKind.Completed, clearFailures: true);
     }
 
     private bool TryGetGrid(out Grid grid)
@@ -234,10 +329,29 @@ public sealed class AbilityHunt : MonoBehaviour
         return false;
     }
 
+    private IGridPathSearchBroker GetPathSearchBroker()
+    {
+#if UNITY_EDITOR
+        if (pathSearchOverrideForDiagnostics != null)
+        {
+            return pathSearchOverrideForDiagnostics;
+        }
+#endif
+        return actor?.PathSearchBroker;
+    }
+
     private bool IsActionCancelled(AIAction expectedAction)
     {
+        if (actor == null
+            || actor.IsDead
+            || !actor.isActiveAndEnabled
+            || actor.CurrentLifecycleState != CharacterLifecycleState.Active)
+        {
+            return true;
+        }
+
         return expectedAction != null
-            && (actor == null || actor.Brain == null || actor.Brain.bestAction != expectedAction);
+            && (actor.Brain == null || actor.Brain.bestAction != expectedAction);
     }
 
     private void ReleaseReservation(WildlifeHuntJob job)
@@ -248,15 +362,32 @@ public sealed class AbilityHunt : MonoBehaviour
         }
     }
 
-    private void EndAiAction()
+    private void FailAiAction(AIActionFailureKind kind, string reason)
+    {
+        if (actor?.Brain != null)
+        {
+            actor.Brain.ReportRuntimeActionFailure(
+                AIActionFailure.Create(kind, reason),
+                requestImmediateReplan: false);
+        }
+
+        EndAiAction(CharacterAiActionTerminalKind.Failed, clearFailures: false);
+    }
+
+    private void EndAiAction(
+        CharacterAiActionTerminalKind terminalKind,
+        bool clearFailures)
     {
         if (actor != null && actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = true;
-            actor.Brain.RequestImmediateReplan(clearFailures: true);
+            actor.Brain.EndExpectedAction(
+                actor.Brain.bestAction,
+                terminalKind,
+                clearFailures);
         }
 
         huntingRoutine = null;
+        huntExecutionActive = false;
     }
 
     private void CacheReferences()

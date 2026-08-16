@@ -32,6 +32,10 @@ public static class CustomerAiDebugScenarios
         RunScenario("갈 수 없는 고점 행동 대신 대체 행동 선택", VerifyUnavailableHighScoreNeedSelectsReachableAction, errors);
 
         RunScenario("역할별 후보 필터링", VerifyRoleCandidateFiltering, errors);
+        RunScenario(
+            "Customer identity overrides shared AbilityWork",
+            VerifyCustomerIdentityOwnsWorkRole,
+            errors);
         RunScenario("욕구 점수가 행동 우선순위를 결정", VerifyNeedScoresDriveActionPriority, errors);
         RunScenario("종족 선호가 거리보다 우선 가능", VerifySpeciesPreferenceCanBeatDistance, errors);
         RunScenario("뱀파이어는 마나/연구 선호", VerifyVampireSelectsManaOrResearch, errors);
@@ -374,6 +378,35 @@ public static class CustomerAiDebugScenarios
             && !washroomFacility.SupportsFacilityRole(FacilityRole.Toilet)
             && customer.stats[CharacterCondition.EXCRETION] > 5f
             && customer.stats[CharacterCondition.HYGIENE] > 10f;
+    }
+
+    private static bool VerifyCustomerIdentityOwnsWorkRole()
+    {
+        using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
+        CharacterActor customer = world.CreateCustomer(
+            "Slime",
+            Vector2Int.zero,
+            90f,
+            90f,
+            90f,
+            90f);
+        customer.gameObject.AddComponent<AbilityWork>();
+        customer.RefreshAbilityCache();
+
+        bool customerIsWorker = CharacterWorkRoleUtility.TryGetWork(
+            customer,
+            out _);
+
+        customer.characterType = CharacterType.NPC;
+        customer.Identity.SetCharacterType(CharacterType.NPC);
+        customer.RefreshAbilityCache();
+        bool promotedNpcIsWorker = CharacterWorkRoleUtility.TryGetWork(
+            customer,
+            out AbilityWork promotedWork);
+
+        return !customerIsWorker
+            && promotedNpcIsWorker
+            && promotedWork != null;
     }
 
     private static bool VerifyRoutinePrimitiveReliefWaitsForOccupiedFacility()

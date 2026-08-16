@@ -56,11 +56,23 @@ public class CharacterLifecycle : SerializedMonoBehaviour
     private GridSystemManager subscribedGridSystem;
     private bool unpublishedComposition;
     private bool detachedRestoreCandidate;
+    private long lifecycleTransitionRevision;
+    private bool lifecycleTransitionInProgress;
+    private CharacterLifecycleState lastTransitionPreviousState;
+    private CharacterLifecycleState lastTransitionNextState;
 
     public CharacterLifecycleState CurrentState => lifecycleState;
     public bool IsAiPaused => aiPaused;
     public CharacterExpeditionRecoveryState ExpeditionRecovery => expeditionRecovery ??= new CharacterExpeditionRecoveryState();
     public bool IsUnpublishedComposition => unpublishedComposition;
+    public long LifecycleTransitionRevisionForDiagnostics =>
+        lifecycleTransitionRevision;
+    public bool LifecycleTransitionInProgressForDiagnostics =>
+        lifecycleTransitionInProgress;
+    public CharacterLifecycleState LastTransitionPreviousStateForDiagnostics =>
+        lastTransitionPreviousState;
+    public CharacterLifecycleState LastTransitionNextStateForDiagnostics =>
+        lastTransitionNextState;
 
     public void PrepareForComposition(CharacterActor owner)
     {
@@ -342,38 +354,55 @@ public class CharacterLifecycle : SerializedMonoBehaviour
     public void SetLifecycleState(CharacterLifecycleState nextState)
     {
         CharacterLifecycleState previousState = lifecycleState;
-        if (nextState != CharacterLifecycleState.Active
-            && actor?.Brain != null)
-        {
-            actor.Brain.StopAllAiForLifecycleTransition(
-                $"lifecycle:{previousState}->{nextState}");
-        }
-
+        lifecycleTransitionRevision = checked(lifecycleTransitionRevision + 1);
+        lastTransitionPreviousState = previousState;
+        lastTransitionNextState = nextState;
+        lifecycleTransitionInProgress = true;
+        // Publish the non-active state before invoking action-stop callbacks.
+        // Those callbacks can synchronously re-enter AI action code; if the old
+        // Active state remains visible, a late AIWork.Execute can reacquire a
+        // facility reservation during the cleanup boundary.
         lifecycleState = nextState;
-        if (nextState != CharacterLifecycleState.Active)
+        try
         {
-            aiPaused = false;
-        }
+            if (nextState != CharacterLifecycleState.Active
+                && actor != null)
+            {
+                actor.ReleaseTransientAiOwnership(
+                    $"lifecycle:{previousState}->{nextState}");
+            }
 
-        if (actor == null)
-        {
-            return;
-        }
+            if (nextState != CharacterLifecycleState.Active)
+            {
+                aiPaused = false;
+            }
 
-        if (nextState == CharacterLifecycleState.Active)
-        {
-            visual?.EnsureVisibleForActiveLifecycle();
+            if (actor == null)
+            {
+                return;
+            }
+
+            if (nextState == CharacterLifecycleState.Active)
+            {
+                actor.PrepareTransientAiOwnershipForActiveLifecycle();
+                visual?.EnsureVisibleForActiveLifecycle();
+                if (actor.Brain == null) return;
+
+                actor.Brain.RequestImmediateReplan(clearFailures: true);
+                return;
+            }
+
             if (actor.Brain == null) return;
 
-            actor.Brain.RequestImmediateReplan(clearFailures: true);
-            return;
+            // The transition cleanup above owns action stop, reservations,
+            // movement and blackboard commitment. Do not clear bestAction by
+            // field assignment here: that bypasses every executor's OnStop
+            // contract.
         }
-
-        if (actor.Brain == null) return;
-
-        // The transition cleanup above owns action stop, reservations,
-        // movement and blackboard commitment. Do not clear bestAction by field
-        // assignment here: that bypasses every executor's OnStop contract.
+        finally
+        {
+            lifecycleTransitionInProgress = false;
+        }
     }
 
     public Vector2Int GetNowXY()

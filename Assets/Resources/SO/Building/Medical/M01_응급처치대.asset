@@ -62,10 +62,10 @@ MonoBehaviour:
     - rid: 7737211857806557902
     - rid: 7737211857806557903
     - rid: 7737211857806557904
-    - rid: 7737211905655963770
-    - rid: 7737211905655963771
     - rid: 7737211905666711788
-    - rid: 7737211921440178721
+    - rid: 7737211981804077309
+    - rid: 7737211981816660038
+    - rid: 7737211981816660039
   width: 2
   height: 1
   layer: 1
@@ -165,23 +165,6 @@ MonoBehaviour:
         workSpeedMultiplier: 1.3
         baseSterility: 0.12
         patientSlots: 1
-    - rid: 7737211905655963770
-      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingUtilityConnectionAbility
-        channels: 6
-        maxThroughput: 20
-        normallyOpen: 1
-    - rid: 7737211905655963771
-      type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProcessFluidAbility
-        workTypeIds:
-        - work:surgery
-        cleanWaterPerCycle: 0.2
-        wastewaterPerCycle: 0.2
-        minimumQuality: 0
-        allowsManualWaterFallback: 1
     - rid: 7737211905666711788
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -193,7 +176,7 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 671121408
           disabledWhenDamaged: 1
-    - rid: 7737211921440178721
+    - rid: 7737211981804077309
       type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceHubAbility
@@ -212,3 +195,20 @@ MonoBehaviour:
         - service:medical-call
         automatedRequiredFeatureTags:
         - service:queue
+    - rid: 7737211981816660038
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 6
+        maxThroughput: 20
+        normallyOpen: 1
+    - rid: 7737211981816660039
+      type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProcessFluidAbility
+        workTypeIds:
+        - work:surgery
+        cleanWaterPerCycle: 0.2
+        wastewaterPerCycle: 0.2
+        minimumQuality: 0
+        allowsManualWaterFallback: 1

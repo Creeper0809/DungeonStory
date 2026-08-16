@@ -1,0 +1,22 @@
+INFO	SCENARIO	mode=RoutineLockdown;revision=additional-chaos-v1-20260816
+INFO	START_PARTY	committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Arin:-8281600:character:staff:1:02:active=True,Roma:-8281532:character:staff:1:01:active=True; diagnostics=prepared-1:name=Roma;go=-8281504;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-8281572;id=character:staff:1:02;active=False || scan:name=Roma;go=-8281504;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-8281572;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-8281504;id=character:staff:1:01;active=True || retained:name=Arin;go=-8281572;id=character:staff:1:02;active=True
+PASS	CHAOS_SCOPE_READY	DungeonRuntimeSystems
+PASS	CHAOS_ACTOR_COUNT	activeHumanoids=3
+PASS	CHAOS_AUTHORITIES_READY	save=True;items=True;haulPlanning=True;deprivation=True;alert=True/True;body=True/True;medical=True
+PASS	CHAOS_SAVE_AUTHORITIES_SETTLED	environment=True;initialized=True
+PASS	ROUTINE_LOCKDOWN_ACTOR_READY	character:staff:1:02
+PASS	ROUTINE_LOCKDOWN_PHYSICAL_WATER	water=30;stacks=1
+PASS	ROUTINE_LOCKDOWN_NON_EMERGENCY_BAND	emergency=35;routine=60;forecast=30
+PASS	ROUTINE_LOCKDOWN_PRECONDITION	routine=True;emergency=False;reason=갈증 60: 마실 물이 필요함;thirst=60
+PASS	ROUTINE_LOCKDOWN_DRINK_LIVE_BEFORE_ALERT	action=음수;phase=시작;water=30->30
+PASS	ROUTINE_LOCKDOWN_NO_PREMATURE_CONSUME	water=30->30
+PASS	ROUTINE_LOCKDOWN_RED_COMMITTED	level=Red;epoch=1;active=[incident:invasion:active]
+PASS	ROUTINE_LOCKDOWN_ATOMIC_DRINK_HANDOFF_TO_GUARD	gate=True/work:guard;epoch=1/1;guardAction=True;action=일하기
+PASS	ROUTINE_LOCKDOWN_ATOMIC_DRINK_CONSUMED_EXACTLY_ONCE	water=30->29
+PASS	ROUTINE_LOCKDOWN_INVASION_RESOLVED_SYNC	desired=Green;committed=Red;active=[]
+PASS	ROUTINE_LOCKDOWN_GREEN_GATE_RELEASED	level=Green;gate=False;pending=0;returning=0
+PASS	ROUTINE_LOCKDOWN_NO_DUPLICATE_DRINK_AFTER_GREEN	water=30->29->29;thirst=98.33
+PASS	ROUTINE_LOCKDOWN_NO_DUAL_OWNER	overlap=False;externalTransitions=0->0
+PASS	ROUTINE_LOCKDOWN_LIFECYCLE_CONSERVED	starts=2;terminals=2;invariants=0->0
+INFO	CONSOLE	issues=0;
+RESULT=PASS; failures=0; 

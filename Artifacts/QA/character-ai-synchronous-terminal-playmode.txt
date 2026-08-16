@@ -1,0 +1,12 @@
+# Character AI synchronous terminal PlayMode matrix
+authority=production AIBrain/action-set/ability components
+result=PASS
+PASS	live actor/brain resolved
+PASS	shopping selected through production pipeline
+PASS	shopping immediate terminal did not retain coroutine handle
+PASS	shopping immediate terminal cleared AIBrain action
+PASS	shopping repeated cleanup remained idempotent
+PASS	substance repeated terminal cleanup retained no executor
+PASS	haul repeated terminal cleanup retained no executor
+PASS	rescue repeated terminal cleanup retained no executor
+PASS	captive escort repeated terminal cleanup retained no executor

@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 64
   features:
-  - rid: 7737211905655964627
-  - rid: 7737211905655964628
-  - rid: 7737211905660420424
+  - rid: 7737211981804077664
+  - rid: 7737211981804077665
+  - rid: 7737211981804077666
   references:
     version: 2
     RefIds:
-    - rid: 7737211905655964627
+    - rid: 7737211981804077664
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        requiredResearchId: research:industry:breakers
-    - rid: 7737211905655964628
+        requiredResearchId: research:industry:maintenance
+    - rid: 7737211981804077665
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 512
         sharedIntermediate: 0
-    - rid: 7737211905660420424
+    - rid: 7737211981804077666
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.60224783

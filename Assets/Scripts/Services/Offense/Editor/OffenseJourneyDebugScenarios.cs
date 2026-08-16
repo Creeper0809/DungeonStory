@@ -634,15 +634,23 @@ public static class OffenseJourneyDebugScenarios
             return false;
         }
         public bool TryExecutePlannedCommand(
+            int directorTurn,
             string actorPersistentId,
             string targetPersistentId,
+            OffenseBattleActionType actionType,
             string abilityId,
             out OffenseBattleCommandResult result)
         {
             result = null;
             return false;
         }
-        public bool FinalizePlannedTurn() => false;
+        public bool FinalizePlannedTurn(
+            int directorTurn,
+            out string failureReason)
+        {
+            failureReason = "fixture has no active planned battle";
+            return false;
+        }
         public bool TryGetActor(string persistentId, out CharacterActor actor)
         {
             actor = null;

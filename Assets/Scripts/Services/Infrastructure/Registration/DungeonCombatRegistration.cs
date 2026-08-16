@@ -143,7 +143,8 @@ public static class DungeonCombatRegistration
         builder.Register<SurgeryExecutionServices>(Lifetime.Singleton);
         builder.Register<SurgeryRestoreCoordinator>(Lifetime.Singleton)
             .AsSelf()
-            .As<IDungeonRestoreTransactionParticipant>();
+            .As<IDungeonRestoreTransactionParticipant>()
+            .As<IDungeonSaveRestoreCompletedHook>();
         builder.RegisterEntryPoint<SurgeryRuntime>(Lifetime.Singleton)
             .As<ISurgeryQuery>()
             .As<ISurgeryWorkCommand>()

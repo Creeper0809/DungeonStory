@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 12
   features:
-  - rid: 7737211905658586098
-  - rid: 7737211905658586099
-  - rid: 7737211905660420804
+  - rid: 7737211981816660984
+  - rid: 7737211981816660985
+  - rid: 7737211981816660986
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658586098
+    - rid: 7737211981816660984
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:agriculture:greenhouse-horticulture
-    - rid: 7737211905658586099
+    - rid: 7737211981816660985
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211905660420804
+    - rid: 7737211981816660986
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.5813045

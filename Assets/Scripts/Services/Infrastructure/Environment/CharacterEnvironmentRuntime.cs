@@ -19,6 +19,7 @@ public sealed class CharacterEnvironmentUnityAdapter :
 
     private readonly IEnvironmentalFieldQuery field;
     private readonly ICharacterWorldQuery characters;
+    private readonly ICharacterLifetimeQuery characterLifetime;
     private readonly ICharacterSpeciesEnvironmentCatalog speciesEnvironment;
     private readonly ICharacterEnvironmentProtectionResolver protection;
     private readonly IEnvironmentalWorkwearPersistence workwear;
@@ -37,6 +38,7 @@ public sealed class CharacterEnvironmentUnityAdapter :
     public CharacterEnvironmentUnityAdapter(
         IEnvironmentalFieldQuery field,
         ICharacterWorldQuery characters,
+        ICharacterLifetimeQuery characterLifetime,
         ICharacterSpeciesEnvironmentCatalog speciesEnvironment,
         ICharacterEnvironmentProtectionResolver protection,
         IEnvironmentalWorkwearPersistence workwear,
@@ -50,6 +52,8 @@ public sealed class CharacterEnvironmentUnityAdapter :
         this.field = field ?? throw new ArgumentNullException(nameof(field));
         this.characters = characters
             ?? throw new ArgumentNullException(nameof(characters));
+        this.characterLifetime = characterLifetime
+            ?? throw new ArgumentNullException(nameof(characterLifetime));
         this.speciesEnvironment = speciesEnvironment
             ?? throw new ArgumentNullException(nameof(speciesEnvironment));
         this.protection = protection
@@ -197,10 +201,18 @@ public sealed class CharacterEnvironmentUnityAdapter :
 
     public DungeonCharacterEnvironmentSaveData Capture()
     {
+        HashSet<CharacterId> persistentCharacterIds = new(
+            (characterLifetime.AllCharacters ?? Array.Empty<CharacterActor>())
+                .Where(CharacterWorldPersistenceRules.IsPersistentActor)
+                .Select(actor => new CharacterId(actor.Identity.PersistentId))
+                .Where(id => id.IsValid));
         return new DungeonCharacterEnvironmentSaveData
         {
             version = DungeonCharacterEnvironmentSaveData.CurrentVersion,
             exposures = states.Values
+                .Where(state => state != null
+                    && persistentCharacterIds.Contains(
+                        new CharacterId(state.characterId)))
                 .OrderBy(state => state.characterId, StringComparer.Ordinal)
                 .Select(Clone)
                 .ToArray(),

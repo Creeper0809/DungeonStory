@@ -218,7 +218,8 @@ public enum AIActionFailureKind
     FacilityAdmissionRejected,
     FacilityServiceUnavailable,
     ResourceUnavailable,
-    ConsumptionFailed
+    ConsumptionFailed,
+    PathSearchStarved
 }
 
 public static class CharacterAiActionTags

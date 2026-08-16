@@ -10,6 +10,25 @@ internal sealed class EditorWarehouseStockRuntime : IWorldItemStackRuntime
     public bool StoredItemMarkersVisible => false;
     public int ItemStackVersion => 0;
     public int HaulJobVersion => 0;
+    public int GetCommittedHaulDeliveryQuantity(
+        string destinationId,
+        string itemId) => 0;
+    public bool TryCommitHaulPickup(
+        string ownerOperationId,
+        CharacterCarryInventory inventory,
+        out string failureReason)
+    {
+        failureReason = "editor warehouse haul delivery authority unavailable";
+        return false;
+    }
+    public bool TryCaptureHaulDeliveryIntent(
+        string ownerOperationId,
+        out HaulDeliveryIntentSaveData intent)
+    {
+        intent = null;
+        return false;
+    }
+    public bool ReleaseHaulDeliveryIntent(string ownerOperationId) => false;
 
     public DungeonPhysicalItemSaveData Capture() => new DungeonPhysicalItemSaveData();
     public void Restore(DungeonPhysicalItemSaveData snapshot) { }
@@ -224,6 +243,14 @@ internal sealed class EditorWarehouseStockRuntime : IWorldItemStackRuntime
         return false;
     }
 
+    public bool TryDepositCarriedItems(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        IWarehouseFacility warehouse,
+        IReadOnlyCollection<string> ownerOperationIds,
+        out string failureReason) =>
+        TryDepositCarriedItems(actor, inventory, warehouse, out failureReason);
+
     public bool TryDepositCarriedItemsToFacility(CharacterActor actor,
         CharacterCarryInventory inventory, Vector2Int destinationPosition,
         string destinationId, out string failureReason)
@@ -231,6 +258,20 @@ internal sealed class EditorWarehouseStockRuntime : IWorldItemStackRuntime
         failureReason = "not supported by warehouse fixture";
         return false;
     }
+
+    public bool TryDepositCarriedItemsToFacility(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        Vector2Int destinationPosition,
+        string destinationId,
+        IReadOnlyCollection<string> ownerOperationIds,
+        out string failureReason) =>
+        TryDepositCarriedItemsToFacility(
+            actor,
+            inventory,
+            destinationPosition,
+            destinationId,
+            out failureReason);
 
     public bool TryConsumeFacilityBuffer(string destinationId,
         IReadOnlyDictionary<StockCategory, int> costs, out string failureReason)

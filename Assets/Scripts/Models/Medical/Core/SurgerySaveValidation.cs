@@ -15,6 +15,7 @@ public static class SurgerySaveValidation
 
     private const string OrderPrefix = "surgery:";
     private const string PartPrefix = "surgical-part:";
+    private const string MaterialDestinationPrefix = "surgery-materials:";
 
     public static void Validate(
         DungeonSurgerySaveData payload,
@@ -181,6 +182,16 @@ public static class SurgerySaveValidation
             if (order.IsActive && string.IsNullOrWhiteSpace(order.facilityId))
             {
                 report.AddError($"Active surgery order '{id}' has no facility.");
+            }
+            if (order.IsActive
+                && !string.Equals(
+                    order.materialDestinationId,
+                    MaterialDestinationPrefix + id,
+                    StringComparison.Ordinal))
+            {
+                report.AddError(
+                    $"Active surgery order '{id}' has non-canonical material destination "
+                    + $"'{order.materialDestinationId}'.");
             }
             if (order.risk == null
                 || order.materials == null

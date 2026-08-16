@@ -35,7 +35,7 @@ MonoBehaviour:
   - rid: 7737211905666712136
   - rid: 7737211905666712137
   - rid: 7737211905666712138
-  - rid: 7737211905666712139
+  - rid: 7737211981804078031
   references:
     version: 2
     RefIds:
@@ -55,7 +55,7 @@ MonoBehaviour:
         kind: 0
         ingredientTags: 8704
         sharedIntermediate: 0
-    - rid: 7737211905666712139
+    - rid: 7737211981804078031
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.6
+        saleRate: 0.6222821

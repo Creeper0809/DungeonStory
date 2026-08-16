@@ -1,0 +1,99 @@
+# Character AI action / target / path / reservation matrix
+authority=authored action assets + concrete runtime action types + BehaviorDesigner task types
+
+## Authored action assets (19)
+asset	type	branch	executor	target	path	reservation	coverage
+Drink	AIDrink	Drink	AbilityUseSubstance	inventory	none	item lease	SelfCare: drink
+Eat	AIEat	Eat	AbilityShopping	meal facility	facility path	visit + item lease	DailyRoutine; shared facility faults only
+ExitDungeon	AIExitDungeon	ExitDungeon	AbilityMove	dungeon exit	system path	none	SaveLoad movement only
+Haul	AIHaul	Work	AbilityHaul	world stack + destination	two-leg path	quantity lease	PhysicalItemLogistics
+Hunt	AIHunt	Work	AbilityHunt	wildlife actor	target path	hunt ownership	WildlifeAiHunt
+Hygiene	AIFacilityRoleAction	Hygiene	AbilityShopping	hygiene facility	facility path	visit	DailyRoutine; shared facility faults only
+LookAround	AILookAround	LookAround	AbilityMove	wander cell	idle path	none	Priority/Stress; no injected path fault
+PrimitiveBucketWash	AIPrimitiveBucketWash	Hygiene	CharacterPrimitiveSurvivalRunner	physical water stack	primitive movement	late quantity lease	FaultRecovery primitive path/target invalidation
+PrimitiveFieldMeal	AIPrimitiveFieldMeal	Eat	CharacterPrimitiveSurvivalRunner	physical meal stack	primitive movement	physical commit	FaultRecovery primitive commit loss
+PrimitiveFloorRest	AIPrimitiveFloorRest	Rest	CharacterPrimitiveSurvivalRunner	current floor cell	none	external intent	FaultRecovery primitive interruption terminal
+PrimitiveLatrine	AIPrimitiveLatrine	Toilet	CharacterPrimitiveSurvivalRunner	designated primitive cell	primitive movement	external intent	FaultRecovery primitive path/target invalidation
+Recreation	AIFacilityRoleAction	LeisureVisit	AbilityShopping	entertainment facility	facility path	visit	DailyRoutine; shared facility faults only
+Rescue	AIRescue	Work	AbilityRescue	downed actor + bed	multi-leg path	patient/bed/item	AutonomousMedical
+Rest	AIRest	Rest	AbilityShopping	rest facility	facility path	visit	FaultRecovery 61/61 exact
+Shopping	AIShopping	Shopping	AbilityShopping	shop facility	facility path	visit + stock	Customer scenarios; shared facility faults only
+SubstanceUse	AISubstanceUse	Work	AbilityUseSubstance	inventory	none	item lease	SelfCare: substance
+Toilet	AIFacilityRoleAction	Toilet	AbilityShopping	toilet facility	facility path	visit	DailyRoutine; shared facility faults only
+Wait	AIWait	Wait	IdleBehaviorRunner/AbilityMove	idle cell	idle path	none	Priority/Stress; no injected path fault
+Work	AIWork	Work	AbilityWork	work target/facility	work-defined	work/facility/item	Alarm + Lifecycle; work-type fault gaps
+
+## Concrete runtime action types (22)
+AICollapse	executorOwner=AIDeprivationBreakdownAction
+AIDesperateDrink	executorOwner=AIDeprivationBreakdownAction
+AIDesperateEat	executorOwner=AIDeprivationBreakdownAction
+AIDesperateRelief	executorOwner=AIDeprivationBreakdownAction
+AIDrink	executorOwner=AIDrink
+AIEat	executorOwner=AIEat
+AIExitDungeon	executorOwner=AIExitDungeon
+AIFacilityRoleAction	executorOwner=AIFacilityRoleAction
+AIHaul	executorOwner=AIHaul
+AIHunt	executorOwner=AIHunt
+AILookAround	executorOwner=AILookAround
+AIPrimitiveBucketWash	executorOwner=AIPrimitiveBucketWash
+AIPrimitiveFieldMeal	executorOwner=AIPrimitiveFieldMeal
+AIPrimitiveFloorRest	executorOwner=AIPrimitiveFloorRest
+AIPrimitiveLatrine	executorOwner=AIPrimitiveLatrine
+AIRescue	executorOwner=AIRescue
+AIRest	executorOwner=AIRest
+AIShopping	executorOwner=AIShopping
+AISubstanceUse	executorOwner=AISubstanceUse
+AIViolentBreakdown	executorOwner=AIDeprivationBreakdownAction
+AIWait	executorOwner=AIWait
+AIWork	executorOwner=AIWork
+
+## BehaviorTree task branches (31)
+HasCriticalState	present
+RunCriticalState	present
+HasMacroGoal	present
+RunMacroGoalDecision	present
+HasDeprivationBreakdown	present
+RunDeprivationBreakdown	present
+HasLockedAction	present
+RunLockedAction	present
+CanInterruptCurrentAction	present
+ShouldStopCurrentAction	present
+StopCurrentActionForReplan	present
+ContinueCurrentAction	present
+RunEmergencyDecision	present
+RunRoutineUtilityDecision	present
+SurvivalNeedsRoutineBranch	present
+DutyWorkRoutineBranch	present
+LeisureVisitRoutineBranch	present
+IdleRoutineBranch	present
+ExitDungeonJobGiverBranch	present
+GetFoodJobGiverBranch	present
+DrinkJobGiverBranch	present
+RestJobGiverBranch	present
+ToiletJobGiverBranch	present
+HygieneJobGiverBranch	present
+WorkJobGiverBranch	present
+ShoppingJobGiverBranch	present
+LookAroundJobGiverBranch	present
+WaitJobGiverBranch	present
+AmbientIdleJobGiverBranch	present
+RunSelectedCharacterAction	present
+RunIdleBehavior	present
+
+## Narrow deterministic contracts
+PASS	SCOPED_CLEAR_CURRENT_ONLY	actionA=False; actionB=True; first=False; second=True
+PASS	COOLED_DESTINATION_ALTERNATE	selected=True; destination=AI matrix second destination
+PASS	DEFERRED_IS_NON_TERMINAL_SIGNAL	PathSearchDeferred
+PASS	STARVATION_GATE_IS_TERMINAL_TYPED_FAILURE	PathSearchStarved
+
+## Remaining injected-fault coverage gaps (non-failing audit rows)
+COVERED Eat/Toilet/Hygiene/Recreation/Shopping: action-specific approach/queue/interaction destruction matrix in CharacterAiFaultRecoveryPlayModeVerifier.RequestRun().
+GAP Work: each WorkType target invalidation, recipe/facility/item reservation failure, and checkpoint cancellation.
+GAP Haul: source despawn/quantity shrink/destination destruction at both path legs under the live Brain/BT pipeline.
+GAP Rescue: patient death/despawn, bed destruction, medicine lease loss, and save/load at each leg.
+GAP Hunt: prey despawn/path invalidation and hunter down/death during chase/attack/recovery.
+GAP Drink/SubstanceUse/PrimitiveFieldMeal: reserved item spoil/despawn/quantity loss immediately before commit.
+COVERED LookAround/Wait/ExitDungeon: bounded deferred recovery and PathSearchStarved terminal matrix in CharacterAiFaultRecoveryPlayModeVerifier.RequestRun().
+COVERED Deprivation breakdowns: five runtime-only branches prove live start, external lease release, and exactly-one terminal in CharacterAiFaultRecoveryPlayModeVerifier.RequestRun().
+
+RESULT=PASS; failures=0

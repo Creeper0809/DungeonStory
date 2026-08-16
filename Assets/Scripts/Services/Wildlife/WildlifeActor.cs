@@ -510,6 +510,62 @@ public sealed class WildlifeActor :
         SetCaptured(true);
     }
 
+    public bool TryEndManagedCarry(
+        Vector2Int position,
+        Transform expectedCarrier,
+        Transform parent,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (grid == null)
+        {
+            failureReason = "Wildlife grid authority is unavailable.";
+            return false;
+        }
+        if (expectedCarrier == null || transform.parent != expectedCarrier)
+        {
+            failureReason = "Wildlife managed-carry ownership does not match the expected carrier.";
+            return false;
+        }
+
+        GridCell destination = grid.GetGridCell(position);
+        IGridOccupant occupant = destination?.GetOccupant(GridLayer.Wildlife);
+        if (destination == null
+            || !grid.IsWalkable(position)
+            || (occupant != null && !ReferenceEquals(occupant, this)))
+        {
+            failureReason = $"Wildlife delivery cell {position} is unavailable.";
+            return false;
+        }
+
+        Vector2Int carriedPosition = gridPosition;
+        transform.SetParent(parent, worldPositionStays: true);
+        if (!TryRegisterAt(position))
+        {
+            gridPosition = carriedPosition;
+            transform.SetParent(expectedCarrier, worldPositionStays: false);
+            transform.localPosition = new Vector3(0.28f, 0.18f, 0f);
+            failureReason = $"Wildlife delivery registration failed at {position}.";
+            return false;
+        }
+
+        SetCaptured(true);
+        if (gridPosition != position
+            || !ReferenceEquals(
+                grid.GetGridCell(position)?.GetOccupant(GridLayer.Wildlife),
+                this))
+        {
+            Unregister();
+            gridPosition = carriedPosition;
+            transform.SetParent(expectedCarrier, worldPositionStays: false);
+            transform.localPosition = new Vector3(0.28f, 0.18f, 0f);
+            failureReason = $"Wildlife delivery authority did not converge at {position}.";
+            return false;
+        }
+
+        return true;
+    }
+
     public void SetCaptured(bool captured)
     {
         activePath.Clear();
@@ -630,15 +686,27 @@ public sealed class WildlifeActor :
 
     private void RegisterAt(Vector2Int position)
     {
+        TryRegisterAt(position);
+    }
+
+    private bool TryRegisterAt(Vector2Int position)
+    {
         Unregister();
         gridPosition = position;
-        if (grid != null)
+        if (grid == null
+            || !grid.RegisterOccupant(
+                this,
+                GridLayer.Wildlife,
+                new[] { gridPosition },
+                connectPositions: false))
         {
-            grid.RegisterOccupant(this, GridLayer.Wildlife, new[] { gridPosition }, connectPositions: false);
-            Vector3 world = grid.GetWorldPos(gridPosition);
-            transform.position = new Vector3(world.x, world.y, transform.position.z);
-            Visual.RefreshSortingForGridPosition();
+            return false;
         }
+
+        Vector3 world = grid.GetWorldPos(gridPosition);
+        transform.position = new Vector3(world.x, world.y, transform.position.z);
+        Visual.RefreshSortingForGridPosition();
+        return true;
     }
 
     private void Unregister()

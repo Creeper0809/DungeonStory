@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DungeonStory.Foundation;
+using UnityEngine;
 
 public sealed class SurgeryContentServices
 {
@@ -85,7 +87,9 @@ public sealed class SurgeryResourceServices
         IBlueprintResearchStateService research,
         IWorkforceReplanService workforce,
         IProcessFluidUseRuntime processFluids,
-        IEnvironmentalFieldQuery environmentalField)
+        IEnvironmentalFieldQuery environmentalField,
+        IFacilityBufferDestinationClaimQuery destinationClaims,
+        IFacilityBufferDestinationClaimCommand destinationClaimCommands)
     {
         ExtractionLedger = extractionLedger ?? throw new ArgumentNullException(nameof(extractionLedger));
         Items = items ?? throw new ArgumentNullException(nameof(items));
@@ -95,6 +99,10 @@ public sealed class SurgeryResourceServices
         Workforce = workforce ?? throw new ArgumentNullException(nameof(workforce));
         ProcessFluids = processFluids ?? throw new ArgumentNullException(nameof(processFluids));
         EnvironmentalField = environmentalField ?? throw new ArgumentNullException(nameof(environmentalField));
+        DestinationClaims = destinationClaims
+            ?? throw new ArgumentNullException(nameof(destinationClaims));
+        DestinationClaimCommands = destinationClaimCommands
+            ?? throw new ArgumentNullException(nameof(destinationClaimCommands));
     }
 
     public ISurgeryExtractionLedger ExtractionLedger { get; }
@@ -105,6 +113,74 @@ public sealed class SurgeryResourceServices
     public IWorkforceReplanService Workforce { get; }
     public IProcessFluidUseRuntime ProcessFluids { get; }
     public IEnvironmentalFieldQuery EnvironmentalField { get; }
+    public IFacilityBufferDestinationClaimQuery DestinationClaims { get; }
+    public IFacilityBufferDestinationClaimCommand DestinationClaimCommands { get; }
+}
+
+public static class SurgeryMaterialDestinationAuthority
+{
+    public const string OwnerDomain = "medical.surgery";
+
+    internal static string BuildDestinationId(string orderId) =>
+        ReservedTargetDestinationIdentity.SurgeryMaterialsPrefix
+        + (orderId?.Trim() ?? string.Empty);
+
+    internal static FacilityBufferDestinationClaim CreateClaim(
+        SurgeryOrder order,
+        Vector2Int dropPosition)
+    {
+        if (order == null
+            || string.IsNullOrWhiteSpace(order.orderId)
+            || string.IsNullOrWhiteSpace(order.facilityId)
+            || !string.Equals(
+                order.materialDestinationId,
+                BuildDestinationId(order.orderId),
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Surgery material destination claim requires a canonical active order.");
+        }
+
+        return new FacilityBufferDestinationClaim(
+            order.materialDestinationId,
+            dropPosition,
+            OwnerDomain,
+            order.orderId,
+            order.facilityId,
+            FacilityBufferDestinationAnchorKind.LiveFacility);
+    }
+
+    internal static bool TryGetOwnedClaim(
+        IFacilityBufferDestinationClaimQuery query,
+        SurgeryOrder order,
+        out FacilityBufferDestinationClaim claim)
+    {
+        claim = null;
+        if (query == null || order == null)
+            return false;
+
+        claim = query.CaptureClaims()
+            .SingleOrDefault(candidate => candidate != null
+                && string.Equals(
+                    candidate.DestinationId,
+                    order.materialDestinationId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    candidate.OwnerDomain,
+                    OwnerDomain,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    candidate.OwnerOperationId,
+                    order.orderId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    candidate.OwnerFacilityId,
+                    order.facilityId,
+                    StringComparison.Ordinal)
+                && candidate.AnchorKind
+                    == FacilityBufferDestinationAnchorKind.LiveFacility);
+        return claim != null;
+    }
 }
 
 public sealed class SurgeryExecutionServices

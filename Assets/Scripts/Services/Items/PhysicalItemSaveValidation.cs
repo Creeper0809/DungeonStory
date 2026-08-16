@@ -32,6 +32,10 @@ internal static class PhysicalItemSaveValidation
             report.AddError(
                 $"Unsupported physical item payload version {snapshot.version}; expected {DungeonPhysicalItemSaveData.CurrentVersion}.");
         }
+        if (snapshot.nextHaulOperationSequence <= 0)
+        {
+            report.AddError("Physical item haul-operation sequence must be positive.");
+        }
 
         ValidateHaulingSettings(snapshot.haulingSettings, report);
         if (snapshot.stacks == null)
@@ -100,22 +104,18 @@ internal static class PhysicalItemSaveValidation
             foreach (ItemReservationClaimHintSaveData hint in intent.reservationHints)
             {
                 string stackId = hint?.preferredPhysicalStackId ?? string.Empty;
-                if (hint == null
-                    || hint.claimOrdinal != expectedOrdinal++
-                    || hint.quantity <= 0
-                    || !IsCanonicalNonEmpty(hint.claimHintId)
-                    || !IsCanonicalNonEmpty(hint.originStackId)
-                    || !claimIds.Add(hint.claimHintId)
-                    || !stacks.TryGetValue(stackId, out WorldItemStackSaveData stack)
-                    || !string.Equals(stack.itemId, hint.itemId, StringComparison.Ordinal)
-                    || !string.Equals(
-                        stack.GetStackSignature(),
-                        hint.expectedStackSignature,
-                        StringComparison.Ordinal)
-                    || !Enum.IsDefined(typeof(ItemReservationPurpose), hint.purpose))
+                int ordinal = expectedOrdinal++;
+                string invalidReason = GetInvalidClaimReason(
+                    hint,
+                    ordinal,
+                    stackId,
+                    stacks,
+                    claimIds,
+                    out WorldItemStackSaveData stack);
+                if (invalidReason.Length > 0)
                 {
                     report.AddError(
-                        $"Invalid reservation claim '{hint?.claimHintId}' for owner '{owner}'.");
+                        $"Invalid reservation claim '{hint?.claimHintId}' for owner '{owner}': {invalidReason}.");
                     continue;
                 }
                 totalsByStack[stackId] = totalsByStack.TryGetValue(
@@ -133,6 +133,44 @@ internal static class PhysicalItemSaveValidation
                     $"Reservation hints exceed physical stack '{total.Key}': {total.Value}/{stacks[total.Key].quantity}.");
             }
         }
+    }
+
+    private static string GetInvalidClaimReason(
+        ItemReservationClaimHintSaveData hint,
+        int expectedOrdinal,
+        string stackId,
+        IReadOnlyDictionary<string, WorldItemStackSaveData> stacks,
+        ISet<string> claimIds,
+        out WorldItemStackSaveData stack)
+    {
+        stack = null;
+        if (hint == null) return "hint-null";
+        if (hint.claimOrdinal != expectedOrdinal)
+            return $"ordinal={hint.claimOrdinal}, expected={expectedOrdinal}";
+        if (hint.quantity <= 0) return $"quantity={hint.quantity}";
+        if (!IsCanonicalNonEmpty(hint.claimHintId)) return "claim-id-noncanonical";
+        // originStackId is provenance, not a current physical ownership target.
+        // Partial extraction may retire it while preferredPhysicalStackId stays live.
+        if (!IsCanonicalNonEmpty(hint.originStackId)) return "origin-stack-id-noncanonical";
+        if (!claimIds.Add(hint.claimHintId)) return "duplicate-claim-id";
+        if (!stacks.TryGetValue(stackId, out stack))
+            return $"preferred-stack-missing:{stackId}";
+        if (!string.Equals(stack.itemId, hint.itemId, StringComparison.Ordinal))
+            return $"item-mismatch:{hint.itemId}->{stack.itemId}";
+        // Reservation ownership deliberately ignores freshness. Freshness is a
+        // stacking concern and keeps aging while an owner walks, waits, or eats;
+        // treating that normal mutation as an ownership change makes every
+        // in-flight food lease eventually unsaveable. Material state such as
+        // quality, contamination, durability, and provenance remains part of
+        // this signature and still fails closed when it changes.
+        string actualSignature = ItemReservationSignature.Create(
+            stack.itemId,
+            stack.components);
+        if (!string.Equals(actualSignature, hint.expectedStackSignature, StringComparison.Ordinal))
+            return $"signature-mismatch:{hint.expectedStackSignature}->{actualSignature}";
+        if (!Enum.IsDefined(typeof(ItemReservationPurpose), hint.purpose))
+            return $"purpose-invalid:{(int)hint.purpose}";
+        return string.Empty;
     }
 
     private static void ValidateHaulingSettings(

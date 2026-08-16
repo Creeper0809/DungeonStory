@@ -71,10 +71,10 @@ namespace DungeonStory.Work
         ResearchFacilityHandle CaptureFacility(object runtimeFacility);
         bool HasResearchWork(ResearchFacilityHandle facility);
         ResearchWorkPlan CreatePlan(ResearchFacilityHandle facility);
-        ResearchWorkProgressResult Apply(
+        ResearchWorkProgressResult ApplyApprovedWork(
             ResearchWorkerHandle worker,
             ResearchFacilityHandle facility,
-            float seconds);
+            float approvedWorkUnits);
     }
 
     [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -104,9 +104,10 @@ namespace DungeonStory.Work
         public ResearchWorkPlan CreatePlan(ResearchFacilityHandle facility) =>
             runtime.CreatePlan(facility);
 
-        public ResearchWorkProgressResult Apply(
+        public ResearchWorkProgressResult ApplyApprovedWork(
             ResearchWorkerHandle worker,
             ResearchFacilityHandle facility,
-            float seconds) => runtime.Apply(worker, facility, seconds);
+            float approvedWorkUnits) =>
+            runtime.ApplyApprovedWork(worker, facility, approvedWorkUnits);
     }
 }

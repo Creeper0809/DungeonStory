@@ -92,7 +92,9 @@ public sealed class DefenseEngagementRuntime :
             lines.Add(
                 $"{actor.Identity?.DisplayName ?? actor.name}:owner={actor.IsOwner},work={hasWork}," +
                 $"offDuty={(hasWork && work.IsOffDuty)},guard={guardPriority},assigned={IsGuardAssigned(actor)}," +
-                $"hp={GetHealthRatio(actor):0.00},auto={policy?.autoRespond ?? false}");
+                $"hp={GetHealthRatio(actor):0.00},auto={policy?.autoRespond ?? false}," +
+                $"cell={actor.GetNowXY()},paused={actor.IsAiPaused()}," +
+                $"action={actor.Brain?.CurrentActionDebugLabel ?? "none"}");
         }
 
         return string.Join(" | ", lines);
@@ -491,6 +493,62 @@ public sealed class DefenseEngagementRuntime :
         return true;
     }
 
+    public void NotifyIntruderInterceptPathUnavailable(
+        InvasionIntruderRuntime intruder,
+        string reason)
+    {
+        if (!TryGetEngagement(intruder, out DefenseEngagement engagement))
+        {
+            return;
+        }
+
+        CollapseFront(
+            engagement,
+            string.IsNullOrWhiteSpace(reason)
+                ? "The intruder can no longer reach the committed intercept cell."
+                : reason);
+    }
+
+    public bool TryResolveIntruderDefeated(
+        InvasionIntruderRuntime intruder,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (intruder == null)
+        {
+            failureReason = "Intruder is missing.";
+            return false;
+        }
+
+        if (!TryGetEngagement(intruder, out DefenseEngagement engagement)
+            || engagement == null
+            || !engagement.IsActive)
+        {
+            failureReason = "No active defense engagement owns the intruder.";
+            return false;
+        }
+
+        if (engagement.State != DefenseEngagementState.Engaged)
+        {
+            failureReason =
+                $"Defense engagement is not in combat: {engagement.State}.";
+            return false;
+        }
+
+        combatRuntime.ResolveIntruderDefeated(engagement);
+        bool completed = !engagement.IsActive
+            && !TryGetEngagement(intruder, out _)
+            && intruder.State == InvasionIntruderState.Finished;
+        if (!completed)
+        {
+            failureReason =
+                $"Defense defeat terminal did not complete atomically: "
+                + $"engagement={engagement.State}; intruder={intruder.State}.";
+        }
+
+        return completed;
+    }
+
     public bool TryAssignManual(
         CharacterActor defender,
         InvasionIntruderRuntime intruder,
@@ -711,6 +769,22 @@ public sealed class DefenseEngagementRuntime :
         if (engagement.ReserveGuard == null && !engagement.IsOwnerFinalDefense)
         {
             TryFillReserve(grid, engagement);
+        }
+
+        Vector2Int leadCell = engagement.LeadGuard.GetNowXY();
+        Vector2Int intruderCell = engagement.IntruderActor.GetNowXY();
+        bool combatCellsValid = leadCell == engagement.GuardCell
+            && intruderCell == engagement.IntruderStopCell
+            && leadCell.y == intruderCell.y
+            && Mathf.Abs(leadCell.x - intruderCell.x) == 1;
+        if (!combatCellsValid)
+        {
+            CollapseFront(
+                engagement,
+                $"Combat cells changed during engagement: intruder={intruderCell}/"
+                + $"{engagement.IntruderStopCell}; guard={leadCell}/"
+                + $"{engagement.GuardCell}.");
+            return;
         }
 
         TickCombatExchange(engagement);

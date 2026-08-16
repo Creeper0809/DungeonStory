@@ -172,7 +172,8 @@ public sealed class WorldItemHaulPlan
         float totalWeight,
         int expectedDetourCost,
         WorldItemHaulDestinationKind primaryDestination,
-        string primaryDestinationId)
+        string primaryDestinationId,
+        bool deliveryOnlyResume = false)
     {
         PickupLegs = pickupLegs ?? Array.Empty<WorldItemHaulPlanLeg>();
         DeliveryLegs = deliveryLegs ?? Array.Empty<WorldItemHaulPlanLeg>();
@@ -181,6 +182,7 @@ public sealed class WorldItemHaulPlan
         ExpectedDetourCost = Mathf.Max(0, expectedDetourCost);
         PrimaryDestination = primaryDestination;
         PrimaryDestinationId = primaryDestinationId ?? string.Empty;
+        IsDeliveryOnlyResume = deliveryOnlyResume;
     }
 
     public IReadOnlyList<WorldItemHaulPlanLeg> PickupLegs { get; }
@@ -190,7 +192,10 @@ public sealed class WorldItemHaulPlan
     public int ExpectedDetourCost { get; }
     public WorldItemHaulDestinationKind PrimaryDestination { get; }
     public string PrimaryDestinationId { get; }
-    public bool IsValid => PickupLegs.Count > 0 && DeliveryLegs.Count > 0 && ReservedStackQuantities.Count > 0;
+    public bool IsDeliveryOnlyResume { get; }
+    public bool IsValid => DeliveryLegs.Count > 0
+        && ReservedStackQuantities.Count > 0
+        && (IsDeliveryOnlyResume || PickupLegs.Count > 0);
     public string Summary => $"{ReservedStackQuantities.Count}스택 · {TotalWeight:0.#}kg";
 }
 
@@ -383,6 +388,15 @@ public interface IWorldItemStackRuntime : IEquipmentPhysicalItemGateway
     bool StoredItemMarkersVisible { get; }
     int ItemStackVersion { get; }
     int HaulJobVersion { get; }
+    int GetCommittedHaulDeliveryQuantity(string destinationId, string itemId);
+    bool TryCommitHaulPickup(
+        string ownerOperationId,
+        CharacterCarryInventory inventory,
+        out string failureReason);
+    bool TryCaptureHaulDeliveryIntent(
+        string ownerOperationId,
+        out HaulDeliveryIntentSaveData intent);
+    bool ReleaseHaulDeliveryIntent(string ownerOperationId);
     DungeonPhysicalItemSaveData Capture();
     void Restore(DungeonPhysicalItemSaveData snapshot);
     void SetStoredItemMarkersVisible(bool visible);
@@ -505,11 +519,24 @@ public interface IWorldItemStackRuntime : IEquipmentPhysicalItemGateway
         CharacterCarryInventory inventory,
         IWarehouseFacility warehouse,
         out string failureReason);
+    bool TryDepositCarriedItems(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        IWarehouseFacility warehouse,
+        IReadOnlyCollection<string> ownerOperationIds,
+        out string failureReason);
     bool TryDepositCarriedItemsToFacility(
         CharacterActor actor,
         CharacterCarryInventory inventory,
         Vector2Int destinationPosition,
         string destinationId,
+        out string failureReason);
+    bool TryDepositCarriedItemsToFacility(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        Vector2Int destinationPosition,
+        string destinationId,
+        IReadOnlyCollection<string> ownerOperationIds,
         out string failureReason);
     bool TryConsumeFacilityBuffer(
         string destinationId,
@@ -545,9 +572,40 @@ public interface IWorldItemStackRuntime : IEquipmentPhysicalItemGateway
 
 public interface IWorldItemQuantityLeaseRuntime
 {
+    bool TryReserveAvailableItemForDirectPickup(
+        CharacterActor actor,
+        string itemId,
+        int quantity,
+        ItemReservationPurpose purpose,
+        string ownerOperationId,
+        out WorldItemReservedStackQuantity reservation,
+        out Vector2Int pickupStandPosition,
+        out string failureReason);
+
     bool TryRenewQuantityLease(
         string leaseId,
         double requestedUntilGameSeconds,
+        out string failureReason);
+
+    bool TryRevalidateQuantityLease(
+        string leaseId,
+        out string failureReason);
+
+    bool ReleaseQuantityLease(
+        string leaseId,
+        ItemReservationReleaseReason reason);
+}
+
+public interface IWorldItemCarryRecoveryRuntime
+{
+    bool TryDropCarriedItems(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        out string failureReason);
+    bool TryDropCarriedItems(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        IReadOnlyCollection<string> ownerOperationIds,
         out string failureReason);
 }
 

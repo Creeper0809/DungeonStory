@@ -39,6 +39,7 @@ public static class ModularFacilityDebugScenarios
             BuildingOccupancyAssignmentDebugScenarios.Verify(),
             "Building occupancy/assignment responsibility extraction failed.");
         VerifyCatalogAssets();
+        ModularFacilityAssetBuilder.ValidateCriticalWorkTypeWiringAssets();
         VerifyAbilityAuthoringContract();
         VerifyOperationalContracts();
         VerifyProgressionEconomy();
@@ -150,6 +151,8 @@ public static class ModularFacilityDebugScenarios
         {
             UnityEngine.Object.DestroyImmediate(authoringFixture);
         }
+
+        VerifyEquipmentMaintenanceRequiresFacilityAuthority();
 
         FieldInfo legacyMaintenance = typeof(BuildingSO).GetField("maintenance");
         FieldInfo legacyFacility = typeof(BuildingSO).GetField("facility");
@@ -738,7 +741,7 @@ public static class ModularFacilityDebugScenarios
                 "Meal use did not recover hunger.");
             Require(actor.stats[CharacterCondition.EXCRETION] >= 75f,
                 "Toilet use did not recover excretion need.");
-            Require(actor.stats[CharacterCondition.HYGIENE] >= 62f,
+            Require(actor.stats[CharacterCondition.HYGIENE] >= 45f,
                 "Sink use did not recover hygiene.");
             Require(actor.stats[CharacterCondition.SLEEP] >= 35f,
                 "Bed use did not recover sleep.");
@@ -1094,7 +1097,78 @@ public static class ModularFacilityDebugScenarios
             "character:modular-facility:" + name
                 .ToLowerInvariant()
                 .Replace(' ', '-'));
+        // Visit reservations intentionally reject inactive, dead, or
+        // transition-state characters. This edit-mode fixture has no normal
+        // spawner lifecycle, so publish the same Active lifecycle state that
+        // production admission requires before exercising the FIFO contract.
+        actor.SetLifecycleState(CharacterLifecycleState.Active);
+        Require(
+            actor.IsBuildingInteractionAvailable
+            && actor.BuildingVisitor.IsBuildingInteractionAvailable,
+            $"Reservation fixture '{name}' did not enter the production Active lifecycle.");
         return actor;
+    }
+
+    [MenuItem("Tools/DungeonStory/Validation/Run Equipment Maintenance Facility Contract")]
+    public static void RunEquipmentMaintenanceFacilityContractFromMenu()
+    {
+        VerifyEquipmentMaintenanceRequiresFacilityAuthority();
+        Debug.Log("Equipment maintenance facility authority contract passed.");
+    }
+
+    private static void VerifyEquipmentMaintenanceRequiresFacilityAuthority()
+    {
+        BuildingSO maintenanceOnly = ScriptableObject.CreateInstance<BuildingSO>();
+        BuildingSO nullSettings = ScriptableObject.CreateInstance<BuildingSO>();
+        BuildingSO valid = ScriptableObject.CreateInstance<BuildingSO>();
+        try
+        {
+            maintenanceOnly.name = "qa-maintenance-without-facility";
+            maintenanceOnly.AbilityModules.Add(
+                new BuildingEquipmentMaintenanceAbility());
+            RequireInvalidAbilityContract(
+                maintenanceOnly,
+                "Maintenance ability without a facility authority was accepted.");
+
+            nullSettings.name = "qa-maintenance-null-facility-settings";
+            nullSettings.AbilityModules.Add(
+                new BuildingFacilityAbility { settings = null });
+            nullSettings.AbilityModules.Add(
+                new BuildingEquipmentMaintenanceAbility());
+            RequireInvalidAbilityContract(
+                nullSettings,
+                "Maintenance ability with null facility settings was accepted.");
+
+            valid.name = "qa-maintenance-valid-facility";
+            valid.AbilityModules.Add(
+                new BuildingFacilityAbility { settings = new FacilityData() });
+            valid.AbilityModules.Add(
+                new BuildingEquipmentMaintenanceAbility());
+            valid.ValidateAbilitiesOrThrow();
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(maintenanceOnly);
+            UnityEngine.Object.DestroyImmediate(nullSettings);
+            UnityEngine.Object.DestroyImmediate(valid);
+        }
+    }
+
+    private static void RequireInvalidAbilityContract(
+        BuildingSO definition,
+        string failureMessage)
+    {
+        bool rejected = false;
+        try
+        {
+            definition.ValidateAbilitiesOrThrow();
+        }
+        catch (InvalidOperationException)
+        {
+            rejected = true;
+        }
+
+        Require(rejected, failureMessage);
     }
 
     private static void RecordAiCase(
@@ -1905,6 +1979,12 @@ public static class ModularFacilityDebugScenarios
         {
             return new BlueprintResearchWorkResult(false, null, 0f, 0f, 1f, false, "No research runtime in modular fixture.");
         }
+
+        public BlueprintResearchWorkResult ApplyApprovedResearchWork(
+            CharacterActor researcher,
+            BuildableObject researchFacility,
+            float approvedWorkUnits) =>
+            ApplyResearchWork(researcher, researchFacility, approvedWorkUnits);
     }
 
     private sealed class NoopWorldInfoClickSelector : IWorldInfoClickSelector

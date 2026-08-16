@@ -58,7 +58,7 @@ MonoBehaviour:
     - rid: 7302562985835495562
     - rid: 7302562985835495563
     - rid: 7302562987322638439
-    - rid: 7737211905660420959
+    - rid: 7737211992021139770
   width: 4
   height: 1
   layer: 1
@@ -101,7 +101,7 @@ MonoBehaviour:
         - Vampire
         dislikedTags:
         - Orc
-    - rid: 7737211905660420959
+    - rid: 7737211992021139770
       type: {class: BuildingResearchCapacityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingResearchCapacityAbility

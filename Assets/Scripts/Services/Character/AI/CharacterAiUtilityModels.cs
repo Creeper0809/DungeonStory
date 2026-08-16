@@ -421,7 +421,7 @@ public readonly struct CharacterAiDecisionContext
         float haulPriority = 0f;
         float huntPriority = 0f;
         AbilityWork work = null;
-        bool isWorker = actor != null && actor.TryGetAbility(out work);
+        bool isWorker = CharacterWorkRoleUtility.TryGetWork(actor, out work);
         bool isOffDuty = isWorker && work.IsOffDuty;
         if (isWorker && work.WorkPriorities != null)
         {

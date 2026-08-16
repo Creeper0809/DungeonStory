@@ -95,7 +95,8 @@ public sealed class DungeonPreparationLifetimeScope : LifetimeScope
                 nameof(LocalLlmRequestQueue))
             .UnderTransform(transform);
         builder.RegisterEntryPoint<CharacterSkillGenerationService>(Lifetime.Singleton)
-            .As<ICharacterSkillGenerationService>();
+            .As<ICharacterSkillGenerationService>()
+            .As<ICharacterSkillGenerationDiagnostics>();
         builder.Register<StartPartyPreparationService>(Lifetime.Singleton)
             .As<IStartPartyPreparationService>();
         builder.RegisterEntryPoint<StartPartyPreparationUiController>(Lifetime.Singleton);

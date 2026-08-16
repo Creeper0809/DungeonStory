@@ -85,6 +85,7 @@ public sealed class CharacterDeprivationRuntime :
         IWorldWaterQuery waterQuery = world.WaterQuery;
         IRoomLayoutCache roomLayoutCache = world.RoomLayoutCache;
         ICharacterAiWorldRegistry worldRegistry = world.WorldRegistry;
+        ICharacterLifetimeQuery characterLifetime = world.CharacterLifetime;
         IGameEventBus gameEventBus = system.GameEventBus;
         IGameClock gameClock = system.GameClock;
         IDynamicFrameWorkBudget frameWorkBudget = system.FrameWorkBudget;
@@ -126,13 +127,16 @@ public sealed class CharacterDeprivationRuntime :
             gridSystemProvider,
             itemStackRuntime,
             waterQuery,
+            authority.PrimitiveSurvival.QuantityReservations,
             doorAccessQuery,
+            world.EnvironmentWorkPolicy,
             diagnostics);
         emergencyMovement = new CharacterEmergencyMovement(
             gridSystemProvider,
             stateStore);
         safeReliefRunner = new CharacterSafeReliefRunner(
             itemStackRuntime,
+            authority.PrimitiveSurvival.ReservedTransfers,
             waterQuery,
             gameClock,
             needBalanceRuntime,
@@ -169,6 +173,7 @@ public sealed class CharacterDeprivationRuntime :
         persistence = new CharacterDeprivationPersistenceCoordinator(
             stateStore,
             worldRegistry,
+            characterLifetime,
             filthQuery,
             waterQuery);
     }
@@ -310,8 +315,7 @@ public sealed class CharacterDeprivationRuntime :
         staleStateIds.Clear();
         foreach (KeyValuePair<CharacterId, CharacterDeprivationState> pair in stateStore.Entries)
         {
-            if (!liveTickIds.Contains(pair.Key)
-                && pair.Value?.breakdown?.active != true)
+            if (!liveTickIds.Contains(pair.Key))
             {
                 staleStateIds.Add(pair.Key);
             }
@@ -320,6 +324,14 @@ public sealed class CharacterDeprivationRuntime :
         for (int i = 0; i < staleStateIds.Count; i++)
         {
             CharacterId stale = staleStateIds[i];
+            // A lifecycle transition can remove an actor from the live registry
+            // while a breakdown coroutine is between yields. Active breakdown
+            // state is not a persistence root: release every transient runner
+            // and reservation before removing the orphan aggregate entry.
+            breakdownActionRunner.ReleaseActor(stale);
+            safeReliefRunner.ReleaseActor(stale);
+            primitiveSurvivalRunner.ReleaseActor(stale);
+            safeDrinkPlanner.ReleaseForActor(stale.Value);
             stateStore.Remove(stale);
             alertLevels.Remove(stale);
         }
@@ -443,8 +455,9 @@ public sealed class CharacterDeprivationRuntime :
             || !UsesBiologicalFoodAndWater(actor)
             || actor.Stats == null
             || !actor.Stats.TryGetConditionValue(CharacterCondition.THIRST, out float thirst)
-            || thirst > GetResponse(
-                CharacterCondition.THIRST).emergencyStart
+            || !CharacterNeedAiThresholds.IsEmergencyOrImminentPhysicalHarm(
+                actor,
+                CharacterCondition.THIRST)
             || HasActiveBreakdown(actor))
         {
             return false;
@@ -484,26 +497,32 @@ public sealed class CharacterDeprivationRuntime :
             CharacterCondition.HYGIENE
         };
         CharacterCondition selected = default;
+        CharacterActionIntentKind selectedIntent = CharacterActionIntentKind.None;
         float selectedUrgency = float.NegativeInfinity;
         bool hasSelected = false;
         for (int index = 0; index < orderedConditions.Length; index++)
         {
             CharacterCondition condition = orderedConditions[index];
-            if (!CharacterNeedAiThresholds.IsEmergency(actor, condition)
+            if (!IsEmergencyCareDue(actor, condition)
                 || !actor.Stats.TryGetConditionValue(condition, out float value))
             {
                 continue;
             }
 
             CharacterNeedResponseProfile response = GetResponse(condition);
+            CharacterActionIntentKind intent =
+                CharacterNeedAiThresholds.GetEmergencyIntentKind(actor, condition);
             float denominator = Mathf.Max(1f, response.emergencyStart);
             float urgency = (response.emergencyStart - value) / denominator;
-            if (hasSelected && urgency <= selectedUrgency)
+            if (hasSelected
+                && (intent < selectedIntent
+                    || intent == selectedIntent && urgency <= selectedUrgency))
             {
                 continue;
             }
 
             selected = condition;
+            selectedIntent = intent;
             selectedUrgency = urgency;
             hasSelected = true;
         }
@@ -586,6 +605,13 @@ public sealed class CharacterDeprivationRuntime :
         }
 
         return TryStartSafeDrink(actor, false, out status);
+    }
+
+    public bool IsRoutineDrinkActionActive(CharacterActor actor)
+    {
+        return actor != null
+            && safeReliefRunner.IsActive(
+                CharacterPersistentIdentity.Require(actor));
     }
 
     public bool NeedsPrimitiveMeal(CharacterActor actor, out string reason)
@@ -1068,18 +1094,22 @@ public sealed class CharacterDeprivationRuntime :
             return;
         }
 
-        if (safeReliefRunner.IsRunning((CharacterId)state.characterId)
-            || primitiveSurvivalRunner.IsRunning((CharacterId)state.characterId))
-        {
-            return;
-        }
-
         // At high simulation speeds a need can cross the breakdown threshold
         // between two scheduled AI decisions. Give an available safe emergency
         // self-care action one immediate start opportunity before converting the
         // same need into a destructive breakdown. The action still acquires the
         // brain's authoritative external intent, so this is not a parallel AI.
         if (TryStartEmergencySelfCare(actor))
+        {
+            return;
+        }
+
+        // A running lower-priority primitive or a deferred drink retry must not
+        // suppress evaluation of a newly lethal hunger/thirst need. The intent
+        // lease above arbitrates preemption first; only then may an existing
+        // self-care action suppress breakdown selection.
+        if (safeReliefRunner.IsRunning((CharacterId)state.characterId)
+            || primitiveSurvivalRunner.IsRunning((CharacterId)state.characterId))
         {
             return;
         }
@@ -1096,6 +1126,18 @@ public sealed class CharacterDeprivationRuntime :
             }
         }
         if (highest == null || highest.burden < BreakdownThreshold)
+        {
+            return;
+        }
+
+        // A high historical burden may remain after the actor has already
+        // committed to the authored service that relieves the same cause.
+        // Starting a breakdown here used to cancel the toilet/wash action in
+        // its short service phase, after which the still-active burden routed
+        // the actor into the primitive fallback despite a usable facility.
+        // Only defer the matching need; a different lethal need must still be
+        // allowed to pre-empt this self-care action.
+        if (IsCurrentActionAddressingDeprivation(actor, highest.kind))
         {
             return;
         }
@@ -1128,7 +1170,55 @@ public sealed class CharacterDeprivationRuntime :
 
     private bool TryStartEmergencySelfCare(CharacterActor actor)
     {
+        // This high-speed safety path bypasses the regular scheduler, so it
+        // must apply the scheduler's admission authority explicitly. Debug/
+        // command pauses and non-Active lifecycle states may still be ticked
+        // for need accumulation, but they must not acquire an external action.
+        if (actor == null || !actor.CanRunAi)
+        {
+            return false;
+        }
+
         return TryRunMostUrgentEmergencySelfCare(actor, out _);
+    }
+
+    private static bool IsCurrentActionAddressingDeprivation(
+        CharacterActor actor,
+        DeprivationKind cause)
+    {
+        AIAction action = actor?.Brain?.bestAction;
+        AIActionSet actionSet = action?.actionset;
+        if (actionSet == null
+            || action == null
+            || !action.HasStarted
+            || actor.Brain.isBestActionEnd
+            || !actionSet.HasSemanticTag(CharacterAiActionTags.SelfCare))
+        {
+            return false;
+        }
+
+        CharacterAiBranch expectedBranch = cause switch
+        {
+            DeprivationKind.Hunger => CharacterAiBranch.Eat,
+            DeprivationKind.Thirst => CharacterAiBranch.Drink,
+            DeprivationKind.Bladder => CharacterAiBranch.Toilet,
+            DeprivationKind.Contamination => CharacterAiBranch.Hygiene,
+            DeprivationKind.Exhaustion => CharacterAiBranch.Rest,
+            _ => CharacterAiBranch.None
+        };
+        return expectedBranch != CharacterAiBranch.None
+            && actionSet.Branch == expectedBranch;
+    }
+
+    private static bool IsEmergencyCareDue(
+        CharacterActor actor,
+        CharacterCondition condition)
+    {
+        return condition is CharacterCondition.HUNGER or CharacterCondition.THIRST
+            ? CharacterNeedAiThresholds.IsEmergencyOrImminentPhysicalHarm(
+                actor,
+                condition)
+            : CharacterNeedAiThresholds.IsEmergency(actor, condition);
     }
 
     private void UpdateBurden(
@@ -1465,6 +1555,13 @@ public sealed class CharacterDeprivationRuntime :
     {
         return actor != null
             && !actor.IsDead
+            // Transient Customers use the visitor satisfaction/patience,
+            // complaint, vandalism and exit authorities. Feeding them into
+            // the persistent staff deprivation aggregate duplicates that
+            // control plane and lets an ordinary visitor become a violent
+            // breakdown actor before its authored exit completes. Promoted
+            // population staff are projected to NPC before this query.
+            && actor.Identity?.CharacterType != CharacterType.Customer
             && actor.CurrentLifecycleState != CharacterLifecycleState.Despawned
             && actor.CurrentLifecycleState != CharacterLifecycleState.OnExpedition;
     }

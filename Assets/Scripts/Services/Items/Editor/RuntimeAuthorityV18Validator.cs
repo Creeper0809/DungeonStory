@@ -1374,6 +1374,20 @@ public static class RuntimeAuthorityV18Validator
                 errors.Add(
                     $"Building '{definition?.name ?? "<missing>"}' has no valid runtime archetype.");
             }
+
+            if (definition == null)
+                continue;
+
+            try
+            {
+                definition.ValidateAbilitiesOrThrow();
+            }
+            catch (Exception exception)
+            {
+                errors.Add(
+                    $"Building '{definition.name}' has an invalid ability contract: "
+                    + exception.Message);
+            }
         }
 
         foreach (string guid in AssetDatabase.FindAssets(

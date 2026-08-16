@@ -13,6 +13,10 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
     private const float DefaultCommitSeconds = 1.75f;
     private const float DefaultCommitmentScoreBonus = 0.16f;
     private const int MaxDecisionTraceEntries = 24;
+    private static readonly int BranchCount =
+        Enum.GetValues(typeof(CharacterAiBranch)).Length;
+    private static readonly int BreakdownKindCount =
+        Enum.GetValues(typeof(CharacterBreakdownKind)).Length;
 
     [SerializeField, ReadOnly] private CharacterActor actor;
     [SerializeField, ReadOnly] private CharacterAiBranch currentBranch;
@@ -45,6 +49,11 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
     [NonSerialized] private IReadOnlyDictionary<CharacterAiBranch, float> routineGroupPriorityScoresView;
     [NonSerialized] private IReadOnlyList<string> topUtilityBreakdownsView;
     [NonSerialized] private IReadOnlyList<string> recentDecisionTraceView;
+    [NonSerialized] private readonly long[] handledDecisionCounts =
+        new long[BranchCount];
+    [NonSerialized] private readonly long[] handledDeprivationBreakdownCounts =
+        new long[BreakdownKindCount];
+    [NonSerialized] private CharacterBreakdownKind lastHandledDeprivationBreakdownKind;
     [SerializeField, ReadOnly] private string lastCommitBreakReason;
     [SerializeField, ReadOnly] private string lastFailureReason;
     [SerializeField, Min(0.1f)] private float failureCooldownSeconds = DefaultFailureCooldownSeconds;
@@ -88,6 +97,26 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
         : string.Empty;
     [ShowInInspector, ReadOnly]
     public string LastDecisionRouteSummary => BuildDecisionRouteSummary();
+
+    public long GetHandledDecisionCount(CharacterAiBranch branch)
+    {
+        int index = (int)branch;
+        return index >= 0 && index < handledDecisionCounts.Length
+            ? handledDecisionCounts[index]
+            : 0L;
+    }
+
+    public long GetHandledDeprivationBreakdownCount(
+        CharacterBreakdownKind kind)
+    {
+        int index = (int)kind;
+        return index > 0 && index < handledDeprivationBreakdownCounts.Length
+            ? handledDeprivationBreakdownCounts[index]
+            : 0L;
+    }
+
+    public CharacterBreakdownKind LastHandledDeprivationBreakdownKind =>
+        lastHandledDeprivationBreakdownKind;
 
     private void Awake()
     {
@@ -141,6 +170,31 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
         {
             AppendDecisionTrace($"BT {branch}/{currentTask}: {TrimTrace(currentStatus)}");
         }
+    }
+
+    public void RecordBtOutcome(CharacterAiBranch branch, bool handled)
+    {
+        int index = (int)branch;
+        if (!handled || index <= 0 || index >= handledDecisionCounts.Length)
+        {
+            return;
+        }
+
+        handledDecisionCounts[index] = checked(handledDecisionCounts[index] + 1L);
+    }
+
+    public void RecordHandledDeprivationBreakdown(
+        CharacterBreakdownKind kind)
+    {
+        int index = (int)kind;
+        if (index <= 0 || index >= handledDeprivationBreakdownCounts.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(kind), kind, null);
+        }
+
+        handledDeprivationBreakdownCounts[index] = checked(
+            handledDeprivationBreakdownCounts[index] + 1L);
+        lastHandledDeprivationBreakdownKind = kind;
     }
 
     public void SetIntent(CharacterAiBranch branch, string intent, string taskName = "", string status = "")

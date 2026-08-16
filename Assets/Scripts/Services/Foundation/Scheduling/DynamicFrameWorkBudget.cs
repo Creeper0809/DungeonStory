@@ -57,6 +57,7 @@ namespace DungeonStory.Foundation
         private const double TargetFrameMilliseconds = 1000.0 / 60.0;
         private const double MinimumSharedBudgetMilliseconds = 0.25;
         private const double MaximumSharedBudgetMilliseconds = 8.0;
+        private const double BaselineSharedBudgetMilliseconds = 4.0;
         private const double FrameSampleWeight = 0.12;
 
         private static readonly double[] BaseWeights =
@@ -180,7 +181,8 @@ namespace DungeonStory.Foundation
             double headroom = TargetFrameMilliseconds
                 - smoothedFrameMilliseconds;
             availableMilliseconds = Math.Clamp(
-                1.25 + Math.Max(-1.0, headroom) * 0.55,
+                BaselineSharedBudgetMilliseconds
+                    + Math.Max(-1.0, headroom) * 0.55,
                 MinimumSharedBudgetMilliseconds,
                 MaximumSharedBudgetMilliseconds);
             Array.Clear(consumed, 0, consumed.Length);
@@ -190,8 +192,12 @@ namespace DungeonStory.Foundation
         private double GetPressure(int index)
         {
             int backlog = backlogs[index];
-            return BaseWeights[index]
-                + (backlog > 0 ? Math.Log(backlog + 1, 2.0) : 0.0);
+            // A dormant domain must not reserve frame time from active work.
+            // Its base weight becomes relevant as soon as its producer reports
+            // backlog, at which point sharing remains deterministic.
+            return backlog > 0
+                ? BaseWeights[index] + Math.Log(backlog + 1, 2.0)
+                : 0.0;
         }
 
         private double GetDomainShare(int index)

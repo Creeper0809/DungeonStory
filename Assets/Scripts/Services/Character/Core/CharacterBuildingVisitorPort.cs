@@ -151,6 +151,16 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
         Brain?.SetActionPhase(phase, destination as BuildableObject, detail);
     }
 
+    void IBuildingVisitorPort.NotifyFacilityQueueHeartbeat(int queuePosition)
+    {
+        Brain?.NotifyFacilityQueueHeartbeat(queuePosition);
+    }
+
+    void IBuildingVisitorPort.NotifyFacilityServiceHeartbeat()
+    {
+        Brain?.NotifyFacilityServiceHeartbeat();
+    }
+
     void IBuildingVisitorPort.ReportInteractionFailure(
         BuildingInteractionFailureKind failureKind,
         string detail,

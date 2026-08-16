@@ -24,6 +24,8 @@ public sealed class CharacterSkillTransientState : MonoBehaviour
     private ICharacterSkillTransientStateRegistry registry;
     private CharacterId characterId;
 
+    public bool IsConfigured => registry != null && characterId.IsValid;
+
     public float WorkSpeedMultiplier => registry != null && characterId.IsValid
         ? registry.GetWorkSpeedMultiplier(characterId)
         : 1f;

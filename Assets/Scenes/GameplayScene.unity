@@ -7951,7 +7951,7 @@ MonoBehaviour:
   targetAiMilliseconds: 4
   targetFrameMilliseconds: 16.667
   frameHeadroomShare: 0.45
-  baselineBudgetRatio: 0.2
+  baselineBudgetRatio: 1
   minimumUsefulSliceMilliseconds: 0.1
   maximumDecisionDeferralSeconds: 2
   overdraftCooldownTicks: 4

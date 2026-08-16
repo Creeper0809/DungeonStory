@@ -305,6 +305,7 @@ internal sealed class CharacterBreakdownActionRunner
             CharacterCondition.EXCRETION,
             90f,
             CharacterNeedRecoverySource.Emergency);
+        consequences.EndActiveBreakdownIfRelieved(actor);
         actor.ChangesStat(CharacterCondition.HYGIENE, -25f);
         actor.ApplyMoodFactor("survival:public-accident", "아무 데서나 사고를 냄", -10f, 360f, 1);
         consequences.ApplyWitnessMood(actor, position, "끔찍한 사고를 목격함", -4f);
@@ -529,6 +530,7 @@ internal sealed class CharacterBreakdownActionRunner
                     CharacterCondition.HUNGER,
                     humanoid ? 75f : 55f,
                     CharacterNeedRecoverySource.Emergency);
+                consequences.EndActiveBreakdownIfRelieved(actor);
                 if (humanoid)
                 {
                     ApplyCannibalismConsequences(actor, consumed);
@@ -644,6 +646,7 @@ internal sealed class CharacterBreakdownActionRunner
                 CharacterCondition.SLEEP,
                 35f,
                 CharacterNeedRecoverySource.Emergency);
+            consequences.EndActiveBreakdownIfRelieved(actor);
             actor.ApplyMoodFactor("survival:floor-collapse", "차가운 바닥에서 깨어남", -5f, 180f, 1);
         }
     }

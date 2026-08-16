@@ -585,6 +585,10 @@ public interface ICharacterConsumablesInventoryPort
         ConsumableItemDefinitionId id,
         out CharacterConsumablesSubstanceDefinitionSnapshot substance);
     bool TryConsume(ItemStackId stackId, int quantity);
+    bool TryConsumeForCharacter(
+        CharacterId characterId,
+        ItemStackId stackId,
+        int quantity) => TryConsume(stackId, quantity);
     bool TryReserveMealQuantity(
         ConsumableOperationId operationId,
         CharacterId characterId,

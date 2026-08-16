@@ -11,10 +11,15 @@ public sealed class AbilityUseSubstance : MonoBehaviour
     private CharacterActor actor;
     private AbilityMove move;
     private Coroutine routine;
+    private bool useExecutionActive;
     private WorldItemReservedStackQuantity reservation;
     private CharacterSubstanceUseRequest request;
+#if UNITY_EDITOR
+    public System.Action<WorldItemReservedStackQuantity, Vector2Int>
+        DebugAfterQuantityLeaseReserved;
+#endif
 
-    public bool IsUsingSubstance => routine != null;
+    public bool IsUsingSubstance => useExecutionActive;
     public CharacterSubstanceUseRequest ActiveRequest => request;
 
     private ICharacterSubstanceRuntime Substances =>
@@ -65,19 +70,35 @@ public sealed class AbilityUseSubstance : MonoBehaviour
 
     public void StartUse()
     {
-        if (IsUsingSubstance
-            || !CanStart(out CharacterSubstanceUseRequest next))
+        // Behavior-tree leaves may be polled again while their coroutine is
+        // already running. Re-entry is an idempotent acknowledgement, not a
+        // failed second attempt; failing here terminates the live epoch while
+        // the first coroutine still owns its reservation and causes a hot
+        // retry loop.
+        if (IsUsingSubstance)
         {
-            EndAiAction();
+            return;
+        }
+
+        if (!CanStart(out CharacterSubstanceUseRequest next))
+        {
+            FailAiAction(
+                AIActionFailureKind.CannotStart,
+                "No automatic substance-use request is currently valid.");
             return;
         }
 
         request = next;
-        routine = StartCoroutine(UseRoutine());
+        useExecutionActive = true;
+        Coroutine started = StartCoroutine(UseRoutine());
+        // StartCoroutine advances to the first yield synchronously. Do not
+        // resurrect a handle after an immediate terminal path cleared it.
+        routine = useExecutionActive ? started : null;
     }
 
     public void StopUse(string reason)
     {
+        useExecutionActive = false;
         if (routine != null)
         {
             StopCoroutine(routine);
@@ -98,7 +119,16 @@ public sealed class AbilityUseSubstance : MonoBehaviour
                 venue,
                 request.Reason);
             yield return venue.Interact(actor.BuildingVisitor);
-            Finish();
+            if (venue == null || venue.isDestroy)
+            {
+                FinishFailed(
+                    AIActionFailureKind.Destroyed,
+                    "The recreational venue was destroyed during substance use.");
+            }
+            else
+            {
+                FinishCompleted();
+            }
             yield break;
         }
 
@@ -106,27 +136,39 @@ public sealed class AbilityUseSubstance : MonoBehaviour
             CharacterCarryInventory.Ensure(actor);
         if (inventory == null || Items == null || Substances == null)
         {
-            Finish();
+            FinishFailed(
+                AIActionFailureKind.Unsupported,
+                "Substance inventory or runtime collaborators are unavailable.");
             yield break;
         }
 
         if (inventory.CountItem(request.ItemId) <= 0)
         {
-            if (!Items.TryReserveStoredItemForDirectPickup(
+            string actorId = CharacterPersistentIdentity.Require(actor).Value;
+            string operationId =
+                $"substance-use:{actorId}:{(actor.Brain?.RuntimeActionEpoch ?? 0L):D16}";
+            string reserveFailure = string.Empty;
+            if (Items is not IWorldItemQuantityLeaseRuntime leaseRuntime
+                || !leaseRuntime.TryReserveAvailableItemForDirectPickup(
                     actor,
                     request.ItemId,
                     1,
+                    ItemReservationPurpose.PersonalConsumption,
+                    operationId,
                     out reservation,
                     out Vector2Int pickupStand,
-                    out string reserveFailure))
+                    out reserveFailure))
             {
                 actor.Brain?.SetActionPhase(
                     "복용품 확보 실패",
                     null,
                     reserveFailure);
-                Finish();
+                FinishFailed(AIActionFailureKind.ResourceUnavailable, reserveFailure);
                 yield break;
             }
+#if UNITY_EDITOR
+            DebugAfterQuantityLeaseReserved?.Invoke(reservation, pickupStand);
+#endif
 
             actor.Brain?.SetActionPhase(
                 $"{request.DisplayName} 가지러 이동",
@@ -136,7 +178,9 @@ public sealed class AbilityUseSubstance : MonoBehaviour
             yield return MoveToPickup(pickupStand, value => reached = value);
             if (!reached)
             {
-                Finish();
+                FinishFailed(
+                    AIActionFailureKind.NoPath,
+                    "The reserved substance pickup position is unreachable.");
                 yield break;
             }
 
@@ -152,10 +196,13 @@ public sealed class AbilityUseSubstance : MonoBehaviour
                     "복용품 수거 실패",
                     null,
                     pickupFailure);
-                Finish();
+                FinishFailed(AIActionFailureKind.ConsumptionFailed, pickupFailure);
                 yield break;
             }
 
+            leaseRuntime.ReleaseQuantityLease(
+                reservation.LeaseId,
+                ItemReservationReleaseReason.Completed);
             reservation = default;
         }
 
@@ -163,11 +210,29 @@ public sealed class AbilityUseSubstance : MonoBehaviour
             $"{request.DisplayName} 복용",
             null,
             request.Reason);
+        CharacterCarriedItemSaveData carried = inventory.Items.FirstOrDefault(item =>
+            item != null
+            && item.quantity > 0
+            && string.Equals(item.itemId, request.ItemId, System.StringComparison.Ordinal));
+        if (carried == null)
+        {
+            FinishFailed(
+                AIActionFailureKind.ConsumptionFailed,
+                "The picked substance is not present in the actor inventory.");
+            yield break;
+        }
+        ItemStackId physicalStackId = new(carried.carriedStackId);
+        ConsumableOperationId consumeOperation = new(
+            $"consumable-operation:ai-substance:{CharacterPersistentIdentity.Require(actor).Value}:"
+            + $"{(actor.Brain?.RuntimeActionEpoch ?? 0L):D16}");
         if (!Substances.TryConsume(
-                actor,
-                request.SubstanceId,
-                request.MedicalContext,
-                request.CombatContext,
+                new ConsumeSubstanceCommand(
+                    consumeOperation,
+                    CharacterPersistentIdentity.Require(actor),
+                    request.ItemDefinitionId,
+                    physicalStackId,
+                    request.MedicalContext,
+                    request.CombatContext),
                 out SubstanceUseResult result))
         {
             string failureCode = result.FailureCode.ToString();
@@ -175,6 +240,9 @@ public sealed class AbilityUseSubstance : MonoBehaviour
                 failureCode,
                 null,
                 failureCode);
+            yield return null;
+            FinishFailed(AIActionFailureKind.ConsumptionFailed, failureCode);
+            yield break;
         }
         else
         {
@@ -182,7 +250,7 @@ public sealed class AbilityUseSubstance : MonoBehaviour
         }
 
         yield return null;
-        Finish();
+        FinishCompleted();
     }
 
     private bool TryFindRecreationalVenue(out Facility venue)
@@ -284,29 +352,65 @@ public sealed class AbilityUseSubstance : MonoBehaviour
             return;
         }
 
-        Items.ReleaseReservation(
-            reservation.StackId,
-            actor.Identity?.PersistentId ?? string.Empty);
+        if (Items is IWorldItemQuantityLeaseRuntime leaseRuntime
+            && !string.IsNullOrWhiteSpace(reservation.LeaseId))
+        {
+            leaseRuntime.ReleaseQuantityLease(
+                reservation.LeaseId,
+                ItemReservationReleaseReason.Cancelled);
+        }
+        else
+        {
+            Items.ReleaseReservation(
+                reservation.StackId,
+                actor.Identity?.PersistentId ?? string.Empty);
+        }
         reservation = default;
     }
 
-    private void Finish()
+    private void FinishCompleted()
     {
         ReleaseReservation();
+        useExecutionActive = false;
         routine = null;
         request = default;
-        EndAiAction();
+        EndAiAction(CharacterAiActionTerminalKind.Completed, clearFailures: true);
     }
 
-    private void EndAiAction()
+    private void FinishFailed(AIActionFailureKind kind, string reason)
+    {
+        ReleaseReservation();
+        useExecutionActive = false;
+        routine = null;
+        request = default;
+        FailAiAction(kind, reason);
+    }
+
+    private void FailAiAction(AIActionFailureKind kind, string reason)
+    {
+        if (actor?.Brain != null)
+        {
+            actor.Brain.ReportRuntimeActionFailure(
+                AIActionFailure.Create(kind, reason),
+                requestImmediateReplan: true);
+        }
+
+        EndAiAction(CharacterAiActionTerminalKind.Failed, clearFailures: false);
+    }
+
+    private void EndAiAction(
+        CharacterAiActionTerminalKind terminalKind,
+        bool clearFailures)
     {
         if (actor?.Brain == null)
         {
             return;
         }
 
-        actor.Brain.isBestActionEnd = true;
-        actor.Brain.RequestImmediateReplan(clearFailures: true);
+        actor.Brain.EndExpectedAction(
+            actor.Brain.bestAction,
+            terminalKind,
+            clearFailures);
     }
 
     private void CacheReferences()

@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 59
   features:
-  - rid: 7737211905658585417
-  - rid: 7737211905658585418
-  - rid: 7737211905660420585
+  - rid: 7737211981816660064
+  - rid: 7737211981816660065
+  - rid: 7737211981816660066
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585417
+    - rid: 7737211981816660064
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:defense:rune-identification
-    - rid: 7737211905658585418
+    - rid: 7737211981816660065
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737211905660420585
+    - rid: 7737211981816660066
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.59642076

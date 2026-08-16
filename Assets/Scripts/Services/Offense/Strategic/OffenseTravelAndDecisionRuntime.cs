@@ -842,6 +842,7 @@ public sealed class OffenseDecisionView
 
 public interface IOffenseDecisionRuntime
 {
+    event Action Changed;
     bool TryCreateDecision(
         OffenseDecisionContext context,
         out OffenseDecisionView decision,
@@ -878,6 +879,8 @@ public sealed class OffenseDecisionRuntime : IOffenseDecisionRuntime
         this.returnSafety = returnSafety
             ?? throw new ArgumentNullException(nameof(returnSafety));
     }
+
+    public event Action Changed;
 
     public bool TryCreateDecision(
         OffenseDecisionContext context,
@@ -935,6 +938,7 @@ public sealed class OffenseDecisionRuntime : IOffenseDecisionRuntime
                 .ToArray()
         };
         reason = string.Empty;
+        Changed?.Invoke();
         return true;
     }
 
@@ -980,6 +984,7 @@ public sealed class OffenseDecisionRuntime : IOffenseDecisionRuntime
         }
 
         reason = string.Empty;
+        Changed?.Invoke();
         return true;
     }
 
@@ -1110,6 +1115,7 @@ public sealed class OffenseDecisionRuntime : IOffenseDecisionRuntime
     {
         active = (candidate ?? throw new ArgumentNullException(nameof(candidate)))
             .Values;
+        Changed?.Invoke();
     }
 
     private static bool IsValidCard(OffenseDecisionCardSO card)

@@ -28,6 +28,8 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
     private ICharacterDialogueBubbleFactory bubbleFactory;
     private IGameClock gameClock;
     private IDynamicFrameWorkBudget frameWorkBudget;
+    private bool runtimeInjected;
+    private bool logSubscribed;
 
     public string LastBubbleLine => lastBubbleLine;
     public string LastGeneratedBubbleLine => lastGeneratedBubbleLine;
@@ -50,6 +52,8 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
         this.gameClock = gameClock
             ?? throw new ArgumentNullException(nameof(gameClock));
         this.frameWorkBudget = frameWorkBudget;
+        runtimeInjected = true;
+        TrySubscribeToLog();
     }
 
     private void Awake()
@@ -62,23 +66,48 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
         EnsureRuntimeReferences();
         nextHiddenRefreshFrame = (gameClock != null ? gameClock.FrameCount : 0)
             + Mathf.Abs(actor != null ? actor.GetInstanceID() : GetInstanceID()) % 8;
-        if (characterLog != null)
-        {
-            characterLog.OnLogAdded += OnLogAdded;
-        }
+        TrySubscribeToLog();
     }
 
     private void OnDisable()
     {
-        if (characterLog != null)
-        {
-            characterLog.OnLogAdded -= OnLogAdded;
-        }
+        UnsubscribeFromLog();
 
         if (text != null)
         {
             text.gameObject.SetActive(false);
         }
+    }
+
+    internal void PrepareForScopeTeardown()
+    {
+        UnsubscribeFromLog();
+        HideLine();
+    }
+
+    private void TrySubscribeToLog()
+    {
+        if (logSubscribed
+            || !runtimeInjected
+            || !isActiveAndEnabled
+            || characterLog == null)
+        {
+            return;
+        }
+
+        characterLog.OnLogAdded += OnLogAdded;
+        logSubscribed = true;
+    }
+
+    private void UnsubscribeFromLog()
+    {
+        if (!logSubscribed)
+        {
+            return;
+        }
+
+        characterLog.OnLogAdded -= OnLogAdded;
+        logSubscribed = false;
     }
 
     private void LateUpdate()

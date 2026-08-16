@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 85
   features:
-  - rid: 7737211905658585883
-  - rid: 7737211905658585884
-  - rid: 7737211905660420753
+  - rid: 7737211981816660711
+  - rid: 7737211981816660712
+  - rid: 7737211981816660713
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585883
+    - rid: 7737211981816660711
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:climate:environment-control
-    - rid: 7737211905658585884
+    - rid: 7737211981816660712
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 512
         sharedIntermediate: 0
-    - rid: 7737211905660420753
+    - rid: 7737211981816660713
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.5995896

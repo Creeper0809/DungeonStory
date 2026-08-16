@@ -1,0 +1,6 @@
+# Character AI Lifecycle Fault PlayMode Matrix
+rows=Downed,Dead,Despawned,Disabled,Destroyed
+pipeline=CharacterAiDecisionPipeline+AIBrain+AbilityMove+item-lease+emergency-ledger
+target-lifecycle=CharacterAiFaultRecoveryPlayModeVerifier:approach,queue,interaction
+result=PASS
+action=5/5; movement=5/5; ownership=5/5; cleanup=exactly-once; second-cleanup=idempotent; late-commit=0

@@ -18,6 +18,7 @@ public static class OffenseBattleDebugScenarios
         Run("damage and initiative", VerifyDamageAndInitiative, errors);
         Run("heal target and drain source", VerifyHealTargetAndDrainSource, errors);
         Run("guard and cooldown", VerifyGuardAndCooldown, errors);
+        Run("planned round begins every participant once", VerifyPlannedRoundFinalization, errors);
         Run("enemy target priority", VerifyEnemyTargetPriority, errors);
         Run("enemy tactical tags and boss phase", VerifyEnemyTacticalTagsAndBossPhase, errors);
         Run("smoke and summon are dedicated effects", VerifySmokeAndSummonEffects, errors);
@@ -166,6 +167,74 @@ public static class OffenseBattleDebugScenarios
                 crush.Id),
             out _), "Ability command was rejected.");
         Require(abilityAlly.GetCooldown(crush.Id) == 2, "Ability cooldown was not applied.");
+        return true;
+    }
+
+    private static bool VerifyPlannedRoundFinalization()
+    {
+        OffenseBattleCombatant ally = Combatant(
+            "ally:planned-round", "Planned Ally", OffenseBattleTeam.Allies,
+            120f, 10f, 8f, 8f, 10f, 5f);
+        OffenseBattleCombatant enemy = Combatant(
+            "enemy:planned-round", "Planned Enemy", OffenseBattleTeam.Enemies,
+            120f, 10f, 8f, 8f, 9f, 5f);
+        OffenseBattleSession session = Session(ally, enemy);
+        Require(session.PreparePlannedRound(1, out string preparationFailure),
+            preparationFailure);
+        Require(ally.TurnsStarted == 1 && enemy.TurnsStarted == 1,
+            "The first planned round did not prepare every participant symmetrically.");
+        ally.SetCooldown("qa:planned-cooldown", 2);
+        enemy.SetCooldown("qa:planned-cooldown", 2);
+        int roundBefore = session.RoundNumber;
+        int allyTurnsBefore = ally.TurnsStarted;
+        int enemyTurnsBefore = enemy.TurnsStarted;
+
+        Require(session.FinalizePlannedRound(1, out string finalizationFailure),
+            finalizationFailure);
+        Require(session.RoundNumber == roundBefore + 1,
+            "Planned round did not advance exactly one round.");
+        Require(ally.TurnsStarted == allyTurnsBefore + 1,
+            "Planned round did not begin the ally exactly once.");
+        Require(enemy.TurnsStarted == enemyTurnsBefore + 1,
+            "Planned round did not begin the enemy exactly once.");
+        Require(ally.GetCooldown("qa:planned-cooldown") == 1
+            && enemy.GetCooldown("qa:planned-cooldown") == 1,
+            "The first planned round decremented participant cooldowns asymmetrically.");
+        int finalizedRound = session.RoundNumber;
+        int finalizedAllyTurns = ally.TurnsStarted;
+        int finalizedEnemyTurns = enemy.TurnsStarted;
+        Require(session.FinalizePlannedRound(1, out finalizationFailure),
+            finalizationFailure);
+        Require(session.RoundNumber == finalizedRound
+            && ally.TurnsStarted == finalizedAllyTurns
+            && enemy.TurnsStarted == finalizedEnemyTurns,
+            "Retrying the same planned-turn token advanced BeginTurn twice.");
+
+        OffenseBattlePersistenceState saved = session.CapturePersistentState();
+        Require(saved.preparedPlannedTurn == 2
+            && saved.finalizedPlannedTurn == 1,
+            "Planned-turn preparation/finalization tokens were not captured.");
+        OffenseBattleCombatant restoredAlly = Combatant(
+            ally.PersistentId, "Restored Planned Ally", OffenseBattleTeam.Allies,
+            120f, 10f, 8f, 8f, 10f, 5f);
+        OffenseBattleCombatant restoredEnemy = Combatant(
+            enemy.PersistentId, "Restored Planned Enemy", OffenseBattleTeam.Enemies,
+            120f, 10f, 8f, 8f, 9f, 5f);
+        OffenseBattleSession restored = OffenseBattleSession.Restore(
+            saved,
+            new[] { restoredAlly, restoredEnemy },
+            new FixedCombatResolutionService(
+                Hit(CombatBodyPart.Torso, damage: 1f, bleeding: 0f, suppression: 0f)),
+            OffenseEditorTestDependencies.CreateCombatEquipmentRuntime());
+        int restoredRound = restored.RoundNumber;
+        int restoredAllyTurns = restoredAlly.TurnsStarted;
+        int restoredEnemyTurns = restoredEnemy.TurnsStarted;
+        Require(restored.FinalizePlannedRound(1, out finalizationFailure),
+            finalizationFailure);
+        Require(restored.RoundNumber == restoredRound
+            && restoredAlly.TurnsStarted == restoredAllyTurns
+            && restoredEnemy.TurnsStarted == restoredEnemyTurns,
+            "Save/restore replayed an already finalized planned turn.");
         return true;
     }
 
@@ -1419,6 +1488,12 @@ public static class OffenseBattleDebugScenarios
         {
             return new BlueprintResearchWorkResult(false, null, 0f, 0f, 1f, false, "No research runtime.");
         }
+
+        public BlueprintResearchWorkResult ApplyApprovedResearchWork(
+            CharacterActor researcher,
+            BuildableObject researchFacility,
+            float approvedWorkUnits) =>
+            ApplyResearchWork(researcher, researchFacility, approvedWorkUnits);
     }
 
     private sealed class NoopWorldInfoClickSelector : IWorldInfoClickSelector

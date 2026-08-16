@@ -1,0 +1,18 @@
+INFO	SCENARIO	mode=ExternalIntentAlert;revision=additional-chaos-v1-20260816
+INFO	START_PARTY	committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Roma:-8396246:character:staff:1:01:active=True,Arin:-8396314:character:staff:1:02:active=True; diagnostics=prepared-1:name=Roma;go=-8396218;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-8396286;id=character:staff:1:02;active=False || scan:name=Roma;go=-8396218;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-8396286;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-8396218;id=character:staff:1:01;active=True || retained:name=Arin;go=-8396286;id=character:staff:1:02;active=True
+PASS	CHAOS_SCOPE_READY	DungeonRuntimeSystems
+PASS	CHAOS_ACTOR_COUNT	activeHumanoids=3
+PASS	CHAOS_AUTHORITIES_READY	save=True;items=True;haulPlanning=True;deprivation=True;alert=True/True;body=True/True;medical=True
+PASS	CHAOS_SAVE_AUTHORITIES_SETTLED	environment=True;initialized=True
+PASS	EXTERNAL_ALERT_ACTOR_READY	character:staff:1:01
+PASS	EXTERNAL_ALERT_BREAKDOWN_AUTHORED	kind=ViolentImpulse;actor=character:staff:1:01
+PASS	EXTERNAL_ALERT_LEASE_LIVE_BEFORE_RED	owner=survival:breakdown;epoch=1;moveOwner=;#1@t=0 epoch=0 kind=RetryScheduled branch=None action=0 destination=0 phase=None/0 progress=1 retry=1@50ms | #2@t=0.02 epoch=0 kind=RetryAttempted branch=None action=0 destination=0 phase=None/0 progress=2 retry=1@0ms | #3@t=0.02 epoch=0 kind=RetryScheduled branch=None action=0 destination=0 phase=None/0 progress=3 retry=2@50ms | #4@t=0.079 epoch=0 kind=RetryAttempted branch=None action=0 destination=0 phase=None/0 progress=4 retry=2@0ms | #5@t=0.079 epoch=0 kind=PathRequested branch=None action=0 destination=0 phase=None/0 progress=5 path=1/Requested[0/0] | #6@t=0.079 epoch=0 kind=PathResult branch=None action=0 destination=0 phase=None/0 progress=6 path=1/Found[0/1] | #7@t=0.079 epoch=0 kind=ReservationAcquired branch=None action=0 destination=0 phase=None/0 progress=7 reservation=1727670960/Acquired | #8@t=0.079 epoch=1 kind=ActionStarted branch=Work action=71240 destination=-8347168 phase=Starting/2061222397 progress=9 | #9@t=0.079 epoch=1 kind=PhaseChanged branch=Work action=71240 destination=-8347168 phase=Moving/1626625469 progress=10 | #10@t=0.079 epoch=1 kind=MovementStarted branch=Work action=71240 destination=-8347168 phase=Moving/1626625469 progress=11 | #11@t=0.442 epoch=1 kind=ReservationReleased branch=Work action=71240 destination=-8347168 phase=Moving/1626625469 progress=15 reservation=1727670960/Released | #12@t=0.442 epoch=1 kind=ActionTerminal branch=Work action=71240 destination=-8347168 phase=Terminal/1626625469 progress=16 terminal=Cancelled | #13@t=1.027 epoch=1 kind=PhaseChanged branch=Work action=71240 destination=-8347168 phase=Unknown/660156116 progress=18
+PASS	EXTERNAL_ALERT_RED_COMMITTED	epoch=1;active=[incident:invasion:active]
+PASS	EXTERNAL_ALERT_POLICY_GATE_BOUND_DURING_LEASE	gate=True;gateEpoch=1;externalEpoch=1
+PASS	EXTERNAL_ALERT_NO_GUARD_EXECUTION_OVERLAP	overlap=False;owner=;action=일하기;work=work:guard
+PASS	EXTERNAL_ALERT_EXTERNAL_TERMINAL_EXACTLY_ONCE	terminals=0->1;kind=Completed;external=False
+PASS	EXTERNAL_ALERT_GUARD_STARTED_AFTER_EXTERNAL_TERMINAL	guard=True;action=일하기;assigned=work:guard;running=True
+PASS	EXTERNAL_ALERT_FINAL_OWNERSHIP_CONVERGED	alert=Green/Green;gate=False;external=False
+PASS	EXTERNAL_ALERT_RUNTIME_GATE_CONSERVED	invariants=0->0;paths=0;reservations=0
+INFO	CONSOLE	issues=0;
+RESULT=PASS; failures=0; 

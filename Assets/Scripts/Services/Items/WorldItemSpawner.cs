@@ -90,22 +90,30 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
             return 0;
         }
 
+        string normalizedItemId = itemId.Trim();
+        if (RequiresAuthoritativeEquipmentInstance(normalizedItemId))
+        {
+            return 0;
+        }
+
         int remaining = amount;
         int spawned = 0;
-        int maxStack = catalogProvider.GetDefinition(itemId).MaxStack;
+        int maxStack = catalogProvider.GetDefinition(normalizedItemId).MaxStack;
         List<ItemInstanceComponentSaveData> instanceComponents =
             BuildInstanceComponents(
-                itemId,
+                normalizedItemId,
                 components,
                 sourceCharacterId,
                 sourceSpeciesTag,
                 contamination);
-        string stackSignature = ItemStackSignature.Create(itemId, instanceComponents);
+        string stackSignature = ItemStackSignature.Create(
+            normalizedItemId,
+            instanceComponents);
         while (remaining > 0)
         {
             int amountForStack = Mathf.Min(remaining, maxStack);
             WorldItemStackRecord mergeTarget = FindMergeTarget(
-                itemId,
+                normalizedItemId,
                 position,
                 state,
                 destinationId,
@@ -144,7 +152,7 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
                 itemInstanceId = maxStack == 1
                     ? repository.AllocateItemInstanceId()
                     : string.Empty,
-                itemId = itemId,
+                itemId = normalizedItemId,
                 quantity = amountForStack,
                 state = state,
                 position = position,
@@ -267,12 +275,18 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
             return false;
         }
 
+        string normalizedItemId = itemId.Trim();
+        if (RequiresAuthoritativeEquipmentInstance(normalizedItemId))
+        {
+            return false;
+        }
+
         HashSet<string> existingIds = repository.Records
             .Where(record => record != null)
             .Select(record => record.stackId)
             .ToHashSet(StringComparer.Ordinal);
         int spawned = Spawn(
-            itemId.Trim(),
+            normalizedItemId,
             1,
             position,
             state,
@@ -288,6 +302,12 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
 
         stackId = created.stackId;
         return true;
+    }
+
+    private static bool RequiresAuthoritativeEquipmentInstance(string itemId)
+    {
+        return PhysicalItemIds.TryGetEquipmentDefinitionId(itemId, out _)
+            || PhysicalItemIds.IsEquipmentModule(itemId);
     }
 
     private WorldItemStackRecord FindMergeTarget(

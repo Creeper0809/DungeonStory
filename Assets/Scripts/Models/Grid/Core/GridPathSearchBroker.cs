@@ -21,6 +21,7 @@ public enum GridPathRequestStatus
 public interface IGridPathSearchBroker
 {
     int SearchesThisFrame { get; }
+    int UrgentOverdraftSearchesThisFrame { get; }
     int UnboundedSearchesThisFrame { get; }
     int CacheHitsThisFrame { get; }
     int BudgetDeferralsThisFrame { get; }
@@ -456,7 +457,7 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
     }
 
     private const int DefaultSearchBudget = 8;
-    private const int MaxUrgentSearchOverdraft = 4;
+    public const int MaximumUrgentContinuationOverdraft = 4;
     private const int MaxCacheEntries = 512;
     private const int MaxCacheAgeFrames = 120;
     private const int CachePruneIntervalFrames = 30;
@@ -474,6 +475,7 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
 
     private int cacheFrame = -1;
     private int nextPruneFrame;
+    private int urgentOverdraftSearchesThisFrame;
     private int searchBudget = DefaultSearchBudget;
     private bool enforceBudget = true;
     private double searchTimeBudgetMilliseconds = double.PositiveInfinity;
@@ -493,6 +495,8 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
     }
 
     public int SearchesThisFrame { get; private set; }
+    public int UrgentOverdraftSearchesThisFrame =>
+        urgentOverdraftSearchesThisFrame;
     public int UnboundedSearchesThisFrame { get; private set; }
     public int CacheHitsThisFrame { get; private set; }
     public int BudgetDeferralsThisFrame { get; private set; }
@@ -621,6 +625,7 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
         UnboundedSearchesThisFrame = 0;
         CacheHitsThisFrame = 0;
         BudgetDeferralsThisFrame = 0;
+        urgentOverdraftSearchesThisFrame = 0;
         searchTimeBudgetMilliseconds = double.PositiveInfinity;
         searchMillisecondsThisFrame = 0.0;
     }
@@ -644,6 +649,7 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
         UnboundedSearchesThisFrame = 0;
         CacheHitsThisFrame = 0;
         BudgetDeferralsThisFrame = 0;
+        urgentOverdraftSearchesThisFrame = 0;
         searchMillisecondsThisFrame = 0.0;
         PruneCache(frame);
     }
@@ -695,7 +701,19 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
             return false;
         }
 
-        int hardSearchLimit = searchBudget + MaxUrgentSearchOverdraft;
+        bool hasIncrementalContinuation = destination.HasValue
+            && incrementalExactSearches.TryGetValue(
+                key,
+                out IncrementalExactSearch pendingExactSearch)
+            && pendingExactSearch != null
+            && pendingExactSearch.TraversalVersion == grid.TraversalVersion;
+        bool canResumeUrgentContinuation = priority == GridPathSearchPriority.Urgent
+            && hasIncrementalContinuation
+            && urgentOverdraftSearchesThisFrame
+                < MaximumUrgentContinuationOverdraft;
+
+        int hardSearchLimit = searchBudget
+            + MaximumUrgentContinuationOverdraft;
         bool normalBudgetExhausted =
             priority != GridPathSearchPriority.Urgent
             && SearchesThisFrame >= searchBudget;
@@ -705,11 +723,37 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
         if (enforceBudget
             && (normalBudgetExhausted
                 || hardBudgetExhausted
-                || timeBudgetExhausted))
+                || timeBudgetExhausted)
+            && !canResumeUrgentContinuation)
         {
+            // Reserve an exact urgent request even when ordinary AI scans have
+            // already consumed this frame's budget. On a following frame the
+            // bounded continuation allowance below can advance it ahead of
+            // fresh candidate searches, preventing urgent self-care and other
+            // committed actions from being starved forever by scan ordering.
+            if (priority == GridPathSearchPriority.Urgent
+                && destination.HasValue
+                && !hasIncrementalContinuation)
+            {
+                incrementalExactSearches[key] = new IncrementalExactSearch(
+                    grid,
+                    start,
+                    destination.Value,
+                    traversalContext,
+                    doorAccessQuery,
+                    costPolicy,
+                    cacheFrame);
+            }
             BudgetDeferralsThisFrame++;
             deferredKeys.Add(key);
             return false;
+        }
+
+        bool usesUrgentOverdraft = priority == GridPathSearchPriority.Urgent
+            && SearchesThisFrame >= searchBudget;
+        if (usesUrgentOverdraft)
+        {
+            urgentOverdraftSearchesThisFrame++;
         }
 
         bool recordSearch = performanceRecorder?.DetailedCollectionEnabled == true;

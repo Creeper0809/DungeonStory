@@ -1121,12 +1121,17 @@ internal static class CharacterVitalsSideEffectAdapter
         bool died,
         CharacterDeathCauseCode deathCause)
     {
-        owner.ApplyMoodFactor(
-            "health:injury",
-            "몸을 다침",
-            -Mathf.Clamp(amount * 0.25f, 2f, 10f),
-            180f,
-            2);
+        CharacterPerformanceSnapshot negativeMoodDuration = owner.EvaluatePerformance(
+            CharacterPerformanceFormulaIds.NegativeMoodDuration);
+        if (negativeMoodDuration.IsApplicable)
+        {
+            owner.ApplyMoodFactor(
+                "health:injury",
+                "몸을 다침",
+                -Mathf.Clamp(amount * 0.25f, 2f, 10f),
+                180f,
+                2);
+        }
         log?.AddActivity(CharacterActivityEvent.Create(
             CharacterActivityKinds.Health,
             CharacterActivityOutcomes.Damaged,

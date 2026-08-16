@@ -2,6 +2,14 @@ using UnityEngine;
 
 public static class CharacterNeedAiThresholds
 {
+    // Primitive food and water actions include pathing, reservation and use
+    // time. Escalate before physical damage begins when care cannot complete
+    // before the need crosses that band.
+    // Primitive survival may have to cross the unbuilt starting map to reach
+    // the first warehouse stack. Ninety game-seconds is a conservative
+    // bootstrap forecast; authored facilities use
+    // their own exact route ETA instead of this conservative fallback bound.
+    private const float SurvivalCareCompletionHorizonSeconds = 90f;
     private static readonly CharacterCondition[] SurvivalRoutineConditions =
     {
         CharacterCondition.HUNGER,
@@ -71,6 +79,59 @@ public static class CharacterNeedAiThresholds
         return actor?.Stats != null
             && actor.Stats.TryGetConditionValue(condition, out float value)
             && value <= actor.Stats.GetNeedResponse(condition).emergencyStart;
+    }
+
+    public static bool IsEmergencyOrImminentPhysicalHarm(
+        CharacterActor actor,
+        CharacterCondition condition)
+    {
+        if (condition is not CharacterCondition.HUNGER
+            and not CharacterCondition.THIRST)
+        {
+            return IsEmergency(actor, condition);
+        }
+
+        if (actor?.Stats == null
+            || !actor.Stats.TryGetConditionValue(condition, out float value))
+        {
+            return false;
+        }
+
+        float projected = value - actor.Stats.GetExpectedTimedNeedLoss(
+            condition,
+            SurvivalCareCompletionHorizonSeconds);
+        return projected < 20f;
+    }
+
+    public static CharacterActionIntentKind GetEmergencyIntentKind(
+        CharacterActor actor,
+        CharacterCondition condition)
+    {
+        if (condition is CharacterCondition.HUNGER or CharacterCondition.THIRST)
+        {
+            if (actor?.Stats == null
+                || !actor.Stats.TryGetConditionValue(condition, out float value))
+            {
+                return CharacterActionIntentKind.EmergencyNeed;
+            }
+
+            if (value < 10f)
+            {
+                return CharacterActionIntentKind.EmergencyPhysicalCritical;
+            }
+
+            return value < 20f
+                ? CharacterActionIntentKind.EmergencyPhysicalActive
+                : CharacterActionIntentKind.EmergencyPhysicalImminent;
+        }
+
+        return condition switch
+        {
+            CharacterCondition.SLEEP => CharacterActionIntentKind.EmergencySleep,
+            CharacterCondition.EXCRETION => CharacterActionIntentKind.EmergencyExcretion,
+            CharacterCondition.HYGIENE => CharacterActionIntentKind.EmergencyHygiene,
+            _ => CharacterActionIntentKind.EmergencyNeed
+        };
     }
 
     public static bool IsSatisfied(

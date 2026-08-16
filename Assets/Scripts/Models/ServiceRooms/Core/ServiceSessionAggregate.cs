@@ -278,6 +278,27 @@ namespace DungeonStory.ServiceRooms
             return active.Length;
         }
 
+        public int RemoveHubModesExcept(ISet<string> liveHubIds)
+        {
+            if (liveHubIds == null)
+            {
+                throw new ArgumentNullException(nameof(liveHubIds));
+            }
+
+            string[] removedHubIds = modesByHubId.Keys
+                .Where(hubId => !liveHubIds.Contains(hubId))
+                .ToArray();
+            foreach (string hubId in removedHubIds)
+            {
+                modesByHubId.Remove(hubId);
+            }
+            if (removedHubIds.Length > 0)
+            {
+                IncrementVersion();
+            }
+            return removedHubIds.Length;
+        }
+
         public ServiceRoomsSaveData Capture() => new()
         {
             version = ServiceRoomsSaveData.CurrentVersion,

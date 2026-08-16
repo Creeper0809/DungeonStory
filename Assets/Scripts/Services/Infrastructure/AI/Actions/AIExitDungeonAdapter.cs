@@ -10,6 +10,24 @@ public class AIExitDungeon : AIActionSet
 
     public override CharacterAiActionDescriptor Descriptor => ActionDescriptor;
     public override bool RequiresDestination => false;
+    public override bool IsContinuous => true;
+
+    public override bool CanContinue(
+        CharacterActor actor,
+        AIAction runningAction,
+        out string stopReason)
+    {
+        stopReason = string.Empty;
+        if (actor != null
+            && actor.TryGetAbility(out AbilityMove move)
+            && move.HasActiveMovementRoutineForDiagnostics)
+        {
+            return true;
+        }
+
+        stopReason = "The dungeon-exit movement is no longer active.";
+        return false;
+    }
 
     public override bool CanStart(CharacterActor actor)
     {
@@ -48,7 +66,18 @@ public class AIExitDungeon : AIActionSet
 
         if (actor != null && actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = true;
+            AIBrain brain = actor.Brain;
+            AIAction failedAction = brain.bestAction;
+            brain.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.Unsupported,
+                    "exit-dungeon-movement-ability-missing",
+                    failedAction?.destination),
+                requestImmediateReplan: false);
+            brain.EndExpectedAction(
+                failedAction,
+                CharacterAiActionTerminalKind.Failed,
+                clearFailures: false);
         }
     }
 }

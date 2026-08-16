@@ -31,25 +31,25 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 26
   features:
-  - rid: 7737211905660420363
-  - rid: 7737211905660420364
-  - rid: 7737211905660420365
-  - rid: 7737211905660420366
-  - rid: 7737211905660420917
+  - rid: 7737211981818757531
+  - rid: 7737211981818757532
+  - rid: 7737211981818757533
+  - rid: 7737211981818757534
+  - rid: 7737211981818757535
   references:
     version: 2
     RefIds:
-    - rid: 7737211905660420363
+    - rid: 7737211981818757531
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:vaccination
-    - rid: 7737211905660420364
+    - rid: 7737211981818757532
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211905660420365
+    - rid: 7737211981818757533
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 0
@@ -57,12 +57,12 @@ MonoBehaviour:
         infectionReduction: 0
         detoxReduction: 0
         painReduction: 0
-    - rid: 7737211905660420366
+    - rid: 7737211981818757534
       type: {class: VaccineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         diseaseId: disease:red-fever
         doses: 1
-    - rid: 7737211905660420917
+    - rid: 7737211981818757535
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6091916

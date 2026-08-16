@@ -308,6 +308,64 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
         return after > before;
     }
 
+    /// <summary>
+    /// Command boundary for non-pointer callers such as automation and
+    /// deterministic gameplay verification.  It owns the same placement,
+    /// construction-order and grid-notification path as the mouse command.
+    /// </summary>
+    public bool TryPlaceConstructionSite(
+        BuildingSO building,
+        Vector2Int position,
+        out string message)
+    {
+        EnsureInitialized();
+        if (gridSystem == null || gridSystem.grid == null
+            || placementService == null || building == null)
+        {
+            message = "Construction placement is not ready.";
+            return false;
+        }
+
+        if (!placementService.TryPlaceConstructionSite(
+                building,
+                position,
+                out message))
+        {
+            return false;
+        }
+
+        gridSystem.NotifyGridObjectChanged();
+        return true;
+    }
+
+    /// <summary>
+    /// Production destruction command for an already resolved building.  The
+    /// caller never manipulates GameObject activation or grid occupants.
+    /// </summary>
+    public bool TryDestroyBuilding(
+        BuildableObject building,
+        out string message)
+    {
+        EnsureInitialized();
+        if (gridSystem == null || gridSystem.grid == null
+            || placementService == null || building == null)
+        {
+            message = "Building destruction is not ready.";
+            return false;
+        }
+
+        if (!placementService.TryDestroyBuilding(
+                building,
+                out _,
+                out message))
+        {
+            return false;
+        }
+
+        gridSystem.NotifyGridObjectChanged();
+        return true;
+    }
+
     public Vector3 GetMouseWorldPosSnapped()
     {
         EnsureInitialized();

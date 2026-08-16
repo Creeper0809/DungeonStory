@@ -78,6 +78,8 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
     private IDisposable primitiveSubscription;
     private IDisposable mealSubscription;
     private IDisposable deathSubscription;
+    private CharacterActor focusedVerificationActor;
+    private CharacterId focusedVerificationActorId;
     private int physicalMeals;
     private int physicalFieldMeals;
     public bool FocusedOnly { get; set; }
@@ -155,6 +157,14 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
         primitiveSubscription = events.Subscribe<CharacterPrimitiveSurvivalCompletedEvent>(
             completed =>
             {
+                if (FocusedOnly
+                    && (!focusedVerificationActorId.IsValid
+                        || !completed.CharacterId.Equals(
+                            focusedVerificationActorId)))
+                {
+                    return;
+                }
+
                 primitiveCounts.TryGetValue(completed.ActionId, out int count);
                 primitiveCounts[completed.ActionId] = count + 1;
                 primitivePhysicalItemCounts.TryGetValue(
@@ -162,10 +172,26 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                     out int physicalCount);
                 primitivePhysicalItemCounts[completed.ActionId] =
                     physicalCount + completed.PhysicalItemCount;
+                if (FocusedOnly
+                    && focusedVerificationActor?.Brain != null)
+                {
+                    // Completion is published before the primitive runner's
+                    // finally block ends its external intent. Fence new
+                    // scheduler admission in the same production callback so
+                    // a still-routine-eligible action cannot start and consume
+                    // another item before the verifier's coroutine resumes.
+                    focusedVerificationActor.Brain.availableActions =
+                        Array.Empty<AIAction>();
+                    focusedVerificationActor.SetAiPaused(true);
+                }
             });
         mealSubscription = events.Subscribe<PhysicalMealConsumedEvent>(consumed =>
         {
-            if (!consumed.Result.Success)
+            if (!consumed.Result.Success
+                || (FocusedOnly
+                    && !ReferenceEquals(
+                        consumed.Actor,
+                        focusedVerificationActor)))
             {
                 return;
             }
@@ -201,6 +227,25 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
         Check(party.Length == 3, "PARTY_SIZE", $"party={party.Length}");
         report.Add("start-environment=" + string.Join(" | ", party.Select(actor =>
             DescribeEnvironment(actor, environment, speciesEnvironment))));
+
+        if (FocusedOnly)
+        {
+            float environmentDeadline = Time.realtimeSinceStartup + 10f;
+            while (!environment.IsInitialized
+                && Time.realtimeSinceStartup < environmentDeadline)
+            {
+                yield return null;
+            }
+            Check(environment.IsInitialized,
+                "FOCUSED_SAVE_AUTHORITY_READY",
+                $"environmentInitialized={environment.IsInitialized};"
+                + $"version={environment.Version}");
+            if (!environment.IsInitialized)
+            {
+                yield break;
+            }
+        }
+
         VerifyStarterSupplies(items);
         int initialRations = CountItem(items, "food:preserved-ration");
         int initialWater = CountItem(items, "resource:clean-water");
@@ -209,13 +254,30 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
 
         if (grids.TryGetGrid(out Grid grid))
         {
+            if (FocusedOnly)
+            {
+                yield return DrainFacilityCandidateIndex(
+                    facilities,
+                    "FOCUSED_FOUNDATION_INDEX_READY");
+            }
             int meal = facilities.GetCandidates(grid, FacilityRole.Meal).Count;
             int rest = facilities.GetCandidates(grid, FacilityRole.Rest).Count;
             int toilet = facilities.GetCandidates(grid, FacilityRole.Toilet).Count;
             int hygiene = facilities.GetCandidates(grid, FacilityRole.Hygiene).Count;
-            Check(meal + rest + toilet + hygiene == 0,
-                "NO_SERVICE_FOUNDATION",
-                $"meal/rest/toilet/hygiene={meal}/{rest}/{toilet}/{hygiene}");
+            if (FocusedOnly)
+            {
+                Check(true,
+                    "FOCUSED_SERVICE_FOUNDATION_SNAPSHOT",
+                    $"meal/rest/toilet/hygiene={meal}/{rest}/{toilet}/{hygiene};"
+                    + $"indexVersion={facilities.CandidateIndexVersion};"
+                    + $"pending={facilities.HasPendingIndexBuild}");
+            }
+            else
+            {
+                Check(meal + rest + toilet + hygiene == 0,
+                    "NO_SERVICE_FOUNDATION",
+                    $"meal/rest/toilet/hygiene={meal}/{rest}/{toilet}/{hygiene}");
+            }
         }
         else
         {
@@ -228,7 +290,10 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                 party,
                 deprivationCommands,
                 items,
-                clock);
+                clock,
+                facilities,
+                scope.Container.Resolve<IDungeonGameSaveService>(),
+                scope.Container.Resolve<IDungeonGridBuildingControllerProvider>());
             yield break;
         }
 
@@ -271,6 +336,40 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
             }
             yield return null;
         }
+
+        // The exact five-day frame can publish a deprivation transition before
+        // its production self-care/breakdown owner has received a scheduler
+        // frame. Freezing time immediately turns that right-censored in-flight
+        // state into a false permanent-breakdown failure. Keep the five-day
+        // target unchanged and observe only a bounded terminal grace window.
+        float settlementStartedAt = clock.Time;
+        float settlementGameDeadline = clock.Time + 60f;
+        float settlementRealtimeDeadline = Time.realtimeSinceStartup + 5f;
+        int settlementStableFrames = 0;
+        while (settlementStableFrames < 2
+            && clock.Time < settlementGameDeadline
+            && Time.realtimeSinceStartup < settlementRealtimeDeadline
+            && party.All(actor => actor != null && !actor.IsDead))
+        {
+            Time.timeScale = VerificationTimeScale;
+            bool settled = party.All(actor =>
+                !deprivation.HasActiveBreakdown(actor)
+                && actor?.Brain?.IsExternallyDrivenActionActive != true);
+            settlementStableFrames = settled
+                ? settlementStableFrames + 1
+                : 0;
+            yield return null;
+        }
+        string breakdownSettlement = string.Join(",", party.Select(actor =>
+            $"{actor?.Identity?.PersistentId}:{deprivation.HasActiveBreakdown(actor)}"));
+        string externalSettlement = string.Join(",", party.Select(actor =>
+            $"{actor?.Identity?.PersistentId}:{actor?.Brain?.IsExternallyDrivenActionActive}"));
+        report.Add(
+            $"post-five-day-terminal-settlement="
+            + $"gameSeconds={clock.Time - settlementStartedAt:0.###};"
+            + $"stableFrames={settlementStableFrames};"
+            + $"breakdowns={breakdownSettlement};"
+            + $"external={externalSettlement}");
         Time.timeScale = 0f;
 
         bool elapsedFiveDays = clock.Time >= targetEndAt;
@@ -355,7 +454,10 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
         CharacterActor[] party,
         ICharacterDeprivationCommand deprivationCommands,
         IWorldItemStackRuntime items,
-        IGameClock clock)
+        IGameClock clock,
+        IFacilityCandidateCache facilities,
+        IDungeonGameSaveService saves,
+        IDungeonGridBuildingControllerProvider buildingControllerProvider)
     {
         CharacterActor focusedActor = party.FirstOrDefault(actor =>
             actor != null
@@ -372,6 +474,17 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
             yield break;
         }
 
+        focusedVerificationActor = focusedActor;
+        focusedVerificationActorId =
+            CharacterPersistentIdentity.Require(focusedActor);
+        Check(
+            focusedVerificationActorId.IsValid
+                && primitiveSubscription != null
+                && mealSubscription != null,
+            "FOCUSED_EVENT_IDENTITY",
+            $"actor={focusedVerificationActorId.Value}; subscriptions="
+            + $"primitive={primitiveSubscription != null}; meal={mealSubscription != null}");
+
         foreach (CharacterActor actor in party)
         {
             if (actor == null || actor.IsDead)
@@ -383,47 +496,289 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
             actor.Brain?.RequestImmediateReplan(clearFailures: true);
         }
 
-        yield return VerifyFocusedPrimitive<AIPrimitiveFieldMeal>(
-            focusedActor,
-            CharacterCondition.HUNGER,
-            FacilityRole.Meal,
-            "survival:field-meal",
-            "food:preserved-ration",
-            1,
-            items,
-            clock);
-        yield return VerifyFocusedPrimitive<AIPrimitiveFloorRest>(
-            focusedActor,
-            CharacterCondition.SLEEP,
-            FacilityRole.Rest,
-            "survival:floor-rest",
-            string.Empty,
-            0,
-            items,
-            clock);
-        yield return VerifyFocusedPrimitive<AIPrimitiveLatrine>(
-            focusedActor,
-            CharacterCondition.EXCRETION,
-            FacilityRole.Toilet,
-            "survival:primitive-latrine",
-            string.Empty,
-            0,
-            items,
-            clock);
-        yield return VerifyFocusedPrimitive<AIPrimitiveBucketWash>(
-            focusedActor,
-            CharacterCondition.HYGIENE,
-            FacilityRole.Hygiene,
-            "survival:bucket-wash",
-            "resource:clean-water",
-            1,
-            items,
-            clock);
+        bool focusedActorWasPaused = focusedActor.IsAiPaused();
+        focusedActor.SetAiPaused(true);
+        try
+        {
+            yield return VerifyFocusedPrimitive<AIPrimitiveFieldMeal>(
+                focusedActor,
+                CharacterCondition.HUNGER,
+                FacilityRole.Meal,
+                "survival:field-meal",
+                "food:preserved-ration",
+                1,
+                items,
+                clock);
+            yield return VerifyFocusedPrimitive<AIPrimitiveLatrine>(
+                focusedActor,
+                CharacterCondition.EXCRETION,
+                FacilityRole.Toilet,
+                "survival:primitive-latrine",
+                string.Empty,
+                0,
+                items,
+                clock);
+            yield return VerifyFocusedPrimitive<AIPrimitiveBucketWash>(
+                focusedActor,
+                CharacterCondition.HYGIENE,
+                FacilityRole.Hygiene,
+                "survival:bucket-wash",
+                "resource:clean-water",
+                1,
+                items,
+                clock);
+            yield return VerifyFocusedFloorRestWithFacilityTeardown(
+                focusedActor,
+                party,
+                items,
+                clock,
+                facilities,
+                saves,
+                buildingControllerProvider);
 
-        Check(physicalFieldMeals == GetCount("survival:field-meal"),
-            "FOCUSED_FIELD_MEAL_AUTHORITY",
-            $"primitive={GetCount("survival:field-meal")}; physical={physicalFieldMeals}");
-        Time.timeScale = 0f;
+            CharacterActor restoredFocusedActor = FindActiveActor(
+                focusedVerificationActorId);
+            Check(restoredFocusedActor != null,
+                "FOCUSED_FLOOR_REST_RESTORED_ACTOR",
+                restoredFocusedActor != null
+                    ? $"actor={focusedVerificationActorId.Value};lifecycle={restoredFocusedActor.CurrentLifecycleState}"
+                    : $"missing={focusedVerificationActorId.Value}");
+            if (restoredFocusedActor != null)
+            {
+                focusedActor = restoredFocusedActor;
+                focusedVerificationActor = restoredFocusedActor;
+            }
+
+            Check(physicalFieldMeals == GetCount("survival:field-meal"),
+                "FOCUSED_FIELD_MEAL_AUTHORITY",
+                $"primitive={GetCount("survival:field-meal")}; physical={physicalFieldMeals}");
+        }
+        finally
+        {
+            if (focusedActor == null)
+            {
+                focusedActor = FindActiveActor(focusedVerificationActorId);
+            }
+            if (focusedActor != null)
+            {
+                focusedActor.SetAiPaused(true);
+                EndFocusedExternalIntent(focusedActor.Brain);
+                focusedActor.Brain?.StopCurrentActionForReplan(
+                    "primitive-focused-verifier-finalize");
+                focusedActor.GetAbility<AbilityMove>()?.CancelActiveMovement();
+                focusedActor.SetAiPaused(focusedActorWasPaused);
+            }
+            focusedVerificationActor = null;
+            focusedVerificationActorId = default;
+            Time.timeScale = 0f;
+        }
+    }
+
+    private IEnumerator VerifyFocusedFloorRestWithFacilityTeardown(
+        CharacterActor actor,
+        IReadOnlyList<CharacterActor> party,
+        IWorldItemStackRuntime items,
+        IGameClock clock,
+        IFacilityCandidateCache facilities,
+        IDungeonGameSaveService saves,
+        IDungeonGridBuildingControllerProvider buildingControllerProvider)
+    {
+        const string prefix = "FOCUSED_FLOOR_REST";
+        Grid grid = null;
+        bool hasGrid = actor?.Brain != null
+            && actor.Brain.TryGetRuntimeGrid(out grid);
+        if (actor?.Brain == null
+            || facilities == null
+            || saves == null
+            || buildingControllerProvider?.Controller == null
+            || !hasGrid)
+        {
+            Check(false,
+                prefix + "_ROW_FIXTURE_READY",
+                $"actor={actor != null};brain={actor?.Brain != null};"
+                + $"facilities={facilities != null};saves={saves != null};"
+                + $"controller={buildingControllerProvider?.Controller != null};grid={grid != null}");
+            yield break;
+        }
+
+        Dictionary<string, bool> pausedByCharacterId = new(StringComparer.Ordinal);
+        foreach (CharacterActor member in party ?? Array.Empty<CharacterActor>())
+        {
+            if (member == null
+                || !CharacterPersistentIdentity.TryGet(member, out CharacterId memberId))
+            {
+                continue;
+            }
+
+            pausedByCharacterId[memberId.Value] = member.IsAiPaused();
+            member.SetAiPaused(true);
+            EndFocusedExternalIntent(member.Brain);
+            member.Brain?.StopCurrentActionForReplan(
+                "primitive-floor-rest-fixture-quiesce");
+            member.GetAbility<AbilityMove>()?.CancelActiveMovement();
+        }
+
+        float settleDeadline = Time.realtimeSinceStartup + 4f;
+        int stableFrames = 0;
+        while (Time.realtimeSinceStartup < settleDeadline && stableFrames < 2)
+        {
+            bool settled = pausedByCharacterId.Keys.All(characterId =>
+            {
+                CharacterActor member = FindActiveActor(new CharacterId(characterId));
+                return member?.Brain != null
+                    && !member.Brain.HasRunningAction
+                    && !member.Brain.IsExternallyDrivenActionActive
+                    && member.GetAbility<AbilityMove>()
+                        ?.HasActiveMovementRoutineForDiagnostics != true;
+            });
+            stableFrames = settled ? stableFrames + 1 : 0;
+            yield return null;
+        }
+        Check(stableFrames >= 2,
+            prefix + "_PARTY_QUIESCED",
+            $"stableFrames={stableFrames};party={pausedByCharacterId.Count}");
+
+        yield return DrainFacilityCandidateIndex(
+            facilities,
+            prefix + "_BASELINE_INDEX_READY");
+        List<string> baselineRestFacilities = SnapshotFacilityIdentity(
+            facilities.GetCandidates(grid, FacilityRole.Rest));
+        Check(baselineRestFacilities.Count > 0,
+            prefix + "_AUTHORED_REST_PRESENT",
+            baselineRestFacilities.Count > 0
+                ? string.Join(" | ", baselineRestFacilities)
+                : "no indexed Rest facility to isolate");
+        if (baselineRestFacilities.Count == 0 || stableFrames < 2)
+        {
+            RestorePausedStates(pausedByCharacterId);
+            yield break;
+        }
+
+        DungeonGameSaveData baseline = null;
+        DungeonGameRestoreReport restoreReport = null;
+        bool restored = false;
+        bool teardownSucceeded = false;
+        try
+        {
+            baseline = saves.Capture();
+            Check(baseline != null,
+                prefix + "_BASELINE_CAPTURED",
+                baseline != null
+                    ? $"sections={baseline.sections?.Count ?? 0};facilities={baselineRestFacilities.Count}"
+                    : "save capture returned null");
+            if (baseline != null)
+            {
+                List<BuildableObject> restFacilities = facilities
+                    .GetCandidates(grid, FacilityRole.Rest)
+                    .Where(candidate => candidate != null && !candidate.isDestroy)
+                    .Distinct()
+                    .OrderBy(candidate => candidate.RequirePersistentInstanceId().Value,
+                        StringComparer.Ordinal)
+                    .ToList();
+                List<string> teardownResults = new(restFacilities.Count);
+                teardownSucceeded = true;
+                foreach (BuildableObject restFacility in restFacilities)
+                {
+                    string facilityId = restFacility.RequirePersistentInstanceId().Value;
+                    Vector2Int position = restFacility.centerPos;
+                    bool destroyed = buildingControllerProvider.Controller.TryDestroyBuilding(
+                        restFacility,
+                        out string message);
+                    teardownResults.Add(
+                        $"{facilityId}@{position}:destroyed={destroyed}:message={message}");
+                    teardownSucceeded &= destroyed;
+                }
+                Check(teardownSucceeded,
+                    prefix + "_AUTHORED_REST_TEARDOWN",
+                    string.Join(" | ", teardownResults));
+
+                yield return DrainFacilityCandidateIndex(
+                    facilities,
+                    prefix + "_TEARDOWN_INDEX_READY");
+                IReadOnlyList<BuildableObject> remainingRest =
+                    facilities.GetCandidates(grid, FacilityRole.Rest);
+                bool noRestRemains = remainingRest.All(candidate =>
+                    candidate == null || candidate.isDestroy);
+                Check(teardownSucceeded && noRestRemains,
+                    prefix + "_NO_REST_AFTER_TEARDOWN",
+                    $"teardown={teardownSucceeded};remaining="
+                    + string.Join(" | ", SnapshotFacilityIdentity(remainingRest)));
+
+                if (teardownSucceeded && noRestRemains)
+                {
+                    yield return VerifyFocusedPrimitive<AIPrimitiveFloorRest>(
+                        actor,
+                        CharacterCondition.SLEEP,
+                        FacilityRole.Rest,
+                        "survival:floor-rest",
+                        string.Empty,
+                        0,
+                        items,
+                        clock);
+                }
+            }
+        }
+        finally
+        {
+            try
+            {
+                if (baseline != null)
+                {
+                    restored = saves.TryRestore(
+                        CloneSave(baseline),
+                        out restoreReport);
+                }
+            }
+            finally
+            {
+                // This finally also covers capture/teardown/action exceptions.
+                // Full restore can replace CharacterActor instances, so resolve
+                // every pause owner again by persistent identity.
+                RestorePausedStates(pausedByCharacterId);
+            }
+        }
+
+        Check(restored,
+            prefix + "_BASELINE_RESTORE",
+            restoreReport?.ToString() ?? "restore was not attempted");
+        if (!restored)
+        {
+            RestorePausedStates(pausedByCharacterId);
+            yield break;
+        }
+
+        CharacterActor restoredActor = FindActiveActor(focusedVerificationActorId);
+        focusedVerificationActor = restoredActor;
+        foreach (string characterId in pausedByCharacterId.Keys)
+        {
+            FindActiveActor(new CharacterId(characterId))?.SetAiPaused(true);
+        }
+
+        yield return null;
+        yield return DrainFacilityCandidateIndex(
+            facilities,
+            prefix + "_RESTORED_INDEX_READY");
+        if (restoredActor?.Brain != null
+            && restoredActor.Brain.TryGetRuntimeGrid(out Grid restoredGrid))
+        {
+            List<string> restoredRestFacilities = SnapshotFacilityIdentity(
+                facilities.GetCandidates(restoredGrid, FacilityRole.Rest));
+            Check(baselineRestFacilities.SequenceEqual(
+                    restoredRestFacilities,
+                    StringComparer.Ordinal),
+                prefix + "_EXACT_FACILITY_RESTORE",
+                $"before=[{string.Join(" | ", baselineRestFacilities)}];"
+                + $"after=[{string.Join(" | ", restoredRestFacilities)}]");
+        }
+        else
+        {
+            Check(false,
+                prefix + "_EXACT_FACILITY_RESTORE",
+                $"restoredActor={restoredActor != null};grid=False");
+        }
+
+        RestorePausedStates(pausedByCharacterId);
+        focusedVerificationActor = restoredActor;
     }
 
     private IEnumerator VerifyFocusedPrimitive<TAction>(
@@ -447,33 +802,9 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
             yield break;
         }
 
-        float previousActionDeadline = Time.realtimeSinceStartup + 2f;
-        while (actor.Brain.IsExternallyDrivenActionActive
-            && Time.realtimeSinceStartup < previousActionDeadline)
-        {
-            yield return null;
-        }
-        Check(!actor.Brain.IsExternallyDrivenActionActive,
-            checkPrefix + "_PREVIOUS_ACTION_SETTLED",
-            actor.Brain.IsExternallyDrivenActionActive
-                ? actor.Brain.CurrentActionDebugLabel
-                : "settled");
-        if (actor.Brain.IsExternallyDrivenActionActive)
-        {
-            yield break;
-        }
-
-        ResetNeeds(actor);
-        CharacterNeedResponseProfile response = actor.Stats.GetNeedResponse(targetNeed);
-        SetNeed(actor, targetNeed, Mathf.Max(1f, response.emergencyStart - 1f));
-        float needBefore = GetNeed(actor, targetNeed);
-        int itemBefore = string.IsNullOrWhiteSpace(consumedItemId)
-            ? 0
-            : CountItem(items, consumedItemId);
-        int countBefore = GetCount(actionId);
-        int physicalItemCountBefore = GetPrimitivePhysicalItemCount(actionId);
-
         AIAction[] originalActions = actor.Brain.availableActions;
+        bool actorWasPaused = actor.IsAiPaused();
+        AbilityMove move = actor.GetAbility<AbilityMove>();
         AIAction focusedAction = originalActions?
             .FirstOrDefault(candidate => candidate?.actionset is TAction);
         Check(focusedAction != null,
@@ -483,71 +814,324 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
         {
             yield break;
         }
-
-        actor.Brain.availableActions = new[] { focusedAction };
-        bool canStart = focusedAction.actionset.CanStart(actor);
-        GridPathSearchResult authoredFacilitySearch =
-            actor.Brain.GetPathSearch(actor);
-        bool authoredFacilityPresent = authoredFacilitySearch != null
-            && FacilityCandidateScorer.HasCandidate(
-                actor,
-                authoredFacilitySearch,
-                authoredFacilityRole);
-        if (authoredFacilityPresent)
+        actor.SetAiPaused(true);
+        try
         {
-            Check(!canStart,
-                checkPrefix + "_SUPPRESSED_BY_FACILITY",
-                $"canStart={canStart}; role={authoredFacilityRole}; need={needBefore:0.##}");
+            yield return SettleFocusedActor(
+                actor,
+                move,
+                checkPrefix + "_PREVIOUS_ACTION_SETTLED");
+            if (actor.Brain.HasRunningAction
+                || actor.Brain.IsExternallyDrivenActionActive
+                || move?.HasActiveMovementRoutineForDiagnostics == true)
+            {
+                yield break;
+            }
+
+            ResetNeeds(actor);
+            CharacterNeedResponseProfile response =
+                actor.Stats.GetNeedResponse(targetNeed);
+            SetNeed(
+                actor,
+                targetNeed,
+                Mathf.Max(1f, response.emergencyStart - 1f));
+            float needBefore = GetNeed(actor, targetNeed);
+            int itemBefore = string.IsNullOrWhiteSpace(consumedItemId)
+                ? 0
+                : CountItem(items, consumedItemId);
+            int countBefore = GetCount(actionId);
+            int physicalItemCountBefore =
+                GetPrimitivePhysicalItemCount(actionId);
+
+            actor.Brain.availableActions = new[] { focusedAction };
+            GridPathSearchResult authoredFacilitySearch = null;
+            float pathDeadline = Time.realtimeSinceStartup + 2f;
+            while (authoredFacilitySearch == null
+                && Time.realtimeSinceStartup < pathDeadline)
+            {
+                authoredFacilitySearch = actor.Brain.GetPathSearch(actor);
+                if (authoredFacilitySearch == null)
+                    yield return null;
+            }
+
+            bool canStart = focusedAction.actionset.CanStart(actor);
+            bool authoredFacilityPresent = authoredFacilitySearch != null
+                && FacilityCandidateScorer.HasCandidate(
+                    actor,
+                    authoredFacilitySearch,
+                    authoredFacilityRole);
+            if (authoredFacilityPresent)
+            {
+                Check(!canStart,
+                    checkPrefix + "_SUPPRESSED_BY_FACILITY",
+                    $"canStart={canStart}; role={authoredFacilityRole}; need={needBefore:0.##}");
+                yield break;
+            }
+
+            bool preferred =
+                actor.Brain.PreferActionOnNextDecision<TAction>(180f);
+            Check(canStart && preferred,
+                checkPrefix + "_AI_ELIGIBLE",
+                $"canStart={canStart}; preferred={preferred}; need={needBefore:0.##}; "
+                    + $"path={(authoredFacilitySearch != null ? "ready" : "missing")}");
+            if (!canStart || !preferred)
+                yield break;
+
+            long startCountBefore = actor.Brain.RuntimeActionStartCount;
+            int externalTransitionsBefore =
+                actor.Brain.ExternalIntentTransitionCount;
+            // SetAiPaused(false) is the sole scheduler wake. The action list,
+            // need state and preference were all committed atomically while
+            // paused, so no unrelated action can win an intermediate tick.
+            actor.SetAiPaused(false);
+
+            Time.timeScale = VerificationTimeScale;
+            float deadline = clock.Time + 240f;
+            float realtimeDeadline = Time.realtimeSinceStartup + 15f;
+            while (GetCount(actionId) == countBefore
+                && clock.Time < deadline
+                && Time.realtimeSinceStartup < realtimeDeadline
+                && actor != null
+                && !actor.IsDead)
+            {
+                Time.timeScale = VerificationTimeScale;
+                yield return null;
+            }
+
+            // The completion callback pauses new scheduler admission in the
+            // same frame. The primitive runner still owns its coroutine and
+            // executes its finally block, so give that production owner one
+            // frame to end the external intent before clearing the completed
+            // Brain action and any movement presentation it left behind.
+            yield return null;
+            bool externalEndedNaturally =
+                !actor.Brain.IsExternallyDrivenActionActive;
+            actor.Brain.StopCurrentActionForReplan(
+                "primitive-focused-completed-event");
+            move?.CancelActiveMovement();
+            yield return WaitForFocusedTerminal(
+                actor,
+                move,
+                checkPrefix + "_TERMINAL_SETTLED");
+            // The primitive completion event is published before the owning
+            // scheduler action consumes its terminal frame. Pausing in that
+            // event frame can freeze HasRunningAction after the external
+            // intent has already ended. Keep the isolated single-action
+            // catalog running until the production terminal is observed, then
+            // fence the actor before inspecting conservation state.
+            actor.SetAiPaused(true);
+
+            bool productionStarted =
+                actor.Brain.RuntimeActionStartCount > startCountBefore
+                && actor.Brain.ExternalIntentTransitionCount
+                    > externalTransitionsBefore;
+            Check(
+                productionStarted && externalEndedNaturally,
+                checkPrefix + "_PRODUCTION_STARTED",
+                $"actionStarts={startCountBefore}->{actor.Brain.RuntimeActionStartCount}; "
+                + $"externalTransitions={externalTransitionsBefore}->"
+                + actor.Brain.ExternalIntentTransitionCount
+                + $"; externalEndedNaturally={externalEndedNaturally}");
+
+            float needAfter = GetNeed(actor, targetNeed);
+            int itemAfter = string.IsNullOrWhiteSpace(consumedItemId)
+                ? 0
+                : CountItem(items, consumedItemId);
+            bool completed = GetCount(actionId) == countBefore + 1;
+            int eventPhysicalItemCost =
+                GetPrimitivePhysicalItemCount(actionId)
+                - physicalItemCountBefore;
+            bool itemConserved = eventPhysicalItemCost == expectedItemCost
+                && (expectedItemCost == 0
+                    || itemAfter <= itemBefore - expectedItemCost);
+            Check(completed && needAfter > needBefore && itemConserved,
+                checkPrefix + "_COMPLETED",
+                $"events={countBefore}->{GetCount(actionId)}; "
+                    + $"need={needBefore:0.##}->{needAfter:0.##}; "
+                    + $"item={itemBefore}->{itemAfter}; expectedCost={expectedItemCost}; "
+                    + $"eventPhysicalCost={eventPhysicalItemCost}; "
+                    + $"action={actor.Brain.CurrentActionDebugLabel}");
+        }
+        finally
+        {
+            actor.SetAiPaused(true);
+            EndFocusedExternalIntent(actor.Brain);
+            actor.Brain.StopCurrentActionForReplan(
+                "primitive-focused-verifier-row-cleanup");
+            move?.CancelActiveMovement();
             actor.Brain.availableActions = originalActions;
-            actor.Brain.RequestImmediateReplan(clearFailures: true);
+            actor.SetAiPaused(actorWasPaused);
+        }
+    }
+
+    private IEnumerator SettleFocusedActor(
+        CharacterActor actor,
+        AbilityMove move,
+        string checkId)
+    {
+        actor.SetAiPaused(true);
+        EndFocusedExternalIntent(actor.Brain);
+        actor.Brain.StopCurrentActionForReplan(
+            "primitive-focused-verifier-row-setup");
+        move?.CancelActiveMovement();
+
+        float deadline = Time.realtimeSinceStartup + 3f;
+        int stableFrames = 0;
+        while (Time.realtimeSinceStartup < deadline && stableFrames < 2)
+        {
+            bool settled = !actor.Brain.HasRunningAction
+                && !actor.Brain.IsExternallyDrivenActionActive
+                && move?.HasActiveMovementRoutineForDiagnostics != true;
+            stableFrames = settled ? stableFrames + 1 : 0;
+            yield return null;
+        }
+
+        bool finalSettled = !actor.Brain.HasRunningAction
+            && !actor.Brain.IsExternallyDrivenActionActive
+            && move?.HasActiveMovementRoutineForDiagnostics != true;
+        Check(
+            finalSettled && stableFrames >= 2,
+            checkId,
+            $"running={actor.Brain.HasRunningAction}; "
+            + $"external={actor.Brain.IsExternallyDrivenActionActive}; "
+            + $"movement={move?.HasActiveMovementRoutineForDiagnostics == true}; "
+            + $"stableFrames={stableFrames}; action={actor.Brain.CurrentActionDebugLabel}");
+    }
+
+    private IEnumerator WaitForFocusedTerminal(
+        CharacterActor actor,
+        AbilityMove move,
+        string checkId)
+    {
+        float deadline = Time.realtimeSinceStartup + 3f;
+        int stableFrames = 0;
+        while (Time.realtimeSinceStartup < deadline && stableFrames < 2)
+        {
+            bool settled = !actor.Brain.HasRunningAction
+                && !actor.Brain.IsExternallyDrivenActionActive
+                && move?.HasActiveMovementRoutineForDiagnostics != true;
+            stableFrames = settled ? stableFrames + 1 : 0;
+            yield return null;
+        }
+
+        bool finalSettled = !actor.Brain.HasRunningAction
+            && !actor.Brain.IsExternallyDrivenActionActive
+            && move?.HasActiveMovementRoutineForDiagnostics != true;
+        Check(
+            finalSettled && stableFrames >= 2,
+            checkId,
+            $"running={actor.Brain.HasRunningAction}; "
+            + $"external={actor.Brain.IsExternallyDrivenActionActive}; "
+            + $"movement={move?.HasActiveMovementRoutineForDiagnostics == true}; "
+            + $"stableFrames={stableFrames}; action={actor.Brain.CurrentActionDebugLabel}");
+    }
+
+    private static void EndFocusedExternalIntent(AIBrain brain)
+    {
+        if (brain?.IsExternallyDrivenActionActive != true)
+            return;
+
+        string ownerId = brain.ExternalIntentOwnerId;
+        if (!string.IsNullOrWhiteSpace(ownerId))
+            brain.EndExternallyDrivenAction(ownerId, clearFailures: false);
+    }
+
+    private IEnumerator DrainFacilityCandidateIndex(
+        IFacilityCandidateCache facilities,
+        string checkId)
+    {
+        if (facilities == null)
+        {
+            Check(false, checkId, "facility candidate cache missing");
             yield break;
         }
 
-        bool preferred = actor.Brain.PreferActionOnNextDecision<TAction>(180f);
-        Check(canStart && preferred,
-            checkPrefix + "_AI_ELIGIBLE",
-            $"canStart={canStart}; preferred={preferred}; need={needBefore:0.##}");
-        actor.Brain.RequestImmediateReplan(clearFailures: true);
-
-        Time.timeScale = VerificationTimeScale;
-        float deadline = clock.Time + 240f;
-        float realtimeDeadline = Time.realtimeSinceStartup + 15f;
-        while (GetCount(actionId) == countBefore
-            && clock.Time < deadline
-            && Time.realtimeSinceStartup < realtimeDeadline
-            && actor != null
-            && !actor.IsDead)
+        int versionBefore = facilities.CandidateIndexVersion;
+        int processed = 0;
+        int passes = 0;
+        int stableFrames = 0;
+        int observedVersion = versionBefore;
+        float deadline = Time.realtimeSinceStartup + 5f;
+        while (stableFrames < 2 && Time.realtimeSinceStartup < deadline)
         {
-            Time.timeScale = VerificationTimeScale;
+            if (facilities.HasPendingIndexBuild)
+            {
+                processed += facilities.AdvanceIndex(1.0);
+                passes++;
+            }
+
+            int currentVersion = facilities.CandidateIndexVersion;
+            bool stable = !facilities.HasPendingIndexBuild
+                && currentVersion == observedVersion;
+            stableFrames = stable ? stableFrames + 1 : 0;
+            observedVersion = currentVersion;
             yield return null;
         }
 
-        float externalSettleDeadline = Time.realtimeSinceStartup + 1f;
-        while (actor.Brain.IsExternallyDrivenActionActive
-            && Time.realtimeSinceStartup < externalSettleDeadline)
+        Check(!facilities.HasPendingIndexBuild && stableFrames >= 2,
+            checkId,
+            $"pending={facilities.HasPendingIndexBuild};passes={passes};"
+            + $"processed={processed};stableFrames={stableFrames};"
+            + $"version={versionBefore}->"
+            + facilities.CandidateIndexVersion);
+    }
+
+    private static List<string> SnapshotFacilityIdentity(
+        IEnumerable<BuildableObject> facilities)
+    {
+        return (facilities ?? Array.Empty<BuildableObject>())
+            .Where(candidate => candidate != null && !candidate.isDestroy)
+            .Select(candidate =>
+            {
+                string persistentId = candidate
+                    .RequirePersistentInstanceId().Value;
+                int definitionId = candidate.BuildingData != null
+                    ? candidate.BuildingData.id
+                    : -1;
+                return $"{persistentId}:definition={definitionId}:"
+                    + $"position={candidate.centerPos.x},{candidate.centerPos.y}";
+            })
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    private static CharacterActor FindActiveActor(CharacterId characterId)
+    {
+        if (!characterId.IsValid)
         {
-            yield return null;
+            return null;
         }
 
-        actor.Brain.availableActions = originalActions;
-        actor.Brain.RequestImmediateReplan(clearFailures: true);
-        float needAfter = GetNeed(actor, targetNeed);
-        int itemAfter = string.IsNullOrWhiteSpace(consumedItemId)
-            ? 0
-            : CountItem(items, consumedItemId);
-        bool completed = GetCount(actionId) == countBefore + 1;
-        int eventPhysicalItemCost =
-            GetPrimitivePhysicalItemCount(actionId) - physicalItemCountBefore;
-        bool itemConserved = eventPhysicalItemCost == expectedItemCost
-            && (expectedItemCost == 0
-                || itemAfter <= itemBefore - expectedItemCost);
-        Check(completed && needAfter > needBefore && itemConserved,
-            checkPrefix + "_COMPLETED",
-            $"events={countBefore}->{GetCount(actionId)}; "
-                + $"need={needBefore:0.##}->{needAfter:0.##}; "
-                + $"item={itemBefore}->{itemAfter}; expectedCost={expectedItemCost}; "
-                + $"eventPhysicalCost={eventPhysicalItemCost}; "
-                + $"action={actor.Brain.CurrentActionDebugLabel}");
+        return UnityEngine.Object.FindObjectsByType<CharacterActor>(
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None)
+            .FirstOrDefault(candidate => candidate != null
+                && !candidate.IsDead
+                && candidate.CurrentLifecycleState == CharacterLifecycleState.Active
+                && CharacterPersistentIdentity.TryGet(candidate, out CharacterId candidateId)
+                && candidateId.Equals(characterId));
+    }
+
+    private static void RestorePausedStates(
+        IReadOnlyDictionary<string, bool> pausedByCharacterId)
+    {
+        if (pausedByCharacterId == null)
+        {
+            return;
+        }
+
+        foreach (KeyValuePair<string, bool> pair in pausedByCharacterId)
+        {
+            CharacterActor actor = FindActiveActor(new CharacterId(pair.Key));
+            actor?.SetAiPaused(pair.Value);
+        }
+    }
+
+    private static DungeonGameSaveData CloneSave(DungeonGameSaveData source)
+    {
+        return source != null
+            ? JsonUtility.FromJson<DungeonGameSaveData>(JsonUtility.ToJson(source))
+            : null;
     }
 
     private void CompleteVerification()

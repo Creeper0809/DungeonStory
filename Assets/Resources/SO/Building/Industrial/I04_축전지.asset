@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211905652294592
-    - rid: 7737211905652294593
-    - rid: 7737211905652294594
-    - rid: 7737211905652294595
-    - rid: 7737211905652294596
+    - rid: 7737211981816660954
+    - rid: 7737211981816660955
+    - rid: 7737211981816660956
+    - rid: 7737211981816660957
+    - rid: 7737211981816660958
   width: 2
   height: 1
   layer: 1
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211905652294592
+    - rid: 7737211981816660954
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I04
-    - rid: 7737211905652294593
+    - rid: 7737211981816660955
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,10 +87,11 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211905652294594
+    - rid: 7737211981816660956
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
         constructionWorkRequired: 364
         repairWorkRequired: 110
         cleanWorkRequired: 18
@@ -116,14 +117,14 @@ MonoBehaviour:
           amount: 3
         - itemId: component:precision-parts
           amount: 1
-    - rid: 7737211905652294595
+    - rid: 7737211981816660957
       type: {class: BuildingPowerStorageAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerStorageAbility
         capacity: 240
         transferPerSecond: 30
         efficiency: 0.92
-    - rid: 7737211905652294596
+    - rid: 7737211981816660958
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

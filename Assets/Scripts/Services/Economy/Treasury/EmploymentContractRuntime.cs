@@ -35,6 +35,7 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
     private const int MercenaryLevelWage = 4;
 
     private readonly ICharacterWorldQuery characterWorld;
+    private readonly ICharacterWorldPersistenceIdentityQuery persistentCharacters;
     private readonly ICombatEquipmentRuntime equipmentRuntime;
     private readonly IGameMoneyAccount money;
     private readonly IGameEventBus eventBus;
@@ -47,6 +48,7 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
 
     public EmploymentContractRuntime(
         ICharacterWorldQuery characterWorld,
+        ICharacterWorldPersistenceIdentityQuery persistentCharacters,
         ICombatEquipmentRuntime equipmentRuntime,
         IGameMoneyAccount money,
         IGameEventBus eventBus,
@@ -54,6 +56,8 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
     {
         this.characterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));
+        this.persistentCharacters = persistentCharacters
+            ?? throw new ArgumentNullException(nameof(persistentCharacters));
         this.equipmentRuntime = equipmentRuntime
             ?? throw new ArgumentNullException(nameof(equipmentRuntime));
         this.money = money
@@ -347,6 +351,25 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
 
     private void EnsureCurrentStaff(TreasuryEconomyAggregateState target)
     {
+        HashSet<string> persistentIds = new(
+            (persistentCharacters.GetPersistentCharacterIds()
+                ?? Array.Empty<CharacterId>())
+            .Select(id => id.Value)
+            .Where(id => id.Length > 0),
+            StringComparer.Ordinal);
+        foreach (string staleId in target.Wages.Keys
+                     .Where(id => !persistentIds.Contains(id))
+                     .ToArray())
+        {
+            target.Wages.Remove(staleId);
+        }
+        foreach (string staleId in target.Mercenaries.Keys
+                     .Where(id => !persistentIds.Contains(id))
+                     .ToArray())
+        {
+            target.Mercenaries.Remove(staleId);
+        }
+
         foreach (CharacterActor actor in characterWorld.Characters
                      ?? Array.Empty<CharacterActor>())
         {
@@ -360,6 +383,7 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
 
             string characterId = NormalizeId(identity.PersistentId);
             if (characterId.Length == 0
+                || !persistentIds.Contains(characterId)
                 || target.Wages.ContainsKey(characterId))
             {
                 continue;

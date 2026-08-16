@@ -179,8 +179,10 @@ public sealed class ItemQuantityReservationService :
     IItemQuantityReservationService,
     IItemQuantityLeaseMutation,
     IItemQuantityReservationPersistence,
-    IItemReservationMutationGate
+    IItemReservationMutationGate,
+    IDungeonRestoreTransactionParticipant
 {
+    private const string RestoreParticipantId = "210.world.item-quantity-reservations";
     private const double DefaultLeaseSeconds = 15d;
     private const double MaximumLeaseSeconds = 45d;
 
@@ -199,9 +201,12 @@ public sealed class ItemQuantityReservationService :
     private int captureBarrierDepth;
     private int restoreBarrierDepth;
     private int blockedReservationAttemptsDuringRestore;
+    private ReservationTransactionSnapshot restoreTransactionSnapshot;
 
     public ItemReservationRestoreDiagnostics LastRestoreDiagnostics { get; private set; } =
         new();
+
+    public string ParticipantId => RestoreParticipantId;
 
     public ItemQuantityReservationService(
         WorldItemRepository repository,
@@ -212,6 +217,77 @@ public sealed class ItemQuantityReservationService :
             ?? throw new ArgumentNullException(nameof(repository));
         this.markers = markers ?? throw new ArgumentNullException(nameof(markers));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.repository.StackRemoving += OnRepositoryStackRemoving;
+    }
+
+    public void BeginRestoreCandidate()
+    {
+        if (restoreTransactionSnapshot != null)
+        {
+            throw new InvalidOperationException(
+                "Item quantity reservation restore is already active.");
+        }
+
+        restoreTransactionSnapshot = new ReservationTransactionSnapshot(
+            leaseSequence,
+            blockedReservationAttemptsDuringRestore,
+            CloneRestoreDiagnostics(LastRestoreDiagnostics),
+            leasesById.Values
+                .Where(lease => lease != null)
+                .OrderBy(lease => lease.leaseId, StringComparer.Ordinal)
+                .Select(lease => lease.Clone())
+                .ToArray());
+    }
+
+    public void PublishRestoreCandidate()
+    {
+        if (restoreTransactionSnapshot == null)
+        {
+            throw new InvalidOperationException(
+                "Item quantity reservation restore is not active.");
+        }
+    }
+
+    public void RollbackPublishedRestoreCandidate()
+    {
+        RestoreTransactionSnapshot();
+    }
+
+    public void CompleteRestoreCandidate()
+    {
+        restoreTransactionSnapshot = null;
+    }
+
+    public void DiscardRestoreCandidate()
+    {
+        RestoreTransactionSnapshot();
+    }
+
+    private void OnRepositoryStackRemoving(string stackId)
+    {
+        string normalized = stackId?.Trim() ?? string.Empty;
+        if (normalized.Length == 0
+            || !leaseIdsByStackId.TryGetValue(
+                normalized,
+                out HashSet<string> leaseIds))
+        {
+            return;
+        }
+
+        string[] affectedLeaseIds = leaseIds
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+        foreach (string leaseId in affectedLeaseIds)
+        {
+            Release(leaseId, ItemReservationReleaseReason.StackInvalidated);
+        }
+
+        if (leaseIdsByStackId.ContainsKey(normalized)
+            || GetCachedReserved(normalized) != 0)
+        {
+            throw new InvalidOperationException(
+                $"Removing physical stack '{normalized}' left an active quantity reservation.");
+        }
     }
 
     public bool IsCaptureBarrierActive => captureBarrierDepth > 0;
@@ -459,6 +535,24 @@ public sealed class ItemQuantityReservationService :
             failure = new DomainFailure(FailureCode.ItemReservationLeaseExpired, id);
             return false;
         }
+        if (double.IsNaN(requestedUntilGameSeconds)
+            || double.IsInfinity(requestedUntilGameSeconds)
+            || requestedUntilGameSeconds < now)
+        {
+            failure = new DomainFailure(
+                FailureCode.ItemReservationRequestInvalid,
+                id,
+                requestedUntilGameSeconds.ToString("R"));
+            return false;
+        }
+
+        // Renewal is a heartbeat from the live owning operation. Keep a bounded
+        // idle window while allowing an operation that is still making progress
+        // to move that window forward. The former immutable cap expired valid
+        // long routes even though their owner was alive.
+        lease.maximumExpiresAtGameSeconds = Math.Max(
+            lease.maximumExpiresAtGameSeconds,
+            now + MaximumLeaseSeconds);
         lease.expiresAtGameSeconds = Math.Min(
             lease.maximumExpiresAtGameSeconds,
             Math.Max(lease.expiresAtGameSeconds, requestedUntilGameSeconds));
@@ -1077,6 +1171,65 @@ public sealed class ItemQuantityReservationService :
         }
         foreach (HashSet<string> stackLeases in leaseIdsByStackId.Values)
             stackLeases.Remove(lease.leaseId);
+    }
+
+    private void RestoreTransactionSnapshot()
+    {
+        ReservationTransactionSnapshot snapshot = restoreTransactionSnapshot;
+        restoreTransactionSnapshot = null;
+        if (snapshot == null)
+            return;
+
+        leasesById.Clear();
+        leasesByOwnerOperationId.Clear();
+        leaseIdsByStackId.Clear();
+        reservedQuantityByStackId.Clear();
+        leaseSequence = snapshot.LeaseSequence;
+        blockedReservationAttemptsDuringRestore =
+            snapshot.BlockedReservationAttemptsDuringRestore;
+        LastRestoreDiagnostics = CloneRestoreDiagnostics(snapshot.Diagnostics);
+
+        foreach (ItemQuantityLease lease in snapshot.Leases)
+        {
+            RegisterLease(lease.Clone());
+        }
+    }
+
+    private static ItemReservationRestoreDiagnostics CloneRestoreDiagnostics(
+        ItemReservationRestoreDiagnostics source)
+    {
+        ItemReservationRestoreDiagnostics value = source ?? new();
+        return new ItemReservationRestoreDiagnostics
+        {
+            GrandfatherOperationCount = value.GrandfatherOperationCount,
+            RestoredLeaseCount = value.RestoredLeaseCount,
+            ClaimedStackCount = value.ClaimedStackCount,
+            RestoredQuantity = value.RestoredQuantity,
+            HintlessOperationCount = value.HintlessOperationCount,
+            PriorityReplanCount = value.PriorityReplanCount,
+            BlockedReservationAttempts = value.BlockedReservationAttempts
+        };
+    }
+
+    private sealed class ReservationTransactionSnapshot
+    {
+        public ReservationTransactionSnapshot(
+            long leaseSequence,
+            int blockedReservationAttemptsDuringRestore,
+            ItemReservationRestoreDiagnostics diagnostics,
+            IReadOnlyList<ItemQuantityLease> leases)
+        {
+            LeaseSequence = leaseSequence;
+            BlockedReservationAttemptsDuringRestore =
+                blockedReservationAttemptsDuringRestore;
+            Diagnostics = diagnostics ?? new ItemReservationRestoreDiagnostics();
+            Leases = leases ?? Array.Empty<ItemQuantityLease>();
+        }
+
+        public long LeaseSequence { get; }
+        public int BlockedReservationAttemptsDuringRestore { get; }
+        public ItemReservationRestoreDiagnostics Diagnostics { get; }
+        public IReadOnlyList<ItemQuantityLease> Leases { get; }
     }
 
     private sealed class MutationGateScope : IDisposable

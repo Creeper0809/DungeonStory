@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 43
   features:
-  - rid: 7737211905658585214
-  - rid: 7737211905658585215
-  - rid: 7737211905660420486
+  - rid: 7737211981804077883
+  - rid: 7737211981804077884
+  - rid: 7737211981804077885
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585214
+    - rid: 7737211981804077883
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        requiredResearchId: research:equipment:pressure-barrels
-    - rid: 7737211905658585215
+        requiredResearchId: research:equipment:blast-protection
+    - rid: 7737211981804077884
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 128
         sharedIntermediate: 0
-    - rid: 7737211905660420486
+    - rid: 7737211981804077885
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6041692

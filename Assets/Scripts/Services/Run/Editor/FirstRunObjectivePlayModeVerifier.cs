@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.UI;
@@ -31,6 +32,9 @@ public static class FirstRunObjectivePlayModeVerifier
     [MenuItem("DungeonStory/Debug/QA/Request First Run Objective Verification")]
     public static void RequestRunFromMenu()
     {
+        // Enter Play Mode may keep static fields when domain reload is disabled.
+        // Every explicit request owns a fresh runner lifecycle.
+        runnerCreated = false;
         Directory.CreateDirectory("Temp");
         File.WriteAllText(RequestPath, DateTime.UtcNow.ToString("O"));
     }
@@ -129,7 +133,11 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             DailyFacilityShopRuntime shop = progressionRuntimes.FacilityShop;
             IWorldItemStackRuntime itemRuntime =
                 scope.Container.Resolve<IWorldItemStackRuntime>();
+            IGameSessionStateProvider gameDataProvider =
+                scope.Container.Resolve<IGameSessionStateProvider>();
+            gameDataProvider.TryGetSessionState(out GameSessionState gameData);
             int queueCountBefore = research?.State.Projects.Queue.Count ?? -1;
+            int moneyBefore = gameData?.holdingMoney?.Value ?? -1;
 
             Button shopTab = FindTopTabButton(TabId.Shop);
             yield return Click(shopTab, "shop tab");
@@ -137,27 +145,56 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
 
             int blueprintOfferIndex = FindBlueprintOfferIndex(shop);
             FacilityBlueprintSO purchasedBlueprint = GetBlueprintOffer(shop, blueprintOfferIndex);
-            Button blueprintButton = FindButton($"P0Action_ShopDaily_{blueprintOfferIndex}");
-            yield return Click(blueprintButton, "daily blueprint");
-            yield return new WaitForSecondsRealtime(0.25f);
+            int purchaseAttempts = 0;
+            while (purchasedBlueprint != null
+                && !shop.UnlockState.IsBlueprintAcquired(purchasedBlueprint.id)
+                && purchaseAttempts < 6)
+            {
+                Button blueprintButton = FindButton(
+                    $"P0Action_ShopDaily_{blueprintOfferIndex}");
+                yield return Click(
+                    blueprintButton,
+                    $"daily blueprint attempt {purchaseAttempts + 1}");
+                purchaseAttempts++;
+                yield return new WaitForSecondsRealtime(0.5f);
+            }
+
+            bool acquired = purchasedBlueprint != null
+                && shop.UnlockState.IsBlueprintAcquired(purchasedBlueprint.id);
+            float physicalDeadline = Time.realtimeSinceStartup + 2f;
+            bool physicalBlueprintExists = false;
+            while (Time.realtimeSinceStartup < physicalDeadline)
+            {
+                physicalBlueprintExists = purchasedBlueprint != null
+                    && itemRuntime.GetAllStacks().Any(stack => stack != null
+                        && stack.Quantity > 0
+                        && string.Equals(
+                            stack.ItemId,
+                            purchasedBlueprint.PhysicalItemId,
+                            StringComparison.Ordinal));
+                if (physicalBlueprintExists)
+                {
+                    break;
+                }
+                yield return null;
+            }
 
             int queueCountAfter = research?.State.Projects.Queue.Count ?? -1;
-            bool physicalBlueprintExists = purchasedBlueprint != null
-                && itemRuntime.GetAllStacks().Any(stack => stack != null
-                    && stack.Quantity > 0
-                    && string.Equals(
-                        stack.ItemId,
-                        purchasedBlueprint.PhysicalItemId,
-                        StringComparison.Ordinal));
+            int moneyAfter = gameData?.holdingMoney?.Value ?? -1;
             objective.RefreshNow();
             Check(
                 blueprintOfferIndex >= 0
                     && purchasedBlueprint != null
+                    && acquired
                     && physicalBlueprintExists
                     && queueCountAfter == queueCountBefore,
                 "PUBLIC_BLUEPRINT_PURCHASE",
                 $"offer={blueprintOfferIndex}; blueprint={purchasedBlueprint?.id}; "
-                + $"physical={physicalBlueprintExists}; queue={queueCountBefore}->{queueCountAfter}");
+                + $"attempts={purchaseAttempts}; acquired={acquired}; "
+                + $"physical={physicalBlueprintExists}; "
+                + $"money={moneyBefore}->{moneyAfter}; "
+                + $"cost={(blueprintOfferIndex >= 0 && shop != null ? shop.CurrentDailyOffers[blueprintOfferIndex].Cost : -1)}; "
+                + $"queue={queueCountBefore}->{queueCountAfter}");
             Check(
                 objective.CurrentObjective == FirstRunObjectiveId.CompleteResearch,
                 "POST_PURCHASE_OBJECTIVE",
@@ -200,12 +237,18 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         IWorldItemStackRuntime itemRuntime,
         FacilityBlueprintSO blueprint)
     {
+        IFirstRunObjectiveRuntime objectiveRuntime =
+            scope.Container.Resolve<IFirstRunObjectiveRuntime>();
         IResearchBlueprintArchiveQuery archiveQuery =
             scope.Container.Resolve<IResearchBlueprintArchiveQuery>();
         IResearchProjectCatalog projectCatalog =
             scope.Container.Resolve<IResearchProjectCatalog>();
         IResearchQueueCommandService queueCommands =
             scope.Container.Resolve<IResearchQueueCommandService>();
+        IWorldItemHaulPlanningService haulPlanning =
+            scope.Container.Resolve<IWorldItemHaulPlanningService>();
+        IFacilityBufferDestinationClaimQuery destinationClaims =
+            scope.Container.Resolve<IFacilityBufferDestinationClaimQuery>();
         IRoomLayoutCache roomLayoutCache =
             scope.Container.Resolve<IRoomLayoutCache>();
         IReadOnlyList<BuildableObject> archives = archiveQuery.GetValidArchives();
@@ -262,6 +305,34 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         }
 
         string expectedDestination = ResearchBlueprintArchiveQuery.GetDestinationId(archives[0]);
+        bool exactDestinationClaim = destinationClaims.TryGetClaim(
+                expectedDestination,
+                archives[0].centerPos,
+                out FacilityBufferDestinationClaim archiveClaim)
+            && string.Equals(
+                archiveClaim.OwnerDomain,
+                ResearchBlueprintArchiveDestinationAuthority.OwnerDomain,
+                StringComparison.Ordinal)
+            && string.Equals(
+                archiveClaim.OwnerOperationId,
+                expectedDestination,
+                StringComparison.Ordinal)
+            && string.Equals(
+                archiveClaim.OwnerFacilityId,
+                archives[0].RequirePersistentInstanceId().Value,
+                StringComparison.Ordinal)
+            && archiveClaim.AnchorKind
+                == FacilityBufferDestinationAnchorKind.LiveBuilding;
+        Check(
+            exactDestinationClaim,
+            "BLUEPRINT_ARCHIVE_DESTINATION_CLAIM_EXACT",
+            exactDestinationClaim
+                ? $"destination={expectedDestination}; facility={archiveClaim.OwnerFacilityId}; drop={archiveClaim.DropPosition}"
+                : $"destination={expectedDestination}; drop={archives[0].centerPos}; claim=missing-or-mismatched");
+        if (!exactDestinationClaim)
+        {
+            yield break;
+        }
         ResearchBlueprintArchiveStatus assignmentStatus = archiveQuery.GetStatus(blueprint);
         bool deliveryAssigned = assignmentStatus.IsArchived
             || assignmentStatus.IsInTransit
@@ -284,51 +355,100 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         CharacterActor hauler = null;
         AIBrain brain = null;
         bool brainWasEnabled = false;
-        AIHaul haulAction = null;
-        bool normalAiAlreadyReserved = blueprintStack != null
-            && blueprintStack.HasReservations;
-        if (!assignmentStatus.IsArchived
-            && blueprintStack != null
-            && !normalAiAlreadyReserved)
+        bool haulerWasAiPaused = false;
+        CharacterActor previewHauler = FindHauler();
+        ResearchBlueprintArchiveStatus planStatus = archiveQuery.GetStatus(blueprint);
+        bool productionHaulAlreadyStarted = planStatus.IsArchived
+            || blueprintStack.HasReservations
+            || itemRuntime.GetCommittedHaulDeliveryQuantity(
+                expectedDestination,
+                blueprint.PhysicalItemId) > 0;
+        bool exactPlanReady = productionHaulAlreadyStarted;
+        string planDetail;
+        if (!productionHaulAlreadyStarted && previewHauler != null)
         {
-            hauler = FindHauler();
-            Check(
-                hauler != null,
-                "BLUEPRINT_HAULER_READY",
-                hauler != null ? hauler.name : "staff/owner hauler missing");
-            if (hauler == null)
-            {
-                yield break;
-            }
-
-            brain = hauler.Brain;
-            brainWasEnabled = brain != null && brain.enabled;
-            if (brain != null)
-            {
-                brain.enabled = false;
-            }
-
-            itemRuntime.PrioritizeHaul(blueprintStack.StackId);
-            haulAction = ScriptableObject.CreateInstance<AIHaul>();
-            haulAction.Execute(hauler);
+            bool previewed = haulPlanning.TryPreviewBestPlan(
+                previewHauler,
+                out WorldItemHaulPlan previewPlan,
+                out string previewFailure);
+            exactPlanReady = previewed
+                && previewPlan != null
+                && string.Equals(
+                    previewPlan.PrimaryDestinationId,
+                    expectedDestination,
+                    StringComparison.Ordinal)
+                && previewPlan.ReservedStackQuantities.Any(candidate =>
+                    string.Equals(
+                        candidate.StackId,
+                        blueprintStack.StackId,
+                        StringComparison.Ordinal));
+            planDetail = previewed && previewPlan != null
+                ? $"actor={previewHauler.name}; destination={previewPlan.PrimaryDestinationId}; "
+                    + $"stacks={string.Join(",", previewPlan.ReservedStackQuantities.Select(candidate => candidate.StackId))}"
+                : $"actor={previewHauler.name}; failure={previewFailure}";
         }
         else
         {
-            Check(
-                true,
-                "BLUEPRINT_HAULER_READY",
-                assignmentStatus.IsArchived
-                    ? "일반 AI가 이미 보관을 완료함"
-                    : normalAiAlreadyReserved
-                        ? $"일반 AI 예약 수량 {blueprintStack.ReservedQuantity}"
-                        : "일반 AI가 설계도를 운반 중");
+            planDetail = productionHaulAlreadyStarted
+                ? $"status={planStatus.Location}; reserved={blueprintStack.ReservedQuantity}"
+                : "eligible hauler missing";
         }
-
         Time.timeScale = 8f;
         float haulStartedAt = Time.realtimeSinceStartup;
+        bool exactHaulOwnershipObserved = false;
         while (Time.realtimeSinceStartup - haulStartedAt < 24f)
         {
             ResearchBlueprintArchiveStatus status = archiveQuery.GetStatus(blueprint);
+            WorldItemStackSnapshot currentBlueprintStack = itemRuntime.GetAllStacks()
+                .FirstOrDefault(stack => stack != null
+                    && string.Equals(
+                        stack.StackId,
+                        blueprintStackId,
+                        StringComparison.Ordinal));
+            bool liveAiHaul = CharacterActorCollection.DistinctByGameObject(
+                    FindObjectsByType<CharacterActor>(
+                        FindObjectsInactive.Exclude,
+                        FindObjectsSortMode.None))
+                .Any(actor => actor != null
+                    && actor.Brain?.bestAction?.actionset is AIHaul
+                    && actor.GetComponent<AbilityHaul>()?.IsHauling == true);
+            exactHaulOwnershipObserved |= liveAiHaul
+                && (currentBlueprintStack?.HasReservations == true
+                    || itemRuntime.GetCommittedHaulDeliveryQuantity(
+                        expectedDestination,
+                        blueprint.PhysicalItemId) > 0);
+            if (!exactPlanReady && exactHaulOwnershipObserved)
+            {
+                planDetail = "production AIHaul ownership committed for "
+                    + blueprintStackId;
+            }
+            exactPlanReady |= exactHaulOwnershipObserved;
+            if (!exactPlanReady)
+            {
+                CharacterActor availableHauler = FindHauler();
+                if (availableHauler != null)
+                {
+                    bool previewed = haulPlanning.TryPreviewBestPlan(
+                        availableHauler,
+                        out WorldItemHaulPlan previewPlan,
+                        out string previewFailure);
+                    exactPlanReady = previewed
+                        && previewPlan != null
+                        && string.Equals(
+                            previewPlan.PrimaryDestinationId,
+                            expectedDestination,
+                            StringComparison.Ordinal)
+                        && previewPlan.ReservedStackQuantities.Any(candidate =>
+                            string.Equals(
+                                candidate.StackId,
+                                blueprintStackId,
+                                StringComparison.Ordinal));
+                    planDetail = previewed && previewPlan != null
+                        ? $"actor={availableHauler.name}; destination={previewPlan.PrimaryDestinationId}; "
+                            + $"stacks={string.Join(",", previewPlan.ReservedStackQuantities.Select(candidate => candidate.StackId))}"
+                        : $"actor={availableHauler.name}; failure={previewFailure}";
+                }
+            }
             if (status.IsArchived)
             {
                 break;
@@ -336,25 +456,54 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             yield return null;
         }
 
+        Check(
+            exactPlanReady,
+            "BLUEPRINT_HAUL_PLAN_READY",
+            exactPlanReady
+                ? planDetail
+                : planDetail + "; characters=" + DescribeCharacterPublicationState());
+        Check(
+            exactHaulOwnershipObserved,
+            "BLUEPRINT_AI_HAUL_OWNERSHIP_OBSERVED",
+            $"destination={expectedDestination}; stack={blueprintStackId}");
         bool archived = archiveQuery.GetStatus(blueprint).IsArchived;
         Check(
             archived,
             "BLUEPRINT_AI_HAUL_TO_ARCHIVE",
             archived
                 ? $"elapsed={Time.realtimeSinceStartup - haulStartedAt:0.0}s; {archiveQuery.GetStatus(blueprint).Location}"
-                : DescribeBlueprintStack(itemRuntime, blueprint));
-        if (haulAction != null)
-        {
-            Destroy(haulAction);
-        }
+                : DescribeBlueprintStack(itemRuntime, blueprint)
+                    + "; characters=" + DescribeCharacterPublicationState());
         if (!archived)
         {
-            if (brain != null)
-            {
-                brain.enabled = brainWasEnabled;
-            }
             yield break;
         }
+        WorldItemStackSnapshot archivedStack = itemRuntime.GetAllStacks()
+            .FirstOrDefault(stack => stack != null
+                && stack.Quantity > 0
+                && string.Equals(
+                    stack.ItemId,
+                    blueprint.PhysicalItemId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    stack.DestinationId,
+                    expectedDestination,
+                    StringComparison.Ordinal));
+        int committedAfterArchive = itemRuntime.GetCommittedHaulDeliveryQuantity(
+            expectedDestination,
+            blueprint.PhysicalItemId);
+        Check(
+            archivedStack != null
+                && archivedStack.State == WorldItemStackState.FacilityBuffer
+                && !archivedStack.HasReservations
+                && committedAfterArchive == 0,
+            "BLUEPRINT_AI_HAUL_OWNERSHIP_CLEAN",
+            archivedStack != null
+                ? $"state={archivedStack.State}; reserved={archivedStack.ReservedQuantity}; committed={committedAfterArchive}"
+                : $"stack missing; committed={committedAfterArchive}");
+        // Keep the bounded first-run flow ahead of unrelated operating-day
+        // defense commands; approved-WU accounting remains game-clock based.
+        Time.timeScale = 8f;
 
         bool mapped = projectCatalog.TryGetForBlueprint(blueprint.id, out ResearchProjectSO project);
         Check(
@@ -363,20 +512,29 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             mapped && project != null ? project.ProjectId.Value : $"blueprint={blueprint.id}");
         if (!mapped || project == null)
         {
-            if (brain != null)
-            {
-                brain.enabled = brainWasEnabled;
-            }
+            RestoreResearchWorkerAi(
+                hauler,
+                brain,
+                brainWasEnabled,
+                haulerWasAiPaused);
             yield break;
         }
 
         if (hauler == null)
         {
-            hauler = FindHauler();
+            float workerDeadline = Time.realtimeSinceStartup + 12f;
+            while (hauler == null && Time.realtimeSinceStartup < workerDeadline)
+            {
+                hauler = FindHauler();
+                if (hauler == null)
+                {
+                    yield return null;
+                }
+            }
             Check(
                 hauler != null,
                 "RESEARCH_WORKER_READY",
-                hauler != null ? hauler.name : "research worker missing");
+                hauler != null ? hauler.name : DescribeCharacterPublicationState());
             if (hauler == null)
             {
                 yield break;
@@ -384,10 +542,14 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
 
             brain = hauler.Brain;
             brainWasEnabled = brain != null && brain.enabled;
-            if (brain != null)
-            {
-                brain.enabled = false;
-            }
+            haulerWasAiPaused = hauler.IsAiPaused();
+            hauler.SetAiPaused(true);
+            brain?.StopCurrentActionForReplan(
+                "first-run research verification isolation");
+            hauler.GetComponent<AbilityMove>()?.CancelActiveMovement(
+                "first-run research verification isolation");
+            yield return null;
+            yield return null;
         }
 
         ResearchNodeState nodeState = research.GetNodeState(project, out string nodeBlocker);
@@ -397,6 +559,9 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             "BLUEPRINT_NODE_CONDITION_ACTIVATED",
             $"state={nodeState}; blocker={nodeBlocker}");
 
+        HashSet<string> completedProjectsBefore = research.State.Projects
+            .CompletedProjectIds
+            .ToHashSet(StringComparer.Ordinal);
         ResearchQueueCommandResult queued = queueCommands.Enqueue(project.ProjectId);
         Check(
             queued.Succeeded,
@@ -404,10 +569,11 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             $"{queued.Message}; added={queued.AffectedProjects.Count}");
         if (!queued.Succeeded)
         {
-            if (brain != null)
-            {
-                brain.enabled = brainWasEnabled;
-            }
+            RestoreResearchWorkerAi(
+                hauler,
+                brain,
+                brainWasEnabled,
+                haulerWasAiPaused);
             yield break;
         }
 
@@ -427,10 +593,11 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             $"worker={hauler.name}; facility={researchFacility?.BuildingData?.objectName ?? "missing"}");
         if (researchFacility == null || work == null)
         {
-            if (brain != null)
-            {
-                brain.enabled = brainWasEnabled;
-            }
+            RestoreResearchWorkerAi(
+                hauler,
+                brain,
+                brainWasEnabled,
+                haulerWasAiPaused);
             yield break;
         }
 
@@ -461,12 +628,101 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             priorityAccepted ? researchFacility.BuildingData?.objectName : priorityMessage);
         if (!priorityAccepted)
         {
-            if (brain != null)
-            {
-                brain.enabled = brainWasEnabled;
-            }
+            RestoreResearchWorkerAi(
+                hauler,
+                brain,
+                brainWasEnabled,
+                haulerWasAiPaused);
             yield break;
         }
+
+        ResearchProjectId firstActiveProjectId =
+            research.State.Projects.ActiveProjectId;
+        ResearchProjectProgressState firstActiveProgress =
+            research.State.Projects.GetProgress(firstActiveProjectId);
+        float firstProjectProgressBefore = firstActiveProgress.Progress;
+        long approvedRevisionBefore =
+            work.ApprovedWorkProgressRevisionForDiagnostics;
+        bool firstApprovedWuObserved = false;
+        float firstApprovedGenericCompleted = 0f;
+        float firstApprovedGenericRequired = 0f;
+        float projectProgressAtFirstApprovedWu = float.NaN;
+        ResearchProgressEvent? firstResearchProgressEvent = null;
+        float aggregateProgressAfterFirstCommit = float.NaN;
+        int matchingResearchProgressEvents = 0;
+        int workStarts = 0;
+        int workStartsAtFirstCommit = -1;
+        bool wasWorking = false;
+        CharacterId researcherId = hauler.BuildingCharacterId;
+        float firstContributionAtCommit = float.NaN;
+        DungeonStory.Foundation.IGameEventBus gameEvents =
+            scope.Container.Resolve<DungeonStory.Foundation.IGameEventBus>();
+        IProjectWorkforceRuntime projectWorkforce =
+            scope.Container.Resolve<IProjectWorkforceRuntime>();
+        IDisposable researchProgressSubscription =
+            gameEvents.Subscribe<ResearchProgressEvent>(progressEvent =>
+            {
+                if (!string.Equals(
+                        progressEvent.Researcher.Value,
+                        researcherId.Value,
+                        StringComparison.Ordinal)
+                    || !string.Equals(
+                        progressEvent.ProjectId,
+                        firstActiveProjectId.Value,
+                        StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                matchingResearchProgressEvents++;
+                if (firstResearchProgressEvent.HasValue)
+                {
+                    return;
+                }
+
+                firstResearchProgressEvent = progressEvent;
+                aggregateProgressAfterFirstCommit = firstActiveProgress.Progress;
+                workStartsAtFirstCommit = workStarts;
+                firstContributionAtCommit =
+                    projectWorkforce.GetContributionMultiplier(
+                        firstActiveProjectId.Value,
+                        researcherId.Value);
+            });
+
+        string researchFacilityId =
+            researchFacility.RequirePersistentInstanceId().Value;
+        bool arcaneIndexPresentBefore = itemRuntime.GetAllStacks().Any(stack =>
+            stack != null
+            && stack.Quantity > 0
+            && stack.State == WorldItemStackState.FacilityBuffer
+            && string.Equals(
+                stack.DestinationId,
+                researchFacilityId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                stack.ItemId,
+                DurableToolItemRules.ArcaneIndex,
+                StringComparison.Ordinal));
+        bool knowledgeResiduePresentBefore = itemRuntime.GetAllStacks().Any(stack =>
+            stack != null
+            && stack.Quantity > 0
+            && stack.State == WorldItemStackState.FacilityBuffer
+            && stack.StockCategory == StockCategory.Knowledge
+            && string.Equals(
+                stack.DestinationId,
+                $"research:{researchFacilityId}",
+                StringComparison.Ordinal));
+        IDungeonDebugRuleQuery debugRules =
+            scope.Container.Resolve<IDungeonDebugRuleQuery>();
+        IMetaProgressionRuntimeReader metaProgression =
+            scope.Container.Resolve<IMetaProgressionRuntimeReader>();
+        float researchCycleWork = Mathf.Max(
+            0.1f,
+            researchFacility.BuildingData.GetRequiredWork(
+                BuiltInWorkTypeIds.Research));
+        float metaResearchMultiplier = Mathf.Max(
+            0.05f,
+            metaProgression.GetArcaneResearchWorkMultiplier());
 
         if (brain != null)
         {
@@ -482,16 +738,13 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                     : $"canRun={hauler.CanRunAi}; lifecycle={hauler.CurrentLifecycleState}");
             brain.RequestImmediateReplan(clearFailures: true);
         }
+        hauler.SetAiPaused(false);
 
         float researchStartedAt = Time.realtimeSinceStartup;
-        int workStarts = 0;
-        int directDecisionTicks = 0;
-        bool wasWorking = false;
         float nextPriorityRefreshAt = researchStartedAt + 1f;
-        float nextDirectDecisionAt = researchStartedAt;
         float nextNeedStabilizationAt = researchStartedAt + 0.5f;
-        CharacterAiDecisionTickResult lastDecision = default;
-        while (!research.State.Projects.IsCompleted(project.ProjectId)
+        while (!research.State.Projects.CompletedProjectIds.Any(
+                   id => !completedProjectsBefore.Contains(id))
                && Time.realtimeSinceStartup - researchStartedAt < 45f)
         {
             if (work.isWorking && !wasWorking)
@@ -500,20 +753,23 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             }
             wasWorking = work.isWorking;
 
+            if (!firstApprovedWuObserved
+                && work.ApprovedWorkProgressRevisionForDiagnostics
+                    > approvedRevisionBefore)
+            {
+                firstApprovedWuObserved = true;
+                firstApprovedGenericCompleted =
+                    work.GenericCompletedWorkForDiagnostics;
+                firstApprovedGenericRequired =
+                    work.GenericRequiredWorkForDiagnostics;
+                projectProgressAtFirstApprovedWu =
+                    firstActiveProgress.Progress;
+            }
+
             if (Time.realtimeSinceStartup >= nextNeedStabilizationAt)
             {
                 nextNeedStabilizationAt = Time.realtimeSinceStartup + 0.5f;
                 StabilizeResearchWorker(hauler, deprivationRuntime);
-            }
-
-            if (brain != null
-                && hauler.CanRunAi
-                && !work.isWorking
-                && Time.realtimeSinceStartup >= nextDirectDecisionAt)
-            {
-                nextDirectDecisionAt = Time.realtimeSinceStartup + 0.1f;
-                lastDecision = brain.RunDecisionTreeDirect();
-                directDecisionTicks++;
             }
 
             if (!work.isWorking
@@ -531,7 +787,69 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             yield return null;
         }
 
-        bool completed = research.State.Projects.IsCompleted(project.ProjectId);
+        researchProgressSubscription.Dispose();
+        float expectedFirstCommittedWork =
+            BlueprintResearchService.CalculateApprovedResearchWork(
+                hauler,
+                researchCycleWork
+                * Mathf.Max(0f, firstContributionAtCommit)
+                * metaResearchMultiplier);
+        bool approvedWuGate = firstApprovedWuObserved
+            && work.ApprovedWorkProgressRevisionForDiagnostics
+                > approvedRevisionBefore
+            && Mathf.Approximately(
+                firstApprovedGenericRequired,
+                researchCycleWork)
+            && firstResearchProgressEvent.HasValue;
+        Check(
+            approvedWuGate,
+            "RESEARCH_FIRST_APPROVED_WU",
+            $"revision={approvedRevisionBefore}->{work.ApprovedWorkProgressRevisionForDiagnostics}; "
+            + $"generic={firstApprovedGenericCompleted:0.###}/{firstApprovedGenericRequired:0.###}; "
+            + $"cycle={researchCycleWork:0.###}; project={firstProjectProgressBefore:0.###}->{projectProgressAtFirstApprovedWu:0.###}");
+
+        bool firstCommitObserved = firstResearchProgressEvent.HasValue;
+        ResearchProgressEvent firstCommit =
+            firstResearchProgressEvent.GetValueOrDefault();
+        Check(
+            firstCommitObserved
+                && firstCommit.ApprovedWork > 0f
+                && firstCommit.ProgressDelta > 0f
+                && workStartsAtFirstCommit == 1,
+            "RESEARCH_FIRST_APPROVED_COMMIT",
+            firstCommitObserved
+                ? $"project={firstCommit.ProjectId}; approved={firstCommit.ApprovedWork:0.###}; "
+                  + $"delta={firstCommit.ProgressDelta:0.###}; starts={workStartsAtFirstCommit}; events={matchingResearchProgressEvents}"
+                : $"project={firstActiveProjectId.Value}; events=0; starts={workStarts}");
+        Check(
+            firstCommitObserved
+                && !debugRules.IsEnabled(DungeonDebugCheat.InstantWork)
+                && !arcaneIndexPresentBefore
+                && !knowledgeResiduePresentBefore
+                && Mathf.Abs(
+                    firstCommit.ApprovedWork - expectedFirstCommittedWork)
+                    <= 0.011f,
+            "RESEARCH_FIRST_COMMIT_MODIFIERS",
+            firstCommitObserved
+                ? $"actual={firstCommit.ApprovedWork:0.###}; expected={expectedFirstCommittedWork:0.###}; "
+                  + $"cycle={researchCycleWork:0.###}; contribution={firstContributionAtCommit:0.###}; meta={metaResearchMultiplier:0.###}; "
+                  + $"index={arcaneIndexPresentBefore}; residue={knowledgeResiduePresentBefore}; instant={debugRules.IsEnabled(DungeonDebugCheat.InstantWork)}"
+                : "first research progress event missing");
+        Check(
+            firstCommitObserved
+                && Mathf.Abs(
+                    firstCommit.ApprovedWork - firstCommit.ProgressDelta)
+                    <= 0.011f,
+            "RESEARCH_FIRST_COMMIT_CONSERVATION",
+            firstCommitObserved
+                ? $"approved={firstCommit.ApprovedWork:0.###}; delta={firstCommit.ProgressDelta:0.###}; "
+                  + $"aggregateSample={firstProjectProgressBefore:0.###}->{aggregateProgressAfterFirstCommit:0.###}"
+                : "first research progress event missing");
+
+        string completedProjectId = research.State.Projects
+            .CompletedProjectIds
+            .FirstOrDefault(id => !completedProjectsBefore.Contains(id));
+        bool completed = !string.IsNullOrWhiteSpace(completedProjectId);
         CharacterAiJobCandidate workJobCandidate = default;
         bool workJobAvailable = brain != null
             && brain.RequireJobGiverCatalog().Work.TryEvaluate(
@@ -545,21 +863,42 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             completed,
             "PROJECT_COMPLETED_BY_WORK_ROUTINE",
             completed
-                ? $"project={project.ProjectId.Value}; starts={workStarts}; elapsed={Time.realtimeSinceStartup - researchStartedAt:0.0}s"
-                : $"project={project.ProjectId.Value}; starts={workStarts}; queue={research.State.Projects.Queue.Count}; active={research.State.Projects.ActiveProjectId.Value}; "
+                ? $"project={completedProjectId}; purchasedTarget={project.ProjectId.Value}; starts={workStarts}; elapsed={Time.realtimeSinceStartup - researchStartedAt:0.0}s"
+                : $"purchasedTarget={project.ProjectId.Value}; starts={workStarts}; queue={research.State.Projects.Queue.Count}; active={research.State.Projects.ActiveProjectId.Value}; "
                   + $"canRun={hauler.CanRunAi}; lifecycle={hauler.CurrentLifecycleState}; brainEnabled={brain?.enabled}; "
-                  + $"decisionTicks={directDecisionTicks}; decision={lastDecision.Branch}/{lastDecision.Task}/{lastDecision.Status}; "
                   + $"action={brain?.CurrentActionDebugLabel}; phase={brain?.CurrentActionPhase}; detail={brain?.CurrentActionPhaseDetail}; "
                   + $"failure={brain?.LastActionFailure}; priority={work.PriorityWorkTypeId}/{work.PriorityWorkTarget?.name}; "
                   + $"assigned={work.AssignedWorkTypeId}/{work.assignedShop?.name}; "
                   + $"workJob={workJobAvailable}:{workJobCandidate.DebugSummary}; "
                   + $"researchTarget={researchTargetAvailable}:{WorkTargetCandidateRuntimeAdapter.ResolveBuilding(researchTargetCandidate)?.name}:{researchTargetCandidate.FailureReason}");
+        objectiveRuntime.RefreshNow();
+        bool reachedPostResearchObjective =
+            objectiveRuntime.CurrentObjective == FirstRunObjectiveId.CompleteSettlement
+            || objectiveRuntime.CurrentObjective == FirstRunObjectiveId.DefendInvasion;
+        Check(
+            completed && reachedPostResearchObjective,
+            "POST_RESEARCH_OBJECTIVE",
+            objectiveRuntime.CurrentObjective.ToString());
+        RestoreResearchWorkerAi(
+            hauler,
+            brain,
+            brainWasEnabled,
+            haulerWasAiPaused);
+
+        yield return CapturePhysicalFlowScreen();
+    }
+
+    private static void RestoreResearchWorkerAi(
+        CharacterActor actor,
+        AIBrain brain,
+        bool brainWasEnabled,
+        bool aiWasPaused)
+    {
         if (brain != null)
         {
             brain.enabled = brainWasEnabled;
         }
-
-        yield return CapturePhysicalFlowScreen();
+        actor?.SetAiPaused(aiWasPaused);
     }
 
     private static void StabilizeResearchWorker(
@@ -627,22 +966,66 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         }
 
         OwnerRunManager ownerManager = FindFirstObjectByType<OwnerRunManager>();
-        if (ownerManager != null && ownerManager.CurrentOwnerActor == null)
+        for (int ownerAttempt = 0;
+             ownerAttempt < 4
+             && (ownerManager == null || ownerManager.CurrentOwnerActor == null);
+             ownerAttempt++)
         {
             Button ownerButton = Resources.FindObjectsOfTypeAll<Button>()
                 .FirstOrDefault(button => button != null
                     && button.gameObject.scene.IsValid()
                     && button.gameObject.activeInHierarchy
                     && button.name.StartsWith("OwnerOption_", StringComparison.Ordinal));
-            yield return Click(ownerButton, "owner option");
+            yield return Click(
+                ownerButton,
+                $"owner option attempt {ownerAttempt + 1}");
+            yield return new WaitForSecondsRealtime(0.25f);
             yield return StartPartyPlayModeTestDriver.CompleteIfVisible();
+            yield return new WaitForSecondsRealtime(0.25f);
+            ownerManager = FindFirstObjectByType<OwnerRunManager>();
         }
 
         Check(
             ownerManager != null && ownerManager.CurrentOwnerActor != null,
             "PUBLIC_NEW_RUN",
             "new game and owner selected with pointer input");
-        yield return new WaitForSecondsRealtime(0.25f);
+
+        float worldReadyDeadline = Time.realtimeSinceStartup + 12f;
+        CharacterActor worldActor = FindWorldReadyActor();
+        while (worldActor == null && Time.realtimeSinceStartup < worldReadyDeadline)
+        {
+            yield return null;
+            worldActor = FindWorldReadyActor();
+        }
+        Check(
+            worldActor != null,
+            "START_PARTY_WORLD_READY",
+            worldActor != null
+                ? $"{worldActor.name}@{worldActor.GetNowXY()}"
+                : DescribeCharacterPublicationState());
+    }
+
+    private static string DescribeCharacterPublicationState()
+    {
+        CharacterActor[] actors = CharacterActorCollection.DistinctByGameObject(
+                FindObjectsByType<CharacterActor>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None))
+            .Where(actor => actor != null)
+            .ToArray();
+        if (actors.Length == 0)
+        {
+            return "character actors missing";
+        }
+
+        return string.Join(
+            " | ",
+            actors.Select(actor =>
+                $"{actor.name}:active={actor.gameObject.activeInHierarchy},"
+                + $"lifecycle={actor.CurrentLifecycleState},dead={actor.IsDead},"
+                + $"move={actor.TryGetAbility(out AbilityMove _)},"
+                + $"work={actor.TryGetAbility(out AbilityWork _)},"
+                + $"role={actor.Identity?.Role}"));
     }
 
     private IEnumerator Click(Button button, string label)
@@ -656,7 +1039,32 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
 
         yield return ScrollIntoView(button);
         RectTransform rect = button.GetComponent<RectTransform>();
-        Vector2 point = RectTransformUtility.WorldToScreenPoint(null, rect.TransformPoint(rect.rect.center));
+        Vector2 point = GetScreenPoint(rect, rect.TransformPoint(rect.rect.center));
+        PointerEventData pointer = new PointerEventData(EventSystem.current)
+        {
+            position = point
+        };
+        List<RaycastResult> hits = new List<RaycastResult>();
+        EventSystem.current?.RaycastAll(pointer, hits);
+        GameObject topTarget = hits.FirstOrDefault().gameObject;
+        bool targetMatched = topTarget != null
+            && (topTarget == button.gameObject
+                || topTarget.transform.IsChildOf(button.transform));
+        string raycastDetail = targetMatched
+            ? $"{label}->{topTarget.name}"
+            : $"{label}->top={topTarget?.name ?? "none"}; point={point}";
+        if (targetMatched)
+        {
+            Check(true, "POINTER_RAYCAST", raycastDetail);
+        }
+        else
+        {
+            report.Add($"[INFO] POINTER_RAYCAST_MISS {raycastDetail}");
+        }
+        if (!targetMatched)
+        {
+            yield break;
+        }
         verificationMouse.MakeCurrent();
         InputSystem.QueueStateEvent(
             verificationMouse,
@@ -678,20 +1086,24 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             yield break;
         }
 
-        for (int attempt = 0; attempt < 10; attempt++)
+        for (int attempt = 0; attempt < 30; attempt++)
         {
             Canvas.ForceUpdateCanvases();
             RectTransform buttonRect = button.GetComponent<RectTransform>();
-            Vector2 buttonPoint = RectTransformUtility.WorldToScreenPoint(
-                null,
+            Vector2 buttonPoint = GetScreenPoint(
+                buttonRect,
                 buttonRect.TransformPoint(buttonRect.rect.center));
-            if (RectTransformUtility.RectangleContainsScreenPoint(viewport, buttonPoint, null))
+            Camera viewportCamera = GetEventCamera(viewport);
+            if (RectTransformUtility.RectangleContainsScreenPoint(
+                    viewport,
+                    buttonPoint,
+                    viewportCamera))
             {
                 yield break;
             }
 
-            Vector2 viewportPoint = RectTransformUtility.WorldToScreenPoint(
-                null,
+            Vector2 viewportPoint = GetScreenPoint(
+                viewport,
                 viewport.TransformPoint(viewport.rect.center));
             float scrollDelta = buttonPoint.y < viewportPoint.y ? -120f : 120f;
             verificationMouse.MakeCurrent();
@@ -702,6 +1114,75 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             InputSystem.QueueStateEvent(verificationMouse, new MouseState { position = viewportPoint });
             yield return null;
         }
+
+        Canvas.ForceUpdateCanvases();
+        RectTransform targetRect = button.GetComponent<RectTransform>();
+        Vector2 targetPoint = GetScreenPoint(
+            targetRect,
+            targetRect.TransformPoint(targetRect.rect.center));
+        Camera targetCamera = GetEventCamera(viewport);
+        if (!RectTransformUtility.RectangleContainsScreenPoint(
+                viewport,
+                targetPoint,
+                targetCamera))
+        {
+            float before = scroll.verticalNormalizedPosition;
+            Vector2 viewportPoint = GetScreenPoint(
+                viewport,
+                viewport.TransformPoint(viewport.rect.center));
+            scroll.StopMovement();
+
+            scroll.verticalNormalizedPosition = 0f;
+            Canvas.ForceUpdateCanvases();
+            yield return null;
+            float targetYAtZero = GetScreenPoint(
+                targetRect,
+                targetRect.TransformPoint(targetRect.rect.center)).y;
+
+            scroll.verticalNormalizedPosition = 1f;
+            Canvas.ForceUpdateCanvases();
+            yield return null;
+            float targetYAtOne = GetScreenPoint(
+                targetRect,
+                targetRect.TransformPoint(targetRect.rect.center)).y;
+
+            float travel = targetYAtOne - targetYAtZero;
+            float desiredNormalized = Mathf.Abs(travel) > 0.01f
+                ? Mathf.Clamp01((viewportPoint.y - targetYAtZero) / travel)
+                : before;
+            scroll.verticalNormalizedPosition = desiredNormalized;
+            Canvas.ForceUpdateCanvases();
+            yield return null;
+            yield return null;
+
+            targetPoint = GetScreenPoint(
+                targetRect,
+                targetRect.TransformPoint(targetRect.rect.center));
+            bool visible = RectTransformUtility.RectangleContainsScreenPoint(
+                viewport,
+                targetPoint,
+                targetCamera);
+            report.Add(
+                $"[INFO] SCROLL_POSITION_FALLBACK {button.name}; "
+                + $"normalized={before:0.###}->{scroll.verticalNormalizedPosition:0.###}; "
+                + $"targetY0={targetYAtZero:0.##}; targetY1={targetYAtOne:0.##}; "
+                + $"visible={visible}; point={targetPoint}");
+        }
+    }
+
+    private static Vector2 GetScreenPoint(RectTransform rect, Vector3 worldPoint)
+    {
+        return RectTransformUtility.WorldToScreenPoint(
+            GetEventCamera(rect),
+            worldPoint);
+    }
+
+    private static Camera GetEventCamera(RectTransform rect)
+    {
+        Canvas canvas = rect != null ? rect.GetComponentInParent<Canvas>() : null;
+        return canvas == null || canvas.renderMode == RenderMode.ScreenSpaceOverlay
+            ? null
+            : canvas.worldCamera;
     }
 
     private void CheckNonBlocking(IFirstRunObjectiveRuntime objective)
@@ -770,6 +1251,23 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                 actor.GetComponent<CharacterCarryInventory>()?.HasItems == true ? 1 : 0)
             .ThenBy(actor =>
                 actor.Identity != null && actor.Identity.Role == CharacterRole.Owner ? 1 : 0)
+            .FirstOrDefault(actor =>
+                actor.TryGetAbility(out AbilityMove _)
+                && (actor.TryGetAbility(out AbilityWork _)
+                    || actor.Identity != null
+                    && actor.Identity.Role == CharacterRole.Owner));
+    }
+
+    private static CharacterActor FindWorldReadyActor()
+    {
+        return CharacterActorCollection.DistinctByGameObject(
+                FindObjectsByType<CharacterActor>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None))
+            .Where(actor => actor != null
+                && actor.gameObject.activeInHierarchy
+                && !actor.IsDead
+                && actor.CurrentLifecycleState == CharacterLifecycleState.Active)
             .FirstOrDefault(actor =>
                 actor.TryGetAbility(out AbilityMove _)
                 && (actor.TryGetAbility(out AbilityWork _)
@@ -931,6 +1429,7 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         return Resources.FindObjectsOfTypeAll<Button>()
             .FirstOrDefault(button => button != null
                 && button.gameObject.scene.IsValid()
+                && button.gameObject.activeInHierarchy
                 && button.name == name);
     }
 

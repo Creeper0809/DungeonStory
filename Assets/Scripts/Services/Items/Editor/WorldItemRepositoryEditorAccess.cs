@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using UnityEngine;
 
 public static class WorldItemRepositoryEditorAccess
 {
@@ -9,7 +10,8 @@ public static class WorldItemRepositoryEditorAccess
         int quantity,
         WorldItemStackState state,
         string destinationId = "",
-        string sourceStorageDestinationId = "")
+        string sourceStorageDestinationId = "",
+        Vector2Int position = default)
     {
         if (repository == null)
         {
@@ -21,7 +23,9 @@ public static class WorldItemRepositoryEditorAccess
             quantity,
             state,
             destinationId,
-            sourceStorageDestinationId);
+            sourceStorageDestinationId,
+            components: null,
+            position: position);
     }
 
     public static void RemoveStack(
@@ -33,6 +37,31 @@ public static class WorldItemRepositoryEditorAccess
             throw new ArgumentNullException(nameof(repository));
         }
         repository.RemoveEditorTestStack(stackId);
+    }
+
+    public static bool TryRemoveStack(
+        WorldItemRepository repository,
+        string stackId)
+    {
+        if (repository == null)
+        {
+            throw new ArgumentNullException(nameof(repository));
+        }
+
+        return repository.TryRemoveEditorTestStack(stackId);
+    }
+
+    public static void SetQuantity(
+        WorldItemRepository repository,
+        string stackId,
+        int quantity)
+    {
+        if (repository == null)
+        {
+            throw new ArgumentNullException(nameof(repository));
+        }
+
+        repository.SetEditorTestQuantity(stackId, quantity);
     }
 }
 #endif

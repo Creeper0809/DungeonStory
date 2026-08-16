@@ -57,6 +57,10 @@ public interface ICharacterAiWorldRegistry :
     void UnregisterWildlife(WildlifeActor actor);
     void RegisterBuilding(BuildableObject building);
     void UnregisterBuilding(BuildableObject building);
+    int ReleaseTransientBuildingOwnership(
+        IBuildingVisitorPort visitor,
+        string reason);
+    int GetTransientBuildingOwnershipCount(CharacterId characterId);
     void RegisterWarehouse(IWarehouseFacility warehouse);
     void UnregisterWarehouse(IWarehouseFacility warehouse);
     void SetGrid(Grid grid);
@@ -82,6 +86,10 @@ public sealed class CharacterAiWorldRegistry :
     private readonly ICharacterLifePublicationService lifePublication;
     private Grid grid;
     private int gridVersion;
+    private readonly Dictionary<CharacterId, Dictionary<BuildableObject,
+        BuildingTransientOwnershipKind>> transientBuildingsByCharacter = new();
+    private readonly Dictionary<BuildableObject, HashSet<CharacterId>>
+        transientCharactersByBuilding = new();
 
     public CharacterAiWorldRegistry(
         ISceneRuntimeRegistry<CharacterActor> characters,
@@ -253,6 +261,8 @@ public sealed class CharacterAiWorldRegistry :
             return;
         }
 
+        UntrackAllTransientCharacterOwnership(building);
+
         buildings.Unregister(building);
         if (building is IWarehouseFacility warehouse)
         {
@@ -297,6 +307,141 @@ public sealed class CharacterAiWorldRegistry :
 
         UnregisterBuilding(buildableObject);
     }
+
+    public void TrackTransientCharacterOwnership(
+        IBuildingWorldEntryPort building,
+        CharacterId characterId,
+        BuildingTransientOwnershipKind kind)
+    {
+        if (building is not BuildableObject buildable
+            || !characterId.IsValid
+            || kind == BuildingTransientOwnershipKind.None)
+        {
+            return;
+        }
+
+        if (!transientBuildingsByCharacter.TryGetValue(
+                characterId,
+                out Dictionary<BuildableObject, BuildingTransientOwnershipKind> owned))
+        {
+            owned = new Dictionary<BuildableObject, BuildingTransientOwnershipKind>();
+            transientBuildingsByCharacter.Add(characterId, owned);
+        }
+
+        owned.TryGetValue(buildable, out BuildingTransientOwnershipKind current);
+        owned[buildable] = current | kind;
+        if (!transientCharactersByBuilding.TryGetValue(
+                buildable,
+                out HashSet<CharacterId> characters))
+        {
+            characters = new HashSet<CharacterId>();
+            transientCharactersByBuilding.Add(buildable, characters);
+        }
+        characters.Add(characterId);
+    }
+
+    public void UntrackTransientCharacterOwnership(
+        IBuildingWorldEntryPort building,
+        CharacterId characterId,
+        BuildingTransientOwnershipKind kind)
+    {
+        if (building is not BuildableObject buildable
+            || !characterId.IsValid
+            || kind == BuildingTransientOwnershipKind.None
+            || !transientBuildingsByCharacter.TryGetValue(characterId, out var owned)
+            || !owned.TryGetValue(buildable, out BuildingTransientOwnershipKind current))
+        {
+            return;
+        }
+
+        BuildingTransientOwnershipKind remaining = current & ~kind;
+        if (remaining != BuildingTransientOwnershipKind.None)
+        {
+            owned[buildable] = remaining;
+            return;
+        }
+
+        owned.Remove(buildable);
+        if (owned.Count == 0)
+        {
+            transientBuildingsByCharacter.Remove(characterId);
+        }
+        if (transientCharactersByBuilding.TryGetValue(buildable, out var characters))
+        {
+            characters.Remove(characterId);
+            if (characters.Count == 0)
+            {
+                transientCharactersByBuilding.Remove(buildable);
+            }
+        }
+    }
+
+    public void UntrackAllTransientCharacterOwnership(
+        IBuildingWorldEntryPort building)
+    {
+        if (building is not BuildableObject buildable
+            || !transientCharactersByBuilding.TryGetValue(buildable, out var characters))
+        {
+            return;
+        }
+
+        CharacterId[] snapshot = characters.ToArray();
+        transientCharactersByBuilding.Remove(buildable);
+        for (int index = 0; index < snapshot.Length; index++)
+        {
+            CharacterId characterId = snapshot[index];
+            if (!transientBuildingsByCharacter.TryGetValue(characterId, out var owned))
+            {
+                continue;
+            }
+            owned.Remove(buildable);
+            if (owned.Count == 0)
+            {
+                transientBuildingsByCharacter.Remove(characterId);
+            }
+        }
+    }
+
+    public int ReleaseTransientBuildingOwnership(
+        IBuildingVisitorPort visitor,
+        string reason)
+    {
+        CharacterId characterId = visitor?.BuildingCharacterId ?? default;
+        if (!characterId.IsValid
+            || !transientBuildingsByCharacter.TryGetValue(characterId, out var owned))
+        {
+            return 0;
+        }
+
+        BuildableObject[] targets = owned.Keys
+            .Where(building => building != null)
+            .ToArray();
+        transientBuildingsByCharacter.Remove(characterId);
+        for (int index = 0; index < targets.Length; index++)
+        {
+            BuildableObject target = targets[index];
+            if (transientCharactersByBuilding.TryGetValue(target, out var characters))
+            {
+                characters.Remove(characterId);
+                if (characters.Count == 0)
+                {
+                    transientCharactersByBuilding.Remove(target);
+                }
+            }
+        }
+
+        for (int index = 0; index < targets.Length; index++)
+        {
+            targets[index].ReleaseTransientCharacterOwnership(visitor, reason);
+        }
+        return targets.Length;
+    }
+
+    public int GetTransientBuildingOwnershipCount(CharacterId characterId) =>
+        characterId.IsValid
+        && transientBuildingsByCharacter.TryGetValue(characterId, out var owned)
+            ? owned.Count
+            : 0;
 
     public void RegisterWarehouse(IWarehouseFacility warehouse)
     {
@@ -346,6 +491,8 @@ public sealed class CharacterAiWorldRegistry :
         buildings.Clear();
         warehouses.Clear();
         retailFacilities.Clear();
+        transientBuildingsByCharacter.Clear();
+        transientCharactersByBuilding.Clear();
         grid = null;
         unchecked
         {

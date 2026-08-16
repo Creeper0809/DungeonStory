@@ -124,6 +124,14 @@ public class AIEat : AIActionSet
         destination?.ReleaseVisitReservation(actor);
     }
 
+    public override void OnStop(CharacterActor actor, AIAction runningAction, string reason)
+    {
+        if (actor != null && actor.TryGetAbility(out AbilityShopping shopping))
+        {
+            shopping.StopShopping(reason);
+        }
+    }
+
     private static bool CanUseVisitorAction(CharacterActor actor)
     {
         bool hasShopping = actor != null

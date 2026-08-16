@@ -51,7 +51,12 @@ public sealed class AnimalHusbandryWorkRuntimePortAdapter :
     {
         target = handle?.TargetRuntimeObject as BuildableObject;
         actor = handle?.WorkerRuntimeObject as CharacterActor;
-        return target != null;
+        return target != null
+            && !target.isDestroy
+            && actor != null
+            && !actor.IsDead
+            && actor.isActiveAndEnabled
+            && actor.CurrentLifecycleState == CharacterLifecycleState.Active;
     }
 }
 

@@ -244,6 +244,7 @@ public sealed class OffenseDecisionStateData
 public sealed class OffenseCommandCardStateData
 {
     public string instanceId;
+    public OffenseBattleActionType actionType;
     public string sourceSkillId;
     public string displayName;
     public OffenseTacticalTag tacticalTag;
@@ -273,6 +274,7 @@ public sealed class OffenseEnemyIntentStateData
     public string intentId;
     public string enemyId;
     public string targetCharacterId;
+    public OffenseBattleActionType actionType;
     public string actionId;
     public string displayName;
     public OffenseTacticalTag tacticalTag;
@@ -298,6 +300,8 @@ public sealed class OffenseBattleDirectorStateData
 {
     public string battleId;
     public int turn;
+    public int resolutionAppliedTurn;
+    public int finalizedTurn;
     public ulong rngState;
     public List<OffenseCommandDeckStateData> decks = new List<OffenseCommandDeckStateData>();
     public List<OffenseEnemyIntentStateData> enemyIntents = new List<OffenseEnemyIntentStateData>();

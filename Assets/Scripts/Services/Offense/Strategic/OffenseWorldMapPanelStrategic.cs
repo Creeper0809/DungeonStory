@@ -136,6 +136,7 @@ public partial class OffenseWorldMapPanel
             ?? throw new ArgumentNullException(nameof(campaign));
         selectedStrategicCoord = strategicWorld.DungeonCoord;
         strategicWorld.Changed += RenderStrategicIfVisible;
+        strategicDecisions.Changed += RenderStrategicIfVisible;
         strategicBattleDirector.Changed += RenderStrategicIfVisible;
         strategicMitigation.Changed += RenderStrategicIfVisible;
     }
@@ -481,6 +482,11 @@ public partial class OffenseWorldMapPanel
         if (strategicBattleDirector != null)
         {
             strategicBattleDirector.Changed -= RenderStrategicIfVisible;
+        }
+
+        if (strategicDecisions != null)
+        {
+            strategicDecisions.Changed -= RenderStrategicIfVisible;
         }
 
         if (strategicMitigation != null)

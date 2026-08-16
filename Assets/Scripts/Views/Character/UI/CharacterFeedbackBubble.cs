@@ -37,6 +37,8 @@ public class CharacterFeedbackBubble : MonoBehaviour
     private ICharacterAiSchedulingService aiSchedulingService;
     private ICharacterFeedbackBubbleViewFactory bubbleViewFactory;
     private IGameClock gameClock;
+    private bool runtimeInjected;
+    private bool logAndStatsSubscribed;
 
     public CharacterFeedbackState CurrentState { get; private set; } = CharacterFeedbackState.None;
 
@@ -51,6 +53,8 @@ public class CharacterFeedbackBubble : MonoBehaviour
         this.bubbleViewFactory = bubbleViewFactory
             ?? throw new ArgumentNullException(nameof(bubbleViewFactory));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        runtimeInjected = true;
+        TrySubscribeRuntimeEvents();
     }
 
     private void Awake()
@@ -79,15 +83,7 @@ public class CharacterFeedbackBubble : MonoBehaviour
             characterLog = GetComponent<CharacterLog>();
         }
 
-        if (characterLog != null)
-        {
-            characterLog.OnLogAdded += OnLogAdded;
-        }
-
-        if (characterStats != null)
-        {
-            characterStats.OnStatsInvalidated += OnStatsInvalidated;
-        }
+        TrySubscribeRuntimeEvents();
 
         nextPassiveRefreshFrame = (gameClock != null ? gameClock.FrameCount : 0)
             + Mathf.Abs(actor != null ? actor.GetInstanceID() : GetInstanceID()) % 8;
@@ -95,20 +91,46 @@ public class CharacterFeedbackBubble : MonoBehaviour
 
     private void OnDisable()
     {
-        if (characterLog != null)
-        {
-            characterLog.OnLogAdded -= OnLogAdded;
-        }
-
-        if (characterStats != null)
-        {
-            characterStats.OnStatsInvalidated -= OnStatsInvalidated;
-        }
+        UnsubscribeRuntimeEvents();
 
         if (text != null)
         {
             text.gameObject.SetActive(false);
         }
+    }
+
+    internal void PrepareForScopeTeardown()
+    {
+        UnsubscribeRuntimeEvents();
+        ReleaseView();
+    }
+
+    private void TrySubscribeRuntimeEvents()
+    {
+        if (logAndStatsSubscribed
+            || !runtimeInjected
+            || !isActiveAndEnabled
+            || characterLog == null
+            || characterStats == null)
+        {
+            return;
+        }
+
+        characterLog.OnLogAdded += OnLogAdded;
+        characterStats.OnStatsInvalidated += OnStatsInvalidated;
+        logAndStatsSubscribed = true;
+    }
+
+    private void UnsubscribeRuntimeEvents()
+    {
+        if (!logAndStatsSubscribed)
+        {
+            return;
+        }
+
+        characterLog.OnLogAdded -= OnLogAdded;
+        characterStats.OnStatsInvalidated -= OnStatsInvalidated;
+        logAndStatsSubscribed = false;
     }
 
     internal void TickFromScheduler(bool isVisible)

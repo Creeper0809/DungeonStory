@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 57
   features:
-  - rid: 7737211905655964571
-  - rid: 7737211905655964572
-  - rid: 7737211905660420398
+  - rid: 7737211981804077588
+  - rid: 7737211981804077589
+  - rid: 7737211981804077590
   references:
     version: 2
     RefIds:
-    - rid: 7737211905655964571
+    - rid: 7737211981804077588
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:survival:seasonal-storage
-    - rid: 7737211905655964572
+    - rid: 7737211981804077589
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 256
         sharedIntermediate: 0
-    - rid: 7737211905660420398
+    - rid: 7737211981804077590
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.59830695

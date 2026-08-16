@@ -29,7 +29,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     [SerializeField, Min(0.1f)] private float targetAiMilliseconds = 4f;
     [SerializeField, Min(8f)] private float targetFrameMilliseconds = 16.667f;
     [SerializeField, Range(0.05f, 1f)] private float frameHeadroomShare = 0.45f;
-    [SerializeField, Range(0f, 1f)] private float baselineBudgetRatio = 0.2f;
+    [SerializeField, Range(0f, 1f)] private float baselineBudgetRatio = 1f;
     [SerializeField, Min(0.01f)] private float minimumUsefulSliceMilliseconds = 0.1f;
     [SerializeField, Min(0.1f)] private float maximumDecisionDeferralSeconds = 2f;
     [SerializeField, Range(1, 30)] private int overdraftCooldownTicks = 4;
@@ -62,6 +62,9 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     private long cumulativeStarvedDecisionCount;
     private long cumulativeSkippedDecisionCount;
     private long cumulativeLegacyFallbackCount;
+    private CharacterActor activeDecisionActor;
+    private long activeDecisionStartedTimestamp;
+    private double activeDecisionSliceMilliseconds;
     private ICharacterWorldQuery characterWorld;
     private IMainCameraProvider mainCameraProvider;
     private ICharacterBehaviorTreeRuntimeConfigurator behaviorTreeConfigurator;
@@ -82,6 +85,8 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     public int LastLegacyFallbackCount { get; private set; }
     public int LastPathSearchCount => budgetState.LastPathSearchCount;
     public int LastBrokerPathSearchCount => budgetState.LastBrokerPathSearchCount;
+    public int LastBrokerUrgentOverdraftPathSearchCount =>
+        budgetState.LastBrokerUrgentOverdraftPathSearchCount;
     public int LastBrokerUnboundedPathSearchCount => budgetState.LastBrokerUnboundedPathSearchCount;
     public int LastBrokerPathCacheHitCount => budgetState.LastBrokerPathCacheHitCount;
     public int LastBrokerPathBudgetDeferralCount => budgetState.LastBrokerPathBudgetDeferralCount;
@@ -102,6 +107,27 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     public ExternalBehaviorTree CharacterAiExternalBehavior => characterAiExternalBehavior;
     public bool IsDrivingAi => enabled && driveCharacterUpdates;
     public int CurrentDecisionBudget => budgetState.CurrentDecisionBudget;
+    public int MaximumDecisionsPerFrameForDiagnostics => maxDecisionsPerFrame;
+    public void ResetDecisionDeferralTelemetryForDiagnostics() =>
+        budgetState.ResetMaximumObservedDecisionDeferral();
+
+    public void ResetDecisionQueueForDiagnostics()
+    {
+        DecisionSchedule.Clear();
+        urgentDecisionRequests.Clear();
+        float now = CurrentSchedulingTime;
+        for (int index = 0; index < actors.Count; index++)
+        {
+            CharacterActor actor = actors[index];
+            if (actor == null || !actorSet.Contains(actor))
+            {
+                continue;
+            }
+
+            urgentDecisionRequests.Add(actor);
+            DecisionSchedule.Schedule(actor, now);
+        }
+    }
     public int CurrentPathSearchBudget => budgetState.GetPathSearchBudgetForFrame(
         BuildBudgetSettings(),
         actors.Count);
@@ -295,15 +321,53 @@ public sealed class CharacterAiScheduler : MonoBehaviour
 
     public double GetDecisionWorkSliceMillisecondsFor(CharacterActor actor)
     {
+        if (actor != null
+            && actor == activeDecisionActor
+            && activeDecisionStartedTimestamp != 0L)
+        {
+            double elapsed = GetElapsedMilliseconds(
+                activeDecisionStartedTimestamp);
+            // Explicit workforce wake-ups (urgent surgery, rescue, process
+            // supply recovery) must finish one bounded candidate pass instead
+            // of re-entering a 50 ms retry loop forever. This is still capped
+            // and only applies while a stable preferred work type is active.
+            double minimumPreferredWorkSlice =
+                actor.Brain?.HasPreferredWorkType == true ? 0.45 : 0.02;
+            return Math.Max(
+                minimumPreferredWorkSlice,
+                activeDecisionSliceMilliseconds - elapsed);
+        }
+
         return budgetState.GetDecisionWorkSliceMilliseconds(
             actor,
             BuildBudgetSettings(),
             actors.Count);
     }
 
+    public void ConfigureDiagnosticBudgets(
+        int decisionLimit,
+        int pathSearchLimit)
+    {
+        if (!Application.isEditor)
+        {
+            throw new InvalidOperationException(
+                "Diagnostic scheduler budgets are editor-only.");
+        }
+
+        maxDecisionsPerFrame = Mathf.Clamp(decisionLimit, 1, 4096);
+        maxPathSearchesPerFrame = Mathf.Clamp(pathSearchLimit, 1, 8);
+        budgetState.Clear(BuildBudgetSettings(), actors.Count);
+    }
+
     public void RunManualTick(float deltaTime)
     {
-        manualTime += Mathf.Max(0f, deltaTime);
+        manualTime = Mathf.Max(manualTime, schedulingTime)
+            + Mathf.Max(0f, deltaTime);
+        // Public scheduling APIs invoked between manual ticks must observe the
+        // same clock as ProcessAiBudget. Keeping schedulingTime at its injected
+        // value (often zero in EditMode) let new urgent requests jump ahead of
+        // an older manual-time backlog forever.
+        schedulingTime = manualTime;
         ProcessAiBudget(manualTime);
     }
 
@@ -417,26 +481,58 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                     double predictedDecisionMilliseconds =
                         budgetState.GetPredictedDecisionCost(actor, budgetSettings);
                     bool urgent = urgentDecisionRequests.Contains(actor);
-                    bool starved = now - scheduled.DueTime
+                    // Start the single-decision fairness overdraft shortly before
+                    // the hard SLA. Waiting until the exact 2s boundary means a
+                    // backlog with two actors can only rescue the second actor on
+                    // the following tick, recording an avoidable >2s violation.
+                    // Reserve the final quarter of the SLA for the bounded
+                    // count-floor rescue. Opening earlier makes ordinary healthy
+                    // frames pay the overdraft often enough to violate the 4 ms
+                    // scheduler p95 target; opening later leaves no rounding or
+                    // variable-cost margin at the two-second boundary.
+                    float fairnessRescueLeadSeconds = Mathf.Max(
+                        targetFrameMilliseconds / 1000f,
+                        maximumDecisionDeferralSeconds * 0.25f);
+                    float fairnessRescueThreshold = Mathf.Max(
+                        0f,
+                        maximumDecisionDeferralSeconds
+                            - fairnessRescueLeadSeconds);
+                    float decisionDeferral = now - scheduled.DueTime;
+                    bool needsFairnessRescue = decisionDeferral
+                        >= fairnessRescueThreshold;
+                    bool starved = decisionDeferral
                         >= maximumDecisionDeferralSeconds;
                     bool withinCountBudget = LastProcessedDecisionCount
                         < Mathf.Max(decisionCountBudget, guaranteedDecisionFloor);
+                    // The count floor is a real two-second service guarantee,
+                    // not only a diagnostic target. Once the oldest request
+                    // enters the rescue window, allow only the bounded floor
+                    // to cross the normal wall-clock slice. The authored hard
+                    // decision ceiling still caps the frame, and the loop exits
+                    // immediately after the floor when the time slice is spent.
                     bool withinTimeBudget =
                         LastProcessedDecisionCount < guaranteedDecisionFloor
                         || elapsedBeforeDecision + predictedDecisionMilliseconds
                             <= budgetState.CurrentFrameBudgetMilliseconds;
+                    // Frame pressure may reduce the normal AI slice to zero,
+                    // but urgent or near-SLA work may still use one bounded
+                    // decision. A cooldown prevents several indivisible
+                    // candidate evaluations from becoming a recurring hitch.
                     bool canOverdraft = LastProcessedDecisionCount == 0
                         && schedulerTickSequence - lastOverdraftTick
                             >= Mathf.Max(1, overdraftCooldownTicks);
+                    bool mayUseFairnessFloor = needsFairnessRescue
+                        && LastProcessedDecisionCount == 0;
                     if ((!withinCountBudget || !withinTimeBudget)
-                        && !(canOverdraft && (urgent || starved)))
+                        && !(mayUseFairnessFloor
+                            || (canOverdraft && (urgent || needsFairnessRescue))))
                     {
                         LastBudgetExhausted = true;
                         break;
                     }
 
                     if (canOverdraft
-                        && (urgent || starved)
+                        && (urgent || needsFairnessRescue)
                         && (!withinCountBudget || !withinTimeBudget))
                     {
                         lastOverdraftTick = schedulerTickSequence;
@@ -452,11 +548,27 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                     BehaviorTree behaviorTree = actor.BehaviorTree;
                     bool needsInitialTreeTick = behaviorTree != null
                         && behaviorTree.DungeonStoryTickCount == 0;
-                    if (!actor.IsAiDecisionPending
-                        && !needsInitialTreeTick
-                        && !hasSelectedActionWaitingToStart)
+                    // An explicit request is also the production authority for a
+                    // one-shot continuation audit. In particular, a running
+                    // locked action normally has IsAiDecisionPending == false,
+                    // but Critical/LockedAction still must be observable when a
+                    // command or lifecycle event asks for an immediate decision.
+                    // Keep ordinary cadence ticks suppressed while an action is
+                    // running; only the bounded urgent request bypasses this gate.
+                    // Lifecycle admission remains absolute: entry/exit movement
+                    // is system-owned and cannot be cancelled by an urgent AI tick.
+                    if (!actor.CanRunAi
+                        || (!urgent
+                            && !actor.IsAiDecisionPending
+                            && !needsInitialTreeTick
+                            && !hasSelectedActionWaitingToStart))
                     {
                         cumulativeSkippedDecisionCount++;
+                        actor.Brain?.NotifySchedulerDecisionProcessed(
+                            scheduled.DueTime,
+                            now,
+                            decided: false,
+                            retryScheduled: false);
                         continue;
                     }
 
@@ -466,7 +578,29 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                     long behaviorAllocatedAtStart = collectDecisionPerformance
                         ? GC.GetAllocatedBytesForCurrentThread()
                         : 0L;
-                    bool decided = TryRunScheduledDecision(actor);
+                    activeDecisionActor = actor;
+                    activeDecisionStartedTimestamp = behaviorStart;
+                    double maximumDecisionSliceMilliseconds = actors.Count <= 32
+                        ? 0.65
+                        : 0.32;
+                    activeDecisionSliceMilliseconds = Math.Min(
+                        maximumDecisionSliceMilliseconds,
+                        Math.Max(
+                            0.08,
+                            budgetState.CurrentFrameBudgetMilliseconds
+                                - elapsedBeforeDecision));
+                    bool decided;
+                    try
+                    {
+                        actor.Brain?.NotifyRetryAttempted();
+                        decided = TryRunScheduledDecision(actor);
+                    }
+                    finally
+                    {
+                        activeDecisionActor = null;
+                        activeDecisionStartedTimestamp = 0L;
+                        activeDecisionSliceMilliseconds = 0.0;
+                    }
                     double decisionMilliseconds =
                         GetElapsedMilliseconds(behaviorStart);
                     budgetState.RecordDecisionCost(
@@ -486,11 +620,22 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                     AIBrain brain = actor.Brain;
                     bool hasPendingDecisionWork = brain != null
                         && (brain.IsActionScoringPending
-                            || brain.IsPathSearchDeferred);
+                            || brain.IsPathSearchDeferred
+                            || brain.IsPreferredActionDeferred);
                     float nextDelay = HasSelectedActionWaitingToStart(actor)
                         || hasPendingDecisionWork
                         ? retryDelay
                         : decided ? GetDecisionInterval(actor) : retryDelay;
+                    bool retryScheduled = hasPendingDecisionWork || !decided;
+                    if (retryScheduled)
+                    {
+                        brain?.NotifyRetryScheduled(nextDelay);
+                    }
+                    brain?.NotifySchedulerDecisionProcessed(
+                        scheduled.DueTime,
+                        now,
+                        decided,
+                        retryScheduled);
                     DecisionSchedule.Schedule(actor, now + nextDelay);
                     LastProcessedDecisionCount++;
                     cumulativeProcessedDecisionCount++;
@@ -509,9 +654,6 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                 }
 
                 budgetState.UpdateBacklogTelemetry(DecisionSchedule, now);
-#if UNITY_EDITOR
-                RefreshBehaviorDesignerVisualsForEditor();
-#endif
                 budgetState.CapturePathResults(RequirePathSearchBroker());
             }
             finally
@@ -550,6 +692,12 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                     budgetSettings);
             }
         }
+#if UNITY_EDITOR
+        // Behavior Designer visualization is Editor presentation work, not
+        // production AI. Keep it outside both the gameplay profiler marker and
+        // LastProcessingMilliseconds so release gates measure the runtime loop.
+        RefreshBehaviorDesignerVisualsForEditor();
+#endif
     }
 
     private static double GetElapsedMilliseconds(long startTimestamp)

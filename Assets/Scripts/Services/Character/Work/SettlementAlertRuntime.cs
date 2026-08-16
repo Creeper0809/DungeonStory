@@ -137,7 +137,9 @@ public sealed class SettlementAlertRuntime :
                     targetBuildingId = value.TargetBuildingId,
                     alertEpochId = value.AlertEpochId,
                     suspendedAtAbsoluteHour = value.SuspendedAtAbsoluteHour,
-                    progressExternallyPersisted = value.ProgressExternallyPersisted
+                    progressExternallyPersisted = value.ProgressExternallyPersisted,
+                    inlineCompletedWork = value.InlineCompletedWork,
+                    inlineRequiredWork = value.InlineRequiredWork
                 });
         }
         result.suspendedWork.Sort((left, right) =>
@@ -209,7 +211,9 @@ public sealed class SettlementAlertRuntime :
                     source.targetBuildingId,
                     source.alertEpochId,
                     source.suspendedAtAbsoluteHour,
-                    source.progressExternallyPersisted));
+                    source.progressExternallyPersisted,
+                    source.inlineCompletedWork,
+                    source.inlineRequiredWork));
         }
         TouchSnapshot();
 
@@ -371,7 +375,7 @@ public sealed class SettlementAlertRuntime :
             || string.IsNullOrWhiteSpace(value.TargetBuildingId)
             || value.AlertEpochId != alertEpochId
             || value.SuspendedAtAbsoluteHour < 0L
-            || !value.ProgressExternallyPersisted)
+            || (!value.ProgressExternallyPersisted && !value.HasInlineProgress))
         {
             return EmergencyAccountingResult.Fail(
                 "SettlementSuspendedWorkInvalid",
@@ -413,6 +417,38 @@ public sealed class SettlementAlertRuntime :
         suspendedWork.Remove(normalized);
         TouchSnapshot();
         return EmergencyAccountingResult.Ok("suspended-work-resumed");
+    }
+
+    public EmergencyAccountingResult MarkSuspendedWorkAbandoned(
+        string characterId,
+        long epochId,
+        string reasonCode)
+    {
+        string normalized = characterId?.Trim() ?? string.Empty;
+        string normalizedReason = reasonCode?.Trim() ?? string.Empty;
+        if (normalizedReason.Length == 0)
+        {
+            return EmergencyAccountingResult.Fail(
+                "SettlementSuspendedWorkAbandonReasonMissing",
+                "Abandoning suspended work requires a stable reason code.");
+        }
+        if (!suspendedWork.TryGetValue(
+                normalized,
+                out SettlementSuspendedWorkSnapshot value))
+        {
+            return EmergencyAccountingResult.Ok("suspended-work-already-absent");
+        }
+        if (value.AlertEpochId != epochId)
+        {
+            return EmergencyAccountingResult.Fail(
+                "SettlementSuspendedWorkEpochMismatch",
+                $"Suspended work for '{normalized}' belongs to epoch {value.AlertEpochId}, not {epochId}.");
+        }
+
+        suspendedWork.Remove(normalized);
+        TouchSnapshot();
+        return EmergencyAccountingResult.Ok(
+            $"suspended-work-abandoned:{normalizedReason}");
     }
 
     private void ReevaluateDesiredLevel()
@@ -475,7 +511,9 @@ public sealed class SettlementAlertRuntime :
                         previousWork.TargetBuildingId,
                         alertEpochId,
                         previousWork.SuspendedAtAbsoluteHour,
-                        previousWork.ProgressExternallyPersisted);
+                        previousWork.ProgressExternallyPersisted,
+                        previousWork.InlineCompletedWork,
+                        previousWork.InlineRequiredWork);
             }
         }
         levelEnteredAbsoluteHour = calendar.AbsoluteHour;

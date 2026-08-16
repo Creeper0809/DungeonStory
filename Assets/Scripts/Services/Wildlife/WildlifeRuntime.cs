@@ -194,7 +194,11 @@ public sealed class WildlifeRuntime :
                 continue;
             }
 
-            if (!WildlifeWorldRuntime.IsValidCurrentPosition(grid, actor))
+            // Captured wildlife is physically owned by the captivity aggregate.
+            // Its authored pen may be inside the dungeon even when the free-
+            // wildlife species cannot naturally enter dungeon cells.
+            if (actor.State != WildlifeState.Captured
+                && !WildlifeWorldRuntime.IsValidCurrentPosition(grid, actor))
             {
                 if (!worldRuntime.TryFindNearestInitialSpawnCell(
                         grid,

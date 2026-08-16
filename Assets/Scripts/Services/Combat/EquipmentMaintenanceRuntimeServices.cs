@@ -8,7 +8,9 @@ public sealed class EquipmentMaintenanceItemServices
         ICombatEquipmentCatalog equipmentCatalog,
         IResourceEconomyContentCatalog resourceCatalog,
         IWorldItemStackRuntime items,
-        ICombatEquipmentPickupRuntime equipmentPickup)
+        ICombatEquipmentPickupRuntime equipmentPickup,
+        IFacilityBufferDestinationClaimQuery destinationClaims,
+        IFacilityBufferDestinationClaimCommand destinationClaimCommands)
     {
         Equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
         EquipmentCatalog = equipmentCatalog
@@ -18,6 +20,10 @@ public sealed class EquipmentMaintenanceItemServices
         Items = items ?? throw new ArgumentNullException(nameof(items));
         EquipmentPickup = equipmentPickup
             ?? throw new ArgumentNullException(nameof(equipmentPickup));
+        DestinationClaims = destinationClaims
+            ?? throw new ArgumentNullException(nameof(destinationClaims));
+        DestinationClaimCommands = destinationClaimCommands
+            ?? throw new ArgumentNullException(nameof(destinationClaimCommands));
     }
 
     public ICombatEquipmentRuntime Equipment { get; }
@@ -25,6 +31,8 @@ public sealed class EquipmentMaintenanceItemServices
     public IResourceEconomyContentCatalog ResourceCatalog { get; }
     public IWorldItemStackRuntime Items { get; }
     public ICombatEquipmentPickupRuntime EquipmentPickup { get; }
+    public IFacilityBufferDestinationClaimQuery DestinationClaims { get; }
+    public IFacilityBufferDestinationClaimCommand DestinationClaimCommands { get; }
 }
 
 public sealed class EquipmentMaintenanceWorldServices

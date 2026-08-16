@@ -53,13 +53,13 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211905652294628
-    - rid: 7737211905652294629
-    - rid: 7737211905652294630
-    - rid: 7737211905652294631
-    - rid: 7737211905652294632
-    - rid: 7737211905652294633
-    - rid: 7737211905652294634
+    - rid: 7737211981816660368
+    - rid: 7737211981816660369
+    - rid: 7737211981816660370
+    - rid: 7737211981816660371
+    - rid: 7737211981816660372
+    - rid: 7737211981816660373
+    - rid: 7737211981816660374
   width: 2
   height: 1
   layer: 1
@@ -75,12 +75,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211905652294628
+    - rid: 7737211981816660368
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I18
-    - rid: 7737211905652294629
+    - rid: 7737211981816660369
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -89,10 +89,11 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211905652294630
+    - rid: 7737211981816660370
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
         constructionWorkRequired: 472
         repairWorkRequired: 142
         cleanWorkRequired: 24
@@ -116,7 +117,7 @@ MonoBehaviour:
           amount: 6
         - itemId: component:machine-parts
           amount: 3
-    - rid: 7737211905652294631
+    - rid: 7737211981816660371
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -124,13 +125,13 @@ MonoBehaviour:
         - industrial-infrastructure
         - research:equipment:lineage-binding
         - workstation:v3:lineage-archive
-    - rid: 7737211905652294632
+    - rid: 7737211981816660372
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v3:lineage-archive
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211905652294633
+    - rid: 7737211981816660373
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -138,7 +139,7 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211905652294634
+    - rid: 7737211981816660374
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

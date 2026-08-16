@@ -42,7 +42,7 @@ MonoBehaviour:
     combinationMode: 0
     recommendedRank: 2
     minimumRiskRank: 0
-  requiredResearchId: research:industry:powered-tools
+  requiredResearchId: research:equipment:engineering-drawing
   requiredWork: 46
   preparationWork: 0
   finishingWork: 0

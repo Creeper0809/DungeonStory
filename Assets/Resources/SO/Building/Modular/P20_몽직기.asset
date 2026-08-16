@@ -55,12 +55,17 @@ MonoBehaviour:
     items:
     - rid: 7737211921440178990
     - rid: 7737211921440178991
-    - rid: 7737211921440178992
     - rid: 7737211921440178993
     - rid: 7737211921440178994
     - rid: 7737211921440178995
     - rid: 7737211921440178996
     - rid: 7737211921440178997
+    - rid: 7737211981804077158
+    - rid: 7737211981804077159
+    - rid: 7737211981804077690
+    - rid: 7737211981804077691
+    - rid: 7737211981804077692
+    - rid: 7737211981804077693
   width: 2
   height: 1
   layer: 1
@@ -87,12 +92,6 @@ MonoBehaviour:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - arcane-loom
-    - rid: 7737211921440178992
-      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionWorkstationAbility
-        workstationTag: workstation:arcane-loom
-        stockSensorInstallationItemId: component:stock-sensor-panel
     - rid: 7737211921440178993
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
@@ -169,3 +168,63 @@ MonoBehaviour:
           - key: Mana
             value: 2
           metrics: []
+    - rid: 7737211981804077158
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:arcane-loom
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211981804077159
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 4
+        outputCapacities:
+        - itemId: material:lead-ingot
+          capacity: 24
+        - itemId: material:lead-shot
+          capacity: 96
+        - itemId: material:black-powder
+          capacity: 48
+        - itemId: material:paper
+          capacity: 64
+        - itemId: ammo:paper-cartridge
+          capacity: 120
+        - itemId: component:machine-parts
+          capacity: 16
+        - itemId: component:precision-parts
+          capacity: 16
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}
+    - rid: 7737211981804077690
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 1
+        maxThroughput: 25
+        normallyOpen: 1
+    - rid: 7737211981804077691
+      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingPowerConsumerAbility
+        demandPerSecond: 5
+        priority: 4
+        minimumSupplyFraction: 0.75
+    - rid: 7737211981804077692
+      type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingAutomationAbility
+        maximumMode: 2
+        assistedPowerDemand: 2
+        automaticPowerDemand: 5
+        assistedWorkMultiplier: 1.35
+        automaticWorkPerSecond: 1
+        automaticQualityCap: 0.75
+        maintenancePerGameHour: 1
+    - rid: 7737211981804077693
+      type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingConveyorPortAbility
+        mode: 2
+        destinationId: 
+        capacity: 4

@@ -41,6 +41,7 @@ public static class CharacterWorldSaveValidation
         ValidateSocialMemory(actor.socialMemory, label, report);
         ValidateRecovery(actor.expeditionRecovery, label, report);
         ValidateCarryInventory(actor.carryInventory, label, report);
+        ValidateHaulDeliveryIntent(actor, label, report);
     }
 
     public static void ValidatePopulationProfiles(
@@ -530,6 +531,114 @@ public static class CharacterWorldSaveValidation
             {
                 report.AddError($"{label} contains an invalid carried item '{item.itemId}'.");
             }
+        }
+    }
+
+    private static void ValidateHaulDeliveryIntent(
+        DungeonCharacterSaveData actor,
+        string label,
+        DungeonGameRestoreReport report)
+    {
+        HaulDeliveryIntentSaveData intent = actor.haulDeliveryIntent;
+        CharacterCarriedItemSaveData[] haulCarried = actor.carryInventory?.items?
+            .Where(item => item != null
+                && (item.ownerOperationId?.StartsWith(
+                    "haul:",
+                    StringComparison.Ordinal) ?? false))
+            .ToArray() ?? Array.Empty<CharacterCarriedItemSaveData>();
+        if (intent == null)
+        {
+            if (haulCarried.Length > 0)
+                report.AddError($"{label} has carried haul items without a delivery intent.");
+            return;
+        }
+
+        bool isDefaultEmptyIntent = string.IsNullOrWhiteSpace(intent.operationId)
+            && string.IsNullOrWhiteSpace(intent.ownerCharacterId)
+            && string.IsNullOrWhiteSpace(intent.destinationId)
+            && (intent.commitments == null || intent.commitments.Count == 0);
+        if (isDefaultEmptyIntent)
+        {
+            if (haulCarried.Length > 0)
+                report.AddError($"{label} has carried haul items without a delivery intent.");
+            return;
+        }
+
+        string operation = intent.operationId?.Trim() ?? string.Empty;
+        if (operation.Length == 0
+            || !HaulDeliveryOperationIdentity.TryParse(
+                operation,
+                intent.ownerCharacterId,
+                out _)
+            || !string.Equals(
+                intent.ownerCharacterId?.Trim(),
+                actor.persistentId?.Trim(),
+                StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(intent.destinationId)
+            || !Enum.IsDefined(typeof(WorldItemHaulDestinationKind), intent.destinationKind)
+            || intent.commitments == null
+            || !intent.HasCommittedPickup)
+        {
+            report.AddError($"{label} has an invalid haul delivery intent '{operation}'.");
+            return;
+        }
+
+        Dictionary<string, CharacterCarriedItemSaveData> carriedByStack =
+            new(StringComparer.Ordinal);
+        if (haulCarried.Any(item => !string.Equals(
+                item.ownerOperationId?.Trim(),
+                operation,
+                StringComparison.Ordinal)))
+        {
+            report.AddError(
+                $"{label} has carried haul items owned by more than one delivery intent.");
+        }
+        foreach (CharacterCarriedItemSaveData carried in haulCarried.Where(item =>
+                     string.Equals(
+                         item.ownerOperationId?.Trim(),
+                         operation,
+                         StringComparison.Ordinal)))
+        {
+            string stackId = carried.carriedStackId?.Trim() ?? string.Empty;
+            if (stackId.Length == 0 || !carriedByStack.TryAdd(stackId, carried))
+            {
+                report.AddError(
+                    $"{label} haul delivery '{operation}' has an invalid or duplicate carried stack.");
+            }
+        }
+        HashSet<string> commitmentIds = new(StringComparer.Ordinal);
+        foreach (HaulDeliveryItemCommitmentSaveData commitment in
+                 intent.commitments.Where(value => value != null))
+        {
+            if (string.IsNullOrWhiteSpace(commitment.carriedStackId)
+                || !commitmentIds.Add(commitment.carriedStackId.Trim())
+                || commitment.quantity <= 0
+                || string.IsNullOrWhiteSpace(commitment.itemId)
+                || string.IsNullOrWhiteSpace(commitment.expectedStackSignature)
+                || !carriedByStack.TryGetValue(
+                    commitment.carriedStackId.Trim(),
+                    out CharacterCarriedItemSaveData carried)
+                || carried.quantity != commitment.quantity
+                || !string.Equals(carried.itemId, commitment.itemId, StringComparison.Ordinal)
+                || !string.Equals(
+                    carried.sourceStackId?.Trim(),
+                    commitment.sourceStackId?.Trim(),
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    ItemReservationSignature.Create(
+                        carried.itemId,
+                        carried.components),
+                    commitment.expectedStackSignature,
+                    StringComparison.Ordinal))
+            {
+                report.AddError(
+                    $"{label} haul delivery '{operation}' has a mismatched physical commitment.");
+            }
+        }
+        if (intent.commitments.Count != carriedByStack.Count)
+        {
+            report.AddError(
+                $"{label} haul delivery '{operation}' does not exactly own its carried stacks.");
         }
     }
 

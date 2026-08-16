@@ -540,10 +540,22 @@ namespace BehaviorDesigner.Runtime.Tasks.DungeonStory
                 actor = GetComponent<CharacterActor>();
             }
 
-            float priority = CharacterAiRoutinePriority.GetPriority(
-                actor,
-                RoutineBranch,
-                out string reason);
+            bool preferred = actor?.Brain?
+                .IsRoutineGroupPreferredForNextDecision(RoutineBranch) == true;
+            float priority;
+            string reason;
+            if (preferred)
+            {
+                priority = 101f;
+                reason = "explicit preferred action owns this routine decision";
+            }
+            else
+            {
+                priority = CharacterAiRoutinePriority.GetPriority(
+                    actor,
+                    RoutineBranch,
+                    out reason);
+            }
             actor?.Blackboard?.RecordRoutineGroupPriority(RoutineBranch, priority, reason);
             return priority;
         }
@@ -598,9 +610,31 @@ namespace BehaviorDesigner.Runtime.Tasks.DungeonStory
             }
 
             bool hasUtility = jobGiver.TryEvaluate(actor, out CharacterAiJobCandidate candidate);
+            bool preferred = jobGiver.MatchesPreferredAction(actor.Brain);
+            bool preferredRetained = !hasUtility
+                && preferred
+                && actor.Brain.TryRetainPreferredBranchDeferred(
+                    jobGiver.Branch,
+                    candidate.ActionCandidate.Failure);
+            if (preferredRetained)
+            {
+                actor.Brain.PreservePreferredDeferredDecisionOwnership();
+            }
+            else if (!hasUtility && preferred)
+            {
+                actor.Brain.RetirePreferredBranchAfterHardFailure(
+                    jobGiver.Branch,
+                    candidate.ActionCandidate.Failure,
+                    CharacterAiPreferredActionFailureSource
+                        .BehaviorTaskActionEvaluation);
+            }
             actor.Blackboard?.RecordJobGiverUtility(
                 jobGiver.Branch,
-                hasUtility ? candidate.Utility : 0f,
+                hasUtility
+                    ? preferred ? 1.01f : candidate.Utility
+                    : preferredRetained
+                        ? 1.01f
+                        : 0f,
                 candidate.DebugSummary);
             if (hasUtility)
             {
@@ -611,7 +645,11 @@ namespace BehaviorDesigner.Runtime.Tasks.DungeonStory
                 actor.Blackboard?.RemoveJobGiverCandidateCache(jobGiver.Branch);
             }
 
-            return hasUtility ? candidate.Utility : 0f;
+            return hasUtility
+                ? preferred ? 1.01f : candidate.Utility
+                : preferredRetained
+                    ? 1.01f
+                    : 0f;
         }
 
         private CharacterAiJobGiver ResolveJobGiver()
@@ -741,6 +779,12 @@ namespace BehaviorDesigner.Runtime.Tasks.DungeonStory
                 actor,
                 jobGiver,
                 FriendlyName);
+            if (!result.Handled
+                && jobGiver?.MatchesPreferredAction(actor?.Brain) == true
+                && actor.Brain.IsPreferredActionDeferred)
+            {
+                return TaskStatus.Running;
+            }
             return result.Handled ? TaskStatus.Success : TaskStatus.Failure;
         }
     }

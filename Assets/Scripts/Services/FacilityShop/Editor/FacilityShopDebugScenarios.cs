@@ -338,6 +338,7 @@ public static class FacilityShopDebugScenarios
         EmploymentContractRuntime employmentContracts =
             new EmploymentContractRuntime(
                 worldQuery,
+                worldQuery,
                 OffenseEditorTestDependencies.CreateCombatEquipmentRuntime(),
                 moneyAccount,
                 gameEvents,
@@ -999,10 +1000,15 @@ public static class FacilityShopDebugScenarios
 
     private sealed class EmptyWorldQuery :
         ICharacterWorldQuery,
+        ICharacterWorldPersistenceIdentityQuery,
         IBuildingWorldQuery
     {
         public int CharacterVersion => 0;
         public IReadOnlyList<CharacterActor> Characters => Array.Empty<CharacterActor>();
+        public IReadOnlyCollection<CharacterId> GetPersistentCharacterIds() =>
+            Array.Empty<CharacterId>();
+        public IReadOnlyCollection<CharacterId> GetPersistentActorIds() =>
+            Array.Empty<CharacterId>();
         public int BuildingVersion => 0;
         public IReadOnlyList<BuildableObject> Buildings => Array.Empty<BuildableObject>();
     }

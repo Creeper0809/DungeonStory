@@ -101,11 +101,26 @@ public interface IItemTransferService
         IWarehouseFacility warehouse,
         out string failureReason);
 
+    bool TryDepositCarriedItems(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        IWarehouseFacility warehouse,
+        IReadOnlyCollection<string> ownerOperationIds,
+        out string failureReason);
+
     bool TryDepositCarriedItemsToFacility(
         CharacterActor actor,
         CharacterCarryInventory inventory,
         Vector2Int destinationPosition,
         string destinationId,
+        out string failureReason);
+
+    bool TryDepositCarriedItemsToFacility(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        Vector2Int destinationPosition,
+        string destinationId,
+        IReadOnlyCollection<string> ownerOperationIds,
         out string failureReason);
 
     bool TryConsumeFacilityBuffer(
@@ -126,6 +141,19 @@ public interface IItemTransferService
         string leaseId,
         double requestedUntilGameSeconds,
         out DomainFailure failure);
+
+    bool TryReserveAvailableStackForDirectPickup(
+        string ownerCharacterId,
+        string ownerOperationId,
+        ItemReservationPurpose purpose,
+        string stackId,
+        int quantity,
+        out ItemQuantityLease lease,
+        out DomainFailure failure);
+
+    bool ReleaseQuantityReservation(
+        string leaseId,
+        ItemReservationReleaseReason reason);
 }
 
 public readonly struct ItemTransitDestination
@@ -187,6 +215,19 @@ public interface IReservedItemTransferService
         string leaseId,
         int quantity,
         out DomainFailure failure);
+}
+
+public interface ICarriedItemDropService
+{
+    bool TryDropCarriedItems(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        out string failureReason);
+    bool TryDropCarriedItems(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        IReadOnlyCollection<string> ownerOperationIds,
+        out string failureReason);
 }
 
 public readonly struct ReservedItemConsumption
@@ -387,12 +428,15 @@ public readonly struct ItemTransitStackSnapshot
 
 public sealed class ItemTransferService :
     IItemTransferService,
-    IReservedItemTransferService
+    IReservedItemTransferService,
+    ICarriedItemDropService
 {
     private readonly IDungeonItemCatalogProvider catalogProvider;
     private readonly IItemHaulingSettingsProvider haulingSettingsProvider;
     private readonly ICharacterIdRegistry characterIdRegistry;
+    private readonly IGridSystemProvider gridSystemProvider;
     private readonly ICharacterAiWorldRegistry worldRegistry;
+    private readonly IFacilityBufferDestinationClaimQuery destinationClaims;
     private readonly ICombatEquipmentCatalog combatEquipmentCatalog;
     private readonly IGameEventBus gameEventBus;
     private readonly WorldItemRepository repository;
@@ -410,7 +454,9 @@ public sealed class ItemTransferService :
     public ItemTransferService(
         WorldItemReadServices readServices,
         ICharacterIdRegistry characterIdRegistry,
+        IGridSystemProvider gridSystemProvider,
         ICharacterAiWorldRegistry worldRegistry,
+        IFacilityBufferDestinationClaimQuery destinationClaims,
         ICombatEquipmentCatalog combatEquipmentCatalog,
         IGameEventBus gameEventBus,
         WorldItemRepository repository,
@@ -426,8 +472,12 @@ public sealed class ItemTransferService :
         haulingSettingsProvider = reads.HaulingSettings;
         this.characterIdRegistry = characterIdRegistry
             ?? throw new ArgumentNullException(nameof(characterIdRegistry));
+        this.gridSystemProvider = gridSystemProvider
+            ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.worldRegistry = worldRegistry
             ?? throw new ArgumentNullException(nameof(worldRegistry));
+        this.destinationClaims = destinationClaims
+            ?? throw new ArgumentNullException(nameof(destinationClaims));
         this.combatEquipmentCatalog = combatEquipmentCatalog
             ?? throw new ArgumentNullException(nameof(combatEquipmentCatalog));
         this.gameEventBus = gameEventBus
@@ -462,6 +512,56 @@ public sealed class ItemTransferService :
             leaseId,
             requestedUntilGameSeconds,
             out failure);
+
+    public bool TryReserveAvailableStackForDirectPickup(
+        string ownerCharacterId,
+        string ownerOperationId,
+        ItemReservationPurpose purpose,
+        string stackId,
+        int quantity,
+        out ItemQuantityLease lease,
+        out DomainFailure failure)
+    {
+        lease = null;
+        failure = DomainFailure.None;
+        string characterId = ownerCharacterId?.Trim() ?? string.Empty;
+        string operationId = ownerOperationId?.Trim() ?? string.Empty;
+        string normalizedStackId = stackId?.Trim() ?? string.Empty;
+        if (characterId.Length == 0
+            || operationId.Length == 0
+            || quantity <= 0
+            || !repository.RecordsById.TryGetValue(
+                normalizedStackId,
+                out WorldItemStackRecord record)
+            || record == null
+            || record.quantity <= 0
+            || record.state is not (WorldItemStackState.Loose
+                or WorldItemStackState.Stored)
+            || record.forbidden)
+        {
+            failure = new DomainFailure(
+                FailureCode.ItemTransferStackUnavailable,
+                normalizedStackId);
+            return false;
+        }
+
+        return quantityReservations.TryReserve(
+            operationId,
+            characterId,
+            purpose,
+            $"direct-pickup:{purpose}:{characterId}",
+            new ItemQuantityReservationRequest(
+                new ItemStackId(record.stackId),
+                quantity,
+                ItemReservationSignature.Create(record.itemId, record.components)),
+            out lease,
+            out failure);
+    }
+
+    public bool ReleaseQuantityReservation(
+        string leaseId,
+        ItemReservationReleaseReason reason) =>
+        quantityReservations.Release(leaseId, reason);
 
     public bool TryExtractReservedQuantity(
         string leaseId,
@@ -1060,13 +1160,25 @@ public sealed class ItemTransferService :
                     or WorldItemStackState.FacilityOutputBuffer
                         ? releasePosition
                         : oldPosition;
-            repository.Remove(target);
-            itemSpawner.Spawn(
-                target.itemId,
-                quantity,
-                position,
-                state,
-                sourceDestination);
+            quantityLeaseMutations.InvalidateStack(
+                target.stackId,
+                ItemReservationReleaseReason.Cancelled);
+            repository.Relocate(target, position);
+            target.state = state;
+            target.destinationId = sourceDestination;
+            target.sourceStorageDestinationId = string.Empty;
+            target.hasDestinationPosition = false;
+            target.destinationPosition = default;
+            target.aggregationCohortId = string.Empty;
+            target.reservedByPersistentId = string.Empty;
+            target.reservedQuantity = 0;
+            target.reservationRevision++;
+            repository.TrySetEquipmentWorldStateBySourceStack(
+                target.stackId,
+                state == WorldItemStackState.Stored
+                    ? CombatEquipmentWorldState.Stored
+                    : CombatEquipmentWorldState.Loose);
+            repository.MarkChanged();
             markerPresenter.RefreshAt(oldPosition);
             markerPresenter.RefreshAt(position);
         }
@@ -1456,6 +1568,32 @@ public sealed class ItemTransferService :
         CharacterActor actor,
         CharacterCarryInventory inventory,
         IWarehouseFacility warehouse,
+        out string failureReason) =>
+        TryDepositCarriedItemsCore(
+            actor,
+            inventory,
+            warehouse,
+            null,
+            out failureReason);
+
+    public bool TryDepositCarriedItems(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        IWarehouseFacility warehouse,
+        IReadOnlyCollection<string> ownerOperationIds,
+        out string failureReason) =>
+        TryDepositCarriedItemsCore(
+            actor,
+            inventory,
+            warehouse,
+            ownerOperationIds,
+            out failureReason);
+
+    private bool TryDepositCarriedItemsCore(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        IWarehouseFacility warehouse,
+        IReadOnlyCollection<string> ownerOperationIds,
         out string failureReason)
     {
         failureReason = string.Empty;
@@ -1467,7 +1605,9 @@ public sealed class ItemTransferService :
             return false;
         }
 
-        List<CharacterCarriedItemSaveData> carried = inventory.RemoveAllItems();
+        List<CharacterCarriedItemSaveData> carried = ownerOperationIds == null
+            ? inventory.RemoveAllItems()
+            : inventory.RemoveItemsOwnedByOperations(ownerOperationIds);
         if (carried.Count == 0)
         {
             failureReason = "nothing carried";
@@ -1589,11 +1729,134 @@ public sealed class ItemTransferService :
         return depositedAny;
     }
 
+    public bool TryDropCarriedItems(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (actor == null || inventory == null)
+        {
+            failureReason = "carrier unavailable";
+            return false;
+        }
+
+        return TryDropRemovedCarriedItems(
+            actor,
+            inventory,
+            inventory.RemoveAllItems(),
+            out failureReason);
+    }
+
+    public bool TryDropCarriedItems(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        IReadOnlyCollection<string> ownerOperationIds,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (actor == null || inventory == null)
+        {
+            failureReason = "carrier unavailable";
+            return false;
+        }
+
+        return TryDropRemovedCarriedItems(
+            actor,
+            inventory,
+            inventory.RemoveItemsOwnedByOperations(ownerOperationIds),
+            out failureReason);
+    }
+
+    private bool TryDropRemovedCarriedItems(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        List<CharacterCarriedItemSaveData> carried,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (carried.Count == 0)
+        {
+            return true;
+        }
+
+        Vector2Int dropPosition = ResolveActorGridPosition(actor);
+        List<CharacterCarriedItemSaveData> failed = new();
+        foreach (CharacterCarriedItemSaveData item in carried)
+        {
+            if (item == null || item.quantity <= 0)
+                continue;
+
+            if (TrySpawnCarriedItem(
+                    item,
+                    item.quantity,
+                    dropPosition,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    false,
+                    default,
+                    out _) != item.quantity)
+            {
+                failed.Add(item);
+                continue;
+            }
+
+            if (!string.IsNullOrWhiteSpace(item.ownerOperationId))
+            {
+                quantityReservations.ReleaseByOwner(
+                    item.ownerOperationId,
+                    ItemReservationReleaseReason.Cancelled);
+            }
+        }
+
+        if (failed.Count == 0)
+        {
+            markerPresenter.RefreshAt(dropPosition);
+            return true;
+        }
+
+        CharacterCarryInventorySaveData restore = inventory.Capture();
+        restore.items.AddRange(failed);
+        inventory.Restore(restore);
+        failureReason = $"failed to return {failed.Count} carried stack(s) to the world";
+        return false;
+    }
+
     public bool TryDepositCarriedItemsToFacility(
         CharacterActor actor,
         CharacterCarryInventory inventory,
         Vector2Int destinationPosition,
         string destinationId,
+        out string failureReason) =>
+        TryDepositCarriedItemsToFacilityCore(
+            actor,
+            inventory,
+            destinationPosition,
+            destinationId,
+            null,
+            out failureReason);
+
+    public bool TryDepositCarriedItemsToFacility(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        Vector2Int destinationPosition,
+        string destinationId,
+        IReadOnlyCollection<string> ownerOperationIds,
+        out string failureReason) =>
+        TryDepositCarriedItemsToFacilityCore(
+            actor,
+            inventory,
+            destinationPosition,
+            destinationId,
+            ownerOperationIds,
+            out failureReason);
+
+    private bool TryDepositCarriedItemsToFacilityCore(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        Vector2Int destinationPosition,
+        string destinationId,
+        IReadOnlyCollection<string> ownerOperationIds,
         out string failureReason)
     {
         failureReason = string.Empty;
@@ -1610,7 +1873,25 @@ public sealed class ItemTransferService :
             return false;
         }
 
-        List<CharacterCarriedItemSaveData> carried = inventory.RemoveAllItems();
+        if (!gridSystemProvider.TryGetGrid(out Grid grid)
+            || !WorldItemHaulDestinationAuthority.TryResolve(
+                grid,
+                worldRegistry,
+                destinationClaims,
+                WorldItemHaulDestinationKind.FacilityBuffer,
+                normalizedDestination,
+                destinationPosition,
+                out _,
+                out failureReason))
+        {
+            if (string.IsNullOrWhiteSpace(failureReason))
+                failureReason = "facility destination authority unavailable";
+            return false;
+        }
+
+        List<CharacterCarriedItemSaveData> carried = ownerOperationIds == null
+            ? inventory.RemoveAllItems()
+            : inventory.RemoveItemsOwnedByOperations(ownerOperationIds);
         if (carried.Count == 0)
         {
             failureReason = "nothing carried";

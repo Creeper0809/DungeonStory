@@ -112,6 +112,13 @@ public sealed class WorkCommandHandler
         prioritySuppressTarget = null;
         prioritySuppressGrid = null;
         priorityWorkTypeId = candidate.WorkTypeId;
+        // An accepted priority-work target is a direct player command, just
+        // like a priority suppress target. Leaving a worker OffDuty makes a
+        // non-emergency command permanently ineligible: AIWork fails its duty
+        // gate and an unrelated wait action wins every subsequent decision.
+        // The command boundary owns this transition so callers do not need a
+        // second hidden SetDutyState call after a successful command.
+        work.SetDutyState(AbilityWork.DutyState.OnDuty);
         work.AssignWork(building, candidate.WorkTypeId);
         work.WorkerActor?.Brain?.RequestImmediateReplan(clearFailures: true);
         work.WorkerActor?.AddActivity(CharacterActivityEvent.Work(

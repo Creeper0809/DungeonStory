@@ -195,6 +195,12 @@ public interface IDefenseEngagementRuntime
     bool CanIntruderAdvanceTo(
         InvasionIntruderRuntime intruder,
         Vector2Int nextCell);
+    void NotifyIntruderInterceptPathUnavailable(
+        InvasionIntruderRuntime intruder,
+        string reason);
+    bool TryResolveIntruderDefeated(
+        InvasionIntruderRuntime intruder,
+        out string failureReason);
     bool TryAssignManual(
         CharacterActor defender,
         InvasionIntruderRuntime intruder,

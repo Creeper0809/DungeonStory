@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
@@ -10,6 +11,20 @@ internal delegate bool CaptiveTriggerCommand(
 
 internal sealed class CaptivityEscapeRuntime : ICaptivityEscapeRuntime
 {
+    private const int MaximumPendingInvasionFrames = 240;
+
+    private readonly struct PendingInvasionEscape
+    {
+        public PendingInvasionEscape(string trigger, int expiresAtFrame)
+        {
+            Trigger = trigger ?? string.Empty;
+            ExpiresAtFrame = expiresAtFrame;
+        }
+
+        public string Trigger { get; }
+        public int ExpiresAtFrame { get; }
+    }
+
     private readonly CaptivityActorAccess actors;
     private readonly CaptivityActorRuntimeLookup actorRuntime;
     private readonly IGridSystemProvider gridProvider;
@@ -19,6 +34,8 @@ internal sealed class CaptivityEscapeRuntime : ICaptivityEscapeRuntime
     private readonly IGameClock gameClock;
     private readonly IGameEventBus gameEventBus;
     private readonly CaptiveTriggerCommand triggerBetrayal;
+    private readonly Dictionary<string, PendingInvasionEscape>
+        pendingInvasionEscapes = new(StringComparer.Ordinal);
 
     public CaptivityEscapeRuntime(
         CaptivityActorAccess actors,
@@ -58,14 +75,79 @@ internal sealed class CaptivityEscapeRuntime : ICaptivityEscapeRuntime
                 TryBeginEscapeAttempt(state, "침공 중 훔친 열쇠", out _);
             }
         }
+
+        foreach (CaptiveState state in actors.States.Where(candidate =>
+                     candidate != null
+                     && candidate.IsActive
+                     && candidate.falseCompliance
+                     && candidate.status == CaptivityStatus.Confined))
+        {
+            if (!pendingInvasionEscapes.ContainsKey(state.captiveId))
+            {
+                pendingInvasionEscapes[state.captiveId] =
+                    new PendingInvasionEscape(
+                        "invasion-opportunistic-escape",
+                        gameClock.FrameCount + MaximumPendingInvasionFrames);
+            }
+        }
     }
+
+    public void TickPendingInvasionEscapes()
+    {
+        if (pendingInvasionEscapes.Count == 0) return;
+
+        string[] captiveIds = pendingInvasionEscapes.Keys
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        foreach (string captiveId in captiveIds)
+        {
+            if (!pendingInvasionEscapes.TryGetValue(
+                    captiveId,
+                    out PendingInvasionEscape pending))
+                continue;
+
+            CaptiveState state = actors.FindState(captiveId);
+            if (state == null
+                || !state.IsActive
+                || !state.falseCompliance
+                || state.status != CaptivityStatus.Confined
+                || gameClock.FrameCount > pending.ExpiresAtFrame)
+            {
+                pendingInvasionEscapes.Remove(captiveId);
+                continue;
+            }
+
+            bool started = TryBeginEscapeAttemptCore(
+                state,
+                pending.Trigger,
+                out _,
+                out bool retryable);
+            if (started || !retryable)
+                pendingInvasionEscapes.Remove(captiveId);
+        }
+    }
+
+    public void ClearPendingInvasionEscapes() =>
+        pendingInvasionEscapes.Clear();
 
     public bool TryBeginEscapeAttempt(
         CaptiveState state,
         string trigger,
-        out string failureReason)
+        out string failureReason) =>
+        TryBeginEscapeAttemptCore(
+            state,
+            trigger,
+            out failureReason,
+            out _);
+
+    private bool TryBeginEscapeAttemptCore(
+        CaptiveState state,
+        string trigger,
+        out string failureReason,
+        out bool retryable)
     {
         failureReason = string.Empty;
+        retryable = false;
         CharacterActor actor = state != null
             ? actorRuntime.Find(state.captiveId)
             : null;
@@ -81,6 +163,12 @@ internal sealed class CaptivityEscapeRuntime : ICaptivityEscapeRuntime
             return false;
         }
 
+        if (actor.CurrentLifecycleState != CharacterLifecycleState.Active)
+        {
+            failureReason = "A captive who is not physically active cannot begin an escape.";
+            return false;
+        }
+
         if (!gridProvider.TryGetGrid(out Grid grid))
         {
             failureReason = "탈출 경로를 계산할 그리드가 없습니다.";
@@ -91,6 +179,7 @@ internal sealed class CaptivityEscapeRuntime : ICaptivityEscapeRuntime
             CharacterPersistentIdentity.Require(actor),
             DoorAccessOverrideKind.CaptiveEscape,
             GridMovementIntent.EscapeHazard);
+        retryable = true;
         if (!pathSearchBroker.TryGetSearch(
                 grid,
                 actor.GetNowXY(),
@@ -102,6 +191,7 @@ internal sealed class CaptivityEscapeRuntime : ICaptivityEscapeRuntime
             return false;
         }
 
+        retryable = false;
         Vector2Int destination = grid.GetCells()
             .Where(cell =>
                 cell != null
@@ -146,6 +236,7 @@ internal sealed class CaptivityEscapeRuntime : ICaptivityEscapeRuntime
         }
 
         ability.StartEscape(state.captiveId);
+        pendingInvasionEscapes.Remove(state.captiveId);
         return true;
     }
 
@@ -160,6 +251,9 @@ internal sealed class CaptivityEscapeRuntime : ICaptivityEscapeRuntime
         failureReason = string.Empty;
         if (state == null
             || actor == null
+            || actor.IsDead
+            || !actor.isActiveAndEnabled
+            || actor.CurrentLifecycleState != CharacterLifecycleState.Active
             || state.status != CaptivityStatus.EscapeAttempt
             || !string.Equals(
                 state.captiveId,

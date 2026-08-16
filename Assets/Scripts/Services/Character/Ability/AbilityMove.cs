@@ -7,6 +7,7 @@ using VContainer;
 using static GridMovePathRules;
 public class AbilityMove : CharacterAbility
 {
+    private const int DefaultPathSearchDeferralLimit = 64;
     private float moveSpeed;
     private CharacterSpawner spawner;
     private ICharacterSpawnerProvider spawnerProvider;
@@ -23,11 +24,77 @@ public class AbilityMove : CharacterAbility
     private Vector2Int? activeSystemMoveDestination;
     private DoorAccessOverrideKind activeSystemMoveOverride;
     private int movementOperationVersion;
+    private bool protectedSystemMovementOperation;
+    private bool retainProtectedSystemMovementAfterCompletion;
+    private string activeMovementOperationOwner = string.Empty;
+    private long runtimeActionPathReplanCount;
+    private long runtimeActionPathFailureCount;
+    private int pathSearchDeferralLimit = DefaultPathSearchDeferralLimit;
 
     public bool LastGridMoveWasBlocked { get; private set; }
     public GridMoveFailureReason LastGridMoveFailureReason { get; private set; }
+    public string LastMovementCancellationSourceForDiagnostics { get; private set; }
+        = string.Empty;
+    public string LastMovementOperationPreemptionForDiagnostics { get; private set; }
+        = string.Empty;
+    public string LastRejectedMovementOperationOwnerForDiagnostics { get; private set; }
+        = string.Empty;
+    public long RuntimeActionPathReplanCount => runtimeActionPathReplanCount;
+    public long RuntimeActionPathFailureCount => runtimeActionPathFailureCount;
     public bool IsSystemMoveInProgress => activeActionMovementRoutine != null
         && activeSystemMoveDestination.HasValue;
+    public bool HasProtectedSystemMovementOwnership =>
+        retainProtectedSystemMovementAfterCompletion
+        && protectedSystemMovementOperation;
+    public bool HasActiveMovementRoutineForDiagnostics =>
+        activeActionMovementRoutine != null || enterDungeonRoutine != null;
+    public Vector2Int? ActiveSystemMoveDestinationForDiagnostics =>
+        activeSystemMoveDestination;
+    public string ActiveMovementOperationOwnerForDiagnostics =>
+        activeMovementOperationOwner;
+    public int MovementOperationVersionForDiagnostics =>
+        movementOperationVersion;
+    public int PathSearchDeferralLimitForDiagnostics =>
+        pathSearchDeferralLimit;
+
+#if UNITY_EDITOR
+    public int DebugReplacePathSearchDeferralLimit(int replacement)
+    {
+        int previous = pathSearchDeferralLimit;
+        pathSearchDeferralLimit = Mathf.Clamp(
+            replacement,
+            1,
+            DefaultPathSearchDeferralLimit);
+        return previous;
+    }
+
+    public IGridPathSearchBroker DebugReplacePathSearchBroker(
+        IGridPathSearchBroker replacement)
+    {
+        IGridPathSearchBroker previous = pathSearchBroker;
+        pathSearchBroker = replacement
+            ?? throw new ArgumentNullException(nameof(replacement));
+        idleWanderPlanner = new CharacterIdleWanderPlanner(
+            pathSearchBroker,
+            movementRandom);
+        return previous;
+    }
+#endif
+
+    private void OnDisable()
+    {
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
+        CancelActiveMovement();
+        if (enterDungeonRoutine != null)
+        {
+            StopCoroutine(enterDungeonRoutine);
+            enterDungeonRoutine = null;
+        }
+    }
 
     public bool IsSystemMoveInProgressTo(Vector2Int destination)
     {
@@ -92,37 +159,122 @@ public class AbilityMove : CharacterAbility
         moveSpeed = Mathf.Max(0.1f, moveSpeed);
     }
 
-    public IEnumerator MoveByPath(Queue<GridMoveStep> path, AIAction expectedAction = null)
+    public IEnumerator MoveByPath(
+        Queue<GridMoveStep> path,
+        AIAction expectedAction = null,
+        Action movementProgressCallback = null) =>
+        MoveByPathOwned(
+            path,
+            expectedAction,
+            movementProgressCallback,
+            "raw-path");
+
+    private IEnumerator MoveByPathOwned(
+        Queue<GridMoveStep> path,
+        AIAction expectedAction,
+        Action movementProgressCallback,
+        string operationOwner)
     {
-        int operationVersion = BeginMovementOperation();
-        yield return MoveByPathInternal(path, expectedAction, operationVersion);
+        if (!TryBeginMovementOperation(
+                operationOwner,
+                out int operationVersion))
+        {
+            yield break;
+        }
+        yield return MoveByPathInternal(
+            path,
+            expectedAction,
+            operationVersion,
+            movementProgressCallback);
+        CompleteMovementOperation(operationVersion, operationOwner);
     }
 
     private IEnumerator MoveByPathInternal(
         Queue<GridMoveStep> path,
         AIAction expectedAction,
-        int operationVersion)
+        int operationVersion,
+        Action movementProgressCallback)
     {
         LastGridMoveWasBlocked = false;
         LastGridMoveFailureReason = GridMoveFailureReason.None;
         if (path == null)
         {
             LastGridMoveFailureReason = GridMoveFailureReason.MissingPath;
+            actor?.Brain?.NotifyMovementTerminal(LastGridMoveFailureReason);
             yield break;
         }
+
+        int totalPathSteps = path.Count;
+        int completedPathSteps = 0;
+        actor?.Brain?.NotifyMovementStarted(totalPathSteps);
 
         bool hasExpectedDestination =
             TryGetPathDestination(path, out Vector2Int expectedDestination);
         Vector3 pathStartPosition = transform.position;
         float completedPathDistance = 0f;
         int staleReplanAttempts = 0;
-        while (path.Count > 0)
+        int pathSearchDeferrals = 0;
+        int totalPathSearchDeferrals = 0;
+        int pathRecoveryBackoffFrames = 0;
+        bool pathRecoveryDeferred = false;
+        AIActionFailure deferredRecoveryFailure = AIActionFailure.None;
+        while (path.Count > 0 || pathRecoveryDeferred)
         {
             if (IsMovementOperationCancelled(
                     expectedAction,
                     operationVersion))
             {
                 LastGridMoveFailureReason = GridMoveFailureReason.Cancelled;
+                yield break;
+            }
+
+            // A deferred broker result is a per-frame budget signal, not proof
+            // that the destination is unreachable. Preserve the current action
+            // and its reservation while retrying on later frames. The bound keeps
+            // a broken broker from creating an immortal movement coroutine.
+            if (pathRecoveryDeferred)
+            {
+                int framesToWait = Mathf.Max(1, pathRecoveryBackoffFrames);
+                for (int frame = 0; frame < framesToWait; frame++)
+                {
+                    if (IsMovementOperationCancelled(
+                            expectedAction,
+                            operationVersion))
+                    {
+                        LastGridMoveFailureReason =
+                            GridMoveFailureReason.Cancelled;
+                        yield break;
+                    }
+
+                    RefreshCurrentActionReservation();
+                    yield return null;
+                }
+                if (TryRecoverBlockedActionPath(
+                        expectedAction,
+                        ref staleReplanAttempts,
+                        out Queue<GridMoveStep> deferredPath,
+                        out deferredRecoveryFailure))
+                {
+                    path = deferredPath;
+                    pathRecoveryDeferred = false;
+                    pathSearchDeferrals = 0;
+                    pathRecoveryBackoffFrames = 0;
+                    continue;
+                }
+
+                if (TryScheduleDeferredPathRecovery(
+                        ref deferredRecoveryFailure,
+                        ref pathSearchDeferrals,
+                        ref totalPathSearchDeferrals,
+                        out pathRecoveryBackoffFrames,
+                        out pathRecoveryDeferred))
+                {
+                    continue;
+                }
+
+                CompleteBlockedActionPath(
+                    expectedAction,
+                    deferredRecoveryFailure);
                 yield break;
             }
 
@@ -134,11 +286,27 @@ public class AbilityMove : CharacterAbility
                     transform.position,
                     step))
             {
+                AIActionFailure staleFailure = AIActionFailure.None;
                 if (staleReplanAttempts < 1
-                    && TryReplanCurrentActionPath(expectedAction, out Queue<GridMoveStep> rebuiltPath))
+                    && TryReplanCurrentActionPath(
+                        expectedAction,
+                        out Queue<GridMoveStep> rebuiltPath,
+                        out staleFailure))
                 {
                     staleReplanAttempts++;
+                    runtimeActionPathReplanCount++;
                     path = rebuiltPath;
+                    continue;
+                }
+
+                if (TryScheduleDeferredPathRecovery(
+                        ref staleFailure,
+                        ref pathSearchDeferrals,
+                        ref totalPathSearchDeferrals,
+                        out pathRecoveryBackoffFrames,
+                        out pathRecoveryDeferred))
+                {
+                    deferredRecoveryFailure = staleFailure;
                     continue;
                 }
 
@@ -149,7 +317,15 @@ public class AbilityMove : CharacterAbility
                     yield break;
                 }
 
-                SetGridMoveBlocked(GridMoveFailureReason.StaleStepStart);
+                SetGridMoveBlocked(
+                    GridMoveFailureReason.StaleStepStart,
+                    reportToBrain: false);
+                CompleteBlockedActionPath(
+                    expectedAction,
+                    AIActionFailure.Create(
+                        AIActionFailureKind.NoPath,
+                        "Committed action path no longer starts at the actor position.",
+                        expectedAction?.destination));
                 yield break;
             }
 
@@ -159,7 +335,28 @@ public class AbilityMove : CharacterAbility
                     step,
                     out GridMoveFailureReason initialBlockReason))
             {
-                SetGridMoveBlocked(initialBlockReason);
+                SetGridMoveBlocked(initialBlockReason, reportToBrain: false);
+                if (TryRecoverBlockedActionPath(
+                    expectedAction,
+                    ref staleReplanAttempts,
+                    out Queue<GridMoveStep> rebuiltPath,
+                    out AIActionFailure failure))
+                {
+                    path = rebuiltPath;
+                    continue;
+                }
+
+                if (TryScheduleDeferredPathRecovery(
+                        ref failure,
+                        ref pathSearchDeferrals,
+                        ref totalPathSearchDeferrals,
+                        out pathRecoveryBackoffFrames,
+                        out pathRecoveryDeferred))
+                {
+                    deferredRecoveryFailure = failure;
+                    continue;
+                }
+                CompleteBlockedActionPath(expectedAction, failure);
                 yield break;
             }
 
@@ -197,7 +394,29 @@ public class AbilityMove : CharacterAbility
                         traversalGuard.GetCellBlockReason(
                             actor,
                             grid,
-                            destination));
+                            destination),
+                        reportToBrain: false);
+                    if (TryRecoverBlockedActionPath(
+                        expectedAction,
+                        ref staleReplanAttempts,
+                        out Queue<GridMoveStep> rebuiltPath,
+                        out AIActionFailure failure))
+                    {
+                        path = rebuiltPath;
+                        continue;
+                    }
+
+                    if (TryScheduleDeferredPathRecovery(
+                            ref failure,
+                            ref pathSearchDeferrals,
+                            ref totalPathSearchDeferrals,
+                            out pathRecoveryBackoffFrames,
+                            out pathRecoveryDeferred))
+                    {
+                        deferredRecoveryFailure = failure;
+                        continue;
+                    }
+                    CompleteBlockedActionPath(expectedAction, failure);
                     yield break;
                 }
 
@@ -223,17 +442,24 @@ public class AbilityMove : CharacterAbility
                     endPosition.x - startPosition.x);
                 float duration = distance / totalSpeed;
                 float timer = 0f;
+                bool currentStepBlocked = false;
                 while (timer < duration)
                 {
                     if (TryRollbackForChangedGridBlock(
                             destination,
                             ref observedGridVersion,
-                            startPosition)
+                            startPosition,
+                            reportToBrain: false)
                         || IsMovementOperationCancelled(
                             expectedAction,
                             operationVersion))
                     {
-                        if (!LastGridMoveWasBlocked)
+                        if (LastGridMoveWasBlocked)
+                        {
+                            currentStepBlocked = true;
+                            break;
+                        }
+                        else
                         {
                             LastGridMoveFailureReason =
                                 GridMoveFailureReason.Cancelled;
@@ -264,9 +490,15 @@ public class AbilityMove : CharacterAbility
                             || TryRollbackForChangedGridBlock(
                                 destination,
                                 ref observedGridVersion,
-                                startPosition))
+                                startPosition,
+                                reportToBrain: false))
                         {
-                            if (!LastGridMoveWasBlocked)
+                            if (LastGridMoveWasBlocked)
+                            {
+                                currentStepBlocked = true;
+                                break;
+                            }
+                            else
                             {
                                 LastGridMoveFailureReason =
                                     GridMoveFailureReason.Cancelled;
@@ -277,14 +509,67 @@ public class AbilityMove : CharacterAbility
                         timer += gameClock.DeltaTime;
                     }
 
+                    if (currentStepBlocked)
+                    {
+                        break;
+                    }
+
                     yield return null;
+                }
+
+                if (currentStepBlocked)
+                {
+                    if (TryRecoverBlockedActionPath(
+                        expectedAction,
+                        ref staleReplanAttempts,
+                        out Queue<GridMoveStep> rebuiltPath,
+                        out AIActionFailure failure))
+                    {
+                        path = rebuiltPath;
+                        continue;
+                    }
+
+                    if (TryScheduleDeferredPathRecovery(
+                            ref failure,
+                            ref pathSearchDeferrals,
+                            ref totalPathSearchDeferrals,
+                            out pathRecoveryBackoffFrames,
+                            out pathRecoveryDeferred))
+                    {
+                        deferredRecoveryFailure = failure;
+                        continue;
+                    }
+                    CompleteBlockedActionPath(expectedAction, failure);
+                    yield break;
                 }
 
                 if (TryRollbackForChangedGridBlock(
                     destination,
                     ref observedGridVersion,
-                    startPosition))
+                    startPosition,
+                    reportToBrain: false))
                 {
+                    if (TryRecoverBlockedActionPath(
+                        expectedAction,
+                        ref staleReplanAttempts,
+                        out Queue<GridMoveStep> rebuiltPath,
+                        out AIActionFailure failure))
+                    {
+                        path = rebuiltPath;
+                        continue;
+                    }
+
+                    if (TryScheduleDeferredPathRecovery(
+                            ref failure,
+                            ref pathSearchDeferrals,
+                            ref totalPathSearchDeferrals,
+                            out pathRecoveryBackoffFrames,
+                            out pathRecoveryDeferred))
+                    {
+                        deferredRecoveryFailure = failure;
+                        continue;
+                    }
+                    CompleteBlockedActionPath(expectedAction, failure);
                     yield break;
                 }
 
@@ -297,6 +582,27 @@ public class AbilityMove : CharacterAbility
 
             if (LastGridMoveWasBlocked)
             {
+                if (TryRecoverBlockedActionPath(
+                    expectedAction,
+                    ref staleReplanAttempts,
+                    out Queue<GridMoveStep> rebuiltPath,
+                    out AIActionFailure failure))
+                {
+                    path = rebuiltPath;
+                    continue;
+                }
+
+                if (TryScheduleDeferredPathRecovery(
+                        ref failure,
+                        ref pathSearchDeferrals,
+                        ref totalPathSearchDeferrals,
+                        out pathRecoveryBackoffFrames,
+                        out pathRecoveryDeferred))
+                {
+                    deferredRecoveryFailure = failure;
+                    continue;
+                }
+                CompleteBlockedActionPath(expectedAction, failure);
                 yield break;
             }
 
@@ -306,9 +612,35 @@ public class AbilityMove : CharacterAbility
                     step,
                     out GridMoveFailureReason completedBlockReason))
             {
-                SetGridMoveBlocked(completedBlockReason);
+                SetGridMoveBlocked(completedBlockReason, reportToBrain: false);
+                if (TryRecoverBlockedActionPath(
+                    expectedAction,
+                    ref staleReplanAttempts,
+                    out Queue<GridMoveStep> rebuiltPath,
+                    out AIActionFailure failure))
+                {
+                    path = rebuiltPath;
+                    continue;
+                }
+
+                if (TryScheduleDeferredPathRecovery(
+                        ref failure,
+                        ref pathSearchDeferrals,
+                        ref totalPathSearchDeferrals,
+                        out pathRecoveryBackoffFrames,
+                        out pathRecoveryDeferred))
+                {
+                    deferredRecoveryFailure = failure;
+                    continue;
+                }
+                CompleteBlockedActionPath(expectedAction, failure);
                 yield break;
             }
+            completedPathSteps++;
+            actor?.Brain?.NotifyMovementProgress(
+                completedPathSteps,
+                totalPathSteps);
+            movementProgressCallback?.Invoke();
         }
 
         if (IsMovementOperationCancelled(
@@ -339,15 +671,22 @@ public class AbilityMove : CharacterAbility
                 ? completedPathDistance
                 : Vector3.Distance(pathStartPosition, transform.position),
             true);
+        actor?.Brain?.NotifyMovementTerminal(GridMoveFailureReason.None);
     }
 
     public IEnumerator MoveByStep(GridMoveStep step, AIAction expectedAction = null)
     {
-        int operationVersion = BeginMovementOperation();
+        if (!TryBeginMovementOperation(
+                "raw-step",
+                out int operationVersion))
+        {
+            yield break;
+        }
         yield return MoveByStepInternal(
             step,
             expectedAction,
             operationVersion);
+        CompleteMovementOperation(operationVersion, "raw-step");
     }
 
     private IEnumerator MoveByStepInternal(
@@ -489,7 +828,9 @@ public class AbilityMove : CharacterAbility
             return;
         }
 
-        if (!allowWorker && CharacterWorkRoleUtility.TryGetWork(actor, out _))
+        if (!allowWorker
+            && CharacterWorkRoleUtility.TryGetWork(actor, out AbilityWork work)
+            && !work.IsOffDuty)
         {
             actor.Brain?.ClearPathSearchCache();
             return;
@@ -501,17 +842,23 @@ public class AbilityMove : CharacterAbility
             enterDungeonRoutine = null;
         }
 
-        actor.SetLifecycleState(CharacterLifecycleState.ExitingDungeon);
+        AIAction expectedAction = overrideKind == DoorAccessOverrideKind.None
+            ? GetCurrentAction()
+            : null;
+        if (overrideKind != DoorAccessOverrideKind.None)
+        {
+            actor.SetLifecycleState(CharacterLifecycleState.ExitingDungeon);
+        }
         if (overrideKind == DoorAccessOverrideKind.None)
         {
-            StartTrackedActionMovement(ExitDungeon(overrideKind));
+            StartTrackedActionMovement(ExitDungeon(overrideKind, expectedAction));
             return;
         }
 
         CancelActiveMovement();
         activeSystemMoveOverride = overrideKind;
         activeActionMovementRoutine = StartCoroutine(
-            TrackActionMovement(ExitDungeon(overrideKind)));
+            TrackActionMovement(ExitDungeon(overrideKind, expectedAction)));
     }
 
     public void StartEnterDungeon(Vector3 entryDoorWorldPosition, Vector2Int entryGridPosition)
@@ -538,7 +885,11 @@ public class AbilityMove : CharacterAbility
 
     public bool StartIdleWander(float waitDuration, int minDistance = 2, int maxDistance = 8)
     {
-        if (!TryFindIdleWanderPath(minDistance, maxDistance, out Queue<GridMoveStep> path)
+        if (!TryFindIdleWanderPath(
+                minDistance,
+                maxDistance,
+                out Queue<GridMoveStep> path,
+                out _)
             || path == null
             || path.Count == 0)
         {
@@ -550,9 +901,64 @@ public class AbilityMove : CharacterAbility
         return true;
     }
 
-    public void CancelActiveMovement()
+    public bool StartIdleWanderWithDeferredRecovery(
+        float waitDuration,
+        int minDistance = 2,
+        int maxDistance = 8)
     {
+        if (TryFindIdleWanderPath(
+                minDistance,
+                maxDistance,
+                out Queue<GridMoveStep> path,
+                out CharacterIdleWanderFailure failure)
+            && path != null
+            && path.Count > 0)
+        {
+            AIAction expectedAction = GetCurrentAction();
+            StartTrackedActionMovement(
+                MoveByPathThenWait(path, waitDuration, expectedAction));
+            return true;
+        }
+
+        if (failure != CharacterIdleWanderFailure.Deferred)
+        {
+            return false;
+        }
+
+        AIAction deferredAction = GetCurrentAction();
+        StartTrackedActionMovement(RetryIdleWanderAfterDeferral(
+            deferredAction,
+            waitDuration,
+            minDistance,
+            maxDistance));
+        return true;
+    }
+
+    public void CancelActiveMovement(
+        [System.Runtime.CompilerServices.CallerMemberName]
+        string cancellationSource = "")
+    {
+        bool hadActiveMovement = activeActionMovementRoutine != null
+            || activeManualMoveDestination.HasValue
+            || activeSystemMoveDestination.HasValue;
+        if (hadActiveMovement)
+        {
+            LastMovementCancellationSourceForDiagnostics =
+                cancellationSource ?? string.Empty;
+            LastMovementOperationPreemptionForDiagnostics =
+                $"{activeMovementOperationOwner}->cancel:{cancellationSource}";
+        }
+        if (activeActionMovementRoutine != null)
+        {
+            LastGridMoveWasBlocked = false;
+            LastGridMoveFailureReason = GridMoveFailureReason.Cancelled;
+            actor?.Brain?.NotifyMovementTerminal(
+                GridMoveFailureReason.Cancelled);
+        }
         InvalidateMovementOperation();
+        protectedSystemMovementOperation = false;
+        retainProtectedSystemMovementAfterCompletion = false;
+        activeMovementOperationOwner = string.Empty;
         if (activeActionMovementRoutine != null)
         {
             StopCoroutine(activeActionMovementRoutine);
@@ -568,6 +974,19 @@ public class AbilityMove : CharacterAbility
 
         activeSystemMoveDestination = null;
         activeSystemMoveOverride = DoorAccessOverrideKind.None;
+    }
+
+    public bool TryCancelForImmediateAiReplan(
+        [System.Runtime.CompilerServices.CallerMemberName]
+        string cancellationSource = "")
+    {
+        if (HasProtectedSystemMovementOwnership)
+        {
+            return false;
+        }
+
+        CancelActiveMovement(cancellationSource);
+        return true;
     }
 
     public bool TryStartPlayerMove(Vector2Int destination, out string message)
@@ -658,11 +1077,92 @@ public class AbilityMove : CharacterAbility
         }
 
         CancelActiveMovement();
+        protectedSystemMovementOperation = true;
         activeSystemMoveDestination = destination;
         activeSystemMoveOverride = overrideKind;
         activeActionMovementRoutine = StartCoroutine(
             TrackActionMovement(ExecuteSystemMove(path)));
         message = $"({destination.x}, {destination.y}) 칸으로 이동";
+        return true;
+    }
+
+    [GameplayInternalOnly(
+        "Protected domain actions own system movement until their terminal cleanup.",
+        "WildlifeCaptureTransportAbilityUnityPort")]
+    public bool TryStartProtectedSystemMove(
+        Vector2Int destination,
+        DoorAccessOverrideKind overrideKind,
+        out string message)
+    {
+        bool started = TryStartSystemMove(
+            destination,
+            overrideKind,
+            out message);
+        if (started && actor != null && actor.GetNowXY() != destination)
+        {
+            retainProtectedSystemMovementAfterCompletion = true;
+            protectedSystemMovementOperation = true;
+        }
+        return started;
+    }
+
+    [GameplayInternalOnly(
+        "A protected domain resolver already owns an exact live route and passes it atomically to movement.",
+        "WildlifeCaptureTransportAbilityUnityPort")]
+    internal bool TryStartProtectedSystemMoveWithResolvedPath(
+        Vector2Int destination,
+        DoorAccessOverrideKind overrideKind,
+        Queue<GridMoveStep> path,
+        out string message)
+    {
+        CacheCommonReferences();
+        if (actor == null || grid == null)
+        {
+            message = "Movement requires a live actor and grid.";
+            return false;
+        }
+
+        if (!grid.IsValidGridPos(destination) || !grid.IsWalkable(destination))
+        {
+            message = "The resolved movement destination is not walkable.";
+            return false;
+        }
+
+        Vector2Int start = grid.GetXY(transform.position);
+        if (start == destination)
+        {
+            message = "The actor is already at the resolved destination.";
+            return true;
+        }
+
+        Vector2Int expectedFrom = start;
+        bool valid = path != null && path.Count > 0;
+        if (valid)
+        {
+            foreach (GridMoveStep step in path)
+            {
+                if (!step.IsValid || step.From != expectedFrom)
+                {
+                    valid = false;
+                    break;
+                }
+                expectedFrom = step.To;
+            }
+        }
+        if (!valid || expectedFrom != destination)
+        {
+            message = "The resolved movement path is missing, stale, or targets a different destination.";
+            return false;
+        }
+
+        CancelActiveMovement();
+        protectedSystemMovementOperation = true;
+        retainProtectedSystemMovementAfterCompletion = true;
+        activeSystemMoveDestination = destination;
+        activeSystemMoveOverride = overrideKind;
+        activeActionMovementRoutine = StartCoroutine(
+            TrackActionMovement(ExecuteSystemMove(path)));
+        message = $"({destination.x}, {destination.y}) resolved protected movement";
         return true;
     }
 
@@ -694,7 +1194,15 @@ public class AbilityMove : CharacterAbility
     private IEnumerator ExecuteSystemMove(Queue<GridMoveStep> path)
     {
         LastGridMoveWasBlocked = false;
-        yield return MoveByPath(path);
+        yield return MoveByPathOwned(
+            path,
+            expectedAction: null,
+            movementProgressCallback: null,
+            operationOwner: "protected-system-command");
+        if (!retainProtectedSystemMovementAfterCompletion)
+        {
+            protectedSystemMovementOperation = false;
+        }
         activeSystemMoveDestination = null;
         activeSystemMoveOverride = DoorAccessOverrideKind.None;
     }
@@ -722,7 +1230,10 @@ public class AbilityMove : CharacterAbility
 
         if (actor != null && actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = true;
+            actor.Brain.EndExpectedAction(
+                expectedAction,
+                CharacterAiActionTerminalKind.Completed,
+                clearFailures: true);
         }
     }
 
@@ -742,7 +1253,10 @@ public class AbilityMove : CharacterAbility
 
         if (actor != null && actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = true;
+            actor.Brain.EndExpectedAction(
+                expectedAction,
+                CharacterAiActionTerminalKind.Completed,
+                clearFailures: true);
         }
     }
 
@@ -751,10 +1265,24 @@ public class AbilityMove : CharacterAbility
         int maxDistance,
         out Queue<GridMoveStep> path)
     {
+        return TryFindIdleWanderPath(
+            minDistance,
+            maxDistance,
+            out path,
+            out _);
+    }
+
+    public bool TryFindIdleWanderPath(
+        int minDistance,
+        int maxDistance,
+        out Queue<GridMoveStep> path,
+        out CharacterIdleWanderFailure failure)
+    {
         CacheCommonReferences();
         if (actor == null)
         {
             path = null;
+            failure = CharacterIdleWanderFailure.NoGrid;
             return false;
         }
 
@@ -764,7 +1292,68 @@ public class AbilityMove : CharacterAbility
             GridTraversalContext.ForCharacter(CharacterPersistentIdentity.Require(actor)),
             minDistance,
             maxDistance,
-            out path);
+            out path,
+            out failure);
+    }
+
+    private IEnumerator RetryIdleWanderAfterDeferral(
+        AIAction expectedAction,
+        float waitDuration,
+        int minDistance,
+        int maxDistance)
+    {
+        int maximumDeferrals = pathSearchDeferralLimit;
+        for (int attempt = 1; attempt <= maximumDeferrals; attempt++)
+        {
+            int backoffFrames = 1 << Mathf.Min(attempt - 1, 4);
+            float frameSeconds = gameClock != null
+                ? Mathf.Max(0.001f, gameClock.DeltaTime)
+                : 1f / 60f;
+            actor?.Brain?.SetActionPhase(
+                "Path search deferred",
+                expectedAction?.destination,
+                $"idle-wander attempt={attempt}; backoffFrames={backoffFrames}");
+            actor?.Brain?.NotifyRetryScheduled(backoffFrames * frameSeconds);
+            for (int frame = 0; frame < backoffFrames; frame++)
+            {
+                if (IsActionMovementCancelled(expectedAction))
+                {
+                    yield break;
+                }
+                RefreshCurrentActionReservation();
+                yield return null;
+            }
+
+            actor?.Brain?.NotifyRetryAttempted();
+            if (TryFindIdleWanderPath(
+                    minDistance,
+                    maxDistance,
+                    out Queue<GridMoveStep> path,
+                    out CharacterIdleWanderFailure failure))
+            {
+                yield return MoveByPathThenWait(path, waitDuration, expectedAction);
+                yield break;
+            }
+            if (failure != CharacterIdleWanderFailure.Deferred)
+            {
+                yield return WaitForAiAction(waitDuration, expectedAction);
+                yield break;
+            }
+        }
+
+        if (expectedAction == null || actor?.Brain == null)
+        {
+            yield break;
+        }
+        AIActionFailure starved = AIActionFailure.Create(
+            AIActionFailureKind.PathSearchStarved,
+            $"Idle wander path search remained deferred for {maximumDeferrals} attempts.",
+            expectedAction.destination);
+        actor.Brain.ReportRuntimeActionFailure(starved, requestImmediateReplan: false);
+        actor.Brain.EndExpectedAction(
+            expectedAction,
+            CharacterAiActionTerminalKind.Failed,
+            clearFailures: false);
     }
 
     private void SnapToGridRowIfWalkable(Vector2Int gridPosition)
@@ -802,9 +1391,11 @@ public class AbilityMove : CharacterAbility
 
     private bool TryReplanCurrentActionPath(
         AIAction action,
-        out Queue<GridMoveStep> rebuiltPath)
+        out Queue<GridMoveStep> rebuiltPath,
+        out AIActionFailure failure)
     {
         rebuiltPath = null;
+        failure = AIActionFailure.None;
         if (action == null
             || actor == null
             || actor.Brain == null)
@@ -813,7 +1404,7 @@ public class AbilityMove : CharacterAbility
         }
 
         actor.Brain.ClearPathSearchCache();
-        if (!action.TryRebuildPathFromCurrentPosition(actor, out AIActionFailure failure))
+        if (!action.TryRebuildPathFromCurrentPosition(actor, out failure))
         {
             actor.Brain.SetActionPhase("\uACBD\uB85C \uC7AC\uD0D0\uC0C9 \uC2E4\uD328", action.destination, failure.ToString());
             return false;
@@ -822,7 +1413,8 @@ public class AbilityMove : CharacterAbility
         if (action.pathSteps.Count == 0)
         {
             actor.Brain.SetActionPhase("\uB3C4\uCC29", action.destination, action.planKind.ToString());
-            return false;
+            rebuiltPath = new Queue<GridMoveStep>();
+            return action.planKind == AIActionPlanKind.DestinationOnly;
         }
 
         rebuiltPath = new Queue<GridMoveStep>(action.pathSteps);
@@ -831,6 +1423,113 @@ public class AbilityMove : CharacterAbility
             action.destination,
             $"{action.planKind} / {action.pathSteps.Count}\uCE78");
         return rebuiltPath.Count > 0;
+    }
+
+    private bool TryRecoverBlockedActionPath(
+        AIAction expectedAction,
+        ref int replanAttempts,
+        out Queue<GridMoveStep> rebuiltPath,
+        out AIActionFailure failure)
+    {
+        rebuiltPath = null;
+        failure = AIActionFailure.Create(
+            AIActionFailureKind.NoPath,
+            $"Committed action movement was blocked ({LastGridMoveFailureReason}).",
+            expectedAction?.destination);
+        if (expectedAction == null || replanAttempts >= 1)
+        {
+            return false;
+        }
+
+        if (!TryReplanCurrentActionPath(
+                expectedAction,
+                out rebuiltPath,
+                out AIActionFailure rebuildFailure))
+        {
+            if (rebuildFailure.HasFailure)
+            {
+                failure = rebuildFailure;
+            }
+            return false;
+        }
+
+        replanAttempts++;
+        runtimeActionPathReplanCount++;
+        LastGridMoveWasBlocked = false;
+        LastGridMoveFailureReason = GridMoveFailureReason.None;
+        if (actor?.Brain != null
+            && ReferenceEquals(actor.Brain.bestAction, expectedAction))
+        {
+            actor.Brain.isBestActionEnd = false;
+        }
+        return true;
+    }
+
+    private bool TryScheduleDeferredPathRecovery(
+        ref AIActionFailure failure,
+        ref int pathSearchDeferrals,
+        ref int totalPathSearchDeferrals,
+        out int backoffFrames,
+        out bool recoveryDeferred)
+    {
+        backoffFrames = 0;
+        recoveryDeferred = failure.Kind ==
+            AIActionFailureKind.PathSearchDeferred;
+        if (!recoveryDeferred)
+        {
+            return false;
+        }
+
+        pathSearchDeferrals++;
+        totalPathSearchDeferrals++;
+        if (totalPathSearchDeferrals >= pathSearchDeferralLimit)
+        {
+            recoveryDeferred = false;
+            failure = AIActionFailure.Create(
+                AIActionFailureKind.PathSearchStarved,
+                $"Path search remained deferred for {totalPathSearchDeferrals} attempts.",
+                failure.Target);
+            return false;
+        }
+
+        backoffFrames = 1 << Mathf.Min(pathSearchDeferrals - 1, 4);
+        float frameSeconds = gameClock != null
+            ? Mathf.Max(0.001f, gameClock.DeltaTime)
+            : 1f / 60f;
+        actor?.Brain?.SetActionPhase(
+            "Path search deferred",
+            failure.Target,
+            $"attempt={totalPathSearchDeferrals}; backoffFrames={backoffFrames}");
+        actor?.Brain?.NotifyRetryScheduled(backoffFrames * frameSeconds);
+        return true;
+    }
+
+    private void CompleteBlockedActionPath(
+        AIAction expectedAction,
+        AIActionFailure failure)
+    {
+        actor?.Brain?.NotifyMovementTerminal(LastGridMoveFailureReason);
+        GridMoveBlockedResponder.Respond(actor, grid, transform.position);
+        if (expectedAction == null || actor?.Brain == null)
+        {
+            return;
+        }
+
+        runtimeActionPathFailureCount++;
+        AIActionFailure terminalFailure = failure.HasFailure
+            ? failure
+            : AIActionFailure.Create(
+                AIActionFailureKind.NoPath,
+                $"Committed action movement was blocked ({LastGridMoveFailureReason}).",
+                expectedAction.destination);
+        expectedAction.ReleaseReservation(actor);
+        actor.Brain.ReportRuntimeActionFailure(
+            terminalFailure,
+            requestImmediateReplan: false);
+        actor.Brain.EndExpectedAction(
+            expectedAction,
+            CharacterAiActionTerminalKind.Failed,
+            clearFailures: false);
     }
 
     private void RefreshCurrentActionReservation()
@@ -852,10 +1551,50 @@ public class AbilityMove : CharacterAbility
                 || actor.Brain.isBestActionEnd);
     }
 
-    private int BeginMovementOperation()
+    private bool TryBeginMovementOperation(
+        string operationOwner,
+        out int operationVersion)
     {
+        string normalizedOwner = string.IsNullOrWhiteSpace(operationOwner)
+            ? "unknown"
+            : operationOwner;
+        if (protectedSystemMovementOperation
+            && !string.Equals(
+                normalizedOwner,
+                "protected-system-command",
+                StringComparison.Ordinal))
+        {
+            LastRejectedMovementOperationOwnerForDiagnostics =
+                normalizedOwner;
+            operationVersion = movementOperationVersion;
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(activeMovementOperationOwner))
+        {
+            LastMovementOperationPreemptionForDiagnostics =
+                $"{activeMovementOperationOwner}->{normalizedOwner}";
+        }
+        LastMovementCancellationSourceForDiagnostics = string.Empty;
+        LastRejectedMovementOperationOwnerForDiagnostics = string.Empty;
         InvalidateMovementOperation();
-        return movementOperationVersion;
+        activeMovementOperationOwner = normalizedOwner;
+        operationVersion = movementOperationVersion;
+        return true;
+    }
+
+    private void CompleteMovementOperation(
+        int operationVersion,
+        string operationOwner)
+    {
+        if (operationVersion == movementOperationVersion
+            && string.Equals(
+                activeMovementOperationOwner,
+                operationOwner,
+                StringComparison.Ordinal))
+        {
+            activeMovementOperationOwner = string.Empty;
+        }
     }
 
     private void InvalidateMovementOperation()
@@ -885,7 +1624,10 @@ public class AbilityMove : CharacterAbility
 
         if (actor != null && actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = true;
+            actor.Brain.EndExpectedAction(
+                expectedAction,
+                CharacterAiActionTerminalKind.Completed,
+                clearFailures: true);
         }
     }
 
@@ -929,7 +1671,9 @@ public class AbilityMove : CharacterAbility
         enterDungeonRoutine = null;
     }
 
-    private IEnumerator ExitDungeon(DoorAccessOverrideKind overrideKind)
+    private IEnumerator ExitDungeon(
+        DoorAccessOverrideKind overrideKind,
+        AIAction expectedAction)
     {
         if (grid == null)
         {
@@ -938,12 +1682,15 @@ public class AbilityMove : CharacterAbility
 
         if (grid == null)
         {
-            if (actor != null)
+            if (actor != null
+                && actor.CurrentLifecycleState == CharacterLifecycleState.ExitingDungeon)
             {
                 actor.SetLifecycleState(CharacterLifecycleState.Active);
             }
             activeSystemMoveDestination = null;
             activeSystemMoveOverride = DoorAccessOverrideKind.None;
+            FailExitAction(expectedAction, AIActionFailureKind.NoGrid,
+                "exit-dungeon-grid-unavailable");
             yield break;
         }
 
@@ -951,19 +1698,24 @@ public class AbilityMove : CharacterAbility
         if (spawner == null
             || !spawner.TryGetEntryGridPosition(out Vector2Int exitGridPosition))
         {
-            if (actor != null)
+            if (actor != null
+                && actor.CurrentLifecycleState == CharacterLifecycleState.ExitingDungeon)
             {
                 actor.SetLifecycleState(CharacterLifecycleState.Active);
             }
 
             activeSystemMoveDestination = null;
             activeSystemMoveOverride = DoorAccessOverrideKind.None;
+            FailExitAction(expectedAction, AIActionFailureKind.NoDestination,
+                "exit-dungeon-spawner-unavailable");
             yield break;
         }
 
         bool reachedExit = actor != null
             && grid.GetXY(actor.transform.position) == exitGridPosition;
         int counter = 0;
+        int pathSearchDeferrals = 0;
+        int maximumPathSearchDeferrals = pathSearchDeferralLimit;
         while (!reachedExit && counter < 5)
         {
             Vector2Int startPos = grid.GetXY(transform.position);
@@ -983,10 +1735,37 @@ public class AbilityMove : CharacterAbility
                 : grid.GetMovePathTo(startPos, exitGridPosition);
             if (path == null)
             {
-                yield return null;
-                counter++;
+                pathSearchDeferrals++;
+                if (pathSearchDeferrals >= maximumPathSearchDeferrals)
+                {
+                    FailExitAction(
+                        expectedAction,
+                        AIActionFailureKind.PathSearchStarved,
+                        $"exit path search remained deferred for {pathSearchDeferrals} attempts");
+                    activeSystemMoveDestination = null;
+                    activeSystemMoveOverride = DoorAccessOverrideKind.None;
+                    yield break;
+                }
+                int backoffFrames = 1 << Mathf.Min(pathSearchDeferrals - 1, 4);
+                actor?.Brain?.SetActionPhase(
+                    "Path search deferred",
+                    detail: $"exit attempt={pathSearchDeferrals}; backoffFrames={backoffFrames}");
+                actor?.Brain?.NotifyRetryScheduled(backoffFrames * Mathf.Max(
+                    0.001f,
+                    gameClock?.DeltaTime ?? 1f / 60f));
+                for (int frame = 0; frame < backoffFrames; frame++)
+                {
+                    if (IsActionMovementCancelled(expectedAction))
+                    {
+                        yield break;
+                    }
+                    yield return null;
+                }
+                actor?.Brain?.NotifyRetryAttempted();
                 continue;
             }
+
+            pathSearchDeferrals = 0;
 
             if (path != null && path.Count > 0)
             {
@@ -1006,13 +1785,16 @@ public class AbilityMove : CharacterAbility
 
         if (!reachedExit)
         {
-            if (actor != null)
+            if (actor != null
+                && actor.CurrentLifecycleState == CharacterLifecycleState.ExitingDungeon)
             {
                 actor.SetLifecycleState(CharacterLifecycleState.Active);
             }
 
             activeSystemMoveDestination = null;
             activeSystemMoveOverride = DoorAccessOverrideKind.None;
+            FailExitAction(expectedAction, AIActionFailureKind.NoPath,
+                "exit-dungeon-path-unreachable");
             yield break;
         }
 
@@ -1020,11 +1802,31 @@ public class AbilityMove : CharacterAbility
         {
             yield return Move2PosBySpeed(spawner.GetEntryDoorWorldPosition());
             yield return Move2PosBySpeed(spawner.GetOutsideSpawnWorldPosition());
+
+            // The authored exit action owns traversal through the outside spawn
+            // point. Closing the action or entering a non-Active lifecycle any
+            // earlier releases this very movement coroutine and strands the
+            // visitor at the dungeon threshold. Transfer the movement handle
+            // before lifecycle cleanup, then perform the spawner handoff eagerly
+            // in the same terminal frame.
+            if (expectedAction != null && actor?.Brain != null)
+            {
+                actor.Brain.EndExpectedAction(
+                    expectedAction,
+                    CharacterAiActionTerminalKind.Completed,
+                    clearFailures: true);
+            }
             if (actor != null)
             {
-                actor.SetLifecycleState(CharacterLifecycleState.Despawned);
+                activeActionMovementRoutine = null;
+                actor.SetLifecycleState(CharacterLifecycleState.ExitingDungeon);
             }
-            yield return spawner.Interact(actor);
+
+            IEnumerator interaction = spawner.Interact(actor);
+            if (interaction != null)
+            {
+                yield return interaction;
+            }
         }
         else if (actor != null)
         {
@@ -1033,6 +1835,24 @@ public class AbilityMove : CharacterAbility
 
         activeSystemMoveDestination = null;
         activeSystemMoveOverride = DoorAccessOverrideKind.None;
+    }
+
+    private void FailExitAction(
+        AIAction expectedAction,
+        AIActionFailureKind kind,
+        string detail)
+    {
+        if (expectedAction == null || actor?.Brain == null)
+        {
+            return;
+        }
+        actor.Brain.ReportRuntimeActionFailure(
+            AIActionFailure.Create(kind, detail, expectedAction.destination),
+            requestImmediateReplan: false);
+        actor.Brain.EndExpectedAction(
+            expectedAction,
+            CharacterAiActionTerminalKind.Failed,
+            clearFailures: false);
     }
 
     private bool TryResolveSpawner()
@@ -1176,7 +1996,8 @@ public class AbilityMove : CharacterAbility
     private bool TryRollbackForChangedGridBlock(
         Vector2Int? blockedGridPosition,
         ref int observedGridVersion,
-        Vector3 blockedFallbackPosition)
+        Vector3 blockedFallbackPosition,
+        bool reportToBrain = true)
     {
         bool blocked = traversalGuard.TryRollbackForChangedBlock(
                 actor,
@@ -1188,20 +2009,24 @@ public class AbilityMove : CharacterAbility
                 out GridMoveFailureReason reason);
         if (blocked)
         {
-            SetGridMoveBlocked(reason);
+            SetGridMoveBlocked(reason, reportToBrain);
         }
         return blocked;
     }
 
     private void SetGridMoveBlocked(
-        GridMoveFailureReason reason =
-            GridMoveFailureReason.WallBlocked)
+        GridMoveFailureReason reason = GridMoveFailureReason.WallBlocked,
+        bool reportToBrain = true)
     {
         LastGridMoveWasBlocked = true;
         if (LastGridMoveFailureReason == GridMoveFailureReason.None)
         {
             LastGridMoveFailureReason = reason;
         }
-        GridMoveBlockedResponder.Respond(actor, grid, transform.position);
+        if (reportToBrain)
+        {
+            actor?.Brain?.NotifyMovementTerminal(LastGridMoveFailureReason);
+            GridMoveBlockedResponder.Respond(actor, grid, transform.position);
+        }
     }
 }

@@ -1,5 +1,79 @@
 # DungeonStory Active Plan
 
+## Phase 157D - source-derived exhaustive AI closure audit (in progress)
+
+- [x] Derive the complete AI surface from production code and authored assets instead of trusting the existing coverage manifest.
+- [x] Map every authored action, runtime-only intent, work type, behavior-tree/job-giver path, and domain AI route to deterministic production-live evidence.
+- [ ] Audit cross-fault coverage for lifecycle transitions, target/item/facility loss, path invalidation, emergency suspension, and mid-action save/load.
+- [ ] Implement and verify every confirmed missing row or production defect without weakening failure visibility.
+- [ ] Re-run all affected focused matrices, three five-day seeds, 100/500 scale gates, large-grid/dense-dungeon gates, save/load, alert, and final Console 0/0.
+- [ ] Accept completion only when the source-derived inventory has zero uncovered rows and all evidence was produced from the current source revision.
+
+Current inventory authority is source-derived: authored action assets `19`, production concrete action types `22`, logical deprivation actions `5`, branches `25`, behavior operations `13`, BehaviorDesigner tasks `50`, job givers `11`, external-intent callsites `5` across `4` owner families, work types `31`, and registered AI domains `16`. The honest manifest intentionally remains failed while current-source live rows are missing or stale; the previous `uncovered=0` result was a reflection/entrypoint false-green and is no longer acceptance evidence.
+
+2026-08-15 continuation boundary: finish the alarm responder epoch/type carry-forward contract and the captivity-wildlife delivery terminal invariant first, then require a clean Unity compile and fresh focused reports for both before regenerating stale suites. The goal remains incomplete while any current-source manifest row is stale, missing, or failed.
+
+2026-08-16 current boundary: expedition package participant 219, destination claims 220, and haul intents 225 compile on rebuilt current assemblies. Focused Offense Strategic is 11/11 with Console 0/0. Full Physical Logistics and mid-action SaveLoad are the next production-live authorities before the next non-construction FacilityBuffer claim slice.
+
+2026-08-15 current closure status: the real strategic Offense UI journey now has a fresh terminal PASS with typed allied outcomes, round advancement, HP deltas, return, reward exactly once, and clean ownership. An independent audit still requires invalid allied interception to preserve the enemy intent at full execution strength and planned-round initialization to be symmetric; focused production regressions are in progress. Primitive five-day is fresh PASS after environmental safe-drink route admission and target-authoritative rumor mood stacking corrections. Primitive focused, VisitorControl, FirstRun, OffenseTactical, Daily seeds 157181..157183, and the final source-derived manifest must be regenerated after the final production source revision.
+
+2026-08-16 active boundary: the newest full Offense Journey is red on a different current-source liveness defect. A Front unarmed party and a Rear melee enemy advance director turns while every empty-skill strategic card and enemy intent is decoded as BasicAttack, so `lastProcessedCommandId` and all combat effects remain zero. Replace the implicit empty-skill decoding with a persisted typed action contract, author an existing `Advance` card without changing deck size, derive enemy intents from the session's legal tactical command, retain the completed-turn trace across the next draw, and filter non-initiative objectives out of command decks. Then require focused and full production UI evidence before Daily seeds.
+
+### Errors encountered
+
+- Two planning-file patches used stale anchors and were rejected atomically without changing any file. The final retry targets only anchors verified by `rg` immediately beforehand.
+
+- Unity's MCP Console reported 0/0 after a requested compile, but `Assembly-CSharp.dll` remained older than the changed sources. `Editor.log` exposed the real CS1061: `ItemTransferService.ReleaseDestination` called `InvalidateStack` on `IItemQuantityReservationService`; that API belongs to the separately injected `IItemQuantityLeaseMutation`. The old assembly caused the first Offense focused run to execute stale code. The fix uses the correct mutation authority and acceptance now requires updated DLL timestamps in addition to Console 0/0.
+- A stale-assembly diagnosis search included nonexistent `Library/PlayerScriptAssemblies`; `rg` returned OS error 2 after the timestamp query. No source changed; subsequent checks use only the verified `Library/ScriptAssemblies` path.
+- A PowerShell source-display command interpolated `"==== $f:$s-$e"`; the colon was parsed as a scoped-variable separator and the command failed before reading any file. No source changed; the retry uses `${f}`-delimited interpolation.
+- A Windows `rg` audit passed a wildcard file path (`Assets/Scripts/Services/Items/*Haul*Restore*.cs`) literally and returned OS error 123. No source changed; the coordinator was located with `rg --files` at `Assets/Scripts/Services/Infrastructure/Save/HaulDeliveryIntentRestoreCoordinator.cs`, and later audits use the exact path.
+
+- A planning-log patch targeted historical headings that were not present at the current file tails and failed without modifying any file. The retry uses the exact current tail lines and appends a dated section.
+- A dynamic Unity compile command imported `UnityEditor.Compilation` but unqualified `CompilationPipeline` resolved to the enclosing `Unity.CompilationPipeline` namespace and produced temporary-command CS0234. Project source was unchanged; the corrected command uses fully-qualified `UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation()`.
+- A PowerShell source-display helper used `foreach($z in$ranges)` and failed with a parser error before reading any file. No source changed; the corrected `foreach ($z in $ranges)` command completed and the failed command will not be repeated.
+
+- The first focused equipment-haul command compiled against a stale Editor assembly and reported CS0117 because the newly added public runner was not yet visible, even though a prior asset refresh returned success and the Console was empty. No scenario executed. The next attempt explicitly requests Unity script compilation and waits for the assembly/domain reload before invoking the runner.
+- After an explicit compile cycle reached `IsCompiling=false` with Console 0/0, the second focused invocation still saw the old type and returned the same CS0117. Repeating refresh is no longer acceptable; inspect Editor.log/compiled assembly timestamps and use reflection to determine whether project compilation failed silently or the dynamic command resolves a different assembly/type.
+- Editor.log exposed the hidden project errors behind the stale assembly: the new focused test referenced three internal repository members from `Assembly-CSharp-Editor` (CS1061 at the operation allocator and intent runtime). The test is being rewritten against the public real-grid haul-planning path; production APIs will not be widened for verifier convenience.
+
+- A first call-site inventory command combining `rg -l` with a second redirected search returned no output despite known matches. No source changed. The retry used one fixed-string `rg` invocation and returned the authoritative file list.
+
+- The first Captivity/Wildlife verifier compile used a typed `CharacterId` directly against the persisted string `reservedCarrierId` (CS0019). The run was correctly blocked before PlayMode; the verifier now compares `CharacterPersistentIdentity.Require(worker).Value`, and the pending request is retained for the clean recompile.
+- The first production-pickup transport rerun revealed that the live wildlife actor could leave its planned source cell while the incremental pickup preflight yielded. `TryOrderCapture` returned accepted, then its transport immediately failed and released the animal at the carrier. Capture eligibility/damage is now applied immediately after the exact source assertion, before any preflight yield, so the same production pickup path is warmed against a stable target.
+- The stationary-target rerun completed real pickup and delivery with a typed Completed terminal, then exposed two later gates: the verifier rejected the expected exact carrier occupant on the delivery cell, and an invasion-driven Amber-to-Red alert escalation attempted to bind the new epoch over the retained Amber emergency gate. The verifier now allows only the exact carrier occupant; production now uses an explicit monotonic gate-epoch advance while stale, reversed, or mismatched ownership still throws.
+
+- A parallel FacilityEvolution source audit returned shell exit 1 because one optional `rg` pattern had no matches; another parallel result still surfaced unrelated output, so the batch was not authoritative. No source changed. Subsequent searches explicitly normalize `rg` no-match to success and use narrower files.
+- A follow-up `rg` passed a Windows-invalid wildcard path (`RestoreWorldCandidate*`) and flooded the batched output with unrelated matches before exiting 1. No source changed. The retry resolves the exact filename with `rg --files` first and reads only that file.
+- A batched fake-implementation search aborted because an `rg` no-match exit was not normalized in every branch. No source changed. Remaining searches are issued in one PowerShell script with explicit `$LASTEXITCODE` handling.
+
+- A PowerShell display helper used `[string]::Join` on a null `rg` result while listing work-type PlayMode references. The search itself completed and no files changed. Future inventory uses array coercion or direct pipeline output instead of repeating that formatter.
+- One `rg` call used a Unix-style wildcard directory (`Assets/Scripts/Services/*/Work`) that PowerShell passed literally on Windows. The contract file was still read successfully; subsequent searches use `--glob` from a real root directory.
+- First batched Unity compile exposed verifier API mismatches that static brace/symbol scans missed: `ICaptivityEscapeRuntime.TryBeginEscapeAttempt` does not exist, and the visitor verifier referenced nonexistent `IFactionRuntime` / `FactionContractKind`. PlayMode was correctly blocked; both owners were sent back to the production registered contracts instead of adding compatibility fallbacks.
+- The second compile reduced the errors to one unresolved `IGameEventBus` namespace in the captivity/wildlife verifier. The event-driven escape route remains the correct production boundary; only its owning namespace/import must be corrected before any PlayMode evidence is accepted.
+- The strict source-derived coverage capture intentionally threw `CHARACTER_AI_COVERAGE_MANIFEST=FAIL; uncovered=68`. This is the correct fail-loud result: 3 WorkType rows are current LiveExecuted, the focused visitor/offense/captivity runs are red, and most earlier artifacts are stale against the changed C# source. Do not rerun the strict command until those rows are repaired; use the nonthrow capture only for intermediate inventory snapshots.
+- A dynamic Unity refresh command imported `UnityEditor.Compilation` but resolved `CompilationPipeline` as the enclosing `Unity.CompilationPipeline` namespace, causing CS0234 in the temporary command only. The project source was untouched. The retry used a distinct command containing only fully-qualified `UnityEditor.AssetDatabase.Refresh`, after which Unity completed compilation with Console Error/Warning `0/0`.
+- Unity's delayed Editor-assembly compile then exposed one project error in the new restock fixture: `Shop.TryGetSaleItem` does not exist (CS1061 at `CharacterAiWorkTypeLiveMatrixPlayModeVerifier.cs:885`). The attempted visitor rerun never entered PlayMode and its old artifact was not accepted. The fixture owner is replacing the call with the actual Shop stock authority.
+- A clean compile request initially appeared green in the MCP Console, but `Editor.log` showed `CS0136` in `WorkTargetSelector.cs`: the new reachable-resource branch declared `activeGrid` inside a scope whose fallback later declared the same name. Renamed the branch-local variable to `reachableGrid`; do not trust a stale `Library/ScriptAssemblies` timestamp or an empty Console alone when Bee reports failure.
+- `CharacterAiPlanDebugScenarios.RunAll` emitted `GameManager requires a GameData settings asset` even while reporting logical PASS. The static service-locator removal audit instantiated `GameManager`, invoking `Awake` without the authored settings asset. It now verifies the removed method by reflection without creating a runtime object; a clean-console rerun remains required.
+- A batched post-freeze `rg` audit used a PowerShell-escaped regex whose grouping was malformed, so the search command exited before returning the parallel Unity state. No project source changed; the retry uses fixed-string searches and separates Unity state from shell diagnostics.
+- The first post-freeze Offense audit found two exact-once P0 gaps before Unity import: Director finalized/cleared its command turn without observing `FinalizePlannedTurn` failure, and the first planned round initialized only the initiative actor so cooldown progression was asymmetric. Unity compilation was deliberately held; the owner is correcting both contracts with focused regressions.
+- A progress log patch targeted a sentence that exists in `findings.md`, not `progress.md`, and therefore failed without modifying either file. The retry appends a standalone dated progress section instead of relying on a stale context anchor.
+- A root-wide `git diff --stat` attempted to invoke the Git LFS clean filter for a screenshot and failed because `.git/lfs/tmp` was not writable in the managed workspace. No source changed; subsequent diff checks are scoped to the relevant C# and planning files instead of touching LFS artifacts.
+- Fresh full Offense Journey reached 12 planned turns, terminal battle, return and exactly-one reward, then failed the Console gate with `NullReferenceException` in `OffenseBattleDirector.FinishTurnCards`. Successful runtime finalization synchronously cleared the Director state before post-finalize card cleanup accessed `State.decks`; the terminal cleanup ordering is now the active production fix and the FAIL artifact is not accepted.
+
+## Phase 157C - exhaustive AI scenario matrix (in progress)
+
+- [x] Reconfirm the current action catalog, 31 work types, domain AI runtimes, and existing verifiers from the live worktree.
+- [x] Preserve `PathSearchDeferred` as a bounded retry instead of terminating a committed route as `NoPath`.
+- [x] Make building destruction finish occupancy, assignment, registry, and grid teardown even when a destruction subscriber throws; prove later subscribers and repeated teardown remain deterministic.
+- [x] Separate actual gameplay progress from scheduler/path/reservation bookkeeping so PlayMode stalls cannot be hidden by administrative ticks.
+- [x] Complete the registered action x phase x injected-fault coverage manifest and make uncovered rows fail the audit.
+- [x] Add live mid-action save/load rows for partial work, facility queue, meal commit, and suspended emergency work.
+- [x] Add combat, medical, captivity, wildlife, hunting, rescue, substance, and expedition lifecycle/fault rows represented by the registered manifest.
+- [x] Re-run three five-day seeds and the 100/500 actor scheduler, gameplay-progress, fairness, performance, and GC gates.
+
+Current evidence: the expanded live Brain/BT/movement/facility matrices, lifecycle/save/alert/cross-domain verifiers, three five-day seeds, and 100/500 actor gates pass. Overall exhaustive coverage is still not complete until Phase 157D proves the registered manifest covers the full production surface and refreshes stale evidence.
+
 ## Phase 157B - AI no-progress and decision-conflict hardening (in progress)
 
 - [x] Add bounded action lifecycle, replan and committed failure counters.
@@ -1356,6 +1430,10 @@ physical production and meals -> persistent characters/items/equipment
 12. V9 work-order checks include construction-site placement, material delivery, partial progress, save/restore, and final building replacement without instant completion.
 
 ## Errors Encountered
+| Broad SelfCare verifier `rg` query returned exit 1 while printing unrelated matches | 1 | Treat as a search-pattern miss, not a code failure; switch to filename discovery with `rg --files` before querying exact source. |
+| Combined primitive-runner inspection returned exit 1 because optional `AIPrimitiveSurvivalAction.cs` path does not exist | 1 | The requested runner sections were still read; locate the actual primitive base/action file before any follow-up instead of retrying the missing path. |
+| Explicit GameplayScene load was refused because the already-active scene was marked dirty | 1 | Do not save/discard user scene changes. Verified the active PlayMode scene is already `Assets/Scenes/GameplayScene.unity`; proceed only with the verifier's full-save baseline/restore and manually exit afterward. |
+| Primitive focused report said PASS but a late FacilityEvolution projection enumeration exception appeared in Unity Console | 1 | Reject the artifact as false-green; inspect `FacilityEvolutionActivationProjection.Reconcile` and verifier restore timing, then add/repair the exact teardown-time ownership fence before rerun. |
 
 - 2026-08-09: 전투 콘텐츠 검색에 존재하지 않는 `Assets/Scripts/Content`를 포함해 `rg`가 유효 결과를 출력한 뒤 exit 1을 반환했다. 이후 실제 `Assets/Scripts/Services/Offense`와 에셋 루트를 사용한다.
 - 2026-08-09: `encounter_01~06`도 V20 폴더에 있다고 추정해 읽었으나 기존 6개는 `Assets/Resources/SO/Offense/Encounters`에 있고 V20 폴더에는 07~36만 있다. ID 검색으로 실제 루트를 분기한다.
@@ -2683,9 +2761,11 @@ Phase 157 AI reliability continuation (2026-08-13):
 - [x] Re-establish a clean Git/Unity MCP baseline and run the 12 focused AI/facility/survival scenario groups with Console 0/0.
 - [x] Preserve exact execution failure authority through decision result, blackboard, bounded diagnostics and long-run report. Each actor now owns an allocation-free 32-event typed lifecycle ring; five-day reports format it only at capture time.
 - [ ] Add destructive/stale cross-scenarios for facility destruction, route invalidation, quantity lease loss, spoilage, queue cancellation and actor lifecycle change while an action is running.
-- [ ] Run natural-time multi-seed five-day routines and the 500-NPC scheduler profile without bulk `EditorApplication.Step()` artifacts. Seed 157182 now has AI failures/stalls/recoveries 0 and remains globally red only for the separate hygiene cadence target `0.533 < 0.6`; additional seeds remain open.
+- [ ] Run natural-time multi-seed five-day routines and the 500-NPC scheduler profile without bulk `EditorApplication.Step()` artifacts. Current-code five-day seeds `157181`, `157182`, and `157183` now all pass with zero invariant anomalies/harmful stalls and exact safe-drink terminal conservation; the 100/500 stress and long soak gates remain open.
 - [ ] Prove save/restore continuation and final Console Warning/Error 0/0 before declaring the AI reliability boundary complete.
+  - 2026-08-13 fault-injection continuation: the live Brain -> BehaviorTree -> AIAction -> AbilityMove/AbilityShopping matrix now passes `47/47`, including topology replan, typed no-path terminal/release/replan, and facility destruction during approach/queue/interaction with alternate replanning and Console `0/0`. Lifecycle and mid-action save/load runners compile, but Unity currently refuses to attach these two newly added Editor MonoBehaviour types; do not claim those matrices passed until the harness binding is resolved.
   - 2026-08-13 concurrency/fairness checkpoint: retail stock commits are now atomic after delay and the two-buyer/one-unit regression passes. The scheduler's authored 16-decision ceiling is preserved while a bounded live-backlog floor prevents starvation; the clean 500-NPC run reports starvation `0`, max deferral `1.083s`, scheduler p95 `2.498ms`, and scheduler-owned GC `0 B/frame`. Whole Editor frame p95 is still `19.07ms`, so performance and the wider reliability boundary remain open.
+  - 2026-08-13 final reliability evidence: the four-row Downed/Despawned/Disabled/Destroyed matrix passes action, movement, facility ownership, item Lease and emergency-ledger cleanup exactly once with late commits `0`. Mid-action save/load passes actor replacement, transient action/path discard, lifetime retirement, replan invariants and Console Error `0`. The 500-actor profile passes `500/500` typed progress, starvation/invariant/orphan/failure-loop `0`, max deferral `0.784s`, frame p95 `9.73ms`, scheduler p95 `1.91ms`, scheduler GC `0 B/frame`. Five-day seeds `157181/157183` pass; `157182` remains red only for the separate hygiene cadence gate `0.533 < 0.6`, with AI reliability gates green.
 
 - [x] Define the authoritative 180-second day, 99-WU neutral baseline, actual/output-equivalent/realized-growth/guaranteed-growth channels and technology ROI contracts without double-counting time and throughput. All live character work loops now feed approved work through one accounting gate, and automatic production records only the bill progress physically accepted by the production authority. Physical loss producers remain open.
 - [x] Add project worker caps and the approved deterministic contribution curves for facilities, landmarks and 1/2/4-person research; expose marginal completion-time evidence. Research and grand-project execution are connected. Ordinary facilities author Small/Medium/Industrial 2/3/4 caps, parallel reservations, automatic slot filling, diminished project contribution with raw-labor accounting and marginal UI. The focused Unity MCP PlayMode vertical consumed two units from a physical lumber stack (4 -> 2), delivered the exact construction BOM, joined three live founders to an Industrial project, and accepted exactly 2.60 WU from the 1.00/0.85/0.75 curve with maximum/automatic cap 4; `Artifacts/QA/construction-project-playmode-report.txt` passes with captured Warning/Error 0/0.
@@ -2771,3 +2851,91 @@ Phase 157 current errors:
 - [ ] Run additional five-day seeds and correct any scenario-specific failure.
 - [ ] Re-run 500-NPC fairness/frame/GC evidence.
 - [ ] Run save/restore, console, and integrated AI regression matrix.
+
+## 2026-08-15 continuation errors encountered
+
+- A broad `rg` command included nonexistent `Assets/Scripts/Services/Alert` and `Assets/Scripts/Services/Defense` paths, so the batch exited 1 after returning the useful Character matches. Resolved by querying only existing files/directories.
+- The first emergency-work gate compile failed with `CS0177` because a short-circuited exact-work rejection could leave `out WorkTargetCandidate candidate` unassigned. Initialized it to `default`, recompiled successfully, and confirmed Unity Console Error/Warning 0/0 before rerunning PlayMode.
+# AI scenario verification status (2026-08-14)
+
+- [x] Run three deterministic five-day routine seeds.
+- [x] Run live alert suspend/hysteresis/resume integration.
+- [x] Run 100-actor synchronous stress.
+- [x] Run 500-actor fairness/frame/GC profile with typed queue liveness.
+- [x] Run lifecycle, route/facility destruction, and mid-action save/load matrices.
+- [ ] Maintain the scenario manifest as new actions, facilities, items, and incidents are added; no finite matrix proves all future states.
+- [ ] Close the remaining physical-logistics cross-domain failures: equipment repair instance/destination continuity, repeated repair hauling, and expedition package visibility. The orphan-Lease save defect and fixture concurrency are fixed; the corrected matrix still has 7 failures.
+
+## 2026-08-16 current continuation: structural AI boundary stabilization
+
+- [x] Close the construction haul save/restore authority slice: canonical per-plan intent, exact live destination validation, inert participant-225 binding, Brain-owned single resume, tamper rollback, repeated-restore conservation.
+- [ ] Replace non-construction FacilityBuffer same-cell fallback with an exact producer-owned destination claim authority, including restore-candidate ordering and orphan hauling-lease rejection.
+- [ ] Re-run the focused construction and full physical-logistics suites after the haul save/restore slice passes.
+- [ ] Freeze coverage-critical source, regenerate every stale AI scenario artifact, then run Daily seeds 157181/157182/157183 and the final source-derived manifest.
+- [ ] Accept completion only with current-source `uncovered=0`, fresh artifacts, and Unity Console Warning/Error `0/0`.
+
+Current gate: the save/load suite is fresh PASS with Console 0/0. The next production change is the non-construction destination claim authority; after that source freezes, rerun focused construction/full physical logistics before regenerating the broad AI matrix.
+
+## 2026-08-16 Physical Logistics fresh failure triage
+
+- [x] Classify the six fresh failures into independent roots rather than treating cascades as separate defects.
+- [x] Confirm the repair root: `equipment-repair:*` has no exact claim and same-cell warehouse/maintenance-facility inference is ambiguous.
+- [x] Confirm the expedition cancel fixture calls `ReturnSupplies` after a failed two-ration commit with only one ration remaining.
+- [ ] Complete and compile the equipment-repair LiveFacility claim vertical slice.
+- [ ] Make explicit-package returns fail closed for unknown/already-returned IDs and prove duplicate return cannot mint supplies.
+- [ ] Rerun full Physical Logistics and then mid-action SaveLoad from rebuilt assemblies.
+
+Current evidence: expedition hauling, repeated readiness polling, consumption and claim revoke already PASS. The remaining repair five-row cascade and cancel conservation row require the two focused corrections above.
+
+Error log: the first dynamic compile command resolved `CompilationPipeline` as `Unity.CompilationPipeline` inside the tool-generated namespace and failed CS0234. Retry with the fully qualified `global::UnityEditor.Compilation.CompilationPipeline` symbol.
+
+## 2026-08-16 research archive LiveBuilding continuation
+
+- [x] Correct Q03 archive ownership from `LiveFacility` to append-only `LiveBuilding`; Q03 is an authored building with archive capability but intentionally has no visitor-style `FacilityData`.
+- [x] Compile the runtime/editor assemblies and run the official FirstRun production path through Brain -> AIHaul -> Q03 archive with exact claim and Console 0/0.
+- [x] Compile and run the focused detached-candidate restore/participant-220 publication/late-participant rollback regression.
+- [ ] Re-run mid-action save/load and full physical logistics from the frozen research/destination source boundary.
+- [ ] Regenerate remaining stale AI scenario artifacts, all three DailyRoutine seeds, and the final coverage manifest.
+
+Current evidence: `Temp/first-run-objective-report.txt` is a current-source `FIRST_RUN_OBJECTIVE PASS`; Q03 claim, haul plan, Brain-owned AIHaul, FacilityBuffer terminal and cleanup all pass. The newly added focused EditMode regression uses the real authored Q03 inside a detached eligible research room, proves exact one-claim publication, and injects a later participant publish failure to require restoration of the previous claim image.
+
+Current errors:
+- The first recovery-scene dynamic command failed because nested PowerShell/C# quoting corrupted the command text. No project source changed. A placeholder-substitution retry created `Assets/_Recovery/Codex-FirstRun-20260816-065248.unity` successfully.
+- One exploratory PowerShell command referenced an accidental nonexistent `AssetDatabaseNotAvailable` token. It changed no files and was not repeated.
+- The first focused-regression static pass used a nonexistent `IDungeonRuntimeAggregateRootStore` name. The actual authority is the concrete `DungeonRuntimeAggregateRootStore`; the signature was corrected before Unity compilation.
+- The first focused execution exposed a fixture dependency error (`Facility warehouse requires IStockQuery`) because the actual Q03 runtime archetype includes storage. The fixture now uses the existing full editor building injection, and construction is exception-safe. The next run cleaned the two leaked exact-ID candidates and passed all ResearchTree scenarios.
+- The first MCP call immediately after domain reload found an empty tool list. Waiting for the bridge handshake before the next call resolved the transient condition.
+
+## 2026-08-16 current-source SaveLoad continuation
+
+- Fresh `DungeonAiActionSaveLoadPlayModeVerifier.RequestRun()` report at `2026-08-15T22:19:31.9894712Z` is newer than the final research/archive and haul-destination source changes and reports `result=PASS; failures=0`.
+- The run proves five tampered destination/authority variants reject the whole restore atomically, two untouched restores bind the committed haul intent before AI wake, each resumes through Brain -> AIHaul exactly once, and both preserve the exact physical quantity with no unexpected Error/Exception/Assert logs.
+- Three launch-diagnostic errors were non-project dynamic-command mistakes: `Unity_GetEditorState` was unavailable, `Unity_ManageEditor get_state` was invalid, and two Console-clear command attempts failed first on the ambiguous `Editor` name and then on the MCP namespace allow-list. Project source did not change; the verifier was launched by the direct public entrypoint without repeating those commands.
+- One planning append used a stale cross-file anchor and was rejected atomically. The retry used each file's actual tail and appended this dated section.
+- Next authority is a fresh full `PhysicalItemLogisticsPlayModeVerifier.RequestRunFromMenu()` on the same compiled source.
+
+## 2026-08-16 current-source Physical Logistics acceptance
+
+- Fresh `Artifacts/QA/physical-item-logistics-playmode-report.txt` at `2026-08-15T22:27:38.8225624Z` reports `RESULT=PASS; failures=0`.
+- Production-live warehouse, facility buffer, construction commitment, equipment repair LiveFacility claim/preflight/delivery/revoke/salvage, and expedition ReservedTarget repeated-poll/consume/revoke/cancel/duplicate-return conservation all pass on the final archive/haul authority source.
+- The request flag was consumed, PlayMode returned to EditMode automatically, and no FAIL row exists in the report.
+- Next: recapture the nonthrow coverage manifest to derive the exact remaining current-source stale/missing suites before running them.
+
+## 2026-08-16 manifest narrowing and Surgery acceptance
+
+- The first nonthrow manifest MCP call completed in Unity but the helper missed response id 2 because the full report was emitted as one very large execution log. A retry logged only a compact completion message; the report itself remained the durable authority.
+- Corrected the coverage audit's false `unexpected` rows by giving `OffenseJourneyPlayModeFacade` its exact expanded physical-supply dependency set while Strategic/Tactical retain the four battle dependencies. Unity rebuilt the Editor assembly after the change with no recent compiler errors.
+- Current manifest narrowed from `uncovered=16` to `uncovered=9`: Daily three-seed Eat/Hygiene/Rest, Surgery, and three Offense domains only.
+- Fresh Surgery report at `2026-08-15T22:36:21.8328221Z` reports `RESULT=PASS; failures=0`; exact claim, AIHaul material flow, no duplicate request, clinical work/terminal, completion revoke, cancel conservation and cancel revoke all pass.
+- Next: Offense Tactical, Journey, and Strategic visual evidence, then Daily seeds 157181/157182/157183.
+
+## 2026-08-16 final current-source AI acceptance
+
+- [x] Compile and run the focused Offense turn-battle and Strategic scenario suites after introducing explicit persisted command action types.
+- [x] Run the official pointer-driven Offense Journey and require real command/effect progress, terminal return, reward exact-once, ownership cleanup, and Console cleanliness.
+- [x] Open the production world map through the Expedition tab and `P1Action_OffenseOpenMap`, then capture both strategic UI resolutions.
+- [x] Run DailyRoutineWu seeds 157181, 157182, and 157183 as independent PlayMode sessions with five-day/gate-v3/current-source evidence.
+- [x] Refresh the stale Offense Tactical evidence created before the strategic battle source change.
+- [x] Recompute the source-derived manifest and require `uncovered=0` plus final Unity Console Warning/Error `0/0`.
+
+Final gate: `result=PASS; authored=19; runtimeActions=22; deprivationLogical=5; workTypes=31; domains=16; uncovered=0`. No coverage-critical source was changed after the accepted runs.

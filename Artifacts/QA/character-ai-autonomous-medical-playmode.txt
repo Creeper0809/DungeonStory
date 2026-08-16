@@ -1,0 +1,24 @@
+CHARACTER_AI_AUTONOMOUS_MEDICAL_PLAYMODE
+checks=20; failures=0; consoleIssues=0
+case	result	detail
+SETUP	INFO	committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Roma:-803542:character:staff:1:01:active=True,Arin:-803610:character:staff:1:02:active=True; diagnostics=prepared-1:name=Roma;go=-803514;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-803582;id=character:staff:1:02;active=False || scan:name=Roma;go=-803514;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-803582;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-803514;id=character:staff:1:01;active=True || retained:name=Arin;go=-803582;id=character:staff:1:02;active=True
+LIVE_SCOPE	PASS	DungeonRuntimeSystems
+LIVE_MEDICAL_ACTORS	PASS	workers=3
+AUTHORED_RESCUE_ACTION	PASS	eligible=3
+MEDICAL_FACILITY	PASS	R01_간이침대
+MEDICAL_RUNTIME	PASS	resolved
+PATIENT_DOWNED	PASS	state=Downed
+AUTOMATIC_MEDICAL_ORDER	PASS	medical:1
+PHYSICAL_MEDICINE_SUPPLY	PASS	seeded=7
+RESCUE_BT_SELECTED	PASS	selected=True; phase=; failure=
+RESCUE_ABILITY_RAN	PASS	observed=True
+AUTONOMOUS_STABILIZATION	PASS	Completed/TreatmentCompleted; stab=0/8; treat=56.08/56.08
+AUTONOMOUS_PHYSICAL_CARRY	PASS	carrying=True; parented=True; Completed/TreatmentCompleted; stab=0/8; treat=56.08/56.08
+AUTONOMOUS_BED_TREATMENT	PASS	Completed/TreatmentCompleted; stab=0/8; treat=56.08/56.08
+AUTONOMOUS_RECOVERY	PASS	state=Active; downed=False; consciousness=1; mobility=0.34
+RESCUE_ACTION_STARTED	PASS	starts=0->1
+RESCUE_TYPED_COMPLETION	PASS	completed=0->1; failed=0->0; observedFailure=; trace=
+RESCUE_NO_RUNTIME_OWNERSHIP_LEAK	PASS	paths=0; reservations=0
+RESCUE_NO_INVARIANT_ANOMALY	PASS	invariants=0->0
+CONSOLE_WARNING_ERROR_ZERO	PASS	
+RESULT=PASS; failures=0

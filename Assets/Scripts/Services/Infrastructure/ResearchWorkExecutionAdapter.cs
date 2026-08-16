@@ -132,7 +132,10 @@ public sealed class ResearchWorkExecutionHandler :
         float contribution = projectWorkforce.GetContributionMultiplier(
             projectId,
             characterId.Value);
-        ResearchWorkProgressResult work = core.Apply(worker, facility, contribution);
+        ResearchWorkProgressResult work = core.ApplyApprovedWork(
+            worker,
+            facility,
+            plan.RequiredWork * contribution);
         result.CompletedSuccessfully = work.Succeeded;
         if (!work.Succeeded)
         {
@@ -232,17 +235,17 @@ public sealed class DefaultResearchWorkRuntimePort : IResearchWorkRuntimePort
         return new ResearchWorkPlan(requiredWork, "연구");
     }
 
-    public ResearchWorkProgressResult Apply(
+    public ResearchWorkProgressResult ApplyApprovedWork(
         ResearchWorkerHandle worker,
         ResearchFacilityHandle facility,
-        float seconds)
+        float approvedWorkUnits)
     {
         BuildableObject target = RequireFacility(facility);
-        float appliedSeconds = seconds;
+        float appliedWorkUnits = Math.Max(0f, approvedWorkUnits);
         WorldItemStackSnapshot index = FindArcaneIndex(target);
         if (index != null)
         {
-            appliedSeconds *= 1.1f;
+            appliedWorkUnits *= 1.1f;
             float current = DurableToolItemRules.ReadCurrentDurability(
                 index.ItemId,
                 index.Components);
@@ -250,16 +253,16 @@ public sealed class DefaultResearchWorkRuntimePort : IResearchWorkRuntimePort
                 index.StackId,
                 DurableToolItemRules.CreateDurability(
                     index.ItemId,
-                    current - Math.Max(0f, seconds) * 0.01f));
+                    current - Math.Max(0f, approvedWorkUnits) * 0.01f));
         }
         else
         {
             RequestArcaneIndex(target);
         }
-        BlueprintResearchWorkResult result = service.ApplyResearchWork(
+        BlueprintResearchWorkResult result = service.ApplyApprovedResearchWork(
             RequireWorker(worker),
             target,
-            appliedSeconds);
+            appliedWorkUnits);
         string label = result.Blueprint != null
             ? result.Blueprint.DisplayName
             : result.Message;

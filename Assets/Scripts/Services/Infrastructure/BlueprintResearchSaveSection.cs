@@ -34,12 +34,16 @@ public sealed class BlueprintResearchSaveSection :
     private readonly IFacilityShopCatalog facilityCatalog;
     private readonly IKnowledgeResidueProcessingRuntime knowledgeProcessing;
     private readonly IResearchProjectCatalog projectCatalog;
+    private readonly IRestoreWorldCandidateQuery restoreWorldCandidates;
+    private readonly IFacilityBufferDestinationClaimCommand destinationClaims;
 
     public BlueprintResearchSaveSection(
         ProgressionSceneRuntimeReferences runtimeReferences,
         IFacilityShopCatalog facilityCatalog,
         IKnowledgeResidueProcessingRuntime knowledgeProcessing,
-        IResearchProjectCatalog projectCatalog)
+        IResearchProjectCatalog projectCatalog,
+        IRestoreWorldCandidateQuery restoreWorldCandidates,
+        IFacilityBufferDestinationClaimCommand destinationClaims)
     {
         runtime = (runtimeReferences
                 ?? throw new ArgumentNullException(nameof(runtimeReferences)))
@@ -52,6 +56,10 @@ public sealed class BlueprintResearchSaveSection :
             ?? throw new ArgumentNullException(nameof(knowledgeProcessing));
         this.projectCatalog = projectCatalog
             ?? throw new ArgumentNullException(nameof(projectCatalog));
+        this.restoreWorldCandidates = restoreWorldCandidates
+            ?? throw new ArgumentNullException(nameof(restoreWorldCandidates));
+        this.destinationClaims = destinationClaims
+            ?? throw new ArgumentNullException(nameof(destinationClaims));
     }
 
     public override string SectionId => Id;
@@ -149,6 +157,38 @@ public sealed class BlueprintResearchSaveSection :
     {
         BlueprintResearchRestoreCandidate required = candidate
             ?? throw new ArgumentNullException(nameof(candidate));
+        if (!restoreWorldCandidates.TryGetGrid(out Grid candidateGrid)
+            || !restoreWorldCandidates.TryGetBuildings(
+                out IReadOnlyList<BuildableObject> candidateBuildings))
+        {
+            throw new InvalidOperationException(
+                "Research restore requires the detached facility-world candidate before destination publication.");
+        }
+
+        RoomLayout candidateRooms = RoomDetector.Build(candidateGrid);
+        FacilityBufferDestinationClaim[] archiveClaims =
+            ResearchBlueprintArchiveDestinationAuthority.BuildClaims(
+                candidateBuildings.Where(building =>
+                    building != null
+                    && building.IsDetachedRestoreCandidate
+                    && ResearchBlueprintArchiveDestinationAuthority
+                        .IsAuthoredArchiveFacility(building)
+                    && candidateRooms.TryGetRoom(
+                        building,
+                        out RoomInstance room)
+                    && ResearchBlueprintArchiveDestinationAuthority
+                        .IsEligibleRoom(room)));
+        if (!destinationClaims.TryReplaceOwnedClaims(
+                ResearchBlueprintArchiveDestinationAuthority.OwnerDomain,
+                archiveClaims,
+                out FacilityBufferDestinationClaimFailureCode failureCode,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Research archive destination restore failed: "
+                + $"{failureCode}: {failureReason}");
+        }
+
         runtime.ReplaceStateFromRestore(required.Research);
         knowledgeProcessing.Restore(required.Knowledge);
     }

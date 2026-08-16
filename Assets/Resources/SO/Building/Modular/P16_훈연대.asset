@@ -55,11 +55,17 @@ MonoBehaviour:
     items:
     - rid: 7737211921440178299
     - rid: 7737211921440178300
-    - rid: 7737211921440178301
     - rid: 7737211921440178302
     - rid: 7737211921440178303
     - rid: 7737211921440178304
     - rid: 7737211921440178305
+    - rid: 7737211981804077354
+    - rid: 7737211981804077355
+    - rid: 7737211981816660179
+    - rid: 7737211981816660180
+    - rid: 7737211981816660181
+    - rid: 7737211981816660182
+    - rid: 7737211981816660183
   width: 2
   height: 1
   layer: 1
@@ -86,12 +92,6 @@ MonoBehaviour:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - smoker
-    - rid: 7737211921440178301
-      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionWorkstationAbility
-        workstationTag: workstation:smoker
-        stockSensorInstallationItemId: component:stock-sensor-panel
     - rid: 7737211921440178302
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
@@ -138,7 +138,7 @@ MonoBehaviour:
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
-          supportedWorkTypes: 16388
+          supportedWorkTypes: 536887300
           disabledWhenDamaged: 1
     - rid: 7737211921440178305
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
@@ -155,3 +155,73 @@ MonoBehaviour:
           - key: Preservation
             value: 2
           metrics: []
+    - rid: 7737211981804077354
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:smoker
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211981804077355
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 4
+        outputCapacities:
+        - itemId: material:lead-ingot
+          capacity: 24
+        - itemId: material:lead-shot
+          capacity: 96
+        - itemId: material:black-powder
+          capacity: 48
+        - itemId: material:paper
+          capacity: 64
+        - itemId: ammo:paper-cartridge
+          capacity: 120
+        - itemId: component:machine-parts
+          capacity: 16
+        - itemId: component:precision-parts
+          capacity: 16
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}
+    - rid: 7737211981816660179
+      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingPowerConsumerAbility
+        demandPerSecond: 5
+        priority: 4
+        minimumSupplyFraction: 0.75
+    - rid: 7737211981816660180
+      type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingAutomationAbility
+        maximumMode: 2
+        assistedPowerDemand: 2
+        automaticPowerDemand: 5
+        assistedWorkMultiplier: 1.35
+        automaticWorkPerSecond: 1
+        automaticQualityCap: 0.75
+        maintenancePerGameHour: 1
+    - rid: 7737211981816660181
+      type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingConveyorPortAbility
+        mode: 2
+        destinationId: 
+        capacity: 4
+    - rid: 7737211981816660182
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 7
+        maxThroughput: 25
+        normallyOpen: 1
+    - rid: 7737211981816660183
+      type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProcessFluidAbility
+        workTypeIds:
+        - work:cook
+        cleanWaterPerCycle: 0.25
+        wastewaterPerCycle: 0.25
+        minimumQuality: 0
+        allowsManualWaterFallback: 1

@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 74
   features:
-  - rid: 7737211905658585353
-  - rid: 7737211905658585354
-  - rid: 7737211905660420553
+  - rid: 7737211981804078072
+  - rid: 7737211981804078073
+  - rid: 7737211981804078074
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585353
+    - rid: 7737211981804078072
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:textile:dreamweave
-    - rid: 7737211905658585354
+    - rid: 7737211981804078073
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1152
         sharedIntermediate: 0
-    - rid: 7737211905660420553
+    - rid: 7737211981804078074
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.60403794

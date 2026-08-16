@@ -9,7 +9,77 @@ public sealed class DungeonRuntimeLifetimeScope : LifetimeScope
 {
     protected override void OnDestroy()
     {
-        base.OnDestroy();
+        try
+        {
+            PrepareSceneRuntimeForScopeDisposal();
+        }
+        finally
+        {
+            base.OnDestroy();
+        }
+    }
+
+    private void PrepareSceneRuntimeForScopeDisposal()
+    {
+        // VContainer disposes scoped services in base.OnDestroy. Character
+        // MonoBehaviours are scene objects and Unity does not guarantee that
+        // their OnDisable callbacks run before this scope component's
+        // OnDestroy. Stop producers and detach log consumers while the scope
+        // is still alive, then release actor runtime ownership without
+        // changing GameObject active state. Active scene objects survive a
+        // managed-domain reload and must be rebound by the replacement scope.
+        if (Container == null)
+        {
+            return;
+        }
+
+        Scene scopeScene = gameObject.scene;
+        if (!scopeScene.IsValid() || !scopeScene.isLoaded)
+        {
+            return;
+        }
+
+        GameObject[] roots = scopeScene.GetRootGameObjects();
+        for (int rootIndex = 0; rootIndex < roots.Length; rootIndex++)
+        {
+            CharacterSpawner[] spawners =
+                roots[rootIndex].GetComponentsInChildren<CharacterSpawner>(true);
+            for (int index = 0; index < spawners.Length; index++)
+            {
+                spawners[index]?.PrepareForScopeTeardown();
+            }
+        }
+
+        for (int rootIndex = 0; rootIndex < roots.Length; rootIndex++)
+        {
+            CharacterFeedbackBubble[] feedback =
+                roots[rootIndex].GetComponentsInChildren<CharacterFeedbackBubble>(true);
+            for (int index = 0; index < feedback.Length; index++)
+            {
+                feedback[index]?.PrepareForScopeTeardown();
+            }
+
+            CharacterDialogueRuntime[] dialogue =
+                roots[rootIndex].GetComponentsInChildren<CharacterDialogueRuntime>(true);
+            for (int index = 0; index < dialogue.Length; index++)
+            {
+                dialogue[index]?.PrepareForScopeTeardown();
+            }
+        }
+
+        for (int rootIndex = 0; rootIndex < roots.Length; rootIndex++)
+        {
+            CharacterActor[] actors =
+                roots[rootIndex].GetComponentsInChildren<CharacterActor>(true);
+            for (int index = 0; index < actors.Length; index++)
+            {
+                CharacterActor actor = actors[index];
+                if (actor != null)
+                {
+                    actor.PrepareForScopeTeardown();
+                }
+            }
+        }
     }
 
     protected override void Configure(IContainerBuilder builder)

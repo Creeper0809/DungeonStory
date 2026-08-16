@@ -144,7 +144,17 @@ public sealed class EnemyTacticalDecisionService : IEnemyTacticalDecisionService
         }
 
         float lowestFriendlyHealth = session.Combatants
-            .Where(value => value.Team == actor.Team && !value.IsDead)
+            // Actor health already contributes through the self-preservation
+            // term below. Including the actor here applies low health twice,
+            // causing Protect to dominate Retreat for every authored
+            // non-boss profile (protect=1, retreat=2) even below its retreat
+            // threshold. This term represents allies the actor could protect.
+            .Where(value => value.Team == actor.Team
+                && !value.IsDead
+                && !string.Equals(
+                    value.PersistentId,
+                    actor.PersistentId,
+                    StringComparison.Ordinal))
             .Select(value => value.HealthRatio)
             .DefaultIfEmpty(1f)
             .Min();

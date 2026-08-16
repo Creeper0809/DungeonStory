@@ -58,6 +58,8 @@ MonoBehaviour:
     - rid: 7737211921440178411
     - rid: 7737211921440178412
     - rid: 7737211921440178413
+    - rid: 7737211992021139764
+    - rid: 7737211992021139765
   width: 1
   height: 1
   layer: 1
@@ -133,3 +135,15 @@ MonoBehaviour:
         category: 1
         capacity: 10
         allCategories: 0
+    - rid: 7737211992021139764
+      type: {class: BuildingResearchArchiveAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingResearchArchiveAbility
+        capacity: 8
+    - rid: 7737211992021139765
+      type: {class: BuildingResearchCapacityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingResearchCapacityAbility
+        contributions:
+        - capability: 1
+          capacity: 1

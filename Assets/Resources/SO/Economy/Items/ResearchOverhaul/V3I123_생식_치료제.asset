@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 64
   features:
-  - rid: 7737211905655964544
-  - rid: 7737211905655964545
-  - rid: 7737211905660420386
+  - rid: 7737211981804077550
+  - rid: 7737211981804077551
+  - rid: 7737211981804077552
   references:
     version: 2
     RefIds:
-    - rid: 7737211905655964544
+    - rid: 7737211981804077550
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:reproductive-medicine
-    - rid: 7737211905655964545
+    - rid: 7737211981804077551
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211905660420386
+    - rid: 7737211981804077552
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6012417

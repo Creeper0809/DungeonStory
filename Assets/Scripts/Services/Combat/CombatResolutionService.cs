@@ -216,7 +216,7 @@ public sealed class CombatResolutionService : ICombatResolutionService
             verb,
             rangeDamage,
             quality)
-            * ResolveArcanePowerMultiplier(request.AttackerId, weapon)
+            * ResolveArcanePowerMultiplierFromRequest(request, weapon)
             * ammunition.DamageMultiplierFor(band, request.DefenderConstruct)
             * ResolveRoleDamageMultiplier(
                 weaponRoles,
@@ -607,7 +607,7 @@ public sealed class CombatResolutionService : ICombatResolutionService
             verb,
             rangeDamage,
             quality)
-            * ResolveArcanePowerMultiplier(request.AttackerId, weapon)
+            * ResolveArcanePowerMultiplierFromRequest(request, weapon)
             * ammunition.DamageMultiplierFor(band, request.DefenderConstruct)
             * ResolveRoleDamageMultiplier(
                 weapon.RoleFlags,
@@ -958,6 +958,33 @@ public sealed class CombatResolutionService : ICombatResolutionService
         return false;
     }
 
+    private float ResolveArcanePowerMultiplierFromRequest(
+        CombatAttackRequest request,
+        CombatWeaponSnapshot weapon)
+    {
+        if (!CharacterArcaneWeaponRules.IsArcane(weapon?.DefinitionId))
+            return 1f;
+        if (!request.Attacker.HasArcanePowerMultiplier)
+            return ResolveArcanePowerMultiplier(request.AttackerId, weapon);
+
+        float value = request.Attacker.ArcanePowerMultiplier;
+        if (float.IsNaN(value) || float.IsInfinity(value) || value < 0f)
+        {
+            throw new InvalidOperationException(
+                $"Combat arcane snapshot for '{request.AttackerId}' is invalid: {value}.");
+        }
+        CharacterPerformanceExecutionTrace.Record(
+            CharacterPerformanceFormulaIds.ArcanePower,
+            "CombatResolutionService.ResolveArcanePowerMultiplier.CombatSnapshot",
+            1f,
+            value,
+            request.AttackerId);
+        return value;
+    }
+
+    // Compatibility path for active-world combat and the existing focused
+    // performance audit. Detached combat domains must supply their own value
+    // through CombatStatSnapshot.HasArcanePowerMultiplier.
     private float ResolveArcanePowerMultiplier(
         string attackerId,
         CombatWeaponSnapshot weapon)

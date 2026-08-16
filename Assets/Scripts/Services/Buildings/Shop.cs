@@ -15,6 +15,7 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
     private ShopServiceCompletion serviceCompletion;
     private ShopCustomerInteractionService customerInteraction;
     private IBuildingVisitorPort worker;
+    private CharacterId workerCharacterId;
     private IGameMoneyAccount moneyAccount;
     private IFloatingNumberFeedbackService floatingNumberFeedbackService;
     private IBuildingWorkforceReplanPort workforceReplanService;
@@ -121,6 +122,42 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
 
     public IEnumerator Interact(IBuildingVisitorPort actor) =>
         CustomerInteraction.Interact(actor);
+
+    public override void ReleaseTransientCharacterOwnership(
+        IBuildingVisitorPort actor,
+        string reason)
+    {
+        if (actor == null)
+        {
+            return;
+        }
+
+        string actorId = actor.BuildingCharacterId.Value;
+        string hubId = PersistentInstanceId.IsValid
+            ? PersistentInstanceId.Value
+            : string.Empty;
+        string[] sessions = serviceSessionRuntime?.ActiveSessions?
+            .Where(session => session != null
+                && session.IsActive
+                && string.Equals(session.ActorId, actorId, StringComparison.Ordinal)
+                && (string.IsNullOrWhiteSpace(hubId)
+                    || string.Equals(session.HubId, hubId, StringComparison.Ordinal)))
+            .Select(session => session.SessionId)
+            .ToArray() ?? Array.Empty<string>();
+
+        base.ReleaseTransientCharacterOwnership(actor, reason);
+        for (int index = 0; index < sessions.Length; index++)
+        {
+            serviceSessionRuntime.CancelSession(
+                sessions[index],
+                string.IsNullOrWhiteSpace(reason)
+                    ? "character-lifecycle-ended"
+                    : reason);
+        }
+
+        // CharacterActor owns actor-wide meal cancellation once per lifecycle
+        // transition.  A shop only releases ownership scoped to itself.
+    }
 
     public static bool CreatesRevenueFor(IBuildingVisitorPort actor)
     {
@@ -469,6 +506,8 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
             yield break;
         }
         worker = actor;
+        workerCharacterId = actor?.BuildingCharacterId ?? default;
+        TrackAllocatedWorkerOwnership(actor);
         MarkFacilityDynamicStateDirty();
         ReleaseWorkerReservation(actor);
         if (actor == null || !actor.VisitorSnapshot.CanMove) yield break;
@@ -499,6 +538,8 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         if (worker != actor) return;
 
         worker = null;
+        workerCharacterId = default;
+        UntrackAllocatedWorkerOwnership(actor);
         MarkFacilityDynamicStateDirty();
         actor.SetActionPhase("\uC2DC\uC124 \uD1F4\uC7A5", this);
         Vector3 actorPosition = actor.VisitorSnapshot.Position - new Vector3(0, 0.15f);
@@ -525,13 +566,21 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         {
             if (!worker.VisitorSnapshot.IsRuntimeActive)
             {
+                UntrackTransientOwnership(
+                    workerCharacterId,
+                    BuildingTransientOwnershipKind.AllocatedWorker);
                 worker = null;
+                workerCharacterId = default;
                 MarkFacilityDynamicStateDirty();
             }
         }
         catch (MissingReferenceException)
         {
+            UntrackTransientOwnership(
+                workerCharacterId,
+                BuildingTransientOwnershipKind.AllocatedWorker);
             worker = null;
+            workerCharacterId = default;
             MarkFacilityDynamicStateDirty();
         }
     }

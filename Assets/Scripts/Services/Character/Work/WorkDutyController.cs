@@ -3,6 +3,50 @@ using System.Collections.Generic;
 using DungeonStory.Foundation;
 using UnityEngine;
 
+public readonly struct WorkDutyStartDiagnostics
+{
+    public WorkDutyStartDiagnostics(
+        AbilityWork.DutyState dutyState,
+        bool actorMissing,
+        bool expeditionBlocked,
+        bool prioritySuppress,
+        bool priorityWork,
+        bool urgentPriorityWork,
+        bool routineNeedBlocked,
+        bool discontentBlocked,
+        string discontentReason,
+        bool conditionWouldTakeOffDuty,
+        bool restProtectionBlocked,
+        bool canStartByDutyGate)
+    {
+        DutyState = dutyState;
+        ActorMissing = actorMissing;
+        ExpeditionBlocked = expeditionBlocked;
+        PrioritySuppress = prioritySuppress;
+        PriorityWork = priorityWork;
+        UrgentPriorityWork = urgentPriorityWork;
+        RoutineNeedBlocked = routineNeedBlocked;
+        DiscontentBlocked = discontentBlocked;
+        DiscontentReason = discontentReason ?? string.Empty;
+        ConditionWouldTakeOffDuty = conditionWouldTakeOffDuty;
+        RestProtectionBlocked = restProtectionBlocked;
+        CanStartByDutyGate = canStartByDutyGate;
+    }
+
+    public AbilityWork.DutyState DutyState { get; }
+    public bool ActorMissing { get; }
+    public bool ExpeditionBlocked { get; }
+    public bool PrioritySuppress { get; }
+    public bool PriorityWork { get; }
+    public bool UrgentPriorityWork { get; }
+    public bool RoutineNeedBlocked { get; }
+    public bool DiscontentBlocked { get; }
+    public string DiscontentReason { get; }
+    public bool ConditionWouldTakeOffDuty { get; }
+    public bool RestProtectionBlocked { get; }
+    public bool CanStartByDutyGate { get; }
+}
+
 public sealed class WorkDutyController
 {
     private static readonly WaitForSeconds WorkCheckDelay = new WaitForSeconds(1f);
@@ -97,6 +141,77 @@ public sealed class WorkDutyController
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Captures the work-start gates without changing duty, rest protection,
+    /// routine-need memory, assignments, or AI scheduling state.
+    /// </summary>
+    public WorkDutyStartDiagnostics CaptureStartDiagnostics()
+    {
+        CharacterActor actor = work.WorkerActor;
+        bool actorMissing = actor == null;
+        bool expeditionBlocked = actor != null && actor.IsOnExpedition;
+        bool prioritySuppress = work.HasPrioritySuppressTarget;
+        bool priorityWork = work.PriorityWorkTarget != null
+            && work.PriorityWorkTypeId.IsValid;
+        bool urgentPriorityWork = work.HasUrgentPriorityTarget();
+        bool routineNeedBlocked = routineNeedBlockingWorkStart.HasValue;
+        string discontentReason = string.Empty;
+        bool discontentBlocked = actor != null
+            && work.StaffDiscontentRuntimeService.ShouldBlockWork(
+                actor,
+                out discontentReason);
+        bool conditionWouldTakeOffDuty = ShouldTakeOffDuty();
+        bool restProtectionBlocked = PeekRestProtectionBlocked();
+
+        bool canStartByDutyGate = !actorMissing
+            && !expeditionBlocked
+            && (prioritySuppress
+                || (!routineNeedBlocked
+                    && (urgentPriorityWork
+                        || (!discontentBlocked
+                            && (!IsOffDuty || ShouldReturnToWork())
+                            && !conditionWouldTakeOffDuty
+                            && !restProtectionBlocked))));
+        return new WorkDutyStartDiagnostics(
+            dutyState,
+            actorMissing,
+            expeditionBlocked,
+            prioritySuppress,
+            priorityWork,
+            urgentPriorityWork,
+            routineNeedBlocked,
+            discontentBlocked,
+            discontentReason,
+            conditionWouldTakeOffDuty,
+            restProtectionBlocked,
+            canStartByDutyGate);
+    }
+
+    private bool PeekRestProtectionBlocked()
+    {
+        WorkPriorityProfile priorities = work.WorkPriorities;
+        CharacterStats stats = GetWorkerStats();
+        if (priorities == null
+            || !priorities.IsEnabled(BuiltInWorkTypeIds.Rest)
+            || stats == null
+            || !stats.Stats.TryGetValue(
+                CharacterCondition.SLEEP,
+                out float sleep))
+        {
+            return false;
+        }
+
+        if (!restProtectionActive)
+        {
+            return sleep <= work.RestProtectionSleepThreshold;
+        }
+
+        bool sleptEnough = sleep >= work.RestProtectionResumeSleepThreshold;
+        bool waitedEnough = Now - restProtectionStartedAt
+            >= work.MinimumRestProtectionSeconds;
+        return !sleptEnough || !waitedEnough;
     }
 
     public bool CanStartWorkAction()
@@ -374,7 +489,8 @@ public sealed class WorkDutyController
         while (work.CanContinueWorkRun(runId) && actor != null && actor.Brain != null)
         {
             float currentTime = Now;
-            ApplyWorkFatigueTick(Mathf.Max(0f, currentTime - lastFatigueAppliedAt));
+            float elapsedWork = Mathf.Max(0f, currentTime - lastFatigueAppliedAt);
+            ApplyWorkFatigueTick(elapsedWork);
             lastFatigueAppliedAt = currentTime;
             if (!CanContinueAssignedWork(out string stopReason))
             {
@@ -388,6 +504,15 @@ public sealed class WorkDutyController
                 endReason = interruptReason;
                 WorkDebugLog.LogEnd(actor, interruptReason);
                 break;
+            }
+
+            if (elapsedWork > 0f)
+            {
+                work.RecordRoutineApprovedWorkTime(
+                    elapsedWork,
+                    Mathf.Max(
+                        0f,
+                        routineShiftSeconds - (currentTime - startedAt)));
             }
 
             if (ShouldEndRoutineWorkShift(startedAt, routineShiftSeconds, out string routineShiftReason))
@@ -656,6 +781,12 @@ public sealed class WorkDutyController
         if (target.isDestroy)
         {
             stopReason = "작업장 파괴됨";
+            return false;
+        }
+
+        if (!target.gameObject.activeInHierarchy)
+        {
+            stopReason = "work-target-inactive";
             return false;
         }
 

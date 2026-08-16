@@ -136,7 +136,23 @@ public static class CharacterSkillRuntimeEffects
             return;
         }
 
-        CharacterSkillTransientState.Ensure(actor).EndWork();
+        CharacterSkillTransientState state =
+            actor.GetComponent<CharacterSkillTransientState>();
+        if (state == null || !state.IsConfigured)
+        {
+            if (actor.isActiveAndEnabled && actor.IsRuntimeBridgeConfigured)
+            {
+                throw new InvalidOperationException(
+                    "An active, configured character is missing its scoped skill transient state.");
+            }
+
+            // Teardown of an unpublished or only partially injected actor has
+            // no scoped skill state to release. Never manufacture a new
+            // MonoBehaviour from a cancellation/finally path.
+            return;
+        }
+
+        state.EndWork();
     }
 
     public static void TriggerWorkCompleted(

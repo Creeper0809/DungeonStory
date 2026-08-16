@@ -339,6 +339,18 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
             return default;
         }
 
+        Vector2Int attackerCell = attacker.GetNowXY();
+        Vector2Int defenderCell = defender.GetNowXY();
+        if (attackerCell.y != defenderCell.y
+            || Mathf.Abs(attackerCell.x - defenderCell.x) != 1)
+        {
+            return new DefenseCombatExecutionResult(
+                false,
+                defender.IsDead,
+                $"Melee exchange requires adjacent same-level cells: "
+                + $"attacker={attackerCell}; defender={defenderCell}.");
+        }
+
         string attackerId = GetPersistentId(attacker);
         string defenderId = GetPersistentId(defender);
         combatEquipment.TryGetActiveWeapon(
@@ -754,21 +766,14 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
     {
         if (weapon == null
             || string.IsNullOrWhiteSpace(weapon.InstanceId)
-            || string.IsNullOrWhiteSpace(weapon.DefinitionId)
-            || !itemStackRuntime.SpawnUniqueItemAt(
-                PhysicalItemIds.ForEquipment(weapon.DefinitionId),
+            || !combatEquipment.TryDropExistingEquipmentToWorld(
+                weapon.InstanceId,
                 impactPosition,
-                WorldItemStackState.Loose,
-                string.Empty,
-                out string stackId))
+                out _,
+                out _))
         {
             return;
         }
-
-        combatEquipment.TryLinkToWorldStack(
-            weapon.InstanceId,
-            stackId,
-            CombatEquipmentWorldState.Loose);
     }
 
     private void ApplyArmorDurabilityDamage(CombatAttackResult result)

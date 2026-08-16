@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 33
   features:
-  - rid: 7737211905658585830
-  - rid: 7737211905658585831
-  - rid: 7737211905660420731
+  - rid: 7737211981816660625
+  - rid: 7737211981816660626
+  - rid: 7737211981816660627
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585830
+    - rid: 7737211981816660625
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:industry:electric-lighting
-    - rid: 7737211905658585831
+    - rid: 7737211981816660626
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 640
         sharedIntermediate: 0
-    - rid: 7737211905660420731
+    - rid: 7737211981816660627
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6076162
