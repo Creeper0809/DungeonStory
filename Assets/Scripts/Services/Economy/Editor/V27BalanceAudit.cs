@@ -25,7 +25,9 @@ public static class V27BalanceAudit
         "architecture:v27-survival-cook-output-authority";
     public const string MarketBaselineRecordId =
         "balance:v27:item-market-asymmetric-price-authority";
-    private const string GeneratorVersion = "v27.4.0";
+    public const string LaborFacilityBaselineRecordId =
+        "balance:v27:global-labor-facility-period-preserving";
+    private const string GeneratorVersion = "v27.5.0";
     private const decimal LaborScale = 2.25m;
 
     [MenuItem("DungeonStory/V27/Generate Audit-Only Whole-Game Ledger")]
@@ -44,6 +46,18 @@ public static class V27BalanceAudit
     }
 
     public static V27BalanceAuditOutput Generate(BalanceLedgerExecutionMode mode)
+    {
+        return Generate(mode, allowApprovalRefresh: false);
+    }
+
+    internal static V27BalanceAuditOutput GenerateForApprovalRefresh()
+    {
+        return Generate(BalanceLedgerExecutionMode.AuditOnly, allowApprovalRefresh: true);
+    }
+
+    private static V27BalanceAuditOutput Generate(
+        BalanceLedgerExecutionMode mode,
+        bool allowApprovalRefresh)
     {
         if (mode != BalanceLedgerExecutionMode.AuditOnly
             && mode != BalanceLedgerExecutionMode.RegenerateArtifacts)
@@ -79,6 +93,8 @@ public static class V27BalanceAudit
             equipment,
             materials,
             work).Calculate();
+        IReadOnlyDictionary<string, string> historicalBeforeValues =
+            V27BalanceAssetApplication.CaptureHistoricalBeforeValues();
         V27EmbeddedWorkValueSnapshot after = new V27EmbeddedWorkValueCalculator(
             recipes,
             crops,
@@ -88,9 +104,14 @@ public static class V27BalanceAudit
             before,
             work,
             materialProfiles,
-            LaborScale).Calculate();
+            LaborScale,
+            historicalBeforeValues).Calculate();
         IReadOnlyDictionary<string, long> routeComparableBeforeItemValues =
-            BuildRouteComparableBeforeItemValues(crops, items, before);
+            BuildRouteComparableBeforeItemValues(
+                crops,
+                items,
+                before,
+                historicalBeforeValues);
 
         List<string> integrityFailures = new List<string>();
         if (recipes.Length != 354)
@@ -109,8 +130,6 @@ public static class V27BalanceAudit
         Dictionary<string, int> downstream = BuildDownstreamCounts(recipes, crops);
         Dictionary<string, string> sourceDigests = new Dictionary<string, string>(
             StringComparer.Ordinal);
-        IReadOnlyDictionary<string, string> historicalBeforeValues =
-            V27BalanceAssetApplication.CaptureHistoricalBeforeValues();
         CapturePipelineSourceDigests(sourceDigests);
         BalanceCaptureFactory capture = new BalanceCaptureFactory();
         List<BalanceAnomalyNode> anomalies = new List<BalanceAnomalyNode>();
@@ -143,7 +162,8 @@ public static class V27BalanceAudit
             after,
             capture,
             anomalies,
-            sourceDigests);
+            sourceDigests,
+            historicalBeforeValues);
         CaptureRecipeValues(
             recipes,
             before,
@@ -151,7 +171,8 @@ public static class V27BalanceAudit
             routeComparableBeforeItemValues,
             capture,
             anomalies,
-            sourceDigests);
+            sourceDigests,
+            historicalBeforeValues);
         CaptureBuildingCandidates(
             source.GetAll<BuildingSO>(),
             before,
@@ -159,7 +180,8 @@ public static class V27BalanceAudit
             work,
             capture,
             anomalies,
-            sourceDigests);
+            sourceDigests,
+            historicalBeforeValues);
         CaptureDismantleCycles(
             source.GetAll<BuildingSO>(),
             before,
@@ -223,9 +245,13 @@ public static class V27BalanceAudit
 
         FrozenBalanceLedger ledger = capture.Freeze();
         PromoteDependencyRoots(ledger, anomalies);
-        string[] approvedKeys = V27BalanceAssetApplication.CaptureValidApprovalKeys(ledger);
+        string[] approvedKeys = allowApprovalRefresh
+            ? V27BalanceAssetApplication.CaptureMatchingApprovalKeysForRefresh(ledger)
+            : V27BalanceAssetApplication.CaptureValidApprovalKeys(ledger);
         anomalies = ApplyApprovalDispositions(ledger, anomalies, approvedKeys);
-        string assetPatchDigest = V27BalanceAssetApplication.CaptureApprovedPatchDigest(ledger);
+        string assetPatchDigest = allowApprovalRefresh
+            ? string.Empty
+            : V27BalanceAssetApplication.CaptureApprovedPatchDigest(ledger);
         ledger = BalanceLedgerReviewFactory.ApplyApprovedKeys(ledger, approvedKeys);
         BalanceAnomalyNode[] orderedAnomalies = anomalies
             .OrderBy(value => value.StableId, StringComparer.Ordinal)
@@ -1492,7 +1518,8 @@ public static class V27BalanceAudit
         V27EmbeddedWorkValueSnapshot after,
         BalanceCaptureFactory capture,
         ICollection<BalanceAnomalyNode> anomalies,
-        IDictionary<string, string> sourceDigests)
+        IDictionary<string, string> sourceDigests,
+        IReadOnlyDictionary<string, string> historicalBeforeValues)
     {
         Dictionary<string, ItemDefinitionSO> itemsById = items
             .Where(value => value != null)
@@ -1516,19 +1543,39 @@ public static class V27BalanceAudit
                 throw new InvalidOperationException(
                     $"Crop EWU did not resolve: {crop.CropId}.");
 
+            string cropId = RawStableId(crop, "cropId");
+            decimal currentSow = BalanceCanonicalText.DecimalFromFiniteFloat(
+                crop.SowWork,
+                $"crop:{crop.CropId}:sowWork");
+            decimal currentHarvest = BalanceCanonicalText.DecimalFromFiniteFloat(
+                crop.HarvestWork,
+                $"crop:{crop.CropId}:harvestWork");
+            decimal beforeSow = ResolveCropAuthoredBefore(
+                cropId,
+                "sowWork",
+                currentSow,
+                historicalBeforeValues);
+            decimal beforeHarvest = ResolveCropAuthoredBefore(
+                cropId,
+                "harvestWork",
+                currentHarvest,
+                historicalBeforeValues);
             CropCostCandidate beforeCandidate = CalculateCropCostCandidate(
                 crop,
                 itemsById,
                 beforeWaterMilli,
-                1m);
+                1m,
+                beforeSow,
+                beforeHarvest);
             CropCostCandidate upstreamOnly = CalculateCropCostCandidate(
                 crop,
                 itemsById,
                 afterWater.AcquisitionCost.MilliEwu,
-                1m);
+                1m,
+                beforeSow,
+                beforeHarvest);
             string path = AssetDatabase.GetAssetPath(crop);
             string sourceDigest = GetSourceDigest(path, sourceDigests);
-            string cropId = RawStableId(crop, "cropId");
             string[] dependencies = full.CleanWaterUnits > 0
                 ? new[] { "resource:clean-water", crop.SeedItemId }
                 : new[] { crop.SeedItemId };
@@ -1538,9 +1585,7 @@ public static class V27BalanceAudit
                     ? "|resource:clean-water=" + full.CleanWaterUnits.ToString(
                         CultureInfo.InvariantCulture)
                     : string.Empty);
-            decimal beforeDirect = BalanceCanonicalText.DecimalFromFiniteFloat(
-                crop.SowWork + crop.HarvestWork,
-                $"crop:{cropId}:beforeDirectWU");
+            decimal beforeDirect = checked(beforeSow + beforeHarvest);
             decimal afterDirect = full.DirectWorkDebit.MilliEwu / 1000m;
             long beforePerUnit = beforeCandidate.PerUnitAcquisition.MilliEwu;
             long afterPerUnit = full.PerUnitAcquisition.MilliEwu;
@@ -1602,8 +1647,8 @@ public static class V27BalanceAudit
                 DependencyFingerprint = dependencyFingerprint,
                 LocalFingerprint = HashText(
                     cropId + "|" + bom + "|" + crop.GrowthHours.ToString("R", CultureInfo.InvariantCulture)
-                    + "|" + crop.SowWork.ToString("R", CultureInfo.InvariantCulture)
-                    + "|" + crop.HarvestWork.ToString("R", CultureInfo.InvariantCulture)
+                    + "|" + Token(beforeSow)
+                    + "|" + Token(beforeHarvest)
                     + "|" + crop.Yield.ToString(CultureInfo.InvariantCulture)),
                 SourceDigest = sourceDigest,
                 SemanticHash = HashText(cropId + "|cultivated-acquisition-cost|" + afterPerUnit),
@@ -1635,7 +1680,8 @@ public static class V27BalanceAudit
                 dependencyFingerprint,
                 bom,
                 capture,
-                anomalies);
+                anomalies,
+                historicalBeforeValues);
             CaptureCropAuthoredWorkMetric(
                 crop,
                 cropId,
@@ -1648,14 +1694,16 @@ public static class V27BalanceAudit
                 dependencyFingerprint,
                 bom,
                 capture,
-                anomalies);
+                anomalies,
+                historicalBeforeValues);
         }
     }
 
     private static IReadOnlyDictionary<string, long> BuildRouteComparableBeforeItemValues(
         IEnumerable<CropDefinitionSO> crops,
         IEnumerable<ItemDefinitionSO> items,
-        EmbeddedWorkValueSnapshot before)
+        EmbeddedWorkValueSnapshot before,
+        IReadOnlyDictionary<string, string> historicalBeforeValues)
     {
         Dictionary<string, ItemDefinitionSO> itemsById = items
             .Where(value => value != null)
@@ -1678,11 +1726,27 @@ public static class V27BalanceAudit
                      .Where(value => value != null)
                      .OrderBy(value => value.CropId, StringComparer.Ordinal))
         {
+            decimal currentSow = BalanceCanonicalText.DecimalFromFiniteFloat(
+                crop.SowWork,
+                $"crop:{crop.CropId}:sowWork");
+            decimal currentHarvest = BalanceCanonicalText.DecimalFromFiniteFloat(
+                crop.HarvestWork,
+                $"crop:{crop.CropId}:harvestWork");
             CropCostCandidate candidate = CalculateCropCostCandidate(
                 crop,
                 itemsById,
                 beforeWater,
-                1m);
+                1m,
+                ResolveCropAuthoredBefore(
+                    crop.CropId,
+                    "sowWork",
+                    currentSow,
+                    historicalBeforeValues),
+                ResolveCropAuthoredBefore(
+                    crop.CropId,
+                    "harvestWork",
+                    currentHarvest,
+                    historicalBeforeValues));
             if (!values.TryGetValue(crop.HarvestItemId, out long current)
                 || candidate.PerUnitAcquisition.MilliEwu < current)
             {
@@ -1704,12 +1768,17 @@ public static class V27BalanceAudit
         string dependencyFingerprint,
         string bom,
         BalanceCaptureFactory capture,
-        ICollection<BalanceAnomalyNode> anomalies)
+        ICollection<BalanceAnomalyNode> anomalies,
+        IReadOnlyDictionary<string, string> historicalBeforeValues)
     {
         decimal current = BalanceCanonicalText.DecimalFromFiniteFloat(
             beforeWork,
             $"crop:{cropId}:{propertyPath}");
-        decimal before = ResolveCropAuthoredBefore(cropId, propertyPath, current);
+        decimal before = ResolveCropAuthoredBefore(
+            cropId,
+            propertyPath,
+            current,
+            historicalBeforeValues);
         decimal after = decimal.Ceiling(before * LaborScale);
         if (current != before && current != after)
         {
@@ -1772,7 +1841,7 @@ public static class V27BalanceAudit
                     dependencyFingerprint,
                     approvalSourceDigest,
                     reasonCode,
-                    ResolveBaselineRecordId(cropId))
+                    ResolveLaborBaselineRecordId(cropId))
                 : string.Empty,
             DependencyFingerprint = dependencyFingerprint,
             LocalFingerprint = HashText(
@@ -1780,7 +1849,7 @@ public static class V27BalanceAudit
             SourceDigest = approvalSourceDigest,
             SemanticHash = HashText(cropId + "|" + metric + "|" + afterToken),
             AssetApplied = current == after ? "true" : "false",
-            BalanceBaselineRecordId = ResolveBaselineRecordId(cropId)
+            BalanceBaselineRecordId = ResolveLaborBaselineRecordId(cropId)
         });
         if (severity != BalanceAnomalySeverity.None)
         {
@@ -1800,7 +1869,9 @@ public static class V27BalanceAudit
         CropDefinitionSO crop,
         IReadOnlyDictionary<string, ItemDefinitionSO> items,
         long cleanWaterMilliEwu,
-        decimal laborScale)
+        decimal laborScale,
+        decimal sowWork,
+        decimal harvestWork)
     {
         decimal growthHours = BalanceCanonicalText.DecimalFromFiniteFloat(
             crop.GrowthHours,
@@ -1813,13 +1884,7 @@ public static class V27BalanceAudit
             : checked((int)decimal.Ceiling(dailyWater * growthHours / 24m));
         EwuAmount input = EwuAmount.FromMilliEwu(
             checked(cleanWaterMilliEwu * waterUnits));
-        decimal sow = BalanceCanonicalText.DecimalFromFiniteFloat(
-            crop.SowWork,
-            $"crop:{crop.CropId}:sowWork");
-        decimal harvest = BalanceCanonicalText.DecimalFromFiniteFloat(
-            crop.HarvestWork,
-            $"crop:{crop.CropId}:harvestWork");
-        decimal directBefore = checked(sow + harvest);
+        decimal directBefore = checked(sowWork + harvestWork);
         EwuAmount direct = V27EwuQuantizer.QuantizeInputDebit(
             checked(directBefore * laborScale));
         decimal inputWeight = ResolveCapturedItemWeight(items, crop.SeedItemId)
@@ -1877,7 +1942,8 @@ public static class V27BalanceAudit
         IReadOnlyDictionary<string, long> routeComparableBeforeItemValues,
         BalanceCaptureFactory capture,
         ICollection<BalanceAnomalyNode> anomalies,
-        IDictionary<string, string> sourceDigests)
+        IDictionary<string, string> sourceDigests,
+        IReadOnlyDictionary<string, string> historicalBeforeValues)
     {
         foreach (ProductionRecipeSO recipe in recipes)
         {
@@ -1988,7 +2054,11 @@ public static class V27BalanceAudit
             decimal authoredCurrent = BalanceCanonicalText.DecimalFromFiniteFloat(
                 recipe.RequiredWork,
                 $"recipe:{recipe.RecipeId}:requiredWork");
-            decimal authoredBefore = beforeWu;
+            decimal authoredBefore = ResolveHistoricalAuthoredBefore(
+                stableId,
+                "authored-required-wu",
+                beforeWu,
+                historicalBeforeValues);
             decimal authoredAfter = decimal.Ceiling(authoredBefore * LaborScale);
             if (authoredCurrent != authoredBefore && authoredCurrent != authoredAfter)
             {
@@ -2046,7 +2116,7 @@ public static class V27BalanceAudit
                 ApprovalKey = authoredBefore != authoredAfter
                     ? BuildApprovalKey(stableId, "authored-required-wu", authoredAfterToken,
                         dependencyFingerprint, approvalSourceDigest, reasonCode,
-                        ResolveBaselineRecordId(stableId))
+                        ResolveLaborBaselineRecordId(stableId))
                     : string.Empty,
                 DependencyFingerprint = dependencyFingerprint,
                 LocalFingerprint = authoredFingerprint,
@@ -2054,7 +2124,7 @@ public static class V27BalanceAudit
                 SemanticHash = HashText(
                     recipe.RecipeId + "|authored-required-wu|" + authoredAfterToken),
                 AssetApplied = authoredCurrent == authoredAfter ? "true" : "false",
-                BalanceBaselineRecordId = ResolveBaselineRecordId(stableId)
+                BalanceBaselineRecordId = ResolveLaborBaselineRecordId(stableId)
             });
             if (severity != BalanceAnomalySeverity.None)
             {
@@ -2080,7 +2150,8 @@ public static class V27BalanceAudit
         IBalanceWorkCalculator work,
         BalanceCaptureFactory capture,
         ICollection<BalanceAnomalyNode> anomalies,
-        IDictionary<string, string> sourceDigests)
+        IDictionary<string, string> sourceDigests,
+        IReadOnlyDictionary<string, string> historicalBeforeValues)
     {
         foreach (BuildingSO building in definitions
                      .Where(value => value != null && value.id >= 0 && !value.IsDeprecatedCompatibilityAsset)
@@ -2170,7 +2241,8 @@ public static class V27BalanceAudit
                     $"building:{stableId}:constructionWorkRequired");
                 decimal authoredBefore = ResolveBuildingAuthoredBefore(
                     stableId,
-                    authoredCurrent);
+                    authoredCurrent,
+                    historicalBeforeValues);
                 decimal authoredPeriod = decimal.Ceiling(authoredBefore * LaborScale);
                 if (authoredCurrent != authoredBefore && authoredCurrent != authoredPeriod)
                 {
@@ -2605,14 +2677,14 @@ public static class V27BalanceAudit
                     : patchable ? "pending" : "review",
             ApprovalKey = patchable && beforeWu != afterWu
                 ? BuildApprovalKey(stableId, metric, afterToken, dependencyFingerprint,
-                    approvalSourceDigest, reasonCode, ResolveBaselineRecordId(stableId))
+                    approvalSourceDigest, reasonCode, ResolveLaborBaselineRecordId(stableId))
                 : string.Empty,
             DependencyFingerprint = dependencyFingerprint,
             LocalFingerprint = fingerprint,
             SourceDigest = approvalSourceDigest,
             SemanticHash = HashText(stableId + "|" + metric + "|" + Token(afterWu)),
             AssetApplied = assetApplied ? "true" : "false",
-            BalanceBaselineRecordId = ResolveBaselineRecordId(stableId)
+            BalanceBaselineRecordId = ResolveLaborBaselineRecordId(stableId)
         });
     }
 
@@ -2844,6 +2916,8 @@ public static class V27BalanceAudit
             V27BalanceAssetRollbackDebugScenarios.ReportPath);
         string marketEvidence = ProjectAbsolutePath(
             V27BalanceMarketDebugScenarios.ReportPath);
+        string laborFacilityEvidence = ProjectAbsolutePath(
+            V27BalanceLaborFacilityDebugScenarios.ReportPath);
         WriteJsonProperty(writer, "economy256EvidenceHash",
             File.Exists(economyEvidence)
                 ? HashFile(economyEvidence)
@@ -2859,6 +2933,10 @@ public static class V27BalanceAudit
         WriteJsonProperty(writer, "marketAuthorityEvidenceHash",
             File.Exists(marketEvidence)
                 ? HashFile(marketEvidence)
+                : HashText(string.Empty), true);
+        WriteJsonProperty(writer, "laborFacilityAuthorityEvidenceHash",
+            File.Exists(laborFacilityEvidence)
+                ? HashFile(laborFacilityEvidence)
                 : HashText(string.Empty), true);
         WriteJsonProperty(writer, "approvalDigest", approvalHash, true);
         WriteJsonProperty(writer, "assetPatchDigest", assetPatchDigest, true);
@@ -2887,6 +2965,8 @@ public static class V27BalanceAudit
         V27BalanceJsonSerializer.WriteJsonString(writer, SurvivalOutputBaselineRecordId);
         writer.Write(',');
         V27BalanceJsonSerializer.WriteJsonString(writer, MarketBaselineRecordId);
+        writer.Write(',');
+        V27BalanceJsonSerializer.WriteJsonString(writer, LaborFacilityBaselineRecordId);
         writer.Write("]\n");
         writer.Write("}\n");
         writer.Flush();
@@ -3184,6 +3264,7 @@ public static class V27BalanceAudit
             "Assets/Scripts/Services/Economy/Editor/V27BalanceAssetRollbackDebugScenarios.cs",
             "Assets/Scripts/Services/Economy/Editor/V27BalanceEconomySimulationDebugScenarios.cs",
             "Assets/Scripts/Services/Economy/Editor/V27BalanceMarketDebugScenarios.cs",
+            "Assets/Scripts/Services/Economy/Editor/V27BalanceLaborFacilityDebugScenarios.cs",
             "Assets/Scripts/Services/Economy/Editor/V27BalanceVerticalSlicePlayModeVerifier.cs",
             "Assets/Scripts/Services/Economy/V27BalanceWorkCalculator.cs",
             "Assets/Scripts/Models/Buildings/Core/StockCategoryCatalog.cs",
@@ -3291,11 +3372,32 @@ public static class V27BalanceAudit
         };
     }
 
+    private static string ResolveLaborBaselineRecordId(string stableId) =>
+        string.Equals(ResolveBaselineRecordId(stableId), VerticalSliceBaselineRecordId,
+            StringComparison.Ordinal)
+            ? VerticalSliceBaselineRecordId
+            : LaborFacilityBaselineRecordId;
+
     private static decimal ResolveCropAuthoredBefore(
         string cropId,
         string propertyPath,
-        decimal current)
+        decimal current,
+        IReadOnlyDictionary<string, string> historicalBeforeValues)
     {
+        string metric = propertyPath switch
+        {
+            "sowWork" => "authored-sow-wu",
+            "harvestWork" => "authored-harvest-wu",
+            _ => throw new InvalidOperationException(
+                $"Unknown crop work property: {cropId}:{propertyPath}.")
+        };
+        decimal historical = ResolveHistoricalAuthoredBefore(
+            cropId,
+            metric,
+            current,
+            historicalBeforeValues);
+        if (historical != current || historicalBeforeValues != null)
+            return historical;
         if (!string.Equals(cropId, "crop:twilight-grain", StringComparison.Ordinal))
             return current;
         return propertyPath switch
@@ -3309,12 +3411,36 @@ public static class V27BalanceAudit
 
     private static decimal ResolveBuildingAuthoredBefore(
         string stableId,
-        decimal current) => string.Equals(
+        decimal current,
+        IReadOnlyDictionary<string, string> historicalBeforeValues)
+    {
+        decimal historical = ResolveHistoricalAuthoredBefore(
             stableId,
-            "building:1002",
-            StringComparison.Ordinal)
-                ? 40m
-                : current;
+            "construction-authored-wu:period-preserving",
+            current,
+            historicalBeforeValues);
+        if (historical != current || historicalBeforeValues != null)
+            return historical;
+        return string.Equals(stableId, "building:1002", StringComparison.Ordinal)
+            ? 40m
+            : current;
+    }
+
+    private static decimal ResolveHistoricalAuthoredBefore(
+        string stableId,
+        string metric,
+        decimal current,
+        IReadOnlyDictionary<string, string> historicalBeforeValues)
+    {
+        if (historicalBeforeValues != null
+            && historicalBeforeValues.TryGetValue(
+                V27BalanceAssetApplication.BuildHistoricalBeforeKey(stableId, metric),
+                out string token))
+        {
+            return decimal.Parse(token, NumberStyles.Float, CultureInfo.InvariantCulture);
+        }
+        return current;
+    }
 
     private static string GetApprovalSourceDigest(
         string projectRelativePath,

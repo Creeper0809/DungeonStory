@@ -24,6 +24,14 @@ public static class V27BalanceAssetApplication
         "authored-daily-unit-cost-gold",
         "authored-money-reward-gold"
     };
+    private static readonly HashSet<string> LaborFacilityApprovalMetrics = new(
+        StringComparer.Ordinal)
+    {
+        "authored-required-wu",
+        "authored-sow-wu",
+        "authored-harvest-wu",
+        "construction-authored-wu:period-preserving"
+    };
 
     [MenuItem("DungeonStory/V27/Apply Approved Balance Patches")]
     public static void ApplyApprovedFromMenu()
@@ -62,6 +70,26 @@ public static class V27BalanceAssetApplication
                 "Generated market approvals did not survive exact V27 revalidation.");
         }
         Debug.Log($"V27 exact item-market approvals generated: approvals={count}.");
+    }
+
+    [MenuItem("DungeonStory/V27/Generate Exact Labor and Facility Approvals")]
+    public static void GenerateLaborFacilityApprovalsFromMenu()
+    {
+        V27BalanceAuditOutput audit = V27BalanceAudit.GenerateForApprovalRefresh();
+        V27BalanceLaborFacilityDebugScenarios.RequireIntegrity(
+            audit,
+            requireApplied: false);
+        int count = WriteApprovals(
+            audit.Ledger,
+            record => ItemMarketApprovalMetrics.Contains(record.Metric)
+                || LaborFacilityApprovalMetrics.Contains(record.Metric),
+            replaceIncludedApprovals: true);
+        V27BalanceAuditOutput verified = V27BalanceAudit.Generate(
+            BalanceLedgerExecutionMode.AuditOnly);
+        V27BalanceLaborFacilityDebugScenarios.RequireIntegrity(
+            verified,
+            requireApplied: false);
+        Debug.Log($"V27 exact labor/facility approvals generated: approvals={count}.");
     }
 
     public static BalanceAssetApplicationResult ApplyApproved(
@@ -252,6 +280,28 @@ public static class V27BalanceAssetApplication
         return consumed.OrderBy(value => value, StringComparer.Ordinal).ToArray();
     }
 
+    internal static string[] CaptureMatchingApprovalKeysForRefresh(FrozenBalanceLedger ledger)
+    {
+        if (ledger == null)
+            throw new ArgumentNullException(nameof(ledger));
+        Dictionary<string, BalanceApprovalEntryData> approvals =
+            ValidateApprovals(LoadApprovals());
+        List<string> matching = new List<string>();
+        foreach (CanonicalBalanceMetricRecord record in ledger.Records)
+        {
+            if (record.ApprovalKey.Length == 0
+                || !approvals.TryGetValue(record.ApprovalKey, out BalanceApprovalEntryData approval))
+            {
+                continue;
+            }
+            RequireApprovalMatches(record, approval);
+            matching.Add(record.ApprovalKey);
+        }
+        return matching.Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+    }
+
     internal static string CaptureApprovedPatchDigest(FrozenBalanceLedger ledger)
     {
         Dictionary<string, BalanceApprovalEntryData> approvals =
@@ -317,7 +367,8 @@ public static class V27BalanceAssetApplication
 
     private static int WriteApprovals(
         FrozenBalanceLedger ledger,
-        Func<CanonicalBalanceMetricRecord, bool> include)
+        Func<CanonicalBalanceMetricRecord, bool> include,
+        bool replaceIncludedApprovals = false)
     {
         if (ledger == null)
             throw new ArgumentNullException(nameof(ledger));
@@ -347,9 +398,17 @@ public static class V27BalanceAssetApplication
                 balanceBaselineRecordId = record.BalanceBaselineRecordId
             });
         }
+        HashSet<string> replaceableKeys = replaceIncludedApprovals
+            ? existing.Values
+                .Where(value => ItemMarketApprovalMetrics.Contains(value.metric)
+                    || LaborFacilityApprovalMetrics.Contains(value.metric))
+                .Select(value => value.approvalKey)
+                .ToHashSet(StringComparer.Ordinal)
+            : new HashSet<string>(StringComparer.Ordinal);
         string[] missing = existing.Keys.Except(
                 entries.Select(value => value.approvalKey),
                 StringComparer.Ordinal)
+            .Where(value => !replaceableKeys.Contains(value))
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray();
         if (missing.Length > 0)

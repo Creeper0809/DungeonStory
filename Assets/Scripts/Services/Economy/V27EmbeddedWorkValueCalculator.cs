@@ -162,6 +162,7 @@ namespace DungeonStory.Balance
         private readonly IBalanceWorkCalculator workCalculator;
         private readonly IMaterialEconomicProfileCatalog materialProfiles;
         private readonly decimal laborScale;
+        private readonly IReadOnlyDictionary<string, string> authoredBeforeValues;
 
         public V27EmbeddedWorkValueCalculator(
             IEnumerable<ProductionRecipeSO> recipes,
@@ -172,7 +173,8 @@ namespace DungeonStory.Balance
             EmbeddedWorkValueSnapshot before,
             IBalanceWorkCalculator workCalculator,
             IMaterialEconomicProfileCatalog materialProfiles,
-            decimal laborScale = DefaultDurationPreservingScale)
+            decimal laborScale = DefaultDurationPreservingScale,
+            IReadOnlyDictionary<string, string> authoredBeforeValues = null)
         {
             this.recipes = (recipes ?? throw new ArgumentNullException(nameof(recipes)))
                 .Where(value => value != null)
@@ -204,6 +206,7 @@ namespace DungeonStory.Balance
             if (laborScale <= 0m)
                 throw new ArgumentOutOfRangeException(nameof(laborScale));
             this.laborScale = laborScale;
+            this.authoredBeforeValues = authoredBeforeValues;
         }
 
         public V27EmbeddedWorkValueSnapshot Calculate()
@@ -369,10 +372,14 @@ namespace DungeonStory.Balance
                 return false;
             }
 
-            decimal sowWork = BalanceCanonicalText.DecimalFromFiniteFloat(
+            decimal sowWork = ResolveAuthoredBefore(
+                crop.CropId,
+                "authored-sow-wu",
                 crop.SowWork,
                 $"crop:{crop.CropId}:sowWork");
-            decimal harvestWork = BalanceCanonicalText.DecimalFromFiniteFloat(
+            decimal harvestWork = ResolveAuthoredBefore(
+                crop.CropId,
+                "authored-harvest-wu",
                 crop.HarvestWork,
                 $"crop:{crop.CropId}:harvestWork");
             decimal directBefore = checked(sowWork + harvestWork);
@@ -597,6 +604,25 @@ namespace DungeonStory.Balance
                 "V23 embedded work");
             return V27EwuQuantizer.QuantizeInputDebit(
                 checked(beforeDecimal * laborScale));
+        }
+
+        private decimal ResolveAuthoredBefore(
+            string stableId,
+            string metric,
+            float current,
+            string context)
+        {
+            if (authoredBeforeValues != null
+                && authoredBeforeValues.TryGetValue(
+                    stableId + "\u001f" + metric,
+                    out string token))
+            {
+                return decimal.Parse(
+                    token,
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture);
+            }
+            return BalanceCanonicalText.DecimalFromFiniteFloat(current, context);
         }
 
         private decimal CalculateStandardLogisticsWork(ProductionRecipeSO recipe)

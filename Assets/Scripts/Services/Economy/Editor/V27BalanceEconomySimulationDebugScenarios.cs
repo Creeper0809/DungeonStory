@@ -81,7 +81,8 @@ public static class V27BalanceEconomySimulationDebugScenarios
             materials,
             before,
             work,
-            profiles);
+            profiles,
+            V27BalanceAssetApplication.CaptureHistoricalBeforeValues());
         Require(canonical.IsComplete,
             "Canonical V27 snapshot is incomplete.");
         string expectedHash = HashSnapshot(canonical);
@@ -175,6 +176,27 @@ public static class V27BalanceEconomySimulationDebugScenarios
         EmbeddedWorkValueSnapshot before,
         IBalanceWorkCalculator work,
         IMaterialEconomicProfileCatalog profiles) =>
+        Calculate(
+            recipes,
+            crops,
+            items,
+            equipment,
+            materials,
+            before,
+            work,
+            profiles,
+            V27BalanceAssetApplication.CaptureHistoricalBeforeValues());
+
+    private static V27EmbeddedWorkValueSnapshot Calculate(
+        IEnumerable<ProductionRecipeSO> recipes,
+        IEnumerable<CropDefinitionSO> crops,
+        IEnumerable<ItemDefinitionSO> items,
+        IEnumerable<CombatEquipmentDefinitionSO> equipment,
+        IEnumerable<CraftMaterialDefinitionSO> materials,
+        EmbeddedWorkValueSnapshot before,
+        IBalanceWorkCalculator work,
+        IMaterialEconomicProfileCatalog profiles,
+        IReadOnlyDictionary<string, string> historicalBeforeValues) =>
         new V27EmbeddedWorkValueCalculator(
             recipes,
             crops,
@@ -184,7 +206,8 @@ public static class V27BalanceEconomySimulationDebugScenarios
             before,
             work,
             profiles,
-            V27EmbeddedWorkValueCalculator.DefaultDurationPreservingScale)
+            V27EmbeddedWorkValueCalculator.DefaultDurationPreservingScale,
+            historicalBeforeValues)
         .Calculate();
 
     private static void VerifyRandomPartitionMonotonicity(int seed)

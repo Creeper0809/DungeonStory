@@ -3048,7 +3048,7 @@ MonoBehaviour:
     seedWeight: 0.4
     deliveryItemId: food:preserved-ration
     dailyBaseAmount: 20
-    dailyUnitCost: 42.87285
+    dailyUnitCost: 19.90225
     dailyGrowthDivisor: 1
   - id: stock:water
     category: 4
@@ -3058,7 +3058,7 @@ MonoBehaviour:
     seedWeight: 0.24
     deliveryItemId: resource:clean-water
     dailyBaseAmount: 18
-    dailyUnitCost: 3.7966497
+    dailyUnitCost: 1.6871642
     dailyGrowthDivisor: 1
   - id: stock:general
     category: 1
@@ -3068,7 +3068,7 @@ MonoBehaviour:
     seedWeight: 0.25
     deliveryItemId: material:lumber
     dailyBaseAmount: 14
-    dailyUnitCost: 13.664696
+    dailyUnitCost: 6.0730934
     dailyGrowthDivisor: 1
   - id: stock:medicine
     category: 5
@@ -3078,7 +3078,7 @@ MonoBehaviour:
     seedWeight: 0.08
     deliveryItemId: medicine:standard
     dailyBaseAmount: 6
-    dailyUnitCost: 76.77315
+    dailyUnitCost: 35.891167
     dailyGrowthDivisor: 2
   - id: stock:weapon
     category: 2
@@ -3098,7 +3098,7 @@ MonoBehaviour:
     seedWeight: 0.18
     deliveryItemId: ammo:arrow-iron
     dailyBaseAmount: 12
-    dailyUnitCost: 20.492096
+    dailyUnitCost: 9.107291
     dailyGrowthDivisor: 2
   - id: stock:fuel
     category: 6
@@ -3108,7 +3108,7 @@ MonoBehaviour:
     seedWeight: 0.16
     deliveryItemId: material:charcoal
     dailyBaseAmount: 12
-    dailyUnitCost: 19.522797
+    dailyUnitCost: 8.676515
     dailyGrowthDivisor: 1
   - id: stock:mana
     category: 3
@@ -3118,7 +3118,7 @@ MonoBehaviour:
     seedWeight: 0.1
     deliveryItemId: resource:mana-crystal
     dailyBaseAmount: 10
-    dailyUnitCost: 9.45135
+    dailyUnitCost: 4.2004037
     dailyGrowthDivisor: 2
   - id: stock:biological
     category: 8

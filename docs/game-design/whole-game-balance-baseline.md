@@ -1813,3 +1813,25 @@ EWU와 목표 회수 기간: 통나무 Acquisition 4.817→10.838 EWU, 처리목
 검증 매트릭스와 보고서 위치: `Artifacts/QA/v27-balance-before-after.csv`, `v27-balance-recalibration-audit.txt`, `v27-balance-ledger-contracts.txt`, focused Production/WorkAmount PlayMode, D03 실제 건설·조리·해체·회수·재건, YAML second-run zero diff, Unity Console Warning/Error 0/0
 현재 밸런스 상태: 밸런스 기준 배정 / 구현·공식·실전 검증 진행 중. 수치와 기각 대안은 확정했지만 runtime calculator 등록, exact 승인·ApplyApproved, D03 full loop PlayMode, 256-seed 경제 감사와 5일 실전 재측정을 모두 통과하기 전에는 밸런스 공식 검증·실전 보정·완료로 보고하지 않음
 ```
+
+## V27 전역 노동·시설 기간 보존 권위 배정 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:global-labor-facility-period-preserving
+콘텐츠 종류: 전 생산 레시피 350개, 작물 12종의 파종·수확 24개 작업량, 물리 BOM이 있는 시설 356개의 authored WU 전수 재배정
+정의·카탈로그·실행기 위치: ProductionRecipeSO.requiredWork, CropDefinitionSO.sowWork/harvestWork, BuildingWorkAmountAbility.constructionWorkRequired, V27BalanceWorkCalculator, V27EmbeddedWorkValueCalculator, ProductionBillRuntime, CropPlotRuntime, ConstructionSite, WorkAmountSystem
+등장 시대와 연구: 기존 각 레시피·작물·시설의 시대, 연구, 해금과 선행 조건을 그대로 유지하고 신규 콘텐츠·해금·대체 경로를 추가하지 않음
+플레이어에게 주는 새 결정: 기존 생산·재배·건설 선택은 유지하되 정상 AI의 유효 산출 기준이 20→45 WU/성인·일로 상승한 만큼 같은 달력 기간을 지불함. BOM·시설 기능·출력량은 바뀌지 않음
+물리 BOM·입력·출력: 전 대상의 입력 item ID·수량, 출력 item ID·수량·확률, 작물 수확량·종자 반환, 시설 건설 재료 종류·수량을 Before와 After에서 byte-equivalent 의미로 유지함. BOM 재분배 후보는 비교 행으로만 남기고 적용하지 않음
+직접 작업량과 계산 근거: 각 authored Before에 `Ceil(Before×45/20)`을 적용함. 350 recipe + 24 crop work + 356 building, 총 730개 작업량 행이 대상이며 런타임 파생 작업은 정확한 2.25 scale을 사용함. 기존 첫 수직 슬라이스 9개는 같은 공식으로 이미 적용됨
+EWU와 목표 회수 기간: BOM Acquisition EWU도 동일 V27 원가 사슬에서 2.25배로 이동하므로 356개 시설 authored 노동밀도 비율은 0.9999331467~1.0258584894로 정상 범위 0.80~1.25 안에 유지됨. WU×1.5+BOM 증가는 분모를 더 키워 노동밀도를 악화하므로 기각함
+공간·전력·물·연료·정비: 시설 footprint, 접근 셀, 작업자 슬롯, 전력, 상수, 하수, 연료, 정비, 저장량과 처리량은 변경하지 않음. 작물 성장시간·용수·면적과 레시피 유틸리티도 변경하지 않음
+위험·실패·회복 방식: 정확한 historical Before가 승인 원장에 없거나 현재 Authority가 Before/After 어느 쪽과도 다르면 fail-loud함. 작업 취소·시설 파괴·재료 부족·작물 실패의 기존 typed terminal과 보존성은 유지하며 과거 세이브 마이그레이션은 범위 밖임
+사회·비가역 비용: 같은 달력 기간과 기존 재료·시설 점유를 유지하므로 작업자 기회비용, 생존·의료·경비 이탈, 생산 대기열 비용을 낮추지 않음. 기존 진행 중 주문의 과거 저장값 변환은 하지 않고 신규 주문이 현재 V27 권위를 사용함
+기존 대안과의 장단점: WU×2.25+BOM 동일은 기간과 노동밀도를 함께 보존하고 diff가 최소임. WU×1.5+BOM 보강은 노동밀도를 하락시키며 새 재료 수요와 물류 병목을 만들기 때문에 전수 기본안에서 제외함. 개별 실전 ROI 이상치는 후속 도메인 보정에서 별도 승인함
+지배 전략 방지 조건: 동일 BOM에서 더 짧은 달력 생산 0, 작업량 분할로 Ceil 비용 감소 0, 철거→재건 비음수 순환 0, BOM·WU·시간을 동시에 모두 이기는 같은 시대 대안 0, 승인 없는 authored WU 변경 0. 356개 해체·재건 최대 margin은 -87,366 mEWU 이하로 엄격히 손실적임
+저장 권위와 실행 명령: ScriptableObject authored 필드가 표시·신규 작업의 권위이고 V27BalanceWorkCalculator가 공식 파생 WU 권위임. 기계 승인은 exact Before/After·dependency fingerprint·source digest를 저장하며 사용자의 별도 수동 승인을 요구하지 않음. 실행은 Generate Exact Labor and Facility Approvals→ApplyApproved→VerifyApplied 순서임
+자동 감사 ID와 전수 목록 포함 여부: V27_LABOR_AUTHORED_WU_SCALE_EXACT, V27_LABOR_BOM_UNCHANGED, V27_FACILITY_LABOR_DENSITY_NORMAL, V27_FACILITY_DISMANTLE_REBUILD_STRICT_LOSS, V27_LABOR_EXACT_APPROVAL_KEYS, V27_LABOR_ASSET_APPLIED_EXACT를 전수 목록에 포함함
+검증 매트릭스와 보고서 위치: `Artifacts/QA/v27-balance-labor-facility-authority.txt`, `v27-balance-before-after.csv`, `v27-balance-recalibration-audit.txt`, `v27-balance-economy-256-seed.txt`, YAML second-run zero diff, Production/Crop/Construction focused PlayMode, DailyRoutineWu 3 seed, Unity Console Warning/Error 0/0을 요구함
+현재 밸런스 상태: 밸런스 기준 배정 / 전수 적용·공식·실전 검증 진행 중. exact approval·SO 적용·no-op 재적용·256 seed·focused PlayMode·5일 실전 재보정이 모두 통과하기 전에는 밸런스 공식 검증·실전 보정·완료로 보고하지 않음
+```
