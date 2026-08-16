@@ -159,13 +159,13 @@ public static class V27BalanceAssetApplication
                 ?? throw new InvalidOperationException(
                     $"Approved property is missing: {patch.AssetPath}:{patch.PropertyPath}");
             string current = CaptureToken(property);
-            if (!string.Equals(current, patch.Before, StringComparison.Ordinal))
+            if (!TokenMatchesProperty(property, patch.Before))
             {
                 throw new InvalidOperationException(
                     $"Stale approved patch {patch.AssetPath}:{patch.PropertyPath}; "
                     + $"ledger Before={patch.Before}, authority={current}.");
             }
-            if (!string.Equals(current, patch.After, StringComparison.Ordinal))
+            if (!TokenMatchesProperty(property, patch.After))
                 differing++;
         }
         if (dryRun)
@@ -198,9 +198,9 @@ public static class V27BalanceAssetApplication
                             ?? throw new InvalidOperationException(
                                 $"Approved property disappeared: {group.Key}:{patch.PropertyPath}");
                         string current = CaptureToken(property);
-                        if (string.Equals(current, patch.After, StringComparison.Ordinal))
+                        if (TokenMatchesProperty(property, patch.After))
                             continue;
-                        if (!string.Equals(current, patch.Before, StringComparison.Ordinal))
+                        if (!TokenMatchesProperty(property, patch.Before))
                             throw new InvalidOperationException(
                                 $"Patch authority changed during application: {group.Key}:{patch.PropertyPath}");
                         ApplyToken(property, patch.After);
@@ -550,6 +550,33 @@ public static class V27BalanceAssetApplication
         _ => throw new InvalidOperationException(
             $"Unsupported approved SerializedProperty type {property.propertyType}: {property.propertyPath}")
     };
+
+    private static bool TokenMatchesProperty(SerializedProperty property, string token)
+    {
+        if (property.propertyType != SerializedPropertyType.Float)
+        {
+            return string.Equals(
+                CaptureToken(property),
+                token,
+                StringComparison.Ordinal);
+        }
+        if (string.Equals(property.type, "float", StringComparison.Ordinal))
+        {
+            float expected = float.Parse(
+                token,
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture);
+            float actual = (float)property.doubleValue;
+            return BitConverter.SingleToInt32Bits(actual)
+                == BitConverter.SingleToInt32Bits(expected);
+        }
+        double expectedDouble = double.Parse(
+            token,
+            NumberStyles.Float,
+            CultureInfo.InvariantCulture);
+        return BitConverter.DoubleToInt64Bits(property.doubleValue)
+            == BitConverter.DoubleToInt64Bits(expectedDouble);
+    }
 
     private static void ApplyToken(SerializedProperty property, string token)
     {

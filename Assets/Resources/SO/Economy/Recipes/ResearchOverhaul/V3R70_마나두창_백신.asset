@@ -43,7 +43,7 @@ MonoBehaviour:
     recommendedRank: 3
     minimumRiskRank: 2
   requiredResearchId: research:health:vaccination
-  requiredWork: 90
+  requiredWork: 203
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

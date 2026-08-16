@@ -43,7 +43,7 @@ MonoBehaviour:
     recommendedRank: 3
     minimumRiskRank: 0
   requiredResearchId: research:pharmacology:anesthesia
-  requiredWork: 98
+  requiredWork: 221
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

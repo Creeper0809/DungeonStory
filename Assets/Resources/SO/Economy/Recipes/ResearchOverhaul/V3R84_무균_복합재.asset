@@ -43,7 +43,7 @@ MonoBehaviour:
     recommendedRank: 2
     minimumRiskRank: 2
   requiredResearchId: research:medical:regenerative-culture
-  requiredWork: 52
+  requiredWork: 117
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

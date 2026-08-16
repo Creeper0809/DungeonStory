@@ -42,7 +42,7 @@ MonoBehaviour:
     recommendedRank: 1
     minimumRiskRank: 0
   requiredResearchId: research:husbandry:feed
-  requiredWork: 24
+  requiredWork: 54
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

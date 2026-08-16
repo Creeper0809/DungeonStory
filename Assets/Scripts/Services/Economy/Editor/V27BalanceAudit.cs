@@ -3453,9 +3453,21 @@ public static class V27BalanceAudit
             .Replace("\r\n", "\n", StringComparison.Ordinal)
             .Replace('\r', '\n')
             .Split('\n');
-        foreach (string yamlFieldName in yamlFieldNames
-                     .Distinct(StringComparer.Ordinal)
-                     .OrderBy(value => value, StringComparer.Ordinal))
+        HashSet<string> required = yamlFieldNames.ToHashSet(StringComparer.Ordinal);
+        string[] mutableBalanceFields = required
+            .Concat(new[]
+            {
+                "constructionWorkRequired",
+                "harvestWork",
+                "requiredWork",
+                "saleRate",
+                "sowWork",
+                "unitPrice"
+            })
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        foreach (string yamlFieldName in mutableBalanceFields)
         {
             string prefix = yamlFieldName + ":";
             int matched = 0;
@@ -3470,7 +3482,7 @@ public static class V27BalanceAudit
                     + " <v27-approved-target>";
                 matched++;
             }
-            if (matched != 1)
+            if (required.Contains(yamlFieldName) && matched != 1)
             {
                 throw new InvalidOperationException(
                     $"V27 approval digest requires exactly one YAML scalar '{yamlFieldName}' "

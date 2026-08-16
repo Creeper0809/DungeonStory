@@ -43,7 +43,7 @@ MonoBehaviour:
     recommendedRank: 1
     minimumRiskRank: 0
   requiredResearchId: research:defense:watch
-  requiredWork: 30
+  requiredWork: 68
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

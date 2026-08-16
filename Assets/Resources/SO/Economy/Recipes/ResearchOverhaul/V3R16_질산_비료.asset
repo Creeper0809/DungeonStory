@@ -43,7 +43,7 @@ MonoBehaviour:
     recommendedRank: 2
     minimumRiskRank: 2
   requiredResearchId: research:agriculture:compost
-  requiredWork: 60
+  requiredWork: 135
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0
