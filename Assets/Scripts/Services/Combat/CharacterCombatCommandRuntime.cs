@@ -1165,7 +1165,8 @@ public sealed class CharacterCombatCommandRuntime :
             extremeTraits.EndLastStand(actor, command.commandId, gameClock.Time);
         actor?.GetComponent<AbilityMove>()?.CancelActiveMovement();
         AbilityRescue.Ensure(actor)?.StopRescue(
-            CharacterMedicalStatusCode.Cancelled);
+            CharacterMedicalStatusCode.Cancelled,
+            $"combat-command-cancel:{reason}");
         command.state = CharacterCombatCommandState.Cancelled;
         command.status = reason ?? string.Empty;
         PublishTerminalEvent(command);

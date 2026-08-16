@@ -21,7 +21,6 @@ internal static class GridMoveBlockedResponder
         if (actor.Brain.bestAction != null)
         {
             actor.Brain.SetActionPhase("이동 막힘", actor.Brain.bestAction.destination);
-            actor.Brain.isBestActionEnd = true;
         }
     }
 }

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
@@ -16,6 +18,86 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
         this.wastewater = wastewater
             ?? throw new ArgumentNullException(nameof(wastewater));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
+    }
+
+    public bool EnsureCycleSupply(
+        BuildableObject facility,
+        WorkTypeId workTypeId,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        BuildingProcessFluidAbility ability =
+            facility?.BuildingData?.GetAbility<BuildingProcessFluidAbility>();
+        if (facility == null
+            || ability == null
+            || !ability.Supports(workTypeId)
+            || ability.cleanWaterPerCycle <= 0f)
+        {
+            return true;
+        }
+
+        if (water.CanConsume(
+                facility,
+                ability.minimumQuality,
+                ability.cleanWaterPerCycle,
+                out _))
+        {
+            return true;
+        }
+
+        if (!ability.allowsManualWaterFallback)
+        {
+            failure = new DomainFailure(FailureCode.FluidInsufficientWater);
+            return false;
+        }
+
+        string facilityId = IndustrialInfrastructureIdentity.GetNodeId(facility);
+        string destinationId =
+            $"plumbing:process-water:{facilityId}:{workTypeId.Value}";
+        int requiredContainers = Mathf.Max(
+            1,
+            Mathf.CeilToInt(ability.cleanWaterPerCycle));
+        IReadOnlyList<WorldItemStackSnapshot> physicalStacks =
+            items.GetAllStacks();
+        bool buffered = physicalStacks.Any(stack =>
+            stack != null
+            && stack.State == WorldItemStackState.FacilityBuffer
+            && string.Equals(
+                stack.DestinationId,
+                destinationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                stack.ItemId,
+                "resource:clean-water",
+                StringComparison.Ordinal)
+            && stack.AvailableQuantity >= requiredContainers);
+        if (buffered)
+        {
+            return true;
+        }
+
+        bool alreadyRequested = physicalStacks.Any(stack =>
+            stack != null
+            && string.Equals(
+                stack.DestinationId,
+                destinationId,
+                StringComparison.Ordinal)
+            && stack.Quantity > 0);
+        if (!alreadyRequested)
+        {
+            items.TryRequestFacilityDelivery(
+                StockCategory.Water,
+                requiredContainers,
+                facility.centerPos,
+                destinationId,
+                out _,
+                out _);
+        }
+
+        failure = new DomainFailure(
+            FailureCode.FluidManualWaterUnavailable,
+            destinationId);
+        return false;
     }
 
     public bool TryConsumeCycle(

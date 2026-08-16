@@ -221,11 +221,9 @@ public sealed class CharacterSocialMemory : SerializedMonoBehaviour
         float moodImpact = Mathf.Clamp(weightedSentiment * 6f, -6f, 6f);
         if (actor != null && Mathf.Abs(moodImpact) >= 0.5f)
         {
-            string sourceKey = speaker != null
-                ? SocialRumorUtility.GetActorKey(speaker)
-                : "unknown";
+            string targetKey = ResolveMoodFactorTargetKey(copy);
             actor.ApplyMoodFactor(
-                $"social:rumor:{sourceKey}:{copy.targetType}",
+                $"social:rumor:{copy.targetType}:{targetKey}",
                 moodImpact > 0f ? "반가운 소문을 들음" : "불쾌한 소문을 들음",
                 moodImpact,
                 180f,
@@ -255,6 +253,26 @@ public sealed class CharacterSocialMemory : SerializedMonoBehaviour
         }
 
         SyncDebugLists();
+    }
+
+    private static string ResolveMoodFactorTargetKey(SocialRumor rumor)
+    {
+        if (rumor == null)
+        {
+            return "unknown";
+        }
+
+        string key = rumor.targetType switch
+        {
+            SocialRumorTargetType.Facility =>
+                SocialRumorUtility.GetFacilityKeys(rumor).FirstOrDefault(),
+            SocialRumorTargetType.Character =>
+                SocialRumorUtility.GetCharacterKeys(rumor).FirstOrDefault(),
+            _ => string.Empty
+        };
+        return string.IsNullOrWhiteSpace(key)
+            ? "unknown"
+            : key.Trim();
     }
 
     public float GetFacilitySentiment(BuildableObject building)

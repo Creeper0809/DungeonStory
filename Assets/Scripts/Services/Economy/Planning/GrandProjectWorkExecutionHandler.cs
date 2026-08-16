@@ -93,6 +93,7 @@ public sealed class GrandProjectWorkExecutionHandler :
 
         using (workforceLease)
         {
+        context.RegisterCancellationResource(workforceLease);
         bool progressApplied = true;
         bool completed = false;
         yield return context.ExecutePersistentWorkAmount(

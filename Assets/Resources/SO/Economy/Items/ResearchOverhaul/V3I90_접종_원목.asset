@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 12
   features:
-  - rid: 7737211905658585910
-  - rid: 7737211905658585911
-  - rid: 7737211905660420758
+  - rid: 7737211981816660738
+  - rid: 7737211981816660739
+  - rid: 7737211981816660740
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585910
+    - rid: 7737211981816660738
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:forestry:fungal
-    - rid: 7737211905658585911
+    - rid: 7737211981816660739
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 258
         sharedIntermediate: 0
-    - rid: 7737211905660420758
+    - rid: 7737211981816660740
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6063323

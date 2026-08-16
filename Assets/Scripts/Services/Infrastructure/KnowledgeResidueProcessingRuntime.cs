@@ -15,6 +15,10 @@ public interface IKnowledgeResidueProcessingRuntime
         CharacterActor researcher,
         BuildableObject facility,
         float seconds);
+    BlueprintResearchWorkResult ApplyApprovedWork(
+        CharacterActor researcher,
+        BuildableObject facility,
+        float approvedWorkUnits);
     IReadOnlyList<KnowledgeResidueTaskSaveData> Capture();
     KnowledgeResidueRestoreCandidate PrepareRestore(
         IEnumerable<KnowledgeResidueTaskSaveData> tasks);
@@ -244,7 +248,28 @@ public sealed class KnowledgeResidueProcessingRuntime :
     public BlueprintResearchWorkResult ApplyWork(
         CharacterActor researcher,
         BuildableObject facility,
-        float seconds)
+        float seconds) =>
+        ApplyWorkInternal(
+            researcher,
+            facility,
+            seconds,
+            approvedWorkUnits: false);
+
+    public BlueprintResearchWorkResult ApplyApprovedWork(
+        CharacterActor researcher,
+        BuildableObject facility,
+        float approvedWorkUnits) =>
+        ApplyWorkInternal(
+            researcher,
+            facility,
+            approvedWorkUnits,
+            approvedWorkUnits: true);
+
+    private BlueprintResearchWorkResult ApplyWorkInternal(
+        CharacterActor researcher,
+        BuildableObject facility,
+        float amount,
+        bool approvedWorkUnits)
     {
         if (!HasProcessingWorkFor(facility))
         {
@@ -255,10 +280,14 @@ public sealed class KnowledgeResidueProcessingRuntime :
         KnowledgeResidueTaskSaveData task = state.FirstTask;
         float added = debugRules.IsEnabled(DungeonDebugCheat.InstantWork)
             ? task.requiredWork
-            : BlueprintResearchService.CalculateResearchWork(
-                researcher,
-                facility,
-                seconds);
+            : approvedWorkUnits
+                ? BlueprintResearchService.CalculateApprovedResearchWork(
+                    researcher,
+                    amount)
+                : BlueprintResearchService.CalculateResearchWork(
+                    researcher,
+                    facility,
+                    amount);
         float before = task.completedWork;
         task.completedWork = Mathf.Clamp(
             task.completedWork + Mathf.Max(0f, added),

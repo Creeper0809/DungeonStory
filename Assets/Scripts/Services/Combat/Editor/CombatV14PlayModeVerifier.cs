@@ -19,6 +19,7 @@ public static class CombatV14PlayModeVerifier
     public const string CommandCapturePath = "Artifacts/QA/combat-v14-command-bar.png";
     public const string RescueCapturePath = "Artifacts/QA/combat-v14-rescue-carry.png";
     public const string TreatmentCapturePath = "Artifacts/QA/combat-v14-treatment.png";
+    private const string PendingFlagPath = "Temp/combat-v14-playmode.flag";
 
     private static string report = "V14 PlayMode 검증을 실행하지 않았습니다.";
     private static bool completed;
@@ -30,11 +31,20 @@ public static class CombatV14PlayModeVerifier
         {
             UnityEditor.SceneManagement.EditorSceneManager.OpenScene(
                 "Assets/Scenes/GameplayScene.unity");
+            Directory.CreateDirectory("Temp");
+            File.WriteAllText(PendingFlagPath, DateTime.UtcNow.ToString("O"));
             EditorApplication.EnterPlaymode();
-            EditorApplication.delayCall += () => StartRuntimeProbe();
             return;
         }
 
+        StartRuntimeProbe();
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void BootstrapPendingRun()
+    {
+        if (!File.Exists(PendingFlagPath)) return;
+        File.Delete(PendingFlagPath);
         StartRuntimeProbe();
     }
 
@@ -504,10 +514,22 @@ public static class CombatV14PlayModeVerifier
                 bodyHealthRuntime.GetSnapshot(patient);
             try
             {
+                List<CharacterBodyPartHealthState> downedParts = originalBody.Parts
+                    .Select(ClonePart)
+                    .ToList();
+                foreach (CharacterBodyPartHealthState part in downedParts)
+                {
+                    if (part.bodyPart is CombatBodyPart.LeftLeg
+                        or CombatBodyPart.RightLeg)
+                    {
+                        part.currentHealth = 0f;
+                    }
+                }
+
                 bodyHealthRuntime.ApplySnapshot(
                     patient,
                     new CharacterBodyHealthSnapshot(
-                        originalBody.Parts.Select(ClonePart).ToList(),
+                        downedParts,
                         5f,
                         0f,
                         1f,

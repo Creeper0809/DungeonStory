@@ -228,7 +228,11 @@ public partial class OffenseWorldMapPanel
             " · ",
             resolved.Select(command =>
                 $"{command.order}:{GetChainStateLabel(command.chain.State)}"
-                + $" {command.clash.AllyStagesRemaining}단계"));
+                + $" {command.clash.AllyStagesRemaining}단계"
+                + $" {command.execution.Outcome}"
+                + (string.IsNullOrWhiteSpace(command.execution.FailureReason)
+                    ? string.Empty
+                    : $" ({command.execution.FailureReason})")));
     }
 
     private string GetCombatantName(string persistentId)

@@ -116,6 +116,7 @@ public sealed class ServiceSessionRuntime :
     private readonly CoreSessionRulesDefinition rules;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly IRestoreWorldCandidateQuery restoreWorldCandidates;
+    private readonly ICharacterWorldPersistenceIdentityQuery persistentCharacters;
     private readonly ServiceHubSubscriptionRegistry<BuildableObject>
         hubSubscriptions;
     private int projectedRestoreRevision;
@@ -129,7 +130,8 @@ public sealed class ServiceSessionRuntime :
         IServiceProcessCatalog processCatalog,
         Dependencies dependencies,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
-        IRestoreWorldCandidateQuery restoreWorldCandidates)
+        IRestoreWorldCandidateQuery restoreWorldCandidates,
+        ICharacterWorldPersistenceIdentityQuery persistentCharacters)
     {
         this.buildings = buildings
             ?? throw new ArgumentNullException(nameof(buildings));
@@ -147,6 +149,8 @@ public sealed class ServiceSessionRuntime :
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
         this.restoreWorldCandidates = restoreWorldCandidates
             ?? throw new ArgumentNullException(nameof(restoreWorldCandidates));
+        this.persistentCharacters = persistentCharacters
+            ?? throw new ArgumentNullException(nameof(persistentCharacters));
         hubSubscriptions = new ServiceHubSubscriptionRegistry<BuildableObject>(
             (hub, handler) => hub.OnBuildingDestroyed += handler,
             (hub, handler) => hub.OnBuildingDestroyed -= handler);
@@ -452,7 +456,53 @@ public sealed class ServiceSessionRuntime :
 
     public ServiceRoomsSaveData Capture()
     {
+        ReconcileCaptureReferences();
         return Aggregate.Capture();
+    }
+
+    private void ReconcileCaptureReferences()
+    {
+        HashSet<string> persistentActorIds = persistentCharacters
+            .GetPersistentActorIds()
+            .Where(id => id.IsValid)
+            .Select(id => id.Value)
+            .ToHashSet(StringComparer.Ordinal);
+        Dictionary<string, BuildableObject> hubsById = GetOperationalHubs(null)
+            .ToDictionary(GetHubId, StringComparer.Ordinal);
+
+        foreach (ServiceSessionSnapshot session in Aggregate.ActiveSessions)
+        {
+            bool validActor = session.ActorId.Length == 0
+                || persistentActorIds.Contains(session.ActorId);
+            bool validHub = hubsById.TryGetValue(
+                session.HubId,
+                out BuildableObject hub);
+            BuildingServiceHubAbility ability = validHub
+                ? hub.GetServiceHubAbility()
+                : null;
+            bool validProcess = ability != null
+                && processCatalog.TryGet(
+                    session.ProcessId,
+                    out ServiceProcessSO process)
+                && ability.SupportsProcess(session.ProcessId)
+                && process.ServiceCategory == session.Category
+                && string.Equals(
+                    process.OwnerHubTag,
+                    ability.ServiceHubTag,
+                    StringComparison.Ordinal);
+            if (validActor && validHub && validProcess)
+            {
+                continue;
+            }
+
+            Aggregate.CancelSession(
+                session.SessionId,
+                "save-reference-invalidated",
+                clock.Time);
+        }
+
+        Aggregate.RemoveHubModesExcept(
+            hubsById.Keys.ToHashSet(StringComparer.Ordinal));
     }
 
     public ServiceRoomsRestoreCandidate PrepareRestoreCandidate(
@@ -491,20 +541,41 @@ public sealed class ServiceSessionRuntime :
         }
         foreach (ServiceSessionSaveData session in saveData.sessions)
         {
-            if (!hubsById.TryGetValue(session.hubId, out BuildableObject hub)
-                || session.actorId.Length > 0 && !actorIds.Contains(session.actorId)
-                || !processCatalog.TryGet(
-                    session.processId,
-                    out ServiceProcessSO process)
-                || !hub.GetServiceHubAbility().SupportsProcess(session.processId)
-                || process.ServiceCategory != session.category
-                || !string.Equals(
+            bool hubFound = hubsById.TryGetValue(
+                session.hubId,
+                out BuildableObject hub);
+            bool actorFound = session.actorId.Length == 0
+                || actorIds.Contains(session.actorId);
+            bool processFound = processCatalog.TryGet(
+                session.processId,
+                out ServiceProcessSO process);
+            BuildingServiceHubAbility hubAbility = hubFound
+                ? hub.GetServiceHubAbility()
+                : null;
+            bool processSupported = hubAbility != null
+                && hubAbility.SupportsProcess(session.processId);
+            bool categoryMatches = processFound
+                && process.ServiceCategory == session.category;
+            bool ownerTagMatches = processFound
+                && hubAbility != null
+                && string.Equals(
                     process.OwnerHubTag,
-                    hub.GetServiceHubAbility().ServiceHubTag,
-                    StringComparison.Ordinal))
+                    hubAbility.ServiceHubTag,
+                    StringComparison.Ordinal);
+            if (!hubFound
+                || !actorFound
+                || !processFound
+                || !processSupported
+                || !categoryMatches
+                || !ownerTagMatches)
             {
                 report.AddError(
-                    $"Service session '{session.sessionId}' references a missing candidate or incompatible process.");
+                    $"Service session '{session.sessionId}' references a missing candidate or incompatible process: "
+                    + $"hub={session.hubId}; hubFound={hubFound}; "
+                    + $"actor={session.actorId}; actorFound={actorFound}; "
+                    + $"process={session.processId}; processFound={processFound}; "
+                    + $"supported={processSupported}; category={session.category}; "
+                    + $"categoryMatches={categoryMatches}; ownerTagMatches={ownerTagMatches}.");
             }
         }
         if (!report.Success)

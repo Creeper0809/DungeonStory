@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211907793485853
-    - rid: 7737211907793485854
-    - rid: 7737211907793485855
-    - rid: 7737211907793485856
-    - rid: 7737211907793485857
+    - rid: 7737211981804077285
+    - rid: 7737211981804077286
+    - rid: 7737211981804077287
+    - rid: 7737211981804077288
+    - rid: 7737211981804077289
   width: 1
   height: 1
   layer: 1
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211907793485853
+    - rid: 7737211981804077285
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: WS07
-    - rid: 7737211907793485854
+    - rid: 7737211981804077286
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,10 +87,11 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211907793485855
+    - rid: 7737211981804077287
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
         constructionWorkRequired: 19.2
         repairWorkRequired: 10
         cleanWorkRequired: 6.25
@@ -110,14 +111,14 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: component:machine-parts
           amount: 3
-    - rid: 7737211907793485856
+    - rid: 7737211981804077288
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - production-support
         - support:fractional-still
-    - rid: 7737211907793485857
+    - rid: 7737211981804077289
       type: {class: BuildingProductionSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionSupportAbility

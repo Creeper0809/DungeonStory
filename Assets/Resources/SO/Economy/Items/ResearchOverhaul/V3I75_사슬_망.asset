@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 26
   features:
-  - rid: 7737211905658585503
-  - rid: 7737211905658585504
-  - rid: 7737211905660420618
+  - rid: 7737211981816660190
+  - rid: 7737211981816660191
+  - rid: 7737211981816660192
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585503
+    - rid: 7737211981816660190
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:mail-weaving
-    - rid: 7737211905658585504
+    - rid: 7737211981816660191
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 512
         sharedIntermediate: 1
-    - rid: 7737211905660420618
+    - rid: 7737211981816660192
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.5908107

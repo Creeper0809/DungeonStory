@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211905666712563
-    - rid: 7737211905666712564
-    - rid: 7737211905666712565
-    - rid: 7737211905666712566
-    - rid: 7737211905666712567
+    - rid: 7737211981804077229
+    - rid: 7737211981804077230
+    - rid: 7737211981804077231
+    - rid: 7737211981804077232
+    - rid: 7737211981804077233
   width: 1
   height: 1
   layer: 1
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712563
+    - rid: 7737211981804077229
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: WS14
-    - rid: 7737211905666712564
+    - rid: 7737211981804077230
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,10 +87,11 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7737211905666712565
+    - rid: 7737211981804077231
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
         constructionWorkRequired: 18.8
         repairWorkRequired: 10
         cleanWorkRequired: 6.25
@@ -110,14 +111,14 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: material:lumber
           amount: 2
-    - rid: 7737211905666712566
+    - rid: 7737211981804077232
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - production-support
         - support:pickling-vat
-    - rid: 7737211905666712567
+    - rid: 7737211981804077233
       type: {class: BuildingProductionSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionSupportAbility

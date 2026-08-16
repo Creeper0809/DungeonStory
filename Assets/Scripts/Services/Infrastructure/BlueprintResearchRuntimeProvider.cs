@@ -8,6 +8,10 @@ public interface IBlueprintResearchWorkService
         CharacterActor researcher,
         BuildableObject researchFacility,
         float seconds);
+    BlueprintResearchWorkResult ApplyApprovedResearchWork(
+        CharacterActor researcher,
+        BuildableObject researchFacility,
+        float approvedWorkUnits);
 }
 
 public interface IBlueprintResearchStateService
@@ -103,6 +107,29 @@ public sealed class BlueprintResearchWorkService :
         }
 
         return runtime.ApplyResearchWork(researcher, researchFacility, seconds * Math.Max(0.05f, multiplier));
+    }
+
+    public BlueprintResearchWorkResult ApplyApprovedResearchWork(
+        CharacterActor researcher,
+        BuildableObject researchFacility,
+        float approvedWorkUnits)
+    {
+        float multiplier = metaProgressionReader.GetArcaneResearchWorkMultiplier();
+        float effectiveWorkUnits = Math.Max(0f, approvedWorkUnits)
+            * Math.Max(0.05f, multiplier);
+        if (!runtime.HasActiveResearch
+            && knowledgeProcessing.HasProcessingWorkFor(researchFacility))
+        {
+            return knowledgeProcessing.ApplyApprovedWork(
+                researcher,
+                researchFacility,
+                effectiveWorkUnits);
+        }
+
+        return runtime.ApplyApprovedResearchWork(
+            researcher,
+            researchFacility,
+            effectiveWorkUnits);
     }
 }
 

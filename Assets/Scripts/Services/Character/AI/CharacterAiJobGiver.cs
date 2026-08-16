@@ -225,13 +225,17 @@ public abstract class CharacterAiJobGiver
             return false;
         }
 
-        if (!brain.IsActionScoringPendingFor(actionMatcher))
+        Predicate<AIActionSet> selectionMatcher =
+            brain.HasPreferredActionMatching(actionMatcher)
+                ? brain.GetPreferredActionMatcher()
+                : actionMatcher;
+        if (!brain.IsActionScoringPendingFor(selectionMatcher))
         {
-            brain.InvalidateActionEvaluations(actionMatcher);
+            brain.InvalidateActionEvaluations(selectionMatcher);
         }
 
         if (!brain.TryFindBestScoredAction(
-                actionMatcher,
+                selectionMatcher,
                 in context,
                 out CharacterAiActionCandidate actionCandidate))
         {
@@ -284,6 +288,12 @@ public abstract class CharacterAiJobGiver
     public virtual bool MatchesAction(AIActionSet actionSet)
     {
         return actionSet != null && actionSet.Branch == Branch;
+    }
+
+    internal bool MatchesPreferredAction(AIBrain brain)
+    {
+        return brain != null
+            && brain.HasPreferredActionMatching(actionMatcher);
     }
 
     protected abstract float GetDomainScore(CharacterActor actor, out string reason);
@@ -938,11 +948,14 @@ public sealed class ShoppingJobGiver : CharacterAiJobGiver
 {
     public override CharacterAiBranch Branch => CharacterAiBranch.Shopping;
     public override string Name => "ShoppingJobGiver";
-    public override FacilityRole RequiredFacilityRoles => FacilityRole.Purchase;
+    public override FacilityRole RequiredFacilityRoles =>
+        CharacterVisitPolicy.CustomerInterestRoles;
 
     protected override float GetDomainScore(CharacterActor actor, out string reason)
     {
-        float visitNeed = FacilityCandidateScorer.GetNeedScore(actor, FacilityRole.Purchase);
+        float visitNeed = FacilityCandidateScorer.GetNeedScore(
+            actor,
+            CharacterVisitPolicy.GetInterestRoles(actor));
         reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
             ? $"visitNeed={visitNeed:0.###}"
             : "방문 욕구";

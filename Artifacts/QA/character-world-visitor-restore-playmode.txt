@@ -1,0 +1,14 @@
+# Character World Visitor Restore PlayMode Verification
+result=PASS
+scope=official-GameplayScene+CharacterSpawner+full-save-restore
+utc=2026-08-14T12:39:21.0791558Z
+verifierRevision=character-world-visitor-restore-v1
+phase=complete
+PASS	environment-ready;version=1
+PASS	start-party=committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Arin:-2815562:character:staff:1:02:active=True,Roma:-2815494:character:staff:1:01:active=True; diagnostics=prepared-1:name=Roma;go=-2815466;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-2815534;id=character:staff:1:02;active=False || scan:name=Roma;go=-2815466;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-2815534;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-2815466;id=character:staff:1:01;active=True || retained:name=Arin;go=-2815534;id=character:staff:1:02;active=True
+PASS	baseline-population=0
+PASS	visitor=character:world:1:000001;attempts=3974;shop=existing-authored-shop:판매카운터
+PASS	rollback-preserved-active-visitor
+PASS	commit-narrative-exact-replacement=true
+PASS	post-commit-pool-replenishment-id-reissued=True
+PASS	commit-retired=pool+world+path+reservation+carry;idempotent=true

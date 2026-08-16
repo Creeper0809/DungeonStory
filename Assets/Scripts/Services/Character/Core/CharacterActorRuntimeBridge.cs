@@ -24,7 +24,9 @@ public sealed class CharacterActorRuntimeBridge : MonoBehaviour
     public ICharacterMedicalCommand MedicalCommands { get; private set; }
     public ICharacterDeprivationRuntime DeprivationRuntime { get; private set; }
     public ICharacterSubstanceRuntime SubstanceRuntime { get; private set; }
+    public ICharacterMealOperationCancellation MealOperationCancellation { get; private set; }
     public IGameClock GameClock { get; private set; }
+    public IWorkAmountCalculator WorkAmountCalculator { get; private set; }
     public IGridPathSearchBroker PathSearchBroker => pathSearchBroker;
     public ICharacterAiWorldRegistry WorldRegistry => worldRegistry;
     public ICharacterAiWorldSignalQuery WorldSignalQuery => worldSignalQuery;
@@ -87,7 +89,9 @@ public sealed class CharacterActorRuntimeBridge : MonoBehaviour
         ICharacterMedicalCommand medicalCommands,
         ICharacterDeprivationRuntime deprivationRuntime,
         ICharacterSubstanceRuntime substanceRuntime,
-        IGameClock gameClock)
+        ICharacterMealOperationCancellation mealOperationCancellation,
+        IGameClock gameClock,
+        IWorkAmountCalculator workAmountCalculator)
     {
         this.actor = actor ?? throw new ArgumentNullException(nameof(actor));
         this.gridSystemProvider = gridSystemProvider
@@ -108,7 +112,10 @@ public sealed class CharacterActorRuntimeBridge : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(medicalCommands));
         DeprivationRuntime = deprivationRuntime;
         SubstanceRuntime = substanceRuntime;
+        MealOperationCancellation = mealOperationCancellation;
         GameClock = gameClock;
+        WorkAmountCalculator = workAmountCalculator
+            ?? throw new ArgumentNullException(nameof(workAmountCalculator));
         if (!detachedRestoreCandidate && !unpublishedComposition)
         {
             worldRegistry.RegisterCharacterLifetime(actor);
@@ -261,6 +268,14 @@ public sealed class CharacterActorRuntimeBridge : MonoBehaviour
 
         if (!registeredWithAiScheduler && aiSchedulingService != null)
         {
+            // During scene replacement/application shutdown Unity may enable a
+            // restored actor after the scene-scoped scheduler has already been
+            // detached. Registration is deferred until the new scope exposes
+            // a live scheduler instead of throwing from teardown callbacks.
+            if (!aiSchedulingService.IsSchedulerAvailable)
+            {
+                return;
+            }
             aiSchedulingService.Register(actor);
             registeredWithAiScheduler = true;
         }

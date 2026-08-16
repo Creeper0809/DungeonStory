@@ -64,6 +64,7 @@ public sealed class WorkExecutionContext
     private readonly Func<bool> canContinue;
     private readonly Action<float, float> recordApprovedWork;
     private readonly Func<bool> trySuspendAtCheckpoint;
+    private readonly Action<IDisposable> registerCancellationResource;
 
     public WorkExecutionContext(
         int runId,
@@ -81,7 +82,8 @@ public sealed class WorkExecutionContext
                 Func<float, bool>,
                 IEnumerator> executePersistentWorkAmount = null,
             Action<float, float> recordApprovedWork = null,
-            Func<bool> trySuspendAtCheckpoint = null)
+            Func<bool> trySuspendAtCheckpoint = null,
+            Action<IDisposable> registerCancellationResource = null)
     {
         if (!workTypeId.IsValid)
         {
@@ -107,6 +109,7 @@ public sealed class WorkExecutionContext
         this.executePersistentWorkAmount = executePersistentWorkAmount;
         this.recordApprovedWork = recordApprovedWork;
         this.trySuspendAtCheckpoint = trySuspendAtCheckpoint;
+        this.registerCancellationResource = registerCancellationResource;
     }
 
     public int RunId { get; }
@@ -170,6 +173,18 @@ public sealed class WorkExecutionContext
 
     public bool TrySuspendAtCheckpoint() =>
         trySuspendAtCheckpoint?.Invoke() == true;
+
+    public void RegisterCancellationResource(IDisposable resource)
+    {
+        if (resource == null)
+            throw new ArgumentNullException(nameof(resource));
+        if (registerCancellationResource == null)
+        {
+            throw new InvalidOperationException(
+                "This work execution context does not support cancellation resources.");
+        }
+        registerCancellationResource(resource);
+    }
 }
 
 public interface IWorkExecutionHandler

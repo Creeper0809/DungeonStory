@@ -1,0 +1,18 @@
+INFO	SCENARIO	mode=ResponderCasualty;revision=additional-chaos-v1-20260816
+INFO	START_PARTY	committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Roma:-8338862:character:staff:1:01:active=True,Arin:-8338930:character:staff:1:02:active=True; diagnostics=prepared-1:name=Roma;go=-8338834;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-8338902;id=character:staff:1:02;active=False || scan:name=Roma;go=-8338834;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-8338902;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-8338834;id=character:staff:1:01;active=True || retained:name=Arin;go=-8338902;id=character:staff:1:02;active=True
+PASS	CHAOS_SCOPE_READY	DungeonRuntimeSystems
+PASS	CHAOS_ACTOR_COUNT	activeHumanoids=3
+PASS	CHAOS_AUTHORITIES_READY	save=True;items=True;haulPlanning=True;deprivation=True;alert=True/True;body=True/True;medical=True
+PASS	CHAOS_SAVE_AUTHORITIES_SETTLED	environment=True;initialized=True
+PASS	RESPONDER_CASUALTY_ELIGIBLE_POOL	eligible=[character:staff:1:01,character:staff:1:02,owner]
+PASS	RESPONDER_CASUALTY_INITIAL_GUARD_OWNED	epoch=1;responders=character:staff:1:01:state=Active:paused=False:gate=True/work:guard:epoch=1:action=Replanning || character:staff:1:02:state=Active:paused=False:gate=True/work:guard:epoch=1:action=Replanning || owner:state=Active:paused=False:gate=False/:epoch=0:action=Replanning
+PASS	RESPONDER_CASUALTY_SYNCHRONOUS_LIFECYCLE_RELEASE	bodyDowned=True;lifecycle=Downed;best=Inactive;external=False;move=False
+PASS	RESPONDER_CASUALTY_MEDICAL_ORDER_EXACTLY_ONE	patient=character:staff:1:01;orders=1
+PASS	RESPONDER_CASUALTY_OLD_GUARD_GATE_RETIRED	gate=False;revision=2
+PASS	RESPONDER_CASUALTY_REPLACEMENT_GUARD_SAME_EPOCH	casualty=character:staff:1:01;replacement=character:staff:1:02;epoch=1;responders=character:staff:1:01:state=Downed:paused=False:gate=False/:epoch=0:action=Inactive || character:staff:1:02:state=Active:paused=False:gate=True/work:guard:epoch=1:action=Replanning || owner:state=Active:paused=False:gate=True/work:guard:epoch=1:action=Replanning
+PASS	RESPONDER_CASUALTY_NO_DOWNED_REACQUIRE	reacquired=False;gate=False;best=Inactive;move=False
+PASS	RESPONDER_CASUALTY_MEDICAL_RECOVERY_CONVERGED	bodyDowned=False;lifecycle=Active;orders=0
+PASS	RESPONDER_CASUALTY_FINAL_OWNERSHIP_CONVERGED	alert=Green/Green;pending=0;returning=0;assigned=0;gatesReleased=True
+PASS	RESPONDER_CASUALTY_RUNTIME_GATE_CONSERVED	invariants=0->0;path=0;reservations=0
+INFO	CONSOLE	issues=0;
+RESULT=PASS; failures=0; 

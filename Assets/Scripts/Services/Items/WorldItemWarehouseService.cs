@@ -127,6 +127,14 @@ public sealed class WorldItemWarehouseService
             requested += stored;
             remaining -= stored;
         }
+        // A requested delivery is already committed to a concrete facility
+        // destination. Mark every created slice as priority immediately so an
+        // unrelated warehouse tidy-up cannot starve surgery, plumbing, or any
+        // other live facility input indefinitely.
+        if (requested > 0)
+        {
+            PrioritizeDestination(destination);
+        }
         if (requested <= 0)
         {
             failureReason = "items.delivery.stock_unavailable";

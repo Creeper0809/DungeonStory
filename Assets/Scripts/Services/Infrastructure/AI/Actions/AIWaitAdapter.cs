@@ -18,6 +18,24 @@ public class AIWait : AIActionSet
     [SerializeField, Range(0f, 1f)] private float offDutyVisitAvailableScore = 0.1f;
 
     public override bool RequiresDestination => false;
+    public override bool IsContinuous => true;
+
+    public override bool CanContinue(
+        CharacterActor actor,
+        AIAction runningAction,
+        out string stopReason)
+    {
+        stopReason = string.Empty;
+        if (actor != null
+            && actor.TryGetAbility(out AbilityMove move)
+            && move.HasActiveMovementRoutineForDiagnostics)
+        {
+            return true;
+        }
+
+        stopReason = "The wait movement or timer is no longer active.";
+        return false;
+    }
 
     public override IReadOnlyCollection<string> GetSemanticTags(
         CharacterActor actor)
@@ -115,6 +133,19 @@ public class AIWait : AIActionSet
                 true,
                 out behaviorName,
                 out failureReason);
+        if (!ranIdleBehavior
+            && actor != null
+            && actor.TryGetAbility(out AbilityMove deferredMove)
+            && deferredMove.StartIdleWanderWithDeferredRecovery(
+                duration,
+                minDistance: 1,
+                maxDistance: 6))
+        {
+            actor.Brain?.SetActionPhase(
+                "Path search deferred",
+                detail: "wait idle movement is using bounded deferred recovery");
+            return;
+        }
         if (ranIdleBehavior)
         {
             if (survivalNeedDue)
@@ -161,7 +192,18 @@ public class AIWait : AIActionSet
 
         if (actor != null && actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = true;
+            AIBrain brain = actor.Brain;
+            AIAction failedAction = brain.bestAction;
+            brain.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.CannotStart,
+                    $"idle-behavior-failed: {failureReason}",
+                    failedAction?.destination),
+                requestImmediateReplan: false);
+            brain.EndExpectedAction(
+                failedAction,
+                CharacterAiActionTerminalKind.Failed,
+                clearFailures: false);
         }
     }
 

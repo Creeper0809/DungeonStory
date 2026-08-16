@@ -97,6 +97,7 @@ public static class CharacterAiPlanDebugScenarios
         RunScenario("LLM social rumor parser", VerifySocialRumorJsonParser, errors);
         RunScenario("Blackboard facility cooldown", VerifyBlackboardCooldown, errors);
         RunScenario("Social rumor spread and reputation", VerifySocialRumorSpreadAndReputation, errors);
+        RunScenario("Facility rumor mood is capped per target", VerifyFacilityRumorMoodTargetCap, errors);
         RunScenario("Social character relationship and source trust", VerifySocialRelationshipAndSourceTrust, errors);
         RunScenario("Social reputation affects facility utility", VerifySocialReputationAffectsFacilityScore, errors);
         RunScenario("RimWorld-style BT job giver responsibility", VerifyRimWorldStyleBtUtilityResponsibility, errors);
@@ -1931,6 +1932,83 @@ public static class CharacterAiPlanDebugScenarios
         }
     }
 
+    private static bool VerifyFacilityRumorMoodTargetCap()
+    {
+        GameObject listenerObject = CreateActorObject("RumorMoodTargetListener");
+        GameObject firstSpeakerObject = CreateActorObject("RumorMoodFirstSpeaker");
+        GameObject secondSpeakerObject = CreateActorObject("RumorMoodSecondSpeaker");
+        CharacterSO listenerData = CreateCharacterData(
+            CharacterType.NPC,
+            "Rumor Mood Listener",
+            "Slime");
+        CharacterSO firstSpeakerData = CreateCharacterData(
+            CharacterType.Customer,
+            "Rumor Mood Speaker One",
+            "Slime");
+        CharacterSO secondSpeakerData = CreateCharacterData(
+            CharacterType.Customer,
+            "Rumor Mood Speaker Two",
+            "Slime");
+        try
+        {
+            CharacterActor listener = listenerObject.GetComponent<CharacterActor>();
+            CharacterActor firstSpeaker = firstSpeakerObject.GetComponent<CharacterActor>();
+            CharacterActor secondSpeaker = secondSpeakerObject.GetComponent<CharacterActor>();
+            listener.EnsureRuntimeState();
+            firstSpeaker.EnsureRuntimeState();
+            secondSpeaker.EnsureRuntimeState();
+            listener.Initialize(listenerData);
+            firstSpeaker.Initialize(firstSpeakerData);
+            secondSpeaker.Initialize(secondSpeakerData);
+            listener.SetLifecycleState(CharacterLifecycleState.Active);
+            firstSpeaker.SetLifecycleState(CharacterLifecycleState.Active);
+            secondSpeaker.SetLifecycleState(CharacterLifecycleState.Active);
+
+            SocialRumor rumor = new SocialRumor
+            {
+                type = SocialRumorType.Warning,
+                targetType = SocialRumorTargetType.Facility,
+                targetFacilityId = 777301,
+                sentiment = -1f,
+                spreadChance = 1f,
+                trustImpact = 0f,
+                validUntil = Time.time + 600f,
+                summary = "same facility queue warning",
+                source = "TargetCapTest"
+            };
+            listener.SocialMemory.HearRumor(rumor, firstSpeaker);
+            listener.SocialMemory.HearRumor(rumor, secondSpeaker);
+            listener.SocialMemory.HearRumor(rumor, firstSpeaker);
+
+            CharacterMoodFactorSnapshot[] rumorFactors = listener.Mood.Factors
+                .Where(factor => factor.Kind == CharacterMoodFactorKind.Interaction
+                    && factor.Id.StartsWith(
+                        "social:rumor:Facility:facility:777301",
+                        System.StringComparison.Ordinal))
+                .ToArray();
+            bool valid = rumorFactors.Length == 1
+                && Mathf.Abs(rumorFactors[0].Value - -12f) <= 0.001f;
+            if (!valid)
+            {
+                Debug.LogError(
+                    "Facility rumor mood target cap detail: factors="
+                    + string.Join(",", rumorFactors.Select(factor =>
+                        $"{factor.Id}:{factor.Value:0.###}")));
+            }
+
+            return valid;
+        }
+        finally
+        {
+            Object.DestroyImmediate(listenerObject);
+            Object.DestroyImmediate(firstSpeakerObject);
+            Object.DestroyImmediate(secondSpeakerObject);
+            Object.DestroyImmediate(listenerData);
+            Object.DestroyImmediate(firstSpeakerData);
+            Object.DestroyImmediate(secondSpeakerData);
+        }
+    }
+
     private static bool VerifySocialRelationshipAndSourceTrust()
     {
         SocialReputationRuntime runtime = EnsureSocialRuntimeInstance(out GameObject runtimeObject);
@@ -2116,7 +2194,7 @@ public static class CharacterAiPlanDebugScenarios
         actorObject.AddComponent<AbilityWork>();
         CharacterAiEditorTestDependencies.Inject(actorObject);
         actorObject.GetComponent<CharacterAbilityCache>()?.RefreshAbilityCache();
-        CharacterSO data = CreateCharacterData(CharacterType.Customer, "RimWorld Utility Customer", "Slime");
+        CharacterSO data = CreateCharacterData(CharacterType.NPC, "RimWorld Utility Worker", "Slime");
         ProbeExitDungeonActionSet lowExitActionSet = ScriptableObject.CreateInstance<ProbeExitDungeonActionSet>();
         lowExitActionSet.actionName = "Probe Low Exit";
         lowExitActionSet.probeScore = 0.2f;
@@ -2173,7 +2251,10 @@ public static class CharacterAiPlanDebugScenarios
                 && dutyPriority > survivalPriority
                 && hasWorkUtility
                 && workUtility > 0f
-                && selectedWorkActionSet.ScoreRequestCount == 2
+                // The JobGiver owns candidate scoring and hands the selected
+                // action to the BT commit boundary without a second volatile
+                // score read.
+                && selectedWorkActionSet.ScoreRequestCount == 1
                 && selected != null
                 && selected.actionset == selectedWorkActionSet
                 && tree.DungeonStoryBranch == CharacterAiBranch.RoutineUtility.ToString();
@@ -2270,7 +2351,7 @@ public static class CharacterAiPlanDebugScenarios
         actorObject.AddComponent<AbilityWork>();
         CharacterAiEditorTestDependencies.Inject(actorObject);
         actorObject.GetComponent<CharacterAbilityCache>()?.RefreshAbilityCache();
-        CharacterSO data = CreateCharacterData(CharacterType.Customer, "Mood Bias Worker", "Slime");
+        CharacterSO data = CreateCharacterData(CharacterType.NPC, "Mood Bias Worker", "Slime");
         data.aiPersonality.diligence = 1.4f;
         ProbeWorkActionSet workActionSet = ScriptableObject.CreateInstance<ProbeWorkActionSet>();
         workActionSet.actionName = "Probe Mood Work";
@@ -2355,7 +2436,7 @@ public static class CharacterAiPlanDebugScenarios
         actorObject.AddComponent<AbilityWork>();
         CharacterAiEditorTestDependencies.Inject(actorObject);
         actorObject.GetComponent<CharacterAbilityCache>()?.RefreshAbilityCache();
-        CharacterSO data = CreateCharacterData(CharacterType.Customer, "Mood Interrupt Worker", "Slime");
+        CharacterSO data = CreateCharacterData(CharacterType.NPC, "Mood Interrupt Worker", "Slime");
         ProbeContinuableWorkActionSet workActionSet = ScriptableObject.CreateInstance<ProbeContinuableWorkActionSet>();
         workActionSet.actionName = "Probe Interruptible Work";
         try
@@ -2496,7 +2577,7 @@ public static class CharacterAiPlanDebugScenarios
         actorObject.AddComponent<AbilityWork>();
         CharacterAiEditorTestDependencies.Inject(actorObject);
         actorObject.GetComponent<CharacterAbilityCache>()?.RefreshAbilityCache();
-        CharacterSO data = CreateCharacterData(CharacterType.Customer, "BT Continue Worker", "Slime");
+        CharacterSO data = CreateCharacterData(CharacterType.NPC, "BT Continue Worker", "Slime");
         ProbeContinuableWorkActionSet actionSet = ScriptableObject.CreateInstance<ProbeContinuableWorkActionSet>();
         actionSet.actionName = "Probe Continuing Work";
         actionSet.highScore = 0.95f;
@@ -2570,7 +2651,7 @@ public static class CharacterAiPlanDebugScenarios
         actorObject.AddComponent<AbilityWork>();
         CharacterAiEditorTestDependencies.Inject(actorObject);
         actorObject.GetComponent<CharacterAbilityCache>()?.RefreshAbilityCache();
-        CharacterSO data = CreateCharacterData(CharacterType.Customer, "BT Stop Worker", "Slime");
+        CharacterSO data = CreateCharacterData(CharacterType.NPC, "BT Stop Worker", "Slime");
         ProbeContinuableWorkActionSet actionSet = ScriptableObject.CreateInstance<ProbeContinuableWorkActionSet>();
         actionSet.actionName = "Probe Stoppable Work";
         actionSet.highScore = 0.95f;
@@ -2648,7 +2729,7 @@ public static class CharacterAiPlanDebugScenarios
         actorObject.AddComponent<AbilityWork>();
         CharacterAiEditorTestDependencies.Inject(actorObject);
         actorObject.GetComponent<CharacterAbilityCache>()?.RefreshAbilityCache();
-        CharacterSO data = CreateCharacterData(CharacterType.Customer, "BT Trace Worker", "Slime");
+        CharacterSO data = CreateCharacterData(CharacterType.NPC, "BT Trace Worker", "Slime");
         ProbeContinuableWorkActionSet actionSet = ScriptableObject.CreateInstance<ProbeContinuableWorkActionSet>();
         actionSet.actionName = "Probe Trace Work";
         actionSet.highScore = 0.95f;
@@ -2933,7 +3014,7 @@ public static class CharacterAiPlanDebugScenarios
         actorObject.AddComponent<AbilityWork>();
         CharacterAiEditorTestDependencies.Inject(actorObject);
         actorObject.GetComponent<CharacterAbilityCache>()?.RefreshAbilityCache();
-        CharacterSO data = CreateCharacterData(CharacterType.Customer, "JobGiver Cache Customer", "Slime");
+        CharacterSO data = CreateCharacterData(CharacterType.NPC, "JobGiver Cache Worker", "Slime");
         ProbeOneShotWorkActionSet actionSet = ScriptableObject.CreateInstance<ProbeOneShotWorkActionSet>();
         actionSet.actionName = "Probe One Shot Work";
         try
@@ -3387,27 +3468,20 @@ public static class CharacterAiPlanDebugScenarios
 
     private static bool VerifyGameManagerHasNoRuntimeServiceLocator()
     {
-        GameObject managerObject = new GameObject("GameManagerRuntimeReuse");
-        try
-        {
-            int queueCountBefore = Object.FindObjectsByType<LocalLlmRequestQueue>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None).Length;
-            managerObject.AddComponent<GameManager>();
-            MethodInfo method = typeof(GameManager)
-                .GetMethod("EnsureRuntimeComponent", BindingFlags.Instance | BindingFlags.NonPublic);
-            int queueCountAfter = Object.FindObjectsByType<LocalLlmRequestQueue>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None).Length;
-
-            return method == null
-                && queueCountAfter == queueCountBefore
-                && managerObject.GetComponent<LocalLlmRequestQueue>() == null;
-        }
-        finally
-        {
-            Object.DestroyImmediate(managerObject);
-        }
+        // This is a static architecture contract. Constructing GameManager in
+        // an Editor scenario invokes Awake before its authored GameData asset
+        // and scoped dependencies exist, which correctly throws but says
+        // nothing about whether the legacy service-locator helper remains.
+        // Reflection proves the declaration was removed without mutating the
+        // active scene or running any MonoBehaviour lifecycle method.
+        MethodInfo method = typeof(GameManager).GetMethod(
+            "EnsureRuntimeComponent",
+            BindingFlags.Instance
+            | BindingFlags.Static
+            | BindingFlags.Public
+            | BindingFlags.NonPublic
+            | BindingFlags.DeclaredOnly);
+        return method == null;
     }
 
     private static bool VerifyRuntimeActorBehaviorTreeContract()

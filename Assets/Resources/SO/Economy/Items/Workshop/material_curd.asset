@@ -30,25 +30,25 @@ MonoBehaviour:
   unitWeight: 0.45
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 6
+  unitPrice: 10
   features:
-  - rid: 7737211905660420471
-  - rid: 7737211905666712543
-  - rid: 7737211905666712544
+  - rid: 7737211981804077178
+  - rid: 7737211981804077179
+  - rid: 7737211981804077838
   references:
     version: 2
     RefIds:
-    - rid: 7737211905660420471
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.6192421
-    - rid: 7737211905666712543
+    - rid: 7737211981804077178
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:livestock
-    - rid: 7737211905666712544
+    - rid: 7737211981804077179
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 4
         sharedIntermediate: 1
+    - rid: 7737211981804077838
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6192421

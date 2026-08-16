@@ -759,13 +759,19 @@ public static class IndustrialInfrastructureAssetBuilder
         Color32 accent,
         UtilityChannel channels)
     {
-        return BaseSpec(code, id, name, research, baseColor, accent,
+        Spec spec = BaseSpec(code, id, name, research, baseColor, accent,
             GridLayer.Utility, BuildingCategory.Resource,
             new BuildingUtilityConnectionAbility
             {
                 channels = channels,
                 maxThroughput = 100f
             });
+        // Utility lines own repair/plumbing worker slots. A generic
+        // BuildableObject cannot enter the production IWorkableFacility
+        // candidate/admission path even when its FacilityData advertises the
+        // work type, leaving real maintenance demand permanently invisible.
+        spec.RuntimeType = typeof(Facility);
+        return spec;
     }
 
     private static Spec Machine(

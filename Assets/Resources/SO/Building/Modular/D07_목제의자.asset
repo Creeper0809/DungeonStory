@@ -58,7 +58,7 @@ MonoBehaviour:
     - rid: 7737211921440178531
     - rid: 7737211921440178532
     - rid: 7737211921440178533
-    - rid: 7737211921440178534
+    - rid: 7737211981804077378
   width: 1
   height: 1
   layer: 1
@@ -131,7 +131,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingSeatingAbility
         capacity: 1
-    - rid: 7737211921440178534
+    - rid: 7737211981804077378
       type: {class: BuildingServiceSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceSupportAbility

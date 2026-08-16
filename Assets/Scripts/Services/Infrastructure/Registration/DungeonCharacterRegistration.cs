@@ -268,7 +268,8 @@ public static class DungeonCharacterRegistration
         builder.Register<StartPartyPreparationService>(Lifetime.Singleton)
             .As<IStartPartyPreparationService>();
         builder.RegisterEntryPoint<CharacterSkillGenerationService>(Lifetime.Singleton)
-            .As<ICharacterSkillGenerationService>();
+            .As<ICharacterSkillGenerationService>()
+            .As<ICharacterSkillGenerationDiagnostics>();
         builder.RegisterEntryPoint<CharacterSkillAutomaticTriggerRuntime>(
                 Lifetime.Singleton)
             .AsSelf();

@@ -173,7 +173,9 @@ public static class DungeonProgressionOffenseRegistration
         builder.RegisterEntryPoint<OffenseReturnArrivalRuntime>(Lifetime.Singleton)
             .As<IOffenseReturnArrivalRuntime>();
         builder.Register<DungeonOffensePreparationService>(Lifetime.Singleton)
-            .As<IOffensePreparationService>();
+            .AsSelf()
+            .As<IOffensePreparationService>()
+            .As<IDungeonRestoreTransactionParticipant>();
         builder.RegisterEntryPoint<OffenseBattleRuntime>(Lifetime.Singleton)
             .As<IOffenseBattleRuntime>();
         builder.Register<OffenseCommandResolutionAdapter>(Lifetime.Singleton)

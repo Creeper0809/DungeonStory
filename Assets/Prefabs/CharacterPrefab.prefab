@@ -217,7 +217,10 @@ MonoBehaviour:
     Prefab: {fileID: 0}
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
-    SerializationNodes: []
+    SerializationNodes:
+    - Name: DebugBeforeShoppingRoutineStart
+      Entry: 6
+      Data: 
   purchaseFeedbackIconMaxWorldSize: 0.45
 --- !u!114 &5617430808492553831
 MonoBehaviour:

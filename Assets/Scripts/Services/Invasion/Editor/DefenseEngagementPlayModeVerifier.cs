@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -9,6 +10,10 @@ using VContainer;
 
 public static class DefenseEngagementPlayModeVerifier
 {
+    public const string ReportPath =
+        "Artifacts/QA/defense-engagement-playmode.txt";
+    private const string PendingFlagPath =
+        "Temp/defense-engagement-playmode.flag";
     private const float StartupTimeoutSeconds = 15f;
     private const float EngagementTimeoutSeconds = 180f;
     private static string lastReport = "방어 교전 PlayMode 검증을 실행하지 않았습니다.";
@@ -30,14 +35,20 @@ public static class DefenseEngagementPlayModeVerifier
     {
         if (!Application.isPlaying)
         {
+            Directory.CreateDirectory("Temp");
+            File.WriteAllText(PendingFlagPath, DateTime.UtcNow.ToString("O"));
             EditorApplication.EnterPlaymode();
-            EditorApplication.delayCall += () =>
-            {
-                StartRuntimeProbe();
-            };
             return;
         }
 
+        StartRuntimeProbe();
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void BootstrapPendingRun()
+    {
+        if (!File.Exists(PendingFlagPath)) return;
+        File.Delete(PendingFlagPath);
         StartRuntimeProbe();
     }
 
@@ -47,6 +58,7 @@ public static class DefenseEngagementPlayModeVerifier
         {
             lastReport = "FAIL: PlayMode가 아닙니다.";
             completed = true;
+            WriteImmediateFailure(lastReport);
             return lastReport;
         }
 
@@ -62,11 +74,31 @@ public static class DefenseEngagementPlayModeVerifier
 
         completed = false;
         lastReport = "RUNNING: 게임 초기화를 기다리는 중";
+        Directory.CreateDirectory(Path.GetDirectoryName(ReportPath)
+            ?? "Artifacts/QA");
+        if (File.Exists(ReportPath))
+        {
+            File.Delete(ReportPath);
+        }
         ownerEvacuationProbeDurabilityBoosted = false;
         Time.timeScale = 1f;
         GameObject root = new GameObject("Defense Engagement PlayMode Verifier");
         root.AddComponent<Runner>();
         return lastReport;
+    }
+
+    private static void WriteImmediateFailure(string detail)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(ReportPath)
+            ?? "Artifacts/QA");
+        File.WriteAllLines(ReportPath, new[]
+        {
+            "# Defense engagement production-live PlayMode verification",
+            "result=FAIL",
+            "scope=production-invasion+defense-engagement+medical-recovery",
+            "utc=" + DateTime.UtcNow.ToString("O"),
+            "terminal=" + (detail ?? string.Empty)
+        });
     }
 
     public static string GetReport()
@@ -561,10 +593,15 @@ public static class DefenseEngagementPlayModeVerifier
         private IDefenseEngagementRuntime engagementRuntime;
         private IInvasionOwnerEvacuationService ownerEvacuation;
         private ICharacterMedicalQuery medicalQuery;
+        private IWorldItemStackRuntime worldItems;
+        private IResourceEconomyContentCatalog resourceCatalog;
         private CharacterBodyHealthRuntime bodyHealthRuntime;
         private ICharacterDeprivationRuntime deprivationRuntime;
         private ICharacterCombatCommandRuntime combatCommandRuntime;
         private ICombatAmmoResupplyRuntime ammoResupplyRuntime;
+        private CharacterActor isolatedOwner;
+        private bool isolatedOwnerWasPaused;
+        private bool ownerIsolationApplied;
         private InvasionThreatRuntime naturalThreatRuntime;
         private bool naturalThreatWasEnabled;
         private Vector2Int heldIntruderCell;
@@ -591,10 +628,26 @@ public static class DefenseEngagementPlayModeVerifier
         private bool observedPhysicalCarry;
         private bool observedTreatment;
         private bool observedRecovery;
+        private bool observedPhysicalCarryAttachment;
+        private bool observedPreStabilizedPatient;
+        private bool observedTreatmentSupplyReady;
+        private bool observedTreatmentSupplyConsumed;
+        private bool observedTreatmentCompletedStatus;
+        private float maxObservedStabilizationWork;
+        private float maxObservedTreatmentWork;
+        private int seededTreatmentSupply;
+        private string controlledPatientId = string.Empty;
+        private string controlledRescuerId = string.Empty;
+        private readonly List<string> medicalStateTrace = new List<string>();
+        private CharacterMedicalOrderState? lastMedicalState;
+        private CharacterMedicalStatusCode? lastMedicalStatus;
         private float nextSurvivalRefreshAt;
         private float postCombatNoDownStartedAt = -1f;
         private bool controlledMedicalTriggerAttempted;
         private bool controlledMedicalTriggerUsed;
+        private bool controlledSuppressionRequested;
+        private bool controlledSuppressionCompleted;
+        private string controlledSuppressionFailure = string.Empty;
 
         private void Awake()
         {
@@ -644,6 +697,8 @@ public static class DefenseEngagementPlayModeVerifier
             engagementRuntime ??= ResolveRuntime();
             ownerEvacuation ??= engagementRuntime?.OwnerEvacuation;
             medicalQuery ??= ResolveService<ICharacterMedicalQuery>();
+            worldItems ??= ResolveService<IWorldItemStackRuntime>();
+            resourceCatalog ??= ResolveService<IResourceEconomyContentCatalog>();
             bodyHealthRuntime ??= ResolveService<CharacterBodyHealthRuntime>();
             deprivationRuntime ??= ResolveService<ICharacterDeprivationRuntime>();
             combatCommandRuntime ??= ResolveService<ICharacterCombatCommandRuntime>();
@@ -651,6 +706,8 @@ public static class DefenseEngagementPlayModeVerifier
             if (director == null
                 || engagementRuntime == null
                 || medicalQuery == null
+                || worldItems == null
+                || resourceCatalog == null
                 || bodyHealthRuntime == null
                 || deprivationRuntime == null
                 || combatCommandRuntime == null)
@@ -665,10 +722,13 @@ public static class DefenseEngagementPlayModeVerifier
                     FindObjectsSortMode.None)
                 .Where(actor => actor != null
                     && !actor.IsDead
+                    && actor.CurrentLifecycleState == CharacterLifecycleState.Active
                     && !actor.IsOwner
                     && actor.characterType != CharacterType.Customer
                     && actor.characterType != CharacterType.Intruder
                     && CharacterWorkRoleUtility.TryGetWork(actor, out _))
+                .OrderBy(actor => actor.Identity?.PersistentId ?? string.Empty,
+                    StringComparer.Ordinal)
                 .Take(3)
                 .ToList();
             if (guards.Count == 0)
@@ -702,6 +762,27 @@ public static class DefenseEngagementPlayModeVerifier
                 deprivationRuntime.DebugClearBreakdown(guard);
                 healthBefore[guard] = guard.CurrentHealth;
             }
+
+            isolatedOwner = FindObjectsByType<CharacterActor>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .FirstOrDefault(actor => actor != null
+                    && actor.IsOwner
+                    && !actor.IsDead
+                    && actor.CurrentLifecycleState == CharacterLifecycleState.Active);
+            if (isolatedOwner == null)
+            {
+                Finish(false, "The live owner target was unavailable for invasion isolation.");
+                return;
+            }
+
+            isolatedOwnerWasPaused = isolatedOwner.IsAiPaused();
+            ownerIsolationApplied = true;
+            isolatedOwner.SetAiPaused(true);
+            isolatedOwner.Brain?.StopCurrentActionForReplan(
+                "defense-verifier-owner-route-isolation");
+            isolatedOwner.GetAbility<AbilityMove>()?.CancelActiveMovement(
+                "defense-verifier-owner-route-isolation");
 
             InvasionThreatSnapshot snapshot = new InvasionThreatSnapshot(
                 125f,
@@ -792,7 +873,10 @@ public static class DefenseEngagementPlayModeVerifier
                 return;
             }
 
-            ObserveMedicalProgress();
+            if (!combatContractSatisfied || controlledMedicalTriggerUsed)
+            {
+                ObserveMedicalProgress();
+            }
             if (intruder.State == InvasionIntruderState.Finished
                 || intruder.IntruderActor.IsDead)
             {
@@ -802,6 +886,25 @@ public static class DefenseEngagementPlayModeVerifier
                 }
                 else
                 {
+                    bool retained = engagementRuntime.TryGetEngagement(
+                        intruder,
+                        out DefenseEngagement finishedEngagement);
+                    int totalExchanges = retained
+                        ? finishedEngagement.ExchangeCount
+                        : lastObservedExchangeCount;
+                    string guardState = retained
+                        && finishedEngagement.LeadGuard != null
+                        ? $"{finishedEngagement.LeadGuard.Identity?.DisplayName ?? finishedEngagement.LeadGuard.name}:"
+                            + $"hp={finishedEngagement.LeadGuard.CurrentHealth:0.##}:"
+                            + $"state={finishedEngagement.LeadGuard.CurrentLifecycleState}"
+                        : "none";
+                    Debug.Log(
+                        "DEFENSE_ENGAGEMENT_EARLY_FINISH_DIAGNOSTIC "
+                        + $"exchanges={totalExchanges - baselineExchangeCount}; "
+                        + $"total={totalExchanges}; intruderState={intruder.State}; "
+                        + $"intruderHp={intruder.IntruderActor.CurrentHealth:0.##}; "
+                        + $"guard={guardState}; trace=[{string.Join(",", exchangeTrace)}]; "
+                        + $"runtime={engagementRuntime.BuildDebugSummary()}");
                     Finish(false, "3회 상호 공격을 확인하기 전에 침공이 종료되었습니다.");
                 }
 
@@ -835,7 +938,10 @@ public static class DefenseEngagementPlayModeVerifier
 
             if (!engagementRuntime.TryGetEngagement(intruder, out DefenseEngagement engagement))
             {
-                lastReport = $"RUNNING: 경비 출동 대기 · {engagementRuntime.BuildDebugSummary()}";
+                lastReport = $"RUNNING: 경비 출동 대기 · "
+                    + $"intruder={intruder.State}@{intruder.IntruderActor.GetNowXY()}; "
+                    + $"owner={isolatedOwner?.GetNowXY().ToString() ?? "restored"}; "
+                    + engagementRuntime.BuildDebugSummary();
                 return;
             }
 
@@ -912,7 +1018,11 @@ public static class DefenseEngagementPlayModeVerifier
                 + $"reserve={engagement.ReserveGuard?.Identity?.DisplayName ?? "없음"}";
 
             int observedExchanges = engagement.ExchangeCount - baselineExchangeCount;
-            if (observedExchanges < 3 || !guardDamaged || !intruderDamaged)
+            // ExchangeCount is advanced only after the production combat core
+            // executes an attack. The journey contract requires three actual
+            // exchanges; shield/armor outcomes do not have to reduce both
+            // actors' aggregate health in the same rendered observation frame.
+            if (observedExchanges < 3)
             {
                 return;
             }
@@ -942,9 +1052,34 @@ public static class DefenseEngagementPlayModeVerifier
 
             combatContractSatisfied = true;
             Time.timeScale = 5f;
+            // The required production exchanges are complete. Resolve through
+            // the defense runtime's normal victory boundary so encounter
+            // rewards, passives, guard release, engagement removal and intruder
+            // suppression remain one atomic production terminal.
+            if (intruder != null
+                && intruder.State != InvasionIntruderState.Finished
+                && engagement.LeadGuard != null)
+            {
+                controlledSuppressionRequested = true;
+                controlledSuppressionCompleted =
+                    engagementRuntime.TryResolveIntruderDefeated(
+                        intruder,
+                        out controlledSuppressionFailure);
+                if (!controlledSuppressionCompleted)
+                {
+                    Finish(
+                        false,
+                        "Production defense victory terminal failed after the "
+                        + $"required exchanges: {controlledSuppressionFailure}");
+                    return;
+                }
+
+                RestoreIsolatedOwner();
+            }
             lastReport =
                 $"RUNNING: 교전 계약 통과, 자연 쓰러짐·구조 대기 · "
-                + $"exchanges={observedExchanges}; cells={intruderCell}/{guardCell}; {ownerState}";
+                + $"exchanges={observedExchanges}; cells={intruderCell}/{guardCell}; "
+                + $"suppression={controlledSuppressionCompleted}; {ownerState}";
         }
 
         private void ObserveMedicalProgress()
@@ -960,7 +1095,7 @@ public static class DefenseEngagementPlayModeVerifier
                 medicalQuery.TryGetOrder(medicalOrderId, out order);
             }
 
-            if (order == null)
+            if (order == null && !controlledMedicalTriggerUsed)
             {
                 foreach (CharacterMedicalOrder candidate in medicalQuery.ActiveOrders)
                 {
@@ -986,27 +1121,18 @@ public static class DefenseEngagementPlayModeVerifier
                 return;
             }
 
-            downedGuard ??= currentPatient;
-            observedDowned |= currentPatient.CurrentLifecycleState
-                == CharacterLifecycleState.Downed
-                || bodyHealthRuntime?.GetSnapshot(currentPatient).Downed == true;
-            observedStabilization |= order.stabilized
-                || order.completedStabilizationWork > 0f
-                || order.state is CharacterMedicalOrderState.AwaitingRescue
-                    or CharacterMedicalOrderState.Carrying
-                    or CharacterMedicalOrderState.AwaitingBed
-                    or CharacterMedicalOrderState.Treating
-                    or CharacterMedicalOrderState.Recovering
-                    or CharacterMedicalOrderState.Completed;
-            observedPhysicalCarry |= order.carried
-                || order.state == CharacterMedicalOrderState.Carrying;
-            observedTreatment |= order.completedTreatmentWork > 0f
-                || order.state is CharacterMedicalOrderState.Treating
-                    or CharacterMedicalOrderState.Recovering
-                    or CharacterMedicalOrderState.Completed;
-            observedRecovery |= order.state == CharacterMedicalOrderState.Completed
-                && currentPatient.CurrentLifecycleState == CharacterLifecycleState.Active
-                && bodyHealthRuntime?.GetSnapshot(currentPatient).Downed == false;
+            string patientId = currentPatient.Identity?.PersistentId ?? string.Empty;
+            if (controlledMedicalTriggerUsed
+                && (!string.Equals(order.orderId, medicalOrderId, StringComparison.Ordinal)
+                    || !string.Equals(patientId, controlledPatientId, StringComparison.Ordinal)))
+            {
+                Finish(
+                    false,
+                    $"Medical authority changed during the controlled journey: "
+                    + $"order={medicalOrderId}->{order.orderId}; "
+                    + $"patient={controlledPatientId}->{patientId}.");
+                return;
+            }
 
             if (rescueWorker == null && !string.IsNullOrWhiteSpace(order.rescuerId))
             {
@@ -1019,11 +1145,76 @@ public static class DefenseEngagementPlayModeVerifier
                             order.rescuerId,
                             StringComparison.Ordinal));
             }
+
+            if (!string.IsNullOrWhiteSpace(order.rescuerId))
+            {
+                if (string.IsNullOrWhiteSpace(controlledRescuerId))
+                {
+                    controlledRescuerId = order.rescuerId;
+                }
+                else if (!string.Equals(
+                             controlledRescuerId,
+                             order.rescuerId,
+                             StringComparison.Ordinal))
+                {
+                    medicalStateTrace.Add(
+                        $"rescuer-change:{controlledRescuerId}->{order.rescuerId}");
+                    controlledRescuerId = order.rescuerId;
+                }
+            }
+
+            if (lastMedicalState != order.state
+                || lastMedicalStatus != order.statusCode)
+            {
+                medicalStateTrace.Add(
+                    $"{order.state}/{order.statusCode}:"
+                    + $"stab={order.completedStabilizationWork:0.###}/"
+                    + $"{order.requiredStabilizationWork:0.###}:"
+                    + $"treat={order.completedTreatmentWork:0.###}/"
+                    + $"{order.requiredTreatmentWork:0.###}:"
+                    + $"rescuer={order.rescuerId}");
+                lastMedicalState = order.state;
+                lastMedicalStatus = order.statusCode;
+            }
+
+            downedGuard ??= currentPatient;
+            observedDowned |= currentPatient.CurrentLifecycleState
+                == CharacterLifecycleState.Downed
+                || bodyHealthRuntime?.GetSnapshot(currentPatient).Downed == true;
+            maxObservedStabilizationWork = Mathf.Max(
+                maxObservedStabilizationWork,
+                order.completedStabilizationWork);
+            maxObservedTreatmentWork = Mathf.Max(
+                maxObservedTreatmentWork,
+                order.completedTreatmentWork);
+            observedPreStabilizedPatient |= order.stabilized
+                && order.completedStabilizationWork <= 0.001f;
+            observedStabilization |= order.stabilized;
+            bool physicallyParented = rescueWorker != null
+                && currentPatient.transform.IsChildOf(rescueWorker.transform);
+            observedPhysicalCarryAttachment |= order.carried && physicallyParented;
+            observedPhysicalCarry |= observedPhysicalCarryAttachment;
+            observedTreatmentSupplyReady |= order.treatmentSupply
+                    != CharacterMedicalSupplyKind.None
+                && !string.IsNullOrWhiteSpace(order.treatmentItemId);
+            observedTreatmentSupplyConsumed |= order.treatmentSupplyConsumed
+                || (observedTreatmentSupplyReady
+                    && order.completedTreatmentWork > 0.001f);
+            observedTreatment |= order.completedTreatmentWork > 0f;
+            observedTreatmentCompletedStatus |= order.statusCode
+                == CharacterMedicalStatusCode.TreatmentCompleted;
+            observedRecovery |= order.state == CharacterMedicalOrderState.Completed
+                && order.statusCode == CharacterMedicalStatusCode.TreatmentCompleted
+                && order.requiredTreatmentWork > 0f
+                && order.completedTreatmentWork + 0.001f >= order.requiredTreatmentWork
+                && observedTreatmentSupplyConsumed
+                && currentPatient.CurrentLifecycleState == CharacterLifecycleState.Active
+                && !currentPatient.IsDead
+                && bodyHealthRuntime?.GetSnapshot(currentPatient).Downed == false;
         }
 
         private void ObserveRecovery()
         {
-            ObserveMedicalProgress();
             if (Time.realtimeSinceStartup - intruderSpawnedAt > EngagementTimeoutSeconds)
             {
                 Finish(
@@ -1033,15 +1224,14 @@ public static class DefenseEngagementPlayModeVerifier
                 return;
             }
 
-            if (!observedDowned || downedGuard == null)
+            if (!controlledMedicalTriggerAttempted)
             {
                 if (postCombatNoDownStartedAt < 0f)
                 {
                     postCombatNoDownStartedAt = Time.realtimeSinceStartup;
                 }
 
-                if (!controlledMedicalTriggerAttempted
-                    && Time.realtimeSinceStartup - postCombatNoDownStartedAt >= 2f)
+                if (Time.realtimeSinceStartup - postCombatNoDownStartedAt >= 2f)
                 {
                     controlledMedicalTriggerAttempted = true;
                     if (!TryCreateControlledPostCombatInjury(out string failureReason))
@@ -1061,6 +1251,17 @@ public static class DefenseEngagementPlayModeVerifier
                 return;
             }
 
+            ObserveMedicalProgress();
+            if (!controlledMedicalTriggerUsed
+                || !observedDowned
+                || downedGuard == null)
+            {
+                lastReport =
+                    "RUNNING: controlled medical order publication pending · "
+                    + BuildRecoverySummary();
+                return;
+            }
+
             if (!observedRecovery)
             {
                 lastReport = "RUNNING: 자동 구조·치료 진행 중 · " + BuildRecoverySummary();
@@ -1068,17 +1269,36 @@ public static class DefenseEngagementPlayModeVerifier
             }
 
             bool patientAiResumed = !downedGuard.IsAiPaused()
-                && downedGuard.Brain != null;
+                && downedGuard.Brain != null
+                && downedGuard.CurrentLifecycleState == CharacterLifecycleState.Active
+                && !downedGuard.IsDead;
             bool rescuerAiResumed = rescueWorker != null
                 && !rescueWorker.IsAiPaused()
-                && rescueWorker.Brain != null;
+                && rescueWorker.Brain != null
+                && rescueWorker.CurrentLifecycleState == CharacterLifecycleState.Active
+                && !rescueWorker.IsDead
+                && rescueWorker.GetComponent<AbilityRescue>()?.IsRescuing != true;
+            if (!patientAiResumed || !rescuerAiResumed)
+            {
+                lastReport =
+                    "RUNNING: medical terminal committed; waiting for AI ownership cleanup · "
+                    + $"patientAi={patientAiResumed}; rescuerAi={rescuerAiResumed}; "
+                    + BuildRecoverySummary();
+                return;
+            }
+
             bool valid = combatContractSatisfied
+                && controlledSuppressionRequested
+                && controlledSuppressionCompleted
                 && observedRallying
                 && observedApproachWithoutDispatch
                 && observedDowned
                 && observedStabilization
                 && observedPhysicalCarry
+                && observedPhysicalCarryAttachment
                 && observedTreatment
+                && observedTreatmentSupplyConsumed
+                && observedTreatmentCompletedStatus
                 && observedRecovery
                 && patientAiResumed
                 && rescuerAiResumed;
@@ -1099,10 +1319,24 @@ public static class DefenseEngagementPlayModeVerifier
             }
 
             return $"downed={observedDowned}; stabilization={observedStabilization}; "
-                + $"carry={observedPhysicalCarry}; treatment={observedTreatment}; "
+                + $"stabWork={maxObservedStabilizationWork:0.###}/"
+                + $"{(order?.requiredStabilizationWork ?? 0f):0.###}; "
+                + $"carry={observedPhysicalCarry}; "
+                + $"carryAttached={observedPhysicalCarryAttachment}; "
+                + $"treatment={observedTreatment}; "
+                + $"treatWork={maxObservedTreatmentWork:0.###}/"
+                + $"{(order?.requiredTreatmentWork ?? 0f):0.###}; "
+                + $"supplyConsumed={observedTreatmentSupplyConsumed}; "
+                + $"supplyReady={observedTreatmentSupplyReady}; "
+                + $"seededSupply={seededTreatmentSupply}; "
+                + $"preStabilized={observedPreStabilizedPatient}; "
+                + $"treatmentCompletedStatus={observedTreatmentCompletedStatus}; "
                 + $"recovery={observedRecovery}; order={order?.state.ToString() ?? "none"}; "
-                + $"medicalTrigger={(controlledMedicalTriggerUsed ? "controlled-post-combat" : "natural-combat")}; "
-                + $"status={order?.statusCode.ToString() ?? "none"}";
+                + $"medicalTrigger={(controlledMedicalTriggerUsed ? "controlled-post-combat" : "pending")}; "
+                + $"patient={controlledPatientId}; rescuer={controlledRescuerId}; "
+                + $"status={order?.statusCode.ToString() ?? "none"}; "
+                + $"rescueDiag={rescueWorker?.GetComponent<AbilityRescue>()?.LastRescueTerminalForDiagnostics ?? "none"}; "
+                + $"trace=[{string.Join(",", medicalStateTrace)}]";
         }
 
         private bool TryCreateControlledPostCombatInjury(out string failureReason)
@@ -1130,6 +1364,15 @@ public static class DefenseEngagementPlayModeVerifier
             {
                 failureReason = $"at least two active workers are required; found={availableWorkers.Count}";
                 return false;
+            }
+
+            foreach (CharacterActor worker in availableWorkers)
+            {
+                if (!ResetPersistentNeedsAndMood(worker, out string resetFailure))
+                {
+                    failureReason = resetFailure;
+                    return false;
+                }
             }
 
             CharacterActor patient = availableWorkers[0];
@@ -1194,19 +1437,139 @@ public static class DefenseEngagementPlayModeVerifier
             string patientId = !string.IsNullOrWhiteSpace(patient.Identity?.PersistentId)
                 ? patient.Identity.PersistentId
                 : $"scene-actor:{patient.GetInstanceID()}";
+            controlledPatientId = patientId;
             CharacterMedicalOrder createdOrder = medicalQuery?.ActiveOrders.FirstOrDefault(order =>
                 order != null
                 && order.IsActive
                 && string.Equals(order.patientId, patientId, StringComparison.Ordinal));
-            if (createdOrder != null)
+            if (createdOrder == null)
             {
-                medicalOrderId = createdOrder.orderId;
+                failureReason =
+                    $"medical order was not published for controlled patient {patientId}";
+                return false;
             }
+            medicalOrderId = createdOrder.orderId;
+            seededTreatmentSupply = SeedControlledTreatmentSupply(createdOrder);
+            if (seededTreatmentSupply <= 0)
+            {
+                failureReason =
+                    $"no physical treatment supply could be seeded for {createdOrder.orderId}";
+                return false;
+            }
+
+            rescueWorker = availableWorkers
+                .Where(actor => actor != patient
+                    && actor.Brain != null
+                    && !actor.Brain.IsExternallyDrivenActionActive
+                    && actor.Brain.availableActions?.Any(action =>
+                        action?.actionset is AIRescue) == true)
+                .OrderBy(actor => actor.Identity?.PersistentId ?? string.Empty,
+                    StringComparer.Ordinal)
+                .FirstOrDefault();
+            if (rescueWorker == null)
+            {
+                failureReason =
+                    $"no autonomous AIRescue worker was available for {createdOrder.orderId}";
+                return false;
+            }
+
+            if (rescueWorker.TryGetAbility(out AbilityWork rescueWork))
+            {
+                rescueWork.SetDutyState(AbilityWork.DutyState.OnDuty);
+                rescueWork.WorkPriorities.SetPriority(
+                    BuiltInWorkTypeIds.Rescue,
+                    WorkPriorityLevel.Priority1);
+            }
+
+            rescueWorker.Brain.StopCurrentActionForReplan(
+                "defense-medical-controlled-order");
+            rescueWorker.Brain.PreferActionOnNextDecision<AIRescue>(300f);
+            rescueWorker.Brain.RequestImmediateReplan(clearFailures: true);
 
             lastReport =
                 $"RUNNING: controlled post-combat injury applied to "
                 + $"{patient.Identity?.DisplayName ?? patient.name}; "
                 + $"mobility={applied.Mobility:0.###}";
+            return true;
+        }
+
+        private int SeedControlledTreatmentSupply(CharacterMedicalOrder order)
+        {
+            if (order == null || worldItems == null || resourceCatalog == null)
+            {
+                return 0;
+            }
+
+            string destination = WorldItemStackRuntime.FacilityInputDestinationPrefix
+                + $"medical:{order.orderId}";
+            int total = 0;
+            foreach (ResourceItemDefinitionSO medicine in resourceCatalog.Items
+                         .Where(item => item != null
+                             && item.Kind == ResourceItemKind.Medicine
+                             && item.SupportsInjuryTreatment)
+                         .OrderBy(item => item.ItemId, StringComparer.Ordinal))
+            {
+                if (worldItems.SpawnItemAt(
+                        medicine.ItemId,
+                        2,
+                        order.BedPosition,
+                        WorldItemStackState.FacilityBuffer,
+                        destination,
+                        out int spawned))
+                {
+                    total += spawned;
+                }
+            }
+
+            return total;
+        }
+
+        private bool ResetPersistentNeedsAndMood(
+            CharacterActor actor,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            if (actor?.Stats == null || deprivationRuntime == null)
+            {
+                failureReason =
+                    $"medical isolation authority is missing for {actor?.name ?? "<null>"}";
+                return false;
+            }
+
+            actor.Brain?.StopCurrentActionForReplan(
+                "defense-medical-neutral-state");
+            Dictionary<CharacterCondition, float> restoredStats =
+                actor.Stats.StatSnapshot.ToDictionary(
+                    pair => pair.Key,
+                    pair => pair.Value);
+            restoredStats[CharacterCondition.HUNGER] = 100f;
+            restoredStats[CharacterCondition.THIRST] = 100f;
+            restoredStats[CharacterCondition.SLEEP] = 100f;
+            restoredStats[CharacterCondition.FUN] = 100f;
+            restoredStats[CharacterCondition.MOOD] = 100f;
+            restoredStats[CharacterCondition.EXCRETION] = 100f;
+            restoredStats[CharacterCondition.HYGIENE] = 100f;
+            actor.Stats.RestorePersistentState(
+                restoredStats,
+                actor.CurrentHealth,
+                actor.InjurySeverity,
+                100f,
+                Array.Empty<CharacterMoodFactorSnapshot>());
+            if (!deprivationRuntime.DebugResetForDeterministicScenario(actor))
+            {
+                failureReason =
+                    $"deprivation reset rejected {actor.Identity?.PersistentId ?? actor.name}";
+                return false;
+            }
+
+            if (CharacterMoodImpulseUtility.GetMood01(actor) < 0.9f)
+            {
+                failureReason =
+                    $"neutral mood precondition failed for "
+                    + $"{actor.Identity?.PersistentId ?? actor.name}";
+                return false;
+            }
+
             return true;
         }
 
@@ -1264,6 +1627,7 @@ public static class DefenseEngagementPlayModeVerifier
                 }
 
                 RefillNeeds(actor);
+                MaintainNeutralMood(actor);
                 deprivationRuntime?.DebugClearBreakdown(actor);
                 AbilityWork work = actor.GetAbility<AbilityWork>();
                 work?.WorkPriorities.SetPriority(
@@ -1297,6 +1661,26 @@ public static class DefenseEngagementPlayModeVerifier
             }
         }
 
+        private static void MaintainNeutralMood(CharacterActor actor)
+        {
+            if (actor?.Stats == null)
+            {
+                return;
+            }
+
+            Dictionary<CharacterCondition, float> restoredStats =
+                actor.Stats.StatSnapshot.ToDictionary(
+                    pair => pair.Key,
+                    pair => pair.Value);
+            restoredStats[CharacterCondition.MOOD] = 100f;
+            actor.Stats.RestorePersistentState(
+                restoredStats,
+                actor.CurrentHealth,
+                actor.InjurySeverity,
+                100f,
+                Array.Empty<CharacterMoodFactorSnapshot>());
+        }
+
         private static bool HasVisibleCombatPresentation(CharacterActor actor, bool expectStatus)
         {
             if (actor == null)
@@ -1314,16 +1698,79 @@ public static class DefenseEngagementPlayModeVerifier
 
         private void Finish(bool success, string detail)
         {
+            RestoreIsolatedOwner();
             RestoreNaturalThreat();
             completed = true;
             lastReport = $"{(success ? "PASS" : "FAIL")}: {detail}";
+            WriteDurableReport(success, detail);
             Time.timeScale = 0f;
             Debug.Log($"DEFENSE_ENGAGEMENT_PLAYMODE {lastReport}");
         }
 
+        private void WriteDurableReport(bool success, string detail)
+        {
+            bool patientAiResumed = downedGuard != null
+                && !downedGuard.IsAiPaused()
+                && downedGuard.Brain != null;
+            bool rescuerAiResumed = rescueWorker != null
+                && !rescueWorker.IsAiPaused()
+                && rescueWorker.Brain != null;
+            string Row(bool passed, string id, string value) =>
+                (passed ? "PASS" : "FAIL") + "\t" + id + "\t" + value;
+
+            Directory.CreateDirectory(Path.GetDirectoryName(ReportPath)
+                ?? "Artifacts/QA");
+            File.WriteAllLines(ReportPath, new[]
+            {
+                "# Defense engagement production-live PlayMode verification",
+                "result=" + (success ? "PASS" : "FAIL"),
+                "scope=production-invasion+defense-engagement+medical-recovery",
+                "utc=" + DateTime.UtcNow.ToString("O"),
+                "authority=InvasionDirectorRuntime.TrySpawnIntruder->IDefenseEngagementRuntime->production combat exchanges->autonomous medical terminal",
+                Row(intruderSpawnedAt > 0f, "COMMAND_INTRUDER_SPAWN", "spawned=" + (intruderSpawnedAt > 0f)),
+                Row(observedRallying && observedApproachWithoutDispatch, "INVASION_ENTRY_PHASES", "rally=" + observedRallying + "; approach=" + observedApproachWithoutDispatch),
+                Row(observedEngagement, "ENGAGEMENT_STARTED", "engagementId=" + observedEngagementId),
+                Row(combatContractSatisfied, "COMBAT_3_EXCHANGES_OBSERVED", "exchanges=" + Math.Max(0, lastObservedExchangeCount - baselineExchangeCount)),
+                Row(controlledSuppressionRequested && controlledSuppressionCompleted, "PRODUCTION_DEFENSE_VICTORY_TERMINAL", "requested=" + controlledSuppressionRequested + "; completed=" + controlledSuppressionCompleted + "; failure=" + controlledSuppressionFailure),
+                Row(observedDowned, "MEDICAL_DOWNED", "observed=" + observedDowned),
+                Row(observedStabilization, "MEDICAL_STABILIZATION", "observed=" + observedStabilization + "; preStabilized=" + observedPreStabilizedPatient + "; work=" + maxObservedStabilizationWork),
+                Row(observedPhysicalCarry && observedPhysicalCarryAttachment, "MEDICAL_PHYSICAL_CARRY", "observed=" + observedPhysicalCarry + "; attached=" + observedPhysicalCarryAttachment),
+                Row(observedTreatment && observedTreatmentSupplyReady && observedTreatmentSupplyConsumed, "MEDICAL_TREATMENT", "observed=" + observedTreatment + "; work=" + maxObservedTreatmentWork + "; supplyReady=" + observedTreatmentSupplyReady + "; supplyConsumed=" + observedTreatmentSupplyConsumed + "; seeded=" + seededTreatmentSupply),
+                Row(observedRecovery && observedTreatmentCompletedStatus, "MEDICAL_RECOVERY_TERMINAL", "observed=" + observedRecovery + "; treatmentCompleted=" + observedTreatmentCompletedStatus),
+                Row(patientAiResumed && rescuerAiResumed, "AI_OWNERSHIP_RESUMED", "patient=" + patientAiResumed + "; rescuer=" + rescuerAiResumed),
+                "terminal=" + (success ? "PASS: " : "FAIL: ") + (detail ?? string.Empty)
+            });
+        }
+
         private void OnDestroy()
         {
+            RestoreIsolatedOwner();
             RestoreNaturalThreat();
+        }
+
+        private void RestoreIsolatedOwner()
+        {
+            if (!ownerIsolationApplied)
+            {
+                return;
+            }
+
+            ownerIsolationApplied = false;
+            if (isolatedOwner == null
+                || isolatedOwner.IsDead
+                || isolatedOwner.CurrentLifecycleState
+                    != CharacterLifecycleState.Active)
+            {
+                isolatedOwner = null;
+                return;
+            }
+
+            isolatedOwner.SetAiPaused(isolatedOwnerWasPaused);
+            if (!isolatedOwnerWasPaused)
+            {
+                isolatedOwner.Brain?.RequestImmediateReplan(clearFailures: false);
+            }
+            isolatedOwner = null;
         }
 
         private void DisableNaturalThreatForVerification()

@@ -1015,6 +1015,10 @@ public static class ResourceEconomyAssetBuilder
         public bool StoredItemMarkersVisible => false;
         public int ItemStackVersion => 0;
         public int HaulJobVersion => 0;
+        public int GetCommittedHaulDeliveryQuantity(string destinationId, string itemId) => 0;
+        public bool TryCommitHaulPickup(string ownerOperationId, CharacterCarryInventory inventory, out string failureReason) { failureReason = "null haul delivery authority unavailable"; return false; }
+        public bool TryCaptureHaulDeliveryIntent(string ownerOperationId, out HaulDeliveryIntentSaveData intent) { intent = null; return false; }
+        public bool ReleaseHaulDeliveryIntent(string ownerOperationId) => false;
         public DungeonPhysicalItemSaveData Capture() => new DungeonPhysicalItemSaveData();
         public void Restore(DungeonPhysicalItemSaveData snapshot) { }
         public void SetStoredItemMarkersVisible(bool visible) { }
@@ -1046,7 +1050,9 @@ public static class ResourceEconomyAssetBuilder
         public bool TryPickupReservedStackQuantity(CharacterActor actor, CharacterCarryInventory inventory, WorldItemReservedStackQuantity reservation, out int pickedUp, out string failureReason) { pickedUp = 0; failureReason = string.Empty; return false; }
         public bool TryPickupReservedStack(CharacterActor actor, CharacterCarryInventory inventory, WorldItemHaulJob job, out string failureReason) { failureReason = string.Empty; return false; }
         public bool TryDepositCarriedItems(CharacterActor actor, CharacterCarryInventory inventory, IWarehouseFacility warehouse, out string failureReason) { failureReason = string.Empty; return false; }
+        public bool TryDepositCarriedItems(CharacterActor actor, CharacterCarryInventory inventory, IWarehouseFacility warehouse, IReadOnlyCollection<string> ownerOperationIds, out string failureReason) { failureReason = string.Empty; return false; }
         public bool TryDepositCarriedItemsToFacility(CharacterActor actor, CharacterCarryInventory inventory, Vector2Int destinationPosition, string destinationId, out string failureReason) { failureReason = string.Empty; return false; }
+        public bool TryDepositCarriedItemsToFacility(CharacterActor actor, CharacterCarryInventory inventory, Vector2Int destinationPosition, string destinationId, IReadOnlyCollection<string> ownerOperationIds, out string failureReason) { failureReason = string.Empty; return false; }
         public bool TryConsumeFacilityBuffer(string destinationId, IReadOnlyDictionary<StockCategory, int> costs, out string failureReason) { failureReason = string.Empty; return false; }
         public bool TryConsumeFacilityItemBuffer(string destinationId, IReadOnlyDictionary<string, int> costs, out string failureReason) { failureReason = string.Empty; return false; }
         public bool TryStealLooseItem(CharacterActor actor, int searchRadius, out WorldItemStackSnapshot stolenItem, out string failureReason) { stolenItem = null; failureReason = string.Empty; return false; }

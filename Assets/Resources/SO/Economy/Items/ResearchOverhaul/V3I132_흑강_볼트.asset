@@ -31,28 +31,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 44
   features:
-  - rid: 7737211905660420285
-  - rid: 7737211905660420286
-  - rid: 7737211905660420287
-  - rid: 7737211905660420886
+  - rid: 7737211981818757417
+  - rid: 7737211981818757418
+  - rid: 7737211981818757419
+  - rid: 7737211981818757420
   references:
     version: 2
     RefIds:
-    - rid: 7737211905660420285
+    - rid: 7737211981818757417
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:blacksteel-bolt
-    - rid: 7737211905660420286
+    - rid: 7737211981818757418
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:industry:dark-foundry
-    - rid: 7737211905660420287
+    - rid: 7737211981818757419
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 512
         sharedIntermediate: 0
-    - rid: 7737211905660420886
+    - rid: 7737211981818757420
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.604655

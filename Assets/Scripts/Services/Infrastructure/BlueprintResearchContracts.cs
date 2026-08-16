@@ -365,6 +365,18 @@ public struct BlueprintResearchCompletedEvent
 
 public static class BlueprintResearchService
 {
+    public static float CalculateApprovedResearchWork(
+        CharacterActor researcher,
+        float approvedWorkUnits)
+    {
+        float approved = Mathf.Max(0f, approvedWorkUnits);
+        float equivalentLegacySeconds = approved
+            / ResearchProgressRules.BaseResearchWorkPerSecond;
+        return approved + CharacterSkillRuntimeEffects.GetResearchWorkBonus(
+            researcher,
+            equivalentLegacySeconds);
+    }
+
     public static float CalculateResearchWork(CharacterActor researcher, BuildableObject researchFacility, float seconds)
     {
         float characterMultiplier = researcher != null

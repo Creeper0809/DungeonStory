@@ -11,6 +11,8 @@ public class AIShopping : AIActionSet
         CharacterAiActionTags.Shopping);
 
     public override CharacterAiActionDescriptor Descriptor => ActionDescriptor;
+    public override bool IsContinuous => true;
+    public override float MinimumDuration => 0.5f;
     public override bool CanStart(CharacterActor actor)
     {
         return CanUseVisitorAction(actor);
@@ -26,6 +28,19 @@ public class AIShopping : AIActionSet
     public override void Execute(CharacterActor actor)
     {
         actor?.GetAbility<AbilityShopping>()?.StartSopping();
+    }
+
+    public override bool CanContinue(
+        CharacterActor actor,
+        AIAction runningAction,
+        out string stopReason)
+    {
+        stopReason = string.Empty;
+        return actor != null
+            && runningAction != null
+            && runningAction.HasStarted
+            && actor.TryGetAbility(out AbilityShopping shopping)
+            && shopping.HasActiveShoppingRoutineForDiagnostics;
     }
 
     public override IReadOnlyList<BuildableObject> GetDestinationCandidates(
@@ -151,6 +166,14 @@ public class AIShopping : AIActionSet
     public override void ReleaseDestinationReservation(CharacterActor actor, BuildableObject destination)
     {
         destination?.ReleaseVisitReservation(actor);
+    }
+
+    public override void OnStop(CharacterActor actor, AIAction runningAction, string reason)
+    {
+        if (actor != null && actor.TryGetAbility(out AbilityShopping shopping))
+        {
+            shopping.StopShopping(reason);
+        }
     }
 
     private static bool CanUseVisitorAction(CharacterActor actor)

@@ -30,25 +30,25 @@ MonoBehaviour:
   unitWeight: 0.45
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 4
+  unitPrice: 9
   features:
-  - rid: 7737211905660420454
-  - rid: 7737211905666712524
-  - rid: 7737211905666712525
+  - rid: 7737211981804077166
+  - rid: 7737211981804077167
+  - rid: 7737211981804077744
   references:
     version: 2
     RefIds:
-    - rid: 7737211905660420454
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.6268554
-    - rid: 7737211905666712524
+    - rid: 7737211981804077166
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:kitchen-hygiene
-    - rid: 7737211905666712525
+    - rid: 7737211981804077167
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 1
         sharedIntermediate: 1
+    - rid: 7737211981804077744
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6268554

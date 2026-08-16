@@ -1,43 +1,57 @@
-FAIL
+PASS
 PASS RUNTIME_SCOPE: runtime scope resolved
 PASS RUNTIME_CONTAINER: runtime container built
-PASS START_COMMIT: committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; staff=2; actors=Arin:-1097254:character:staff:1:02:active=True,Roma:-1097186:character:staff:1:01:active=True; diagnostics=prepared-1:name=Roma;go=-1097158;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-1097226;id=character:staff:1:02;active=False || scan:name=Roma;go=-1097158;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-1097226;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-1097158;id=character:staff:1:01;active=True || retained:name=Arin;go=-1097226;id=character:staff:1:02;active=True
+PASS START_COMMIT: committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Roma:-695212:character:staff:1:01:active=True,Arin:-695280:character:staff:1:02:active=True; diagnostics=prepared-1:name=Roma;go=-695184;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-695252;id=character:staff:1:02;active=False || scan:name=Roma;go=-695184;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-695252;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-695184;id=character:staff:1:01;active=True || retained:name=Arin;go=-695252;id=character:staff:1:02;active=True
 PASS GAMEPLAY_RUNTIME_SCOPE: scene=GameplayScene; party=3
 PASS PARTY_SIZE: party=3
 start-environment=character:staff:1:01@(19, 0):species=Slime:temp=20:air=100:light=20:lethal=0..40 | character:staff:1:02@(20, 0):species=Slime:temp=20:air=100:light=20:lethal=0..40 | owner@(18, 0):species=Slime:temp=20:air=100:light=20:lethal=0..40
+PASS FOCUSED_SAVE_AUTHORITY_READY: environmentInitialized=True;version=1
 PASS START_RATIONS: count=24
 PASS START_WATER: count=30
 PASS START_LUMBER: count=15
 PASS START_CLOTH: count=9
 PASS NO_VINEGAR_AS_FOOD: count=0
 PASS NO_RESTRAINTS_AS_GENERAL: count=0
-PASS NO_SERVICE_FOUNDATION: meal/rest/toilet/hygiene=0/0/0/0
+PASS FOCUSED_FOUNDATION_INDEX_READY: pending=False;passes=1;processed=136;stableFrames=2;version=2->2
+PASS FOCUSED_SERVICE_FOUNDATION_SNAPSHOT: meal/rest/toilet/hygiene=3/2/0/0;indexVersion=2;pending=False
 PASS FOCUSED_SETUP: actor=owner; external=False
-PASS FOCUSED_FIELD_MEAL_PREVIOUS_ACTION_SETTLED: settled
+PASS FOCUSED_EVENT_IDENTITY: actor=owner; subscriptions=primitive=True; meal=True
 PASS FOCUSED_FIELD_MEAL_REGISTERED: AIPrimitiveFieldMeal
-PASS FOCUSED_FIELD_MEAL_AI_ELIGIBLE: canStart=True; preferred=True; need=19
-FAIL FOCUSED_FIELD_MEAL_COMPLETED: events=0->0; need=19->26.64; item=24->23; expectedCost=1; eventPhysicalCost=0; action=생존 욕구 대기(HUNGER 27.979/50, utility=0.827)
-PASS FOCUSED_FLOOR_REST_PREVIOUS_ACTION_SETTLED: settled
-PASS FOCUSED_FLOOR_REST_REGISTERED: AIPrimitiveFloorRest
-FAIL FOCUSED_FLOOR_REST_AI_ELIGIBLE: canStart=False; preferred=True; need=29
-FAIL FOCUSED_FLOOR_REST_COMPLETED: events=0->0; need=29->29; item=0->0; expectedCost=0; eventPhysicalCost=0; action=생존 욕구 대기(HUNGER 27.979/50, utility=0.827)
-PASS FOCUSED_PRIMITIVE_LATRINE_PREVIOUS_ACTION_SETTLED: settled
+PASS FOCUSED_FIELD_MEAL_PREVIOUS_ACTION_SETTLED: running=False; external=False; movement=False; stableFrames=2; action=대기
+PASS FOCUSED_FIELD_MEAL_AI_ELIGIBLE: canStart=True; preferred=True; need=19; path=ready
+PASS FOCUSED_FIELD_MEAL_TERMINAL_SETTLED: running=False; external=False; movement=False; stableFrames=2; action=야전식 섭취
+PASS FOCUSED_FIELD_MEAL_PRODUCTION_STARTED: actionStarts=0->1; externalTransitions=0->1; externalEndedNaturally=True
+PASS FOCUSED_FIELD_MEAL_COMPLETED: events=0->1; need=19->52.33; item=24->23; expectedCost=1; eventPhysicalCost=1; action=야전식 섭취
 PASS FOCUSED_PRIMITIVE_LATRINE_REGISTERED: AIPrimitiveLatrine
-FAIL FOCUSED_PRIMITIVE_LATRINE_AI_ELIGIBLE: canStart=False; preferred=True; need=24
-FAIL FOCUSED_PRIMITIVE_LATRINE_COMPLETED: events=0->0; need=24->24; item=0->0; expectedCost=0; eventPhysicalCost=0; action=생존 욕구 대기(HUNGER 27.979/50, utility=0.827)
-PASS FOCUSED_BUCKET_WASH_PREVIOUS_ACTION_SETTLED: settled
+PASS FOCUSED_PRIMITIVE_LATRINE_PREVIOUS_ACTION_SETTLED: running=False; external=False; movement=False; stableFrames=2; action=야전식 섭취
+PASS FOCUSED_PRIMITIVE_LATRINE_AI_ELIGIBLE: canStart=True; preferred=True; need=24; path=ready
+PASS FOCUSED_PRIMITIVE_LATRINE_TERMINAL_SETTLED: running=False; external=False; movement=False; stableFrames=2; action=Replanning
+PASS FOCUSED_PRIMITIVE_LATRINE_PRODUCTION_STARTED: actionStarts=1->2; externalTransitions=1->2; externalEndedNaturally=True
+PASS FOCUSED_PRIMITIVE_LATRINE_COMPLETED: events=0->1; need=24->97.05; item=0->0; expectedCost=0; eventPhysicalCost=0; action=Replanning
 PASS FOCUSED_BUCKET_WASH_REGISTERED: AIPrimitiveBucketWash
-FAIL FOCUSED_BUCKET_WASH_AI_ELIGIBLE: canStart=False; preferred=True; need=19
-FAIL FOCUSED_BUCKET_WASH_COMPLETED: events=0->0; need=19->19; item=29->29; expectedCost=1; eventPhysicalCost=0; action=생존 욕구 대기(HUNGER 27.979/50, utility=0.827)
-FAIL FOCUSED_FIELD_MEAL_AUTHORITY: primitive=0; physical=1
-primitive-counts=
+PASS FOCUSED_BUCKET_WASH_PREVIOUS_ACTION_SETTLED: running=False; external=False; movement=False; stableFrames=2; action=Replanning
+PASS FOCUSED_BUCKET_WASH_AI_ELIGIBLE: canStart=True; preferred=True; need=19; path=ready
+PASS FOCUSED_BUCKET_WASH_TERMINAL_SETTLED: running=False; external=False; movement=False; stableFrames=2; action=물로 간이 세척
+PASS FOCUSED_BUCKET_WASH_PRODUCTION_STARTED: actionStarts=2->3; externalTransitions=2->3; externalEndedNaturally=True
+PASS FOCUSED_BUCKET_WASH_COMPLETED: events=0->1; need=19->63; item=30->29; expectedCost=1; eventPhysicalCost=1; action=물로 간이 세척
+PASS FOCUSED_FLOOR_REST_PARTY_QUIESCED: stableFrames=2;party=3
+PASS FOCUSED_FLOOR_REST_BASELINE_INDEX_READY: pending=False;passes=0;processed=0;stableFrames=2;version=3->3
+PASS FOCUSED_FLOOR_REST_AUTHORED_REST_PRESENT: building:59a6676e29654b299ef672e29a5ac9e2:definition=1021:position=23,0 | building:c912dc7f293240ceb40ff5580a074c74:definition=1020:position=19,2
+PASS FOCUSED_FLOOR_REST_BASELINE_CAPTURED: sections=68;facilities=2
+PASS FOCUSED_FLOOR_REST_AUTHORED_REST_TEARDOWN: building:59a6676e29654b299ef672e29a5ac9e2@(23, 0):destroyed=True:message= | building:c912dc7f293240ceb40ff5580a074c74@(19, 2):destroyed=True:message=
+PASS FOCUSED_FLOOR_REST_TEARDOWN_INDEX_READY: pending=False;passes=1;processed=151;stableFrames=2;version=3->4
+PASS FOCUSED_FLOOR_REST_NO_REST_AFTER_TEARDOWN: teardown=True;remaining=
+PASS FOCUSED_FLOOR_REST_REGISTERED: AIPrimitiveFloorRest
+PASS FOCUSED_FLOOR_REST_PREVIOUS_ACTION_SETTLED: running=False; external=False; movement=False; stableFrames=2; action=물로 간이 세척
+PASS FOCUSED_FLOOR_REST_AI_ELIGIBLE: canStart=True; preferred=True; need=29; path=ready
+PASS FOCUSED_FLOOR_REST_TERMINAL_SETTLED: running=False; external=False; movement=False; stableFrames=2; action=바닥 취침
+PASS FOCUSED_FLOOR_REST_PRODUCTION_STARTED: actionStarts=3->4; externalTransitions=3->4; externalEndedNaturally=True
+PASS FOCUSED_FLOOR_REST_COMPLETED: events=0->1; need=29->84; item=0->0; expectedCost=0; eventPhysicalCost=0; action=바닥 취침
+PASS FOCUSED_FLOOR_REST_BASELINE_RESTORE: DungeonGameRestoreReport
+PASS FOCUSED_FLOOR_REST_RESTORED_INDEX_READY: pending=False;passes=2;processed=275;stableFrames=2;version=6->7
+PASS FOCUSED_FLOOR_REST_EXACT_FACILITY_RESTORE: before=[building:59a6676e29654b299ef672e29a5ac9e2:definition=1021:position=23,0 | building:c912dc7f293240ceb40ff5580a074c74:definition=1020:position=19,2];after=[building:59a6676e29654b299ef672e29a5ac9e2:definition=1021:position=23,0 | building:c912dc7f293240ceb40ff5580a074c74:definition=1020:position=19,2]
+PASS FOCUSED_FLOOR_REST_RESTORED_ACTOR: actor=owner;lifecycle=Active
+PASS FOCUSED_FIELD_MEAL_AUTHORITY: primitive=1; physical=1
+primitive-counts=survival:bucket-wash:1, survival:field-meal:1, survival:floor-rest:1, survival:primitive-latrine:1
 physical-field-meals=1
 physical-meals=1
-FAILURE FOCUSED_FIELD_MEAL_COMPLETED: events=0->0; need=19->26.64; item=24->23; expectedCost=1; eventPhysicalCost=0; action=생존 욕구 대기(HUNGER 27.979/50, utility=0.827)
-FAILURE FOCUSED_FLOOR_REST_AI_ELIGIBLE: canStart=False; preferred=True; need=29
-FAILURE FOCUSED_FLOOR_REST_COMPLETED: events=0->0; need=29->29; item=0->0; expectedCost=0; eventPhysicalCost=0; action=생존 욕구 대기(HUNGER 27.979/50, utility=0.827)
-FAILURE FOCUSED_PRIMITIVE_LATRINE_AI_ELIGIBLE: canStart=False; preferred=True; need=24
-FAILURE FOCUSED_PRIMITIVE_LATRINE_COMPLETED: events=0->0; need=24->24; item=0->0; expectedCost=0; eventPhysicalCost=0; action=생존 욕구 대기(HUNGER 27.979/50, utility=0.827)
-FAILURE FOCUSED_BUCKET_WASH_AI_ELIGIBLE: canStart=False; preferred=True; need=19
-FAILURE FOCUSED_BUCKET_WASH_COMPLETED: events=0->0; need=19->19; item=29->29; expectedCost=1; eventPhysicalCost=0; action=생존 욕구 대기(HUNGER 27.979/50, utility=0.827)
-FAILURE FOCUSED_FIELD_MEAL_AUTHORITY: primitive=0; physical=1

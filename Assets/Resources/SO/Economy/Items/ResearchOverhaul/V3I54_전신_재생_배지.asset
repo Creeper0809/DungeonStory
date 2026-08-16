@@ -32,28 +32,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 343
   features:
-  - rid: 7737211905658585479
-  - rid: 7737211905658585480
-  - rid: 7737211905658585481
-  - rid: 7737211905660420612
+  - rid: 7737211981816660161
+  - rid: 7737211981816660162
+  - rid: 7737211981816660163
+  - rid: 7737211981816660164
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585479
+    - rid: 7737211981816660161
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:whole-body-regeneration
-    - rid: 7737211905658585480
+    - rid: 7737211981816660162
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737211905658585481
+    - rid: 7737211981816660163
       type: {class: MedicalProcedureSupplyItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         procedureId: procedure:whole-body-regeneration
-    - rid: 7737211905660420612
+    - rid: 7737211981816660164
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.59914064

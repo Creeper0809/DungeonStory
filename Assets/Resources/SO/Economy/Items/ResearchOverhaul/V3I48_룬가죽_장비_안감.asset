@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 48
   features:
-  - rid: 7737211905658585662
-  - rid: 7737211905658585663
-  - rid: 7737211905660420697
+  - rid: 7737211981816660410
+  - rid: 7737211981816660411
+  - rid: 7737211981816660412
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585662
+    - rid: 7737211981816660410
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:textile:rune-leather
-    - rid: 7737211905658585663
+    - rid: 7737211981816660411
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1152
         sharedIntermediate: 0
-    - rid: 7737211905660420697
+    - rid: 7737211981816660412
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.60460085

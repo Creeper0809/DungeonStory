@@ -70,7 +70,8 @@ public sealed class AIRescue : AIActionSet
     public override void OnStop(CharacterActor actor, AIAction runningAction, string reason)
     {
         actor?.GetComponent<AbilityRescue>()?.StopRescue(
-            CharacterMedicalStatusCode.RescueInterrupted);
+            CharacterMedicalStatusCode.RescueInterrupted,
+            $"ai-action-on-stop:{reason}");
     }
 
     private static bool TryGetEnabledPriority(

@@ -11,6 +11,7 @@ public sealed class CaptivityRuntime :
     ICaptivityPersistence,
     ICaptivityRestoreCandidateSource,
     ICaptiveLaborQuery,
+    ICaptivityWorkReadinessQuery,
     ICaptivityCommandService,
     ICaptivityEscortRuntime,
     ICaptivityEscapeRuntime,
@@ -168,8 +169,11 @@ public sealed class CaptivityRuntime :
     public void RollbackPublishedRestoreCandidate() =>
         restoreCoordinator.RollbackPublishedRestoreCandidate();
 
-    public void CompleteRestoreCandidate() =>
+    public void CompleteRestoreCandidate()
+    {
         restoreCoordinator.CompleteRestoreCandidate();
+        escapeRuntime.ClearPendingInvasionEscapes();
+    }
 
     public void DiscardRestoreCandidate() =>
         restoreCoordinator.DiscardRestoreCandidate();
@@ -219,6 +223,7 @@ public sealed class CaptivityRuntime :
         recoveredSubscription = null;
         deathSubscription = null;
         invasionSubscription = null;
+        escapeRuntime.ClearPendingInvasionEscapes();
     }
 
     public void Tick()
@@ -235,6 +240,8 @@ public sealed class CaptivityRuntime :
         {
             return;
         }
+
+        escapeRuntime.TickPendingInvasionEscapes();
 
         for (int index = 0; index < captives.Count; index++)
         {
@@ -482,6 +489,9 @@ public sealed class CaptivityRuntime :
         captive = state?.Clone();
         return captive != null;
     }
+
+    public bool IsInteractionReady(string captiveId, out string reason) =>
+        interactionRuntime.IsReady(captiveId, out reason);
 
     public bool TryGetActor(string captiveId, out CharacterActor actor)
     {

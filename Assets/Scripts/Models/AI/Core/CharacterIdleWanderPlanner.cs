@@ -3,6 +3,14 @@ using System.Collections.Generic;
 using DungeonStory.Foundation;
 using UnityEngine;
 
+public enum CharacterIdleWanderFailure
+{
+    None,
+    NoGrid,
+    NoPath,
+    Deferred
+}
+
 public sealed class CharacterIdleWanderPlanner
 {
     private readonly IGridPathSearchBroker pathSearchBroker;
@@ -25,15 +33,37 @@ public sealed class CharacterIdleWanderPlanner
         int maxDistance,
         out Queue<GridMoveStep> path)
     {
+        return TryFind(
+            grid,
+            worldPosition,
+            traversalContext,
+            minDistance,
+            maxDistance,
+            out path,
+            out _);
+    }
+
+    public bool TryFind(
+        Grid grid,
+        Vector3 worldPosition,
+        GridTraversalContext traversalContext,
+        int minDistance,
+        int maxDistance,
+        out Queue<GridMoveStep> path,
+        out CharacterIdleWanderFailure failure)
+    {
         path = null;
+        failure = CharacterIdleWanderFailure.None;
         if (grid == null)
         {
+            failure = CharacterIdleWanderFailure.NoGrid;
             return false;
         }
 
         Vector2Int origin = grid.GetXY(worldPosition);
         if (!grid.IsValidGridPos(origin) || !grid.IsWalkable(origin))
         {
+            failure = CharacterIdleWanderFailure.NoPath;
             return false;
         }
 
@@ -61,6 +91,7 @@ public sealed class CharacterIdleWanderPlanner
                 traversalContext);
             if (candidate == null)
             {
+                failure = CharacterIdleWanderFailure.Deferred;
                 return false;
             }
             if (GridMovePathRules.IsSupportedIdleWanderPath(candidate))
@@ -85,6 +116,9 @@ public sealed class CharacterIdleWanderPlanner
             traversalContext);
         if (!GridMovePathRules.IsSupportedIdleWanderPath(fallback))
         {
+            failure = fallback == null
+                ? CharacterIdleWanderFailure.Deferred
+                : CharacterIdleWanderFailure.NoPath;
             return false;
         }
 

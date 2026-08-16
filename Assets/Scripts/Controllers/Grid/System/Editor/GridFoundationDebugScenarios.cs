@@ -882,6 +882,12 @@ public static class GridFoundationDebugScenarios
                 false,
                 "Grid foundation fixture has no blueprint research runtime.");
         }
+
+        public BlueprintResearchWorkResult ApplyApprovedResearchWork(
+            CharacterActor researcher,
+            BuildableObject researchFacility,
+            float approvedWorkUnits) =>
+            ApplyResearchWork(researcher, researchFacility, approvedWorkUnits);
     }
 
     private sealed class NoopWorldInfoClickSelector : IWorldInfoClickSelector

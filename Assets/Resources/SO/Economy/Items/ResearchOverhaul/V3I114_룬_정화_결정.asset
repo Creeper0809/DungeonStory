@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 87
   features:
-  - rid: 7737211905658585824
-  - rid: 7737211905658585825
-  - rid: 7737211905660420729
+  - rid: 7737211981816660615
+  - rid: 7737211981816660616
+  - rid: 7737211981816660617
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585824
+    - rid: 7737211981816660615
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:plumbing:rune-purification
-    - rid: 7737211905658585825
+    - rid: 7737211981816660616
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737211905660420729
+    - rid: 7737211981816660617
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.60255533

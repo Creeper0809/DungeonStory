@@ -58,6 +58,10 @@ public class CharacterActor : SerializedMonoBehaviour,
     private bool runtimeStateInitialized;
     private bool runtimeStateInitializing;
     private bool explicitInitializationCompleted;
+    private bool transientAiOwnershipReleased;
+    private int transientAiOwnershipReleaseAttemptCount;
+    private int repeatedWorkOwnershipCleanupCount;
+    private string lastTransientAiOwnershipReleaseReason = string.Empty;
 
     public CharacterDecisionState State { get; private set; }
     public CharacterDecisionState state
@@ -73,7 +77,11 @@ public class CharacterActor : SerializedMonoBehaviour,
     public string BuildingDisplayName => this != null ? name : string.Empty;
     public InvasionThreatSubjectSnapshot CaptureInvasionThreatSubject() =>
         new(BuildingCharacterId, BuildingDisplayName);
-    public bool IsBuildingInteractionAvailable => this != null;
+    public bool IsBuildingInteractionAvailable =>
+        this != null
+        && isActiveAndEnabled
+        && CurrentLifecycleState == CharacterLifecycleState.Active
+        && !IsDead;
     public IBuildingVisitorPort BuildingVisitor
     {
         get
@@ -105,11 +113,22 @@ public class CharacterActor : SerializedMonoBehaviour,
         == CharacterLifecycleState.OnExpedition;
     public CharacterLifecycleState CurrentLifecycleState => lifecycle != null
         ? lifecycle.CurrentState : CharacterLifecycleState.None;
+    public bool TransientAiOwnershipReleasedForDiagnostics =>
+        transientAiOwnershipReleased;
+    public int TransientAiOwnershipReleaseAttemptCountForDiagnostics =>
+        transientAiOwnershipReleaseAttemptCount;
+    public int RepeatedWorkOwnershipCleanupCountForDiagnostics =>
+        repeatedWorkOwnershipCleanupCount;
+    public string LastTransientAiOwnershipReleaseReasonForDiagnostics =>
+        lastTransientAiOwnershipReleaseReason;
     public bool CanRunAi => identity != null
         && identity.Data != null
         && lifecycle != null
         && lifecycle.CurrentState == CharacterLifecycleState.Active
-        && !lifecycle.IsAiPaused;
+        && !lifecycle.IsAiPaused
+        && gameObject.activeInHierarchy
+        && !IsDetachedRestoreCandidate
+        && !IsUnpublishedComposition;
     public bool IsAiDecisionPending => CanRunAi && brain != null && brain.isBestActionEnd;
     public bool IsUnpublishedComposition =>
         lifecycleCoordinator.IsUnpublishedComposition;
@@ -149,6 +168,8 @@ public class CharacterActor : SerializedMonoBehaviour,
     internal ICharacterSubstanceRuntime SubstanceRuntime =>
         runtimeBridge?.SubstanceRuntime;
     internal IGameClock GameClock => runtimeBridge?.GameClock;
+    internal IWorkAmountCalculator WorkAmountCalculator =>
+        runtimeBridge?.WorkAmountCalculator;
     internal CharacterAiNaturalnessSettingsSO NaturalnessSettings { get; private set; }
     public event Action<CharacterActor, string> OnDied;
 
@@ -174,7 +195,9 @@ public class CharacterActor : SerializedMonoBehaviour,
         ICharacterMedicalCommand medicalCommands,
         ICharacterDeprivationRuntime deprivationRuntime,
         ICharacterSubstanceRuntime substanceRuntime,
+        ICharacterMealOperationCancellation mealOperationCancellation,
         IGameClock gameClock,
+        IWorkAmountCalculator workAmountCalculator,
         ITmpKoreanFontService tmpKoreanFontService,
         ICharacterPresentationScheduler presentationScheduler,
         ICharacterRuntimeProfileFactory runtimeProfileFactory,
@@ -216,7 +239,9 @@ public class CharacterActor : SerializedMonoBehaviour,
             medicalCommands,
             deprivationRuntime,
             substanceRuntime,
-            gameClock);
+            mealOperationCancellation,
+            gameClock,
+            workAmountCalculator);
         presentationBridge.Configure(
             this,
             worldInfoClickSelector,
@@ -237,6 +262,7 @@ public class CharacterActor : SerializedMonoBehaviour,
         }
         EnsureSocialMemory();
         abilityBridge.EnsureInjectedAbilities(this, wildlifeRuntime);
+        transientAiOwnershipReleased = false;
         runtimeBridge.OnActorEnabled();
     }
 
@@ -362,6 +388,10 @@ public class CharacterActor : SerializedMonoBehaviour,
 
     private void OnEnable()
     {
+        if (CurrentLifecycleState == CharacterLifecycleState.Active)
+        {
+            transientAiOwnershipReleased = false;
+        }
         lifecycleCoordinator.OnEnabled(
             runtimeBridge,
             presentationBridge,
@@ -370,6 +400,7 @@ public class CharacterActor : SerializedMonoBehaviour,
 
     private void OnDisable()
     {
+        ReleaseTransientAiOwnership("character-game-object-disabled");
         lifecycleCoordinator.OnDisabled(
             this,
             visual,
@@ -379,8 +410,85 @@ public class CharacterActor : SerializedMonoBehaviour,
 
     private void OnDestroy()
     {
+        ReleaseTransientAiOwnership("character-game-object-destroyed");
         lifecycleCoordinator.OnDestroyed(this, runtimeBridge, presentationBridge);
     }
+
+    internal void PrepareForScopeTeardown()
+    {
+        // A managed-domain reload rebuilds the scene scope while preserving
+        // active Unity objects. Do not SetActive(false): that serialized state
+        // would strand the old actor and make the next scope create a duplicate
+        // persistent character. Release only scope-owned runtime edges while
+        // their services are still alive; the new scope will inject and
+        // register this same active object again.
+        ReleaseTransientAiOwnership("character-runtime-scope-disposed");
+        lifecycleCoordinator.OnDisabled(
+            this,
+            visual,
+            runtimeBridge,
+            presentationBridge);
+    }
+
+    public void ReleaseTransientAiOwnership(string reason)
+    {
+        string normalizedReason = string.IsNullOrWhiteSpace(reason)
+            ? "character-lifecycle-ended"
+            : reason.Trim();
+        transientAiOwnershipReleaseAttemptCount = checked(
+            transientAiOwnershipReleaseAttemptCount + 1);
+        lastTransientAiOwnershipReleaseReason = normalizedReason;
+
+        if (transientAiOwnershipReleased)
+        {
+            // The lifecycle boundary is idempotent, but an already scheduled
+            // AIWork commit can race the first cleanup and reacquire a facility
+            // reservation before the next frame. Re-run the work-owned cleanup
+            // on repeated lifecycle notifications so that stale coroutine
+            // commits cannot survive Downed/Despawned/disable transitions.
+            AbilityWork repeatedWork = GetComponent<AbilityWork>();
+            if (repeatedWork != null
+                && (repeatedWork.isWorking
+                    || repeatedWork.HasActiveWorkRoutineForDiagnostics))
+            {
+                repeatedWorkOwnershipCleanupCount = checked(
+                    repeatedWorkOwnershipCleanupCount + 1);
+                repeatedWork.StopAssignedWorkFromAi(normalizedReason);
+            }
+            return;
+        }
+        transientAiOwnershipReleased = true;
+
+        Brain?.StopAllAiForLifecycleTransition(normalizedReason);
+        GetComponent<AbilityCaptiveEscape>()?.StopForLifecycleTransition(
+            normalizedReason);
+        GetComponent<AbilityWildlifeCaptureTransport>()
+            ?.StopForLifecycleTransition(normalizedReason);
+        GetComponent<AbilityMove>()?.CancelActiveMovement();
+        GetComponent<AbilityWork>()?.StopAssignedWorkFromAi(normalizedReason);
+        GetComponent<AbilityShopping>()?.StopShopping(normalizedReason);
+        GetComponent<AbilityHaul>()?.StopHauling(normalizedReason);
+        GetComponent<AbilityRescue>()?.StopRescue(
+            CharacterMedicalStatusCode.RescueInterrupted,
+            $"lifecycle-release:{normalizedReason}");
+        GetComponent<AbilityHunt>()?.StopHunting(normalizedReason);
+        GetComponent<AbilityUseSubstance>()?.StopUse(normalizedReason);
+        runtimeBridge?.MealOperationCancellation?.CancelActiveMealOperations(
+            this,
+            normalizedReason);
+
+        IBuildingVisitorPort visitor = BuildingVisitor;
+        if (visitor == null)
+        {
+            return;
+        }
+        WorldRegistry?.ReleaseTransientBuildingOwnership(
+            visitor,
+            normalizedReason);
+    }
+
+    internal void PrepareTransientAiOwnershipForActiveLifecycle() =>
+        transientAiOwnershipReleased = false;
 
     private void OrganizeRuntimeHierarchy()
     {

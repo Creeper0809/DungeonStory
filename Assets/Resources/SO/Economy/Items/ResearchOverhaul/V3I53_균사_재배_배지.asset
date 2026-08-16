@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 11
   features:
-  - rid: 7737211905658585914
-  - rid: 7737211905658585915
-  - rid: 7737211905660420760
+  - rid: 7737211981816660741
+  - rid: 7737211981816660742
+  - rid: 7737211981816660743
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585914
+    - rid: 7737211981816660741
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:agriculture:subterranean
-    - rid: 7737211905658585915
+    - rid: 7737211981816660742
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 3
         sharedIntermediate: 0
-    - rid: 7737211905660420760
+    - rid: 7737211981816660743
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6153878

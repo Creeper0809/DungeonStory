@@ -57,6 +57,8 @@ public class BuildableObject : MonoBehaviour,
     private bool registeredWithWorldRegistry;
     private bool detachedRestoreCandidate;
     private bool synchronizedWithPaidContracts;
+    private bool runtimeTeardownCompleted;
+    private bool destructionEventPublished;
 
     public int GridId => id;
     public bool IsGridDestroyed => isDestroy;
@@ -80,7 +82,10 @@ public class BuildableObject : MonoBehaviour,
         }
     }
     public bool AllowsInteriorWalkability =>
-        !isDestroy && Facility?.IsVisitorFacility == true;
+        !isDestroy
+        && (this is Door
+            || BuildingData?.IsDoor == true
+            || Facility?.IsVisitorFacility == true);
     public Grid Grid => grid;
     public FacilityData Facility => BuildingData != null ? BuildingData.Facility : null;
     public bool IsDamaged => isDamaged;
@@ -119,6 +124,8 @@ public class BuildableObject : MonoBehaviour,
 
     public int ActiveVisitReservationCount =>
         Occupancy.ActiveVisitReservationCount;
+    public IReadOnlyList<CharacterId> CaptureVisitReservationIdsForDiagnostics() =>
+        Occupancy.CaptureVisitReservationIdsForDiagnostics();
     public IBuildingCharacterPort WorkerReservation =>
         this is IParallelWorkerReservationFacility parallel
             ? parallel.PrimaryWorkerReservation
@@ -156,9 +163,8 @@ public class BuildableObject : MonoBehaviour,
 
     protected virtual void OnDestroy()
     {
-        RemovePaidFacilityContractIfNeeded();
-        UnregisterFromWorldRegistry();
-        DetachFromGridIfStillRegistered();
+        isDestroy = true;
+        TeardownRuntimeState(markDynamicStateDirty: false);
     }
 
     public void PrepareForDetachedRestore()
@@ -389,6 +395,89 @@ public class BuildableObject : MonoBehaviour,
         return buildPoses != null && buildPoses.Contains(gridPosition);
     }
 
+    public bool TryGetNearestWorkAccessGridPosition(
+        Grid targetGrid,
+        Vector2Int origin,
+        out Vector2Int result)
+    {
+        result = default;
+        if (targetGrid == null || buildPoses == null || buildPoses.Count == 0)
+        {
+            return false;
+        }
+
+        bool walkThroughTarget = BuildingData?.IsGridMovement == true;
+        bool found = false;
+        int bestCost = int.MaxValue;
+        Vector2Int bestResult = default;
+        HashSet<Vector2Int> footprint = walkThroughTarget
+            ? null
+            : new HashSet<Vector2Int>(buildPoses);
+        for (int index = 0; index < buildPoses.Count; index++)
+        {
+            Vector2Int occupied = buildPoses[index];
+            if (walkThroughTarget)
+            {
+                Consider(occupied);
+                continue;
+            }
+
+            // Dungeon grid y is a floor coordinate, not a north/south tile.
+            // A non-traversable facility is therefore approached from either
+            // horizontal edge on the same floor.
+            Consider(new Vector2Int(occupied.x - 1, occupied.y));
+            Consider(new Vector2Int(occupied.x + 1, occupied.y));
+        }
+
+        result = bestResult;
+        return found;
+
+        void Consider(Vector2Int candidate)
+        {
+            if (!targetGrid.IsValidGridPos(candidate)
+                || !targetGrid.IsWalkable(candidate)
+                || (footprint != null && footprint.Contains(candidate)))
+            {
+                return;
+            }
+
+            int cost = Mathf.Abs(candidate.x - origin.x)
+                + Mathf.Abs(candidate.y - origin.y) * 1000;
+            if (found && cost >= bestCost)
+            {
+                return;
+            }
+
+            found = true;
+            bestCost = cost;
+            bestResult = candidate;
+        }
+    }
+
+    public bool IsWorkAccessGridPosition(Grid targetGrid, Vector2Int position)
+    {
+        if (targetGrid == null || buildPoses == null || buildPoses.Count == 0)
+        {
+            return false;
+        }
+
+        if (BuildingData?.IsGridMovement == true)
+        {
+            return ContainsGridPosition(position) && targetGrid.IsWalkable(position);
+        }
+
+        if (!targetGrid.IsValidGridPos(position)
+            || !targetGrid.IsWalkable(position)
+            || ContainsGridPosition(position))
+        {
+            return false;
+        }
+
+        return buildPoses.Any(occupied =>
+            occupied.y == position.y
+            && Mathf.Abs(occupied.x - position.x) == 1);
+    }
+
     public Vector3 GetFacilityAnchorWorldPosition(string purposeId, Vector3 fromWorld)
     {
         return TryGetFacilityAnchorWorldPosition(purposeId, fromWorld, out Vector3 worldPosition)
@@ -504,30 +593,105 @@ public class BuildableObject : MonoBehaviour,
 
     public void DestroySelf()
     {
-        RemovePaidFacilityContractIfNeeded();
-        OnBuildingDestroyed?.Invoke();
-        isDestroy = true;
-        UnregisterFromWorldRegistry();
-        DetachFromGridIfStillRegistered();
-        MarkFacilityDynamicStateDirty();
-        if (Application.isPlaying)
+        if (runtimeTeardownCompleted)
         {
-            Destroy(gameObject);
+            return;
         }
-        else
+
+        isDestroy = true;
+        List<Exception> subscriberFailures = null;
+        try
         {
-            DestroyImmediate(gameObject);
+            subscriberFailures = PublishDestroyedEventSafely();
+        }
+        finally
+        {
+            TeardownRuntimeState(markDynamicStateDirty: true);
+            if (Application.isPlaying)
+            {
+                Destroy(gameObject);
+            }
+            else
+            {
+                DestroyImmediate(gameObject);
+            }
+        }
+
+        if (subscriberFailures != null)
+        {
+            throw new AggregateException(
+                $"{name} destruction completed, but one or more destruction subscribers failed.",
+                subscriberFailures);
         }
     }
 
     internal void RetireForWorldReplacement()
     {
-        RemovePaidFacilityContractIfNeeded();
         isDestroy = true;
+        TeardownRuntimeState(markDynamicStateDirty: true);
+        DestroyImmediate(gameObject);
+    }
+
+    private List<Exception> PublishDestroyedEventSafely()
+    {
+        if (destructionEventPublished)
+        {
+            return null;
+        }
+
+        destructionEventPublished = true;
+        Delegate[] subscribers = OnBuildingDestroyed?.GetInvocationList();
+        if (subscribers == null || subscribers.Length == 0)
+        {
+            return null;
+        }
+
+        List<Exception> failures = null;
+        for (int index = 0; index < subscribers.Length; index++)
+        {
+            try
+            {
+                ((Action)subscribers[index]).Invoke();
+            }
+            catch (Exception exception)
+            {
+                failures ??= new List<Exception>();
+                failures.Add(exception);
+            }
+        }
+
+        return failures;
+    }
+
+    private void TeardownRuntimeState(bool markDynamicStateDirty)
+    {
+        if (runtimeTeardownCompleted)
+        {
+            return;
+        }
+
+        runtimeTeardownCompleted = true;
+        RemovePaidFacilityContractIfNeeded();
+        ClearRuntimeOccupancyAndAssignments();
         UnregisterFromWorldRegistry();
         DetachFromGridIfStillRegistered();
-        MarkFacilityDynamicStateDirty();
-        DestroyImmediate(gameObject);
+        if (markDynamicStateDirty && facilityCandidateCache != null)
+        {
+            facilityCandidateCache.MarkDynamicStateDirty();
+        }
+    }
+
+    private void ClearRuntimeOccupancyAndAssignments()
+    {
+        Occupancy.Reset();
+        Assignment.Reset();
+        // A detached/editor fixture can be destroyed before dependency
+        // injection. Teardown still has to clear its local ownership without
+        // resolving an unavailable candidate-cache service.
+        if (facilityCandidateCache != null)
+        {
+            NotifyOccupancyOrAssignmentChanged();
+        }
     }
 
     private void RemovePaidFacilityContractIfNeeded()
@@ -578,6 +742,7 @@ public class BuildableObject : MonoBehaviour,
             return;
         }
 
+        worldRegistry?.UntrackAllTransientCharacterOwnership(this);
         worldRegistry?.UnregisterBuilding(this);
         registeredWithWorldRegistry = false;
     }
@@ -709,11 +874,32 @@ public class BuildableObject : MonoBehaviour,
         out string failureReason) =>
         Occupancy.CanQueueVisit(visitor, out failureReason);
 
-    public bool TryBeginUse(IBuildingCharacterPort visitor, out string failureReason) =>
-        Occupancy.TryBeginUse(visitor, out failureReason);
+    public bool TryBeginUse(IBuildingCharacterPort visitor, out string failureReason)
+    {
+        bool began = Occupancy.TryBeginUse(visitor, out failureReason);
+        if (began)
+        {
+            UntrackTransientOwnership(
+                visitor,
+                BuildingTransientOwnershipKind.VisitReservation);
+            TrackTransientOwnership(
+                visitor,
+                BuildingTransientOwnershipKind.ActiveUse);
+        }
+        return began;
+    }
 
-    public bool CompleteUse(IBuildingCharacterPort visitor) =>
-        Occupancy.CompleteUse(visitor);
+    public bool CompleteUse(IBuildingCharacterPort visitor)
+    {
+        bool completed = Occupancy.CompleteUse(visitor);
+        if (completed)
+        {
+            UntrackTransientOwnership(
+                visitor,
+                BuildingTransientOwnershipKind.ActiveUse);
+        }
+        return completed;
+    }
 
     protected void PublishGameEvent<TEvent>(TEvent gameEvent)
     {
@@ -725,14 +911,30 @@ public class BuildableObject : MonoBehaviour,
         ?? throw new InvalidOperationException(
             $"{GetType().Name} requires {nameof(IGameEventBus)} injection.");
 
-    public void EndUse(IBuildingCharacterPort visitor) => Occupancy.EndUse(visitor);
+    public void EndUse(IBuildingCharacterPort visitor)
+    {
+        Occupancy.EndUse(visitor);
+        UntrackTransientOwnership(
+            visitor,
+            BuildingTransientOwnershipKind.ActiveUse);
+    }
 
     public bool TryReserveVisit(
         IBuildingCharacterPort visitor,
         out string failureReason,
         float seconds = DefaultAiReservationSeconds)
     {
-        return Occupancy.TryReserveVisit(visitor, out failureReason, seconds);
+        bool reserved = Occupancy.TryReserveVisit(
+            visitor,
+            out failureReason,
+            seconds);
+        if (reserved)
+        {
+            TrackTransientOwnership(
+                visitor,
+                BuildingTransientOwnershipKind.VisitReservation);
+        }
+        return reserved;
     }
 
     public void RefreshVisitReservation(
@@ -742,8 +944,13 @@ public class BuildableObject : MonoBehaviour,
         Occupancy.RefreshVisitReservation(visitor, seconds);
     }
 
-    public void ReleaseVisitReservation(IBuildingCharacterPort visitor) =>
+    public void ReleaseVisitReservation(IBuildingCharacterPort visitor)
+    {
         Occupancy.ReleaseVisitReservation(visitor);
+        UntrackTransientOwnership(
+            visitor,
+            BuildingTransientOwnershipKind.VisitReservation);
+    }
 
     public int GetVisitQueuePosition(IBuildingCharacterPort visitor) =>
         Occupancy.GetVisitQueuePosition(visitor);
@@ -751,12 +958,17 @@ public class BuildableObject : MonoBehaviour,
     public System.Collections.IEnumerator WaitForVisitAdmission(
         IBuildingVisitorPort visitor,
         object expectedAction,
+        string facilityLabel,
         float timeoutSeconds = 0f)
     {
         if (visitor == null)
         {
             yield break;
         }
+
+        string displayName = string.IsNullOrWhiteSpace(facilityLabel)
+            ? "Facility"
+            : facilityLabel;
 
         float patienceMultiplier = Mathf.Max(
             0.25f,
@@ -770,6 +982,17 @@ public class BuildableObject : MonoBehaviour,
         while (visitor.IsCurrentAction(expectedAction)
             && !visitor.IsCurrentActionEnded)
         {
+            if (this == null || isDestroy || runtimeTeardownCompleted)
+            {
+                visitor.RecordActivity(null, new BuildingActivitySnapshot(
+                    BuildingActivityKinds.FacilityUse,
+                    BuildingActivityOutcomes.Failed,
+                    $"{displayName} queue unavailable: facility destroyed",
+                    actionId: "facility:queue",
+                    reasonCode: "facility-destroyed"));
+                yield break;
+            }
+
             if (!CanQueueVisit(visitor, out string queueFailure))
             {
                 visitor.RecordActivity(this, new BuildingActivitySnapshot(
@@ -806,6 +1029,7 @@ public class BuildableObject : MonoBehaviour,
             }
 
             RefreshVisitReservation(visitor, 12f);
+            visitor.NotifyFacilityQueueHeartbeat(queuePosition);
             if (GameTime - startedAt >= timeout)
             {
                 visitor.RecordActivity(this, new BuildingActivitySnapshot(
@@ -835,9 +1059,16 @@ public class BuildableObject : MonoBehaviour,
         out FacilityAssignmentStatus status,
         float seconds = DefaultAiReservationSeconds)
     {
-        return this is IParallelWorkerReservationFacility parallel
+        bool reserved = this is IParallelWorkerReservationFacility parallel
             ? parallel.TryReserveParallelWorker(worker, out status, seconds)
             : Assignment.TryReserveWorker(worker, out status, seconds);
+        if (reserved)
+        {
+            TrackTransientOwnership(
+                worker,
+                BuildingTransientOwnershipKind.WorkerReservation);
+        }
+        return reserved;
     }
 
     public void RefreshWorkerReservation(
@@ -862,9 +1093,84 @@ public class BuildableObject : MonoBehaviour,
         if (this is IParallelWorkerReservationFacility parallel)
         {
             parallel.ReleaseParallelWorkerReservation(worker);
+        }
+        else
+        {
+            Assignment.ReleaseWorkerReservation(worker);
+        }
+        UntrackTransientOwnership(
+            worker,
+            BuildingTransientOwnershipKind.WorkerReservation);
+    }
+
+    protected void TrackAllocatedWorkerOwnership(IBuildingCharacterPort worker) =>
+        TrackTransientOwnership(
+            worker,
+            BuildingTransientOwnershipKind.AllocatedWorker);
+
+    protected void UntrackAllocatedWorkerOwnership(IBuildingCharacterPort worker) =>
+        UntrackTransientOwnership(
+            worker,
+            BuildingTransientOwnershipKind.AllocatedWorker);
+
+    /// <summary>
+    /// Releases every transient ownership edge held by one character. This is
+    /// deliberately broader than an action reservation: lifecycle faults can
+    /// stop Unity coroutines before their normal interaction epilogue runs.
+    /// Implementations must remain idempotent because OnDisable and OnDestroy
+    /// can both observe the same character.
+    /// </summary>
+    public virtual void ReleaseTransientCharacterOwnership(
+        IBuildingVisitorPort visitor,
+        string reason)
+    {
+        if (visitor == null)
+        {
             return;
         }
-        Assignment.ReleaseWorkerReservation(worker);
+
+        EndUse(visitor);
+        ReleaseVisitReservation(visitor);
+        ReleaseWorkerReservation(visitor);
+        if (this is IWorkableFacility workable)
+        {
+            workable.DeallocateWorker(visitor);
+        }
+        UntrackTransientOwnership(
+            visitor,
+            BuildingTransientOwnershipKind.ActiveUse
+            | BuildingTransientOwnershipKind.VisitReservation
+            | BuildingTransientOwnershipKind.WorkerReservation
+            | BuildingTransientOwnershipKind.AllocatedWorker);
+    }
+
+    private void TrackTransientOwnership(
+        IBuildingCharacterPort character,
+        BuildingTransientOwnershipKind kind)
+    {
+        CharacterId characterId = character?.BuildingCharacterId ?? default;
+        if (characterId.IsValid)
+        {
+            worldRegistry?.TrackTransientCharacterOwnership(this, characterId, kind);
+        }
+    }
+
+    private void UntrackTransientOwnership(
+        IBuildingCharacterPort character,
+        BuildingTransientOwnershipKind kind)
+    {
+        CharacterId characterId = character?.BuildingCharacterId ?? default;
+        UntrackTransientOwnership(characterId, kind);
+    }
+
+    internal void UntrackTransientOwnership(
+        CharacterId characterId,
+        BuildingTransientOwnershipKind kind)
+    {
+        if (characterId.IsValid)
+        {
+            worldRegistry?.UntrackTransientCharacterOwnership(this, characterId, kind);
+        }
     }
 
     public bool CanAssignWork(

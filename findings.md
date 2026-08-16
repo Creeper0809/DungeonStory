@@ -1,5 +1,29 @@
 # DungeonStory Current Findings
 
+## 2026-08-16 expedition ReservedTarget authority static audit
+
+- The current restore order is compatible with the new claim authority: all save-section stages commit while transaction participants are in candidate mode, so `OffenseAggregateSaveSection -> PublishPackingRestore` can replace the `offense.expedition-supply` candidate before participant `220.world.facility-buffer-destinations` publishes and participant `225.world.haul-delivery-intents` rebinds delivery intents.
+- The expedition physical terminal remains `FacilityBuffer` intentionally; the typed distinction is the exact `ReservedTarget` claim owned by the package. Activating the unused `ExpeditionPacked` state in this patch would require a separate stack/save/delivery migration and is not part of this vertical slice.
+- Planning, final facility deposit, and mid-haul restore now share `WorldItemHaulDestinationAuthority`; missing `expedition:*` claim fails loudly instead of guessing a same-cell facility. Planner availability cache now includes claim revision.
+- `AbandonPackedSupplies` and unconsumed `ReturnSupplies` use `ReleaseDestination`, covering outbound `Stored` as well as in-transit/delivered states before exact claim revoke. Consume requires the exact claim and the verifier now checks zero remaining destination stacks across all physical states.
+- A PowerShell source-display command used `foreach($z in$ranges)` and failed before reading files. The retry changed the syntax to `foreach ($z in $ranges)` and completed; no source changed in the failed attempt.
+
+## 2026-08-16 full physical logistics first-failure boundary
+
+- The fresh full report (`2026-08-15T17:09:03Z`) has six failures, but the earliest independent row is `AI_HAUL_COMPLETED`: the crafted output stack reaches a valid `AIHaul` start and then fails at pickup with `haul-pickup-lease-mismatch` for operation `haul:character:staff:1:01:000000000005` and the exact output stack. The later equipment-deposit and expedition rows are treated as cascades until this ownership mismatch is fixed.
+- Construction, craft-material delivery, path admission, and the crafted-output world stack all pass before the mismatch, so this is not presently evidence of an unreachable destination or facility admission failure.
+- The first pickup transaction itself succeeds: `ItemTransferService` revalidates the exact lease owner, extracts the reserved quantity to a Carried stack, and adds it to the actor inventory. The failure is the immediately following `WorldItemStackRuntime.TryCommitHaulPickup` postcondition, which tries to match the carried stack ID/signature/quantity against the still-live lease. The next audit must determine whether extraction correctly retargets the lease slice to the carried stack or whether the postcondition compares the wrong physical identity.
+- `TryExtractReservedQuantity` does retarget a split extraction's lease slice to the new carried stack ID. For a whole-stack pickup it transfers the original identity in place and intentionally leaves the same slice ID. The next likely boundary is `ItemQuantityReservationService.Revalidate`: the post-pickup physical state is `Carried`, so a revalidator that only admits source/available states would reject an otherwise exact carried lease. This must be confirmed before changing either side.
+- That state hypothesis is disproven: `ItemQuantityReservationService.Revalidate` is state-agnostic and checks exact lease presence/expiry, physical stack existence, quantity versus cached reservation, and signature. The mismatch is therefore one of those concrete invariants (or the carried-item matching predicate), not a generic prohibition on Carried state.
+- Exact production cause is now identified: the failed stack is a unique Dagger. After extraction retargets/preserves the hauling lease, `ItemTransferService.TryPickupReservedStackQuantity` calls `WorldItemRepository.TrySetEquipmentWorldStateBySourceStack(..., Carried)`. That persists the equipment component back into the physical stack and changes its reservation signature, but the live lease slice still holds the pre-pickup FacilityBuffer signature. The immediately following `TryCommitHaulPickup -> Revalidate` therefore rejects an otherwise exact stack. Ordinary materials do not mutate an equipment component and pass, matching the artifact.
+- `IItemQuantityLeaseMutation.TryRetargetSlices` already supports an exact same-stack signature refresh and validates the new signature against the current physical record before replacing indices. A safe fix must also keep the carry-inventory component snapshot synchronized with that post-transition signature; changing only the lease would still leave the committed carried DTO on the old equipment world-state component.
+- `CharacterCarryInventory.Items` exposes the live DTO instances, but there is no explicit command for refreshing an exact leased item's components. The repair should add a narrow inventory mutation rather than have `ItemTransferService` modify a DTO through the query collection, so Changed notification and identity checks remain owned by the inventory.
+- Minimal vertical correction: after extraction, capture the revalidated post-extraction lease; transition the unique equipment authority to `Carried`; retarget that exact lease slice to the new physical signature; refresh the exact carry DTO components through a new inventory-owned command; then let `TryCommitHaulPickup` validate all three authorities. On any refresh failure, restore the prior equipment state and old lease signature before returning failure. No destination or fallback behavior changes.
+- Independent audit found a smaller structural alternative: reservation identity should not include the equipment component's locational `worldState`, just as it already excludes freshness. The reservation must survive the owner's lawful Loose/FacilityBuffer -> Carried -> Stored transition while continuing to bind material, durability, quality, modules, and unique identity. Canonicalizing only this locational field in `ItemReservationSignature` avoids adding a second mutation transaction; `ItemStackSignature` must remain exact for physical stacking. This alternative is being checked against the actual component schema before implementation.
+- The equipment component is explicitly `affectsStacking=true`, so removing the whole component from reservation identity would be unsound. The implementation must clone/canonicalize only its `worldState` value while preserving all other equipment fields. A first regex used a malformed quoted group and returned no evidence; the corrected fixed-string search was used instead and no files changed.
+- A second search accidentally included another PowerShell-invalid wildcard path and returned only the exact service file matches. No files changed; all further searches use `--glob` from directory roots or literal paths only.
+- One scoped `rg` audit used Windows-invalid wildcard paths and one nonexistent directory, returning partial output. No files changed; subsequent searches resolve exact files with `rg --files` and do not reuse that command.
+
 ## 2026-08-13 queue-aware fallback rerun findings
 
 - The same five-day live verifier now passes after replacing the fixed primitive-survival cutoff with projected need at the earliest queueable authored service ETA.
@@ -4808,3 +4832,645 @@
 - Each brain keeps 32 fixed-width trace events containing sequence, action epoch, game time, lifecycle kind, branch, failure kind, action definition, destination and phase code. It allocates no strings or lists on the transition hot path; snapshots format a bounded report later.
 - Clean seed 157182 evidence has execution/no-action/candidate/duplicate/replacement/protected-replan/orphan-recovery and harmful-stall counts all zero. The report remains `FAIL` only because completed hygiene use is `0.533/adult-day` versus the separate balance gate `0.6`; that target was deliberately not weakened.
 - A failed PlayMode entry revealed that dynamic MCP command compilation can momentarily use an older project assembly. Final compile authority therefore requires a real `AssetDatabase.Refresh`/domain reload plus a fresh Console query before any PlayMode claim.
+## 2026-08-13 destructive AI fault findings
+
+- A moving actor previously treated a topology change as terminal blocked movement. The live matrix now preserves the same action, replans exactly once, reaches the target cell and records no terminal failure or ABA oscillation.
+- A no-path transition now records one typed `NoPath`, terminals movement once, releases action/facility reservations, requests an immediate replan and does not hot-retry against the same topology revision.
+- Facility destruction was not a single authority across approach, queue and interaction yields. AbilityShopping now subscribes to the active destination lifecycle and records one typed `Destroyed`, releases transient ownership and replans to an alternate facility in all three phases.
+- Primitive floor-rest can legitimately win an external action lease between a destroyed primary and alternate facility cache publication. The matrix explicitly ends only that primitive lease without clearing the typed failure, waits for candidate publication, then drives the real BT to select the alternate facility.
+- The final live route/facility report is `47 checks / 0 failures / 0 console errors`.
+- New lifecycle/save-load harness scripts exposed a Unity Editor script-binding issue: project compilation and `MonoScript.GetClass()` succeed, but `GameObject.AddComponent` returns null for the new types. This is a verifier-host problem, not accepted runtime evidence; lifecycle/save-load completion remains open.
+## 2026-08-13 AI failure-root findings
+
+- Scaled waits deadlock reliability harnesses in paused QA worlds; verifier delays now use an explicit real-time clock.
+- Stopping a coroutine alone is insufficient at a commit boundary. A monotonic generation token prevents queued callbacks from mutating state after lifecycle cleanup.
+- Facility failures were erased by an unconditional `clearFailures:true` epilogue. Only Completed visits clear failures; Failed/Abandoned preserve typed failure and cooldown.
+- The legacy `isBestActionEnd=true` setter records Completed. NoPath and Destroyed paths now close through an explicit Failed terminal before replanning.
+- Save restore can dispose old scoped registries before Unity finishes old actor teardown. Teardown no longer emits narrative/passive work activity through disposed services, and scheduler facade calls tolerate the no-scheduler interval.
+- Actor lifecycle cancels active meal operations directly through the scoped cancellation authority, closing the no-building/field-meal orphan-Lease edge.
+# 2026-08-13 exhaustive AI scenario continuation
+
+- Live production action catalog currently contains 22 concrete character action types (plus abstract bases), while several action-specific focused tests are absent: `AIDrink`, `AIHunt`, `AIRescue`, and `AISubstanceUse` have no direct type reference in current DebugScenario/Verifier sources. Combat, medical, captivity, wildlife, and expedition also own execution runtimes outside `AIActionSet`, so an action-class-only manifest would be incomplete.
+- `AbilityMove` treated a null urgent replanning result as terminal even when `AIAction.TryRebuildPathFromCurrentPosition` explicitly returned `PathSearchDeferred`. A bounded eight-frame retry now preserves the same action and reservation; true exhaustion remains typed `PathSearchDeferred` rather than rewritten as `NoPath`.
+- `BuildableObject.DestroySelf` previously invoked subscribers before setting `isDestroy` and before core teardown. One throwing subscriber could leave a live, occupied, registered building. Destruction now marks destroyed first, invokes every subscriber independently, completes teardown in `finally`, reports subscriber failures as an aggregate, and is idempotent.
+- The fault verifier's original two-frame facility publication delay was nondeterministic on a newly committed world. It now waits on the authoritative `IFacilityCandidateCache` and explicitly advances its index within a bounded deadline.
+- `RuntimeProgressRevision` mixed action selection, scheduler processing, retry scheduling, path requests, reservation refreshes, and real movement. It could let a stalled service action look alive. `GameplayProgressRevision` now advances only on typed phase transitions and completed movement steps; the five-day watchdog and PlayMode stress gate consume it. The synchronous EditMode stress keeps scheduler progress as its authority because it does not pump Unity coroutines.
+- Expanded live evidence: `Artifacts/QA/character-ai-fault-recovery-playmode.txt` passes 58/58, failures 0, console errors 0. It covers repath, true NoPath, facility destruction in approach/queue/interaction, alternate replanning, and a throwing destruction subscriber with later notification, complete teardown, and repeated-call idempotence.
+## 2026-08-14 500-actor queue diagnosis
+
+- A resident in a valid FIFO facility queue can have no movement/work/service completion during a short sample while still making healthy progress through an owned visit reservation. Treating only physical gameplay change as liveness produced false `typed-touched` failures.
+- Queue liveness is now its own typed counter. `BuildableObject.WaitForVisitAdmission` refreshes the reservation and emits one heartbeat per queue tick; stress validation accepts gameplay progress or queue heartbeat, while the five-day watchdog still enforces lease validity and the authored bounded timeout. Scheduler bookkeeping remains insufficient by itself.
+- The final profile has no untouched actors and no failure-loop actors. Performance authority remains the scheduler-owned allocation counter (`0 B/frame`); full Editor allocation stays diagnostic because it includes the harness and editor plumbing.
+
+## 2026-08-14 alert inline-work continuation
+
+- The remaining alert verifier failure is on the production candidate boundary: after `SetWorkPriority(Clean)` and a successful `TrySetPriorityWorkTarget`, a manually fabricated registered `AIWork` candidate can still reuse an older cached `CannotStart/NoWork` evaluation during `TryCommitActionCandidate`.
+- Production `CharacterAiJobGiver.TryEvaluate` invalidates matching evaluations when it starts a fresh scoring pass. The verifier must therefore obtain its candidate through the real JobGiver/candidate-selector route instead of fabricating one, while command paths must ensure a priority mutation cannot leave a stale in-progress scoring pass authoritative.
+- `TrySetPriorityWorkTarget` assigns the exact target/type before requesting an immediate replan. The regression must assert authored priority, assigned type, selected destination, partial milli-WU, suspension receipt, save/restore, and nonzero resumed progress in that order.
+- `RequestImmediateReplan` cleared action/path selection but retained Blackboard JobGiver candidates and action evaluations. The replan boundary now clears all decision-local candidate state, so a priority/target mutation cannot consume a previous-frame `CannotStart` result.
+- `WorkTargetSelector` did not consult `PriorityWorkTarget` before the autonomous facility index. Direct orders now own target selection and expose the exact target failure instead of silently switching to unrelated work.
+- Worker reservations used object identity even though `CharacterActor` and `CharacterBuildingVisitorAdapter` represent the same persistent worker. Reservation refresh/release/conflict checks now compare stable `CharacterId`, closing the select/move/start self-conflict.
+- The production-path alert verifier now passes 44/44: partial Clean work, Red suspension, save round trip, resumed nonzero progress, one completion, persistent construction suspension/return, and destroyed-target abandonment all pass with Console issues 0.
+
+## 2026-08-14 physical logistics fault evidence
+
+- Exit autosave exposed a real orphan quantity Lease (`preferred-stack-missing`). The invariant belongs at physical stack removal, not in save capture: every removal now invalidates unresolved Slices, while extraction and aggregation retarget valid Slices before removal.
+- The old live logistics fixture mixed editor-only fake warehouse quantities with repository-owned physical stacks and left pre-existing AI coroutines running. That produced false shortages and target disappearance. The fixture now uses only the public physical runtime and explicitly terminals current actor actions before manual hauling.
+- With the fixture corrected, loose-to-warehouse hauling, exact facility input delivery, construction BOM delivery, three-worker `2.60 WU` contribution, and crafting input/output pass. Seven failures remain around equipment repair and expedition packaging, so cross-domain AI closure is still open.
+# 2026-08-14 AI full-scenario continuation findings
+
+- The latest primitive five-day failure is not contamination from an unrelated external enemy. The damage reason `공격: Leon` is produced by the live suppress-work path in `WorkCommandHandler`; the founder whose hunger/thirst/excretion/hygiene reached zero became a suppression target and another founder attacked them. The test therefore exposed a real downstream consequence of the self-care deadlock and must not disable combat to pass.
+- `CharacterSafeReliefRunner.TryStart` distinguishes deferred routine retries from emergencies at the membership check, but the following `now < nextSafeReliefAttemptAt` branch still defers emergency thirst. An actor can consequently remain in `Deferred retry` while thirst crosses the damage threshold.
+- The primitive field-meal coroutine resolves a physical stack before movement, waits four game seconds after arrival, and then attempts to consume the original stack without revalidation. Live hauling can convert or move that stack during either interval, producing `field-meal-commit-failed` even though another valid ration stack exists.
+- The current five-day report shows the failure chain directly: day 2 one founder is in `Deferred retry` at hunger 31/thirst 16; day 3 all four urgent needs are zero and deprivation damage starts; day 5 the resulting suppression combat kills the founder. Physical ration/water conservation itself passes.
+
+## 2026-08-14 interrupted-haul physical ownership finding
+
+- A subsequent live five-day run exposed a separate logistics defect: an interrupted haul released its quantity Lease but left already extracted food and water records in `Carried` state. Three rations and twelve water became unavailable even though global quantity conservation still passed.
+- Reservation release and carried-item rollback were separate lifecycle boundaries. `AbilityHaul.StopHauling` cleared the plan without restoring physical records or `CharacterCarryInventory`.
+- Haul cancellation/failure now returns carried records to `Loose` state at the carrier's current grid position before releasing plan Leases. A nominally completed haul with a non-empty carry inventory is reclassified as `DepositRejected`.
+- Lease lifetime is progress-driven: actual movement steps renew active plan Leases against the injected game clock, while stopped work still expires after the bounded idle window.
+- The same live three-founder, zero-service-facility, five-day scenario now passes with all health values at 100, no survival damage, no breakdown, nine physical meals, and exact food/water conservation. This closes only the reproduced survival/haul chain.
+# 2026-08-14 source-derived exhaustive AI closure audit
+
+- The existing registered coverage report is not by itself proof of exhaustive coverage. The next authority is a production-code-derived inventory of authored actions, runtime-only intents, job-giver/BT leaves, all 31 work executors, and domain AI routes.
+- Current strong evidence includes PASS reports for fault recovery, cross-action faults, lifecycle faults, alert integration, mid-action save/load, captivity, physical logistics, three five-day seeds, 100 actors, and 500 actors. These reports must be checked against current source timestamps after the latest scheduler, watchdog, captivity, and teardown fixes.
+- Completion requires two independent properties: zero uncovered production surfaces and fresh deterministic evidence for every mapped surface. A manifest can report zero uncovered rows while omitting a production route, so source-to-manifest exact-set comparison is mandatory.
+- The shared worktree contains more than one hundred modified files and user-owned artifacts. All audits and fixes must be narrow; resetting or normalizing unrelated changes is prohibited.
+- The current manifest discovers authored actions only from `Assets/Resources/SO/AI/Action` and compares filenames against a hard-coded 19-row list. Runtime-only actions, assets outside that folder, dynamically wrapped actions, behavior-tree leaves, and external intent runners are not discovered by this mechanism.
+- `HasEntrypoint` proves only that a public static method with the expected signature exists. It does not prove that the verifier was run on the current source revision or that its last report passed.
+- Every one of the 31 work types is marked covered when a generic lifecycle verifier entrypoint and the typed matrix entrypoint merely exist. The manifest does not currently require a fresh per-work production-live execution result; the exact live-vs-contract distinction must be audited before completion.
+- Production contains five concrete deprivation action classes (`AIDesperateRelief`, `AIDesperateDrink`, `AIDesperateEat`, `AICollapse`, `AIViolentBreakdown`) in addition to the 19 authored assets. They execute through the `DeprivationBreakdown` behavior-tree branch and an external-intent runner, so they need an explicit source-derived row even though they are not separate assets in the action folder.
+- The `CharacterAiBranch` enum includes control branches (`Critical`, locks, interrupt/macro/emergency/continue/stop) plus gameplay selectors. Coverage must distinguish control-flow branch execution from authored action assets; a filename-only manifest cannot do this.
+- The catalog loads all `AIActionSet` definitions from the root content catalog and matches by name, whereas the manifest scans only one resource folder. Exact catalog-to-manifest comparison must use the production catalog or an equivalent project-wide asset query.
+- `CharacterAiActionScenarioMatrixDebugScenarios` already inventories the 19 authored assets, all five runtime deprivation action types, and 30 named BehaviorDesigner task types. It is the better starting point for source-derived completeness, but its current gate is primarily structural/reflection-based and its coverage text can remain green even when the referenced live report is stale.
+- The latest 500-actor profile was written after the latest scheduler source change and is current for that path. Several domain reports, especially alert/save/fault matrices, predate later shared runtime changes and cannot all be accepted as current-head evidence without rerunning or a source fingerprint embedded in reports.
+- Existing PASS reports prove many verticals, but they do not encode a common source revision. The closure runner should either rerun them in one current-head suite or require each report to carry the same generated source fingerprint.
+- The current action-matrix report is stale and still prints multiple `GAP` rows while ending `RESULT=PASS`; `AppendKnownCoverageGaps` explicitly labels these rows non-failing. This is a concrete false-green mechanism. Known uncovered rows must contribute to the result, or be replaced by verified `COVERED` rows tied to current live evidence.
+- Newer cross-action and fault-recovery verifiers appear to cover many of those stale GAP rows, but the matrix report was not regenerated after their implementation. The matrix must be refreshed only after its coverage claims are updated and its evidence is executed.
+- Focused self-care, autonomous medical, and wildlife hunt reports pass but were generated before later shared lifecycle/scheduler/item changes. The current work failure matrix shows all 31 profiles GREEN, yet its report is also older than later Work/lease runtime changes. These require current-head reruns.
+- Some domain evidence named by the manifest has no report at the guessed path. The closure audit must read each verifier's actual `ReportPath` and validate the result rather than infer filenames.
+- `DefenseEngagementPlayModeVerifier.StartRuntimeProbe` keeps only an in-memory `lastReport`; it does not write a durable AI evidence report. `OffenseJourneyPlayModeFacade.RunFullCampaignThroughUi` returns a PASS/FAIL string but likewise has no durable report. Entrypoint existence in the manifest therefore cannot establish that either domain ran or passed.
+- The ordinary 500-actor profile is fresh and green, but the configured large-grid and dense-dungeon 500 entrypoints have no current report artifacts. They remain required scale/topology gates and must be executed separately; the synchronous `RunAll`/`RunScaleSuite` intentionally refuse to serve as 300/500 evidence.
+- Parallel source audit confirmed additional production surfaces absent from the manifest: safe-relief, primitive, breakdown, and captive-escort external-intent runners; `AbilityCaptiveEscape`; and `AbilityWildlifeCaptureTransport`.
+- Twenty-one work types currently have only common lifecycle plus reflection/contract matrix coverage, not per-type production-live execution: operate, restock, repair, research, reception, craft, butcher, draw-water, cook, refuel, perform, gather, sow, harvest, logging, quarry, animal-care, grand-project, threat-mitigation, plumbing, dismantle.
+- Captive escape testing currently calls the domain failure command directly rather than executing `AbilityCaptiveEscape`; wildlife capture transport and animal-care lack a live AI vertical; visitor/customer lacks a complete Brain entry -> service/checkout or abandon -> exit vertical; offense journey lacks durable executed evidence.
+- Behavior-tree control gaps include macro-goal `Complain`, `AvoidFacility`, `ExitDungeon`, and `Vandalize`, plus controlled `Critical` and `LockedAction` paths. These are production control surfaces even when they do not correspond one-to-one with authored action assets.
+- The 31-row work matrix validates authored metadata, common method presence, and a focused restock Lease contract. It does not run most specialized work handlers through live Brain -> JobGiver -> AbilityWork -> handler progress/terminal paths.
+- Existing PlayMode source references provide some additional vertical evidence (construct, clean, research, repair, guard, craft, rescue, surgery, haul, hunt, warden), but many references are UI or setup checks rather than autonomous completion. The exact execution assertions must be inspected before crediting a work type.
+- Lifecycle audit found four concrete first-yield coroutine ownership defects: `AbilityUseSubstance`, `AbilityHaul`, `AbilityRescue`, and `AbilityCaptiveEscort` can synchronously fail before the first yield, clear internal state, then have the already-completed Coroutine handle assigned back by `StartCoroutine`, leaving zombie `IsUsing/IsHauling/IsRescuing/IsEscorting` state. Haul/Rescue also have early branches that bypass their full lease/reservation cleanup.
+- `AbilityShopping` has a destroyed-before-approach early exit that can bypass routine cleanup and retain `activeShoppingAction`/destroy subscription. The current fault report was produced with a destinationless selector, so its header overstates action-facility coverage.
+- The lifecycle verifier uses an internal probe action that directly registers/releases synthetic movement, item lease, and emergency ledger ownership. It proves the common lifecycle hook but not production cleanup for each Ability/domain.
+- Report freshness is materially stale for lifecycle, cross-action, alarm, all three five-day seeds, and the 1024 large/dense profiles because shared runtime/scheduler/work/item sources changed afterward.
+- The normal 500 profile is current and strong for a 96x3 synthetic 600-frame scheduler window, but it does not prove whole-game Player-frame 0B or long-term memory stability. Large/dense gates additionally omit several current runtime invariants (ongoing deferral/starvation, lifecycle/path/reservation conservation, failure loops, max GC) from `valid`.
+- `VerifyThreeSeedReports` accepts stale reports because it checks marker strings and PASS only, not source fingerprint. The 100 sync gate has no durable report, and the release soak report is absent.
+- Critical, macro, and locked branches do have deterministic direct-pipeline or manual-BT probes in `CharacterAiPlanDebugScenarios`; they are not completely untested. However, `Complain` and `Vandalize` use direct runner calls/fixtures, and the group lacks a current production PlayMode report proving scheduler/BT ownership and terminal cleanup.
+- The macro runner performs real side effects (social conflict publication, facility cooldown, exit movement, facility damage). These need at least one live scheduler/BT vertical per distinct ownership/side-effect category rather than only enum/reflection coverage.
+- `IWorkExecutionHandler.Execute` is parameterized by a real `WorkExecutionContext`, but specialized handlers require domain-authored targets and state. A single fake target/context would only prove rejection paths and must not be mislabeled as successful live coverage; the missing work rows need family-specific production fixtures.
+# AI exhaustive closure audit - 2026-08-14
+
+## Per-row live evidence authority
+
+- The WorkType live matrix report writes one typed line per row (`PASS\twork:*\t...`) even when the overall 20-row result is FAIL.
+- The coverage manifest previously required only the coarse whole-report marker `RESULT=PASS; rows=20`, which hid valid row progress and reported every parameterized work type as contract-only until all rows passed.
+- Evidence now supports a row-specific artifact marker so each work type is credited only by its own current-source PASS line; BLOCKED/FAIL rows remain uncovered.
+
+## Visitor and offense production journeys
+
+- `CharacterVisitorControlJourneyPlayModeVerifier` now covers official eligibility/spawn, entry lifecycle, production shopping terminal, Critical and LockedAction BT routes, four macro routes, and ExitingDungeon to Despawned without direct blackboard mutation.
+- `OffenseTacticalJourneyPlayModeVerifier` now covers official research/save prerequisites, expedition and battle commands, and all five enemy tactical intent-to-command terminals. It does not by itself prove the separate reward surface, so `offense:journey-battle-reward` remains bound to its own evidence contract.
+
+## First Unity semantic compile findings
+
+- Visitor faction contracts are owned by the `DungeonStory.Factions` assembly/namespace; the verifier must import that namespace to resolve the registered `IFactionRuntime` and `FactionContractKind.Recruitment` contracts.
+- `TryBeginEscapeAttempt` is intentionally internal to `CaptivityEscapeRuntime` and absent from `ICaptivityEscapeRuntime`. Production escape initiation is event-driven: `InvasionStartedEvent` -> `CaptivityRuntime` subscription -> `CaptivityEscapeRuntime` -> `AbilityCaptiveEscape`. The verifier now uses that public event path with a false-compliance confined captive instead of widening or casting around the interface.
+
+## Current WorkType live matrix
+
+- The distance/waypoint-aware rerun removed the prior cook/refuel timeout failures. Current result is `2 PASS / 17 BLOCKED / 1 FAIL`, with Console Error/Warning `0/0`.
+- `work:operate` and `work:reception` prove approved WU, cancellation, target invalidation, typed terminals, path/reservation conservation, and gameplay progress.
+- The remaining `work:draw-water` row reaches its target and records approved WU, but after cancellation the aggregate gate shows action `3/2` and reservation `2/1` with one live owner. The invalidation half passes. This must be separated into a true cleanup leak versus an immediate replacement action crossing the observed epoch.
+- Seventeen rows are now explicit `NoWork` prerequisite blockers rather than false `DestinationOccupied` contamination. They still require authored production fixtures/live evidence before coverage can close.
+
+### Draw-water false invariant root cause
+
+- The report already showed aggregate conservation `True/True/True` and an exact observed epoch terminal of `Cancelled`; the extra `starts=3/terminals=2` and `reservations=2/releases=1` represented one legitimate later live action, not leaked ownership.
+- The verifier itself called `RunDecisionTreeDirect` every 0.1 seconds while the official scheduler was also running. On the long draw-water approach this created a replacement epoch inside the observation window.
+- The fix removes repeated direct decisions, waits for the official scheduler, and pauses only new AI decisions after the target action has started. The running production movement/work coroutine remains live, so exact epoch progress/terminal/release checks are preserved rather than weakened.
+
+### Draw-water rerun result
+
+- Current-source rerun is `3 PASS / 17 BLOCKED / 0 FAIL`, Console Error/Warning `0/0`.
+- Draw-water now closes exact epoch counts at action `1/1`, path `1/1`, reservation `1/1`, with approved progress and `Cancelled`; target invalidation separately closes with `Failed`.
+- The matrix intentionally remains overall FAIL because the 17 prerequisite blockers are uncovered, not because any executed row failed.
+
+### Current-source visitor/control rerun
+
+- `CharacterVisitorControlJourneyPlayModeVerifier` was rerun after the latest compile and still fails at the production spawn boundary.
+- The recruitment contract and authored shop prerequisites both pass, but `CharacterSpawner` accepts no authored visitor candidate. Consequently publication, entry movement, Active lifecycle, shopping and exit never begin.
+- This is not accepted as a fixture-only green gap. The production candidate/request path must expose the exact rejection reason and a legal authored visitor must traverse the full lifecycle before this domain can be marked covered.
+- The run produced one intentional verifier Error and no completion evidence.
+
+### Current-source offense tactical rerun
+
+- The production expedition and battle path starts and terminates correctly, and one enemy `Attack -> BasicAttack` intent/command/terminal trace is proven.
+- `Move`, `Protect`, `UseAbility`, and `Retreat` have no live trace because the single battle ends after the first attack. One short battle therefore cannot stand in for the whole tactical surface.
+- The verifier must use separate deterministic production battle conditions that naturally select each intent; direct intent or command injection remains disallowed as coverage evidence.
+
+### Current-source captivity/wildlife lifecycle rerun
+
+- Gameplay scope, official start-party actors, and the real `60x3` grid are available.
+- The verifier stops before any escape/transport/animal-care row because its authored room cannot place the captive housing, normal pen, or fault pen (`housing=False; pen=False; faultPen=False`).
+- This is a real fixture-contract failure against authored footprints/room rules. It must be repaired with valid authored placement; fake room/pen ports are not acceptable evidence.
+
+### Honest manifest baseline after focused failures
+
+- The current source-derived manifest reports `uncovered=68` and correctly fails.
+- Only `work:operate`, `work:reception`, and `work:draw-water` have current per-row LiveExecuted evidence. The remaining action, deprivation, work, and domain rows are either missing, red, entrypoint-only, or stale against the current source revision.
+- The visitor spawn failure is most likely a timing mismatch at `CharacterPopulationService.AcquireVisitor`: profile preparation is asynchronous, while the verifier made a one-shot request. The production `CharacterSpawner.StartSpawn` naturally retries every 0.3 seconds. The repair must exercise that production retry/readiness boundary and retain exact failure visibility.
+
+### Enemy tactical selection conditions
+
+- `Protect`: no living opponent, or protect utility exceeds the best valid basic attack.
+- `UseAbility`: an authored ready ability has utility at least as high as both attack and protect. Several authored support/controller archetypes carry high `abilityWeight`.
+- `Move`: every basic attack preview is invalid and the enemy actor is not in the Front formation.
+- `Retreat`: actor health is below the authored retreat fraction and retreat utility dominates attack, protect and ability. It therefore needs real battle damage/state, not a direct intent injection.
+- The offense verifier should use separate production encounter conditions for these four decisions; one ordinary short battle cannot cover the tactical enum.
+
+### Final source-freeze execution order
+
+- Focused production-live matrices first: visitor/control, offense tactical, captivity/wildlife, WorkType live matrix, synchronous terminal, fault recovery, cross-action, lifecycle, alarm, and mid-action save/load.
+- Domain regressions next: self-care, autonomous medical, surgery, defense engagement, combat/rescue, wildlife hunt, captivity/escort/recapture, strategic offense and journey/reward.
+- Long-running gates only after all source edits stop: daily routine seeds `157181/157182/157183` sequentially, three-seed aggregation, durable 100 sync, 500 PlayMode, configured large-grid 500, configured dense-dungeon 500, and release soak.
+- Finish by capturing the source-derived coverage manifest and requiring `uncovered=0` plus Unity Console Error/Warning `0/0`.
+
+### Production fixture authorities for world-target WorkTypes
+
+- `gather`, `logging`, and `quarry` should reuse the live `IWorldResourceRuntime` nodes already created in GameplayScene. Their availability is queried through `TryGetWork`; the verifier must let Brain/AIWork perform them instead of calling `ApplyWork` directly.
+- `sow` and `harvest` should use authored P23 crop plots and `CropPlotRuntime`: set an authored crop, deliver its physical buffer materials, and prepare harvest age through the versioned runtime state boundary. Execution still belongs to Brain/AIWork.
+- `dismantle` should use the existing WorkAmountSystem dismantle order/marker authority, not a synthetic target flag.
+
+## Current live blockers
+
+### 2026-08-14 continuation ownership and evidence freeze
+
+- Material/order WorkType fixtures (`restock`, `craft`, `butcher`, `cook`, `refuel`) are compile-ready; the last semantic error was removed by resolving the registered `IShopStockCatalog` rather than calling a nonexistent `Shop.TryGetSaleItem` helper.
+- The WorkType live matrix is still being extended in one owner file for world-target and domain-assignment rows. Unity refresh must wait until that owner reports a compile-ready pause, otherwise the Editor may import a half-written verifier.
+- Visitor retry is compile-ready and preserves the production asynchronous `CharacterSpawner` readiness path. Offense tactical closure is being split into separate production encounter conditions for Attack/Move/Protect/UseAbility/Retreat.
+- The four focused PlayMode entrypoints are public static `RequestRun()` methods for visitor, offense, captivity/wildlife, and WorkType matrix. The coverage manifest uses `RunFromUnityMcp()` for strict closure and `CaptureReportWithoutThrowing()` for honest intermediate diagnostics.
+- `CharacterSpawner.TrySpawnCharacter` can reject at owner availability, pool/catalog, recruitment, regular-customer eligibility, asynchronous `AcquireVisitor`, or entry-grid resolution. The updated visitor verifier retries the same public production command for 25 real seconds at the authored 0.3-second cadence; it does not synthesize or directly register a visitor.
+
+### Visitor production retry rerun
+
+- The current-source visitor journey still fails after 73 public `CharacterSpawner.TrySpawnCharacter` attempts over 25 real seconds. Recruitment eligibility and the authored shop pass, but the command never accepts, so this is not merely an asynchronous profile-preparation delay.
+- The production rejection boundary does not currently expose which of owner/pool/catalog/customer/profile/entry-grid checks rejected the request. The next fix must add or consume typed rejection diagnostics and repair the actual prerequisite; synthesizing or directly registering a visitor remains forbidden.
+
+### Offense tactical v2 rerun
+
+- The v2 production encounter matrix naturally selected and completed `UseAbility -> Ability`, proving the separated-condition approach reaches new tactical surface.
+- The next restored condition crashed in `CombatResolutionService.ResolveArcanePowerMultiplier`: a legitimate campaign battle enemy ID (`character:battle:*`) is not an active world `CharacterActor`, yet basic-attack preview requires one for arcane scaling. This is a production authority mismatch, not a missing wait.
+- The fix must resolve enemy arcane contribution from the authoritative battle combatant/archetype snapshot (or another explicit battle-domain authority), not fabricate/register a world actor or suppress the exception.
+
+### Captivity/wildlife rerun after footprint expansion
+
+- The 10x3 authored-room fixture no longer overlaps CP01/CB01 footprints, but the official 60x3 grid has no span the verifier considers completely clear: `stage=clear-footprint-missing:grid=60x3;required=10x3`.
+- The prior working fixture pattern snapshots and temporarily displaces only nonblocking movement-floor occupants and AreaType, then restores them exactly. The captivity/wildlife verifier must adopt that bounded production-grid transformation while continuing to reject real facilities, doors, hard blockers, actors, items, utilities, and other gameplay ownership.
+- The immediate scan bug was also concrete: for a grid whose height exactly equals the required room height (`3`), the old `y = 1 .. height-roomHeight-1` loop had zero iterations. The fixture now uses the only legal `y=0` row and exact occupant/AreaType restoration.
+
+### Visitor rejection authority repair
+
+- A typed `CharacterSpawnRejection` overload now preserves the exact production rejection reason instead of collapsing every owner/pool/catalog/customer/profile/entry-grid failure to `false`.
+- Natural `CharacterSpawner.StartSpawn` and the verifier's explicit request can race for the same prepared profile. The journey now accepts a newly published target-`CharacterSO` visitor from either production path while recording rejection histograms; it still forbids fake actors or direct registration.
+
+### Visitor profile preparation deadlock
+
+- The post-fix visitor artifact is still red, not merely stale by assumption: `attempts=1397`, `accepted=False`, and every typed rejection is `PopulationProfilePreparing`. The timeout/fallback contract can pass in isolation while the aggregate visitor profile still remains unready; the production completion/publication path must therefore be traced end-to-end before another rerun.
+- The latest red artifact ended five seconds before the authored 30-second in-flight timeout. The revised verifier must run beyond that boundary. Its new diagnostics interface also requires explicit registration; VContainer `.As<ICharacterSkillGenerationService>()` alone does not expose the implemented diagnostics interface.
+- Current source-derived closure remains broad and honest: 68 uncovered rows include action selectors, deprivation outcomes, 17 WorkType rows, captivity/wildlife, visitor lifecycle, offense tactics, and stale combat/medical evidence. A short 500-actor scheduler PASS cannot close these semantic rows.
+- Visitor profile preparation is a multi-wave queue: three skill requests share two concurrent slots, so a 30-second per-request timeout can require at least two waves. A focused verifier must observe queue progress under a single overall bound rather than equating one request timeout with whole-profile readiness.
+- The offense Retreat miss was a real utility defect, not a fixture-only condition: self health contributed once to retreat and twice to protect (`self` plus `lowestFriendlyHealth`). Excluding self from the friendly-protection term restores the intended authored competition.
+- WorkType fixture creation is now reaching production rejection reasons. Current blockers include nonphysical shop items, no unlocked physical-input WorkOnly recipe, an already valid competing refuel target, a wastewater transaction failure, missing real resource/crop/dismantle orders, and a threat task preempted by a higher-priority primitive need. These must be solved at their actual authorities rather than by invoking handlers directly.
+- Restock's `phase=Start`, live reservation, and zero progress was caused by mixing 2D grid travel with render depth: the destination used `warehouse.transform.position.z`. This is a production movement bug; grid pickup destinations must retain the actor's Z.
+- A production offense battle can be fully entered and resolved synchronously during a route command. Scenario evidence must subscribe to battle state/session publication before the command; frame-level `InBattle` polling is not a reliable lifecycle authority.
+- Wildlife restored through V18 may legitimately be a new Unity object. Reference equality is not physical identity authority across restore; the correct invariant is one persistent wildlife ID with matching species, saved position, and matching official grid occupant identity.
+- The visitor pool target is eight while only two profiles prepare concurrently. If every accepted LLM call hangs for 30 seconds, individual per-request timeout fallback creates multiple serialized waves and can prevent visitors for several minutes. One observed timeout should open an explicit, visible provider-health circuit and drain pending requests through the already-authored deterministic rule fallback.
+- `CharacterAiActionScenarioMatrixDebugScenarios.RunAll()` and `WorkExecutionFailureMatrixDebugScenarios.CaptureReportWithoutThrowing()` do not return the full report body assumed by the temporary aggregate command. Their durable artifacts are the result authority; both current artifacts are green, although the action matrix honestly retains non-failing GAP rows that the source-derived manifest must still close with PlayMode evidence.
+
+- Typed rerun evidence narrowed all 1,426 rejections to `PopulationProfilePreparing`; neither explicit requests nor natural spawn ever claimed a visitor.
+- `CharacterSkillGenerationService` marks an accepted local-generation request `inFlight` but previously stored no submission time and had no timeout path. A runtime that accepts the request and never invokes its callback permanently occupies the two concurrency slots, so visitor profiles never receive active/passive skills and never become ready.
+- The runtime now timestamps accepted requests, cancels a correlated request after the authored maximum retry window, and invokes the existing deterministic rule fallback exactly once. Late callbacks observe `cancelled`; invalid fallback content fails loudly instead of leaving a silent pending profile.
+- `CharacterProgressionDebugScenarios` now includes a never-completing runtime with a mutable UI clock and verifies both requests leave the ledger, drafts become ready, active/passive skills exist, and the timeout diagnostic is exposed.
+
+- WorkType production-live matrix: 0 PASS, 14 BLOCKED, 6 FAIL. The failing rows are operate, repair, reception, draw-water, cook, and refuel; they showed no approved-WU progress or no typed terminal after target invalidation.
+- Visitor/control journey: production CharacterSpawner rejected every visitor request under the current customer/recruitment prerequisites, so entry/service/exit never began.
+- Offense tactical journey: production expedition creation rejected the run because prerequisite research was incomplete; tactical trace count remained zero.
+- Captive escape, wildlife transport, and animal-care guards were strengthened, but their production-live fixtures are still missing.
+
+- “모든 AI 시나리오 해결”은 아직 증명되지 않았다. 기존 coverage manifest는 verifier entrypoint 존재를 live PASS로 오인했다.
+- production inventory는 authored action asset 19, runtime action type 22, deprivation logical action 5, CharacterAiBranch 25, WorkType 31, external-intent family 4, domain surface 16으로 분리해야 한다. Editor probe/test subclass는 inventory에서 제외해야 한다.
+- 실제 first-yield terminal 결함을 AbilityUseSubstance, AbilityHaul, AbilityRescue, AbilityShopping, AbilityCaptiveEscort에서 확인했고 synchronous handle resurrection 및 조기 cleanup 누락을 수정했다.
+- `CharacterAiSynchronousTerminalPlayModeVerifier`는 첫 실행에서 빈 scene fixture 결함으로 FAIL했고, GameplayScene 로드와 공식 start-party 준비를 추가한 재실행에서 PASS했다.
+- 최신 source 기준 honest manifest는 아직 다수 UNCOVERED를 반환한다. 오래된 PASS artifact는 최신 C# source 이후에 생성된 경우에만 LiveExecuted로 인정해야 한다.
+- 100 sync durable JSON, 500/large/dense conservation·fairness·starvation·GC 게이트가 추가됐지만 최종 source freeze 이후 재실행이 필요하다.
+# 2026-08-14 latest focused reruns
+
+- The provider-health circuit works in Unity: `RunProviderCircuitScenario()` and the full character-progression suite both pass after a clean compile with Console Error/Warning `0/0`.
+- The visitor production journey now clears the serial profile timeout wave and reaches an actual Active visitor: the circuit tripped once, drained four pending profiles through the validated deterministic rule fallback, and the visitor entered, ran shopping/macro behavior, and despawned. The remaining five failures are downstream runtime/fixture authority problems: manual move no-path, Critical/Locked BT branches not observed, shopping service terminal Failed, and ExitDungeon side effect not observed.
+- Offense tactical v3 now captures the synchronous battle publication and proves an authored Attack row, but its row selector cannot find authored active enemies for Move/Protect/UseAbility/Retreat. Journey trace observed UseAbility separately; Move/Protect/Retreat remain missing. This is not completion evidence.
+- The current source-derived manifest still reports `uncovered=68`. Most action/deprivation/core-domain rows are stale rather than structurally absent, so one current-source all-scenario rerun can close several rows together. The genuinely missing or red production-live areas remain WorkType fixtures, consumable item-loss behavior, captivity escape start, visitor control/service, enemy tactical condition rows, wildlife transport/animal care, and several long-domain gates.
+- Provider circuit implementation review: it validates every pending rule fallback before committing any, marks every in-flight request cancelled before provider cancellation, commits the prepared batch only after full validation, and ignores late callbacks through the cancelled latch. This matches the fail-loud/no-partial-commit contract and the focused/full Unity regressions passed.
+- Behavior-tree inventory caveat: `CharacterAiCoverageSourceInventory` counts all 50 concrete BehaviorDesigner task types, but the current `EnsureVisualGraph` attaches only the centralized Critical/Deprivation/Locked/Interrupt/Macro/Emergency/RoutineUtility/Idle graph. Helper builders for `ContinueCurrent`, per-routine groups, per-JobGiver selectors, and several legacy nodes are defined but not called by the production graph builder. Completion must classify those types explicitly as dormant/legacy or attach and execute them; merely counting their classes is not live coverage.
+- Work matrix common start failure is narrower than pause semantics: `PreferWorkActionOnNextDecision` returns false only when `AIBrain.availableActions` has neither the requested `AIWork` nor a generic `AIWork`. The fixture must prove the selected subject retained the production staff action catalog before blaming scheduler timing; the failure report should expose available action types/work IDs.
+# 2026-08-14 latest focused rerun evidence
+
+- Visitor v2 no longer fails service completion or macro exit. The remaining Critical/Locked failures exposed that an explicit urgent BT audit could be discarded while an action was already running; ephemeral `CurrentBranch` was also too weak as completion evidence.
+- Offense v4 proves three of five enemy intents through the production battle runtime. Move still lacks a deterministic eligible authored combatant in the fixture, while Retreat currently emits two rejected owned terminals and violates exact-once terminal accounting.
+- Captivity V18 restore now preserves the captive and wildlife fixture correctly, but `InvasionStartedEvent` still leaves the captive Confined with zero escape start. This is a real producer/eligibility boundary, not a terminal verifier issue.
+- A foreign reservation on the exact same spoiled physical stack is expected to be invalidated with all slices. Foreign-lease isolation must use a separate physical stack; otherwise the verifier contradicts the quantity-lease design.
+
+- The first WorkType rerun was not valid evidence: a concurrent source/domain reload prevented `DungeonRuntimeLifetimeScope` publication. Teardown then raised seven production errors: missing `IGameClock` in `CharacterSpawner.Update`, stale `CharacterFeedbackBubble`/`CharacterDialogueRuntime` log subscribers, and `CharacterSkillTransientState` use after its scoped registry was disposed. These must be fixed as lifecycle ordering defects, not filtered out by the verifier.
+- Captivity escape is now blocked for a legitimate reason exposed by stronger diagnostics: the restored captive is `Downed`. The success row must restore/recover an Active captive through production save/medical authority, while Downed should be a separate no-start assertion.
+- Visitor v3 proves the scheduler Critical and LockedAction audit fix; its remaining leak is production pooling. `CharacterSpawner` treated every shared-prefab character with `AbilityWork` as staff, so Customers bypassed visitor pool release and world unregister.
+
+- The deeper visitor exit defect was movement ownership: switching to `ExitingDungeon` at the entrance called transient cleanup, which cancelled the same ExitDungeon coroutine before outside-spawn movement and `CharacterSpawner.Interact`. The exit action must own movement through the handoff, then publish the lifecycle terminal atomically.
+- Consumable foreign leases are now demonstrably separate physical stacks with distinct provenance signatures and Lease slices. The remaining Eat failures are not lease corruption: the first row never crosses the utility threshold, while the second is still making path progress when the fixed timeout fires.
+- Fresh WorkType evidence shows the matrix itself can reach production AIWork. It also found a verifier use-after-destroy when formatting `Facility.name`, plus possible live-action/reservation leakage after restock progress timeout; those must be resolved before later WorkTypes are observable.
+- The follow-up visitor trace exposed a second exit defect: when the scene has no explicit outside spawn point, the fallback used the catalog spawner transform instead of an entrance-adjacent exterior point. The handoff code was not reached because the visitor spent the whole 25-second bound walking 28.5 units. The fallback target must be derived from the resolved entrance geometry.
+- Captivity escape start was not failing on the incident event or lifecycle gate in the latest run. The authored fixture room had no production-reachable exterior cell (`reachableExits=0`), so every Active row correctly remained at zero attempts. A valid success fixture requires a real door and ExteriorPath connector; the NoPath row should inject NoPath through the broker rather than make the success fixture physically impossible.
+- The latest consumable matrix isolates one scheduler/path-budget problem from lease behavior: Drink, Substance, Eat spoil, and Eat lease invalidation all preserve foreign slices and terminate exactly once. Repeated verifier-side direct BT ticks can itself starve the shared path broker and is not a valid production start authority.
+- The latest WorkType report is now complete enough to distinguish runtime red rows from fixture blockers. Reservation conservation is specifically broken on sow invalidation (`acquire=1, release=0`), while restock also shows a skipped Completed epoch before the observed retry. These must not be hidden by broader aggregate conservation.
+- Exact destination `PathSearchDeferred` was invisible to scheduler ownership because `AIBrain.IsPathSearchDeferred` only observed broad-search sessions. Idle fallback then cleared the unowned retry. Tracking committed-path deferred state and returning handled-deferred from the root decision fixes the Eat epoch-0 livelock without synthetic action starts.
+- A final route string is not authoritative evidence for a fast external deprivation action: the same actor can complete the breakdown and run RoutineUtility before the verifier samples. The correct evidence is a typed per-breakdown-kind latch emitted at `RunDeprivationBreakdown` commit, paired with the terminal and domain outcome.
+- Captive door policy and raw grid walkability are distinct. The latest fixture proves the stair/connector are walkable and the door policy permits CaptiveEscape, yet route search fails because the InteriorDoor occupant is not represented as traversable in the path graph. The production door traversal edge/state must be materialized, not bypassed.
+- The WorkType blocked audit found two genuine authored-content defects: no BuildingSO carries `BuildingButcherAbility`, and the serialized R07 desk lacks GrandProject even though its builder defines it. Craft, cook, perform, quarry, animal-care, plumbing, and dismantle are valid content whose verifier prerequisites are currently incomplete.
+- Captive escape lifecycle ownership is now closed at `CharacterActor.ReleaseTransientAiOwnership`: a running escape that becomes Downed synchronously releases its coroutine, temporary door pass, movement, and path and emits exactly one failed attempt. The fresh PlayMode row proves duplicate cleanup is idempotent.
+- The current captivity/wildlife blocker is no longer captive escape. Normal wildlife transport ends with `active=False` but publishes no captured terminal state, while all transport fault rows pass; this must be separated into production terminal publication versus verifier state-query semantics.
+- The newest WorkType run regressed many formerly green fixture rows after stricter post-placement access checks. These BLOCKED rows should be treated as fixture reachability/materialization defects until a production candidate exists; they cannot be counted as solved or silently omitted.
+- Full-save restore must retire active post-baseline Customers at commit, not rollback, before replacing population/narrative aggregates. Reusing a deterministic visitor ID on the next pool replenishment is not stale narrative survival; exact replacement must be sampled synchronously at the restore boundary.
+- Wildlife capture transport exposed that raw `MoveByPath` is not a domain ownership boundary. Long-lived protected transport must use tracked system movement plus a retained operation token so late action coroutines cannot silently invalidate its movement version.
+- The animal-care production row confirms the common Work traversal bug with runtime counters: scheduler/retry advances and preference remains active, but no path request is issued for the roles-none pen. Work access must use a worker-specific adjacent stand/path contract and must not weaken visitor `CanQueueVisit` admission.
+## 2026-08-14 AnimalCare selection conflict
+
+- The latest `captivity-wildlife-lifecycle-playmode.txt` is not a path, policy, authored-content, or candidate-selection failure. All six preflight authorities pass and the exact AnimalCare pen scores as a valid candidate.
+- Atomic cleanup also passes: prior action/external intent/haul/work/movement/path/reservation ownership settles to zero before the new request.
+- The remaining divergence is command strength: the verifier only installs a work-type preference, while the production WorkType matrix additionally calls `AbilityWork.TrySetPriorityWorkTarget(target, workTypeId, searchResult, out error)`. A separate `AIHaul` utility can therefore win and consume the scheduler epochs while the soft AnimalCare preference remains set.
+- The focused verifier should use that existing public production priority command for the exact authored pen, retain Brain -> AIWork -> AbilityWork execution, and continue to reject direct executor/handler invocation as evidence.
+- The exact-target rerun disproved that as a sufficient fix: `priorityAccepted=True` but the preferred AIWork remains unconsumed and `AIHaul` is selected. The target candidate urgency is `34`, while `WorkCommandHandler.HasUrgentPriorityTarget()` returns true only at urgency `>=60`. Consequently `WorkDutyController.CanStartWorkAction()` does not treat this explicit command as an urgent/direct order and can still block AIWork on duty/physiological protection, while `AIHaul.CanStart()` ignores that arbitration and remains eligible. This is now a production arbitration defect, not a path/candidate or verifier-only defect.
+- `AIHaul` suppression is now independently green. After that fix, `AIWait` replaces it while `preferredNow=True`, `pathRequests=0`, and the exact target remains valid. Unlike the WorkType verifier, the captivity verifier does not neutralize character needs before its late AnimalCare section; this can legitimately make `AbilityWork.CanStart*` reject work through routine-need/rest protection. The verifier must report those blockers and isolate them rather than making priority work override survival policy.
+- A separate Console failure came from the real invasion intruder coroutine calling `BuildableObject.SetDamaged` on a fixture target whose `IBuildingDamageRulePort` was never injected. The stack is `InvasionIntruderExecutionCoordinator.RunInside -> InvasionIntruderRuntime.TryDamageNearbyFacility -> BuildableObject.SetDamaged`. This must be fixed at fixture construction/injection or event cleanup; suppressing the exception is not acceptable.
+- The live container injection fix removes that invasion error; the latest focused run is Console `0/0`.
+- After the duty fix, diagnostics prove `abilityAny=True`, `abilityAnimalCare=True`, `duty=OnDuty`, `routineNeedBlock=False`, `restProtection=False`, `discontent=False`, and the exact target remains accepted. The first preferred selection still sees broker searches/deferrals and then runs AIWait while retaining the preference. A later identical AnimalCare start succeeds, so the target and executor are valid. `AIBrain.TryUsePreferredAction` must preserve a Deferred preferred selection as pending instead of allowing same-tick score fallback; increasing the verifier timeout would hide the ownership defect.
+- The prior coverage manifest accepted consumable fault evidence from a verifier that directly invoked runtimes. It now requires the production Brain/BT consumable artifact and 35 exact Drink/Eat/Substance rows. Broader durable reports also gained 98 exact scope markers; generic `PASS` text is no longer enough. Runners without a durable artifact (Defense and Offense Journey) correctly remain ContractOnly even when an entrypoint exists.
+# 2026-08-15 AnimalCare preferred-action production-path audit
+
+- Clean Unity compile produced fresh runtime/editor assemblies and Console plus Editor.log compiler gates were 0/0.
+- `CaptivityWildlifeLifecyclePlayModeVerifier` remained honest red with three AnimalCare failures while all captivity, escape, wildlife transport, teardown, V18 restore, and Console gates passed.
+- Exact production defect: `CharacterAiScheduler` always uses `AIBrain.RunDecisionTreeDirect()` when the resumable decision pipeline exists, but `PreferWorkActionOnNextDecision()` was consumed only by legacy `AIBrain.DecideAction()`. The production BT path therefore retained the preference without evaluating it.
+- Independent verifier defect: the first AnimalCare row started while the restored husbandry candidate index still reported `pending=True, containsPen=False`; it did not wait for bounded index readiness or account for deferred/intermediate epochs. The later target-loss row succeeded only after enough world time had elapsed.
+- Required closure is two-part: connect preferred selection to the production decision pipeline with typed Selected/Deferred/None ownership, and make the verifier wait on authoritative index readiness plus consecutive ownership settlement. Do not extend timeouts or call handlers directly.
+- Balance impact: no BOM, WU, need, utility, urgency, or authored numeric value changes. This repairs the existing explicit priority-command/AI execution authority and preserves ordinary survival interruption rules.
+- The second focused run proves the initial routing patch is not yet sufficient. AnimalCare starts and progresses, but the epoch trace is `[AIWait][AIWork]`, preferred commit count remains zero, and the final disposition is `None:Work`.
+- Those counters are monotonic and survive `ClearPreferredAction`, so this is not a verifier reset. The production direct pipeline hard-retires the preferred Work candidate, then permits a same-decision Wait fallback; the later AIWork is an unpreferred autonomous selection.
+- The first typed hard rejection is overwritten by the Wait commit in existing diagnostics. Closure requires durable `failure kind + failure source` capture before retirement, correct Deferred classification for publication/backpressure, and no silent same-decision fallback after a true explicit-command rejection.
+- A later transport failure exposed the same class of bug in another domain: `IGridPathSearchBroker.GetMovePathTo()` returns null for both Pending and Unreachable. Wildlife delivery treated Pending as hard NoPath. The runtime now uses typed `Pending/Ready/Failed`, retains transport ownership while pending, and chooses a completed-search stand deterministically.
+- The resulting focused run is functionally green: preferred AnimalCare commits exactly once with hard-failure count zero and no intermediate epoch. Acceptance still requires verifier isolation because the successful captive escape starts an asynchronous system exit immediately before wildlife transport, and the pickup helper did not preflight an EscortPass route to an empty room stand.
+
+## 2026-08-15 focused closure and WorkType fixture findings
+
+- The final captivity/wildlife run is authoritative PASS. A fixed 30-second wall-clock timeout had falsely classified a 14-step protected transport as stalled; the verifier now uses path-distance/speed/time-scale bounds plus a no-progress watchdog instead of relaxing the production terminal gate.
+- `CharacterLifecycle.SetLifecycleState` previously exposed `Active` while calling cleanup. `EndExpectedAction` could synchronously wake the scheduler, allowing stale `AIWork.Execute` to reacquire work and clear the ownership-release flag. Publishing the non-Active state first closes both the scheduler and final mutation gates.
+- Wildlife preflight originally teleported a worker while an autonomous raw movement coroutine was still live. Pause -> action/haul/work/move cleanup -> two stable frames -> placement -> order is the required verifier boundary; the production external intent also cancels stale movement atomically.
+- The WorkType synthetic Brush save is topology-sensitive. A payload containing Gather+Logging is only strict-rebind legal after the wildlife decoration authority has produced the matching renewable patch and tree visual. Restoring the synthetic node before that publication causes `WorldResourceRuntime.ApplyRestoreStrict` to throw; row fixtures must derive from a production-published topology snapshot or reuse an existing legal Brush node.
+- Restock operation identity currently throws for an invalid/zero sale item after planning. Production execution must validate the selected plan and terminate with a typed failure/cleanup before constructing an operation ID; a verifier must never accept the exception as a row result.
+## 2026-08-15 current-code five-day routine closure
+
+- Fresh PlayMode reports for seeds `157181`, `157182`, and `157183` all report `RESULT=PASS`. Every actor has invariant anomalies `0`, harmful stalls `0`, and every safe-drink request reaches one started/arrival/interaction/success/finished chain without failure.
+- Multi-frame action ownership was the decisive runtime defect: `AIDrink`, `AIWait`, `AILookAround`, and `AIExitDungeon` previously exposed themselves as non-continuous while their coroutine remained live, allowing a subsequent direct decision to overwrite the action epoch. They now remain continuous until the owning routine ends.
+- The hygiene cadence verifier keeps the authored `0.6/day` threshold. Its observation boundary now right-censors an active visit or an actor whose hygiene need is due and has a production-usable facility candidate; fresh accepted runs reached `0.600/day` without relying on censorship.
+- These three reports close the natural five-day seed matrix only. Fault artifacts affected by the action lifecycle changes, the 100/500 profiles, release soak, and final coverage manifest still require current-source reruns.
+# 2026-08-15 release-soak final closure
+
+- `service.rooms` strict restore failure was a capture-boundary strong-reference leak: active sessions could retain a transient/non-persistent actor or an unavailable/incompatible hub/process. `ServiceSessionRuntime.Capture()` now reconciles active sessions against the exact `ICharacterWorldPersistenceIdentityQuery` envelope and live authored hub/process authority; invalid sessions are cancelled and stale non-default hub modes are removed. Restore validation remains strict.
+- Removing the unconditional four-decision small-population floor fixed the 40 ms AI p95, but also removed the scheduler's original one-decision minimum floor and allowed pending work to wait for the rescue window. Restoring `LastProcessedDecisionCount < guaranteedDecisionFloor` as a time-budget exception preserves one bounded decision, while additional decisions remain inside the wall-clock budget.
+- Fresh `DungeonReleaseSoakPlayModeVerifier` result: PASS, pending max `3.17s`, decision max/frame `4`, AI marker p95 `0.023ms`, scheduler p95 `0.020ms`, urgent path continuation max `1` within `4`, save/reload PASS, Console Warning/Error `0/0`.
+
+# 2026-08-15 current-source WorkType revalidation
+
+- The fresh post-scheduler/post-save-source canonical WorkType run is complete and honest: `RESULT=FAIL; rows=20; passed=18; blocked=0; failed=2` with the editor back in EditMode.
+- All 18 green rows reached approved WU through Brain -> AIWork -> AbilityWork -> WorkTaskExecutor and closed cancellation/target-loss terminals with path, reservation, and invariant conservation.
+- `work:plumbing` and `work:dismantle` both select the exact fixture, obtain path/reservation, and reach the target, then fail before approved WU with `work-execution-unavailable:*`. This is an execution-authority/state-handoff problem, not a selector, path, or timeout failure. Their production versus verifier ownership is being isolated before another Unity run.
+# 2026-08-15 AI closure continuation
+
+- The latest real strategic Offense journey artifact is fresh relative to its current production sources and reaches battle terminal in 11 planned rounds. It records queue/card/intent identities, typed allied results, round `N -> N+1`, both-side HP deltas, objective completion, return, exactly-one reward event, and zero ownership leaks.
+- Remaining strategic correctness gap: an unavailable allied command currently enters clash resolution before its execution rejection. The enemy then executes only the reduced surviving stages, so an illegal card can still weaken/claim an intent. The production contract must preserve the original full enemy intent unless a lawful allied execution actually intercepts it, and the regression must inspect enemy execution authority rather than only party HP.
+- Primitive five-day is fresh PASS after two production authority corrections: safe-drink candidates now pass the existing environmental route policy before reservation/movement, and rumor mood factors key by typed target instead of speaker so the authored two-stack cap applies across a visitor crowd.
+- `CharacterAiPlanDebugScenarios` Console pollution was a verifier lifecycle defect, not a GameManager production defect: a static reflection contract created a MonoBehaviour and invoked `Awake` before GameData injection. The audit is now pure reflection.
+## 2026-08-15 - Current closure boundary after strategic finalization work
+
+- `OffenseCommandBattleDirector` now treats synchronous terminal callback re-entry as an ownership boundary: only the same state or a terminal `null` clear may be finalized; replacement with a different non-null battle state fails before touching the replacement state's traces or pending fence.
+- The previous Offense Journey PASS predates this last ownership correction, so it is useful behavioral evidence but not current-source acceptance evidence.
+- Manifest freshness is intentionally broad. Re-running a graph builder or changing production AI/Work/Domain authority after expensive PlayMode suites invalidates those artifacts; freeze source before the long regeneration batch.
+- The immediate next decision is whether Primitive FloorRest suppression is a verifier isolation defect or a production availability defect. Do not weaken the success marker or invent a fallback rest action.
+- Evidence automation must gate every launch by invocation time, artifact completion markers, and confirmed EditMode return. Reusing old PASS text is unsafe because most request APIs do not delete the old artifact before their pending launcher starts.
+- Primitive FloorRest suppression is not a production AI bug: the verifier sampled the facility cache before its budgeted index finished and reported a false `rest=0`; GameplayScene initial placement deterministically expands `LordBedroom` into an authored R02 Rest facility. The focused verifier must isolate a lawful no-Rest row and restore it, not count suppression as success.
+- Fresh SelfCare failed only two ownership assertions. Physical water consumption, thirst recovery, start/terminal conservation, and invariant counters passed. `AIDrink.Execute` and `CharacterSafeReliefRunner.RunRoutine` explicitly keep routine hydration under the selected AIDrink epoch, yet the verifier observed an external intent. The likely competing authority is the deprivation emergency tick because the fixture sets THIRST=5, crossing both routine and emergency thresholds; exact Tick/intent arbitration must be checked before editing.
+- Exact SelfCare cause confirmed: authored thirst response is routineStart=60 and emergencyStart=35, while the verifier injected THIRST=5. `CharacterDeprivationRuntime.TickActor` correctly starts emergency self-care before breakdown at that value, so the verifier accidentally tested the emergency external-intent path while asserting routine AIDrink-only ownership. The lawful fixture is a value strictly between emergencyStart and routineStart, resolved from `ICharacterNeedBalanceRuntime`, and completion should be awaited by exact physical water consumption rather than the old `<20` loop.
+- Fresh AI save/load restored the replacement actor, discarded transient movement/intent, reacquired exactly one execution owner, conserved path/reservation ownership, and emitted 43 typed gameplay progress revisions, but the final gate failed because SLEEP stayed `0->0`. The verifier waits only 8 real seconds at timescale 20 while production FloorRest requires 60 game seconds; progress/service heartbeats are not equivalent to the final need recovery commit. Diagnose the production runner completion boundary before changing the gate.
+## 2026-08-15 FacilityEvolution restore-time mutation exception
+
+- Fresh Primitive focused run completed its gameplay assertions, but the post-restore Console caught `InvalidOperationException: Collection was modified` in `FacilityEvolutionActivationProjection.Reconcile` while iterating `IBuildingWorldQuery.Buildings` and calling `IFacilityEvolutionRuntime.RefreshRoomActivation`.
+- `CharacterAiWorldRegistry.Buildings` exposes either the live building registry entries or the active restore-candidate list. The projection currently enumerates that authority directly, so synchronous activation side effects or save-restore publication can mutate the collection under the enumerator.
+- The artifact is not accepted despite its first-line PASS. The production projection needs deterministic snapshot/replay semantics plus a focused regression, followed by a clean Primitive rerun and Console 0/0.
+- `SceneRuntimeRegistry<T>.Entries` is an `AsReadOnly()` view over its mutable `List<T>`; it is not a snapshot. `CharacterAiWorldRegistry.Buildings` therefore exposes an enumerator that is invalidated by any synchronous register/unregister during reconciliation.
+- `FacilityInstanceEvolutionRuntime.RefreshRoomActivation` itself only rebuilds activation lists and replaces the state component, but its `BuildRoomSnapshot` call and downstream room/facility queries still need auditing for synchronous registry mutation. Snapshot iteration remains the correct ownership boundary even if the exact mutator is deeper in that call graph.
+- `RefreshRoomActivation` records the current grid and candidate-cache versions, builds a room-environment snapshot, and clones state back into `FacilityEvolutionStateComponent`; it does not directly register/unregister buildings. The unsafe part is nevertheless the projection's ownership of a live registry enumerator across an arbitrary runtime callback.
+- `RestoreWorldCandidateIndex` can temporarily redirect the query to a detached candidate list and increments its revision on set/clear. Capturing query contents into an array at the start of reconciliation cleanly defines the batch, while leaving observed versions at the start values ensures a mutation/revision change is picked up on the next tick.
+- A deterministic regression can use a fake `IBuildingWorldQuery` backed by a live list and a fake evolution runtime whose first refresh unregisters/removes the second building. Expected semantics: initialization processes both objects from the captured batch, the changed building version causes exactly one next-tick replay over the remaining object, and a subsequent unchanged tick performs no work.
+- Implemented semantics now also cover a nested Tick request without recursion and a refresh exception with the same authority version: both leave a pending retry, and only a fully successful stable pass advances observed versions.
+- Current-source Unity focused and aggregate FacilityEvolution scenarios pass. The remaining acceptance step for this defect is the original Primitive full-save teardown/restore reproduction with a post-terminal Console read, because the prior verifier artifact did not capture late Tick exceptions.
+- Acceptance completed: the current-source Primitive focused artifact is first-line PASS with FieldMeal, PrimitiveLatrine, BucketWash, and FloorRest all completed. FloorRest restored the exact persistent facility IDs, definitions, and positions from the full-save baseline.
+- No late exception recurred. Unity Console remained Warning/Error 0/0 after runner teardown and again after manual return to EditMode, so the previous false-green report/late-exception combination is no longer present.
+
+## 2026-08-15 current-source Wildlife hunt evidence
+
+- `Artifacts/QA/wildlife-ai-hunt-playmode.txt` was regenerated after invocation at 12:01:17Z and finished at 12:01:34Z with `RESULT=PASS; failures=0`.
+- Production AbilityHunt ownership was singular: one start, one completed terminal, no failed terminal, and final path/reservation counts 0. Live wildlife health decreased, so this is not a terminal-only false green.
+- Unity Console Warning/Error was 0/0 before and after the runner returned to EditMode.
+
+## 2026-08-15 current-source autonomous medical evidence
+
+- `Artifacts/QA/character-ai-autonomous-medical-playmode.txt` was regenerated after 12:02:22Z and finished at 12:02:32Z with `RESULT=PASS; failures=0`.
+- The production rescue action published one completed terminal and zero failed terminals, with final path/reservation ownership 0 and invariant anomaly delta 0. The runner returned to EditMode and Console Warning/Error remained 0/0.
+
+## 2026-08-15 current-source surgery evidence
+
+- `Artifacts/QA/surgery-playmode-report.txt` was regenerated after 12:03:24Z and completed at 12:03:53Z with `RESULT=PASS; failures=0`.
+- The production path accumulated 12/12 surgery work and observed PatientWaiting -> MaterialsWaiting -> Anesthetizing -> Incision -> Procedure -> Suturing -> Recovering -> Completed. Patient health recovered 0->8.
+- The visual/UI proof remained live: the screenshot was nonblank and the close button consumed a real pointer event. Captured and Editor Console Error/Warning were 0/0.
+
+## 2026-08-15 current-source Captivity AI evidence
+
+- `Artifacts/QA/captivity-ai-playmode.txt` was regenerated after 12:04:53Z and completed at 12:05:29Z with `RESULT=PASS; failures=0`.
+- Production warden selection/start/progress, confined escape failure, release transition, recapture restraint/reservation, and cancellation terminal all passed. Fixture restraint quantity, displaced movement, and authored area state restored exactly.
+- The runner returned to EditMode with Console Warning/Error 0/0.
+
+## 2026-08-15 alarm responder work ownership defect and closure
+
+- The 12:07:35Z artifact was an honest production race, not a hysteresis error. Red safe-checkpoint suspension created a durable Construct journal, but the old direct/autonomous Construct candidate remained admissible before receipt consumption. The same order progressed 0.496 -> 146.168 WU during Red/Amber, and Green return could not consume the journal because it requeued any already-working actor.
+- Clearing only the direct priority was insufficient because autonomous Construct remained eligible. AbilityWork now carries an epoch-bound allowed emergency WorkType gate across scoring, candidate lookup, assignment, direct commands, and final mutation. The alarm runtime installs it when a responder is claimed, reconstructs it from an Amber suspended-work save, and releases it only at Green return.
+- The safe checkpoint also clears the live priority atomically after creating the receipt, making the suspended-work journal the sole authority for restoring the original explicit command.
+- The current-source rerun regenerated `Artifacts/QA/character-alarm-response-playmode.txt` at 12:18:39Z with `RESULT=PASS; failures=0`. Red/Amber no longer reacquire the Construct order, Green resumes the exact target/type and clears the journal, and the destroyed-target branch abandons exactly without false restore. Console Warning/Error is 0/0.
+
+## 2026-08-15 current-source consumable fault evidence
+
+- `Artifacts/QA/character-consumable-action-fault-playmode.txt` was regenerated after 12:20:49Z and completed at 12:21:07Z with `RESULT=PASS; failures=0`.
+- Brain/BT -> AIDrink/AIEat/AISubstanceUse production paths passed all source-loss, spoilage, and lease-invalid rows. Target leases were released, foreign leases remained exact, immediate replans occurred, and final path/reservation ownership was 0. Console Warning/Error was 0/0.
+
+## 2026-08-15 current-source cross-action fault evidence
+
+- `Artifacts/QA/character-ai-cross-action-fault-playmode.txt` was regenerated after 12:22:23Z and completed at 12:22:32Z with `result=PASS` and `lateCommit=0`.
+- Haul, Rescue, Hunt, Drink, PrimitiveMeal, and Substance invalidation/save-restore boundaries rejected every stale completion and restored the wildlife V18 authority where required. Console Warning/Error was 0/0 after automatic EditMode return.
+
+## 2026-08-15 current-source canonical fault-recovery evidence
+
+- `Artifacts/QA/character-ai-fault-recovery-playmode.txt` was regenerated after 12:23:36Z and completed at 12:24:30Z with `exactRows=True`, `result=PASS`, and `RESULT=PASS`.
+- One canonical all-selector launch covered core repath/no-path, shared and action-specific facility loss, destinationless starvation terminals, deprivation, primitive survival item loss, and a deliberately throwing destruction subscriber. The expected subscriber exception was caught and reported as a PASS row; Unity Console Warning/Error remained 0/0.
+# 2026-08-15 continuation findings: current two-defect boundary
+
+- Alarm ownership must carry forward the union of assigned responders, pending suspension owners, queued return owners, and suspended-journal owners before selecting any new responder. Same-epoch incident role changes retarget the existing gate; Green alone releases the gate and journal exactly once.
+- Captivity-wildlife delivery currently has insufficient evidence to classify the terminal stand failure. A `CharacterActor` is not an `IGridOccupant`, so allowing `ReferenceEquals(characterOccupant, worker)` is not an authoritative fix. The next report must split grid layers, exact wildlife registration count, source residue, parent release, captured state, and live actor co-location.
+- The previous captivity artifact is stale relative to the verifier source and also contains an independent alarm ownership exception, so neither failure can be accepted as closed until both current-source focused runs pass cleanly.
+- Production wildlife delivery selects an empty stand only in `ResolveDeliveryStand`. `TryCompleteCarry` later verifies only the carrier position, then `EndManagedCarry -> WarpTo -> RegisterAt`; `WildlifeActor.RegisterAt` ignores the boolean result of `Grid.RegisterOccupant`. Therefore a destination claimed during transit can produce a `Penned` state without authoritative wildlife grid registration. This remains a hypothesis until the per-layer/current-source artifact identifies the occupant and registration count.
+- The transport coroutine calls `TryCompleteCarry` only after protected delivery movement and exact arrival validation. A typed `false` would enter `FailCarry` and release/remove the capture state, but the ignored registration result returns `true`, publishes `Penned`, and closes the external intent as Completed. The fresh diagnostic must therefore reject the exact silent-state combination rather than infer success from the terminal alone.
+
+## 2026-08-16 haul save/restore structural findings
+
+- The live construction duplicate-request fix was insufficient across save/load because `AbilityHaul.activePlan` was transient while carried stacks and grandfathered leases were durable.
+- The corrected authority uses a deterministic per-plan operation ID, persists only pickup-committed intent, rebinds at restore participant `225.world.haul-delivery-intents`, and keeps the binding inert until normal `Brain -> AIHaul` execution.
+- Planning and restore now share one destination authority for Warehouse, ConstructionSite/work order, and facility input buffers; kind, stable ID, delivery cell, and drop cell must all match current live authority.
+- The verifier must prove both positive and negative paths: no routine/movement/heartbeat before AI wake, one Brain-owned delivery afterward, five destination-tamper restores rejected atomically, and two successful restores conserving physical quantity.
+- The last Unity compile attempt was blocked only by two C# 9 diagnostic interpolation expressions in the verifier; no PlayMode run occurred after those edits.
+- Physical-item restore reconstructed lease IDs in a live transient ledger before a later participant could reject the candidate. Because the physical section is marked rollback-free, a rejected restore changed the live lease ID and invalidated the still-running haul plan. `ItemQuantityReservationService` now owns participant `210.world.item-quantity-reservations`, snapshots exact leases/sequence/diagnostics at transaction begin, and restores them on discard or rollback.
+- A restored construction site is deliberately detached until participant completion, so world-registry lookup cannot be the only authority during participant 225. The published `IWorkOrderQuery` candidate is now an accepted exact authority only when WorkType, material destination ID, and grid position match uniquely.
+- The fresh save/load report proves the positive and negative paths. Remaining facility-buffer debt is broader: Surgery, Defense, Research, Medical, production, consumables, and relocation use distinct destination owners. Prefix parsing or a same-cell facility is insufficient; an exact producer claim registry with restore-candidate publication before participant 225 is required.
+# 2026-08-16 equipment reservation signature dependency boundary
+
+- `DungeonStory.Items.asmdef` references only Buildings/Foundation, while `DungeonStory.Combat.asmdef` already references Items. Therefore `ItemReservationSignature` in Items Core cannot call `EquipmentItemStateCodec` without introducing a forbidden Items -> Combat -> Items assembly cycle.
+- The current reservation signature intentionally removes only Freshness and otherwise delegates to the exact stacking signature. Equipment state is an opaque Combat-owned JSON component, so parsing or rewriting its `worldState` in Items Core would also violate the domain boundary even if implemented with string manipulation.
+- The safe implementation direction must therefore either (a) let the Combat-owned transfer edge provide an explicitly normalized reservation component/signature, or (b) atomically retarget the existing lease/carry signature after the lawful Loose -> Carried transition while preserving owner/stack/quantity revalidation. Removing commit revalidation or weakening equipment identity is not acceptable.
+- `IItemQuantityLeaseMutation.TryRetargetSlices` already provides an exact, validated lease-signature mutation: it verifies the replacement signature against the current physical stack and preserves the lease total. The pickup path currently mutates the physical equipment component only after adding the carry DTO, so a transactional fix also has to refresh the carry DTO components and retarget the exact affected lease slice before `TryCommitHaulPickup` revalidates it.
+- `WorldItemStackRuntime.TryCommitHaulPickup` deliberately compares three authorities—intent, carried DTO, and revalidated lease. The fix must make all three converge; changing only the lease would still fail the carried signature comparison, and removing that comparison would weaken the save/restore invariant.
+- The existing transfer order can be made assembly-safe without teaching Items Core about Combat JSON: after extraction, the service can apply the Combat-owned world-state transition to the physical record, retarget the exact lease slice to the new physical reservation signature, and only then add the carry DTO using the now-current components. This works for both identity-transfer and split extraction because extraction already retargets split slices to the child stack.
+- Failure handling must remain atomic. If the equipment transition or slice retarget fails, the extracted physical record has to be returned to its original position/state, the lease released, and equipment world state restored before returning failure. If carry admission fails after retarget, releasing the lease plus restoring the physical/equipment state is required; leaving a Carried equipment component on a Loose rollback stack is another divergence.
+- `HaulDeliveryIntentRuntime.TryCommitPickup` derives its commitments from the post-pickup carry DTO, so it will naturally capture the retargeted signature once the carry is created from the updated physical components. No intent API change is required for this bug.
+- Equipment instances are max-stack-one unique items, making their pickup an identity transfer rather than a quantity split under the current catalog contract. The production fix should still assert that invariant before applying the specialized state transition, fail loudly if violated, and keep the generic material extraction path unchanged.
+- `PhysicalItemDebugScenarios.RunAll` already owns reservation lifetime tests and equipment physical-authority tests. A new focused row can use the existing production runtime factory plus `TryReserveBestHaulJob`/pickup/commit/deposit rather than inventing a signature-only fake; this will prove the real reservation, carry, intent and equipment-state convergence.
+- Independent assembly audit found a smaller authority-preserving option than transfer rollback surgery: move the non-serialized global `ItemReservationSignature` helper out of the Items asmdef into `Services/Items` (Assembly-CSharp), where both Items DTOs and Combat codec are visible. Keep `ItemStackSignature` in Items Core. The moved helper can decode only the Equipment component, clone the payload, canonicalize `worldState`, re-encode it, and leave every other field/module exact. All signature call sites then continue using one authority without changing their method signature.
+- Before accepting that move, every call site must be confirmed outside the Items asmdef and Unity compilation must prove no external assembly relies on the former type location. Decode failure must preserve the original component so malformed equipment still fails exact revalidation; it must never be silently omitted.
+- Current fixed-string inventory confirms there are no consumers under another `Models/*` asmdef: the declaration is the only Items-model occurrence, while operational callers are in `Services/*`/Editor and can see Assembly-CSharp. A few Foundation/UI matches are localization/failure identifiers rather than type consumers and must be distinguished during compile verification.
+- The focused runtime factory has no grid, so it cannot use the planning service. It can still exercise the exact production pickup transaction by registering a deterministic haul intent on `WorldItemRepository.HaulDeliveryIntents`, reserving the real stack with `ItemQuantityReservationService`, constructing the exact `WorldItemReservedStackQuantity`, then calling `WorldItemStackRuntime.TryPickupReservedStackQuantity` and `TryCommitHaulPickup`. This is the narrowest deterministic regression for the failing boundary; the full PlayMode suite remains the planning/Brain authority.
+- Unity compilation corrected that assumption: `PhysicalItemDebugScenarios` compiles into `Assembly-CSharp-Editor`, while repository internals are in `Assembly-CSharp`, so the focused test cannot access `AllocateHaulDeliveryOperationId` or `HaulDeliveryIntents`. The production signature fix itself compiled far enough to reach only those three verifier access errors. The regression must use the public planning/runtime path with a real grid fixture, not widen repository APIs for a test.
+- `CombatEquipmentInstance.Clone()` preserves every semantic and ownership field. The normalizer changes only `worldState`; material, quality, durability, ammo, owner, source stack, evolution and modules remain in the encoded reservation signature.
+
+# 2026-08-16 FacilityBuffer claim integration blockers
+
+- The new registry's restore mutation phase needs a fail-loud guard: after participant 220 publishes, its candidate is null while restore remains active until Complete, so a later domain participant calling `TryClaim/TryRevoke` can currently dereference null. Restored claims must be staged during save-section Commit, not late participant Publish.
+- Strict destination gating cannot be enabled piecemeal. Construction and expedition currently share the same untyped delivery request surface as FacilityBuffer; expedition is even planned as FacilityBuffer. A typed destination/request boundary is required before removing the legacy position-based fallback, otherwise strict gating either breaks legal flows or requires a forbidden prefix fallback.
+## 2026-08-16 equipment haul signature regression integration
+
+- `PhysicalItemDebugScenarios` focused regression currently does not compile because it reaches internal `WorldItemRepository.AllocateHaulDeliveryOperationId` and `HaulDeliveryIntents` from the Editor assembly.
+- `HaulPlanConstructionSafetyDebugScenarios.ScenarioRuntime` already owns a real walkable grid, warehouse, actor/carry, `WorldItemHaulPlanningService`, reservation service, transfer service, and public `WorldItemStackRuntime` planning/pickup/deposit path. The focused regression should move there and obtain the operation/intent from `TryReserveBestHaulPlan` / public capture APIs.
+- That fixture currently creates only an equipment catalog, not a `CombatEquipmentRuntime` or equipment physical gateway, and its test item catalog reports maxStack=75 for all items. A valid unique-equipment regression therefore needs the same equipment runtime/proxy wiring used by `PhysicalItemDebugScenarios.CreateRuntime`, plus an equipment item definition with maxStack=1.
+- The required runtime wiring is already explicit in `PhysicalItemDebugScenarios.CreateRuntime`: one shared `WorldItemRepository`, `ItemQuantityReservationService`, `EditorEquipmentPhysicalItemGatewayProxy`, `CombatEquipmentEditorTestFactory.Create(...)`, `WorldItemStackRuntime`, then `proxy.Attach(runtime)`. The haul-grid fixture can reuse that composition without adding a gameplay API.
+- A smaller alternative is possible only if an existing public Editor access bridge can legally call the repository plan allocator/intent registry. `WorldItemRepositoryEditorAccess` currently wraps test stack mutation but does not expose haul plan allocation; verify member accessibility before choosing this path. The focused test may use lower-level production pickup/commit, but the full PlayMode logistics rerun remains mandatory execution-path evidence.
+- Repository plan allocation and intent registry are `internal` with no `InternalsVisibleTo`, so an Editor wrapper cannot legally call them. The regression must obtain its operation through the public production planner.
+- `WorldItemStackRuntime` exposes the complete required public chain: `TryReserveBestHaulPlan`, `TryPickupReservedStackQuantity`, `TryCommitHaulPickup`, `TryCaptureHaulDeliveryIntent`, and deposit. This removes the need for a new gameplay API.
+- `WorldItemHaulPlan` carries the exact operation token on every `WorldItemReservedStackQuantity.OwnerOperationId`, so the focused regression can remain entirely on public production surfaces after planning.
+- The focused regression is now hosted in `HaulPlanConstructionSafetyDebugScenarios`: it creates and links a real unique dagger, prioritizes the exact stack, obtains the operation via the production planner, exercises pickup/revalidation/commit/deposit, and checks that only `worldState` is canonicalized while durability/modules remain reservation identity. The fixture now shares one repository between combat equipment and physical items and exposes only the runtime/query objects needed by the enclosing test.
+- The first dynamic Unity refresh command itself failed because the command script resolved `CompilationPipeline` to `Unity.CompilationPipeline`; this is a command-wrapper namespace issue, not a project compile result. Use `AssetDatabase.Refresh(ForceUpdate)` alone or fully qualify `UnityEditor.Compilation.CompilationPipeline`.
+- The fully-qualified refresh/compile request executed successfully; Unity returned to EditMode with `IsCompiling=false` and `IsUpdating=false`. Console and Editor.log still need to be checked before treating the project compile as clean.
+- Unity project compilation completed with Console error/warning 0/0. The first focused execution reached the production planner but failed the verifier's destination assertion because warehouse routing deliberately uses canonical `warehouse:{BuildingInstanceId}`, not the raw building ID. This is a verifier expectation bug; use `WarehouseStorageIdentity.RequireDestinationId`.
+- After correcting the canonical warehouse ID expectation, the focused production-path regression passed: `Loose -> Carried -> Stored`, exact operation/lease/stack cleanup, Console error/warning 0/0. Artifact: `Temp/equipment-haul-lease-world-state-transition.tsv`.
+- Fresh full `PhysicalItemLogisticsPlayModeVerifier` proves the equipment fix in the actual AI path (`AI_HAUL_DEPOSITED_EQUIPMENT_TO_INVENTORY Dagger=0->1`) and all construction/craft/material-repair rows pass. One independent expedition root remains: the ration is routed as `Stored destination=expedition:*`, the repeated haul finishes without delivery, and the preparation aggregate remains `delivered=0/2`; 3 other expedition assertions cascade from it. Report result is FAIL 4 with captured runtime errors/warnings 0/0.
+- The expedition verifier expects the destination to become a physical `FacilityBuffer`, and `OffensePreparationService` is the live owner of the `expedition:{packageId}` destination. The current generic request/planner path is being audited to locate why a source-warehouse `Stored` stack is accepted as a completed delivery.
+# 2026-08-16 current structural boundary
+
+- The equipment reservation signature defect is closed by current-source focused evidence and the full logistics run now passes unique-equipment AI hauling.
+- The remaining full logistics failure is isolated to expedition supply: a ration routed to `expedition:{packageId}` remains `Stored` at the source instead of becoming destination `FacilityBuffer`, so packing and consumption cascade-fail.
+- This is a destination-authority problem, not a timeout: the generic delivery API and planner currently classify expedition staging through the same FacilityBuffer path used by live facilities.
+- Next decision must preserve an explicit owner and exact destination/drop authority; prefix or same-cell fallbacks are not acceptable.
+# 2026-08-16 expedition delivery code boundary
+
+- `AbilityHaul` branches solely on `WorldItemHaulDestinationKind.FacilityBuffer` and calls `TryDepositCarriedItemsToFacility`; the generic alternative deposits to warehouse storage.
+- The current worktree already contains broad in-flight Items/Offense changes and new untracked authority files, so edits must stay surgical and preserve all existing hunks.
+# 2026-08-16 expedition failure evidence
+
+- Fresh full-logistics evidence shows the expedition ration never enters an AIHaul plan: it remains `Stored` at `(19,0)` with exact `expedition:{packageId}` destination while the verifier times out; carry, Brain failure, and runtime error channels remain empty.
+- Earlier facility, construction, craft, equipment, and repair deliveries all pass in the same session, isolating the defect to destination admission/classification rather than movement or deposit execution.
+# 2026-08-16 expedition authority diagnosis
+
+- The planner accepts outbound `Stored` stacks, so the ration is not filtered by state or reservation availability.
+- `WorldItemHaulDestinationAuthority` rejects a non-construction FacilityBuffer unless exactly one live facility has `centerPos == requestedDropPosition`. The verifier's expedition staging cell is shared by more than one temporary facility, making admission ambiguous; this exposes the unsound same-cell inference.
+- `DungeonOffensePreparationService` owns the package, exact `expedition:{packageId}` destination, staging position, costs, and consume lifecycle, so it is the correct producer authority for an explicit reserved-target destination rather than a generic facility lookup.
+# 2026-08-16 claim vertical-slice contract
+
+- The claim registry already models `ReservedTarget`, which exactly matches expedition staging: the destination is package-owned and need not be backed by a facility at the drop cell.
+- `DungeonOffensePreparationService` currently performs request-before-package publication and has no claim dependency; it must claim before the first physical request, revoke on request rollback/consume/abandon/return, and recreate candidate claims during packing-state restore.
+- The registry itself must first reject claim mutations after its restore candidate was published and require an owner facility for `LiveFacility`; otherwise late restore writers can dereference a null candidate or create weak live-facility evidence.
+# 2026-08-16 restore and dependency boundary
+
+- Offense packing is already persisted through `OffenseWorldStateSaveCodec`; `DungeonOffensePreparationService.RestorePackingState`/candidate publication is the natural place to rebuild expedition claims, but transaction ordering must be checked against participant 220 before enabling strict restore rebind.
+- `IProductionItemGateway` is currently untyped and shared across many domains. Adding a globally strict request gate now would break construction and other producers; the first safe vertical slice is to use a producer-owned claim for planning/restore resolution while preserving the existing request API until all producers migrate.
+# 2026-08-16 expedition vertical-slice decision
+
+- Keep the existing physical meaning (`DestinationKind.FacilityBuffer` and terminal `WorldItemStackState.FacilityBuffer`) for compatibility; model the spatial difference through `FacilityBufferDestinationAnchorKind.ReservedTarget` rather than introducing a half-migrated third destination kind.
+- Exact expedition claim: destination=`expedition:{packageId}`, drop=current staging position, ownerDomain=`offense.expedition-supply`, ownerOperationId=canonical package ID, ownerFacilityId=null, anchor=`ReservedTarget`.
+- The service must claim before request; request rollback, abandon/return, and successful consume must release physical routing then revoke exact ownership. Planning, deposit, and restore rebind must all revalidate the same claim so revocation cannot be bypassed by an already-built plan.
+- Restore can derive the claim from the existing package DTO, but the saved destination must exactly equal `GetDestinationId(packageId)` and unconsumed package publication must populate the registry candidate before package state becomes live.
+# 2026-08-16 architecture fork under audit
+
+- One audit recommends a new persisted `ExpeditionStaging` destination kind because the generic request path currently drops destination semantics; another recommends using the existing ReservedTarget anchor while retaining FacilityBuffer physical delivery.
+- The deciding evidence is whether `ExpeditionPacked` and destination-kind persistence already have a live contract. If they are dead/incomplete, enabling them now would require a full save/API migration; if they are designed and consumed, a typed third kind is the correct end state.
+# 2026-08-16 architecture fork resolved
+
+- `WorldItemStackState.ExpeditionPacked` has presentation/query references but no production writer or consumer transaction, and pre-pickup stack save data does not persist any haul destination kind.
+- Activating a third kind now would require a new request API, stack/save version migration, deposit/consume path, outbound route serialization, mid-haul intent migration, and legacy conversion. That is a separate full feature slice, not the smallest complete correction for the current authority defect.
+- The current complete correction is therefore: retain FacilityBuffer as the physical transport/consume state, and make the destination owner's anchor semantics explicit through the persisted/derived ReservedTarget claim.
+# 2026-08-16 integration surface
+
+- `WorldItemHaulPlanningService` has two direct editor constructors plus DI; adding the claim query requires updating both fixtures and caching `claimQuery.Revision` so claim creation/revocation invalidates availability.
+- Restore rebind calls `WorldItemHaulDestinationAuthority` from `AbilityHaul`; the same claim query must be passed through `HaulDeliveryIntentRestoreCoordinator` rather than relying on dynamic MonoBehaviour injection.
+# 2026-08-16 claim publication design
+
+- Offense aggregate save commit runs after all restore participants begin and before participant publish, so `PublishPackingRestore` can safely write participant-220's candidate registry.
+- A domain-level atomic `TryReplaceOwnedClaims(ownerDomain, desiredClaims)` command is needed: it lets transaction restore rebuild only that domain in an empty candidate and lets direct restore replace live claims without partial mutation.
+- Offense normal lifecycle will use exact claim preflight plus claim-before-request, release/revoke on abort/abandon/return, consume then exact revoke, and fail loudly on impossible post-preflight revoke mismatch.
+# 2026-08-16 runtime revalidation boundary
+
+- `AbilityHaul` is a dynamically ensured MonoBehaviour; restore can receive the claim query from its coordinator, but normal deposit should not rely on late component injection alone.
+- The stable boundary is `IWorldItemStackRuntime`: it already owns planning, intent, transfer, and the repository. Add a read-only exact destination-validation method there and have `AbilityHaul` invoke it immediately before facility-buffer deposit. This covers fresh plans and restored delivery with the same authority.
+# 2026-08-16 runtime constructor impact
+
+- `WorldItemStackRuntime` has only one explicit editor construction path; its mutation-facet composition is the narrow place to add the claim query without widening multiple gameplay constructors.
+# 2026-08-16 deposit validation placement refined
+
+- `ItemTransferService` already owns the world registry and grid provider used by physical deposit, so exact destination validation belongs there immediately before inventory removal/spawn. `WorldItemStackRuntime` can delegate through its existing transfer facet; no new dynamic AbilityHaul injection is required.
+- `WorldItemMutationServices` therefore need not grow solely for validation; planner and transfer each receive the same singleton claim query directly through DI/editor composition.
+# 2026-08-16 focused Offense fixture impact
+
+- Four direct Offense preparation fixtures require an isolated registry shared as query+command. The packing restore fixture should reuse the same registry to prove owner-domain replacement removes the old claim and publishes the restored one without duplication.
+- Empty/fully-consumed restore payloads must not require a live staging marker; staging validation applies only when at least one unconsumed package needs a ReservedTarget claim.
+# 2026-08-16 static integration checkpoint
+
+- All known direct constructor and resolver/rebind call sites are now enumerated; scoped whitespace validation reports no errors (line-ending notices only).
+- Next static checks must inspect exact argument ordering and interface implementation completeness before invoking Unity compilation.
+# 2026-08-16 call-site argument audit
+
+- Planner, deposit, and restore rebind call orders now match the new resolver signatures; the two editor compositions pass one shared claim registry instance to planner and transfer.
+- No obvious positional mismatch was found in the inspected snippets; Unity compilation remains the authoritative semantic check.
+# 2026-08-16 live regression gaps
+
+- The full logistics verifier resolves no destination claim query and its final consumed assertion only excludes FacilityBuffer stacks, so an unconsumed outbound `Stored expedition:*` stack can produce a false PASS on the removal row.
+- Strengthen the live row with exact ReservedTarget claim evidence before hauling and require zero stacks of any state for the package destination after successful consume.
+
+## 2026-08-16 expedition departure polling and restore atomicity audit
+
+- The production departure coroutine polls `IOffensePreparationService.IsPackageReady` every frame. After pickup, the physical carried stack uses the actor ID as its current location owner, so destination-only world-stack counting omitted the still-committed expedition quantity and could request the same rations again.
+- `ProductionItemGateway.CountPending` now treats destination-bound world stacks and pickup-committed haul intents as one quantity authority. Carried world rows are excluded from the first term, preventing double count.
+- The Offense package dictionary previously changed during rollback-free section commit while its destination claims remained a reversible participant candidate. A later participant failure could therefore leave restored packages paired with old claims.
+- `DungeonOffensePreparationService` now owns participant `219.world.offense-supply-packages`; section commit stages package and claim candidates, participant 219 publishes the package pointer, participant 220 publishes claims, and reverse rollback restores both.
+- The existing exterior query is candidate-aware during restore (`IRestoreWorldCandidateQuery`), so canonical full restore can validate the staged exterior marker before participant 300 publishes it. Direct focused fixtures still must provide the exact staging marker.
+- `ItemTransferService.ReleaseDestination` previously removed and respawned routed stacks without checking spawn success and lost contamination, components, unique identity, and reservation state. It now invalidates leases and retargets the same physical record in place, preserving the item identity and metadata.
+
+## 2026-08-16 equipment-repair and return authority findings
+
+- Repair orders route the equipment and original material to `equipment-repair:{equipmentInstanceId}` at the maintenance facility center. In the fresh fixture that cell also contains the QA warehouse, so legacy same-cell inference sees two facilities and produces no haul plan.
+- One exact LiveFacility claim per active repair order is sufficient: owner domain `combat.equipment-maintenance`, operation `orderId`, facility `facilityBuildingId`, exact drop `centerPos`. It must precede routing and be rebuilt in the restore claim candidate.
+- Four later repair/salvage failures are cascades from the missing plan; current evidence does not support four additional production defects.
+- The cancel row had one ration after consuming the first two-ration package, then attempted another two-ration commit. The request failed before mutation, but the verifier still called `ReturnSupplies`.
+- `ReturnSupplies` treated an unknown explicit package as a legacy return and spawned the caller-provided loadout. This makes duplicate or stale calls capable of minting supplies; explicit unknown package IDs must fail closed, while the legacy empty-ID path may retain its old behavior.
+- Physical freshness had a bad `HaulDeliveryIntentRestoreCoordinator` path (`Services/Items` instead of `Services/Infrastructure/Save`) and omitted `EquipmentMaintenanceRuntime`; both must be corrected before manifest evidence is trusted.
+
+## 2026-08-16 captivity wildlife pickup-planning false-negative
+
+- The fresh lifecycle matrix failed before transport ownership at `TRANSPORT_SUCCESS_LAWFUL_SOURCE_PLAN`; production transport had not started.
+- The fixture planner admitted only four adjacent pickup cells and additionally required them to be completely unoccupied. Production `TryCreateAdjacentMovement` admits left/right/up/down/the wildlife target cell and only requires a valid walkable grid cell; Wildlife-layer occupants do not block character movement.
+- The thin exterior/stair topology can make the exact target or a Wildlife-occupied stair-adjacent cell the only lawful inbound pickup stand. The verifier now mirrors the production five-candidate order and removes its stricter pickup-occupancy gate while retaining strict empty source and delivery cells.
+- Two fresh full reruns passed transport planning, real pickup approach, external ownership, Penned terminal, AnimalCare arbitration/progress/cleanup, all escape fault rows, V18 fixture restore, and Console `0/0`.
+
+## 2026-08-16 Combat V14 PlayMode bootstrap ownership
+
+- `CombatV14PlayModeVerifier.StartFromMenu` scheduled `StartRuntimeProbe` with an in-memory `EditorApplication.delayCall` after requesting PlayMode. The callback executed while `Application.isPlaying == false`, set the static report to `FAIL: PlayMode가 아닙니다.`, and created no runner.
+- Compiling a temporary Unity command inside PlayMode can reload editor code and terminate an active verifier coroutine, so that path is not accepted as runtime evidence.
+- The verifier now writes `Temp/combat-v14-playmode.flag` before `EnterPlaymode`, then consumes it from `RuntimeInitializeOnLoadMethod(AfterSceneLoad)` and starts the runner exactly once.
+- This is an Editor verifier orchestration correction only; it changes no combat, medical, AI, timing, BOM, reward, or save authority.
+
+## 2026-08-16 Defense engagement PlayMode bootstrap ownership
+
+- `DefenseEngagementPlayModeVerifier.StartFromMenu` had the same volatile `EditorApplication.delayCall` PlayMode transition boundary as Combat V14.
+- It now uses `Temp/defense-engagement-playmode.flag` plus `RuntimeInitializeOnLoadMethod(AfterSceneLoad)`, so domain reload cannot lose or prematurely execute the requested run.
+- The fresh run passed production invasion spawning, approach/entry, three combat exchanges, victory, controlled post-combat downing, autonomous rescue/carry/treatment/recovery and AI ownership resumption.
+
+## 2026-08-16 FirstRun blueprint haul orchestration
+
+- Fresh FirstRun evidence reached physical blueprint purchase and exact `research-archive:<buildingId>` assignment, then remained `Loose` with reservation `0` for the full 24-second observation.
+- `BlueprintResearchRuntime.RequestBlueprintArchiveDeliveries` created and prioritized the physical delivery but discarded the successful requested quantity and never woke an eligible hauler. The already-injected `IWorkforceReplanService` was only used for research-work availability.
+- The verifier also called `PrioritizeHaul` unconditionally and reported a constant PASS; that command clears an existing reservation, so it could cancel the production ownership that the regression is intended to observe.
+- The correction wakes exactly one hauler only when a refresh pass creates at least one new delivery, never on stable polling and never with forced interruption. The verifier now observes a production plan or live ownership, exact Brain/AIHaul plus reservation/commitment, final archive placement, and ownership cleanup without mutating haul priority.
+
+## 2026-08-16 FirstRun research archive destination authority
+
+- The fresh FirstRun failure is now at the production haul-planning boundary, not scheduler wake-up: `research-archive:{buildingId}` is assigned to the physical blueprint stack, but the shared destination authority rejects it as an unclaimed/ambiguous FacilityBuffer destination.
+- The correct vertical slice is an exact persistent LiveFacility claim owned by the research archive facility. Q03 `BuildingResearchArchiveAbility` remains immutable content authority; physical stack routing plus `FacilityBufferDestinationClaimRegistry` remains mutable transport authority.
+- Claim identity is deterministic: destination/operation `research-archive:{persistentBuildingId}`, owner domain `research.blueprint-archive`, exact owner facility ID and center cell, `LiveFacility`. No prefix/position fallback is allowed.
+- Claims are derived rather than saved. Live research reconciles claims from authored archive buildings before requesting deliveries; restore rebuilds the same claims from transaction candidate buildings before participant 220 publishes, allowing participant 225 haul-intent rebind to validate the exact destination before AI wake.
+- Required evidence: fresh FirstRun exact claim + production plan + Brain-owned AIHaul + archive deposit/cleanup, focused restore candidate/rollback evidence, coverage marker/freshness updates, Unity compile and Console 0/0.
+- Claim ownership should be based on the live authored archive facility identity, not room eligibility. New delivery selection remains gated by `ResearchBlueprintArchiveQuery.GetValidArchives`; an already-routed stack keeps a stable exact facility destination while room eligibility changes.
+- The minimal production seam is a shared static archive-claim builder plus a secondary required VContainer injection on `BlueprintResearchRuntime` for `IBuildingWorldQuery` and `IFacilityBufferDestinationClaimCommand`. Existing editor runtimes with no item authority remain inert; production delivery fails loudly if the claim authority was not injected.
+- `BlueprintResearchSaveSection` has four direct constructor sites in `ResearchTreeDebugScenarios`; all must receive an explicit restore candidate index and isolated claim registry when the constructor is widened. The canonical transaction exposes detached candidate buildings through `IRestoreWorldCandidateQuery.TryGetBuildings` before section commit.
+
+## 2026-08-16 research archive LiveBuilding correction and fresh evidence
+
+- Q03 is not a malformed facility. Its immutable authored authority is `BuildingResearchArchiveAbility` plus room-role contributions; it intentionally has no `BuildingFacilityAbility`/`FacilityData` visitor contract.
+- Requiring a `LiveFacility` anchor therefore rejected a legitimate Q03 after exact claim creation. The append-only `LiveBuilding` anchor retains exact persistent building ID and exact drop validation without weakening ordinary `LiveFacility` claims.
+- Fresh FirstRun evidence now passes the real production chain: exact `research-archive:<buildingId>` claim, production haul-plan reservation, Brain-owned AIHaul, `FacilityBuffer` archive placement, zero residual reservation/commitment, project completion, and captured Console Warning/Error 0/0.
+- The restore regression must use inactive detached candidates. It constructs a closed research room containing the real Q03 asset, stages claims during `BlueprintResearchSaveSection` commit, publishes them only through participant 220, and injects a later participant failure to verify exact prior-image rollback.
+- The real Q03 detached instance also initializes its authored storage capability, so a minimal `BuildableObject` injection is not sufficient. Reusing `CharacterAiEditorTestDependencies.InjectWithRoomPolicy` supplies the same stock/facility seams used by existing editor gameplay fixtures without changing production behavior.
+- Current focused evidence: `ResearchTreeDebugScenarios.RunAll PASS`; the run removed two exact-id objects leaked by the deliberately failed first fixture attempt, then completed catalog/layout/queue/save/discard plus archive claim publication and rollback with no remaining fixture objects.
+
+## 2026-08-16 fresh mid-action save/load evidence
+
+- `Artifacts/QA/ai-mid-action-save-load-playmode.txt` is current at `2026-08-15T22:19:31.9894712Z` and reports `result=PASS`, `failures=0`.
+- Evidence covers transient movement discard, fresh post-restore AI ownership, pickup-committed construction haul persistence, five typed tamper rejections with unchanged rollback fingerprints, inert pre-wake binding, no duplicate material request, exact-once Brain AIHaul resumption on two restores, and quantity conservation.
+- The report contains `PASS no unexpected Error/Exception/Assert logs`; the pending flag is absent and Unity returned to EditMode.
+
+## 2026-08-16 fresh Physical Logistics evidence
+
+- `Artifacts/QA/physical-item-logistics-playmode-report.txt` is current at `2026-08-15T22:27:38.8225624Z` and reports `RESULT=PASS; failures=0`.
+- Exact equipment-repair claim, non-reserving production haul preflight, two-input FacilityBuffer delivery, duplicate-request exclusion, instance/material preservation, completion revoke, and salvage conservation all pass.
+- Exact expedition ReservedTarget claim, repeated real readiness polling without duplicate request, physical pack/consume, claim revoke, quantity conservation, cancel release, and unknown/duplicate return no-mint all pass.
+
+## 2026-08-16 exact remaining coverage after manifest repair
+
+- The Offense Journey evidence intentionally has seven more transitive physical-supply dependencies than Strategic/Tactical. Comparing every verifier against the old four-file base set created seven false `unexpected` gaps; verifier-specific exact sets remove those false failures without weakening freshness.
+- Current manifest after the repair is `uncovered=9`: three Daily compound action/work rows, two Surgery rows, and three Offense domain rows plus the aggregate Work row that closes when Rest and Surgery are live.
+
+## 2026-08-16 Offense strategic typed-action contract
+
+- Content definition: the existing eight-card personal strategic deck remains the immutable definition surface; no card count, execution-stage, speed, power, damage, reward, item, or unlock value changes.
+- Runtime authority: `OffenseCommandCardStateData.actionType` and `OffenseEnemyIntentStateData.actionType` are the sole persisted action-kind authority. `sourceSkillId`/`actionId` identify an ability only when `actionType == Ability`; an empty skill ID is no longer decoded as BasicAttack by the execution boundary.
+- Command boundary: `OffenseCommandExecutionRequest.actionType` is passed through `OffenseCommandResolutionAdapter` into `IOffenseBattleRuntime.TryExecutePlannedCommand`; the battle session remains the only mutable combat-state authority.
+- Authoring: new decks keep eight cards and replace the second redundant basic-attack card with the existing `Advance` action. Ability-backed cards remain Ability. Enemy intents are projected from the session's non-mutating legal enemy-command selector, so an unreachable Rear melee enemy authors Advance instead of an impossible attack.
+- Save compatibility: the appended enum field defaults to BasicAttack for V5 JSON that predates it, preserving the old persisted meaning without a second state authority. New captures persist the explicit action type. No save version or migration-only name heuristic is introduced.
+- Failure policy: malformed Ability cards/intents without an ability ID are rejected as typed Unavailable; no execution fallback or target teleport is added. Advance/Guard resolve to the actor as their explicit self target.
+- UI/observation: non-initiative protected objectives receive no deck. The last completed turn trace remains readable after the next draw and is overwritten only by a later resolution/start/clear boundary, preventing the UI verifier from observing `resolution=none` after a real click.
+- Verification: focused exact Front-unarmed versus Rear-melee liveness must record an Advance or real effect and `lastProcessedCommandId > 0`; command clones/save round trips preserve action types; unavailable interception still preserves the enemy intent; the full pointer-driven Offense Journey must terminate, return, reward exactly once, and leave Console 0/0.
+- Fresh Surgery PlayMode is current-source PASS with claim/preflight/Brain AIHaul/no-duplicate/material consumption/WU/stages/recovery/completion revoke/cancel conservation/revoke and zero failures.
+- Offense Strategic has no bootstrap or auto-exit. It requires GameplayScene PlayMode, a committed party, the production world-map command, an active `OffenseWorldMapPanel`, then `RunFromMenu()` and an explicit PlayMode stop after the report and two PNGs are fresh.
+
+## 2026-08-16 final strategic liveness and coverage finding
+
+- The permanent no-op was closed by making strategic action kind explicit and persisted, adding a legal Advance path for unreachable melee actors, excluding non-initiative objectives from deck ownership, and preserving the completed resolution trace across the next draw.
+- The first focused rerun exposed a verifier-only counting error: one Advance card had correctly died in a clash before reaching the execution adapter. The assertion now distinguishes `ClashLost` from the one executed typed Advance instead of demanding two execution requests.
+- Production-live Journey evidence now shows `lastProcessedCommandId` advancing from 0 to 13, repeated authoritative effects, a terminal battle, return, reward and cleanup. The previous autosave state with commandId=0 and no effects is no longer reproduced.
+- All three Daily seeds and the post-change Tactical suite are fresh. The final manifest has no ContractOnly or Uncovered row, and the final Console query is Warning/Error 0/0.

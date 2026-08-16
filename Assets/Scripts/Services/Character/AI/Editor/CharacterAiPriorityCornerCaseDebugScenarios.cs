@@ -709,7 +709,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
             bool stopped = actionSet.StopCount == 1
                 && actor.ai.bestAction == null
                 && !actor.ai.isExecuted
-                && !actor.ai.isBestActionEnd
+                && actor.ai.isBestActionEnd
                 && actor.CurrentLifecycleState == CharacterLifecycleState.Downed;
 
             actor.SetLifecycleState(CharacterLifecycleState.Active);

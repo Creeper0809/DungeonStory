@@ -70,6 +70,11 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<WorldItemRepository>(Lifetime.Singleton)
             .AsSelf()
             .As<IItemInstanceRepository>();
+        builder.Register<FacilityBufferDestinationClaimRegistry>(Lifetime.Singleton)
+            .AsSelf()
+            .As<IFacilityBufferDestinationClaimQuery>()
+            .As<IFacilityBufferDestinationClaimCommand>()
+            .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<CharacterCarryInventoryRegistry>(Lifetime.Singleton)
             .As<ICharacterCarryInventoryRegistry>()
             .As<ICharacterSkillTransientStateRegistry>()
@@ -80,7 +85,8 @@ public static class DungeonWorldSimulationRegistration
             .As<IItemQuantityReservationService>()
             .As<IItemQuantityLeaseMutation>()
             .As<IItemQuantityReservationPersistence>()
-            .As<IItemReservationMutationGate>();
+            .As<IItemReservationMutationGate>()
+            .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<ItemReservationService>(Lifetime.Singleton)
             .As<IItemReservationService>();
         builder.Register<LeasedItemReservationService>(Lifetime.Singleton)
@@ -457,6 +463,7 @@ public static class DungeonWorldSimulationRegistration
             .As<IFieldMealConsumptionCommand>()
             .As<ICharacterDietPolicyRuntime>()
             .As<IMealConsumptionRuntime>()
+            .As<ICharacterMealOperationCancellation>()
             .As<ICharacterSubstanceRuntime>();
         builder.Register<CaptivityPersuasionHandler>(Lifetime.Singleton)
             .As<ICaptivityInteractionHandler>();
@@ -486,6 +493,7 @@ public static class DungeonWorldSimulationRegistration
             .As<ICaptivityRuntime>()
             .As<ICaptivityPersistence>()
             .As<ICaptiveLaborQuery>()
+            .As<ICaptivityWorkReadinessQuery>()
             .As<ICaptivityCommandService>()
             .As<ICaptivityEscortRuntime>()
             .As<ICaptivityEscapeRuntime>()

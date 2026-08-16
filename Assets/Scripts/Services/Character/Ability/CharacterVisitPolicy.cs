@@ -56,7 +56,11 @@ public static class CharacterVisitPolicy
             return false;
         }
 
-        if (!building.CanVisit(actor, out failureReason))
+        // Candidate selection must admit facilities that can accept a queued
+        // reservation.  Requiring an immediately free use slot here made the
+        // shopping branch uniquely unable to enter the same FIFO visit queue
+        // already supported by TryReserveVisit and every other facility action.
+        if (!building.CanQueueVisit(actor, out failureReason))
         {
             return false;
         }

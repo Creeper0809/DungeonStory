@@ -486,6 +486,7 @@ internal sealed class CharacterAiMacroDecisionRunner
         CharacterBlackboard blackboard)
     {
         blackboard?.RecordBtStatus(CharacterAiBranch.MacroGoal, task, status);
+        blackboard?.RecordBtOutcome(CharacterAiBranch.MacroGoal, handled);
         return new CharacterAiDecisionTickResult(
             handled,
             CharacterAiBranch.MacroGoal,

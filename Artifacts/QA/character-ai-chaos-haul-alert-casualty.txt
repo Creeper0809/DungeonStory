@@ -1,0 +1,24 @@
+INFO	SCENARIO	mode=HaulAlertCasualty;revision=additional-chaos-v1-20260816
+INFO	START_PARTY	committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Roma:-8510982:character:staff:1:01:active=True,Arin:-8511050:character:staff:1:02:active=True; diagnostics=prepared-1:name=Roma;go=-8510954;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-8511022;id=character:staff:1:02;active=False || scan:name=Roma;go=-8510954;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-8511022;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-8510954;id=character:staff:1:01;active=True || retained:name=Arin;go=-8511022;id=character:staff:1:02;active=True
+PASS	CHAOS_SCOPE_READY	DungeonRuntimeSystems
+PASS	CHAOS_ACTOR_COUNT	activeHumanoids=3
+PASS	CHAOS_AUTHORITIES_READY	save=True;items=True;haulPlanning=True;deprivation=True;alert=True/True;body=True/True;medical=True
+PASS	CHAOS_SAVE_AUTHORITIES_SETTLED	environment=True;initialized=True
+PASS	HAUL_ALERT_ACTOR_AND_REPLACEMENT_READY	subject=character:staff:1:01;eligible=[character:staff:1:01,character:staff:1:02,owner]
+PASS	HAUL_ALERT_PHYSICAL_SOURCE_AUTHORED	item=craft:candle;spawned=True;source=stack:06d475b35a5347fdaffb96f75c247d63;position=(7, 0);prioritized=True
+PASS	HAUL_ALERT_PRODUCTION_PLAN_PREFLIGHT	source=stack:06d475b35a5347fdaffb96f75c247d63;preview=5스택 · 22.7kg;destination=Warehouse/warehouse:building:276bafa622ba4fa9b8b832ee930f330c;pickup=(7, 0);delivery=(30, 0);failure=
+PASS	HAUL_ALERT_BRAIN_ADMISSION_READY	canStart=True;failure=;preferred=True;priority=Priority1;actions=[AIHaul]
+PASS	HAUL_ALERT_PICKUP_COMMITTED_THROUGH_BRAIN	reset=True;action=운반;stage=픽업 완료;carry=1;operations=[haul:character:staff:1:01:000000000002];haulFailure=;actionFailure=;executionFailures=0;preferred=Selected/;trace=[f=13:action=Replanning:phase=:haul=False/중단:failure= || f=14:action=운반:phase=물건 가지러 이동:haul=True/경로 이동 중 12단계:failure=]
+PASS	HAUL_ALERT_COMMITTED_DESTINATION_EXACT	preview=Warehouse/warehouse:building:276bafa622ba4fa9b8b832ee930f330c;intents=[Warehouse/warehouse:building:276bafa622ba4fa9b8b832ee930f330c/character:staff:1:01]
+PASS	HAUL_ALERT_RED_BOUND_WHILE_PICKUP_COMMITTED	alert=Red;epoch=1;gate=True;action=Inactive;stage=중단
+PASS	HAUL_ALERT_DOWNED_SYNCHRONOUS_EXACT_TERMINAL	downed=True;lifecycle=Downed;terminals=1->2;hauling=False;carry=0;move=False;intentsReleased=True
+PASS	HAUL_ALERT_PHYSICAL_QUANTITY_CONSERVED_ON_CANCEL	item=craft:candle;quantity=12->12;stacks=stack:06d475b35a5347fdaffb96f75c247d63:Loose:q=2:r=0:pos=(7, 0):dest= || stack:2e3f5f9aca634ae283caf9b1dc21a66d:Loose:q=10:r=0:pos=(16, 0):dest=
+PASS	HAUL_ALERT_MEDICAL_ORDER_EXACTLY_ONE	patient=character:staff:1:01;orders=1
+PASS	HAUL_ALERT_DOWNED_GATE_RETIRED	subject=character:staff:1:01;gate=False
+PASS	HAUL_ALERT_REPLACEMENT_GUARD_SAME_EPOCH	subject=character:staff:1:01;replacement=character:staff:1:02;epoch=1;responders=character:staff:1:01:state=Downed:paused=False:gate=False/:epoch=0:action=Inactive || character:staff:1:02:state=Active:paused=False:gate=True/work:guard:epoch=1:action=Replanning || owner:state=Active:paused=False:gate=True/work:guard:epoch=1:action=Replanning
+PASS	HAUL_ALERT_NO_HAUL_GUARD_OWNER_OVERLAP	overlap=False;hauling=False;replacement=character:staff:1:02
+PASS	HAUL_ALERT_MEDICAL_RECOVERY_CONVERGED	downed=False;lifecycle=Active;orders=0
+PASS	HAUL_ALERT_FINAL_OWNERSHIP_CONVERGED	alert=Green/Green;gates=True;hauling=False;carry=0
+PASS	HAUL_ALERT_RUNTIME_AND_PHYSICAL_CONSERVED	invariants=0->0;paths=0;reservations=0;quantity=12->12
+INFO	CONSOLE	issues=0;
+RESULT=PASS; failures=0; 

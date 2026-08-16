@@ -22,6 +22,8 @@ public sealed class WorldItemPersistenceService
     private readonly WorldItemRepository repository;
     private readonly IItemQuantityReservationPersistence reservationPersistence;
     private readonly IItemReservationMutationGate mutationGate;
+    private IHaulDeliveryIntentQuery HaulDeliveryIntents =>
+        repository.HaulDeliveryIntents;
 
     public WorldItemPersistenceService(
         IDungeonItemCatalogProvider catalogProvider,
@@ -46,6 +48,7 @@ public sealed class WorldItemPersistenceService
         DungeonPhysicalItemSaveData snapshot = new DungeonPhysicalItemSaveData
         {
             version = DungeonPhysicalItemSaveData.CurrentVersion,
+            nextHaulOperationSequence = repository.NextHaulOperationSequence,
             haulingSettings = haulingSettings.Capture(),
             stacks = repository.Records
                 .Where(stack => stack != null && stack.quantity > 0)
@@ -91,9 +94,7 @@ public sealed class WorldItemPersistenceService
                     }))
                 .OrderBy(item => item.itemInstanceId, StringComparer.Ordinal)
                 .ToList(),
-            reservationIntents = CloneReservationIntents(
-                reservationPersistence?.CaptureReservationIntents()
-                    ?? Array.Empty<ItemReservationIntentSaveData>())
+            reservationIntents = CaptureDurableReservationIntents()
         };
 
         DungeonGameRestoreReport report = new DungeonGameRestoreReport();
@@ -105,6 +106,76 @@ public sealed class WorldItemPersistenceService
                 + string.Join(" | ", report.Errors));
         }
         return snapshot;
+    }
+
+    private List<ItemReservationIntentSaveData> CaptureDurableReservationIntents()
+    {
+        List<ItemReservationIntentSaveData> captured = CloneReservationIntents(
+            reservationPersistence?.CaptureReservationIntents()
+                ?? Array.Empty<ItemReservationIntentSaveData>());
+        List<HaulDeliveryIntentSaveData> committed =
+            HaulDeliveryIntents.CaptureCommitted().ToList();
+        foreach (ItemReservationIntentSaveData intent in captured.ToArray())
+        {
+            bool hasHauling = intent.reservationHints.Any(hint =>
+                hint != null && hint.purpose == ItemReservationPurpose.Hauling);
+            if (!hasHauling)
+                continue;
+
+            intent.reservationHints = intent.reservationHints
+                .Where(hint => hint != null
+                    && (hint.purpose != ItemReservationPurpose.Hauling
+                        || HaulDeliveryIntents.MatchesCommittedReservation(
+                            intent.ownerOperationId,
+                            hint.preferredPhysicalStackId,
+                            hint.expectedStackSignature,
+                            hint.quantity)))
+                .OrderBy(hint => hint.preferredPhysicalStackId, StringComparer.Ordinal)
+                .ThenBy(hint => hint.claimOrdinal)
+                .ToList();
+            for (int index = 0; index < intent.reservationHints.Count; index++)
+            {
+                intent.reservationHints[index].claimOrdinal = index;
+                intent.reservationHints[index].claimHintId =
+                    $"claim:{intent.ownerOperationId}:{index}";
+            }
+            if (intent.reservationHints.Count == 0)
+                captured.Remove(intent);
+        }
+
+        foreach (HaulDeliveryIntentSaveData intent in committed)
+        {
+            ItemReservationIntentSaveData savedIntent = captured.SingleOrDefault(saved =>
+                string.Equals(
+                    saved.ownerOperationId,
+                    intent.operationId,
+                    StringComparison.Ordinal));
+            ItemReservationClaimHintSaveData[] haulingHints = savedIntent?
+                .reservationHints?
+                .Where(hint => hint != null
+                    && hint.purpose == ItemReservationPurpose.Hauling)
+                .ToArray() ?? Array.Empty<ItemReservationClaimHintSaveData>();
+            bool exact = haulingHints.Length == intent.commitments.Count
+                && intent.commitments.All(commitment => commitment != null
+                    && haulingHints.Count(hint =>
+                        hint.quantity == commitment.quantity
+                        && string.Equals(
+                            hint.preferredPhysicalStackId,
+                            commitment.carriedStackId,
+                            StringComparison.Ordinal)
+                        && string.Equals(
+                            hint.expectedStackSignature,
+                            commitment.expectedStackSignature,
+                            StringComparison.Ordinal)) == 1);
+            if (!exact)
+            {
+                throw new InvalidOperationException(
+                    $"Committed haul delivery '{intent.operationId}' does not have a one-to-one saved quantity lease projection.");
+            }
+        }
+        return captured
+            .OrderBy(intent => intent.ownerOperationId, StringComparer.Ordinal)
+            .ToList();
     }
 
     internal WorldItemRestoreState StageRestore(DungeonPhysicalItemSaveData snapshot)
@@ -273,7 +344,8 @@ public sealed class WorldItemPersistenceService
             RepositoryState = repository.CreateDetachedState(
                 records,
                 equipment,
-                modules),
+                modules,
+                snapshot.nextHaulOperationSequence),
             ReservationIntents = CloneReservationIntents(
                 snapshot.reservationIntents
                     ?? new List<ItemReservationIntentSaveData>())

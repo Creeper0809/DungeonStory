@@ -1081,6 +1081,12 @@ public static class OperatingDaySettlementDebugScenarios
         {
             return new BlueprintResearchWorkResult(false, null, 0f, 0f, 1f, false, "No research runtime in operation fixture.");
         }
+
+        public BlueprintResearchWorkResult ApplyApprovedResearchWork(
+            CharacterActor researcher,
+            BuildableObject researchFacility,
+            float approvedWorkUnits) =>
+            ApplyResearchWork(researcher, researchFacility, approvedWorkUnits);
     }
 
     private sealed class NoopWorldInfoClickSelector : IWorldInfoClickSelector

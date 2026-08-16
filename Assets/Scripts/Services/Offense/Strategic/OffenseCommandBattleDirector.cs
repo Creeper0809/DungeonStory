@@ -44,8 +44,10 @@ public readonly struct OffenseClashStageResult
 public sealed class OffenseCommandExecutionRequest
 {
     public string battleId;
+    public int directorTurn;
     public string actorId;
     public string targetCombatantId;
+    public OffenseBattleActionType actionType;
     public string sourceSkillId;
     public int survivingExecutionStages;
     public float chainMultiplier;
@@ -56,22 +58,37 @@ public readonly struct OffenseCommandExecutionResult
     public OffenseCommandExecutionResult(
         OffenseCommandOutcome outcome,
         bool appliedAtLeastOneEffect,
-        string finalTargetId)
+        string finalTargetId,
+        string failureReason = "")
     {
         Outcome = outcome;
         AppliedAtLeastOneEffect = appliedAtLeastOneEffect;
         FinalTargetId = finalTargetId ?? string.Empty;
+        FailureReason = failureReason ?? string.Empty;
     }
 
     public OffenseCommandOutcome Outcome { get; }
     public bool AppliedAtLeastOneEffect { get; }
     public string FinalTargetId { get; }
+    public string FailureReason { get; }
+}
+
+public readonly struct OffenseTurnFinalizationResult
+{
+    public OffenseTurnFinalizationResult(bool succeeded, string failureReason)
+    {
+        Succeeded = succeeded;
+        FailureReason = failureReason ?? string.Empty;
+    }
+
+    public bool Succeeded { get; }
+    public string FailureReason { get; }
 }
 
 public interface IOffenseCommandResolutionAdapter
 {
     OffenseCommandExecutionResult Execute(OffenseCommandExecutionRequest request);
-    void FinalizeTurn();
+    OffenseTurnFinalizationResult FinalizeTurn(int directorTurn);
 }
 
 public sealed class OffenseResolvedCommand
@@ -85,9 +102,23 @@ public sealed class OffenseResolvedCommand
     public OffenseCommandExecutionResult execution;
 }
 
+public sealed class OffenseResolvedEnemyIntent
+{
+    public string intentId;
+    public string enemyId;
+    public string targetCharacterId;
+    public string interceptedByCardInstanceId;
+    public int requestedExecutionStages;
+    public bool retainedFullExecutionStages;
+    public OffenseCommandExecutionResult execution;
+}
+
 public interface IOffenseBattleDirector
 {
     OffenseBattleDirectorStateData State { get; }
+    IReadOnlyList<OffenseResolvedCommand> LastResolvedTurn { get; }
+    IReadOnlyList<OffenseResolvedEnemyIntent> LastResolvedEnemyIntents { get; }
+    OffenseTurnFinalizationResult LastTurnFinalization { get; }
     event Action Changed;
     bool TryStartBattle(
         string battleId,
@@ -128,6 +159,18 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
     }
 
     public OffenseBattleDirectorStateData State { get; private set; }
+    public IReadOnlyList<OffenseResolvedCommand> LastResolvedTurn { get; private set; } =
+        Array.Empty<OffenseResolvedCommand>();
+    public IReadOnlyList<OffenseResolvedEnemyIntent> LastResolvedEnemyIntents
+        { get; private set; } = Array.Empty<OffenseResolvedEnemyIntent>();
+    public OffenseTurnFinalizationResult LastTurnFinalization { get; private set; } =
+        new OffenseTurnFinalizationResult(true, string.Empty);
+    private int lastFinalizedDirectorTurn;
+    private int pendingFinalizationTurn;
+    private IReadOnlyList<OffenseResolvedCommand> pendingResolvedTurn =
+        Array.Empty<OffenseResolvedCommand>();
+    private IReadOnlyList<OffenseResolvedEnemyIntent> pendingResolvedEnemyIntents =
+        Array.Empty<OffenseResolvedEnemyIntent>();
     public event Action Changed;
 
     public bool TryStartBattle(
@@ -160,6 +203,9 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
                 || member.cards.Any(card =>
                     card == null
                     || string.IsNullOrWhiteSpace(card.instanceId)
+                    || !Enum.IsDefined(
+                        typeof(OffenseBattleActionType),
+                        card.actionType)
                     || card.executionStages < 1
                     || card.executionStages > 3))
             || party.Select(member => member.characterId).Distinct().Count()
@@ -176,6 +222,9 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
             .Where(intent => intent != null
                 && !string.IsNullOrWhiteSpace(intent.intentId)
                 && !string.IsNullOrWhiteSpace(intent.enemyId)
+                && Enum.IsDefined(
+                    typeof(OffenseBattleActionType),
+                    intent.actionType)
                 && intent.executionStages is >= 1 and <= 3)
             .Select(CloneIntent)
             .ToList();
@@ -187,6 +236,11 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
         }
 
         formations.Clear();
+        LastResolvedTurn = Array.Empty<OffenseResolvedCommand>();
+        LastResolvedEnemyIntents = Array.Empty<OffenseResolvedEnemyIntent>();
+        LastTurnFinalization = new OffenseTurnFinalizationResult(true, string.Empty);
+        lastFinalizedDirectorTurn = 0;
+        ClearPendingFinalization();
         State = new OffenseBattleDirectorStateData
         {
             battleId = string.IsNullOrWhiteSpace(battleId)
@@ -227,6 +281,12 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
         if (State.commandQueue.Count > 0)
         {
             reason = "현재 명령열을 먼저 해결해야 합니다.";
+            return false;
+        }
+
+        if (State.turn > lastFinalizedDirectorTurn)
+        {
+            reason = "The current strategic command turn must be resolved before drawing again.";
             return false;
         }
 
@@ -293,11 +353,20 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
             return false;
         }
 
+        if (HasPendingFinalization())
+        {
+            reason = "The applied strategic command turn must finish finalization first.";
+            return false;
+        }
+
         List<OffenseEnemyIntentStateData> intents = (enemyIntents
                 ?? Array.Empty<OffenseEnemyIntentStateData>())
             .Where(intent => intent != null
                 && !string.IsNullOrWhiteSpace(intent.intentId)
                 && !string.IsNullOrWhiteSpace(intent.enemyId)
+                && Enum.IsDefined(
+                    typeof(OffenseBattleActionType),
+                    intent.actionType)
                 && intent.executionStages is >= 1 and <= 3)
             .Select(CloneIntent)
             .ToList();
@@ -324,6 +393,12 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
         if (State == null)
         {
             reason = "진행 중인 오펜스 전투가 없습니다.";
+            return false;
+        }
+
+        if (HasPendingFinalization())
+        {
+            reason = "The applied strategic command turn must finish finalization first.";
             return false;
         }
 
@@ -376,6 +451,11 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
             return false;
         }
 
+        if (HasPendingFinalization())
+        {
+            return false;
+        }
+
         int removed = State.commandQueue.RemoveAll(entry =>
             entry != null && entry.characterId == characterId);
         if (removed == 0)
@@ -396,16 +476,35 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
     {
         if (State == null)
         {
+            LastResolvedTurn = Array.Empty<OffenseResolvedCommand>();
+            LastResolvedEnemyIntents = Array.Empty<OffenseResolvedEnemyIntent>();
             return Array.Empty<OffenseResolvedCommand>();
         }
 
+        if (State.turn <= lastFinalizedDirectorTurn)
+        {
+            return LastResolvedTurn;
+        }
+
+        if (pendingFinalizationTurn == State.turn)
+        {
+            TryFinalizePendingTurn();
+            return LastTurnFinalization.Succeeded
+                ? LastResolvedTurn
+                : pendingResolvedTurn;
+        }
+
         List<OffenseResolvedCommand> resolved = new List<OffenseResolvedCommand>();
+        List<OffenseResolvedEnemyIntent> resolvedEnemyIntents =
+            new List<OffenseResolvedEnemyIntent>();
         OffenseChainResolution chain = new OffenseChainResolution(
             OffenseChainState.Full,
             1f,
             OffenseTacticalTag.None,
             0);
         HashSet<string> resolvedIntentIds =
+            new HashSet<string>(StringComparer.Ordinal);
+        HashSet<string> attemptedIntentIds =
             new HashSet<string>(StringComparer.Ordinal);
 
         foreach (OffenseCommandQueueEntryData entry in State.commandQueue
@@ -432,7 +531,8 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
                     execution = new OffenseCommandExecutionResult(
                         OffenseCommandOutcome.Unavailable,
                         false,
-                        string.Empty)
+                        string.Empty,
+                        "The committed strategic command card is no longer available.")
                 });
                 continue;
             }
@@ -441,7 +541,7 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
                 .FirstOrDefault(candidate =>
                     candidate.intentId == entry.targetIntentId);
             bool firstInterception = intent != null
-                && resolvedIntentIds.Add(intent.intentId);
+                && !resolvedIntentIds.Contains(intent.intentId);
             OffenseClashStageResult clash = ResolveClash(
                 card,
                 firstInterception ? intent : null);
@@ -451,7 +551,8 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
                 execution = new OffenseCommandExecutionResult(
                     OffenseCommandOutcome.ClashLost,
                     false,
-                    entry.targetCombatantId);
+                    entry.targetCombatantId,
+                    "The allied command lost every execution stage in the clash.");
             }
             else
             {
@@ -459,26 +560,59 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
                     new OffenseCommandExecutionRequest
                     {
                         battleId = State.battleId,
+                        directorTurn = State.turn,
                         actorId = entry.characterId,
                         targetCombatantId = entry.targetCombatantId,
+                        actionType = card.actionType,
                         sourceSkillId = card.sourceSkillId,
                         survivingExecutionStages = clash.AllyStagesRemaining,
                         chainMultiplier = chain.Multiplier
                     });
             }
 
-            if (firstInterception && clash.EnemyStagesRemaining > 0)
+            bool alliedExecutionUnavailable = execution.Outcome is
+                OffenseCommandOutcome.Unavailable
+                or OffenseCommandOutcome.IllegalTarget
+                or OffenseCommandOutcome.Cancelled;
+            int enemyStagesToExecute = firstInterception
+                ? alliedExecutionUnavailable
+                    ? intent.executionStages
+                    : clash.EnemyStagesRemaining
+                : 0;
+            if (firstInterception && enemyStagesToExecute > 0)
             {
-                resolutionAdapter.Execute(
+                OffenseCommandExecutionResult enemyExecution = resolutionAdapter.Execute(
                     new OffenseCommandExecutionRequest
                     {
                         battleId = State.battleId,
+                        directorTurn = State.turn,
                         actorId = intent.enemyId,
                         targetCombatantId = intent.targetCharacterId,
-                        sourceSkillId = string.Empty,
-                        survivingExecutionStages = clash.EnemyStagesRemaining,
+                        actionType = intent.actionType,
+                        sourceSkillId = intent.actionId,
+                        survivingExecutionStages = enemyStagesToExecute,
                         chainMultiplier = 1f
                     });
+                attemptedIntentIds.Add(intent.intentId);
+                resolvedEnemyIntents.Add(new OffenseResolvedEnemyIntent
+                {
+                    intentId = intent.intentId,
+                    enemyId = intent.enemyId,
+                    targetCharacterId = intent.targetCharacterId,
+                    interceptedByCardInstanceId = entry.cardInstanceId,
+                    requestedExecutionStages = enemyStagesToExecute,
+                    retainedFullExecutionStages = alliedExecutionUnavailable,
+                    execution = enemyExecution
+                });
+                if (enemyExecution.Outcome == OffenseCommandOutcome.Executed)
+                {
+                    resolvedIntentIds.Add(intent.intentId);
+                }
+            }
+            else if (firstInterception
+                && execution.Outcome == OffenseCommandOutcome.Executed)
+            {
+                resolvedIntentIds.Add(intent.intentId);
             }
 
             chain = OffenseTacticalChainRules.Advance(
@@ -502,25 +636,42 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
 
         foreach (OffenseEnemyIntentStateData intent in State.enemyIntents
                      .Where(intent => intent != null
-                         && !resolvedIntentIds.Contains(intent.intentId)))
+                         && !resolvedIntentIds.Contains(intent.intentId)
+                         && !attemptedIntentIds.Contains(intent.intentId)))
         {
-            resolutionAdapter.Execute(
+            OffenseCommandExecutionResult enemyExecution = resolutionAdapter.Execute(
                 new OffenseCommandExecutionRequest
                 {
                     battleId = State.battleId,
+                    directorTurn = State.turn,
                     actorId = intent.enemyId,
                     targetCombatantId = intent.targetCharacterId,
-                    sourceSkillId = string.Empty,
+                    actionType = intent.actionType,
+                    sourceSkillId = intent.actionId,
                     survivingExecutionStages = intent.executionStages,
                     chainMultiplier = 1f
                 });
+            attemptedIntentIds.Add(intent.intentId);
+            resolvedEnemyIntents.Add(new OffenseResolvedEnemyIntent
+            {
+                intentId = intent.intentId,
+                enemyId = intent.enemyId,
+                targetCharacterId = intent.targetCharacterId,
+                interceptedByCardInstanceId = string.Empty,
+                requestedExecutionStages = intent.executionStages,
+                retainedFullExecutionStages = true,
+                execution = enemyExecution
+            });
         }
 
-        FinishTurnCards();
-        State.commandQueue.Clear();
-        resolutionAdapter.FinalizeTurn();
-        Changed?.Invoke();
-        return resolved;
+        pendingFinalizationTurn = State.turn;
+        pendingResolvedTurn = resolved.ToArray();
+        pendingResolvedEnemyIntents = resolvedEnemyIntents.ToArray();
+        State.resolutionAppliedTurn = State.turn;
+        TryFinalizePendingTurn();
+        return LastTurnFinalization.Succeeded
+            ? LastResolvedTurn
+            : pendingResolvedTurn;
     }
 
     public bool TryGainResolve(string characterId, float amount)
@@ -586,13 +737,109 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
         candidate = candidate ?? throw new ArgumentNullException(nameof(candidate));
         State = candidate.State;
         formations = candidate.Formations;
+        LastResolvedTurn = Array.Empty<OffenseResolvedCommand>();
+        LastResolvedEnemyIntents = Array.Empty<OffenseResolvedEnemyIntent>();
+        LastTurnFinalization = new OffenseTurnFinalizationResult(true, string.Empty);
+        lastFinalizedDirectorTurn = InferLastFinalizedTurn(State);
+        ClearPendingFinalization();
+        if (State != null
+            && State.resolutionAppliedTurn == State.turn
+            && State.finalizedTurn < State.turn)
+        {
+            pendingFinalizationTurn = State.turn;
+        }
     }
 
     public void Clear()
     {
         State = null;
         formations.Clear();
+        LastResolvedTurn = Array.Empty<OffenseResolvedCommand>();
+        LastResolvedEnemyIntents = Array.Empty<OffenseResolvedEnemyIntent>();
+        LastTurnFinalization = new OffenseTurnFinalizationResult(true, string.Empty);
+        lastFinalizedDirectorTurn = 0;
+        ClearPendingFinalization();
         Changed?.Invoke();
+    }
+
+    private bool TryFinalizePendingTurn()
+    {
+        OffenseBattleDirectorStateData finalizingState = State;
+        int finalizingTurn = pendingFinalizationTurn;
+        IReadOnlyList<OffenseResolvedCommand> finalizingCommands =
+            pendingResolvedTurn;
+        IReadOnlyList<OffenseResolvedEnemyIntent> finalizingEnemyIntents =
+            pendingResolvedEnemyIntents;
+        OffenseTurnFinalizationResult finalization =
+            resolutionAdapter.FinalizeTurn(finalizingTurn);
+        bool retainedOwnedState = ReferenceEquals(State, finalizingState);
+        bool clearedForTerminal = State == null;
+        if (!retainedOwnedState && !clearedForTerminal)
+        {
+            throw new InvalidOperationException(
+                "Strategic battle director state was replaced while the prior "
+                + $"turn {finalizingTurn} was finalizing. The replacement state "
+                + "was left untouched.");
+        }
+
+        LastTurnFinalization = finalization;
+        if (!finalization.Succeeded)
+        {
+            LastResolvedTurn = finalizingCommands;
+            LastResolvedEnemyIntents = finalizingEnemyIntents;
+            Changed?.Invoke();
+            return false;
+        }
+
+        FinishTurnCards(finalizingState);
+        finalizingState.commandQueue.Clear();
+        finalizingState.finalizedTurn = finalizingTurn;
+        LastTurnFinalization = finalization;
+        LastResolvedTurn = finalizingCommands;
+        LastResolvedEnemyIntents = finalizingEnemyIntents;
+        if (retainedOwnedState)
+        {
+            lastFinalizedDirectorTurn = finalizingTurn;
+        }
+        ClearPendingFinalization();
+        Changed?.Invoke();
+        return true;
+    }
+
+    private void ClearPendingFinalization()
+    {
+        pendingFinalizationTurn = 0;
+        pendingResolvedTurn = Array.Empty<OffenseResolvedCommand>();
+        pendingResolvedEnemyIntents = Array.Empty<OffenseResolvedEnemyIntent>();
+    }
+
+    private bool HasPendingFinalization()
+    {
+        return State != null
+            && State.resolutionAppliedTurn == State.turn
+            && State.finalizedTurn < State.turn;
+    }
+
+    private static int InferLastFinalizedTurn(OffenseBattleDirectorStateData state)
+    {
+        if (state == null || state.turn <= 0)
+        {
+            return 0;
+        }
+
+        if (state.finalizedTurn > 0)
+        {
+            return Mathf.Min(state.turn, state.finalizedTurn);
+        }
+
+        bool hasDrawnCandidates = (state.decks
+                ?? new List<OffenseCommandDeckStateData>())
+            .Any(deck => deck?.candidates != null && deck.candidates.Count > 0);
+        bool hasCommittedCommands = state.commandQueue != null
+            && state.commandQueue.Count > 0;
+        return hasDrawnCandidates || hasCommittedCommands
+            ? state.turn - 1
+            : state.turn;
     }
 
     private OffenseClashStageResult ResolveClash(
@@ -629,14 +876,28 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
         return new OffenseClashStageResult(allyRemaining, enemyRemaining);
     }
 
-    private void FinishTurnCards()
+    private static void FinishTurnCards(OffenseBattleDirectorStateData state)
     {
-        foreach (OffenseCommandDeckStateData deck in State.decks)
+        if (state == null)
         {
-            string selectedId = State.commandQueue
+            return;
+        }
+
+        List<OffenseCommandQueueEntryData> commandQueue = state.commandQueue
+            ?? new List<OffenseCommandQueueEntryData>();
+        foreach (OffenseCommandDeckStateData deck in state.decks
+                     ?? new List<OffenseCommandDeckStateData>())
+        {
+            if (deck == null)
+            {
+                continue;
+            }
+
+            string selectedId = commandQueue
                 .FirstOrDefault(entry => entry.characterId == deck.characterId)
                 ?.cardInstanceId;
-            foreach (OffenseCommandCardStateData candidate in deck.candidates)
+            foreach (OffenseCommandCardStateData candidate in deck.candidates
+                         ?? new List<OffenseCommandCardStateData>())
             {
                 if (candidate == null)
                 {
@@ -656,7 +917,7 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
                 }
             }
 
-            deck.candidates.Clear();
+            deck.candidates?.Clear();
         }
     }
 
@@ -733,6 +994,8 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
         {
             battleId = source.battleId,
             turn = source.turn,
+            resolutionAppliedTurn = source.resolutionAppliedTurn,
+            finalizedTurn = source.finalizedTurn,
             rngState = source.rngState,
             decks = (source.decks ?? new List<OffenseCommandDeckStateData>())
                 .Select(CloneDeck)
@@ -784,9 +1047,18 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
     private static OffenseCommandCardStateData CloneCard(
         OffenseCommandCardStateData source)
     {
+        // V5 strategic saves predate the explicit actionType field. Ability
+        // cards already persisted their stable source skill ID, so bind that
+        // unambiguous legacy representation once at the restore/clone edge.
+        OffenseBattleActionType actionType =
+            source.actionType == OffenseBattleActionType.BasicAttack
+            && !string.IsNullOrWhiteSpace(source.sourceSkillId)
+                ? OffenseBattleActionType.Ability
+                : source.actionType;
         return new OffenseCommandCardStateData
         {
             instanceId = source.instanceId,
+            actionType = actionType,
             sourceSkillId = source.sourceSkillId,
             displayName = source.displayName,
             tacticalTag = source.tacticalTag,
@@ -801,11 +1073,17 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
     private static OffenseEnemyIntentStateData CloneIntent(
         OffenseEnemyIntentStateData source)
     {
+        OffenseBattleActionType actionType =
+            source.actionType == OffenseBattleActionType.BasicAttack
+            && !string.IsNullOrWhiteSpace(source.actionId)
+                ? OffenseBattleActionType.Ability
+                : source.actionType;
         return new OffenseEnemyIntentStateData
         {
             intentId = source.intentId,
             enemyId = source.enemyId,
             targetCharacterId = source.targetCharacterId,
+            actionType = actionType,
             actionId = source.actionId,
             displayName = source.displayName,
             tacticalTag = source.tacticalTag,

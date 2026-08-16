@@ -9,6 +9,15 @@ using UnityEngine;
 
 public static class PhysicalItemDebugScenarios
 {
+    private sealed class MutableGameClock : IGameClock
+    {
+        public float CurrentTime { get; set; }
+        public float DeltaTime => 0f;
+        public float Time => CurrentTime;
+        public int FrameCount => 0;
+        public bool IsPaused => false;
+    }
+
     private const string ReportPath = "Temp/physical-item-contracts.tsv";
     private const string LumberItemId = "material:lumber";
     private const string PreservedRationItemId = "food:preserved-ration";
@@ -42,7 +51,12 @@ public static class PhysicalItemDebugScenarios
         Run("warehouse_stored_stack_consumption", VerifyWarehouseStoredStackConsumption, lines, errors);
         Run("transient_reservation_persistence", VerifyTransientReservationPersistence, lines, errors);
         Run("quantity_lease_ten_of_ten", VerifyQuantityLeaseTenOfTen, lines, errors);
+        Run("quantity_lease_progress_heartbeat",
+            VerifyQuantityLeaseProgressHeartbeat,
+            lines,
+            errors);
         Run("quantity_lease_survives_freshness_decay", VerifyQuantityLeaseSurvivesFreshnessDecay, lines, errors);
+        Run("quantity_stack_removal_invalidates_lease", VerifyStackRemovalInvalidatesQuantityLease, lines, errors);
         Run("quantity_batch_atomic_rollback", VerifyQuantityBatchAtomicRollback, lines, errors);
         Run("quantity_exact_atomic_consume", VerifyQuantityExactAtomicConsume, lines, errors);
         Run("direct_consume_respects_foreign_lease", VerifyDirectConsumeRespectsForeignLease, lines, errors);
@@ -58,6 +72,10 @@ public static class PhysicalItemDebugScenarios
         Run("typed_persistent_item_ids", VerifyTypedPersistentItemIds, lines, errors);
         Run("equipment_instance_physical_authority",
             VerifyEquipmentInstancePhysicalAuthority,
+            lines,
+            errors);
+        Run("equipment_existing_instance_atomic_drop_capture_24",
+            VerifyExistingEquipmentAtomicDropCapture,
             lines,
             errors);
         Run("quality_rejected_unique_delivery_identity",
@@ -91,6 +109,23 @@ public static class PhysicalItemDebugScenarios
             throw new InvalidOperationException(
                 $"Physical item contracts failed ({errors.Count}). See {ReportPath}.");
         }
+    }
+
+    [MenuItem("DungeonStory/Debug/Items/Run Existing Equipment Atomic Drop Capture")]
+    public static void RunExistingEquipmentAtomicDropCapture()
+    {
+        const string focusedReportPath =
+            "Temp/equipment-existing-instance-atomic-drop.tsv";
+        Directory.CreateDirectory("Temp");
+        string details = VerifyExistingEquipmentAtomicDropCapture();
+        File.WriteAllLines(focusedReportPath, new[]
+        {
+            "case\tresult\tdetails",
+            $"equipment_existing_instance_atomic_drop_capture_24\tPASS\t{details}"
+        });
+        Debug.Log(
+            "Existing equipment atomic drop capture PASS. Report: "
+            + focusedReportPath);
     }
 
     private static string VerifyCatalogAuthoredStockDefinition()
@@ -836,6 +871,67 @@ public static class PhysicalItemDebugScenarios
         }
     }
 
+    private static string VerifyQuantityLeaseProgressHeartbeat()
+    {
+        WorldItemRepository repository = new(
+            new GuidPersistentIdGenerator(),
+            new DungeonRuntimeAggregateRootStore());
+        MutableGameClock clock = new();
+        ItemQuantityReservationService reservations = new(
+            repository,
+            EditorNullItemMarkerPresenter.Instance,
+            clock);
+        string stackId = repository.AddEditorTestStack(
+            "item:lease-heartbeat",
+            1,
+            WorldItemStackState.Loose);
+        string signature = ItemReservationSignature.Create(
+            "item:lease-heartbeat",
+            Array.Empty<ItemInstanceComponentSaveData>());
+        Require(reservations.TryReserve(
+                "operation:lease-heartbeat",
+                "character:lease-heartbeat",
+                ItemReservationPurpose.Hauling,
+                "haul:test",
+                new ItemQuantityReservationRequest(
+                    new ItemStackId(stackId),
+                    1,
+                    signature),
+                out ItemQuantityLease lease,
+                out DomainFailure reserveFailure),
+            "heartbeat lease reserve failed: " + reserveFailure);
+        Require(lease.expiresAtGameSeconds == 15d
+                && lease.maximumExpiresAtGameSeconds == 45d,
+            $"unexpected initial lease window {lease.expiresAtGameSeconds}/"
+            + lease.maximumExpiresAtGameSeconds);
+
+        clock.CurrentTime = 10f;
+        Require(reservations.Renew(lease.leaseId, 55d, out DomainFailure firstRenew),
+            "first heartbeat failed: " + firstRenew);
+        clock.CurrentTime = 50f;
+        Require(reservations.Renew(lease.leaseId, 95d, out DomainFailure secondRenew),
+            "second heartbeat failed: " + secondRenew);
+        clock.CurrentTime = 90f;
+        Require(reservations.Revalidate(
+                lease.leaseId,
+                out ItemQuantityLease active,
+                out DomainFailure activeFailure),
+            "progressing lease expired: " + activeFailure);
+        Require(active.expiresAtGameSeconds == 95d
+                && active.maximumExpiresAtGameSeconds == 95d,
+            $"heartbeat window did not slide {active.expiresAtGameSeconds}/"
+            + active.maximumExpiresAtGameSeconds);
+
+        clock.CurrentTime = 96f;
+        Require(!reservations.Revalidate(
+                lease.leaseId,
+                out _,
+                out DomainFailure expiredFailure)
+                && expiredFailure.Code == FailureCode.ItemReservationLeaseExpired,
+            "inactive lease did not expire after its bounded heartbeat window");
+        return "progress heartbeats extended 15->55->95; idle lease expired at 96";
+    }
+
     private static string VerifyCancelledDestinationReleasesMaterials()
     {
         WorldItemStackRuntime runtime = CreateRuntime();
@@ -1040,6 +1136,29 @@ public static class PhysicalItemDebugScenarios
                 out DomainFailure freshnessFailure),
             $"normal freshness decay invalidated lease: {freshnessFailure}");
 
+        WorldItemPersistenceService persistence = new(
+            new TestCatalogProvider(),
+            new TestHaulingSettings(1f),
+            repository,
+            reservations,
+            reservations);
+        DungeonPhysicalItemSaveData saved = persistence.Capture();
+        ItemReservationClaimHintSaveData savedHint = saved.reservationIntents
+            .Single()
+            .reservationHints
+            .Single();
+        WorldItemStackSaveData savedStack = saved.stacks.Single();
+        Require(string.Equals(
+                savedHint.expectedStackSignature,
+                ItemReservationSignature.Create(savedStack.itemId, savedStack.components),
+                StringComparison.Ordinal),
+            "freshness-aged lease did not persist its reservation identity");
+        Require(!string.Equals(
+                savedHint.expectedStackSignature,
+                savedStack.GetStackSignature(),
+                StringComparison.Ordinal),
+            "test fixture did not prove reservation identity differs from mutable stack freshness");
+
         // A quality mutation is not time passage and must still invalidate the
         // lease rather than silently substituting a materially different item.
         Require(repository.SetEditorTestComponent(
@@ -1053,7 +1172,7 @@ public static class PhysicalItemDebugScenarios
             && qualityFailure.Code == FailureCode.ItemReservationSliceInvalid,
             $"quality mutation did not invalidate lease: {qualityFailure}");
 
-        return $"lease={lease.leaseId}; freshness=120->115; qualityFailure={qualityFailure.Code}";
+        return $"lease={lease.leaseId}; freshness=120->115; capture=valid; qualityFailure={qualityFailure.Code}";
     }
 
     private static ItemInstanceComponentSaveData CreateFreshnessComponent(double remainingSeconds)
@@ -1644,6 +1763,47 @@ public static class PhysicalItemDebugScenarios
         }
     }
 
+    private static string VerifyStackRemovalInvalidatesQuantityLease()
+    {
+        WorldItemRepository repository = new(
+            new GuidPersistentIdGenerator(),
+            new DungeonRuntimeAggregateRootStore());
+        string stackId = repository.AddEditorTestStack(
+            "item:lease-removal", 2, WorldItemStackState.Loose);
+        ItemQuantityReservationService reservations = new(
+            repository,
+            EditorNullItemMarkerPresenter.Instance,
+            new UnityGameClock());
+        Require(reservations.TryReserve(
+                "haul:character:lease-removal",
+                "character:lease-removal",
+                ItemReservationPurpose.Hauling,
+                "haul:test:lease-removal",
+                new ItemQuantityReservationRequest(
+                    new ItemStackId(stackId),
+                    1,
+                    ItemStackSignature.Create(
+                        "item:lease-removal",
+                        Array.Empty<ItemInstanceComponentSaveData>())),
+                out ItemQuantityLease lease,
+                out DomainFailure reserveFailure),
+            $"stack-removal lease setup failed: {reserveFailure}");
+
+        repository.RemoveEditorTestStack(stackId);
+
+        Require(!reservations.Revalidate(
+                lease.leaseId,
+                out _,
+                out DomainFailure invalidatedFailure)
+            && invalidatedFailure.Code == FailureCode.ItemReservationLeaseMissing,
+            $"removed stack left a usable lease: {invalidatedFailure}");
+        Require(reservations.CaptureReservationIntents().Count == 0,
+            "removed stack left a persisted reservation intent");
+        Require(reservations.GetReservedQuantity(new ItemStackId(stackId)) == 0,
+            "removed stack left cached reserved quantity");
+        return $"stack={stackId}; lease={lease.leaseId}; intents=0; reserved=0";
+    }
+
     private static string VerifyReservationGrandfatherRestore()
     {
         WorldItemRepository repository = new(
@@ -1917,6 +2077,7 @@ public static class PhysicalItemDebugScenarios
         repository = new WorldItemRepository(
             new GuidPersistentIdGenerator(),
             new DungeonRuntimeAggregateRootStore());
+        FacilityBufferDestinationClaimRegistry destinationClaims = new();
         quantityReservations =
             new ItemQuantityReservationService(
                 repository,
@@ -1950,7 +2111,8 @@ public static class PhysicalItemDebugScenarios
                 pathBroker,
                 worldRegistry,
                 repository,
-                quantityReservations);
+                quantityReservations,
+                destinationClaims);
         EditorEquipmentPhysicalItemGatewayProxy equipmentItemGateway =
             new EditorEquipmentPhysicalItemGatewayProxy();
         equipmentRuntime = CombatEquipmentEditorTestFactory.Create(
@@ -1972,7 +2134,9 @@ public static class PhysicalItemDebugScenarios
         ItemTransferService itemTransferService = new ItemTransferService(
             readServices,
             idRegistry,
+            gridProvider,
             worldRegistry,
+            destinationClaims,
             combatCatalog,
             new GameEventBus(),
             repository,
@@ -2136,6 +2300,102 @@ public static class PhysicalItemDebugScenarios
         source.Dispose();
         restoredItems.Dispose();
         return $"itemInstance={created.instanceId}; physicalVersion={physicalSave.version}";
+    }
+
+    private static string VerifyExistingEquipmentAtomicDropCapture()
+    {
+        WorldItemStackRuntime runtime = CreateRuntime(
+            out _,
+            out CombatEquipmentRuntime equipment);
+        try
+        {
+            const int repetitionCount = 24;
+            string equipmentItemId = PhysicalItemIds.ForEquipment("weapon:dagger");
+            Require(!runtime.SpawnItemAt(
+                    equipmentItemId,
+                    12,
+                    Vector2Int.zero,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out int genericEquipmentSpawned)
+                    && genericEquipmentSpawned == 0,
+                "generic SpawnItemAt accepted equipment without authoritative instances");
+            Require(!runtime.SpawnItemAt(
+                    PhysicalItemIds.ForEquipmentModule(),
+                    12,
+                    Vector2Int.zero,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out int genericModuleSpawned)
+                    && genericModuleSpawned == 0,
+                "generic SpawnItemAt accepted equipment modules without authoritative instances");
+            Require(runtime.SpawnItemAt(
+                    LumberItemId,
+                    2,
+                    Vector2Int.zero,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out int genericMaterialSpawned)
+                    && genericMaterialSpawned == 2,
+                "generic SpawnItemAt rejected a normal non-equipment item");
+
+            HashSet<string> instanceIds = new HashSet<string>(StringComparer.Ordinal);
+            for (int index = 0; index < repetitionCount; index++)
+            {
+                CombatEquipmentInstance created = equipment.CreateInstance(
+                    "weapon:dagger",
+                    CombatEquipmentQuality.Normal,
+                    CombatEquipmentWorldState.Loose);
+                Require(equipment.TryDropExistingEquipmentToWorld(
+                        created.instanceId,
+                        new Vector2Int(index, 2),
+                        out string stackId,
+                        out string failureReason),
+                    $"atomic equipment drop {index} failed: {failureReason}");
+                WorldItemStackSnapshot stack = runtime.GetAllStacks()
+                    .Single(candidate => candidate.StackId == stackId);
+                Require(stack.ItemId == PhysicalItemIds.ForEquipment(created.definitionId),
+                    $"atomic equipment drop {index} used item '{stack.ItemId}'");
+                Require(stack.ItemInstanceId == created.instanceId,
+                    $"atomic equipment drop {index} changed instance identity");
+                Require(instanceIds.Add(stack.ItemInstanceId),
+                    $"atomic equipment drop {index} duplicated instance identity");
+            }
+
+            DungeonPhysicalItemSaveData captured = runtime.Capture();
+            Require(captured.version == DungeonPhysicalItemSaveData.CurrentVersion,
+                $"capture version was {captured.version}");
+            Require(captured.stacks.Count(stack => stack != null
+                    && instanceIds.Contains(stack.itemInstanceId)) == repetitionCount,
+                "canonical capture did not preserve all dropped equipment stacks");
+            Require(captured.uniqueItems.Count(item => item != null
+                    && instanceIds.Contains(item.itemInstanceId)) == repetitionCount,
+                "canonical capture did not preserve all authoritative equipment instances");
+            Require(instanceIds.All(instanceId => captured.stacks.Count(stack => stack != null
+                        && stack.itemInstanceId == instanceId) == 1
+                    && captured.uniqueItems.Count(item => item != null
+                        && item.itemInstanceId == instanceId) == 1),
+                "canonical capture did not preserve a one-to-one stack/instance mapping");
+
+            Require(!runtime.SpawnUniqueItemAt(
+                    equipmentItemId,
+                    Vector2Int.zero,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out _),
+                "generic unique spawn accepted an equipment item without an authoritative instance");
+
+            return $"genericEquipment={genericEquipmentSpawned}; "
+                + $"genericModule={genericModuleSpawned}; "
+                + $"genericMaterial={genericMaterialSpawned}; "
+                + $"drops={repetitionCount}; stacks={captured.stacks.Count}; "
+                + $"uniqueItems={captured.uniqueItems.Count}; "
+                + $"captureVersion={captured.version}";
+        }
+        finally
+        {
+            runtime.Dispose();
+        }
     }
 
     private static string VerifyQualityRejectedUniqueDeliveryIdentity()

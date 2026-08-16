@@ -770,6 +770,13 @@ public sealed class CharacterConsumablesRuntime :
                 "meal-actor-missing-at-commit");
             return false;
         }
+        if (!actor.Active)
+        {
+            AbortMealPlan(command, plan,
+                CharacterConsumablesFailureCode.CharacterMissing,
+                "meal-actor-inactive-at-commit");
+            return false;
+        }
         if (!TryGetMealFacility(command.FacilityId, out _))
         {
             AbortMealPlan(command, plan,
@@ -920,6 +927,42 @@ public sealed class CharacterConsumablesRuntime :
         world.ReleaseMealFacilitySlot(command.OperationId, command.FacilityId);
     }
 
+    public int CancelActiveMealOperations(CharacterId characterId, string reason)
+    {
+        if (!characterId.IsValid)
+        {
+            return 0;
+        }
+
+        KeyValuePair<ConsumableOperationId, CharacterMealPlan>[] active =
+            WriteState.ActiveMealPlans
+                .Where(pair => pair.Value != null
+                    && string.Equals(
+                        pair.Value.characterId,
+                        characterId.Value,
+                        StringComparison.Ordinal))
+                .OrderBy(pair => pair.Key.Value, StringComparer.Ordinal)
+                .ToArray();
+        for (int index = 0; index < active.Length; index++)
+        {
+            ConsumableOperationId operationId = active[index].Key;
+            CharacterMealPlan plan = active[index].Value;
+            AbortMealPlan(
+                new ConsumeMealCommand(
+                    operationId,
+                    characterId,
+                    new BuildingInstanceId(plan.facilityInstanceId),
+                    new ItemStackId(plan.sourceStackId)),
+                plan,
+                CharacterConsumablesFailureCode.PhysicalConsumptionFailed,
+                string.IsNullOrWhiteSpace(reason)
+                    ? "character-lifecycle-ended"
+                    : reason.Trim());
+        }
+
+        return active.Length;
+    }
+
     public CharacterSubstancePolicyState GetSubstancePolicy(
         CharacterId characterId,
         string substanceId)
@@ -1016,7 +1059,9 @@ public sealed class CharacterConsumablesRuntime :
                 substanceId);
             return false;
         }
-        CharacterConsumablesStackSnapshot stack = FindAvailableSubstanceStack(substance.Id);
+        CharacterConsumablesStackSnapshot stack = FindAvailableSubstanceStack(
+            characterId,
+            substance.Id);
         if (!stack.StackId.IsValid)
         {
             result = CharacterConsumablesSubstanceResult.Failed(
@@ -1189,7 +1234,7 @@ public sealed class CharacterConsumablesRuntime :
             return false;
         }
         CharacterConsumablesStackSnapshot stack = FindStack(command.ItemStackId);
-        if (!stack.StackId.IsValid || stack.AvailableQuantity <= 0 || stack.Forbidden
+        if (!IsSubstanceStackAvailableToCharacter(stack, command.CharacterId)
             || !stack.ItemId.Equals(substance.Id))
         {
             result = FailedSubstance(
@@ -1199,7 +1244,10 @@ public sealed class CharacterConsumablesRuntime :
                 command.ItemStackId.Value);
             return false;
         }
-        if (!inventory.TryConsume(stack.StackId, 1))
+        if (!inventory.TryConsumeForCharacter(
+                command.CharacterId,
+                stack.StackId,
+                1))
         {
             result = FailedSubstance(
                 CharacterConsumablesFailureCode.PhysicalConsumptionFailed,
@@ -1269,7 +1317,9 @@ public sealed class CharacterConsumablesRuntime :
         CharacterConsumablesUseRequest best = default;
         foreach (CharacterConsumablesSubstanceDefinitionSnapshot substance in inventory.GetSubstances())
         {
-            if (!FindAvailableSubstanceStack(substance.Id).StackId.IsValid)
+            if (!FindAvailableSubstanceStack(
+                    characterId,
+                    substance.Id).StackId.IsValid)
             {
                 continue;
             }
@@ -1865,14 +1915,30 @@ public sealed class CharacterConsumablesRuntime :
             : default;
 
     private CharacterConsumablesStackSnapshot FindAvailableSubstanceStack(
+        CharacterId characterId,
         ConsumableItemDefinitionId itemId) =>
         inventory.GetAllStacks()
             .Where(stack => stack.AvailableQuantity > 0 && !stack.Forbidden
-                && stack.ItemId.Equals(itemId))
+                && stack.ItemId.Equals(itemId)
+                && IsSubstanceStackAvailableToCharacter(stack, characterId))
             .OrderBy(stack => stack.State == CharacterConsumablesStackState.Carried ? 0 : 1)
             .ThenBy(stack => stack.State)
             .ThenBy(stack => stack.StackId.Value, StringComparer.Ordinal)
             .FirstOrDefault();
+
+    private static bool IsSubstanceStackAvailableToCharacter(
+        CharacterConsumablesStackSnapshot stack,
+        CharacterId characterId) =>
+        stack.StackId.IsValid
+        && stack.AvailableQuantity > 0
+        && !stack.Forbidden
+        && (stack.State is CharacterConsumablesStackState.Loose
+                or CharacterConsumablesStackState.Stored
+            || stack.State == CharacterConsumablesStackState.Carried
+            && string.Equals(
+                stack.DestinationId,
+                characterId.Value,
+                StringComparison.Ordinal));
 
     private List<RecreationalSubstanceCandidate> GetRecreationalSubstanceCandidates(
         CharacterConsumablesActorSnapshot actor,

@@ -84,6 +84,10 @@ public sealed class DarkSurvivalSaveSection :
             payload,
             (value, path) => NormalizeV18CharacterReference(value, report, path));
 
+    protected override void ValidateParsedPayload(
+        DungeonDarkSurvivalSaveData payload) =>
+        CharacterDeprivationPersistenceCoordinator.ValidatePayloadShape(payload);
+
     protected override DarkSurvivalRestoreCandidate BuildRestoreCandidate(
         DungeonDarkSurvivalSaveData payload) =>
         runtime.BuildRestoreCandidate(payload);

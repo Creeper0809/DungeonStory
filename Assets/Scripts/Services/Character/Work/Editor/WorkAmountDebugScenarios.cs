@@ -1519,6 +1519,25 @@ public static class WorkAmountDebugScenarios
         public bool StoredItemMarkersVisible => false;
         public int ItemStackVersion => 0;
         public int HaulJobVersion => 0;
+        public int GetCommittedHaulDeliveryQuantity(
+            string destinationId,
+            string itemId) => 0;
+        public bool TryCommitHaulPickup(
+            string ownerOperationId,
+            CharacterCarryInventory inventory,
+            out string failureReason)
+        {
+            failureReason = "fake haul delivery authority unavailable";
+            return false;
+        }
+        public bool TryCaptureHaulDeliveryIntent(
+            string ownerOperationId,
+            out HaulDeliveryIntentSaveData intent)
+        {
+            intent = null;
+            return false;
+        }
+        public bool ReleaseHaulDeliveryIntent(string ownerOperationId) => false;
 
         public DungeonPhysicalItemSaveData Capture() => new DungeonPhysicalItemSaveData();
         public void Restore(DungeonPhysicalItemSaveData snapshot) { }
@@ -1836,6 +1855,14 @@ public static class WorkAmountDebugScenarios
             return false;
         }
 
+        public bool TryDepositCarriedItems(
+            CharacterActor actor,
+            CharacterCarryInventory inventory,
+            IWarehouseFacility warehouse,
+            IReadOnlyCollection<string> ownerOperationIds,
+            out string failureReason) =>
+            TryDepositCarriedItems(actor, inventory, warehouse, out failureReason);
+
         public bool TryDepositCarriedItemsToFacility(
             CharacterActor actor,
             CharacterCarryInventory inventory,
@@ -1846,6 +1873,20 @@ public static class WorkAmountDebugScenarios
             failureReason = "no fake facility deposit";
             return false;
         }
+
+        public bool TryDepositCarriedItemsToFacility(
+            CharacterActor actor,
+            CharacterCarryInventory inventory,
+            Vector2Int destinationPosition,
+            string destinationId,
+            IReadOnlyCollection<string> ownerOperationIds,
+            out string failureReason) =>
+            TryDepositCarriedItemsToFacility(
+                actor,
+                inventory,
+                destinationPosition,
+                destinationId,
+                out failureReason);
 
         public bool TryConsumeFacilityBuffer(
             string destinationId,

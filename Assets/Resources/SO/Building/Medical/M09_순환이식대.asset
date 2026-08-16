@@ -62,9 +62,9 @@ MonoBehaviour:
     - rid: 7737211857806557880
     - rid: 7737211857806557881
     - rid: 7737211857806557882
-    - rid: 7737211905655963717
-    - rid: 7737211905655963718
     - rid: 7737211905666711769
+    - rid: 7737211981816660013
+    - rid: 7737211981816660014
   width: 3
   height: 1
   layer: 1
@@ -116,6 +116,7 @@ MonoBehaviour:
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
         constructionWorkRequired: 96
         repairWorkRequired: 19.2
         cleanWorkRequired: 8
@@ -165,23 +166,6 @@ MonoBehaviour:
         rejectionReduction: 0.15
         bloodCost: 1
         immunosuppressantCost: 0
-    - rid: 7737211905655963717
-      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingUtilityConnectionAbility
-        channels: 6
-        maxThroughput: 20
-        normallyOpen: 1
-    - rid: 7737211905655963718
-      type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProcessFluidAbility
-        workTypeIds:
-        - work:surgery
-        cleanWaterPerCycle: 0.2
-        wastewaterPerCycle: 0.2
-        minimumQuality: 0
-        allowsManualWaterFallback: 1
     - rid: 7737211905666711769
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -193,3 +177,20 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 671121408
           disabledWhenDamaged: 1
+    - rid: 7737211981816660013
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 6
+        maxThroughput: 20
+        normallyOpen: 1
+    - rid: 7737211981816660014
+      type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProcessFluidAbility
+        workTypeIds:
+        - work:surgery
+        cleanWaterPerCycle: 0.2
+        wastewaterPerCycle: 0.2
+        minimumQuality: 0
+        allowsManualWaterFallback: 1

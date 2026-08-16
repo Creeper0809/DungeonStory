@@ -53,15 +53,15 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211905655963872
-    - rid: 7737211905655963873
-    - rid: 7737211905655963874
-    - rid: 7737211905655963875
-    - rid: 7737211905655963876
-    - rid: 7737211905655963877
-    - rid: 7737211905655963878
-    - rid: 7737211905655963879
-    - rid: 7737211905655963880
+    - rid: 7737211981816660746
+    - rid: 7737211981816660747
+    - rid: 7737211981816660748
+    - rid: 7737211981816660749
+    - rid: 7737211981816660750
+    - rid: 7737211981816660751
+    - rid: 7737211981816660752
+    - rid: 7737211981816660753
+    - rid: 7737211981816660754
   width: 2
   height: 1
   layer: 1
@@ -77,12 +77,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211905655963872
+    - rid: 7737211981816660746
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I17
-    - rid: 7737211905655963873
+    - rid: 7737211981816660747
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -91,10 +91,11 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211905655963874
+    - rid: 7737211981816660748
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
         constructionWorkRequired: 312
         repairWorkRequired: 94
         cleanWorkRequired: 16
@@ -122,21 +123,21 @@ MonoBehaviour:
           amount: 2
         - itemId: material:mana-alloy
           amount: 1
-    - rid: 7737211905655963875
+    - rid: 7737211981816660749
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737211905655963876
+    - rid: 7737211981816660750
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 9
         priority: 4
         minimumSupplyFraction: 1
-    - rid: 7737211905655963877
+    - rid: 7737211981816660751
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -144,13 +145,13 @@ MonoBehaviour:
         - industrial-infrastructure
         - research:equipment:rune-module-tuning
         - workstation:v3:rune-tuning
-    - rid: 7737211905655963878
+    - rid: 7737211981816660752
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v3:rune-tuning
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211905655963879
+    - rid: 7737211981816660753
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -158,7 +159,7 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211905655963880
+    - rid: 7737211981816660754
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

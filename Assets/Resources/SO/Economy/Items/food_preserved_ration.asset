@@ -30,12 +30,12 @@ MonoBehaviour:
   unitWeight: 0.5
   maxStack: 60
   sprite: {fileID: 0}
-  unitPrice: 13
+  unitPrice: 15
   features:
   - rid: 7737211905666712267
   - rid: 7737211905666712268
-  - rid: 7737211905666712269
   - rid: 7737211905666712270
+  - rid: 7737211981818757224
   references:
     version: 2
     RefIds:
@@ -49,15 +49,17 @@ MonoBehaviour:
         kind: 2
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211905666712269
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.6
     - rid: 7737211905666712270
       type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         quality: 3
+        qualityBand: 1
+        servingRole: 0
         nutrition: 36
         mood: 1
         freshnessSeconds: 1800
         preserved: 1
+    - rid: 7737211981818757224
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.5896963

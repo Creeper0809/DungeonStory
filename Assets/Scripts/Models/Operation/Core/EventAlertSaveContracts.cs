@@ -55,6 +55,8 @@ namespace DungeonStory.Infrastructure
         public long alertEpochId;
         public long suspendedAtAbsoluteHour;
         public bool progressExternallyPersisted;
+        public float inlineCompletedWork;
+        public float inlineRequiredWork;
     }
 
     [Serializable]
@@ -311,13 +313,22 @@ namespace DungeonStory.Operation
                     || suspended.alertEpochId <= 0L
                     || suspended.alertEpochId > threatAlert.alertEpochId
                     || suspended.suspendedAtAbsoluteHour < 0L
-                    || !suspended.progressExternallyPersisted)
+                    || (!suspended.progressExternallyPersisted
+                        && (!IsFinite(suspended.inlineCompletedWork)
+                            || !IsFinite(suspended.inlineRequiredWork)
+                            || suspended.inlineRequiredWork <= 0f
+                            || suspended.inlineCompletedWork < 0f
+                            || suspended.inlineCompletedWork
+                                >= suspended.inlineRequiredWork)))
                 {
                     errors.Add(
                         $"Settlement suspended work {index} is invalid or duplicated.");
                 }
             }
         }
+
+        private static bool IsFinite(float value) =>
+            !float.IsNaN(value) && !float.IsInfinity(value);
 
         private static void ValidateChoices(
             DungeonEventAlertRecordSaveData record,

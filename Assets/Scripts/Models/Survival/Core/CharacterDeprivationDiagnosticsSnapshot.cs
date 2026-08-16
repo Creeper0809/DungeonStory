@@ -37,7 +37,11 @@ public readonly struct CharacterDeprivationDiagnosticsSnapshot
         int desperateDrinkAttempts,
         int desperateDrinkStackMoveFailures,
         int desperateDrinkStackArrivals,
-        int desperateDrinkStackConsumptions)
+        int desperateDrinkStackConsumptions,
+        int safeReliefPlanSearchPending,
+        int safeReliefPlanReservationRejected,
+        int safeReliefPlanNoSource,
+        string lastSafeReliefPlanFailureDetail)
     {
         SafeReliefRequests = safeReliefRequests;
         SafeReliefPlanFailures = safeReliefPlanFailures;
@@ -76,6 +80,11 @@ public readonly struct CharacterDeprivationDiagnosticsSnapshot
         DesperateDrinkStackMoveFailures = desperateDrinkStackMoveFailures;
         DesperateDrinkStackArrivals = desperateDrinkStackArrivals;
         DesperateDrinkStackConsumptions = desperateDrinkStackConsumptions;
+        SafeReliefPlanSearchPending = safeReliefPlanSearchPending;
+        SafeReliefPlanReservationRejected = safeReliefPlanReservationRejected;
+        SafeReliefPlanNoSource = safeReliefPlanNoSource;
+        LastSafeReliefPlanFailureDetail =
+            lastSafeReliefPlanFailureDetail ?? string.Empty;
     }
 
     public int SafeReliefRequests { get; }
@@ -115,4 +124,8 @@ public readonly struct CharacterDeprivationDiagnosticsSnapshot
     public int DesperateDrinkStackMoveFailures { get; }
     public int DesperateDrinkStackArrivals { get; }
     public int DesperateDrinkStackConsumptions { get; }
+    public int SafeReliefPlanSearchPending { get; }
+    public int SafeReliefPlanReservationRejected { get; }
+    public int SafeReliefPlanNoSource { get; }
+    public string LastSafeReliefPlanFailureDetail { get; }
 }

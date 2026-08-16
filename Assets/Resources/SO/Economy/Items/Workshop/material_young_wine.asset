@@ -30,25 +30,25 @@ MonoBehaviour:
   unitWeight: 0.5
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 10
+  unitPrice: 19
   features:
-  - rid: 7737211905660420491
-  - rid: 7737211905666712554
-  - rid: 7737211905666712555
+  - rid: 7737211981804077205
+  - rid: 7737211981804077206
+  - rid: 7737211981804077888
   references:
     version: 2
     RefIds:
-    - rid: 7737211905660420491
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.59625757
-    - rid: 7737211905666712554
+    - rid: 7737211981804077205
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:fermentation
-    - rid: 7737211905666712555
+    - rid: 7737211981804077206
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 1
         sharedIntermediate: 1
+    - rid: 7737211981804077888
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.59625757

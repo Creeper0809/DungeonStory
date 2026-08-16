@@ -57,14 +57,18 @@ public sealed class ProductionItemGateway :
 {
     private readonly IStockQuery stock;
     private readonly IItemTransferService transfers;
+    private readonly IWorldItemStackRuntime worldItems;
 
     public ProductionItemGateway(
         IStockQuery stock,
-        IItemTransferService transfers)
+        IItemTransferService transfers,
+        IWorldItemStackRuntime worldItems)
     {
         this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
         this.transfers = transfers
             ?? throw new ArgumentNullException(nameof(transfers));
+        this.worldItems = worldItems
+            ?? throw new ArgumentNullException(nameof(worldItems));
     }
 
     public int CountDelivered(string itemId, string destinationId)
@@ -79,12 +83,16 @@ public sealed class ProductionItemGateway :
 
     public int CountPending(string itemId, string destinationId)
     {
-        return Count(
+        int worldQuantity = Count(
             itemId,
             destinationId,
             requiredState: null,
-            excludeCarried: false,
+            excludeCarried: true,
             excludedDestinationId: string.Empty);
+        int carriedQuantity = worldItems.GetCommittedHaulDeliveryQuantity(
+            destinationId,
+            itemId);
+        return checked(worldQuantity + carriedQuantity);
     }
 
     public int CountAvailableStock(

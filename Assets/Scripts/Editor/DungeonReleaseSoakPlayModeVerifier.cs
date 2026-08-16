@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using Unity.Profiling;
 using UnityEditor;
 using UnityEngine;
@@ -44,16 +43,18 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
     private const int RequiredOperatingDayAdvances = 2;
     private const int SoakGameSpeed = 5;
     private const float ObservationInterval = 0.5f;
-
-    private static readonly FieldInfo VisitReservationsField = typeof(BuildableObject).GetField(
-        "visitReservations",
-        BindingFlags.Instance | BindingFlags.NonPublic);
+    private const float LogisticsObservationInterval = 5f;
+    private const int PerformanceWarmupFrames = 60;
+    private const int PerformanceMinimumFrames = 300;
+    private const float PerformanceMinimumSeconds = 30f;
 
     private readonly List<string> report = new List<string>();
     private readonly List<string> failures = new List<string>();
     private readonly List<string> errors = new List<string>();
     private readonly List<string> warnings = new List<string>();
     private readonly List<float> frameTimesMs = new List<float>(16384);
+    private readonly List<double> mainThreadTimesMs = new List<double>(16384);
+    private readonly List<double> aiBudgetMarkerTimesMs = new List<double>(16384);
     private readonly List<double> schedulerTimesMs = new List<double>(16384);
     private readonly List<long> editorBaselineGcAllocations = new List<long>(
         GameplayGcAcceptancePolicy.EditorBaselineSampleFrames);
@@ -68,18 +69,23 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
     private readonly HashSet<WorldItemStackState> observedItemStackStates = new HashSet<WorldItemStackState>();
 
     private ProfilerRecorder mainThreadRecorder;
+    private ProfilerRecorder aiBudgetRecorder;
     private ProfilerRecorder gcAllocationRecorder;
     private float originalTimeScale = 1f;
     private int originalGameSpeed = 1;
     private bool originalPause;
     private GameSessionState gameData;
     private GameManager gameManager;
+    private IGameSpeedController gameSpeedController;
+    private CharacterAiScheduler scheduler;
+    private Grid observedGrid;
     private IDungeonGameSaveSlotService slotService;
     private IGameplayFlowDiagnosticsQuery flowDiagnostics;
     private IWorkOrderRuntime workOrders;
     private IWorldItemStackRuntime itemStacks;
     private int invalidReservationSamples;
     private int overCapacitySamples;
+    private int invalidQueueAccountingSamples;
     private int invalidActorPositionSamples;
     private int pausedSamples;
     private int observationSamples;
@@ -90,11 +96,15 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
     private int totalDecisions;
     private int totalPathSearches;
     private int totalBrokerPathSearches;
+    private int totalBrokerUrgentContinuationPathSearches;
     private int totalBrokerPathCacheHits;
     private int totalBrokerPathBudgetDeferrals;
     private int maxDecisions;
     private int maxPathSearches;
     private int maxBrokerPathSearches;
+    private int maxBrokerNormalPathSearches;
+    private int maxBrokerUrgentContinuationPathSearches;
+    private int pathBudgetContractViolations;
     private int maxRegisteredCharacters;
     private long startMonoBytes;
     private long endMonoBytes;
@@ -123,24 +133,35 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
             flowDiagnostics = scope.Container.Resolve<IGameplayFlowDiagnosticsQuery>();
             workOrders = scope.Container.Resolve<IWorkOrderRuntime>();
             itemStacks = scope.Container.Resolve<IWorldItemStackRuntime>();
+            gameSpeedController = scope.Container.Resolve<IGameSpeedController>();
         }
 
         gameManager = FindFirstObjectByType<GameManager>(FindObjectsInactive.Include);
-        Check(slotService != null && gameData != null && gameManager != null,
+        scheduler = FindFirstObjectByType<CharacterAiScheduler>();
+        GridSystemManager gridManager = FindFirstObjectByType<GridSystemManager>();
+        observedGrid = gridManager != null ? gridManager.grid : null;
+        Check(slotService != null
+                && gameData != null
+                && gameManager != null
+                && gameSpeedController != null
+                && scheduler != null,
             "RUNTIME_SERVICES",
-            $"slots={slotService != null}; gameData={gameData != null}; gameManager={gameManager != null}");
+            $"slots={slotService != null}; gameData={gameData != null}; "
+            + $"gameManager={gameManager != null}; speed={gameSpeedController != null}; "
+            + $"scheduler={scheduler != null}; grid={observedGrid != null}");
 
-        if (slotService == null || gameData == null || gameManager == null)
+        if (slotService == null
+            || gameData == null
+            || gameManager == null
+            || gameSpeedController == null
+            || scheduler == null)
         {
             FinishAndExit();
             yield break;
         }
 
-        originalGameSpeed = gameData.gameSpeed.Value;
-        originalPause = gameManager.isPause;
-        int startDay = gameData.day.Value;
-        int targetDay = startDay + RequiredOperatingDayAdvances;
-        float startGameTime = gameData.curTime.Value;
+        originalGameSpeed = gameSpeedController.Speed;
+        originalPause = gameSpeedController.IsPaused;
 
         gcAllocationRecorder = ProfilerRecorder.StartNew(
             ProfilerCategory.Memory,
@@ -148,40 +169,36 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
             1);
         yield return CaptureEditorGcBaseline();
         yield return CaptureEditorSteadyStateGc();
-
-        gameManager.isPause = false;
-        gameData.gameSpeed.Value = SoakGameSpeed;
-        Time.timeScale = SoakGameSpeed;
-
-        startMonoBytes = UnityEngine.Profiling.Profiler.GetMonoUsedSizeLong();
         mainThreadRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Internal, "Main Thread", 1);
+        aiBudgetRecorder = ProfilerRecorder.StartNew(
+            ProfilerCategory.Scripts,
+            "CharacterAiScheduler.ProcessAiBudget",
+            1);
+        gameSpeedController.SetSpeed(SoakGameSpeed);
+        gameSpeedController.SetPaused(false);
+        yield return CaptureCleanPerformancePhase();
+
+        int startDay = gameData.day.Value;
+        int targetDay = startDay + RequiredOperatingDayAdvances;
+        float startGameTime = gameData.curTime.Value;
+        startMonoBytes = UnityEngine.Profiling.Profiler.GetMonoUsedSizeLong();
 
         SaveSnapshot("START_SAVE");
         float startedAt = Time.realtimeSinceStartup;
         float nextObservationAt = startedAt;
+        float nextLogisticsObservationAt = startedAt;
         float nextSaveAt = startedAt + 30f;
         int timedSaveIndex = 1;
 
         while (ShouldContinueSoak(startedAt, targetDay))
         {
-            frameTimesMs.Add(Time.unscaledDeltaTime * 1000f);
-            if (mainThreadRecorder.Valid && mainThreadRecorder.LastValue > 0)
-            {
-                frameTimesMs.Add(mainThreadRecorder.LastValue / 1000000f);
-            }
-
-            if (gcAllocationRecorder.Valid)
-            {
-                gcAllocations.Add(Math.Max(0, gcAllocationRecorder.LastValue));
-            }
-
-            CharacterAiScheduler scheduler = FindFirstObjectByType<CharacterAiScheduler>();
             if (scheduler != null)
             {
-                schedulerTimesMs.Add(scheduler.LastProcessingMilliseconds);
                 totalDecisions += scheduler.LastProcessedDecisionCount;
                 totalPathSearches += scheduler.LastPathSearchCount;
                 totalBrokerPathSearches += scheduler.LastBrokerPathSearchCount;
+                totalBrokerUrgentContinuationPathSearches +=
+                    scheduler.LastBrokerUrgentOverdraftPathSearchCount;
                 totalBrokerPathCacheHits += scheduler.LastBrokerPathCacheHitCount;
                 totalBrokerPathBudgetDeferrals += scheduler.LastBrokerPathBudgetDeferralCount;
                 maxDecisions = Mathf.Max(maxDecisions, scheduler.LastProcessedDecisionCount);
@@ -189,6 +206,26 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
                 maxBrokerPathSearches = Mathf.Max(
                     maxBrokerPathSearches,
                     scheduler.LastBrokerPathSearchCount);
+                int normalBrokerSearches = Mathf.Max(
+                    0,
+                    scheduler.LastBrokerPathSearchCount
+                    - scheduler.LastBrokerUrgentOverdraftPathSearchCount);
+                maxBrokerNormalPathSearches = Mathf.Max(
+                    maxBrokerNormalPathSearches,
+                    normalBrokerSearches);
+                maxBrokerUrgentContinuationPathSearches = Mathf.Max(
+                    maxBrokerUrgentContinuationPathSearches,
+                    scheduler.LastBrokerUrgentOverdraftPathSearchCount);
+                int pathBudget = scheduler.CurrentPathSearchBudget;
+                if (normalBrokerSearches > pathBudget
+                    || scheduler.LastBrokerUrgentOverdraftPathSearchCount
+                        > GridPathSearchBroker.MaximumUrgentContinuationOverdraft
+                    || scheduler.LastBrokerPathSearchCount
+                        > pathBudget
+                            + GridPathSearchBroker.MaximumUrgentContinuationOverdraft)
+                {
+                    pathBudgetContractViolations++;
+                }
                 maxRegisteredCharacters = Mathf.Max(maxRegisteredCharacters, scheduler.RegisteredCharacterCount);
             }
 
@@ -204,6 +241,12 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
                 nextObservationAt = now + ObservationInterval;
             }
 
+            if (now >= nextLogisticsObservationAt)
+            {
+                ObserveWorkAndLogistics();
+                nextLogisticsObservationAt = now + LogisticsObservationInterval;
+            }
+
             if (now >= nextSaveAt && timedSaveIndex <= 2)
             {
                 SaveSnapshot("TIMED_SAVE_" + timedSaveIndex);
@@ -215,6 +258,7 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
         }
 
         ObserveWorld(Time.realtimeSinceStartup);
+        ObserveWorkAndLogistics();
         SaveSnapshot("END_SAVE");
         endMonoBytes = UnityEngine.Profiling.Profiler.GetMonoUsedSizeLong();
 
@@ -232,6 +276,16 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
         int maxReservationTargetChanges = actorObservations.Count > 0
             ? actorObservations.Values.Max(item => item.ReservationTargetChanges)
             : 0;
+        int maxSameEpochReservationReacquires = actorObservations.Count > 0
+            ? actorObservations.Values.Max(item => item.SameEpochReservationReacquires)
+            : 0;
+        int maxSameEpochDestinationSwitches = actorObservations.Count > 0
+            ? actorObservations.Values.Max(item => item.SameEpochDestinationSwitches)
+            : 0;
+        bool reservationsConserved = actorObservations.Values.All(
+            item => item.ReservationsConserved);
+        bool reservationInvariantsClean = actorObservations.Values.All(
+            item => item.ReservationInvariantAnomalyDelta == 0);
         int requiredChangedActors = aiActorCount > 0 ? Mathf.Max(1, Mathf.CeilToInt(aiActorCount * 0.5f)) : 0;
 
         float elapsedRealSeconds = Time.realtimeSinceStartup - startedAt;
@@ -255,25 +309,40 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
         Check(maxTwoCellOscillationReversals < 6,
             "AI_TWO_CELL_OSCILLATION",
             $"maxConsecutiveReversals={maxTwoCellOscillationReversals}; {DescribeActors()}");
-        Check(maxReservationTargetChanges <= 18,
+        Check(reservationsConserved
+                && reservationInvariantsClean
+                && maxSameEpochReservationReacquires < 3
+                && maxSameEpochDestinationSwitches == 0,
             "AI_RESERVATION_CHURN",
-            $"maxTargetChanges={maxReservationTargetChanges}; {DescribeActors()}");
+            $"rawTargetChanges={maxReservationTargetChanges}; "
+            + $"sameEpochReacquires={maxSameEpochReservationReacquires}; "
+            + $"sameEpochSwitches={maxSameEpochDestinationSwitches}; "
+            + $"conserved={reservationsConserved}; "
+            + $"invariantsClean={reservationInvariantsClean}; {DescribeActors()}");
         Check(totalDecisions > 0 && maxDecisions <= 16,
             "AI_DECISION_BUDGET",
             $"total={totalDecisions}; maxPerFrame={maxDecisions}; registeredMax={maxRegisteredCharacters}");
         Check(totalPathSearches + totalBrokerPathSearches + totalBrokerPathCacheHits > 0
                 && maxPathSearches <= 8
-                && maxBrokerPathSearches <= 8,
+                && pathBudgetContractViolations == 0,
             "AI_PATH_BUDGET",
             $"scheduler={totalPathSearches}; broker={totalBrokerPathSearches}; "
+            + $"urgentContinuations={totalBrokerUrgentContinuationPathSearches}; "
             + $"cacheHits={totalBrokerPathCacheHits}; deferrals={totalBrokerPathBudgetDeferrals}; "
-            + $"maxScheduler={maxPathSearches}; maxBroker={maxBrokerPathSearches}");
+            + $"maxScheduler={maxPathSearches}; maxBroker={maxBrokerPathSearches}; "
+            + $"maxNormal={maxBrokerNormalPathSearches}; "
+            + $"maxUrgent={maxBrokerUrgentContinuationPathSearches}; "
+            + $"urgentLimit={GridPathSearchBroker.MaximumUrgentContinuationOverdraft}; "
+            + $"contractViolations={pathBudgetContractViolations}");
         Check(invalidReservationSamples == 0,
             "RESERVATION_OWNERSHIP",
             $"invalidSamples={invalidReservationSamples}");
         Check(overCapacitySamples == 0,
             "FACILITY_CAPACITY",
-            $"overCapacitySamples={overCapacitySamples}");
+            $"activeUserOverCapacitySamples={overCapacitySamples}");
+        Check(invalidQueueAccountingSamples == 0,
+            "FACILITY_FIFO_QUEUE_ACCOUNTING",
+            $"invalidSamples={invalidQueueAccountingSamples}");
         Check(invalidActorPositionSamples == 0,
             "ACTOR_POSITIONS",
             $"invalidSamples={invalidActorPositionSamples}");
@@ -367,9 +436,6 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
     private void ObserveWorld(float now)
     {
         observationSamples++;
-        ObserveWorkAndLogistics();
-        GridSystemManager gridManager = FindFirstObjectByType<GridSystemManager>();
-        Grid grid = gridManager != null ? gridManager.grid : null;
         CharacterActor[] actors = FindObjectsByType<CharacterActor>(FindObjectsSortMode.None);
         foreach (CharacterActor actor in actors)
         {
@@ -386,10 +452,13 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
                 continue;
             }
 
-            if (grid != null && actor.CurrentLifecycleState == CharacterLifecycleState.Active)
+            if (observedGrid != null && actor.CurrentLifecycleState == CharacterLifecycleState.Active)
             {
-                Vector2Int cell = grid.GetXY(position);
-                if (cell.x < 0 || cell.x >= grid.width || cell.y < 0 || cell.y >= grid.height)
+                Vector2Int cell = observedGrid.GetXY(position);
+                if (cell.x < 0
+                    || cell.x >= observedGrid.width
+                    || cell.y < 0
+                    || cell.y >= observedGrid.height)
                 {
                     invalidActorPositionSamples++;
                 }
@@ -401,14 +470,13 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
             }
 
             int id = actor.GetInstanceID();
-            string signature = GetActorSignature(actor, grid);
+            string signature = GetActorSignature(actor, observedGrid);
             if (!actorObservations.TryGetValue(id, out ActorObservation observation))
             {
-                observation = new ActorObservation(actor.name, signature, now);
+                observation = new ActorObservation(actor, signature, now);
                 actorObservations.Add(id, observation);
             }
 
-            CharacterAiScheduler scheduler = FindFirstObjectByType<CharacterAiScheduler>();
             observation.Observe(
                 actor,
                 signature,
@@ -427,26 +495,40 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
 
             int reservations = building.ActiveVisitReservationCount;
             int capacity = Mathf.Max(0, building.EffectiveCapacity);
-            if (capacity < int.MaxValue && building.CurrentUserCount + reservations > capacity)
+            int users = building.CurrentUserCount;
+            if (capacity < int.MaxValue && users > capacity)
             {
                 overCapacitySamples++;
             }
 
-            if (VisitReservationsField?.GetValue(building) is System.Collections.IDictionary visitReservations)
+            int availableSlots = capacity == int.MaxValue
+                ? int.MaxValue
+                : Mathf.Max(0, capacity - users);
+            int expectedWaiting = availableSlots == int.MaxValue
+                ? 0
+                : Mathf.Max(0, reservations - availableSlots);
+            if (building.WaitingVisitReservationCount != expectedWaiting)
             {
-                foreach (DictionaryEntry entry in visitReservations)
+                invalidQueueAccountingSamples++;
+            }
+
+            foreach (CharacterId reservationId in
+                     building.CaptureVisitReservationIdsForDiagnostics())
+            {
+                CharacterActor actor = actors.FirstOrDefault(candidate =>
+                    candidate != null
+                    && candidate.BuildingCharacterId.Equals(reservationId));
+                AIAction action = actor != null && actor.Brain != null
+                    ? actor.Brain.bestAction
+                    : null;
+                if (actor == null
+                    || actor.IsDead
+                    || !actor.gameObject.activeInHierarchy
+                    || action == null
+                    || !action.HasReservation
+                    || action.ReservedDestination != building)
                 {
-                    CharacterActor actor = entry.Key as CharacterActor;
-                    AIAction action = actor != null && actor.Brain != null ? actor.Brain.bestAction : null;
-                    if (actor == null
-                        || actor.IsDead
-                        || !actor.gameObject.activeInHierarchy
-                        || action == null
-                        || !action.HasReservation
-                        || action.ReservedDestination != building)
-                    {
-                        invalidReservationSamples++;
-                    }
+                    invalidReservationSamples++;
                 }
             }
 
@@ -560,6 +642,8 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
     private void VerifyPerformance()
     {
         double p95FrameMs = Percentile(frameTimesMs.Select(value => (double)value), 0.95);
+        double p95MainThreadMs = Percentile(mainThreadTimesMs, 0.95);
+        double p95AiBudgetMarkerMs = Percentile(aiBudgetMarkerTimesMs, 0.95);
         double p95SchedulerMs = Percentile(schedulerTimesMs, 0.95);
         double baselineAverageBytes = editorBaselineGcAllocations.Count > 0
             ? editorBaselineGcAllocations.Average()
@@ -590,6 +674,18 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
         Check(frameTimesMs.Count > 100 && p95FrameMs <= 100.0,
             "FRAME_TIME",
             $"samples={frameTimesMs.Count}; p95={p95FrameMs:0.00}ms");
+        Check(mainThreadRecorder.Valid
+                && mainThreadTimesMs.Count > 100
+                && mainThreadTimesMs.Any(value => value > 0d)
+                && p95MainThreadMs <= 100.0,
+            "MAIN_THREAD_TIME",
+            $"samples={mainThreadTimesMs.Count}; p95={p95MainThreadMs:0.00}ms");
+        Check(aiBudgetRecorder.Valid
+                && aiBudgetMarkerTimesMs.Count > 100
+                && aiBudgetMarkerTimesMs.Any(value => value > 0d)
+                && p95AiBudgetMarkerMs <= 8.0,
+            "AI_BUDGET_MARKER_TIME",
+            $"samples={aiBudgetMarkerTimesMs.Count}; p95={p95AiBudgetMarkerMs:0.000}ms");
         Check(schedulerTimesMs.Count > 100 && p95SchedulerMs <= 8.0,
             "AI_PROCESSING_TIME",
             $"samples={schedulerTimesMs.Count}; p95={p95SchedulerMs:0.000}ms");
@@ -634,8 +730,7 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
 
     private IEnumerator CaptureEditorGcBaseline()
     {
-        gameManager.isPause = true;
-        Time.timeScale = 0f;
+        gameSpeedController.SetPaused(true);
         for (int frame = 0;
             frame < GameplayGcAcceptancePolicy.EditorBaselineWarmupFrames;
             frame++)
@@ -659,9 +754,8 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
 
     private IEnumerator CaptureEditorSteadyStateGc()
     {
-        gameManager.isPause = false;
-        gameData.gameSpeed.Value = 1;
-        Time.timeScale = 1f;
+        gameSpeedController.SetSpeed(1);
+        gameSpeedController.SetPaused(false);
         for (int frame = 0;
             frame < GameplayGcAcceptancePolicy.EditorBaselineWarmupFrames;
             frame++)
@@ -681,6 +775,69 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
                     Math.Max(0L, gcAllocationRecorder.LastValue));
             }
         }
+
+        report.Add(
+            $"EDITOR_GC_STEADY_PHASE samples={editorSteadyGcAllocations.Count}; "
+            + "speed=1; paused=false; observation=off; save=off; screenshot=off");
+    }
+
+    private IEnumerator CaptureCleanPerformancePhase()
+    {
+        gameSpeedController.SetSpeed(SoakGameSpeed);
+        gameSpeedController.SetPaused(false);
+        for (int frame = 0; frame < PerformanceWarmupFrames; frame++)
+        {
+            yield return new WaitForEndOfFrame();
+        }
+
+        int actorCount = FindObjectsByType<CharacterActor>(FindObjectsSortMode.None)
+            .Count(actor => actor != null && actor.gameObject.activeInHierarchy);
+        int buildingCount = FindObjectsByType<BuildableObject>(FindObjectsSortMode.None)
+            .Count(building => building != null
+                && !building.isDestroy
+                && building.gameObject.activeInHierarchy);
+        int itemStackCount = itemStacks?.GetAllStacks()?.Count ?? 0;
+        report.Add(
+            $"PERFORMANCE_WORKLOAD scene={gameObject.scene.name}; "
+            + $"actors={actorCount}; buildings={buildingCount}; "
+            + $"itemStacks={itemStackCount}; day={gameData.day.Value}; "
+            + $"gameTime={gameData.curTime.Value:0.0}; speed={gameSpeedController.Speed}; "
+            + $"sourceVersion={Application.version}");
+
+        frameTimesMs.Clear();
+        mainThreadTimesMs.Clear();
+        aiBudgetMarkerTimesMs.Clear();
+        schedulerTimesMs.Clear();
+        gcAllocations.Clear();
+        float startedAt = Time.realtimeSinceStartup;
+        while (frameTimesMs.Count < PerformanceMinimumFrames
+            || Time.realtimeSinceStartup - startedAt < PerformanceMinimumSeconds)
+        {
+            yield return new WaitForEndOfFrame();
+            frameTimesMs.Add(Time.unscaledDeltaTime * 1000f);
+            mainThreadTimesMs.Add(
+                mainThreadRecorder.Valid
+                    ? Math.Max(0d, mainThreadRecorder.LastValue / 1000000d)
+                    : 0d);
+            aiBudgetMarkerTimesMs.Add(
+                aiBudgetRecorder.Valid
+                    ? Math.Max(0d, aiBudgetRecorder.LastValue / 1000000d)
+                    : 0d);
+            schedulerTimesMs.Add(
+                scheduler != null
+                    ? Math.Max(0d, scheduler.LastProcessingMilliseconds)
+                    : 0d);
+            if (gcAllocationRecorder.Valid)
+            {
+                long allocated = Math.Max(0L, gcAllocationRecorder.LastValue);
+                gcAllocations.Add(allocated);
+            }
+        }
+
+        report.Add(
+            $"PERFORMANCE_CLEAN_PHASE samples={frameTimesMs.Count}; "
+            + $"realtime={Time.realtimeSinceStartup - startedAt:0.0}s; "
+            + "observation=off; save=off; screenshot=off");
     }
 
     private IEnumerator CaptureScreen()
@@ -704,22 +861,25 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
             mainThreadRecorder.Dispose();
         }
 
+        if (aiBudgetRecorder.Valid)
+        {
+            aiBudgetRecorder.Dispose();
+        }
+
         if (gcAllocationRecorder.Valid)
         {
             gcAllocationRecorder.Dispose();
         }
 
-        if (gameData != null)
+        if (gameSpeedController != null)
         {
-            gameData.gameSpeed.Value = originalGameSpeed;
+            gameSpeedController.SetSpeed(originalGameSpeed);
+            gameSpeedController.SetPaused(originalPause);
         }
-
-        if (gameManager != null)
+        else
         {
-            gameManager.isPause = originalPause;
+            Time.timeScale = originalTimeScale;
         }
-
-        Time.timeScale = originalTimeScale;
         Application.logMessageReceived -= CaptureLog;
         report.Add($"capturedErrors={errors.Count}; capturedWarnings={warnings.Count}");
         foreach (string error in errors)
@@ -777,10 +937,15 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
                 .OrderBy(item => item.Name, StringComparer.Ordinal)
                 .Select(item => $"{item.Name}:changes={item.ChangeCount},"
                     + $"pending={item.MaxPendingSeconds:0.0}s,"
+                    + $"pendingProgressResets={item.PendingProgressResets},"
                     + $"pendingContext={item.MaxPendingContext},"
                     + $"stationary={item.MaxUnexplainedStationarySeconds:0.0}s,"
                     + $"oscillation={item.MaxTwoCellOscillationReversals},"
-                    + $"reservationChanges={item.ReservationTargetChanges}"));
+                    + $"reservationChanges={item.ReservationTargetChanges},"
+                    + $"sameEpochReacquires={item.SameEpochReservationReacquires},"
+                    + $"sameEpochSwitches={item.SameEpochDestinationSwitches},"
+                    + $"reservationConserved={item.ReservationsConserved},"
+                    + $"invariantDelta={item.ReservationInvariantAnomalyDelta}"));
     }
 
     private static string GetActorSignature(CharacterActor actor, Grid grid)
@@ -853,14 +1018,29 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
         private string lastReservationTarget = string.Empty;
         private float pendingSince = -1f;
         private float unexplainedStationarySince = -1f;
+        private long lastSchedulerProcesses = -1L;
+        private long lastRuntimeProgressRevision = -1L;
+        private long reservationEpoch = -1L;
+        private long reservationReleasedAtProgressRevision = -1L;
+        private CharacterAiRuntimeGateSnapshot reservationGateStart;
+        private CharacterAiRuntimeGateSnapshot reservationGateEnd;
+        private bool reservationSeenInEpoch;
+        private bool reservationReleasedInEpoch;
         private bool hasCell;
         private int currentTwoCellOscillationReversals;
 
-        public ActorObservation(string name, string signature, float now)
+        public ActorObservation(CharacterActor actor, string signature, float now)
         {
-            Name = string.IsNullOrWhiteSpace(name) ? "Character" : name;
+            Name = actor == null || string.IsNullOrWhiteSpace(actor.name)
+                ? "Character"
+                : actor.name;
             lastSignature = signature;
             LastObservedAt = now;
+            AIBrain brain = actor?.Brain;
+            reservationEpoch = brain?.RuntimeActionEpoch ?? 0L;
+            lastRuntimeProgressRevision = brain?.RuntimeProgressRevision ?? 0L;
+            reservationGateStart = brain?.CaptureRuntimeGateSnapshot() ?? default;
+            reservationGateEnd = reservationGateStart;
         }
 
         public string Name { get; }
@@ -870,7 +1050,15 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
         public float MaxUnexplainedStationarySeconds { get; private set; }
         public int MaxTwoCellOscillationReversals { get; private set; }
         public int ReservationTargetChanges { get; private set; }
+        public int SameEpochReservationReacquires { get; private set; }
+        public int SameEpochDestinationSwitches { get; private set; }
+        public int PendingProgressResets { get; private set; }
         public float LastObservedAt { get; private set; }
+        public bool ReservationsConserved =>
+            reservationGateEnd.ConservesReservationsFrom(in reservationGateStart);
+        public long ReservationInvariantAnomalyDelta =>
+            reservationGateEnd.InvariantAnomalies
+            - reservationGateStart.InvariantAnomalies;
 
         public void Observe(
             CharacterActor actor,
@@ -885,18 +1073,46 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
                 lastSignature = signature;
             }
 
+            AIBrain brain = actor?.Brain;
+            long schedulerProcesses = brain?.RuntimeSchedulerProcessCount ?? 0L;
+            long runtimeProgressRevision = brain?.RuntimeProgressRevision ?? 0L;
+            long actionEpoch = brain?.RuntimeActionEpoch ?? 0L;
+            reservationGateEnd = brain?.CaptureRuntimeGateSnapshot() ?? default;
+            if (actionEpoch != reservationEpoch)
+            {
+                reservationEpoch = actionEpoch;
+                lastReservationTarget = GetReservationTarget(actor);
+                reservationSeenInEpoch =
+                    !string.IsNullOrWhiteSpace(lastReservationTarget);
+                reservationReleasedInEpoch = false;
+                reservationReleasedAtProgressRevision = -1L;
+            }
+            bool authoritativeProgress = lastSchedulerProcesses >= 0L
+                && (schedulerProcesses > lastSchedulerProcesses
+                    || runtimeProgressRevision > lastRuntimeProgressRevision);
+            lastSchedulerProcesses = schedulerProcesses;
+            lastRuntimeProgressRevision = runtimeProgressRevision;
+
             if (pending)
             {
-                if (pendingSince < 0f)
+                if (pendingSince < 0f || authoritativeProgress)
                 {
                     pendingSince = now;
+                    if (authoritativeProgress)
+                    {
+                        PendingProgressResets++;
+                    }
                 }
 
                 float pendingSeconds = now - pendingSince;
                 if (pendingSeconds >= MaxPendingSeconds)
                 {
                     MaxPendingSeconds = pendingSeconds;
-                    MaxPendingContext = DescribePendingContext(actor, nextDecisionDelay);
+                    MaxPendingContext = DescribePendingContext(
+                        actor,
+                        nextDecisionDelay,
+                        schedulerProcesses,
+                        runtimeProgressRevision);
                 }
             }
             else
@@ -953,6 +1169,33 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
                     ReservationTargetChanges++;
                 }
 
+                bool hadTarget = !string.IsNullOrWhiteSpace(lastReservationTarget);
+                bool hasTarget = !string.IsNullOrWhiteSpace(reservationTarget);
+                if (hadTarget && hasTarget)
+                {
+                    SameEpochDestinationSwitches++;
+                    reservationSeenInEpoch = true;
+                    reservationReleasedInEpoch = false;
+                }
+                else if (hadTarget)
+                {
+                    reservationReleasedInEpoch = true;
+                    reservationReleasedAtProgressRevision = runtimeProgressRevision;
+                }
+                else if (hasTarget)
+                {
+                    if (reservationSeenInEpoch
+                        && reservationReleasedInEpoch
+                        && runtimeProgressRevision
+                            <= reservationReleasedAtProgressRevision)
+                    {
+                        SameEpochReservationReacquires++;
+                    }
+
+                    reservationSeenInEpoch = true;
+                    reservationReleasedInEpoch = false;
+                }
+
                 lastReservationTarget = reservationTarget;
             }
 
@@ -961,7 +1204,9 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
 
         private static string DescribePendingContext(
             CharacterActor actor,
-            float nextDecisionDelay)
+            float nextDecisionDelay,
+            long schedulerProcesses,
+            long runtimeProgressRevision)
         {
             if (actor == null)
             {
@@ -979,7 +1224,9 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
                 + $"status={blackboard?.CurrentStatus}; "
                 + $"action={brain?.CurrentActionDebugLabel}; phase={brain?.CurrentActionPhase}; "
                 + $"detail={brain?.CurrentActionPhaseDetail}; failure={failure}; "
-                + $"next={nextDecisionDelay:0.00}s");
+                + $"next={nextDecisionDelay:0.00}s; "
+                + $"schedulerProcesses={schedulerProcesses}; "
+                + $"runtimeProgress={runtimeProgressRevision}");
         }
 
         private static bool IsUnexplainedStationary(CharacterActor actor, bool pending)

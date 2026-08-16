@@ -17,10 +17,16 @@ public static class DailyRoutineWuPlayModeVerifier
 {
     public const string RequestPath = "Temp/phase157-daily-routine-wu.request";
     public const string ReportPath = "Artifacts/QA/phase157-daily-routine-wu-playmode.txt";
+    public const string RuntimeDiagnosticsGateVersion =
+        "ai-runtime-gate-v3";
     private const string GameplayScenePath = "Assets/Scenes/GameplayScene.unity";
     private static bool runnerCreated;
     private const string RequestedSeedSessionKey =
         "DungeonStory.DailyRoutineWu.RequestedSeed";
+    private static readonly int[] RequiredGateSeeds =
+        { 157_181, 157_182, 157_183 };
+    public static string LastThreeSeedGateReport { get; private set; } =
+        string.Empty;
 
     static DailyRoutineWuPlayModeVerifier()
     {
@@ -46,6 +52,54 @@ public static class DailyRoutineWuPlayModeVerifier
         File.WriteAllText(
             RequestPath,
             $"seed={normalizedSeed};requestedUtc={DateTime.UtcNow:O}");
+    }
+
+    [MenuItem("DungeonStory/Debug/QA/Verify Phase 157 Three Seed Reports")]
+    public static void VerifyThreeSeedReportsFromMenu()
+    {
+        VerifyThreeSeedReports(logSuccess: true);
+    }
+
+    public static bool VerifyThreeSeedReports(bool logSuccess = true)
+    {
+        List<string> failures = new();
+        foreach (int seed in RequiredGateSeeds)
+        {
+            string path =
+                $"Artifacts/QA/phase157-daily-routine-wu-seed-{seed}.txt";
+            if (!File.Exists(path))
+            {
+                failures.Add($"missing:{seed}");
+                continue;
+            }
+
+            string report = File.ReadAllText(path, Encoding.UTF8);
+            if (!report.Contains($"runSeed={seed}", StringComparison.Ordinal))
+            {
+                failures.Add($"seed-mismatch:{seed}");
+            }
+            if (!report.Contains("RESULT=PASS;", StringComparison.Ordinal))
+            {
+                failures.Add($"failed:{seed}");
+            }
+            if (!report.Contains(
+                    $"runtimeDiagnosticsGate={RuntimeDiagnosticsGateVersion}",
+                    StringComparison.Ordinal))
+            {
+                failures.Add($"stale-gate:{seed}");
+            }
+        }
+
+        bool valid = failures.Count == 0;
+        LastThreeSeedGateReport = valid
+            ? "valid=True; seeds=157181,157182,157183; all five-day reports PASS"
+            : $"valid=False; failures={string.Join(",", failures)}";
+        if (logSuccess || !valid)
+        {
+            if (valid) Debug.Log(LastThreeSeedGateReport);
+            else Debug.LogError(LastThreeSeedGateReport);
+        }
+        return valid;
     }
 
     private static void OnEditorUpdate()
@@ -151,6 +205,7 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
     private Grid fixtureGrid;
     private Vector2Int[] fixtureActorPositions = Array.Empty<Vector2Int>();
     private Facility fixtureMealFacility;
+    private Facility fixtureHygieneFacility;
     private ConstructionSite fixtureConstructionSite;
     private BuildingSO fixtureConstructionDefinition;
     private string fixtureConstructionOrderId = string.Empty;
@@ -447,6 +502,7 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         funRecoveryFacilityVisits = 0;
         foreach (CharacterActor actor in actors)
         {
+            actor?.Brain?.ResetSchedulerDelayTelemetryForDiagnostics();
             observations[actor] = new ActorRoutineObservation(actor);
         }
         observationActive = true;
@@ -751,6 +807,8 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         report.AppendLine($"observedGameSeconds={observedGameSeconds:0.###}");
         report.AppendLine($"observedDays={ObservationDays}");
         report.AppendLine($"runSeed={requestedRunSeed}");
+        report.AppendLine(
+            $"runtimeDiagnosticsGate={DailyRoutineWuPlayModeVerifier.RuntimeDiagnosticsGateVersion}");
         report.AppendLine($"dailyCadenceContract={DailyCadenceContractVersion}; toilet={ToiletCadenceMinimum:0.###}~{ToiletCadenceMaximum:0.###}; hygiene={HygieneCadenceMinimum:0.###}~{HygieneCadenceMaximum:0.###}");
         report.AppendLine($"actors={observations.Count}");
         report.AppendLine($"activeActorsAtEnd={finalActiveActorCount}");
@@ -802,13 +860,27 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         report.AppendLine("## Physical consumable authority");
         report.AppendLine($"food item={fixtureFoodId}; start={fixtureFoodStartQuantity}; end={foodEndQuantity}; stockDepletion={foodConsumed}; consumedEvents={observedMealConsumptions}");
         report.AppendLine($"water item={fixtureWaterId}; start={fixtureWaterStartQuantity}; end={waterEndQuantity}; stockDepletion={waterConsumed}; consumedEvents={observedWaterConsumptions}");
+        foreach (WorldItemStackSnapshot waterStack in (itemStacks?.GetAllStacks()
+                     ?? Array.Empty<WorldItemStackSnapshot>())
+                 .Where(value => value != null
+                     && string.Equals(
+                         value.ItemId,
+                         fixtureWaterId,
+                         StringComparison.Ordinal))
+                 .OrderBy(value => value.StackId, StringComparer.Ordinal))
+        {
+            report.AppendLine(
+                $"waterStack id={waterStack.StackId}; state={waterStack.State}; quantity={waterStack.Quantity}; available={waterStack.AvailableQuantity}; reserved={waterStack.ReservedQuantity}; position={waterStack.Position}; destination={waterStack.DestinationId}; sourceStorage={waterStack.SourceStorageDestinationId}");
+        }
+        report.AppendLine(
+            $"waterCarriedQuantity={carryInventories?.All.Where(value => value != null).Sum(value => value.CountItem(fixtureWaterId)) ?? 0}");
         report.AppendLine($"mealsPerActorDay={mealsPerActorDay:0.###}; expectedMealsPerActorDay={expectedMealsPerActorDay:0.###}; drinksPerActorDay={drinksPerActorDay:0.###}");
         report.AppendLine($"actualLaborWuPerActorDay={observedActualLaborMilliWu / 1000f / actorDays:0.###}; outputEquivalentWuPerActorDay={observedOutputEquivalentMilliWu / 1000f / actorDays:0.###}");
         report.AppendLine($"activeMealPlans={consumables?.activeMealPlans?.Count ?? -1}; completedMealOperations={consumables?.completedOperations?.Count(value => value != null && value.meal) ?? -1}");
         CharacterDeprivationDiagnosticsSnapshot deprivation =
             deprivationRuntime?.GetDiagnostics() ?? default;
         report.AppendLine(
-            $"safeDrink requests={deprivation.SafeReliefRequests}; planFailures={deprivation.SafeReliefPlanFailures}; started={deprivation.SafeReliefActionsStarted}; running={deprivation.SafeReliefRunningActions}; arrivals={deprivation.SafeReliefArrivals}; interactions={deprivation.SafeReliefInteractionAttempts}; successes={deprivation.SafeReliefSuccesses}; finished={deprivation.SafeReliefActionsFinished}; moveFailures={deprivation.SafeReliefMoveFailures}; missingPath={deprivation.SafeReliefMissingPathFailures}; cancelled={deprivation.SafeReliefCancelledMoveFailures}; maxPath={deprivation.SafeReliefMaximumPlannedPathSteps}; maxDuration={deprivation.SafeReliefMaximumDurationSeconds:0.###}");
+            $"safeDrink requests={deprivation.SafeReliefRequests}; planFailures={deprivation.SafeReliefPlanFailures}; pathPending={deprivation.SafeReliefPlanSearchPending}; reservationRejected={deprivation.SafeReliefPlanReservationRejected}; noSource={deprivation.SafeReliefPlanNoSource}; lastPlanFailure={(deprivation.LastSafeReliefPlanFailureDetail ?? string.Empty).Replace('\r', ' ').Replace('\n', ' ')}; started={deprivation.SafeReliefActionsStarted}; running={deprivation.SafeReliefRunningActions}; arrivals={deprivation.SafeReliefArrivals}; interactions={deprivation.SafeReliefInteractionAttempts}; successes={deprivation.SafeReliefSuccesses}; finished={deprivation.SafeReliefActionsFinished}; moveFailures={deprivation.SafeReliefMoveFailures}; missingPath={deprivation.SafeReliefMissingPathFailures}; cancelled={deprivation.SafeReliefCancelledMoveFailures}; maxPath={deprivation.SafeReliefMaximumPlannedPathSteps}; maxDuration={deprivation.SafeReliefMaximumDurationSeconds:0.###}");
         foreach (string eventTrace in consumedEventTrace)
         {
             report.AppendLine("event=" + eventTrace);
@@ -874,6 +946,29 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 failures.Add(
                     $"{observation.ActorName} required {observation.OrphanWorkActionRecoveryDelta} orphan Work action lifecycle recovery event(s); inspect cumulative AI lifecycle diagnostics.");
             }
+            CharacterAiRuntimeGateSnapshot gateStart = observation.RuntimeGateStart;
+            CharacterAiRuntimeGateSnapshot gateEnd = observation.RuntimeGateEnd;
+            if (!gateEnd.ConservesLifecycleFrom(in gateStart))
+                failures.Add($"{observation.ActorName} failed action lifecycle conservation.");
+            if (!gateEnd.ConservesPathsFrom(in gateStart))
+                failures.Add($"{observation.ActorName} failed path request/result/live conservation.");
+            if (!gateEnd.ConservesReservationsFrom(in gateStart))
+                failures.Add($"{observation.ActorName} failed reservation acquire/release/live conservation.");
+            if (!gateEnd.ConservesObservedBranchesFrom(in gateStart))
+                failures.Add($"{observation.ActorName} failed per-branch action/path/reservation conservation.");
+            if (gateEnd.SchedulerProcesses <= gateStart.SchedulerProcesses)
+                failures.Add($"{observation.ActorName} was never processed by the scheduler during the five-day window.");
+            if (!gateEnd.HasHealthyActivityFrom(in gateStart))
+                failures.Add($"{observation.ActorName} produced no gameplay progress or typed facility queue heartbeat during the five-day window.");
+            if (gateEnd.MaximumSchedulerDelayMilliseconds > 2000)
+                failures.Add($"{observation.ActorName} exceeded the 2-second scheduler-delay fairness gate ({gateEnd.MaximumSchedulerDelayMilliseconds} ms).");
+            if (gateEnd.InvariantAnomalies > gateStart.InvariantAnomalies)
+                failures.Add(
+                    $"{observation.ActorName} recorded {gateEnd.InvariantAnomalies - gateStart.InvariantAnomalies} runtime invariant anomaly event(s); "
+                    + $"last={observation.Actor?.Brain?.LastInvariantAnomalyForDiagnostics}; "
+                    + $"detail={observation.Actor?.Brain?.LastInvariantAnomalyDetailForDiagnostics}.");
+            if (gateEnd.FailureLoops > gateStart.FailureLoops)
+                failures.Add($"{observation.ActorName} entered {gateEnd.FailureLoops - gateStart.FailureLoops} repeated failure loop(s).");
         }
 
         int toiletVisits = GetFacilityVisitCount(FacilityRole.Toilet);
@@ -881,8 +976,16 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         int recreationVisits = GetFacilityVisitCount(
             FacilityRole.Entertainment);
         int restVisits = GetFacilityVisitCount(FacilityRole.Rest);
+        int hygieneVisitsInFlightAtBoundary = observations.Values.Count(
+            value => value.IsHygieneVisitInFlightAtBoundary());
+        int toiletVisitsInFlightAtBoundary = observations.Values.Count(
+            value => value.IsToiletVisitInFlightAtBoundary());
         float toiletVisitsPerActorDay = toiletVisits / sampledActorDays;
         float hygieneVisitsPerActorDay = hygieneVisits / sampledActorDays;
+        float toiletCadencePerActorDay =
+            (toiletVisits + toiletVisitsInFlightAtBoundary) / sampledActorDays;
+        float hygieneCadencePerActorDay =
+            (hygieneVisits + hygieneVisitsInFlightAtBoundary) / sampledActorDays;
         float recreationVisitsPerActorDay = recreationVisits / sampledActorDays;
         float funRecoveryVisitsPerActorDay =
             funRecoveryFacilityVisits / sampledActorDays;
@@ -892,6 +995,8 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             $"toilet={toiletVisits}; hygiene={hygieneVisits}; recreationBranch={recreationVisits}; funRecovery={funRecoveryFacilityVisits}; rest={restVisits}");
         report.AppendLine(
             $"perActorDay toilet={toiletVisitsPerActorDay:0.###}; hygiene={hygieneVisitsPerActorDay:0.###}; recreationBranch={recreationVisitsPerActorDay:0.###}; funRecovery={funRecoveryVisitsPerActorDay:0.###}");
+        report.AppendLine(
+            $"rightCensoredEligibleOrInFlight toilet={toiletVisitsInFlightAtBoundary}; hygiene={hygieneVisitsInFlightAtBoundary}; cadencePerActorDay toilet={toiletCadencePerActorDay:0.###}; hygiene={hygieneCadencePerActorDay:0.###}");
         report.AppendLine(
             "primitive=" + (primitiveSurvivalCounts.Count == 0
                 ? "none"
@@ -905,12 +1010,12 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
 
         ValidateDailyFacilityCadence(
             "toilet",
-            toiletVisitsPerActorDay,
+            toiletCadencePerActorDay,
             ToiletCadenceMinimum,
             ToiletCadenceMaximum);
         ValidateDailyFacilityCadence(
             "hygiene",
-            hygieneVisitsPerActorDay,
+            hygieneCadencePerActorDay,
             HygieneCadenceMinimum,
             HygieneCadenceMaximum);
         ValidateDailyFacilityCadence(
@@ -1392,6 +1497,10 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             {
                 mealFacility = facility;
                 fixtureMealFacility = facility;
+            }
+            else if (index == 3)
+            {
+                fixtureHygieneFacility = facility;
             }
         }
 
@@ -1988,6 +2097,7 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
 
         int foodSpawned = 0;
         int waterSpawned = 0;
+        int hygieneWaterSpawned = 0;
         BuildableObject[] mealFacilities = (worldRegistry?.Buildings
                 ?? Array.Empty<BuildableObject>())
             .Where(value => value != null
@@ -2011,6 +2121,18 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             }
             foodSpawned += spawned;
         }
+        string hygieneWaterDestination = fixtureHygieneFacility != null
+            ? $"plumbing:manual-water:{fixtureHygieneFacility.RequirePersistentInstanceId().Value}"
+            : string.Empty;
+        bool hygieneWaterReady = fixtureHygieneFacility != null
+            && itemStacks.SpawnItemAt(
+                waterId,
+                30,
+                fixtureHygieneFacility.centerPos,
+                WorldItemStackState.FacilityBuffer,
+                hygieneWaterDestination,
+                out hygieneWaterSpawned)
+            && hygieneWaterSpawned == 30;
         if (mealFacilities.Length == 0
             || foodSpawned != mealFacilities.Length * 30
             || !itemStacks.SpawnItemAt(
@@ -2020,10 +2142,12 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 WorldItemStackState.Loose,
                 string.Empty,
                 out waterSpawned)
-            || waterSpawned != 30)
+            || waterSpawned != 30
+            || !hygieneWaterReady)
         {
             throw new InvalidOperationException(
-                $"Accessible consumable seeding failed: food={foodSpawned}, water={waterSpawned}.");
+                $"Accessible consumable seeding failed: food={foodSpawned}, "
+                + $"water={waterSpawned}, hygieneWater={hygieneWaterSpawned}.");
         }
 
         fixtureFoodId = foodId;
@@ -2034,7 +2158,8 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         fixtureFoodStartQuantity = CountFixtureItemQuantity(foodId);
         fixtureWaterStartQuantity = CountFixtureItemQuantity(waterId);
 
-        return $"accessible physical starter food '{foodId}' in {mealFacilities.Length} meal buffers and water '{waterId}'";
+        return $"accessible physical starter food '{foodId}' in {mealFacilities.Length} meal buffers, "
+            + $"loose water '{waterId}', and {hygieneWaterSpawned} water in '{hygieneWaterDestination}'";
     }
 
     private int CountFixtureItemQuantity(string itemId)
@@ -2240,6 +2365,7 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         temporaryObjects.Clear();
         fixtureActorPositions = Array.Empty<Vector2Int>();
         fixtureMealFacility = null;
+        fixtureHygieneFacility = null;
         foreach (BuildingSO temporaryDefinition in temporaryDefinitions)
         {
             if (temporaryDefinition != null)
@@ -2317,7 +2443,9 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         private float orphanWorkActionSeconds;
         private float workProgressStallSeconds;
         private float needQueueStallSeconds;
+        private float needQueueHeartbeatStallSeconds;
         private float needServiceStallSeconds;
+        private float needLeaseStallSeconds;
         private float longestHarmfulStallSeconds;
         private int harmfulStallEpisodes;
         private string previousActiveSignature = string.Empty;
@@ -2327,7 +2455,14 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         private bool orphanWorkActionReported;
         private bool workProgressStallReported;
         private bool needQueueStallReported;
+        private bool needQueueHeartbeatStallReported;
         private bool needServiceStallReported;
+        private bool needLeaseStallReported;
+        private long lastGameplayProgressRevision;
+        private bool hasGameplayProgressRevision;
+        private long lastQueueHeartbeatCount;
+        private long lastQueuePositionRevision;
+        private long lastServiceHeartbeatCount;
         private long lastWorkProgressRevision;
         private bool hasWorkProgressRevision;
         private RoutineNeedKind activeTravelKind;
@@ -2346,6 +2481,58 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
 
         public string ActorName { get; }
         public CharacterActor Actor => actor;
+        public bool IsHygieneVisitInFlightAtBoundary() =>
+            IsRoutineVisitRightCensored(
+                RoutineNeedKind.Hygiene,
+                CharacterCondition.HYGIENE,
+                FacilityRole.Hygiene);
+
+        public bool IsToiletVisitInFlightAtBoundary() =>
+            IsRoutineVisitRightCensored(
+                RoutineNeedKind.Toilet,
+                CharacterCondition.EXCRETION,
+                FacilityRole.Toilet);
+
+        private bool IsRoutineVisitRightCensored(
+            RoutineNeedKind kind,
+            CharacterCondition condition,
+            FacilityRole role)
+        {
+            if (IsActivelyServing(kind))
+            {
+                return true;
+            }
+
+            if (actor?.Stats == null
+                || !actor.Stats.TryGetConditionValue(
+                    condition,
+                    out float value))
+            {
+                return false;
+            }
+
+            CharacterNeedResponseProfile response =
+                actor.Stats.GetNeedResponse(condition);
+            return value <= response.routineStart
+                && FacilityCandidateScorer.HasUsableCandidate(actor, role);
+        }
+
+        private bool IsActivelyServing(RoutineNeedKind kind)
+        {
+            if (actor?.Brain == null
+                || actor.Brain.bestAction == null
+                || actor.Brain.isBestActionEnd)
+            {
+                return false;
+            }
+
+            CharacterAiBranch branch = actor.Brain.bestAction.actionset?.Branch
+                ?? actor.Blackboard?.CurrentBranch
+                ?? CharacterAiBranch.None;
+            return ResolveNeedKind(
+                branch,
+                actor.Brain.CurrentActionDebugLabel ?? string.Empty) == kind;
+        }
         public float WorkActiveSeconds { get; private set; }
         public float WorkTransitSeconds { get; private set; }
         public float WorkQueueSeconds { get; private set; }
@@ -2392,6 +2579,10 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                     - diagnosticsStart.OrphanWorkActionRecoveries;
             }
         }
+        public CharacterAiRuntimeGateSnapshot RuntimeGateStart =>
+            diagnosticsStart.Gate;
+        public CharacterAiRuntimeGateSnapshot RuntimeGateEnd =>
+            actor?.Brain?.CaptureRuntimeGateSnapshot() ?? default;
 
         public void StabilizeNeutralHealth()
         {
@@ -2451,6 +2642,30 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             ResetWorkProgressWindow();
 
             AIBrain brain = actor.Brain;
+            bool queueHeartbeatObserved = brain != null
+                && (!hasGameplayProgressRevision
+                    || brain.FacilityQueueHeartbeatCount
+                        != lastQueueHeartbeatCount
+                    || brain.FacilityServiceHeartbeatCount
+                        != lastServiceHeartbeatCount);
+            bool queuePositionProgressed = brain != null
+                && (!hasGameplayProgressRevision
+                    || brain.FacilityQueuePositionRevision
+                        != lastQueuePositionRevision);
+            bool typedProgressed = brain != null
+                && (!hasGameplayProgressRevision
+                    || brain.GameplayProgressRevision != lastGameplayProgressRevision
+                    || brain.FacilityServiceHeartbeatCount
+                        != lastServiceHeartbeatCount);
+            if (brain != null)
+            {
+                lastGameplayProgressRevision = brain.GameplayProgressRevision;
+                lastQueueHeartbeatCount = brain.FacilityQueueHeartbeatCount;
+                lastQueuePositionRevision =
+                    brain.FacilityQueuePositionRevision;
+                lastServiceHeartbeatCount = brain.FacilityServiceHeartbeatCount;
+                hasGameplayProgressRevision = true;
+            }
             CharacterAiBranch branch = brain?.bestAction?.actionset?.Branch
                 ?? actor.Blackboard?.CurrentBranch
                 ?? CharacterAiBranch.None;
@@ -2466,7 +2681,10 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 branch,
                 actionLabel,
                 actionPhase,
-                needKind);
+                needKind,
+                typedProgressed,
+                queueHeartbeatObserved,
+                queuePositionProgressed);
             if (needKind != RoutineNeedKind.None)
             {
                 if (previousNeedKind != needKind)
@@ -2657,7 +2875,10 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             CharacterAiBranch branch,
             string actionLabel,
             string actionPhase,
-            RoutineNeedKind needKind)
+            RoutineNeedKind needKind,
+            bool typedProgressed,
+            bool queueHeartbeatObserved,
+            bool queuePositionProgressed)
         {
             if (brain == null || work?.isWorking == true)
             {
@@ -2727,9 +2948,13 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 actor,
                 out string urgentNeed,
                 out CharacterAiBranch urgentBranch);
+            CharacterAiRuntimePhase runtimePhase = brain.CurrentRuntimePhase;
+            bool typedMovement = runtimePhase == CharacterAiRuntimePhase.Moving
+                || runtimePhase == CharacterAiRuntimePhase.Repathing;
+            bool typedQueue = runtimePhase == CharacterAiRuntimePhase.FacilityAdmission
+                || runtimePhase == CharacterAiRuntimePhase.FacilityQueue;
             bool servicingNeed = needKind != RoutineNeedKind.None
-                && !IsMovementPhase(actionPhase)
-                && !IsQueuePhase(actionPhase);
+                && runtimePhase == CharacterAiRuntimePhase.FacilityService;
             if (urgent && needKind == RoutineNeedKind.None && !moving)
             {
                 urgentUnservedSeconds += seconds;
@@ -2750,10 +2975,15 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 urgentStallReported = false;
             }
 
-            bool expectsPhysicalMovement = IsMovementPhase(actionPhase)
+            bool expectsPhysicalMovement = typedMovement
                 && branch != CharacterAiBranch.Wait
                 && !actionPhase.Contains("갈 곳 찾는 중", StringComparison.Ordinal);
-            if (expectsPhysicalMovement && !moving)
+            // A movement step is authoritative progress even when the sampled
+            // transform happens to be unchanged at this coarse observation tick
+            // (for example, a step completed and the next step started between
+            // samples). Only accumulate a stall when neither physical sampling
+            // nor the typed movement progress revision advanced.
+            if (expectsPhysicalMovement && !moving && !typedProgressed)
             {
                 movementStallSeconds += seconds;
                 longestHarmfulStallSeconds = Mathf.Max(
@@ -2773,17 +3003,32 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 movementStallReported = false;
             }
 
-            string activeSignature = string.Concat(
-                ((int)branch).ToString(), "|", actionLabel, "|", actionPhase,
-                "|", brain.CurrentDestinationDebugLabel);
-
             bool waitingForNeedFacility = activeAction
                 && needKind != RoutineNeedKind.None
-                && IsQueuePhase(actionPhase)
+                && typedQueue
                 && !moving;
+            if (waitingForNeedFacility && !queueHeartbeatObserved)
+            {
+                needQueueHeartbeatStallSeconds += seconds;
+                longestHarmfulStallSeconds = Mathf.Max(
+                    longestHarmfulStallSeconds,
+                    needQueueHeartbeatStallSeconds);
+                if (needQueueHeartbeatStallSeconds >= 2f
+                    && !needQueueHeartbeatStallReported)
+                {
+                    RecordStall("need-queue-heartbeat-missing",
+                        needQueueHeartbeatStallSeconds, urgentNeed,
+                        urgentBranch, branch, actionLabel, actionPhase, brain);
+                    needQueueHeartbeatStallReported = true;
+                }
+            }
+            else
+            {
+                needQueueHeartbeatStallSeconds = 0f;
+                needQueueHeartbeatStallReported = false;
+            }
             if (waitingForNeedFacility
-                && string.Equals(activeSignature, previousActiveSignature,
-                    StringComparison.Ordinal))
+                && !queuePositionProgressed)
             {
                 needQueueStallSeconds += seconds;
                 longestHarmfulStallSeconds = Mathf.Max(
@@ -2803,10 +3048,29 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 needQueueStallReported = false;
             }
 
+            bool queueLeaseMissing = waitingForNeedFacility
+                && !brain.IsExternallyDrivenActionActive
+                && brain.RuntimeLiveReservationCount <= 0;
+            if (queueLeaseMissing)
+            {
+                needLeaseStallSeconds += seconds;
+                if (needLeaseStallSeconds >= 2f && !needLeaseStallReported)
+                {
+                    RecordStall("need-queue-lease-missing", needLeaseStallSeconds,
+                        urgentNeed, urgentBranch, branch, actionLabel,
+                        actionPhase, brain);
+                    needLeaseStallReported = true;
+                }
+            }
+            else
+            {
+                needLeaseStallSeconds = 0f;
+                needLeaseStallReported = false;
+            }
+
             if (activeAction
                 && servicingNeed
-                && string.Equals(activeSignature, previousActiveSignature,
-                    StringComparison.Ordinal))
+                && !typedProgressed)
             {
                 needServiceStallSeconds += seconds;
                 longestHarmfulStallSeconds = Mathf.Max(
@@ -2830,11 +3094,10 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
 
             bool activePhaseNotProgressing = activeAction
                 && !servicingNeed
-                && !IsQueuePhase(actionPhase)
-                && !IsMovementPhase(actionPhase)
+                && !typedQueue
+                && !typedMovement
                 && !moving
-                && string.Equals(activeSignature, previousActiveSignature,
-                    StringComparison.Ordinal);
+                && !typedProgressed;
             if (activePhaseNotProgressing)
             {
                 activePhaseStallSeconds += seconds;
@@ -2854,7 +3117,7 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 activePhaseStallSeconds = 0f;
                 activePhaseStallReported = false;
             }
-            previousActiveSignature = activeSignature;
+            previousActiveSignature = string.Empty;
         }
 
         private void ObserveApprovedWorkProgress(
@@ -2930,13 +3193,17 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             activePhaseStallSeconds = 0f;
             orphanWorkActionSeconds = 0f;
             needQueueStallSeconds = 0f;
+            needQueueHeartbeatStallSeconds = 0f;
             needServiceStallSeconds = 0f;
+            needLeaseStallSeconds = 0f;
             urgentStallReported = false;
             movementStallReported = false;
             activePhaseStallReported = false;
             orphanWorkActionReported = false;
             needQueueStallReported = false;
+            needQueueHeartbeatStallReported = false;
             needServiceStallReported = false;
+            needLeaseStallReported = false;
             previousActiveSignature = string.Empty;
         }
 
@@ -3080,7 +3347,9 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
                 .ThenBy(value => value.Key)
                 .Take(10)
                 .Select(value => $"{value.Key}:{value.Value:0.###}"));
-            return $"actor={ActorName}; {end.FormatDeltaFrom(diagnosticsStart)}; harmfulStalls={harmfulStallEpisodes}; longestHarmfulStall={longestHarmfulStallSeconds:0.###}; branches={branches}";
+            CharacterAiRuntimeGateSnapshot startGate = diagnosticsStart.Gate;
+            CharacterAiRuntimeGateSnapshot endGate = end.Gate;
+            return $"actor={ActorName}; {end.FormatDeltaFrom(diagnosticsStart)}; harmfulStalls={harmfulStallEpisodes}; longestHarmfulStall={longestHarmfulStallSeconds:0.###}; branches={branches}; branchConservation=[{endGate.FormatObservedBranchesFrom(in startGate)}]";
         }
 
         public IEnumerable<string> EnumerateStallEvidence() => stallEvidence;

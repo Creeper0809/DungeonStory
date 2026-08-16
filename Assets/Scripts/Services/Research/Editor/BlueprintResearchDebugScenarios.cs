@@ -31,6 +31,11 @@ public static class BlueprintResearchDebugScenarios
         RunScenario("연구 속도 보정", VerifyResearchSpeedUsesCharacterAndFacilityModifiers, errors);
         RunScenario("연구 작업 후보 조건", VerifyResearchWorkCandidateRequiresQueuedBlueprint, errors);
 
+        RunScenario(
+            "승인 연구 WU 단위 커밋",
+            VerifyApprovedResearchWorkUsesWorkUnits,
+            errors);
+
         if (errors.Count > 0)
         {
             foreach (string error in errors)
@@ -291,6 +296,48 @@ public static class BlueprintResearchDebugScenarios
             && fighterWork > 0f
             && researcherTraitConnected
             && labMultiplier > 1f;
+    }
+
+    private static bool VerifyApprovedResearchWorkUsesWorkUnits()
+    {
+        using ResearchScenarioWorld world = new ResearchScenarioWorld();
+        BlueprintResearchRuntime runtime = world.CreateResearchRuntime();
+        FacilityBlueprintSO blueprint = LoadBlueprint("BP_DefenseBasics");
+        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        CharacterActor researcher = world.CreateCharacter(
+            "Species_Vampire",
+            "Trait_Researcher");
+        ResearchProjectSO project = LoadProject(blueprint.TargetResearchProjectId);
+
+        CompletePrerequisitesForTest(runtime, project);
+        runtime.EnqueueBlueprint(blueprint);
+        ResearchProjectProgressState progress =
+            runtime.State.Projects.GetProgress(project.ProjectId);
+        float before = progress.Progress;
+        const float approvedWorkUnits = 6f;
+        float expected = BlueprintResearchService.CalculateApprovedResearchWork(
+            CharacterActor.From(researcher),
+            approvedWorkUnits);
+        BlueprintResearchWorkResult result = runtime.ApplyApprovedResearchWork(
+            CharacterActor.From(researcher),
+            lab,
+            approvedWorkUnits);
+        float added = progress.Progress - before;
+
+        float expectedExplicitBonus = approvedWorkUnits
+            + CharacterSkillRuntimeEffects.GetResearchWorkBonus(
+                CharacterActor.From(researcher),
+                approvedWorkUnits / ResearchProgressRules.BaseResearchWorkPerSecond);
+        return result.Success
+            && !result.Completed
+            && Mathf.Approximately(expected, expectedExplicitBonus)
+            && Mathf.Approximately(result.AddedProgress, expected)
+            && Mathf.Approximately(added, expected)
+            && Mathf.Approximately(
+                BlueprintResearchService.CalculateApprovedResearchWork(
+                    null,
+                    approvedWorkUnits),
+                approvedWorkUnits);
     }
 
     private static bool VerifyResearchWorkCandidateRequiresQueuedBlueprint()

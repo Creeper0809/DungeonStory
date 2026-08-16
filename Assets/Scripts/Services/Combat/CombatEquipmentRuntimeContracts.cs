@@ -166,6 +166,11 @@ public interface ICombatEquipmentRuntime :
         string instanceId,
         string sourceStackId,
         CombatEquipmentWorldState worldState);
+    bool TryDropExistingEquipmentToWorld(
+        string instanceId,
+        Vector2Int position,
+        out string stackId,
+        out string failureReason);
     bool TrySetWorldStateBySourceStack(string sourceStackId, CombatEquipmentWorldState worldState);
     bool TryMarkLost(string instanceId);
     bool TryAssignToCharacter(string characterId, string instanceId, out string failureReason);

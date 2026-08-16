@@ -11,6 +11,7 @@ public sealed class WildlifeCaptureWorldContext
         ICharacterAiWorldRegistry world,
         IRoomLayoutCache rooms,
         IGridSystemProvider gridProvider,
+        IGridPathSearchBroker pathSearchBroker,
         IDoorAccessCommandService doorAccessCommands,
         IDoorAccessSubjectRegistry doorSubjects)
     {
@@ -18,6 +19,8 @@ public sealed class WildlifeCaptureWorldContext
         Rooms = rooms ?? throw new ArgumentNullException(nameof(rooms));
         GridProvider = gridProvider
             ?? throw new ArgumentNullException(nameof(gridProvider));
+        PathSearchBroker = pathSearchBroker
+            ?? throw new ArgumentNullException(nameof(pathSearchBroker));
         DoorAccessCommands = doorAccessCommands
             ?? throw new ArgumentNullException(nameof(doorAccessCommands));
         DoorSubjects = doorSubjects
@@ -27,6 +30,7 @@ public sealed class WildlifeCaptureWorldContext
     public ICharacterAiWorldRegistry World { get; }
     public IRoomLayoutCache Rooms { get; }
     public IGridSystemProvider GridProvider { get; }
+    public IGridPathSearchBroker PathSearchBroker { get; }
     public IDoorAccessCommandService DoorAccessCommands { get; }
     public IDoorAccessSubjectRegistry DoorSubjects { get; }
 }
@@ -88,6 +92,7 @@ public sealed partial class WildlifeCaptureRuntime :
     private readonly ICharacterAiWorldRegistry world;
     private readonly IRoomLayoutCache rooms;
     private readonly IGridSystemProvider gridProvider;
+    private readonly IGridPathSearchBroker pathSearchBroker;
     private readonly IDoorAccessCommandService doorAccessCommands;
     private readonly IDoorAccessSubjectRegistry doorSubjects;
     private readonly IWorldItemStackRuntime itemRuntime;
@@ -116,6 +121,7 @@ public sealed partial class WildlifeCaptureRuntime :
         world = worldContext.World;
         rooms = worldContext.Rooms;
         gridProvider = worldContext.GridProvider;
+        pathSearchBroker = worldContext.PathSearchBroker;
         doorAccessCommands = worldContext.DoorAccessCommands;
         doorSubjects = worldContext.DoorSubjects;
         itemRuntime = care.ItemRuntime;
@@ -298,8 +304,12 @@ public sealed partial class WildlifeCaptureRuntime :
             return false;
         }
 
+        HashSet<Vector2Int> penFootprint = new HashSet<Vector2Int>(
+            pen.buildPoses ?? Array.Empty<Vector2Int>());
         List<Vector2Int> destinations = room.Cells
-            .Where(grid.IsWalkable)
+            .Where(cell => grid.IsWalkable(cell)
+                && !penFootprint.Contains(cell)
+                && IsUnoccupiedDeliveryStand(grid.GetGridCell(cell)))
             .OrderBy(cell => Manhattan(cell, pen.centerPos))
             .ToList();
         if (destinations.Count == 0)
@@ -526,15 +536,40 @@ public sealed partial class WildlifeCaptureRuntime :
         wildlife = FindActor(id);
         state = found;
         failureReason = string.Empty;
+        string carrierId = GetCharacterId(carrier);
+        bool reservationMatches = found != null
+            && string.Equals(
+                found.reservedCarrierId,
+                carrierId,
+                StringComparison.Ordinal);
         if (found == null
             || wildlife == null
+            || !wildlife.IsAlive
             || carrier == null
-            || !string.Equals(
-                found.reservedCarrierId,
-                GetCharacterId(carrier),
-                StringComparison.Ordinal))
+            || carrier.IsDead
+            || !carrier.isActiveAndEnabled
+            || carrier.CurrentLifecycleState != CharacterLifecycleState.Active
+            || !reservationMatches)
         {
-            failureReason = "동물 운반 예약이 유효하지 않습니다.";
+            failureReason = "동물 운반 예약이 유효하지 않습니다."
+                + $" state={found != null};wildlife={wildlife != null};"
+                + $"alive={wildlife?.IsAlive};carrier={carrier != null};"
+                + $"dead={carrier?.IsDead};active={carrier?.isActiveAndEnabled};"
+                + $"lifecycle={carrier?.CurrentLifecycleState};"
+                + $"reserved={found?.reservedCarrierId ?? string.Empty};"
+                + $"actual={carrierId}";
+            return false;
+        }
+
+        BuildableObject pen = FindPen(found.penId);
+        BuildingBeastPenAbility penAbility =
+            pen?.BuildingData.GetBeastPenAbility();
+        if (pen == null
+            || pen.isDestroy
+            || penAbility == null
+            || !penAbility.IsValid)
+        {
+            failureReason = "reserved wildlife pen is no longer available";
             return false;
         }
 
@@ -572,6 +607,13 @@ public sealed partial class WildlifeCaptureRuntime :
             return false;
         }
 
+        if (state.transportState != CapturedWildlifeTransportState.AwaitingTransport)
+        {
+            failureReason =
+                $"Wildlife transport cannot begin carry from {state.transportState}.";
+            return false;
+        }
+
         if (Manhattan(carrier.GetNowXY(), wildlife.GridPosition) > 1)
         {
             failureReason = "생포할 동물과 너무 멀리 떨어져 있습니다.";
@@ -582,6 +624,98 @@ public sealed partial class WildlifeCaptureRuntime :
         wildlife.BeginManagedCarry(carrier.transform);
         state.transportState = CapturedWildlifeTransportState.Transporting;
         return true;
+    }
+
+    public WildlifeDeliveryStandResolution ResolveDeliveryStand(
+        string wildlifeId,
+        CharacterActor carrier,
+        out CapturedWildlifeState state,
+        out Queue<GridMoveStep> deliveryPath,
+        out string failureReason)
+    {
+        state = null;
+        deliveryPath = null;
+        if (!TryGetTransportState(
+                wildlifeId,
+                carrier,
+                out CapturedWildlifeState found,
+                out _,
+                out failureReason))
+        {
+            return WildlifeDeliveryStandResolution.Failed;
+        }
+        if (found.transportState != CapturedWildlifeTransportState.Transporting)
+        {
+            state = found;
+            failureReason =
+                $"Wildlife delivery cannot be resolved from {found.transportState}.";
+            return WildlifeDeliveryStandResolution.Failed;
+        }
+        BuildableObject pen = FindPen(found.penId);
+        if (pen == null
+            || !rooms.TryGetRoom(pen, out RoomInstance room)
+            || !room.IsUsable
+            || !gridProvider.TryGetGrid(out Grid grid))
+        {
+            failureReason =
+                "The reserved wildlife pen has no usable delivery room.";
+            return WildlifeDeliveryStandResolution.Failed;
+        }
+
+        HashSet<Vector2Int> penFootprint = new HashSet<Vector2Int>(
+            pen.buildPoses ?? Array.Empty<Vector2Int>());
+        GridTraversalContext traversal = GridTraversalContext.ForCharacter(
+            CharacterPersistentIdentity.Require(carrier),
+            DoorAccessOverrideKind.EscortPass);
+        Vector2Int start = carrier.GetNowXY();
+        if (!pathSearchBroker.TryGetSearch(
+                grid,
+                start,
+                out GridPathSearchResult reachable,
+                GridPathSearchPriority.Urgent,
+                traversal))
+        {
+            state = found;
+            failureReason =
+                $"Wildlife delivery path search is pending from {start}.";
+            return WildlifeDeliveryStandResolution.Pending;
+        }
+
+        foreach (Vector2Int candidate in room.Cells
+                     .Where(cell => grid.IsWalkable(cell)
+                         && !penFootprint.Contains(cell)
+                         && IsUnoccupiedDeliveryStand(grid.GetGridCell(cell)))
+                     .OrderBy(cell => Manhattan(cell, pen.centerPos))
+                     .ThenBy(cell => cell.y)
+                     .ThenBy(cell => cell.x))
+        {
+            if (candidate == start)
+            {
+                found.penPosition = candidate;
+                state = found;
+                deliveryPath = new Queue<GridMoveStep>();
+                return WildlifeDeliveryStandResolution.Ready;
+            }
+
+            Queue<GridMoveStep> path = reachable.GetMovePathTo(candidate);
+            if (path == null
+                || !GridMovePathRules.TryGetPathDestination(
+                    path,
+                    out Vector2Int pathEnd)
+                || pathEnd != candidate)
+            {
+                continue;
+            }
+
+            found.penPosition = candidate;
+            state = found;
+            deliveryPath = path;
+            return WildlifeDeliveryStandResolution.Ready;
+        }
+
+        failureReason =
+            $"No exact reachable wildlife delivery stand from {start}.";
+        return WildlifeDeliveryStandResolution.Failed;
     }
 
     public bool TryCompleteCarry(
@@ -599,14 +733,40 @@ public sealed partial class WildlifeCaptureRuntime :
             return false;
         }
 
-        if (carrier.GetNowXY() != state.penPosition)
+        if (state.transportState != CapturedWildlifeTransportState.Transporting)
         {
-            failureReason = "야수 우리 수용 칸에 도착하지 못했습니다.";
+            failureReason =
+                $"Wildlife carry cannot complete from {state.transportState}.";
             return false;
         }
 
-        carriedParents.Remove(state.wildlifeId, out Transform parent);
-        wildlife.EndManagedCarry(state.penPosition, parent);
+        if (carrier.GetNowXY() != state.penPosition)
+        {
+            failureReason =
+                "야수 우리 수용 칸에 도착하지 못했습니다. "
+                + $"planned={state.penPosition};"
+                + $"pathEnd={state.penPosition};"
+                + $"carrier={carrier.GetNowXY()}";
+            return false;
+        }
+
+        if (!carriedParents.TryGetValue(
+                state.wildlifeId,
+                out Transform parent))
+        {
+            failureReason = "Wildlife carry parent authority is unavailable.";
+            return false;
+        }
+        if (!wildlife.TryEndManagedCarry(
+                state.penPosition,
+                carrier.transform,
+                parent,
+                out failureReason))
+        {
+            return false;
+        }
+
+        carriedParents.Remove(state.wildlifeId);
         state.reservedCarrierId = string.Empty;
         state.transportState = CapturedWildlifeTransportState.Penned;
         state.nextCareAt = clock.Time + 1f;
@@ -620,22 +780,113 @@ public sealed partial class WildlifeCaptureRuntime :
         string reason)
     {
         string id = wildlifeId?.Trim() ?? string.Empty;
-        if (!stateSession.Remove(id, out CapturedWildlifeState state))
+        if (!stateSession.TryGet(id, out CapturedWildlifeState state))
         {
             return;
         }
 
-        doorSubjects.SetCapturedWildlife(id, false);
         WildlifeActor wildlife = FindActor(id);
         if (wildlife != null)
         {
-            carriedParents.Remove(id, out Transform parent);
-            Vector2Int releasePosition = carrier != null
-                ? carrier.GetNowXY()
-                : state.capturePosition;
-            wildlife.EndManagedCarry(releasePosition, parent);
+            if (carriedParents.TryGetValue(id, out Transform parent)
+                && !TryReleaseFailedCarry(
+                    state,
+                    wildlife,
+                    carrier,
+                    parent,
+                    out Vector2Int releasePosition,
+                    out string releaseFailure))
+            {
+                throw new InvalidOperationException(
+                    $"Wildlife carry rollback failed for {id}: "
+                    + $"reason={reason ?? string.Empty}; "
+                    + $"release={releaseFailure}; "
+                    + $"capture={state.capturePosition}; "
+                    + $"planned={state.penPosition}; "
+                    + $"carrier={carrier?.GetNowXY()}");
+            }
+            carriedParents.Remove(id);
             wildlife.SetCaptured(false);
         }
+
+        stateSession.Remove(id);
+        doorSubjects.SetCapturedWildlife(id, false);
+    }
+
+    private bool TryReleaseFailedCarry(
+        CapturedWildlifeState state,
+        WildlifeActor wildlife,
+        CharacterActor carrier,
+        Transform parent,
+        out Vector2Int releasePosition,
+        out string failureReason)
+    {
+        releasePosition = state?.capturePosition ?? default;
+        failureReason = string.Empty;
+        if (state == null || wildlife == null)
+        {
+            failureReason = "Wildlife rollback state or actor is unavailable.";
+            return false;
+        }
+        if (!gridProvider.TryGetGrid(out Grid grid) || grid == null)
+        {
+            failureReason = "Wildlife rollback grid authority is unavailable.";
+            return false;
+        }
+
+        Vector2Int carrierPosition = carrier != null
+            ? carrier.GetNowXY()
+            : state.capturePosition;
+        List<Vector2Int> candidates = new List<Vector2Int>
+        {
+            carrierPosition,
+            state.capturePosition
+        };
+        candidates.AddRange(grid.GetCells()
+            .Where(cell => cell != null
+                && grid.IsWalkable(cell.Position)
+                && IsWildlifeReleaseCellAvailable(cell, wildlife))
+            .OrderBy(cell => Manhattan(cell.Position, carrierPosition))
+            .ThenBy(cell => cell.Position.y)
+            .ThenBy(cell => cell.Position.x)
+            .Select(cell => cell.Position));
+
+        string lastFailure = string.Empty;
+        foreach (Vector2Int candidate in candidates.Distinct())
+        {
+            GridCell cell = grid.GetGridCell(candidate);
+            if (cell == null
+                || !grid.IsWalkable(candidate)
+                || !IsWildlifeReleaseCellAvailable(cell, wildlife))
+            {
+                continue;
+            }
+            if (!wildlife.TryEndManagedCarry(
+                    candidate,
+                    carrier?.transform,
+                    parent,
+                    out lastFailure))
+            {
+                continue;
+            }
+
+            releasePosition = candidate;
+            return true;
+        }
+
+        failureReason = string.IsNullOrWhiteSpace(lastFailure)
+            ? $"No lawful empty Wildlife cell exists near {carrierPosition}."
+            : lastFailure;
+        return false;
+    }
+
+    private static bool IsWildlifeReleaseCellAvailable(
+        GridCell cell,
+        WildlifeActor wildlife)
+    {
+        IGridOccupant occupant = cell?.GetOccupant(GridLayer.Wildlife);
+        return cell != null
+            && (occupant == null || ReferenceEquals(occupant, wildlife));
     }
 
     public IReadOnlyList<CapturedWildlifeState> Capture()
@@ -1255,6 +1506,17 @@ public sealed partial class WildlifeCaptureRuntime :
         return actor != null
             ? CharacterPersistentIdentity.Require(actor).Value
             : string.Empty;
+    }
+
+    private static bool IsUnoccupiedDeliveryStand(GridCell cell)
+    {
+        return cell != null
+            && cell.GetOccupant(GridLayer.Building) == null
+            && cell.GetOccupant(GridLayer.Construction) == null
+            && cell.GetOccupant(GridLayer.Conveyor) == null
+            && cell.GetOccupant(GridLayer.Character) == null
+            && cell.GetOccupant(GridLayer.DownedCharacter) == null
+            && cell.GetOccupant(GridLayer.Wildlife) == null;
     }
 
     private static int Manhattan(Vector2Int left, Vector2Int right)

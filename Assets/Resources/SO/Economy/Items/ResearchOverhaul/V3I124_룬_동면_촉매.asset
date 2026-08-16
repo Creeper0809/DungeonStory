@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 86
   features:
-  - rid: 7737211905658585665
-  - rid: 7737211905658585666
-  - rid: 7737211905660420698
+  - rid: 7737211981816660413
+  - rid: 7737211981816660414
+  - rid: 7737211981816660415
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585665
+    - rid: 7737211981816660413
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:rune-hibernation
-    - rid: 7737211905658585666
+    - rid: 7737211981816660414
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737211905660420698
+    - rid: 7737211981816660415
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.60176027

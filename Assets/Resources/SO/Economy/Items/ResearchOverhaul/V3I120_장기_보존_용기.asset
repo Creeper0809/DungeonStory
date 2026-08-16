@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 84
   features:
-  - rid: 7737211905658585374
-  - rid: 7737211905658585375
-  - rid: 7737211905660420572
+  - rid: 7737211981816659997
+  - rid: 7737211981816659998
+  - rid: 7737211981816659999
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585374
+    - rid: 7737211981816659997
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:organ-preservation
-    - rid: 7737211905658585375
+    - rid: 7737211981816659998
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 512
         sharedIntermediate: 0
-    - rid: 7737211905660420572
+    - rid: 7737211981816659999
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.59984887

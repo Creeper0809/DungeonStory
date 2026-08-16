@@ -20,6 +20,11 @@ internal static class CharacterAiEditorTestDependencies
         new AuthoredGameplayCatalog(GameContent);
     internal static IGameContentDefinitionSource ContentDefinitions => GameContent;
     internal static ICharacterSpeciesCatalog CharacterSpeciesCatalog => CharacterSpecies;
+    internal static ICharacterBehaviorTreeRuntimeConfigurator TestBehaviorTreeConfigurator =>
+        BehaviorTreeConfigurator;
+    internal static IMainCameraProvider TestMainCameraProvider => MainCamera;
+    internal static ICharacterAiPerformanceRecorder TestPerformanceRecorder =>
+        PerformanceRecorder;
     private static readonly ICharacterSkillGenerationService SkillGeneration =
         new EditorCharacterSkillGenerationService();
     private static readonly ICharacterAiSchedulingService Scheduling =
@@ -277,6 +282,25 @@ internal static class CharacterAiEditorTestDependencies
 
     public static void Inject(
         GameObject actorObject,
+        ICharacterAiSchedulingService scheduling,
+        IGameClock gameClock,
+        IGridPathSearchBroker pathSearchBroker,
+        IDynamicFrameWorkBudget frameWorkBudget,
+        IFacilityCandidateCache facilityCandidates = null)
+    {
+        Inject(
+            actorObject,
+            scheduling,
+            StaffDiscontent,
+            BlueprintResearch,
+            gameClock,
+            pathSearchBroker,
+            frameWorkBudget,
+            facilityCandidates);
+    }
+
+    public static void Inject(
+        GameObject actorObject,
         BlueprintResearchRuntime blueprintResearchRuntime)
     {
         Inject(
@@ -301,7 +325,11 @@ internal static class CharacterAiEditorTestDependencies
         GameObject actorObject,
         ICharacterAiSchedulingService scheduling,
         IStaffDiscontentRuntimeService staffDiscontent,
-        IBlueprintResearchWorkService blueprintResearch)
+        IBlueprintResearchWorkService blueprintResearch,
+        IGameClock gameClock = null,
+        IGridPathSearchBroker pathSearchBroker = null,
+        IDynamicFrameWorkBudget frameWorkBudget = null,
+        IFacilityCandidateCache facilityCandidates = null)
     {
         if (actorObject == null)
         {
@@ -309,7 +337,11 @@ internal static class CharacterAiEditorTestDependencies
         }
 
         scheduling ??= Scheduling;
-        PathSearchBroker.BeginFrame(int.MaxValue, enforceBudget: false);
+        gameClock ??= GameClock;
+        pathSearchBroker ??= PathSearchBroker;
+        frameWorkBudget ??= FrameWorkBudget;
+        facilityCandidates ??= FacilityCandidates;
+        pathSearchBroker.BeginFrame(int.MaxValue, enforceBudget: false);
         WorkExecutionHandlerRegistry workRegistry =
             CreateWorkRegistry(blueprintResearch);
         EnsureCharacterProgression(actorObject);
@@ -323,9 +355,9 @@ internal static class CharacterAiEditorTestDependencies
         abilityMove?.ConstructAbilityMove(
             CharacterSpawner,
             scheduling,
-            PathSearchBroker,
+            pathSearchBroker,
             RandomStreams,
-            GameClock, defenseEngagementRuntime: null);
+            gameClock, defenseEngagementRuntime: null);
         abilityMove?.ConstructDoorAccessQuery(OpenDoorAccessQuery.Instance);
 
         actorObject.GetComponent<CharacterLifecycle>()?.ConstructCharacterLifecycle(GridSystem);
@@ -334,7 +366,7 @@ internal static class CharacterAiEditorTestDependencies
             actorObject.GetComponent<CharacterStats>(),
             staffDiscontent,
             MetaProgression,
-            GameClock,
+            gameClock,
             AuthoredGameplay,
             DisabledDungeonDebugRuleQuery.Instance);
 
@@ -345,8 +377,8 @@ internal static class CharacterAiEditorTestDependencies
             LocalLlm,
             scheduling,
             DialogueBubbles,
-            GameClock, frameWorkBudget: null);
-        actorObject.GetComponent<CharacterVisual>()?.ConstructCharacterVisual(GameClock);
+            gameClock, frameWorkBudget: frameWorkBudget);
+        actorObject.GetComponent<CharacterVisual>()?.ConstructCharacterVisual(gameClock);
 
         AbilityWork abilityWork = actorObject.GetComponent<AbilityWork>();
         if (abilityWork != null)
@@ -356,10 +388,10 @@ internal static class CharacterAiEditorTestDependencies
                 staffDiscontent,
                 FloatingIcons,
                 new ActiveWorkGridResolver(),
-                FacilityCandidates,
+                facilityCandidates,
                 null,
                 workPolicyRegistry: workRegistry,
-                gameClock: GameClock, exteriorZoneQuery: null, workExecutionHandlerRegistry: workRegistry, workOrderRuntime: WorkOrders, workAmountCalculator: WorkAmounts, captiveLaborQuery: null, defenseEngagementRuntime: null, roomEnvironmentExperienceService: RoomExperience, paidFacilityContracts: PaidFacilities, environmentWorkPolicy: EnvironmentWork, characterEnvironment: NoCharacterEnvironmentWorkContext.Instance, environmentalWorkwearCommands: NoEnvironmentalWorkwearCommand.Instance,
+                gameClock: gameClock, exteriorZoneQuery: null, workExecutionHandlerRegistry: workRegistry, workOrderRuntime: WorkOrders, workAmountCalculator: WorkAmounts, captiveLaborQuery: null, defenseEngagementRuntime: null, roomEnvironmentExperienceService: RoomExperience, paidFacilityContracts: PaidFacilities, environmentWorkPolicy: EnvironmentWork, characterEnvironment: NoCharacterEnvironmentWorkContext.Instance, environmentalWorkwearCommands: NoEnvironmentalWorkwearCommand.Instance,
                 needDefinitionCatalog: AuthoredGameplay,
                 debugRules: DisabledDungeonDebugRuleQuery.Instance);
             abilityWork.ConstructPerformance(
@@ -381,14 +413,14 @@ internal static class CharacterAiEditorTestDependencies
             ShopStock,
             FloatingIcons,
             RandomStreams,
-            GameClock,
+            gameClock,
             GameEvents);
 
         actorObject.GetComponent<AIBrain>()?.ConstructAIBrain(
             new AIBrainDecisionServices(
                 new ResourceCharacterAiActionAssetCatalog(GameContent),
                 scheduling,
-                FacilityCandidates,
+                facilityCandidates,
                 new SceneFacilityLookup(),
                 new CharacterAiJobGiverCatalog(),
                 new CharacterAiDecisionPipeline(
@@ -396,8 +428,8 @@ internal static class CharacterAiEditorTestDependencies
                     NoCharacterDeprivationBoundary.Instance),
                 PerformanceRecorder),
             new AIBrainExecutionServices(
-                PathSearchBroker,
-                GameClock,
+                pathSearchBroker,
+                gameClock,
                 RandomStreams,
                 new NeutralSocialReputationBiasService(),
                 RoomPolicy));
@@ -409,10 +441,10 @@ internal static class CharacterAiEditorTestDependencies
             SocialMemoryFactory,
             FeedbackBubbles,
             MainCamera,
-            PathSearchBroker,
+            pathSearchBroker,
             WorldRegistry,
             WorldSignalQuery,
-            FrameWorkBudget,
+            frameWorkBudget,
             CarryInventories,
             new CharacterIdRegistryAdapter(
                 WorldRegistry,
@@ -426,7 +458,9 @@ internal static class CharacterAiEditorTestDependencies
             CharacterMedical,
             null,
             null,
-            GameClock,
+            null,
+            gameClock,
+            WorkAmounts,
             tmpKoreanFontService: null,
             presentationScheduler: null,
             runtimeProfileFactory: new CharacterRuntimeProfileFactory(GameContent),
@@ -434,7 +468,7 @@ internal static class CharacterAiEditorTestDependencies
                 new CharacterIdentityRuleRouter(),
                 new CharacterPersistentNeedRuntime(
                     new CharacterIdentityStateStore(),
-                    GameClock)));
+                    gameClock)));
 
         // Editor scenarios construct actors without a world item runtime. Carry
         // inventory is still part of the AI decision snapshot, so the fixture must
@@ -828,15 +862,42 @@ internal static class CharacterAiEditorTestDependencies
 
     public static void Inject(CharacterAiScheduler scheduler)
     {
+        Inject(scheduler, UiClock);
+    }
+
+    public static void Inject(
+        CharacterAiScheduler scheduler,
+        IUiClock uiClock)
+    {
+        Inject(scheduler, GameClock, uiClock);
+    }
+
+    public static void Inject(
+        CharacterAiScheduler scheduler,
+        IGameClock gameClock,
+        IUiClock uiClock)
+    {
+        gameClock ??= GameClock;
+        uiClock ??= UiClock;
+        IGridPathSearchBroker pathSearchBroker = ReferenceEquals(gameClock, GameClock)
+            ? PathSearchBroker
+            : new GridPathSearchBroker(
+                gameClock,
+                doorAccessQuery: null,
+                performanceRecorder: PerformanceRecorder,
+                costPolicy: null);
         scheduler?.Construct(
             WorldRegistry,
             MainCamera,
             BehaviorTreeConfigurator,
-            PathSearchBroker,
-            GameClock,
-            FrameWorkBudget,
+            pathSearchBroker,
+            gameClock,
+            ReferenceEquals(gameClock, GameClock)
+                && ReferenceEquals(uiClock, UiClock)
+                ? FrameWorkBudget
+                : new DynamicFrameWorkBudget(gameClock, uiClock),
             PerformanceRecorder,
-            UiClock,
+            uiClock,
             FacilityCandidates,
             playerStaffCommands: null,
             debugRules: DisabledDungeonDebugRuleQuery.Instance);
@@ -1066,6 +1127,7 @@ internal static class CharacterAiEditorTestDependencies
 
     private sealed class ImmediateSchedulingService : ICharacterAiSchedulingService
     {
+        public bool IsSchedulerAvailable => true;
         public bool IsDrivingAi => false;
         public void Register(CharacterActor actor) { }
         public void Unregister(CharacterActor actor) { }
@@ -1525,6 +1587,12 @@ internal static class CharacterAiEditorTestDependencies
                 false,
                 "Editor test fixture has no blueprint research runtime.");
         }
+
+        public BlueprintResearchWorkResult ApplyApprovedResearchWork(
+            CharacterActor researcher,
+            BuildableObject researchFacility,
+            float approvedWorkUnits) =>
+            ApplyResearchWork(researcher, researchFacility, approvedWorkUnits);
     }
 
     private sealed class EditorBlueprintResearchWorkService : IBlueprintResearchWorkService
@@ -1547,6 +1615,15 @@ internal static class CharacterAiEditorTestDependencies
             BuildableObject researchFacility,
             float seconds) =>
             runtime.ApplyResearchWork(researcher, researchFacility, seconds);
+
+        public BlueprintResearchWorkResult ApplyApprovedResearchWork(
+            CharacterActor researcher,
+            BuildableObject researchFacility,
+            float approvedWorkUnits) =>
+            runtime.ApplyApprovedResearchWork(
+                researcher,
+                researchFacility,
+                approvedWorkUnits);
     }
 
     private sealed class NoopWorldInfoClickSelector : IWorldInfoClickSelector

@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211905655963819
-    - rid: 7737211905655963820
-    - rid: 7737211905655963821
-    - rid: 7737211905655963822
-    - rid: 7737211905655963823
+    - rid: 7737211981816660516
+    - rid: 7737211981816660517
+    - rid: 7737211981816660518
+    - rid: 7737211981816660519
+    - rid: 7737211981816660520
   width: 2
   height: 1
   layer: 1
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211905655963819
+    - rid: 7737211981816660516
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I03
-    - rid: 7737211905655963820
+    - rid: 7737211981816660517
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,10 +87,11 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211905655963821
+    - rid: 7737211981816660518
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
         constructionWorkRequired: 364
         repairWorkRequired: 110
         cleanWorkRequired: 18
@@ -120,7 +121,7 @@ MonoBehaviour:
           amount: 2
         - itemId: material:mana-alloy
           amount: 1
-    - rid: 7737211905655963822
+    - rid: 7737211981816660519
       type: {class: BuildingPowerProducerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerProducerAbility
@@ -128,7 +129,7 @@ MonoBehaviour:
         requiresFuel: 1
         fuelItemId: resource:mana-crystal
         secondsPerFuel: 90
-    - rid: 7737211905655963823
+    - rid: 7737211981816660520
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

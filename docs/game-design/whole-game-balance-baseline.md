@@ -1,5 +1,235 @@
 # DungeonStory 전역 밸런스 기준서
 
+## Captured wildlife indoor pen physical authority correction (2026-08-15)
+
+```text
+Definition ID: captivity:wildlife-transport:indoor-pen-physical-authority-v26
+Content type: existing captured-wildlife transport and pen-placement authority correction
+Definition/producer/consumer locations: WildlifeCaptureRuntime, AbilityWildlifeCaptureTransport, WildlifeActor managed carry, WildlifeRuntime position validation
+Growth stage and player decision: unchanged; the existing capture order, carrier selection, reachable pen choice, pickup, delivery, and care flow remain the only route to a penned animal
+Physical BOM/input/output, WU, EWU, work rates, time, space, facility capacity, prices, rewards, risks, and authored species movement values: unchanged
+Execution authority: while a wildlife actor is Captured, its physical position is owned by the captivity transport/pen aggregate rather than by the free-wildlife outdoor relocation rule. A carry terminal may commit Penned only after the exact carrier-owned actor is detached, registered once at the reserved reachable pen cell, and observed there
+Failure and recovery: an occupied or invalid delivery cell returns a typed physical-placement failure without committing Penned or clearing the carrier reservation. The existing transport failure path then releases the animal at the carrier position and removes the incomplete capture aggregate. Ordinary uncaptured wildlife in an invalid dungeon position still uses the existing nearest lawful outdoor recovery
+Exploit prevention: the correction grants no teleport, free tame, free pen capacity, duplicate wildlife, alternate destination, path bypass, or indoor access to uncaptured species. The exact reserved carrier, Transporting state, destination cell, parent ownership, and grid registration must agree before completion
+Save authority: CapturedWildlifeState remains the aggregate/save authority and WildlifeActor plus the Wildlife grid layer remain the physical projection. Managed-carry ownership is transient and must converge before the aggregate terminal is committed
+Automatic audits: CaptivityWildlifeLifecyclePlayModeVerifier must prove production pickup approach, exact external action ownership, one physical registration at penPosition after at least one Wildlife runtime tick, source/parent release, Penned state, and typed failure cleanup; ordinary uncaptured indoor wildlife relocation remains covered by wildlife runtime scenarios
+Balance state: numeric balance unchanged; production authority correction implemented, fresh Unity compile and CaptivityWildlifeLifecycle PlayMode rerun pending
+```
+
+## 원정 보급 ReservedTarget 목적지 권위 교정 기록 (2026-08-16)
+
+```text
+정의 ID: architecture:offense-expedition-supply-reserved-target-v27
+콘텐츠 종류: 전략 원정 보급의 물리 운반 목적지 소유권·취소·소비·저장 복원
+정의·카탈로그·실행기 위치: DungeonOffensePreparationService, FacilityBufferDestinationClaimRegistry, WorldItemHaulDestinationAuthority, WorldItemHaulPlanningService, ItemTransferService, HaulDeliveryIntentRestoreCoordinator
+등장 시대와 연구: 기존 원정 준비가 열리는 시점과 연구 선행 조건을 그대로 유지하며 신규 연구·무료 해금·시작 재고를 추가하지 않음
+플레이어에게 주는 새 결정: 새 선택지는 없으며, 선택한 원정 보급이 정확한 패키지 소유 집결지로 실제 운반된 뒤에만 출정에 소비되는 기존 결정을 복구
+물리 BOM·입력·출력: 원정 식량·탄약·약품의 기존 수량, 제작 BOM, 창고 재고, 적재 소비량과 귀환 반환량을 변경하지 않음. claim은 물품을 생성하지 않으며 실제 물리 스택의 Stored→Carried→FacilityBuffer→Consumed 전이를 허가하는 소유권 증거만 제공
+직접 작업량과 계산 근거: 운반 속도·경로·적재 시간·정착지 WU를 변경하지 않음. 같은 셀의 시설 수나 marker 수를 목적지 권위로 추측하지 않고 패키지 ID와 exact staging 좌표를 한 번 검증함
+EWU와 목표 회수 기간: 신규 생산 보너스·작업량 감면·보상 증가가 없으므로 원정 준비 EWU와 회수 기간 목표를 변경하지 않음. 기존 교착으로 무한 대기하던 비정상 경로만 제거
+공간·전력·물·연료·정비: 기존 exterior ExpeditionStaging 또는 Entrance 좌표와 실제 보관·운반 경로를 요구함. ReservedTarget claim은 집결지에 가짜 시설을 요구하거나 생성하지 않음
+위험·실패·회복 방식: 패키지 ID·좌표·소유 도메인·작업 ID가 누락되거나 어긋나면 요청·계획·복원을 typed failure로 거부하고 임의 같은 셀 시설로 fallback하지 않음. 부분 요청 실패와 포기는 destination-bound Stored/Carried/FacilityBuffer를 release한 뒤 exact claim을 폐기하며, 소비는 물리 수량 커밋 뒤 claim을 정확히 한 번 폐기
+사회·비가역 비용: 변경 없음. 원정 중 부재·부상·사망과 보급 소비의 기존 비가역 비용을 유지
+기존 대안과의 장단점: 일반 FacilityBuffer는 live facility persistent ID가 권위이고, 원정 집결지는 package-owned ReservedTarget claim이 권위다. 두 경로는 같은 물리 운반기를 재사용하지만 좌표 일치나 문자열 prefix만으로 서로를 대체하지 않음
+지배 전략 방지 조건: 동일 패키지 중복 claim 0, 부분 요청 뒤 잔존 목적지 0, 포기·반환 뒤 outbound Stored 잔존 0, 소비 뒤 destination 전 상태 스택 0, 저장 복원 뒤 중복 배송·재소비 0, 같은 셀 다중 marker/시설로 목적지 오선택 0
+저장 권위와 실행 명령: OffenseSupplyPackingStateData가 package ID·destination ID·staging·cost·consumed 원본을 저장하고 claim은 복원 시 그 원본과 현재 exterior authority에서 재구축하는 파생 권위다. restore transaction은 offense section commit에서 owner-domain claim candidate를 채우고 220 claim publish 뒤 225 haul-intent participant가 exact destination을 재검증함
+자동 감사 ID와 전수 목록 포함 여부: OffenseStrategicDebugScenarios의 physical supply packing/restore/cancel/consume 행, PhysicalItemLogisticsPlayModeVerifier의 EXPEDITION_RESERVED_TARGET_CLAIM_EXACT 및 destination 전 상태 잔존 0 행, mid-action haul save/load exact destination 회귀
+검증 매트릭스와 보고서 위치: `DungeonStory/Debug/Offense/Run Strategic Scenarios`, `PhysicalItemLogisticsPlayModeVerifier.RequestRunFromMenu()`, `DungeonAiActionSaveLoadPlayModeVerifier.RequestRun()`, `Artifacts/QA/physical-item-logistics-playmode-report.txt`, `Artifacts/QA/ai-mid-action-save-load-playmode.txt`, Unity Console Error/Warning 0/0
+현재 밸런스 상태: `밸런스 영향 없음 / 구조 교정 검증 대기`. 수치·BOM·WU·보상·위험량은 변경하지 않았으나 물리 운반과 저장 복원 실행 경로가 바뀌므로 fresh 집중 회귀, full Physical Logistics, mid-action save/load와 Console 0/0을 모두 통과하기 전에는 연결 완료 또는 원정 밸런스 완료로 보고하지 않음
+```
+
+## 장비 수리 LiveFacility 목적지 권위 교정 기록 (2026-08-16)
+
+```text
+정의 ID: architecture:equipment-repair-live-facility-destination-authority-v27
+콘텐츠 종류: 기존 장비 수리 주문의 물리 장비·재료 운반 목적지 소유권과 저장 복원
+정의·카탈로그·실행기 위치: EquipmentMaintenancePolicyRuntime, EquipmentMaintenanceItemServices, FacilityBufferDestinationClaimRegistry, WorldItemHaulDestinationAuthority, PhysicalItemLogisticsPlayModeVerifier
+등장 시대와 연구: 기존 대장작업대와 장비 수리 해금 시점을 그대로 유지하며 신규 시설·연구·시작 장비를 추가하지 않음
+플레이어에게 주는 새 결정: 없음. 기존 수리 명령이 선택한 exact 수리 시설로 장비와 원재료가 실제 운반되는 계약만 복구
+물리 BOM·입력·출력: 장비 원재료 3개, 내구도 회복량, 수리 완료 장비 인스턴스와 해체 회수량을 변경하지 않음. claim은 재료나 장비를 생성하지 않고 기존 물리 스택의 목적지 소유권만 증명
+직접 작업량과 계산 근거: 기존 수리 requiredWork, 이동 속도, 픽업·입고 시간과 작업자 수를 변경하지 않음. 목적지는 주문 ID·장비 인스턴스 ID·시설 persistent ID·시설 중심 좌표를 exact 비교
+EWU와 목표 회수 기간: 기존 수리 EWU·장비 수명·대체 장비 정책을 변경하지 않으며, 같은 셀 시설 모호성 때문에 발생하던 무한 대기만 제거
+공간·전력·물·연료·정비: 기존 대장작업대 footprint·정비 능력·유틸리티를 그대로 요구하고 같은 좌표의 창고나 다른 시설을 수리 목적지로 추측하지 않음
+위험·실패·회복 방식: 주문 생성 시 exact LiveFacility claim을 운반 요청보다 먼저 만들고, 시설 소실·주문 취소·완료 시 destination-bound 물리 스택을 보존적으로 release한 뒤 exact claim을 폐기. claim 충돌·시설 ID·좌표 불일치는 typed failure로 거부
+사회·비가역 비용: 변경 없음. 수리 중 장비 부재와 작업자 기회비용, 재료 소비는 기존 규칙을 유지
+기존 대안과의 장단점: 창고·다른 작업대가 같은 셀에 있어도 대체 권위가 되지 않으며, 대체 장비 지급은 기존 policy와 실제 저장 장비만 사용
+지배 전략 방지 조건: 무료 수리·재료 생성·장비 복제 0, 같은 셀 fallback 0, 중복 재료 요청 0, 완료·취소 뒤 orphan claim 0, 저장 복원 뒤 중복 claim·운반 0
+저장 권위와 실행 명령: CombatEquipmentMaintenanceSaveData의 active order와 현재 modular facility persistent ID가 원본 권위이고 claim은 저장하지 않는 파생 권위다. restore section commit이 claim candidate를 재구축하고 220 claim publish 뒤 225 haul-intent rebind가 exact destination을 검증
+자동 감사 ID와 전수 목록 포함 여부: PhysicalItemLogisticsPlayModeVerifier의 MATERIAL_REPAIR_DESTINATION_CLAIM_EXACT, MATERIAL_REPAIR_INPUTS_DELIVERED, MATERIAL_REPAIR_NO_DUPLICATE_REQUEST, MATERIAL_REPAIR_PRESERVES_INSTANCE_AND_MATERIAL, MATERIAL_SALVAGE_RETURNS_ORIGINAL_MATERIAL 및 mid-action save/load 목적지 검증
+검증 매트릭스와 보고서 위치: `PhysicalItemLogisticsPlayModeVerifier.RequestRunFromMenu()`, `DungeonAiActionSaveLoadPlayModeVerifier.RequestRun()`, `Artifacts/QA/physical-item-logistics-playmode-report.txt`, `Artifacts/QA/ai-mid-action-save-load-playmode.txt`, Unity Console Warning/Error 0/0
+현재 밸런스 상태: `밸런스 영향 없음 / 구조 교정 검증 대기`. BOM·재료 수량·WU·내구도·회수량은 불변이며 fresh Unity compile, full Physical Logistics, mid-action save/load와 Console 0/0 전에는 연결 완료 또는 장비 수리 밸런스 완료로 보고하지 않음
+```
+
+## 수술 재료 LiveFacility 목적지 권위 교정 기록 (2026-08-16)
+
+```text
+정의 ID: architecture:surgery-materials-live-facility-destination-authority-v27
+콘텐츠 종류: 기존 수술 주문의 약품·재료 물리 운반 목적지 소유권, 취소·실패·완료와 저장 복원
+정의·카탈로그·실행기 위치: SurgeryRuntime, SurgeryLogisticsRuntime, SurgeryRestoreCoordinator, SurgerySaveValidation, FacilityBufferDestinationClaimRegistry, WorldItemHaulDestinationAuthority
+등장 시대와 연구: 기존 수술 절차·수술대·연구 선행 조건과 해금 시점을 그대로 유지하며 신규 수술·시설·연구·시작 약품을 추가하지 않음
+플레이어에게 주는 새 결정: 없음. 플레이어가 선택한 기존 수술 주문의 재료가 exact 수술 시설로 실제 운반된 뒤에만 수술이 진행되는 기존 결정을 복구
+물리 BOM·입력·출력: 절차별 기존 약품·물·부품 수량과 환자 결과를 변경하지 않음. claim은 물품을 생성·소비하지 않고 기존 물리 스택의 목적지 소유권만 증명
+직접 작업량과 계산 근거: 기존 준비·수술·회복 WU, 이동 속도, 픽업·입고 시간과 작업자 수를 변경하지 않음. 목적지는 수술 주문 ID·시설 persistent ID·시설 중심 좌표를 ordinal exact 비교
+EWU와 목표 회수 기간: 기존 수술 시설 EWU, 의료 작업 손실과 회복 시간을 변경하지 않으며 같은 셀 시설 추론이나 중복 배송으로 생기던 비정상 대기·과소비만 차단
+공간·전력·물·연료·정비: 기존 수술대 footprint, 방·전력·물·정비·수용량 조건을 그대로 요구함. 같은 좌표의 창고나 다른 시설은 수술 주문의 목적지 권위가 아님
+위험·실패·회복 방식: 주문 생성은 exact LiveFacility claim을 물리 요청과 주문 공개보다 먼저 획득함. 시설 소실·취소·실패·완료는 destination-bound 잔여 물리 스택을 보존적으로 release한 뒤 exact claim을 폐기하며, ID·좌표·소유권 불일치는 typed failure로 거부하고 fallback하지 않음
+사회·비가역 비용: 기존 환자 위험, 실패 결과, 의사·운반자 기회비용과 회복 대기를 유지하며 구조 교정으로 성공률·부상·기분·관계를 변경하지 않음
+기존 대안과의 장단점: 일반 치료와 수술은 기존 절차·시설·위험 차이를 유지함. live 수술대의 exact claim은 좌표 추론보다 추적 가능하지만 주문 생성·terminal·restore가 같은 소유권 생명주기를 지켜야 함
+지배 전략 방지 조건: 무료 약품·재료 생성 0, 동일 주문 중복 요청·중복 소비 0, 같은 셀 fallback 0, 취소·실패·완료 뒤 orphan claim 0, 저장 복원 뒤 중복 claim·운반·수술 재개 0
+저장 권위와 실행 명령: SurgeryAggregateState의 active order와 현재 modular facility persistent ID가 원본 권위이고 claim은 저장하지 않는 파생 권위임. restore stage가 owner-domain claim candidate를 재구축하고 220 claim publish 뒤 225 haul-intent rebind가 exact 목적지를 검증하며 525 surgery projection이 환자·시설 상태를 공개
+자동 감사 ID와 전수 목록 포함 여부: SurgeryPlayModeVerifier의 exact claim·AIHaul delivery·중복 요청 0·완료/취소 revoke·mid-action restore 행, SurgeryDebugScenarios의 late-failure rollback, mid-action SaveLoad와 coverage manifest의 surgery 필수 marker에 포함
+검증 매트릭스와 보고서 위치: `SurgeryPlayModeVerifier.RequestRunFromMenu()`, `SurgeryDebugScenarios.RunAll()`, `DungeonAiActionSaveLoadPlayModeVerifier.RequestRun()`, `Artifacts/QA/surgery-playmode-report.txt`, `Artifacts/QA/ai-mid-action-save-load-playmode.txt`, Unity Console Warning/Error 0/0
+현재 밸런스 상태: `밸런스 영향 없음 / 구조 교정 검증 대기`. BOM·재료 수량·WU·회복·위험·성공률은 불변이며 fresh Unity compile, 수술 집중/PlayMode, mid-action save/load와 Console 0/0 전에는 연결 완료 또는 수술 밸런스 완료로 보고하지 않음
+```
+
+## 건설 자재 운반 중 커밋 수량 중복 요청 교정 기록 (2026-08-16)
+
+```text
+정의 ID: architecture:construction-material-in-transit-commitment-v26
+콘텐츠 종류: 기존 건설 주문 자재의 물리 운반·수량 예약·목적지 커밋 권위 교정
+정의·카탈로그·실행기 위치: WorkOrderRuntime.RequestMissingMaterials/CountPendingDestinationItem, HaulDeliveryIntentRuntime, AbilityHaul, WorldItem quantity lease, CharacterCarryInventory, HaulDeliveryIntentRestoreCoordinator
+등장 시대와 연구: Day 1부터 모든 건설 주문. 연구·해금·시설 목록은 변경하지 않음
+플레이어에게 주는 새 결정: 없음. 이미 픽업되어 목적지로 이동 중인 자재를 같은 주문이 다시 요청하지 않도록 기존 결정을 보존
+물리 BOM·입력·출력: 건설 BOM과 출력은 변경하지 않음. 주문의 delivered + destination world stack + exact owner-operation carried 수량만 기존 required 수량에 대해 한 번 계산
+직접 작업량과 계산 근거: 건설 WU와 운반 이동·픽업·입고 시간은 변경하지 않음. 중복 요청으로 생기던 불필요한 두 번째 운반만 제거
+EWU와 목표 회수 기간: authored 시설 EWU·회수 기간 변화 없음. 잘못된 중복 운반과 잉여 버퍼 손실만 제거
+공간·전력·물·연료·정비: 변경 없음
+위험·실패·회복 방식: 계획마다 결정론적 sequence로 발급한 고유 operation ID와 exact destination·item·carried stack·quantity commitment가 모두 일치할 때만 pending으로 인정. unrelated carry는 계산하지 않으며 운반 실패·취소는 기존 물리 회수 경로를 사용. 저장·복원에서 actor, destination, carried stack, signature, quantity, Hauling purpose, cohort 또는 grandfather lease가 불일치하면 대체 스택이나 신규 계획 없이 fail-loud
+사회·비가역 비용: 변경 없음. 주민 운반 기회비용은 실제 required 자재 운반에만 발생
+기존 대안과의 장단점: world stack만 세는 기존 방식보다 운반 중 전환을 정확히 보존하며, 추상 재고나 free delivery fallback은 추가하지 않음
+지배 전략 방지 조건: 자재 생성·복제·BOM 감면 0, actor-wide owner 재사용 0, 같은 destination의 unrelated carried item 과계상 0, pickup/deposit 전환 이중계상 0, 저장 반복 operation/lease/수량 복제 0, 취소 후 물리 총량 보존
+저장 권위와 실행 명령: 불변 콘텐츠에는 저장 필드를 추가하지 않는다. 런타임·저장 권위는 per-plan unique HaulDeliveryIntent와 물리 carried stack 및 quantity lease이며, pickup commit·restore rebind·deposit만 이를 변경한다. Physical Items V8은 nextHaulOperationSequence와 grandfather lease hint를, Character World V3은 pickup-committed HaulDeliveryIntent를 저장한다. runtime lease ID는 저장하지 않고 225.world.haul-delivery-intents participant가 character publication 뒤 AI 활성화 전에 새 grandfather lease와 exact rebind한다. participant는 destination kind·stable destination ID·현재 warehouse 또는 construction/input-buffer owner·현재 delivery/drop cell을 공용 resolver로 대조하되 actor를 깨우거나 coroutine을 시작하지 않는다. 전체 RestoreAll 완료 뒤 정상 Brain→AIHaul만 pending delivery-only intent를 정확히 한 번 실행한다. pre-pick 계획은 저장하지 않고 복원 뒤 재계획하며 pickup-committed 계획만 delivery-only로 재개한다
+자동 감사 ID와 전수 목록 포함 여부: PhysicalItemLogisticsPlayModeVerifier의 construction physical delivery 행, Work/Haul coverage, DungeonAiActionSaveLoadPlayModeVerifier의 mid-construction-haul delivery-only restore 행에 포함
+검증 매트릭스와 보고서 위치: PhysicalItemLogisticsPlayModeVerifier.RequestConstructionRunFromMenu()/RequestRunFromMenu(), DungeonAiActionSaveLoadPlayModeVerifier.RequestRun(), Artifacts/QA/construction-project-playmode-report.txt, Artifacts/QA/physical-item-logistics-playmode-report.txt, Artifacts/QA/dungeon-ai-action-save-load-playmode.txt
+현재 밸런스 상태: 수치·BOM·WU·ROI 변화 없음. production 저장 권위 교정과 결정론적 per-plan identity 구현 완료. 기존 건설 전용 및 PhysicalItemLogistics 증거는 fresh PASS였으나 V8/V3 mid-haul 저장 왕복, duplicate request 0, exact delivery completion, 2회 물리 conservation, Console Warning/Error 0/0은 새 코드 기준 Unity 재검증 대기
+```
+
+## Emergency work command suspension ownership correction (2026-08-15)
+
+```text
+Definition ID: character:alarm-suspended-priority-ownership-v26
+Content type: existing Red-alert work suspension ownership correction
+Definition/producer/consumer locations: WorkTaskExecutor.TrySuspendAtSafeCheckpoint, CharacterAlarmResponseRuntime, SettlementAlertRuntime suspended-work journal, AbilityWork priority command
+Growth stage and player decision: unchanged; the player's original explicit work command is suspended during the existing Red/Amber emergency window and restored from the existing journal only after Green
+Physical BOM/input/output, WU, EWU, work rates, progress, hysteresis time, space, utilities, prices, rewards, risks, and emergency thresholds: unchanged
+Execution authority: the safe-checkpoint transaction creates the suspension receipt and clears the live priority command before ending the action. The receipt/journal becomes the sole restoration authority, preventing the scheduler from reacquiring the ordinary target before the alarm runtime consumes the receipt. When Amber escalates back to Red, the committed alert epoch and every suspended-work journal entry advance together; the same responder gate may advance only from its exact prior positive epoch to that newer epoch. On Green, an active emergency work executor retains the gate until its coroutine has released movement, reservations and accounting; only a selected live AIWork action with no executor routine is cancelled through its typed terminal. The gate release and original-priority restore then commit in the same scheduler tick
+Failure and recovery: a cancelled request before a checkpoint leaves the priority command untouched; a completed suspension preserves externally persisted or inline progress; Green lets an active emergency executor finish its cleanup, cancels only a selected pre-execution/orphan emergency route exactly once, then restores the exact original work type/target and clears the journal; a missing target abandons the journal with the existing typed reason. Same, stale, reversed, or mismatched epoch replacement still fails loudly, while the authoritative monotonic escalation no longer collides with its own retained Amber gate
+Exploit prevention: no free WU, priority escalation, emergency bypass, early Amber return, duplicate resume, target substitution, or timeout relaxation is introduced
+Save authority: SettlementThreatAlertSaveData and its suspended-work entry remain authoritative; the live priority pointer is transient and is reconstructed only through the existing Green return command
+Automatic audits: CharacterAlarmResponsePlayModeVerifier must prove safe-checkpoint stop, persistent-progress conservation, Red->Amber->Green 2+2-hour hysteresis, no Amber reacquisition, exact original-work return, journal removal, and path/reservation/invariant conservation
+Balance state: numeric balance unchanged; production ownership correction implemented. The original current-source alarm-response PlayMode gate passed safe-checkpoint suspension, Red/Amber hold, exact Green return, journal cleanup and target-destroy abandonment. A fresh captivity/invasion run exposed the missing Amber-to-new-Red gate epoch handoff; focused alarm and captivity/invasion PlayMode reruns plus Console Warning/Error 0/0 are pending after this monotonic ownership correction
+```
+
+## Facility evolution activation reconciliation snapshot correction (2026-08-15)
+
+```text
+Definition ID: architecture:facility-evolution-activation-reconcile-snapshot-v26
+Content type: existing facility-evolution activation projection liveness and restore-authority correction
+Definition/producer/consumer locations: CharacterAiWorldRegistry.Buildings, FacilityEvolutionActivationProjection, FacilityInstanceEvolutionRuntime.RefreshRoomActivation, FacilityEvolutionStateComponent
+Growth stage and player decision: unchanged; no facility, evolution option, research, unlock, module, or player command is added or removed
+Physical BOM/input/output, WU, EWU, time, space, utilities, maintenance, prices, rewards, risks, and authored activation thresholds: unchanged
+Execution authority: one reconciliation pass snapshots the building authority at pass start, refreshes each eligible facility from that snapshot, and commits the observed building/facility-state versions only after the whole pass succeeds
+Failure and recovery: registry mutation or nested reconciliation during a pass schedules one next-tick replay against the new authority. An exception remains fail-loud and leaves the previous observed versions intact so the next tick retries instead of treating a partial pass as complete
+Exploit prevention: no fixed-point same-frame loop, free evolution progress, duplicate node activation, skipped replacement facility, fallback facility, or silent exception suppression is introduced
+Save authority: the building registry version and FacilityEvolutionStateComponent remain authoritative. The pass snapshot, observed versions, reentrancy flag, and pending replay are transient and are not saved
+Performance: allocation occurs only when a building or facility dynamic-state version requires reconciliation; stable ticks return before snapshot creation
+Automatic audits: FacilityEvolutionActivationProjectionDebugScenarios requires A/B snapshot processing while A is removed and C registered, a B/C next-tick replay, a stable zero-work tick, and fail-loud retry after an injected refresh exception
+Deterministic live verification: run FacilityEvolutionDebugScenarios.RunAll and PrimitiveStartSurvivalPlayModeVerifier.RunFocusedFromMenu; both must pass from current source with Console Warning/Error/Exception 0/0 and the Primitive full-save restore must preserve exact facility IDs, definitions, and positions
+Balance state: numeric balance unchanged; production liveness correction implemented. Current-source focused and aggregate FacilityEvolution audits pass, and the original Primitive full-save teardown/restore reproduction now passes with exact Rest facility identity/definition/position restoration and post-terminal/post-EditMode Console Warning/Error/Exception 0/0
+```
+
+## Safe-drink environmental route admission correction (2026-08-15)
+
+```text
+Definition ID: survival:safe-drink-environment-route-authority-v26
+Content type: existing emergency drinking route-admission correction
+Definition/producer/consumer locations: CharacterSafeDrinkPlanner, IEnvironmentWorkPolicy, CharacterDeprivationRuntime, AI emergency survival branch
+Growth stage and player decision: unchanged; this affects only an already-authored emergency drink attempt after physical water selection
+Physical BOM/input/output: unchanged. One successful drink still consumes the same reserved physical clean-water quantity, while rejected routes consume nothing
+WU, time, need recovery, thresholds, item values, space, and movement speed: unchanged
+Risk/failure/recovery: candidate selection now evaluates the exact resolved route, destination, and estimated traversal time through the existing environmental work policy before reserving and moving. A lethal exposure route is rejected with typed diagnostic detail and another lawful physical candidate may be considered
+Alternatives: authored drink facilities, stored water, and other physically reachable loose water retain their existing scoring and reservation rules; no missing path or unsafe route is replaced by teleportation or free recovery
+Exploit prevention: the correction cannot create water, bypass item leases, ignore a hostile environment, or grant recovery before final physical consumption
+Save authority: unchanged world-item stacks, leases, character need state, environment state, and movement state remain authoritative; route assessment is recomputed and not persisted
+Automatic audits: CharacterSafeDrinkPlanner direct and exact-path candidates must both pass IEnvironmentWorkPolicy; rejected routes retain the policy failure detail
+Deterministic live verification: PrimitiveStartSurvivalPlayModeVerifier five-day run must keep all three founders at positive health, report no survival damage or active breakdown, and conserve physical meals/water
+Balance state: numeric balance unchanged; production route-authority correction has a fresh five-day PASS, while final clean-console and manifest refresh remain pending
+```
+
+## Social rumor target-authority mood-cap correction (2026-08-15)
+
+```text
+Definition ID: character:social-rumor-target-mood-authority-v26
+Content type: existing social-memory stacking authority correction
+Definition/producer/consumer locations: CharacterSocialMemory.HearRumor, CharacterMoodStateService, visitor rumor events, CharacterDeprivationRuntime, StaffDiscontentRuntime
+Growth stage and player decision: unchanged; no new rumor, visitor, facility, relationship, departure, or reward is added
+Physical BOM/input/output, WU, time, facility capacity, prices, service recovery, and rewards: unchanged
+Mood calculation: the authored rumor impulse and existing maxStacks=2 remain unchanged. The mood-factor identity is keyed by rumor target type plus authoritative target ID rather than by speaker, so many visitors repeating the same facility warning share the existing two-stack cap
+Risk/failure/recovery: distinct target facilities or characters still produce distinct memories and mood factors; repeated warnings about one target cannot scale without bound with crowd size
+Alternatives: direct interactions, distinct rumors, ordinary mood recovery, staff discontent, and permanent-departure policy keep their existing rules
+Exploit prevention: rotating speaker IDs cannot multiply one target warning beyond its authored cap; merging occurs only for the same typed target and never merges unrelated facilities or characters
+Save authority: CharacterSocialMemory entries and CharacterMoodState interaction factors remain authoritative; no new persisted field is introduced and the canonical key is deterministically reconstructed from the typed target
+Automatic audits: CharacterAiPlanDebugScenarios applies the same facility warning through multiple speakers and requires one target-authoritative mood factor capped at two stacks
+Deterministic live verification: the fresh Primitive five-day run must keep the three founders live with no rumor-amplified departure and preserve all physical survival invariants
+Balance state: numeric balance unchanged; production mood-authority correction has fresh five-day evidence, while final clean-console and manifest refresh remain pending
+```
+
+## Customer visitor work-role authority correction (2026-08-15)
+
+```text
+Definition ID: character:customer-visitor-work-role-authority-v26
+Content type: existing customer AI catalog and visitor lifecycle authority correction
+Definition/producer/consumer locations: CharacterIdentity.CharacterType, CharacterPopulationService.ApplyStaffRuntimeState, CharacterWorkRoleUtility, CharacterAiDecisionPipeline, CharacterDeprivationRuntime, CharacterSpawner exit handoff
+Growth stage: existing Day-1 visitor flow; no new visitor, facility, action, unlock, reward, or spawn rate
+Player decision: unchanged; Customers use their existing Shopping/LookAround/Exit catalog while promoted visitor staff are authoritatively projected to NPC and keep Work
+Physical BOM/input/output, WU, time, space, utility, prices, service recovery, and rewards: unchanged
+Risk/failure/recovery: the shared prefab's AbilityWork component is no longer sufficient worker authority for CharacterType.Customer; transient Customers are excluded from the staff deprivation/breakdown aggregate and remain governed by visitor satisfaction, patience, complaint, vandalism, and exit; visitors can reach their authored exit instead of accumulating as false workers until violent breakdown
+Alternatives: NPC/Owner workers retain existing work priorities and off-duty leisure; verifier-only visitor projection remains available for focused tests
+Exploit prevention: Customer identity cannot perform staff work merely because the shared prefab carries AbilityWork; promotion must pass through the existing population authority before work becomes available
+Save authority: CharacterIdentity.CharacterType and the population profile's isStaff projection remain authoritative; transient Customer deprivation state is recomputed as absent and no new save field or cached role is added
+Automatic audits: Customer/visitor AI scenarios must prove a Customer is non-worker despite AbilityWork, while a promoted NPC staff actor remains a worker
+Deterministic live verification: Primitive 5-day must keep the three starting actors free of visitor-breakdown damage and prove natural physical meal/water conservation; VisitorControl must still prove entry, service terminal, and pool-release exit
+Balance state: numeric balance unchanged; production role-authority correction pending fresh Unity compile and PlayMode verification
+```
+
+## Offense strategic battle liveness correction (2026-08-15)
+
+```text
+Definition ID: combat:offense-strategic-planned-turn-liveness-v26
+Content type: existing strategic battle formation and command-resolution contract correction
+Definition/catalog/executor locations: OffenseBattleSession, OffenseBattleRuntime, OffenseBattleDirector, OffenseCommandResolutionAdapter
+Growth stage: existing strategic expedition battle; no new unlock, facility, project, unit, card, enemy, or reward
+Player decision: existing card-to-enemy-intent pointer flow is unchanged; an invalid allied execution no longer deletes the enemy intent for free
+Physical BOM/input/output: unchanged; no item, ammunition, equipment, supply, loot, or currency quantity changes
+Direct work/time calculation: unchanged; no WU, action cost, damage, health, armor, accuracy, speed, stage, or reward multiplier changes
+EWU/target payback: unchanged because this restores execution/liveness only
+Space/power/water/fuel/maintenance: unchanged
+Risk/failure/recovery: a downed non-acting combatant is removed from formation occupancy, surviving combatants compact into existing slots, and unavailable allied commands preserve the enemy intent; the planned command batch advances exactly one battle round; the enemy intent remains the clash target while the applied ability effect resolves its authored Self/Ally/Enemy target rule deterministically
+Social/mood/relationship cost: unchanged
+Alternatives: ordinary battle commands keep their existing Advance/Reload/Ability choices; strategic cards keep authored tags, effects, target rules, formation restrictions, and cooldowns
+Exploit prevention: an out-of-range or otherwise unavailable allied card cannot nullify an enemy action; Self/Ally effects cannot be redirected to an enemy and Enemy effects cannot be redirected to the party; deterministic ally selection grants no extra activation; compaction grants no free attack, damage, turn, item, or reward
+Save authority: existing battle round, formation, cooldown, status, director deck, intent, and command queue fields remain authoritative; no new persisted field
+Automatic audits: OffenseStrategicDebugScenarios requires an unavailable interception to execute the preserved enemy intent exactly once
+Deterministic live verification: OffenseJourneyPlayModeFacade.RequestRun must traverse the real strategic pointer UI, record typed command outcomes, reject three consecutive no-effect turns, observe enemy damage and battle terminal, return, reward exactly once, and prove ownership cleanup
+Balance state: numeric balance unchanged; production liveness correction pending fresh Unity compile and PlayMode verification
+```
+
+## Incapacitated injury mood side-effect isolation (2026-08-15)
+
+```text
+Definition ID: character:injury-mood-side-effect-capacity-v26
+Content type: existing damage side-effect transaction correction
+Execution path: CharacterBodyHealthRuntime -> CharacterVitalsSideEffectAdapter -> CharacterMoodPolicyService
+Physical BOM/input/output, WU, time, space, utilities, equipment, rewards, and progression: unchanged
+Health and damage values: unchanged; authoritative injury damage is committed exactly once through the existing body-health runtime
+Mood values: the existing health:injury impulse (-clamp(damage*0.25, 2, 10), 180 seconds, max 2 stacks) is unchanged when negative-mood-duration performance is applicable
+Failure/recovery: when MentalMaintenance is below the authored applicability floor, the optional injury mood side effect is not created; damage activity, death/lifecycle publication, expedition result, and later medical recovery continue instead of being aborted by an exception
+Exploit prevention: this grants no health, resistance, immunity, reward, action, or free recovery; it only prevents an unavailable post-damage mood projection from breaking the already committed damage transaction
+Save authority: body health remains authoritative for damage and CharacterMoodState remains authoritative only for mood factors that were actually applicable; no new save field
+Deterministic verification: the production strategic Offense journey must complete a real battle whose incapacitated member damage is projected without Console exceptions, then publish result/reward and clean all expedition ownership
+Balance state: numeric balance unchanged; transactional side-effect isolation pending fresh Unity compile and PlayMode verification
+```
+
 ## V26-156 GC 수용 기준 교정 (2026-08-12)
 
 ```text
@@ -13,6 +243,21 @@ Player 합격 권위: 정상 운용 평균 32 KB/frame 이하, p95 128 KB/frame 
 실행 권위: `GameplayGcAcceptancePolicy`를 release soak와 공용 `GameplayPerformanceReportAssembler`가 함께 사용한다. Editor는 baseline 표본 120개가 없으면 실패하고, Player는 절대 평균·p95·최대값을 모두 통과해야 한다
 판정 원칙: 측정 후 합격시키기 위해 예산을 이동하지 않는다. 먼저 위 수치를 고정하고 동일 시나리오를 반복 측정한다
 현재 상태: Unity MCP 컴파일·라이브 소비자 감사·baseline/active release soak는 통과했다. 공식 Editor 증분은 평균 280.0 KB/frame, p95 281.2 KB이며 폭주 평균/최대는 1,011.6/70,669.6 KB, 잔류 Mono 증가는 19.40 MB다. Player 절대 평균/p95/max 측정 전에는 최종 성능 완료 아님
+```
+
+## Existing equipment world-drop authority record (2026-08-15)
+
+```text
+Definition ID: architecture:equipment-existing-instance-world-drop-v26
+Content type: physical equipment identity and save-authority correction
+Execution paths: wildlife recoverable weapon, settlement defense recoverable weapon, captive equipment confiscation, and equipment-maintenance delivery/output
+Physical BOM/input/output: unchanged. The operation moves the already authoritative equipment instance into one physical stack and never creates a second equipment instance.
+Time, WU, space, power, water, fuel, maintenance, quality, risk, and alternatives: unchanged. This is an identity/transaction correction only.
+Failure and rollback: physical creation uses SpawnExistingUniqueItemAt with the authoritative ItemInstanceId. Link success is mandatory; link failure deletes the newly created unlinked stack, and rollback failure is a hard invariant error. Generic SpawnUnique rejects equipment and equipment-module item IDs.
+Save authority: DungeonPhysicalItemSaveData V7 keeps a one-to-one mapping between each equipment-item stack and authoritative uniqueItems entry. Existing linked unique stacks retain stack and item-instance IDs when released from a facility buffer.
+Exploit prevention: repeated drop calls reuse the existing linked stack; they cannot mint a second item, duplicate modules, orphan a stack, or replace the authoritative item-instance ID.
+Deterministic verification: PhysicalItemDebugScenarios case equipment_existing_instance_atomic_drop_capture_24 creates and atomically drops 24 authoritative equipment instances, then performs the canonical physical Capture and requires exact one-to-one stack/unique-item identity.
+Balance status: no balance values changed. Static implementation is complete; Unity compile and the focused physical-item contract run are still required before reporting verification complete.
 ```
 
 ### V26-157 implementation continuation (2026-08-12)
@@ -1205,4 +1450,256 @@ Deterministic verification: Artifacts/QA/primitive-start-survival-5day-report.tx
 Balance status: true-start survival transition verified. Phase 157 technology-stage net-WU and whole-game balance remain in progress.
 ```
 현재 밸런스 상태: 구현 중. 기준 공식·31개 작업 분류·실제 작업 승인량 증분 회계·일일/저장 전 재조정·침입/중상 사건 경보·단계별 히스테리시스·경보 저장의 첫 수직 슬라이스를 작성했다. 작업 중단 Lease 보존/복귀 큐, 프로젝트 라이브 동시성, 기술별 실제 소비처, Shadow Simulation, 인구 유입, UI와 Unity MCP 전체 검증 전에는 WU·비상 대응·인구 밸런스 완료 아님
+```
+
+## D03 도축·R07 대형 사업 시설 연결 교정 기록 (2026-08-14)
+
+```text
+정의 ID: facility:D03:butcher-work / facility:R07:grand-project-work
+콘텐츠 종류: 조리손질대 도축 작업 시설, 영주집무책상 대형 사업 작업 시설
+정의·카탈로그·실행기 위치: ModularFacilityAssetBuilder, D03_조리손질대.asset, R07_영주집무책상.asset, BuildingButcherAbility, ButcherWorkExecutionHandler, GrandProjectRuntime
+등장 시대와 연구: 기존 D03·R07의 등장 시대와 해금 조건을 그대로 유지하며 신규 연구·무료 해금을 추가하지 않음
+플레이어에게 주는 새 결정: 기존에 저술되어 있었지만 직렬화 연결이 빠진 D03 도축 작업과 R07 대형 사업 작업자를 실제 시설에 배치할 수 있게 함
+물리 BOM·입력·출력: 건설 BOM, 도축 사체 입력·고기 출력, 대형 사업 BOM과 산출을 변경하지 않음. 각 실행기는 기존 물리 입력과 커밋 규칙을 그대로 사용
+직접 작업량과 계산 근거: D03 BuildingButcherAbility.workSeconds=1은 기존 ButcherWorkExecutionHandler의 기본값 1과 동일함. R07 건설·수리·운영·대형 사업 요구 WU 및 프로젝트 기여 곡선은 변경하지 않음
+EWU와 목표 회수 기간: 신규 생산 보너스나 WU 감면이 없으며 기존 authored 작업의 도달 가능성만 복구하므로 시설 EWU·회수기간 변경 없음
+공간·전력·물·연료·정비: D03 폭 2, R07 폭 2와 기존 공간·유틸리티·정비 조건을 그대로 유지
+위험·실패·회복 방식: 사체·대형 사업·재료·시설 상태가 부적격하면 기존 typed 실패를 유지. 능력 또는 지원 작업 타입이 다시 누락되면 targeted builder 검증과 modular facility 자동 감사가 실패
+사회·비가역 비용: 변경 없음
+기존 대안과의 장단점: D03은 조리와 도축을 함께 지원하지만 도축 사체·작업량을 우회하지 않음. R07은 운영·수리와 대형 사업을 함께 지원하지만 프로젝트 인원 상한·BOM·단계 제한을 우회하지 않음
+지배 전략 방지 조건: 무료 사체 처리·무료 프로젝트 진행 0, 동일 작업 이중 완료 0, D03 지원 작업은 Cook+Butcher 정확히 2종, R07 지원 작업은 Operate+Repair+GrandProject 정확히 3종
+저장 권위와 실행 명령: BuildingSO는 불변 시설 정의, 실제 사체·프로젝트·작업 Intent는 기존 런타임/저장 권위를 유지. 신규 저장 필드 없음
+자동 감사 ID와 전수 목록 포함 여부: ModularFacilityAssetBuilder.ValidateCriticalWorkTypeWiringAssets, ModularFacilityDebugScenarios.RunAll; D03 능력 1건과 정확한 2개 작업 ID, R07 정확한 3개 작업 ID를 대상으로 함
+검증 매트릭스와 보고서 위치: DungeonStory/Content/Patch D03/R07 Work Wiring, DungeonStory/Debug/Facilities/Run Modular Facility Checks; Unity MCP 컴파일·감사 결과는 실행 후 기존 modular facility report에 기록
+현재 밸런스 상태: 정의·직렬화 연결 교정 및 정적 검토 완료. 수치·BOM·WU 변화 없음. Unity MCP 컴파일과 targeted modular facility 감사를 아직 실행하지 않았으므로 연결 검증 완료 또는 전체 밸런스 완료로 보고하지 않음
+```
+
+## Dry-fallback sanitation water-delivery authority record (2026-08-15)
+
+```text
+Definition IDs: facility:H01:dry-fallback-water-authority / survival:clean-water:priority
+Content type: sanitation fallback and physical clean-water delivery arbitration
+Physical BOM and output: unchanged. A dry-capable fixture consumes no clean-water item when it commits the authored dry fallback; non-dry fixtures still require one physical clean-water container or piped supply.
+Time and WU: unchanged. Facility service duration, recovery, construction WU, maintenance WU and worker opportunity cost are not modified.
+Risk and cost: dry use retains its authored filth, mood and recovery tradeoffs. It no longer earmarks unrelated loose drinking water for an optional manual-water upgrade after choosing dry completion.
+Alternatives: piped supply and already-buffered manual water remain preferred. A fixture that cannot run dry continues to publish a physical FacilityBuffer delivery request and remains unavailable until it is supplied.
+Exploit prevention: the correction does not create water, convert abstract stock, relax reservation validation, or allow destination-bound FacilityBuffer stock to be consumed as loose drinking water.
+Execution authority: WaterFixtureUseRuntime.TryBeginUse selects piped -> existing manual buffer -> dry fallback. A delivery intent is emitted only when the fixture cannot complete through dry fallback.
+Save authority: unchanged physical world-item stacks, destination IDs, fluid state, and facility state remain authoritative.
+Deterministic verification: DailyRoutineWuPlayModeVerifier.RequestRun(157181) must retain loose/Stored drink candidates, record zero harmful thirst stalls, and preserve exact water depletion and reservation conservation. Multi-seed 157181..157183 remains required.
+Balance status: runtime authority correction implemented; fresh multi-seed Unity evidence is pending.
+```
+
+## H03 hygiene recovery calibration record (2026-08-15)
+
+```text
+Definition ID: facility:H03:hygiene-recovery
+Content type: authored hygiene facility recovery cadence
+Physical BOM and output: unchanged. H03 construction materials, clean-water input, wastewater/manual-waste output, and physical buffer authority are unchanged.
+Time and WU: service time and all construction, cleaning, repair, and maintenance WU are unchanged. Hygiene recovery per completed H03 use changes from 62 to 45, matching NeedBalanceCalibrationScenario's canonical hygiene recovery.
+Space, power, water, and maintenance: unchanged one-cell footprint, facility capacity, manual/piped water rules, drainage risk, and maintenance requirements.
+Risk and alternatives: lower per-use recovery raises neutral adult H03 use from the observed 0.467/day toward the required 0.6~1.0/day and increases self-care opportunity cost. H04 and primitive bucket wash retain their distinct recovery/cost profiles.
+Exploit prevention: recovery is granted only by the existing completed facility-use authority after physical water/fallback commit; cancellation, queueing, or failed supply grants no recovery.
+Execution authority: BuildingNeedRecoveryAbility -> BuildingVisitorPort -> CharacterStats.RecoverNeed(HYGIENE). No new runtime authority is added.
+Save authority: unchanged character need state and authored BuildingSO asset.
+Deterministic verification: ModularFacilityDebugScenarios.RunAll validates exact minimum recovery; DailyRoutineWuPlayModeVerifier.RequestRun(157181..157183) must produce 0.6~1.0 completed/right-censored H03 uses per actor-day with zero harmful stalls and exact water conservation.
+Balance status: authored builder and asset calibrated; fresh three-seed Unity evidence is pending.
+```
+
+## U01~U04 유틸리티 작업 런타임 연결 교정 기록 (2026-08-15)
+
+```text
+정의 ID: facility:industrial:U01-U04:work-runtime-wiring
+콘텐츠 종류: 전력선·상수관·하수관·통합 기반 덕트의 수리/배관 작업 런타임 연결
+정의·카탈로그·실행기 위치: IndustrialInfrastructureAssetBuilder, U01~U04 BuildingSO, FluidNetworkRuntime, PlumbingWorkExecutionHandler, WorkTargetSelector
+등장 시대와 연구: 기존 U01~U04의 연구 해금과 등장 단계는 변경하지 않음
+플레이어에게 주는 새 결정: 기존 정의에 저술된 Repair/Plumbing 유지보수 수요가 실제 AI 작업 후보와 작업자 배치로 연결됨. 신규 작업이나 무료 해금은 추가하지 않음
+물리 BOM·입력·출력: 네 시설의 건설 BOM, 수리 재료, 물·오수·전력 흐름, 배관 작업 출력은 변경하지 않음
+직접 작업량과 계산 근거: 기존 BuildingWorkAmountAbility와 PlumbingWorkExecutionHandler의 `8 + blockage×0.25 + leak×0.30 WU`를 그대로 사용. runtime archetype만 Generic에서 Facility로 교정하므로 WU·속도·수율 수치 변화 없음
+EWU와 목표 회수 기간: 신규 생산 보너스나 유지비 감면이 없고 기존 유지보수 작업의 도달 가능성만 복구하므로 시설 EWU와 기술 회수기간 목표는 변경 없음
+공간·전력·물·연료·정비: 폭 1, Utility 레이어, 기존 채널·처리량·정비 수요를 유지. Facility 런타임은 역할 없는 작업자 슬롯만 제공하며 방문객 역할·좌석·생산 공간을 새로 만들지 않음
+위험·실패·회복 방식: 실제 blockage/leak가 0이면 NoWork, 작업 중 대상 파괴·수요 해소·경로 실패는 typed terminal로 종료. blockage/leak 변화는 후보 캐시 revision을 갱신해 stale 후보와 영구 미발견을 방지
+사회·비가역 비용: 변경 없음
+기존 대안과의 장단점: Generic 유지 시 렌더링은 단순하지만 IWorkableFacility 권위에 들어오지 않아 저술된 유지보수가 실행 불가능함. Facility 연결은 기존 작업자 예약·경로·실패 계약을 재사용하며 방문객 admission 권위를 바꾸지 않음
+지배 전략 방지 조건: 무료 수리·무료 배관 0, 동일 수요 이중 완료 0, blockage/leak 0인 시설의 후보 0, 실제 수요 변경당 candidate revision 갱신, 역할 없는 유틸리티가 방문객 시설로 노출되지 않음
+저장 권위와 실행 명령: BuildingSO는 불변 정의, FluidNetworkRuntime state store의 blockage/leak가 런타임·저장 권위. 후보 캐시는 저장하지 않고 정의·유체 상태에서 재구축. 신규 저장 필드 없음
+자동 감사 ID와 전수 목록 포함 여부: IndustrialInfrastructureAssetBuilder.BuildAll, CharacterAiWorkTypeLiveMatrixPlayModeVerifier `work:plumbing`; U01~U04 runtimeArchetype=Facility, U02~U04 Plumbing 지원, 실제 maintenance publication과 typed cancel/invalidation을 확인
+검증 매트릭스와 보고서 위치: `DungeonStory/Content/Build Industrial Infrastructure` targeted rebuild 후 `CharacterAiWorkTypeLiveMatrixPlayModeVerifier.RequestRun()`; `Artifacts/QA/character-ai-worktype-live-matrix.txt`
+현재 밸런스 상태: 정의 생성기·런타임 후보 publication·정적 계약 교정 완료. 수치·BOM·WU 변화 없음. Unity MCP targeted asset rebuild, 컴파일, full 20-row PlayMode와 Console 0/0을 통과하기 전에는 연결 검증 완료 또는 전체 밸런스 완료로 보고하지 않음
+```
+
+## Q03 연구 청사진 물리 보관 연결 교정 기록 (2026-08-15)
+
+```text
+정의 ID: building:1032 / facility:Q03:research-blueprint-archive
+콘텐츠 종류: 연구용책장 청사진 물리 보관 능력의 정의·직렬화 연결 교정
+정의·카탈로그·실행기 위치: Q03_연구용책장.asset, ResearchProjectAssetBuilder.AttachArchiveAbility, ResearchBlueprintArchiveAdapter, BlueprintResearchRuntime
+등장 시대와 연구: 기존 Q03 등장 단계·해금 조건을 그대로 유지하며 신규 연구·무료 해금을 추가하지 않음
+플레이어에게 주는 새 결정: 상점에서 산 실제 청사진을 AI가 연구실 책장으로 운반한 뒤 플레이어가 연구 큐에 넣는 기존 저술 흐름을 복구
+물리 BOM·입력·출력: Q03 목재 4 BOM, 청사진의 고유 물리 아이템 1개와 구매 금화 비용을 그대로 유지. 무료 청사진·복제·원격 보관 없음
+직접 작업량과 계산 근거: Q03 건설 48 WU, 수리 12 WU, 기존 운반·연구 WU를 변경하지 않음. 보관 능력은 작업량을 감면하거나 연구를 자동 완료하지 않음
+EWU와 목표 회수 기간: 신규 산출·속도 보너스가 없고 누락된 authored 경로만 복구하므로 기존 시설 EWU와 연구 25~40/70~120/180~280일 목표 밴드를 변경하지 않음
+공간·전력·물·연료·정비: Q03 1×1 면적, 내부 저장 10, 정비 1과 기존 Research room 요구를 유지. BuildingResearchArchiveAbility 용량은 기존 빌더·감사 권위와 같은 8
+위험·실패·회복 방식: Research room 부적격, 경로 없음, 목적지 가득 참, 물리 아이템·예약 소실은 typed blocked/terminal로 남기며 재시도·복원 시 같은 청사진 ID를 사용
+사회·비가역 비용: 변경 없음. 구매 금화와 연구자·운반자 기회비용은 기존 권위를 유지
+기존 대안과의 장단점: 일반 창고는 임시 물류 대안일 뿐 연구 큐 권위가 아니며 Q03을 대체하지 못함. 여러 Q03은 기존 BOM·공간·정비를 지불한 만큼만 슬롯을 늘림
+지배 전략 방지 조건: 현재 청사진 7종 대비 8칸, 고유/max-stack-1 물리 청사진만 계산, 구매·배송·저장·큐 등록 exactly-once, 취소·저장복원·재시도로 아이템·금화·큐 복제 0
+저장 권위와 실행 명령: Q03 SO가 불변 용량을, FacilityShop acquired IDs·물리 WorldItemStack·BlueprintResearchState가 각 런타임 저장 권위를 소유. archive query/destination은 stable building persistent ID에서 재계산하며 신규 저장 필드 없음
+자동 감사 ID와 전수 목록 포함 여부: ResearchTreeDebugScenarios 180 프로젝트·7 청사진·archiveConfigured, BlueprintResearchDebugScenarios, FirstRunObjectivePlayModeVerifier 실제 UI 구매/AI 운반/수동 큐
+검증 매트릭스와 보고서 위치: Unity MCP targeted AttachArchiveAbility, ResearchTreeDebugScenarios, Temp/first-run-objective-report.txt, 청사진 loose/in-transit/archived 저장 왕복
+현재 밸런스 상태: 정의·직렬화 연결 교정 기록 완료. Q03 기존 수치·BOM·WU·ROI 변화 없음. Unity MCP targeted 에셋 저장, 연구 감사, 실제 FirstRun, 저장 왕복과 Console 0/0을 모두 통과하기 전에는 연결 검증 완료 또는 전체 시설·연구 밸런스 완료로 보고하지 않음
+```
+
+## Q01~Q06 연구 시설 능력 직렬화 연결 교정 기록 (2026-08-15)
+
+```text
+정의 ID: facility:Q01:research-basic / Q02:research-basic+arcane / Q03:research-archive / Q04:research-reagent / Q05:research-specimen / Q06:research-design / P19:research-basic+reagent+arcane / P1_ResearchLab:research-basic+archive+advanced
+콘텐츠 종류: 기존 연구 시설의 `BuildingResearchCapacityAbility` 정의·직렬화 연결 교정
+정의·카탈로그·실행기 위치: Q01~Q06·P19·P1_ResearchLab BuildingSO, ResearchProjectAssetBuilder.AttachArchiveAbility, ResearchFacilityCapacityQuery, BlueprintResearchProjectCoordinator, ResearchWorkExecutionHandler
+등장 시대와 연구: 각 시설의 기존 등장 단계·해금 조건을 유지하고 신규 연구·무료 해금·시설을 추가하지 않음. Q01의 기존 시작 해금 권위를 복구함
+플레이어에게 주는 새 결정: 새 선택지를 추가하지 않고, 이미 문서화된 연구 시설 조합을 건설·유지하여 프로젝트의 Basic/Archive/Reagent/Specimen/Design/Arcane/Advanced 요구를 충족하는 기존 결정을 다시 작동시킴
+물리 BOM·입력·출력: 모든 시설의 기존 BOM과 청사진·시약·표본·설계·비전 물리 경로를 유지. 능력 연결은 자원을 생성·삭제·복제하거나 원격 공급하지 않음
+직접 작업량과 계산 근거: 각 시설 건설·수리·정비 WU와 프로젝트 requiredWork를 변경하지 않음. 연구 능력 수치는 기존 빌더 권위(Q01 Basic 1, Q02 Basic 1+Arcane 1, Q03 Archive 1, Q04 Reagent 1, Q05 Specimen 1, Q06 Design 1, P19 Basic 1+Reagent 1+Arcane 1, P1 연구소 Basic 2+Archive 1+Advanced 1)를 그대로 직렬화함
+EWU와 목표 회수 기간: 신규 생산량·연구 속도·작업량 감면이 없으므로 기존 시설 및 연구 단계의 EWU·회수 기간 목표를 변경하지 않음
+공간·전력·물·연료·정비: 각 시설의 기존 footprint, 방 요구, 전력·물·연료·정비 수치를 변경하지 않음. 능력 합산은 실제 operational building만 계산함
+위험·실패·회복 방식: 시설 미건설·비가동·부족 수량은 프로젝트를 suspended 상태와 typed blocker로 유지하며 AI 정책은 연구 작업을 거부함. 에셋 연결 누락을 queued-but-inactive fallback으로 숨기지 않음
+기회비용·비가역 비용: 변경 없음. 필요한 시설의 기존 BOM·공간·정비·해금 비용이 연구 진행의 기회비용으로 계속 남음
+기존 대안과의 장단점: Q01/Q03 조합은 기록 연구의 최소 경로이고 고급 연구소는 더 큰 기존 비용으로 복수 능력을 제공함. 일반 작업대·창고는 연구 능력 대안으로 간주하지 않음
+지배 전략 방지 조건: 여러 시설은 실제로 건설·가동된 수만 합산하며 한 시설 모듈을 중복 직렬화하지 않음. 저장·복원·빌더 재실행 후 동일 BuildingSO에 동일 능력 모듈 exactly-one을 유지함
+저장 권위와 실행 명령: BuildingSO가 불변 연구 능력 기여를 소유하고 ResearchFacilityCapacityQuery가 live operational building에서 재계산함. 프로젝트 queue/active 상태의 기존 저장 권위를 유지하며 신규 저장 필드 없음
+자동 감사 ID와 필수 목록 포함 여부: ResearchTreeDebugScenarios의 180 프로젝트·시설 요구 감사, ResearchProjectAssetBuilder의 exact capability mapping, FirstRunObjectivePlayModeVerifier의 active project·실제 AI 연구 작업을 필수 증거로 사용
+매트릭스와 보고서 위치: Unity MCP `ResearchProjectAssetBuilder.PatchQ03ArchiveAbility`, `ResearchTreeDebugScenarios.RunAll`, `Temp/first-run-objective-report.txt`; Q01~Q06/P19/P1 연구소 ability module exact-one 및 Console 0/0을 함께 기록
+현재 밸런스 상태: 기존 정의의 직렬화 연결 교정이며 수치·BOM·WU·ROI 변화 없음. targeted 에셋 저장과 fresh FirstRun·연구 감사가 통과하기 전에는 연결 검증 완료로 보고하지 않음
+```
+
+## 연구 승인 WU 진행량 커밋 일치 교정 기록 (2026-08-15)
+
+```text
+정의 ID: work:research:approved-wu-commit
+콘텐츠 종류: 연구 작업 사이클의 승인 작업량과 프로젝트 진행량 연결 교정
+정의·카탈로그·실행기 위치: BuildingWorkAmountAbility.researchWorkRequired, ResearchWorkExecutionAdapter, WorkTaskExecutor.ExecuteWorkAmount, BlueprintResearchRuntime.ApplyResearchWork
+등장 시대와 연구: 기존 연구 단계·해금·프로젝트 목록을 유지하고 신규 연구나 무료 해금을 추가하지 않음
+플레이어에게 주는 새 결정: 새 선택지는 없으며, 실제 연구자가 완료한 승인 WU가 프로젝트 진행 권위에 같은 양으로 반영되는 기존 계약을 복구
+물리 BOM·입력·출력: 시설 건설 BOM, 청사진·시약·표본·색인 입력, 연구 해금 출력은 변경하지 않음
+직접 작업량과 계산 근거: 연구 시설의 한 사이클은 authored `researchWorkRequired` 전량을 WorkTaskExecutor에서 승인받은 뒤에만 커밋함. 프로젝트에는 `승인 사이클 WU × 프로젝트 인력 기여 배수`를 exactly-once 적용함. 기존 구현은 Q01의 6 WU 승인 뒤 고정 1 WU만 커밋하여 5 WU를 소실했음
+EWU와 목표 회수 기간: 프로젝트 requiredWork·시설 작업량·연구 속도 수치를 새로 조정하지 않고, 이미 지불한 WU의 소실만 제거하여 기존 연구 목표 밴드와 일치시킴
+공간·전력·물·연료·정비: 변경 없음
+위험·실패·회복 방식: 작업 중단·취소·시설 소실로 승인 사이클이 끝나지 않으면 프로젝트 커밋은 0. 성공한 사이클만 한 번 반영하고 재시도는 새 작업 사이클 권위를 사용
+기회비용·비가역 비용: 연구자 시간·시설 점유·욕구 소모·물리 입력의 기존 비용을 유지하며 승인되지 않은 작업을 보상하지 않음
+기존 대안과의 장단점: Editor 직접 진행도 주입이나 instant-work 우회 없이 Brain→AIWork→AbilityWork→WorkTaskExecutor의 실제 승인 경로만 사용
+지배 전략 방지 조건: 인력 기여 배수는 한 번만 적용한다. 캐릭터·시설 작업 속도는 WorkAmountCalculator가 승인 WU를 만드는 동안 이미 한 번 반영하므로 프로젝트 커밋에서 재적용하지 않는다. 메타 연구 배수·비전 색인·명시적 연구 output 보너스만 각자의 권위에서 한 번 적용하며, 취소·저장복원·재계획으로 같은 사이클을 중복 커밋하지 않는다
+저장 권위와 실행 명령: BlueprintResearchState가 프로젝트 진행 저장 권위를 유지하며 신규 저장 필드 없음. 작업 사이클은 저장하지 않고 중단 시 기존 규칙대로 재시작
+자동 감사 ID와 필수 목록 포함 여부: FirstRunObjectivePlayModeVerifier `PROJECT_COMPLETED_BY_WORK_ROUTINE`, CharacterAiWorkTypeLiveMatrixPlayModeVerifier `work:research`, BlueprintResearchDebugScenarios의 진행·속도 감사
+매트릭스와 보고서 위치: `Temp/first-run-objective-report.txt`, `Artifacts/QA/character-ai-worktype-live-matrix.txt`, Unity Console 0 Error/Warning
+현재 밸런스 상태: 승인 WU 커밋 일치 교정 구현 완료. 수치·BOM·프로젝트 requiredWork 변화 없음. fresh FirstRun과 연구 작업 매트릭스를 통과하기 전에는 연결 검증 완료 또는 연구 밸런스 완료로 보고하지 않음
+```
+
+## 전략 원정 명령열 전투 교착 교정 기록 (2026-08-15)
+
+```text
+정의 ID: offense:strategic-command-battle:planned-turn-resolution
+콘텐츠 종류: 전략 원정 명령열 전투의 충돌·적 의도 소유권·동시 턴 진행 연결 교정
+정의·카탈로그·실행기 위치: OffenseBattleDirector.ResolveTurn, OffenseCommandResolutionAdapter, OffenseBattleRuntime.FinalizePlannedTurn, OffenseBattleSession.FinalizePlannedRound
+등장 시대와 연구: 기존 전략 원정 전투 전체에 적용하며 신규 연구·카드·적·보상을 추가하지 않음
+플레이어에게 주는 새 결정: 새 선택지는 없으며, 실행 불가능한 카드가 적 의도를 무료로 지우지 않고 실제 유효 명령만 충돌 결과를 소유하는 기존 전투 결정을 복구
+물리 BOM·입력·출력: 원정 보급·탄약·약품·장비 내구·보상과 전리품 수치를 변경하지 않음
+직접 작업량과 계산 근거: 정착지 WU·원정 준비 WU 변화 없음. 한 명령열 resolve는 적 의도를 최대 한 번 실행 시도하고 planned round/BeginTurn을 정확히 한 번 진행함
+EWU와 목표 회수 기간: 신규 산출·보상·비용 감면 없음. 교착으로 전투가 끝나지 않던 결함만 제거하므로 기존 원정 EWU와 회수기간 목표를 유지
+공간·전력·물·연료·정비: 변경 없음
+위험·실패·회복 방식: 아군 명령이 Unavailable/IllegalTarget/Cancelled이면 충돌로 감소시킨 단계를 인정하지 않고 적 의도의 원래 full execution stages를 실행함. 실제 적 실행도 불가능하면 typed outcome과 reason을 남기며 임의 피해·이동·대상 fallback을 만들지 않음. terminal BattleCompleted가 director를 동기 제거해도 finalization 시작 시 캡처한 turn 소유 상태에 카드·queue·fence cleanup을 exactly-once 적용하고 완료 trace는 유지함. callback 중 다른 non-null battle state가 들어오면 이전 finalizer는 fail-fast하며 새 state의 pending·trace·카드 소유권을 전혀 변경하지 않음
+사회·비가역 비용: 전투 부상·사망·포획·원정 부재의 기존 비용을 유지하며 무효 카드로 위험을 무료 상쇄할 수 없음
+기존 대안과의 장단점: 유효한 Intercept/Break 명령은 기존 충돌 단계 감소를 유지함. 실행 불가 카드는 안전한 방어 대안이 아니며 적 행동을 받거나 다음 합법 명령을 선택해야 함
+지배 전략 방지 조건: invalid 카드의 적 의도 무료 소비 0, 감소된 적 단계 무료 적용 0, 같은 director turn 중복 resolve·중복 BeginTurn 0, fallback 피해 0, 적 의도 실행 결과와 실패 이유의 durable trace 유지
+저장 권위와 실행 명령: OffenseBattleDirectorStateData의 resolutionAppliedTurn/finalizedTurn과 OffenseBattleSession persistence의 preparedPlannedTurn/finalizedPlannedTurn이 명령 실행 적용과 라운드 마감의 멱등 토큰을 저장함. resolved trace는 런타임 관찰값이며 저장하지 않음. 구형 저장은 drawn candidates/command queue와 현재 라운드 상태에서 기준 토큰을 한 번 결합하고 BeginTurn을 재생하지 않음
+자동 감사 ID와 필수 목록 포함 여부: OffenseStrategicDebugScenarios.VerifyCommandBattle, OffenseBattleDebugScenarios.VerifyPlannedRoundFinalization, OffenseJourneyPlayModeFacade strategic full journey
+검증 매트릭스와 보고서 위치: `DungeonStory/Debug/Offense/Run Strategic Scenarios`, `DungeonStory/Debug/Offense/Run Turn Battle Scenarios`, `OffenseJourneyPlayModeFacade.RequestRun()`, `Artifacts/QA/offense-journey-playmode.txt`, Unity Console 0/0
+현재 밸런스 상태: 생산 계약과 집중 회귀 구현 완료. 수치·카드·적·보상 변화는 없지만 실제 위험 처리 경로가 바뀌므로 fresh 정적 회귀와 전략 원정 PlayMode가 통과하기 전에는 연결 검증 완료 또는 전투 밸런스 완료로 보고하지 않음
+```
+
+## 전략 원정 명령 카드 행동 권위 후속 교정 기록 (2026-08-16)
+
+```text
+정의 ID: offense:strategic-command-battle:typed-action-authority-v27
+콘텐츠 종류: 기존 전략 원정 명령 카드·적 의도의 행동 종류와 후열 교전 liveness 연결 교정
+정의·카탈로그·실행기 위치: OffenseStrategicBattleSetupFactory, OffenseCommandCardStateData, OffenseEnemyIntentStateData, OffenseCommandBattleDirector, OffenseCommandResolutionAdapter, OffenseBattleRuntime, OffenseBattleSession
+등장 시대와 연구: 기존 전략 원정 전투 전체에 적용하며 신규 연구·해금·적·보상·카드 수를 추가하지 않음
+플레이어에게 주는 새 결정: 기존 8장 덱에서 중복 기본 공격 한 장이 기존 전투 행동인 전진 명령을 명시적으로 제공함. 후열 적도 도달 불가 공격 대신 현재 진형에서 합법적인 전진 의도를 표시함
+물리 BOM·입력·출력: 원정 보급, 탄약, 장비, 약품, 전리품, 통화의 입력·출력과 물리 수량 변화 없음
+직접 작업량과 계산 근거: 정착지 WU와 전투 카드 수 8, 후보 수 2, execution stage·speed·power·damage 수치는 변경 없음. 전진은 기존 한 행동과 한 planned command ID를 소비하며 피해·무료 추가 턴을 만들지 않음
+EWU와 목표 회수 기간: 신규 산출·보상·비용 감면 없음. 불법 공격만 반복해 전투가 영구 정지하던 상태를 기존 전진 행동으로 해소하므로 원정 EWU 목표 자체는 유지
+공간·전력·물·연료·정비: 변경 없음
+위험·실패·회복 방식: 카드와 적 의도가 저장한 typed action만 실행함. Ability인데 skill ID가 없거나 현재 진형·대상이 불법이면 typed Unavailable/IllegalTarget로 남기고 다른 공격이나 이동으로 대체하지 않음. Advance와 Guard는 명시적 self target이며 후열 melee는 한 행동씩 전진함
+사회·비가역 비용: 기존 전투 부상·사망·포획·원정 부재 비용 유지. 전진을 선택한 행동은 공격하지 않으므로 접근 중 적 행동과 턴 기회비용을 그대로 부담
+기존 대안과의 장단점: 기본 공격·능력·방어는 즉시 효과 가능하지만 거리·진형 제한을 받음. 전진은 피해가 없고 한 턴을 소비하는 대신 이후 근접 행동의 합법 거리를 확보함
+지배 전략 방지 조건: 전진 피해 0, 추가 카드·추가 행동·무료 충돌 단계 0, 한 planned turn당 command ID·BeginTurn·Finalize 정확히 한 번, invalid 명령의 적 의도 무료 제거 0
+저장 권위와 실행 명령: OffenseCommandCardStateData.actionType과 OffenseEnemyIntentStateData.actionType이 행동 종류의 저장 원본이고 battle session이 진형·체력·상태의 유일 쓰기 권위임. sourceSkillId/actionId는 Ability일 때만 기술 ID로 소비함. 기존 V5 누락 필드는 종전 BasicAttack 의미로 읽고 신규 저장부터 typed action을 기록함
+자동 감사 ID와 전수 목록 포함 여부: OffenseStrategicDebugScenarios.VerifyCommandBattle, OffenseBattleDebugScenarios의 planned-round/liveness 행, OffenseJourneyPlayModeFacade pointer-driven strategic journey, CharacterAiCoverageManifest offense journey/strategic markers
+검증 매트릭스와 보고서 위치: Front unarmed allies 대 Rear melee enemy focused regression, strategic save clone/restore action-type 보존, unavailable interception exact-once, `Artifacts/QA/offense-journey-playmode.txt`, `Temp/OffenseStrategicValidation/offense-strategic-visual-report.txt`, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 수치·BOM·보상 영향 없음 / 행동 연결 검증 대기. focused 회귀와 실제 pointer-driven Journey·Strategic UI가 current source에서 통과하기 전에는 연결 완료 또는 전투 밸런스 완료로 보고하지 않음
+```
+
+## D03 합성 작업 권위 후속 교정 기록 (2026-08-16)
+
+```text
+정의 ID: facility:D03:composed-work-authority-v27
+콘텐츠 종류: 조리손질대의 기본 조리·도축 작업과 산업 공정 유체 배관 작업의 합성 정의 검증
+정의·카탈로그·실행기 위치: ModularFacilityAssetBuilder.ValidateCriticalWorkTypeWiringAssets, D03_조리손질대.asset, IndustrialInfrastructureAssetBuilder.PatchProcessFluidConsumers, IndustrialInfrastructureDebugScenarios.VerifySanitationAndProcessFluids, PlumbingWorkExecutionHandler
+등장 시대와 연구: 기존 D03 해금 시점과 산업 기반·배관 연구 조건을 그대로 유지하며 신규 연구·무료 해금·시설을 추가하지 않음
+플레이어에게 주는 새 결정: 없음. D03의 기본 Cook+Butcher 작업과 산업 공정 유체 오버레이가 저술된 경우의 Plumbing 유지보수 작업을 서로 덮어쓰지 않고 함께 검증함
+물리 BOM·입력·출력: D03 건설 BOM, 조리·도축 입력과 출력, 공정당 깨끗한 물 0.25와 오수 0.25, 수동 급수 대안 및 물리 저장·운반 계약을 변경하지 않음
+직접 작업량과 계산 근거: 조리·도축 WU와 BuildingButcherAbility.workSeconds=1을 변경하지 않음. Plumbing은 기존 `8 + blockage×0.25 + leak×0.30 WU`를 실제 막힘·누수 상태가 있을 때만 요구함
+EWU와 목표 회수 기간: 신규 생산 보너스·작업량 감면·처리량 변경이 없고 검증기가 기존 합성 정의를 정확히 인식하도록 교정하므로 D03 EWU와 회수 기간 목표를 변경하지 않음
+공간·전력·물·연료·정비: D03 2×1 면적과 기존 전력·자동화·컨베이어·상수·하수 연결을 유지함. 공정 유체 능력과 상수·하수 채널이 모두 저술된 경우에만 Plumbing을 필수·허용함
+위험·실패·회복 방식: 공정 유체 능력과 상수·하수 채널이 부분적으로만 존재하면 targeted validator가 fail-loud함. 완전한 유체 오버레이에서는 Plumbing 누락을 실패시키고, 유체 오버레이가 없으면 기본 Cook+Butcher만 허용하며 그 밖의 작업 ID는 모두 거부함
+사회·비가역 비용: 변경 없음. 조리·도축 작업자와 배관 작업자의 기존 숙련·기회비용·시설 정지 비용을 유지함
+기존 대안과의 장단점: 기본 D03은 수동 조리·도축 경로를 유지하고 산업 유체 오버레이는 물 운반을 줄이는 대신 배관 장애·정비 노동을 요구함. Plumbing을 제거해 감사를 맞추면 유체 장애 회복 경로가 끊기고, 모든 추가 작업을 허용하면 무관한 작업 권위 drift를 숨김
+지배 전략 방지 조건: 무료 조리·도축·배관 진행 0, 동일 작업 이중 완료 0, 유체 오버레이 없는 D03 작업은 Cook+Butcher 정확히 2종, 완전한 유체 오버레이가 있는 D03 작업은 Cook+Butcher+Plumbing 정확히 3종, 부분 유체 오버레이와 그 밖의 extra 작업 0
+저장 권위와 실행 명령: BuildingSO FacilityData가 불변 작업 지원 정의를 소유하고 FluidNetworkRuntime state store의 blockage/leak가 배관 수요와 저장 권위를 소유함. PlumbingWorkExecutionHandler만 실제 수요가 있을 때 기존 AI 작업 명령으로 진행하며 신규 저장 필드는 없음
+자동 감사 ID와 전수 목록 포함 여부: ModularFacilityAssetBuilder.ValidateCriticalWorkTypeWiringAssets와 ModularFacilityDebugScenarios.RunAll이 D03 core/overlay exact set을 검사하고, IndustrialInfrastructureDebugScenarios.VerifySanitationAndProcessFluids가 모든 Cook/Surgery 유체 소비자의 ProcessFluid·상수·하수·Plumbing 연결을 전수 검사함
+검증 매트릭스와 보고서 위치: 정적 focused 검증은 D03 현재 bitmask가 Cook+Butcher+Plumbing과 일치하고 validator가 완전한 유체 오버레이에서 같은 exact set을 요구하는지 확인함. `DungeonStory/Debug/Facilities/Run Modular Facility Checks`, `DungeonStory/Debug/Industrial/Run Infrastructure Checks`, Unity Console Error/Warning 0/0은 fresh Unity 실행에서 후속 확인
+현재 밸런스 상태: `밸런스 영향 없음 / 합성 권위 정적 검증`. 콘텐츠 수치·BOM·WU·처리량·위험량은 변경하지 않았으나 Unity를 실행하지 않았으므로 focused modular/industrial 감사와 Console 0/0 전에는 연결 완료 또는 시설 밸런스 완료로 보고하지 않음
+```
+
+## 연구 청사진 보관 LiveFacility 목적지 권위 교정 기록 (2026-08-16)
+
+```text
+정의 ID: architecture:research-blueprint-archive-live-facility-destination-authority-v27
+콘텐츠 종류: Q03 연구용책장 청사진 운반 목적지의 exact 시설 소유권 연결 교정
+정의·카탈로그·실행기 위치: BuildingResearchArchiveAbility, ResearchBlueprintArchiveQuery, BlueprintResearchRuntime, BlueprintResearchSaveSection, FacilityBufferDestinationClaimRegistry, WorldItemHaulDestinationAuthority
+등장 시대와 연구: 기존 Q03 등장 시대·해금 조건·연구 프로젝트 순서를 그대로 유지하며 신규 연구·무료 해금을 추가하지 않음
+플레이어에게 주는 새 결정: 새 선택은 없으며 상점에서 구매한 물리 청사진을 적법한 Q03까지 실제 AI가 운반한 뒤 연구 큐에 넣는 기존 결정을 복구
+물리 BOM·입력·출력: Q03 목재 4, 청사진 고유 물리 아이템 1개, 구매 금화와 연구 해금 출력을 변경하지 않음. claim은 아이템을 생성·복제·소비하지 않음
+직접 작업량과 계산 근거: Q03 건설 48 WU·수리 12 WU와 기존 운반·연구 승인 WU를 변경하지 않음. 목적지 권위 확인은 작업량·속도 배수를 추가하지 않음
+EWU와 목표 회수 기간: 신규 생산·속도·자동 운반 보너스가 없고 누락된 실제 운반 admission만 복구하므로 기존 연구 25~40/70~120/180~280일 목표 밴드와 Q03 EWU를 변경하지 않음
+공간·전력·물·연료·정비: Q03 1×1, 내부 저장 10, 보관 슬롯 8, 정비 1과 기존 Research room 조건을 유지하며 추가 전력·물·연료 비용 없음
+위험·실패·회복 방식: exact persistent facility ID, 목적지 ID 또는 drop 좌표가 누락·불일치하면 계획·입고·복원을 fail-loud함. 적법한 archive 시설이 사라지면 좌표·prefix fallback 없이 기존 haul 실패/회수 경로로 복구
+사회·비가역 비용: 변경 없음. 구매 금화, 운반자·연구자 시간과 시설 공간의 기존 기회비용을 유지
+기존 대안과의 장단점: 일반 창고는 물리 임시 보관은 가능하지만 연구 archive 권위가 아니며 Q03을 대체하지 못함. 여러 Q03은 기존 BOM·공간·정비를 지불하고 각 persistent destination을 소유함
+지배 전략 방지 조건: 무료 운반·teleport·same-cell 시설 추론 0, 청사진·금화·연구 큐 복제 0, 목적지 claim exactly-one, 저장복원·재계획·반복 poll의 중복 배송·중복 커밋 0
+저장 권위와 실행 명령: BuildingSO의 BuildingResearchArchiveAbility와 live BuildableObject persistent ID가 불변/시설 권위를, WorldItemStack·haul intent가 물리 운반 권위를 소유. claim은 저장하지 않고 restore candidate buildings에서 participant 220 publish 전에 결정론적으로 재구축
+자동 감사 ID와 전수 목록 포함 여부: ResearchTreeDebugScenarios archive claim restore/rollback, FirstRunObjectivePlayModeVerifier BLUEPRINT_ARCHIVE_DESTINATION_CLAIM_EXACT 및 Brain→AIHaul→FacilityBuffer 경로, CharacterAiCoverageManifestDebugScenarios 필수 marker/freshness에 포함
+검증 매트릭스와 보고서 위치: ResearchTreeDebugScenarios.RunAll, Temp/first-run-objective-report.txt, DungeonAiActionSaveLoadPlayModeVerifier, Unity Console Warning/Error 0/0; missing/wrong destination·drop·facility restore는 전체 transaction 무변경 실패
+현재 밸런스 상태: 밸런스 영향 없음 / 구조·연결 검증 대기. 수치·BOM·WU·속도·보상은 불변이며 fresh focused restore, FirstRun 실제 AI 운반, save/load 회귀와 Console 0/0을 모두 통과하기 전에는 연결 완료 또는 연구 밸런스 완료로 보고하지 않음
+```
+
+## 연구 청사진 보관 LiveBuilding anchor 후속 교정 기록 (2026-08-16)
+
+```text
+정의 ID: architecture:research-blueprint-archive-live-building-anchor-v27
+콘텐츠 종류: Q03 연구용책장 청사진 목적지의 비방문형 건물 anchor 분리
+정의·카탈로그·실행기 위치: Q03 BuildingSO, BuildingResearchArchiveAbility, ResearchBlueprintArchiveDestinationAuthority, FacilityBufferDestinationClaimRegistry, WorldItemHaulDestinationAuthority
+등장 시대와 연구: 기존 Q03 등장 시대·해금·연구 순서를 그대로 유지하며 새 콘텐츠나 해금을 추가하지 않음
+플레이어에게 주는 새 결정: 없음. 기존 Q03을 청사진 보관 건물로 사용하는 선택을 실제 물류 경로와 다시 연결
+물리 BOM·입력·출력: Q03 목재 4와 물리 청사진 1개, 구매 비용, 연구 출력 모두 불변이며 anchor는 물리 수량을 쓰지 않음
+직접 작업량과 계산 근거: 건설 48 WU·수리 12 WU·기존 운반 및 연구 WU 불변. exact 건물 조회는 작업량이나 이동 속도를 바꾸지 않음
+EWU와 목표 회수 기간: 보너스·무료 운반·새 생산이 없고 admission 권위만 교정하므로 기존 Q03 EWU와 연구 목표 기간 불변
+공간·전력·물·연료·정비: Q03 1×1, 저장 10, 보관 8, 정비 1과 Research room 조건을 유지. BuildingFacilityAbility를 억지로 추가하지 않음
+위험·실패·회복 방식: LiveBuilding은 exact persistent building ID·drop·살아 있는 BuildingData를 요구하고, LiveFacility는 계속 FacilityData까지 요구. 누락·불일치는 fail-loud
+사회·비가역 비용: 변경 없음. 금화·공간·운반자·연구자 시간의 기존 기회비용 유지
+기존 대안과의 장단점: 방문형 시설은 LiveFacility, Q03 같은 비방문형 물류 건물은 LiveBuilding을 사용하며 일반 창고·동일 좌표 건물은 대체 권위가 아님
+지배 전략 방지 조건: anchor 종류 간 fallback 0, 동일 좌표 추론 0, 청사진 생성·복제 0, 목적지 claim exactly-one, 저장·재계획 중복 배송 0
+저장 권위와 실행 명령: Q03 ability와 persistent BuildableObject가 건물 권위, WorldItemStack·haul intent가 물리 운반 권위. LiveBuilding claim은 저장하지 않고 restore candidate에서 결정론적으로 재구축
+자동 감사 ID와 전수 목록 포함 여부: FirstRun BLUEPRINT_ARCHIVE_DESTINATION_CLAIM_EXACT, ResearchTree save/rollback, coverage FirstRun transitive source와 필수 marker에 포함
+검증 매트릭스와 보고서 위치: ResearchTreeDebugScenarios.RunAll, Temp/first-run-objective-report.txt, DungeonAiActionSaveLoadPlayModeVerifier, Console Warning/Error 0/0. LiveFacility 수술·정비 회귀도 함께 유지
+현재 밸런스 상태: 밸런스 영향 없음 / 구조·연결 검증 대기. 수치·콘텐츠는 불변이고 fresh FirstRun·save/load·물류 회귀와 Console 0/0 전에는 연결 완료로 보고하지 않음
 ```

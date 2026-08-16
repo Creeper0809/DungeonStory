@@ -19,6 +19,8 @@ public class BlueprintResearchRuntime : MonoBehaviour
     private BlueprintResearchProjectCoordinator projectCoordinator;
     private IWorldDropZoneQuery worldDropZoneQuery;
     private BlueprintResearchApplicationAdapter applicationAdapter;
+    private IFacilityBufferDestinationClaimQuery archiveDestinationClaimQuery;
+    private IFacilityBufferDestinationClaimCommand archiveDestinationClaims;
     private float nextArchiveDeliveryRefresh;
     private int projectedRestoreRevision;
     private readonly HashSet<string> pendingKnowledgeDeliveries =
@@ -92,6 +94,17 @@ public class BlueprintResearchRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(identityEvents));
     }
 
+    [Inject]
+    public void ConstructArchiveDestinationAuthority(
+        IFacilityBufferDestinationClaimQuery destinationClaimQuery,
+        IFacilityBufferDestinationClaimCommand destinationClaims)
+    {
+        archiveDestinationClaimQuery = destinationClaimQuery
+            ?? throw new ArgumentNullException(nameof(destinationClaimQuery));
+        archiveDestinationClaims = destinationClaims
+            ?? throw new ArgumentNullException(nameof(destinationClaims));
+    }
+
     public bool EnqueueBlueprint(FacilityBlueprintSO blueprint)
     {
         if (blueprint != null
@@ -113,7 +126,31 @@ public class BlueprintResearchRuntime : MonoBehaviour
         return queued;
     }
 
-    public BlueprintResearchWorkResult ApplyResearchWork(CharacterActor researcher, BuildableObject researchFacility, float seconds)
+    public BlueprintResearchWorkResult ApplyResearchWork(
+        CharacterActor researcher,
+        BuildableObject researchFacility,
+        float seconds) =>
+        ApplyResearchWorkInternal(
+            researcher,
+            researchFacility,
+            seconds,
+            approvedWorkUnits: false);
+
+    public BlueprintResearchWorkResult ApplyApprovedResearchWork(
+        CharacterActor researcher,
+        BuildableObject researchFacility,
+        float approvedWorkUnits) =>
+        ApplyResearchWorkInternal(
+            researcher,
+            researchFacility,
+            approvedWorkUnits,
+            approvedWorkUnits: true);
+
+    private BlueprintResearchWorkResult ApplyResearchWorkInternal(
+        CharacterActor researcher,
+        BuildableObject researchFacility,
+        float amount,
+        bool approvedWorkUnits)
     {
         if (researchFacility == null || !researchFacility.SupportsWork(BuiltInWorkTypeIds.Research))
         {
@@ -126,7 +163,14 @@ public class BlueprintResearchRuntime : MonoBehaviour
                 state.Projects.GetProgress(project.ProjectId);
             float projectWork = applicationAdapter.IsInstantWorkEnabled
                 ? project.RequiredWork
-                : BlueprintResearchService.CalculateResearchWork(researcher, researchFacility, seconds);
+                : approvedWorkUnits
+                    ? BlueprintResearchService.CalculateApprovedResearchWork(
+                        researcher,
+                        amount)
+                    : BlueprintResearchService.CalculateResearchWork(
+                        researcher,
+                        researchFacility,
+                        amount);
             projectWork += TryConsumeKnowledgeResidue(researchFacility);
             float projectAdded = projectProgress.Add(projectWork, project);
             PublishResearchProgress(
@@ -169,7 +213,14 @@ public class BlueprintResearchRuntime : MonoBehaviour
 
         float work = applicationAdapter.IsInstantWorkEnabled
             ? task.RequiredWork
-            : BlueprintResearchService.CalculateResearchWork(researcher, researchFacility, seconds);
+            : approvedWorkUnits
+                ? BlueprintResearchService.CalculateApprovedResearchWork(
+                    researcher,
+                    amount)
+                : BlueprintResearchService.CalculateResearchWork(
+                    researcher,
+                    researchFacility,
+                    amount);
         work += TryConsumeKnowledgeResidue(researchFacility);
         float added = task.AddProgress(work);
         PublishResearchProgress(
@@ -712,6 +763,9 @@ public class BlueprintResearchRuntime : MonoBehaviour
             return;
         }
 
+        ReconcileArchiveDestinationClaims();
+
+        bool dispatchRequired = false;
         foreach (ResearchProjectSO project in projectCatalog.Projects
                      .Where(candidate => candidate?.Blueprint != null))
         {
@@ -726,17 +780,20 @@ public class BlueprintResearchRuntime : MonoBehaviour
                 continue;
             }
 
-            bool alreadyAssigned = itemStackRuntime.GetAllStacks().Any(stack =>
-                stack != null
-                && stack.Quantity > 0
-                && string.Equals(
-                    stack.ItemId,
-                    project.Blueprint.PhysicalItemId,
-                    StringComparison.Ordinal)
-                && string.Equals(
-                    stack.DestinationId,
-                    destinationId,
-                    StringComparison.Ordinal));
+            WorldItemStackSnapshot[] assignedStacks = itemStackRuntime
+                .GetAllStacks()
+                .Where(stack => stack != null
+                    && stack.Quantity > 0
+                    && string.Equals(
+                        stack.ItemId,
+                        project.Blueprint.PhysicalItemId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        stack.DestinationId,
+                        destinationId,
+                        StringComparison.Ordinal))
+                .ToArray();
+            bool alreadyAssigned = assignedStacks.Length > 0;
             if (!alreadyAssigned)
             {
                 itemStackRuntime.TryRequestItemDelivery(
@@ -744,8 +801,89 @@ public class BlueprintResearchRuntime : MonoBehaviour
                     1,
                     archive.centerPos,
                     destinationId,
-                    out _,
+                    out int requestedQuantity,
                     out _);
+                dispatchRequired |= requestedQuantity > 0;
+                continue;
+            }
+
+            bool owned = assignedStacks.Any(stack => stack.HasReservations)
+                || itemStackRuntime.GetCommittedHaulDeliveryQuantity(
+                    destinationId,
+                    project.Blueprint.PhysicalItemId) > 0;
+            dispatchRequired |= !owned;
+        }
+
+        if (dispatchRequired)
+        {
+            // Delivery creation already marks the exact destination stacks as
+            // priority. A non-forced wake can legitimately find every worker
+            // busy, so retry only while the delivery has no reservation or
+            // pickup commitment. Ownership stops the periodic dispatch.
+            workforceReplanService?.RequestOneHaulerToReplan(
+                clearFailures: true,
+                forceInterrupt: false);
+        }
+    }
+
+    private void ReconcileArchiveDestinationClaims()
+    {
+        if (archiveDestinationClaimQuery == null
+            || archiveDestinationClaims == null)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(BlueprintResearchRuntime)} requires exact research archive destination authority injection.");
+        }
+
+        FacilityBufferDestinationClaim[] desiredClaims =
+            ResearchBlueprintArchiveDestinationAuthority.BuildClaims(
+                blueprintArchiveQuery.GetValidArchives());
+        FacilityBufferDestinationClaim[] existingClaims =
+            archiveDestinationClaimQuery.CaptureClaims()
+            .Where(claim => claim != null
+                && string.Equals(
+                    claim.OwnerDomain,
+                    ResearchBlueprintArchiveDestinationAuthority.OwnerDomain,
+                    StringComparison.Ordinal))
+            .OrderBy(claim => claim.DestinationId, StringComparer.Ordinal)
+            .ToArray();
+        bool unchanged = existingClaims.Length == desiredClaims.Length
+            && existingClaims.Zip(
+                    desiredClaims,
+                    ResearchBlueprintArchiveDestinationAuthority.ClaimsMatch)
+                .All(matches => matches);
+        if (unchanged)
+        {
+            return;
+        }
+
+        if (!archiveDestinationClaims.TryReplaceOwnedClaims(
+                ResearchBlueprintArchiveDestinationAuthority.OwnerDomain,
+                desiredClaims,
+                out FacilityBufferDestinationClaimFailureCode failureCode,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Research archive destination reconciliation failed: "
+                + $"{failureCode}: {failureReason}");
+        }
+
+        Dictionary<string, FacilityBufferDestinationClaim> desiredById =
+            desiredClaims.ToDictionary(
+                claim => claim.DestinationId,
+                StringComparer.Ordinal);
+        foreach (FacilityBufferDestinationClaim previous in existingClaims)
+        {
+            if (!desiredById.TryGetValue(
+                    previous.DestinationId,
+                    out FacilityBufferDestinationClaim current)
+                || !ResearchBlueprintArchiveDestinationAuthority.ClaimsMatch(
+                    previous,
+                    current))
+            {
+                itemStackRuntime.ReleaseStacksByDestination(
+                    previous.DestinationId,
+                    previous.DropPosition);
             }
         }
     }

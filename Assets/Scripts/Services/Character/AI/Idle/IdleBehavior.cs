@@ -31,7 +31,7 @@ public sealed class StaffWanderIdleBehavior : IIdleBehavior
         }
 
         AbilityMove move = actor.GetAbility<AbilityMove>();
-        if (move != null && move.StartIdleWander(duration))
+        if (move != null && move.StartIdleWanderWithDeferredRecovery(duration))
         {
             return true;
         }
@@ -109,7 +109,10 @@ public sealed class InspectFacilityIdleBehavior : IIdleBehavior
         }
 
         AbilityMove move = actor.GetAbility<AbilityMove>();
-        if (move != null && move.StartIdleWander(Mathf.Clamp(duration, 0.6f, 1.4f), 1, 3))
+        if (move != null && move.StartIdleWanderWithDeferredRecovery(
+                Mathf.Clamp(duration, 0.6f, 1.4f),
+                1,
+                3))
         {
             return true;
         }
@@ -331,8 +334,14 @@ public sealed class StepAsideIdleBehavior : IIdleBehavior
         }
 
         AbilityMove move = actor.GetAbility<AbilityMove>();
-        if (move != null && move.StartIdleWander(Mathf.Clamp(duration, 0.5f, 1.2f)))
+        if (move != null && move.StartIdleWanderWithDeferredRecovery(
+                Mathf.Clamp(duration, 0.5f, 1.2f),
+                minDistance: 1,
+                maxDistance: 3))
         {
+            // A deferred path request owns this action until bounded recovery
+            // succeeds or emits PathSearchStarved.  Starting a wait here as
+            // well would orphan that retry lifecycle outside the Wait action.
             return true;
         }
 
@@ -362,7 +371,10 @@ public sealed class MoodDrivenWanderIdleBehavior : IIdleBehavior
         }
 
         AbilityMove move = actor.GetAbility<AbilityMove>();
-        if (move != null && move.StartIdleWander(Mathf.Clamp(duration, 0.5f, 1.2f), 2, 7))
+        if (move != null && move.StartIdleWanderWithDeferredRecovery(
+                Mathf.Clamp(duration, 0.5f, 1.2f),
+                2,
+                7))
         {
             return true;
         }

@@ -115,6 +115,12 @@ public interface IWildlifeCaptureTransportRuntime
         out string failureReason);
     IDisposable BeginTransportPass(CharacterActor carrier, string wildlifeId);
     bool TryBeginCarry(string wildlifeId, CharacterActor carrier, out string failureReason);
+    WildlifeDeliveryStandResolution ResolveDeliveryStand(
+        string wildlifeId,
+        CharacterActor carrier,
+        out CapturedWildlifeState state,
+        out Queue<GridMoveStep> deliveryPath,
+        out string failureReason);
     bool TryCompleteCarry(string wildlifeId, CharacterActor carrier, out string failureReason);
     void FailCarry(string wildlifeId, CharacterActor carrier, string reason);
 }

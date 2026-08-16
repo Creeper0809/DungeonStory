@@ -17,9 +17,6 @@ internal sealed class DefenseGuardControlRuntime
             return;
         }
 
-        guard.GetAbility<AbilityWork>()?.ReleaseAssignedWorkTarget();
-        guard.GetAbility<AbilityMove>()?.CancelActiveMovement();
-        guard.Brain?.RequestImmediateReplan(clearFailures: false);
         if (!guard.IsOwner)
         {
             string guardId = GetPersistentId(guard);
@@ -31,7 +28,15 @@ internal sealed class DefenseGuardControlRuntime
             controlledGuards[guardId] = guard;
         }
 
+        // Defense takeover must close the previous AI ownership before its
+        // movement is started. RequestImmediateReplan preserves a running
+        // action by contract, which allowed that old coroutine to preempt the
+        // defense path after dispatch.
         guard.SetAiPaused(true);
+        guard.Brain?.StopCurrentActionForReplan("defense-guard-takeover");
+        guard.GetAbility<AbilityWork>()?.ReleaseAssignedWorkTarget();
+        guard.GetAbility<AbilityMove>()?.CancelActiveMovement(
+            "defense-guard-takeover");
         DefenseCombatPresentation.Ensure(guard)?.SetStatus(activity, false);
         guard.AddActivity(CharacterActivityEvent.Create(
             CharacterActivityKinds.Combat,

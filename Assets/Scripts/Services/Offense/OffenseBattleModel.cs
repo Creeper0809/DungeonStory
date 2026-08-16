@@ -21,6 +21,8 @@ public sealed class OffenseBattleSession
         new Dictionary<string, string>(StringComparer.Ordinal);
     private bool recoverableEquipmentFinalized;
     private int currentOrderIndex = -1;
+    private int preparedPlannedTurn;
+    private int finalizedPlannedTurn;
 
     public OffenseBattleSession(
         string battleId,
@@ -141,6 +143,8 @@ public sealed class OffenseBattleSession
             roundNumber = RoundNumber,
             currentOrderIndex = currentOrderIndex,
             lastProcessedCommandId = LastProcessedCommandId,
+            preparedPlannedTurn = preparedPlannedTurn,
+            finalizedPlannedTurn = finalizedPlannedTurn,
             initiativeOrder = initiativeOrder.ToList(),
             log = log.ToList(),
             thrownEquipment = thrownOwnerByInstance
@@ -173,6 +177,8 @@ public sealed class OffenseBattleSession
                 bloodLoss = combatant.BloodLoss,
                 lastHitBodyPart = combatant.LastHitBodyPart,
                 fireMode = combatant.FireMode,
+                arcanePowerMultiplier = combatant.ArcanePowerMultiplier,
+                hasArcanePowerMultiplier = true,
                 bodyParts = combatant.BodyParts
                     .Select(part => new CharacterBodyPartHealthState
                     {
@@ -254,6 +260,10 @@ public sealed class OffenseBattleSession
                 saved.bloodLoss,
                 saved.lastHitBodyPart,
                 saved.fireMode);
+            combatant.SetArcanePowerMultiplier(
+                saved.hasArcanePowerMultiplier
+                    ? saved.arcanePowerMultiplier
+                    : combatant.ArcanePowerMultiplier);
             if (saved.bodyParts != null && saved.bodyParts.Count > 0)
             {
                 combatant.ApplyBodyHealth(new CharacterBodyHealthSnapshot(
@@ -287,6 +297,8 @@ public sealed class OffenseBattleSession
             state.lastProcessedCommandId,
             state.outcome,
             state.log);
+        session.preparedPlannedTurn = Mathf.Max(0, state.preparedPlannedTurn);
+        session.finalizedPlannedTurn = Mathf.Max(0, state.finalizedPlannedTurn);
         foreach (OffenseThrownEquipmentPersistenceState thrown in state.thrownEquipment
             ?? new List<OffenseThrownEquipmentPersistenceState>())
         {
@@ -389,9 +401,148 @@ public sealed class OffenseBattleSession
         return true;
     }
 
+    public bool PreparePlannedRound(
+        int plannedTurn,
+        out string failureReason)
+    {
+        if (IsComplete)
+        {
+            failureReason = "The battle is already complete.";
+            return false;
+        }
+
+        if (plannedTurn <= 0)
+        {
+            failureReason = "Planned turn token must be positive.";
+            return false;
+        }
+
+        NormalizeLegacyPlannedTurnBaseline(plannedTurn);
+        if (preparedPlannedTurn >= plannedTurn)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        if (plannedTurn != finalizedPlannedTurn + 1)
+        {
+            failureReason =
+                $"Planned round {plannedTurn} was not prepared by the prior finalization.";
+            return false;
+        }
+
+        foreach (OffenseBattleCombatant combatant in combatants
+                     .Where(candidate => candidate != null
+                         && candidate.ParticipatesInInitiative
+                         && !candidate.IsDead
+                         && !candidate.IsDowned))
+        {
+            if (combatant.TurnsStarted == 0)
+            {
+                PrepareTurn(combatant);
+            }
+        }
+
+        preparedPlannedTurn = plannedTurn;
+        failureReason = string.Empty;
+        return true;
+    }
+
+    public bool FinalizePlannedRound(
+        int plannedTurn,
+        out string failureReason)
+    {
+        if (plannedTurn <= 0)
+        {
+            failureReason = "Planned turn token must be positive.";
+            return false;
+        }
+
+        NormalizeLegacyPlannedTurnBaseline(plannedTurn);
+        if (plannedTurn <= finalizedPlannedTurn)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        if (plannedTurn != finalizedPlannedTurn + 1)
+        {
+            failureReason =
+                $"Planned turn token is out of sequence: expected "
+                + $"{finalizedPlannedTurn + 1}, got {plannedTurn}.";
+            return false;
+        }
+
+        if (IsComplete)
+        {
+            finalizedPlannedTurn = plannedTurn;
+            FinalizeRecoverableEquipment();
+            failureReason = string.Empty;
+            return true;
+        }
+
+        if (!PreparePlannedRound(plannedTurn, out failureReason))
+        {
+            return false;
+        }
+
+        RoundNumber++;
+        BuildInitiativeOrder();
+        currentOrderIndex = 0;
+        foreach (string combatantId in initiativeOrder.ToArray())
+        {
+            OffenseBattleCombatant combatant = FindCombatant(combatantId);
+            PrepareTurn(combatant);
+            Outcome = ResolveOutcome();
+            if (IsComplete)
+            {
+                break;
+            }
+        }
+
+        preparedPlannedTurn = plannedTurn + 1;
+        finalizedPlannedTurn = plannedTurn;
+        FinalizeRecoverableEquipment();
+        failureReason = string.Empty;
+        return true;
+    }
+
+    private void NormalizeLegacyPlannedTurnBaseline(int plannedTurn)
+    {
+        if (plannedTurn <= 1
+            || preparedPlannedTurn > 0
+            || finalizedPlannedTurn > 0)
+        {
+            return;
+        }
+
+        // V5 and earlier battle snapshots predate planned-turn tokens. Their
+        // persisted round/combatant state already represents the current
+        // command round, so bind that state without replaying BeginTurn.
+        finalizedPlannedTurn = plannedTurn - 1;
+        preparedPlannedTurn = plannedTurn;
+    }
+
     public OffenseBattleCommand CreateEnemyCommand(long commandId)
     {
-        OffenseBattleCombatant actor = CurrentActor;
+        return CreateEnemyCommand(CurrentActor, commandId, guardWhenBlocked: false);
+    }
+
+    internal OffenseBattleCommand CreateStrategicEnemyCommand(
+        string actorId,
+        long commandId)
+    {
+        return CreateEnemyCommand(
+            FindCombatant(actorId),
+            commandId,
+            guardWhenBlocked: true);
+    }
+
+    private OffenseBattleCommand CreateEnemyCommand(
+        OffenseBattleCombatant actor,
+        long commandId,
+        bool guardWhenBlocked)
+    {
         if (actor == null || actor.Team != OffenseBattleTeam.Enemies || !actor.CanTakeTurn)
         {
             return null;
@@ -417,13 +568,22 @@ public sealed class OffenseBattleSession
         OffenseBattleCombatant target = targets.FirstOrDefault();
         if (target == null)
         {
-            return actor.Formation == OffenseFormationSlot.Front
-                ? null
-                : new OffenseBattleCommand(
+            if (actor.Formation != OffenseFormationSlot.Front)
+            {
+                return new OffenseBattleCommand(
                     commandId,
                     actor.PersistentId,
                     OffenseBattleActionType.Advance,
                     actor.PersistentId);
+            }
+
+            return guardWhenBlocked
+                ? new OffenseBattleCommand(
+                    commandId,
+                    actor.PersistentId,
+                    OffenseBattleActionType.Guard,
+                    actor.PersistentId)
+                : null;
         }
 
         CharacterCombatAbilityDefinition bestAbility = actor.Abilities
@@ -774,6 +934,20 @@ public sealed class OffenseBattleSession
                 result = new OffenseBattleCommandResult(true, "방어 태세");
                 return true;
             case OffenseBattleActionType.Retreat:
+                if (actor.Team == OffenseBattleTeam.Enemies)
+                {
+                    // Enemy tactical profiles author low-health Retreat intents.
+                    // Rejecting their mapped command produced two failed
+                    // terminals and an orphaned turn. Enemy withdrawal is a
+                    // player victory; Retreated remains the expedition outcome.
+                    Outcome = OffenseBattleOutcome.Victory;
+                    AddLog($"{actor.DisplayName} withdrew from the battle.");
+                    result = new OffenseBattleCommandResult(
+                        true,
+                        "The enemy withdrew from the battle.");
+                    return true;
+                }
+
                 if (actor.Team != OffenseBattleTeam.Allies)
                 {
                     result = new OffenseBattleCommandResult(false, "적은 후퇴 명령을 사용할 수 없습니다.");
@@ -1145,7 +1319,11 @@ public sealed class OffenseBattleSession
 
     private void PrepareCurrentTurn()
     {
-        OffenseBattleCombatant actor = CurrentActor;
+        PrepareTurn(CurrentActor);
+    }
+
+    private void PrepareTurn(OffenseBattleCombatant actor)
+    {
         if (actor == null || actor.IsDead || actor.IsDowned)
         {
             return;
@@ -1335,7 +1513,9 @@ public sealed class OffenseBattleSession
             value.Strength,
             value.Toughness,
             value.Dexterity * accuracy * activity,
-            value.HealthMultiplier);
+            value.HealthMultiplier,
+            combatant.ArcanePowerMultiplier,
+            hasArcanePowerMultiplier: true);
     }
 
     private string CreateObjectiveLog()
@@ -1530,6 +1710,11 @@ public sealed class OffenseBattleSession
         if (target.IsDead)
         {
             AddLog($"{target.DisplayName}이(가) 쓰러졌습니다.");
+            CompactFormation(target.Team);
+        }
+        else if (target.IsDowned)
+        {
+            AddLog($"{target.DisplayName}이(가) 부상으로 쓰러졌습니다.");
             CompactFormation(target.Team);
         }
 

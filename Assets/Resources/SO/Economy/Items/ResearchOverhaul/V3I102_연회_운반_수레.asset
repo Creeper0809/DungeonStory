@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 91
   features:
-  - rid: 7737211905660420132
-  - rid: 7737211905660420133
-  - rid: 7737211905660420826
+  - rid: 7737211981818757186
+  - rid: 7737211981818757187
+  - rid: 7737211981818757188
   references:
     version: 2
     RefIds:
-    - rid: 7737211905660420132
+    - rid: 7737211981818757186
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:service:dining-operations
-    - rid: 7737211905660420133
+    - rid: 7737211981818757187
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 768
         sharedIntermediate: 0
-    - rid: 7737211905660420826
+    - rid: 7737211981818757188
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.59820294

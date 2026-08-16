@@ -31,28 +31,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 13
   features:
-  - rid: 7737211905658585551
-  - rid: 7737211905658585552
-  - rid: 7737211905658585553
-  - rid: 7737211905660420634
+  - rid: 7737211981816660249
+  - rid: 7737211981816660250
+  - rid: 7737211981816660251
+  - rid: 7737211981816660252
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585551
+    - rid: 7737211981816660249
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:tranquilizer-dart
-    - rid: 7737211905658585552
+    - rid: 7737211981816660250
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:anesthesia
-    - rid: 7737211905658585553
+    - rid: 7737211981816660251
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211905660420634
+    - rid: 7737211981816660252
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.5865363

@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 86
   features:
-  - rid: 7737211905658585646
-  - rid: 7737211905658585647
-  - rid: 7737211905660420687
+  - rid: 7737211981816660382
+  - rid: 7737211981816660383
+  - rid: 7737211981816660384
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585646
+    - rid: 7737211981816660382
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:genetics:cross-lineage-stabilization
-    - rid: 7737211905658585647
+    - rid: 7737211981816660383
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737211905660420687
+    - rid: 7737211981816660384
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.60176027

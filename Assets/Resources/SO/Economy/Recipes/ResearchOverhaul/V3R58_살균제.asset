@@ -42,7 +42,7 @@ MonoBehaviour:
     combinationMode: 0
     recommendedRank: 2
     minimumRiskRank: 2
-  requiredResearchId: research:agriculture:soil-cycles
+  requiredResearchId: research:agriculture:crop-pathology
   requiredWork: 40
   preparationWork: 0
   finishingWork: 0

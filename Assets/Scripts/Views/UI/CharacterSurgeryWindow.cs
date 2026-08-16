@@ -367,7 +367,7 @@ public sealed class CharacterSurgeryWindowService :
                     part.partInstanceId,
                     GetPartLabel(part)))
                 .ToArray(),
-            Doctors = GetDoctors(subject)
+            Doctors = GetDoctors(subject, selectedProcedure)
                 .Select(doctor => new SurgeryWindowOption(
                     doctor.Identity?.PersistentId,
                     doctor.Identity?.DisplayName))
@@ -549,7 +549,7 @@ public sealed class CharacterSurgeryWindowService :
                 candidate.partInstanceId,
                 selection.PartId,
                 StringComparison.Ordinal));
-        doctor = GetDoctors(subject).FirstOrDefault(candidate =>
+        doctor = GetDoctors(subject, procedure).FirstOrDefault(candidate =>
             string.Equals(
                 candidate.Identity?.PersistentId,
                 selection.DoctorId,
@@ -603,7 +603,8 @@ public sealed class CharacterSurgeryWindowService :
     }
 
     internal IReadOnlyList<CharacterActor> GetDoctors(
-        SurgeryPlanningSubject patient)
+        SurgeryPlanningSubject patient,
+        SurgicalProcedureSO procedure = null)
     {
         string patientCharacterId =
             patient?.Subject?.kind == SurgicalSubjectKind.Character
@@ -617,7 +618,14 @@ public sealed class CharacterSurgeryWindowService :
                     actor.Identity?.PersistentId,
                     patientCharacterId,
                     StringComparison.Ordinal)
-                && !captivity.IsCaptive(actor.Identity?.PersistentId))
+                && !captivity.IsCaptive(actor.Identity?.PersistentId)
+                && (procedure == null
+                    || procedure.OperatorRequirement.IsQualified(
+                        actor,
+                        procedure.Family,
+                        performance,
+                        out _,
+                        out _)))
             .OrderByDescending(GetMedicalScore)
             .ThenBy(actor => actor.Identity?.DisplayName, StringComparer.Ordinal)
             .ToArray();

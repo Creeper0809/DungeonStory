@@ -67,7 +67,18 @@ public sealed class SurvivalWorkExecutionHandler :
                 productionBills.CheckWorkAvailability(target, workTypeId);
             if (availability.Available)
             {
-                return true;
+                if (processFluids.EnsureCycleSupply(
+                        target,
+                        workTypeId,
+                        out DomainFailure supplyFailure))
+                {
+                    return true;
+                }
+
+                reason = supplyFailure.IsFailure
+                    ? supplyFailure.Code.ToString()
+                    : FailureCode.ProductionUtilitiesUnavailable.ToString();
+                return false;
             }
             reason = availability.Failure.IsFailure
                 ? availability.Failure.Code.ToString()

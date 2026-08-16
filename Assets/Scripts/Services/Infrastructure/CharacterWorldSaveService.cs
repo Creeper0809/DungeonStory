@@ -16,6 +16,49 @@ public interface ICharacterWorldSaveService
     bool TryGetRestoredActor(string persistentId, out CharacterActor actor);
 }
 
+public interface ICharacterWorldPersistenceIdentityQuery
+{
+    IReadOnlyCollection<CharacterId> GetPersistentCharacterIds();
+    IReadOnlyCollection<CharacterId> GetPersistentActorIds();
+}
+
+public readonly struct CharacterHaulDeliveryRestoreBinding
+{
+    public CharacterHaulDeliveryRestoreBinding(
+        CharacterActor actor,
+        HaulDeliveryIntentSaveData intent)
+    {
+        Actor = actor;
+        Intent = intent;
+    }
+
+    public CharacterActor Actor { get; }
+    public HaulDeliveryIntentSaveData Intent { get; }
+}
+
+public interface ICharacterHaulDeliveryRestoreQuery
+{
+    IReadOnlyList<CharacterHaulDeliveryRestoreBinding>
+        GetPublishedHaulDeliveryRestoreBindings();
+}
+
+public static class CharacterWorldPersistenceRules
+{
+    public static bool IsPersistentActor(CharacterActor actor)
+    {
+        CharacterIdentity identity = actor != null ? actor.Identity : null;
+        return actor != null
+            && actor.gameObject.activeInHierarchy
+            && identity != null
+            && identity.Data != null
+            && !actor.IsDead
+            && actor.CurrentLifecycleState != CharacterLifecycleState.Despawned
+            && (actor.IsOwner
+                || (identity.CharacterType == CharacterType.NPC
+                    && actor.TryGetAbility(out AbilityWork _)));
+    }
+}
+
 public sealed class CharacterWorldRestoreCandidate :
     IDungeonDiscardableRestoreCandidate,
     IDungeonRestoreReportContributor
@@ -113,6 +156,8 @@ public sealed class CharacterWorldSpawnDependencies
 
 public sealed class CharacterWorldSaveService :
     ICharacterWorldSaveService,
+    ICharacterWorldPersistenceIdentityQuery,
+    ICharacterHaulDeliveryRestoreQuery,
     IDungeonRestoreTransactionParticipant
 {
     private const int MaxSavedLogEntries = 30;
@@ -195,7 +240,7 @@ public sealed class CharacterWorldSaveService :
 
         List<CharacterActor> persistentActors = CharacterActorCollection
             .DistinctByGameObject(characterLifetimeQuery.AllCharacters)
-            .Where(IsPersistentActor)
+            .Where(CharacterWorldPersistenceRules.IsPersistentActor)
             .OrderBy(actor => actor.IsOwner ? 0 : 1)
             .ThenBy(actor => actor.Identity.Data.id)
             .ThenBy(actor => grid.GetXY(actor.transform.position).y)
@@ -238,6 +283,32 @@ public sealed class CharacterWorldSaveService :
         }
 
         return result;
+    }
+
+    public IReadOnlyCollection<CharacterId> GetPersistentCharacterIds()
+    {
+        IEnumerable<CharacterId> actorIds = GetPersistentActorIds();
+        IEnumerable<CharacterId> profileIds =
+            (characterPopulationService.CaptureProfiles()
+                ?? new List<WorldCharacterProfile>())
+            .Select(profile => new CharacterId(profile?.persistentId))
+            .Where(id => id.IsValid);
+        return actorIds
+            .Concat(profileIds)
+            .Distinct()
+            .OrderBy(id => id.Value, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    public IReadOnlyCollection<CharacterId> GetPersistentActorIds()
+    {
+        return CharacterActorCollection
+            .DistinctByGameObject(characterLifetimeQuery.AllCharacters)
+            .Where(CharacterWorldPersistenceRules.IsPersistentActor)
+            .Select(actor => new CharacterId(GetOrAssignPersistentId(actor)))
+            .Distinct()
+            .OrderBy(id => id.Value, StringComparer.Ordinal)
+            .ToArray();
     }
 
     public bool TryGetPersistentId(CharacterActor actor, out string persistentId)
@@ -383,8 +454,26 @@ public sealed class CharacterWorldSaveService :
             if (actor != null && actor.gameObject.activeInHierarchy)
             {
                 actor.ReconcilePublishedRuntimeRegistration();
+                actor.Brain?.RequestImmediateReplan(clearFailures: true);
             }
         }
+    }
+
+    public IReadOnlyList<CharacterHaulDeliveryRestoreBinding>
+        GetPublishedHaulDeliveryRestoreBindings()
+    {
+        if (!restoreTransactionActive || activePublication == null)
+        {
+            throw new InvalidOperationException(
+                "Haul delivery rebind requires a published character candidate.");
+        }
+        return activePublication.Candidate.Characters
+            .Where(candidate => candidate?.Actor != null)
+            .OrderBy(candidate => candidate.SaveData.persistentId, StringComparer.Ordinal)
+            .Select(candidate => new CharacterHaulDeliveryRestoreBinding(
+                candidate.Actor,
+                candidate.SaveData.haulDeliveryIntent))
+            .ToArray();
     }
 
     public void DiscardRestoreCandidate()
@@ -404,8 +493,9 @@ public sealed class CharacterWorldSaveService :
         restoreTransactionActive = false;
     }
 
-    private static void PrepareForWorldRetirement(
-        IEnumerable<CharacterActor> retiringActors)
+    private void PrepareForWorldRetirement(
+        IEnumerable<CharacterActor> retiringActors,
+        IReadOnlyDictionary<string, CharacterActor> restoredActors)
     {
         foreach (CharacterActor actor in CharacterActorCollection.DistinctByGameObject(
             retiringActors))
@@ -416,7 +506,59 @@ public sealed class CharacterWorldSaveService :
             }
 
             actor.GetAbility<AbilityWork>()?.ReleaseAssignedWorkTarget();
-            actor.GetAbility<AbilityMove>()?.CancelActiveMovement();
+            string persistentId = actor.Identity?.PersistentId?.Trim()
+                ?? string.Empty;
+            CharacterActor replacement = !string.IsNullOrWhiteSpace(persistentId)
+                && restoredActors != null
+                && restoredActors.TryGetValue(persistentId, out CharacterActor found)
+                    ? found
+                    : null;
+            AbilityHaul haul = actor.GetComponent<AbilityHaul>();
+            CharacterCarryInventory retiringCarry = actor.CarryInventory;
+            CharacterCarryInventory replacementCarry = replacement?.CarryInventory;
+            if (replacement != null)
+            {
+                string handoffFailure;
+                bool handedOff;
+                if (haul != null)
+                {
+                    handedOff = haul.TryPrepareForRestoreRetirement(
+                        replacementCarry,
+                        out handoffFailure);
+                }
+                else if (retiringCarry != null)
+                {
+                    handedOff = retiringCarry.TryRelinquishToRestoredAuthority(
+                        replacementCarry,
+                        out handoffFailure);
+                }
+                else
+                {
+                    handedOff = replacementCarry == null
+                        || replacementCarry.Items.Count == 0;
+                    handoffFailure = handedOff
+                        ? string.Empty
+                        : "retiring inventory missing while replacement carries items";
+                }
+                if (!handedOff)
+                {
+                    throw new InvalidOperationException(
+                        $"Character '{persistentId}' carry ownership handoff failed: "
+                        + handoffFailure);
+                }
+            }
+            else
+            {
+                if (haul != null)
+                {
+                    haul.PrepareForRestoreRetirementWithoutReplacement();
+                }
+                else
+                {
+                    retiringCarry?.RemoveAllItems();
+                    actor.GetAbility<AbilityMove>()?.CancelActiveMovement();
+                }
+            }
             actor.Brain?.RequestImmediateReplan(clearFailures: true);
         }
     }
@@ -495,6 +637,7 @@ public sealed class CharacterWorldSaveService :
             .ToDictionary(group => group.Key, group => group.First());
 
         List<CharacterActor> existingStaff = FindExistingStaff();
+        List<CharacterActor> existingVisitors = FindExistingTransientVisitors();
         List<CharacterRestoreCandidate> candidates =
             new List<CharacterRestoreCandidate>();
         Dictionary<string, CharacterActor> candidateActorsById =
@@ -591,6 +734,7 @@ public sealed class CharacterWorldSaveService :
                     candidateActorsById,
                     candidateLegacyActorIds,
                     existingStaff,
+                    existingVisitors,
                     ownerManager,
                     characterPopulationService.BuildRestoreCandidate(
                         canonicalProfiles),
@@ -786,10 +930,11 @@ public sealed class CharacterWorldSaveService :
 
         IEnumerable<CharacterActor> retiringActors =
             candidate.ExistingStaff.Concat(
+                candidate.ExistingVisitors).Concat(
                 publication.OwnerPublication?.PreviousOwner != null
                     ? new[] { publication.OwnerPublication.PreviousOwner }
                     : Array.Empty<CharacterActor>());
-        PrepareForWorldRetirement(retiringActors);
+        PrepareForWorldRetirement(retiringActors, candidate.ActorsById);
 
         foreach (CharacterActor oldStaff in candidate.ExistingStaff)
         {
@@ -799,6 +944,31 @@ public sealed class CharacterWorldSaveService :
             }
 
             oldStaff.gameObject.SetActive(false);
+        }
+
+        if (candidate.ExistingVisitors.Count > 0)
+        {
+            if (!characterSpawnerProvider.TryGetSpawner(
+                    out CharacterSpawner spawner)
+                || spawner == null)
+            {
+                throw new InvalidOperationException(
+                    "Committed character-world restore cannot retire transient "
+                    + "customers because CharacterSpawner is unavailable.");
+            }
+
+            foreach (CharacterActor visitor in candidate.ExistingVisitors)
+            {
+                if (!spawner.RetireVisitorForWorldRestore(
+                        visitor,
+                        out string retirementFailure))
+                {
+                    throw new InvalidOperationException(
+                        $"Transient customer restore retirement failed for "
+                        + $"'{visitor?.Identity?.PersistentId}': "
+                        + retirementFailure);
+                }
+            }
         }
 
         foreach (DetachedCharacterPublication staffPublication in
@@ -851,20 +1021,6 @@ public sealed class CharacterWorldSaveService :
         }
     }
 
-    private static bool IsPersistentActor(CharacterActor actor)
-    {
-        CharacterIdentity identity = actor != null ? actor.Identity : null;
-        return actor != null
-            && actor.gameObject.activeInHierarchy
-            && identity != null
-            && identity.Data != null
-            && !actor.IsDead
-            && actor.CurrentLifecycleState != CharacterLifecycleState.Despawned
-            && (actor.IsOwner
-                || (identity.CharacterType == CharacterType.NPC
-                    && actor.TryGetAbility(out AbilityWork _)));
-    }
-
     private static DungeonCharacterSaveData CaptureActor(Grid grid, CharacterActor actor)
     {
         CharacterIdentity identity = actor.Identity;
@@ -872,6 +1028,7 @@ public sealed class CharacterWorldSaveService :
         CharacterMoodSnapshot mood = actor.Stats.GetMoodSnapshot();
         actor.TryGetAbility(out AbilityWork work);
         actor.TryGetAbility(out AbilityShopping shopping);
+        AbilityHaul haul = actor.GetComponent<AbilityHaul>();
         CharacterProgressionSnapshot progression = actor.Progression?.CapturePersistentState();
 
         return new DungeonCharacterSaveData
@@ -936,7 +1093,8 @@ public sealed class CharacterWorldSaveService :
             expeditionRecovery = actor.Lifecycle?.ExpeditionRecovery?.Clone()
                 ?? new CharacterExpeditionRecoveryState(),
             carryInventory = actor.GetComponent<CharacterCarryInventory>()?.Capture()
-                ?? new CharacterCarryInventorySaveData()
+                ?? new CharacterCarryInventorySaveData(),
+            haulDeliveryIntent = haul?.CaptureDeliveryIntentForSave()
         };
     }
 
@@ -952,6 +1110,24 @@ public sealed class CharacterWorldSaveService :
                 && actor.Identity.CharacterType == CharacterType.NPC
                 && actor.GetAbility<AbilityWork>() != null)
             .OrderBy(actor => actor.Identity.Data.id)
+            .ThenBy(actor => actor.GetInstanceID())
+            .ToList();
+    }
+
+    private List<CharacterActor> FindExistingTransientVisitors()
+    {
+        return CharacterActorCollection
+            .DistinctByGameObject(characterLifetimeQuery.AllCharacters)
+            .Where(actor => actor != null
+                && actor.gameObject.activeInHierarchy
+                && !actor.IsOwner
+                && !actor.IsDead
+                && actor.CurrentLifecycleState
+                    != CharacterLifecycleState.Despawned
+                && actor.Identity != null
+                && actor.Identity.Data != null
+                && actor.Identity.CharacterType == CharacterType.Customer)
+            .OrderBy(actor => actor.Identity.PersistentId, StringComparer.Ordinal)
             .ThenBy(actor => actor.GetInstanceID())
             .ToList();
     }
@@ -1052,7 +1228,20 @@ public sealed class CharacterWorldSaveService :
             source.baseMood,
             moodFactors);
         actor.state = CharacterDecisionState.DECIDE;
-        actor.Brain?.RequestImmediateReplan(clearFailures: true);
+        // The action catalog is runtime composition, not save authority. A full
+        // world restore can reuse an actor whose transient catalogue belonged
+        // to a previous visitor/owner role, so rebuild it from the restored
+        // authoritative role. The detached candidate must remain inert here;
+        // CompleteRestoreCandidate wakes it only after publication and all
+        // higher-order restore participants have completed their bindings.
+        if (source.isOwner)
+        {
+            actor.Brain?.UseOwnerWorkActions();
+        }
+        else if (work != null)
+        {
+            actor.Brain?.UseStaffWorkActions();
+        }
     }
 
     internal sealed class CharacterRestoreCandidate
@@ -1083,6 +1272,7 @@ public sealed class CharacterWorldSaveService :
             IReadOnlyDictionary<string, CharacterActor> actorsById,
             IReadOnlyDictionary<string, string> legacyActorIds,
             IReadOnlyList<CharacterActor> existingStaff,
+            IReadOnlyList<CharacterActor> existingVisitors,
             OwnerRunManager ownerManager,
             CharacterPopulationRestoreCandidate populationCandidate,
             GlobalFacilityReputationRestoreCandidate reputationCandidate)
@@ -1095,6 +1285,8 @@ public sealed class CharacterWorldSaveService :
                 ?? throw new ArgumentNullException(nameof(legacyActorIds));
             ExistingStaff = existingStaff
                 ?? throw new ArgumentNullException(nameof(existingStaff));
+            ExistingVisitors = existingVisitors
+                ?? throw new ArgumentNullException(nameof(existingVisitors));
             OwnerManager = ownerManager;
             PopulationCandidate = populationCandidate
                 ?? throw new ArgumentNullException(nameof(populationCandidate));
@@ -1112,6 +1304,7 @@ public sealed class CharacterWorldSaveService :
         public IReadOnlyDictionary<string, CharacterActor> ActorsById { get; }
         public IReadOnlyDictionary<string, string> LegacyActorIds { get; }
         public IReadOnlyList<CharacterActor> ExistingStaff { get; }
+        public IReadOnlyList<CharacterActor> ExistingVisitors { get; }
         public OwnerRunManager OwnerManager { get; }
         public CharacterPopulationRestoreCandidate PopulationCandidate { get; }
         public GlobalFacilityReputationRestoreCandidate ReputationCandidate { get; }

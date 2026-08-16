@@ -38,6 +38,9 @@ public sealed class ItemReservationService : IItemReservationService
             ?? throw new ArgumentNullException(nameof(quantityReservations));
     }
 
+    internal IItemQuantityReservationService QuantityReservations =>
+        quantityReservations;
+
     public bool TryReserve(IEnumerable<string> stackIds, string persistentId)
     {
         if (stackIds == null || string.IsNullOrWhiteSpace(persistentId))

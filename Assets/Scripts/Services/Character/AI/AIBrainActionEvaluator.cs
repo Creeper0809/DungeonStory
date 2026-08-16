@@ -16,6 +16,9 @@ internal sealed class AIBrainActionEvaluator
         new Dictionary<AIAction, AIBrainActionEvaluation>();
     private readonly Dictionary<AIActionSet, float> cooldownUntil =
         new Dictionary<AIActionSet, float>();
+    private readonly Dictionary<(AIActionSet ActionSet, int DestinationId), float>
+        destinationCooldownUntil =
+            new Dictionary<(AIActionSet ActionSet, int DestinationId), float>();
 
     public AIBrainActionEvaluator(
         IGameClock clock,
@@ -55,6 +58,27 @@ internal sealed class AIBrainActionEvaluator
     public void ClearCooldowns()
     {
         cooldownUntil.Clear();
+        destinationCooldownUntil.Clear();
+    }
+
+    public void ClearCooldown(
+        AIActionSet actionSet,
+        BuildableObject destination)
+    {
+        if (actionSet == null)
+        {
+            return;
+        }
+
+        // A successful action proves only that this action and, when present,
+        // this exact destination are usable.  Do not erase cooldowns authored
+        // by unrelated failures elsewhere in the decision graph.
+        cooldownUntil.Remove(actionSet);
+        if (!ReferenceEquals(destination, null))
+        {
+            destinationCooldownUntil.Remove(
+                (actionSet, destination.GetInstanceID()));
+        }
     }
 
     public void StartCooldown(AIActionSet actionSet, float durationSeconds)
@@ -63,6 +87,23 @@ internal sealed class AIBrainActionEvaluator
         {
             cooldownUntil[actionSet] = clock.Time + Math.Max(0.1f, durationSeconds);
         }
+    }
+
+    public void StartDestinationCooldown(
+        AIActionSet actionSet,
+        BuildableObject destination,
+        float durationSeconds)
+    {
+        // Unity's overloaded null reports a destroyed component as null even
+        // though its managed identity is still available.  Destruction is the
+        // most important destination-scoped failure, so use CLR null here.
+        if (actionSet == null || ReferenceEquals(destination, null))
+        {
+            return;
+        }
+
+        destinationCooldownUntil[(actionSet, destination.GetInstanceID())] =
+            clock.Time + Math.Max(0.1f, durationSeconds);
     }
 
     public bool TryEvaluate(
@@ -200,6 +241,21 @@ internal sealed class AIBrainActionEvaluator
             action.actionset,
             prepareStarted,
             prepareAllocatedAtStart);
+        if (prepared && IsDestinationCoolingDown(action.actionset, destination))
+        {
+            BuildableObject coolingDestination = destination;
+            if (!TrySelectAvailableAlternateDestination(
+                    actor,
+                    action.actionset,
+                    out destination))
+            {
+                failure = AIActionFailure.Create(
+                    AIActionFailureKind.Cooldown,
+                    "This destination is cooling down after a recent runtime failure.",
+                    coolingDestination);
+                return false;
+            }
+        }
         if (!prepared)
         {
             if (!failure.HasFailure)
@@ -246,6 +302,53 @@ internal sealed class AIBrainActionEvaluator
         return actionSet != null
             && cooldownUntil.TryGetValue(actionSet, out float until)
             && clock.Time < until;
+    }
+
+    private bool IsDestinationCoolingDown(
+        AIActionSet actionSet,
+        BuildableObject destination)
+    {
+        return actionSet != null
+            && !ReferenceEquals(destination, null)
+            && destinationCooldownUntil.TryGetValue(
+                (actionSet, destination.GetInstanceID()),
+                out float until)
+            && clock.Time < until;
+    }
+
+    private bool TrySelectAvailableAlternateDestination(
+        CharacterActor actor,
+        AIActionSet actionSet,
+        out BuildableObject destination)
+    {
+        destination = null;
+        IReadOnlyList<BuildableObject> candidates =
+            actionSet?.GetDestinationCandidates(actor, null);
+        if (candidates == null || candidates.Count == 0)
+        {
+            return false;
+        }
+
+        // This allocation occurs only after a destination has failed and is
+        // cooling down.  The normal scoring hot path remains allocation-free.
+        List<BuildableObject> available = new List<BuildableObject>(candidates.Count);
+        for (int index = 0; index < candidates.Count; index++)
+        {
+            BuildableObject candidate = candidates[index];
+            if (candidate == null
+                || candidate.isDestroy
+                || IsDestinationCoolingDown(actionSet, candidate))
+            {
+                continue;
+            }
+
+            available.Add(candidate);
+        }
+
+        destination = actionSet.SelectDestination(actor, available);
+        return destination != null
+            && !destination.isDestroy
+            && !IsDestinationCoolingDown(actionSet, destination);
     }
 
     private void RecordPerformance(

@@ -42,7 +42,7 @@ MonoBehaviour:
     combinationMode: 1
     recommendedRank: 2
     minimumRiskRank: 0
-  requiredResearchId: research:industry:mana-power
+  requiredResearchId: research:industry:rune-grid
   requiredWork: 42
   preparationWork: 0
   finishingWork: 0

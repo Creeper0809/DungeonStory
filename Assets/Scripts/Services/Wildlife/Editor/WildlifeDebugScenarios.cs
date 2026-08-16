@@ -940,6 +940,11 @@ public static class WildlifeDebugScenarios
             return false;
         }
 
+        if (!EnsureLiveOwner(scope))
+        {
+            return false;
+        }
+
         IDungeonGameSaveService saveService = scope.Container.Resolve<IDungeonGameSaveService>();
         DungeonGameSaveData save = saveService.Capture();
         return save.version == DungeonGameSaveData.CurrentVersion
@@ -1096,6 +1101,8 @@ public static class WildlifeDebugScenarios
             .Single(section => section.SectionId == WildlifeSaveSection.Id);
         MarkerDependencySection runDependency =
             new MarkerDependencySection(RunVariableSaveSection.Id);
+        MarkerDependencySection sessionDependency =
+            new MarkerDependencySection(FoundationSessionSaveSection.Id);
         MarkerDependencySection metaDependency =
             new MarkerDependencySection(MetaProgressionSaveSection.Id);
         MarkerDependencySection itemDependency =
@@ -1115,6 +1122,7 @@ public static class WildlifeDebugScenarios
         DungeonSaveSectionRegistry testRegistry = new DungeonSaveSectionRegistry(
             new IDungeonSaveSection[]
             {
+                sessionDependency,
                 runDependency,
                 metaDependency,
                 itemDependency,
@@ -1202,6 +1210,11 @@ public static class WildlifeDebugScenarios
 
         scope = FindScope();
         if (scope == null || scope.Container == null)
+        {
+            return false;
+        }
+
+        if (!EnsureLiveOwner(scope))
         {
             return false;
         }
@@ -1357,9 +1370,53 @@ public static class WildlifeDebugScenarios
             .GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic)
             ?.Invoke(hunter, null);
         hunter.RefreshAbilityCache();
+        hunter.Progression.ApplyPreparedIdentity(
+            data.characterName,
+            "debug:wildlife-hunt",
+            data.traits.Select(trait => trait.id),
+            CharacterPotentialGrade.Ordinary,
+            generationSeed: data.id,
+            autoChooseDrafts: false);
         hunter.Initialization(data);
         hunter.SetLifecycleState(CharacterLifecycleState.Active);
         return hunter != null;
+    }
+
+    private static bool EnsureLiveOwner(DungeonRuntimeLifetimeScope scope)
+    {
+        CharacterActor[] owners = UnityEngine.Object
+            .FindObjectsByType<CharacterActor>(
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None)
+            .Where(actor => actor != null
+                && actor.IsOwner
+                && !actor.IsDead
+                && actor.CurrentLifecycleState == CharacterLifecycleState.Active)
+            .Distinct()
+            .ToArray();
+        if (owners.Length == 1)
+        {
+            return true;
+        }
+        if (owners.Length > 1)
+        {
+            return false;
+        }
+
+        OwnerRunManager manager = UnityEngine.Object
+            .FindFirstObjectByType<OwnerRunManager>(FindObjectsInactive.Include);
+        CharacterSO definition = manager?.GetDefaultOwner();
+        if (manager == null || definition == null)
+        {
+            return false;
+        }
+
+        manager.SelectOwner(definition);
+        CharacterActor owner = manager.CurrentOwnerActor;
+        return owner != null
+            && owner.IsOwner
+            && !owner.IsDead
+            && owner.CurrentLifecycleState == CharacterLifecycleState.Active;
     }
 
     private static int CountCarcassStacks(IWorldItemStackRuntime itemRuntime)

@@ -631,6 +631,15 @@ public class BuildingSO : DataScriptableObject, IGridBuildAreaCapability
     {
         (abilityModules ??= new BuildingAbilityCollection())
             .ValidateOrThrow($"BuildingSO '{name}' (id={id})");
+
+        if (GetAbility<BuildingEquipmentMaintenanceAbility>() != null
+            && GetAbility<BuildingFacilityAbility>()?.settings == null)
+        {
+            throw new InvalidOperationException(
+                $"BuildingSO '{name}' (id={id}) has "
+                + $"{nameof(BuildingEquipmentMaintenanceAbility)} without a "
+                + $"non-null {nameof(BuildingFacilityAbility)} settings authority.");
+        }
     }
 
     public List<Vector2Int> GetGridPosList(Vector2Int center)

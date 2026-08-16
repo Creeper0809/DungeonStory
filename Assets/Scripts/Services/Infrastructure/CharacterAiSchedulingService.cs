@@ -3,6 +3,7 @@ using System;
 public interface ICharacterAiSchedulingService
 {
     bool IsDrivingAi { get; }
+    bool IsSchedulerAvailable { get; }
     void Register(CharacterActor actor);
     void Unregister(CharacterActor actor);
     void RequestImmediateDecision(CharacterActor actor);
@@ -41,16 +42,30 @@ public sealed class CharacterAiSchedulingService :
             ?? throw new ArgumentNullException(nameof(runtimeReferences));
     }
 
-    public bool IsDrivingAi => ResolveScheduler().IsDrivingAi;
+    public bool IsDrivingAi =>
+        TryResolveScheduler(out CharacterAiScheduler scheduler)
+        && scheduler.IsDrivingAi;
+    public bool IsSchedulerAvailable =>
+        TryResolveScheduler(out _);
     public double LastProcessingMilliseconds =>
-        ResolveScheduler().LastProcessingMilliseconds;
-    public int LastPathSearchCount => ResolveScheduler().LastPathSearchCount;
+        TryResolveScheduler(out CharacterAiScheduler scheduler)
+            ? scheduler.LastProcessingMilliseconds
+            : 0d;
+    public int LastPathSearchCount =>
+        TryResolveScheduler(out CharacterAiScheduler scheduler)
+            ? scheduler.LastPathSearchCount
+            : 0;
     public int CurrentPathSearchBudget =>
-        ResolveScheduler().CurrentPathSearchBudget;
+        TryResolveScheduler(out CharacterAiScheduler scheduler)
+            ? scheduler.CurrentPathSearchBudget
+            : 0;
 
     public void Register(CharacterActor actor)
     {
-        ResolveScheduler().RegisterActor(actor);
+        if (TryResolveScheduler(out CharacterAiScheduler scheduler))
+        {
+            scheduler.RegisterActor(actor);
+        }
     }
 
     public void Unregister(CharacterActor actor)
@@ -63,12 +78,16 @@ public sealed class CharacterAiSchedulingService :
 
     public void RequestImmediateDecision(CharacterActor actor)
     {
-        ResolveScheduler().RequestImmediateDecisionFor(actor);
+        if (TryResolveScheduler(out CharacterAiScheduler scheduler))
+        {
+            scheduler.RequestImmediateDecisionFor(actor);
+        }
     }
 
     public bool TryConsumePathSearchBudget()
     {
-        return ResolveScheduler().TryConsumePathSearchBudget();
+        return TryResolveScheduler(out CharacterAiScheduler scheduler)
+            && scheduler.TryConsumePathSearchBudget();
     }
 
     public bool ShouldShowCharacterFeedback(CharacterActor actor)
@@ -85,29 +104,31 @@ public sealed class CharacterAiSchedulingService :
 
     public int GetMovementFrameStride(CharacterActor actor)
     {
-        return ResolveScheduler().GetMovementFrameStrideFor(actor);
+        return TryResolveScheduler(out CharacterAiScheduler scheduler)
+            ? scheduler.GetMovementFrameStrideFor(actor)
+            : 1;
     }
 
     public double GetDecisionWorkSliceMilliseconds(CharacterActor actor)
     {
-        return ResolveScheduler().GetDecisionWorkSliceMillisecondsFor(actor);
+        return TryResolveScheduler(out CharacterAiScheduler scheduler)
+            ? scheduler.GetDecisionWorkSliceMillisecondsFor(actor)
+            : 0d;
     }
 
     public void ResetPathSearchBudgetForDebug()
     {
-        ResolveScheduler().ResetPathSearchBudgetForDebugInstance();
+        if (TryResolveScheduler(out CharacterAiScheduler scheduler))
+        {
+            scheduler.ResetPathSearchBudgetForDebugInstance();
+        }
     }
 
     public float GetNextDecisionDelay(CharacterActor actor)
     {
-        return ResolveScheduler().GetNextDecisionDelayForDebug(actor);
-    }
-
-    private CharacterAiScheduler ResolveScheduler()
-    {
-        return TryResolveScheduler(out CharacterAiScheduler resolvedScheduler)
-            ? resolvedScheduler
-            : throw new InvalidOperationException($"{nameof(ICharacterAiSchedulingService)} requires a loaded {nameof(CharacterAiScheduler)}.");
+        return TryResolveScheduler(out CharacterAiScheduler scheduler)
+            ? scheduler.GetNextDecisionDelayForDebug(actor)
+            : 0f;
     }
 
     private bool TryResolveScheduler(out CharacterAiScheduler resolvedScheduler)

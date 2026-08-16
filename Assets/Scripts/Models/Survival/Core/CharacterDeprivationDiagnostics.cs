@@ -8,6 +8,10 @@ public sealed class CharacterDeprivationDiagnostics
 {
     public int SafeReliefRequests { get; set; }
     public int SafeReliefPlanFailures { get; set; }
+    public int SafeReliefPlanSearchPending { get; set; }
+    public int SafeReliefPlanReservationRejected { get; set; }
+    public int SafeReliefPlanNoSource { get; set; }
+    public string LastSafeReliefPlanFailureDetail { get; set; } = string.Empty;
     public int SafeReliefActionsStarted { get; set; }
     public int SafeReliefStoredStackPlans { get; set; }
     public int SafeReliefMoveFailures { get; set; }
@@ -82,13 +86,21 @@ public sealed class CharacterDeprivationDiagnostics
             DesperateDrinkAttempts,
             DesperateDrinkStackMoveFailures,
             DesperateDrinkStackArrivals,
-            DesperateDrinkStackConsumptions);
+            DesperateDrinkStackConsumptions,
+            SafeReliefPlanSearchPending,
+            SafeReliefPlanReservationRejected,
+            SafeReliefPlanNoSource,
+            LastSafeReliefPlanFailureDetail);
     }
 
     public void Reset()
     {
         SafeReliefRequests = 0;
         SafeReliefPlanFailures = 0;
+        SafeReliefPlanSearchPending = 0;
+        SafeReliefPlanReservationRejected = 0;
+        SafeReliefPlanNoSource = 0;
+        LastSafeReliefPlanFailureDetail = string.Empty;
         SafeReliefActionsStarted = 0;
         SafeReliefStoredStackPlans = 0;
         SafeReliefMoveFailures = 0;

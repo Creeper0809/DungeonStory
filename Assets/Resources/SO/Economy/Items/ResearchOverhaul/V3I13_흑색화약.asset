@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 13
   features:
-  - rid: 7737211905658585439
-  - rid: 7737211905658585440
-  - rid: 7737211905660420598
+  - rid: 7737211981816660090
+  - rid: 7737211981816660091
+  - rid: 7737211981816660092
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585439
+    - rid: 7737211981816660090
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:black-powder
-    - rid: 7737211905658585440
+    - rid: 7737211981816660091
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 512
         sharedIntermediate: 1
-    - rid: 7737211905660420598
+    - rid: 7737211981816660092
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.5855459

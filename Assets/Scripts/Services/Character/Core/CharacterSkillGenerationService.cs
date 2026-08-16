@@ -26,6 +26,21 @@ public interface ICharacterSkillGenerationService
         out string error);
 }
 
+/// <summary>
+/// Read-only production diagnostics for asynchronous skill preparation.
+/// Population/profile callers use this to distinguish a legitimately pending
+/// request from a stalled generator without advancing or completing requests.
+/// </summary>
+public interface ICharacterSkillGenerationDiagnostics
+{
+    int PendingRequestCount { get; }
+    string LastDiagnostic { get; }
+    float RequestTimeoutSeconds { get; }
+    bool IsProviderCircuitOpen { get; }
+    float ProviderCircuitCooldownRemainingSeconds { get; }
+    int ProviderCircuitTripCount { get; }
+}
+
 [Serializable]
 public sealed class CharacterSkillGenerationResponseDto : ILlmJsonPayload
 {
@@ -203,6 +218,7 @@ public static class CharacterSkillCombinationCatalog
 
 public sealed class CharacterSkillGenerationService :
     ICharacterSkillGenerationService,
+    ICharacterSkillGenerationDiagnostics,
     ITickable
 {
     private const int MaximumConcurrentRequests = 2;
@@ -216,10 +232,17 @@ public sealed class CharacterSkillGenerationService :
         public CharacterSkillDraft draft;
         public int attempts;
         public float nextAttemptAt;
+        public float submittedAt;
         public bool inFlight;
         public bool cancelled;
         public string correction = string.Empty;
         public string preparedPrompt = string.Empty;
+    }
+
+    private sealed class PreparedRuleFallback
+    {
+        public PendingRequest request;
+        public List<CharacterSkillInstance> skills;
     }
 
     private readonly ICharacterSkillSystemSettingsProvider settingsProvider;
@@ -227,9 +250,16 @@ public sealed class CharacterSkillGenerationService :
     private readonly IUiClock uiClock;
     private readonly Dictionary<string, PendingRequest> pending = new Dictionary<string, PendingRequest>();
     private readonly List<PendingRequest> tickBuffer = new List<PendingRequest>();
+    private float providerUnhealthyUntil;
 
     public int PendingRequestCount => pending.Count;
     public string LastDiagnostic { get; private set; } = string.Empty;
+    public float RequestTimeoutSeconds => ResolveRequestTimeoutSeconds();
+    public bool IsProviderCircuitOpen => IsProviderCircuitOpenAt(uiClock.Time);
+    public float ProviderCircuitCooldownRemainingSeconds => Mathf.Max(
+        0f,
+        providerUnhealthyUntil - uiClock.Time);
+    public int ProviderCircuitTripCount { get; private set; }
 
     public CharacterSkillGenerationService(
         ICharacterSkillSystemSettingsProvider settingsProvider,
@@ -373,6 +403,15 @@ public sealed class CharacterSkillGenerationService :
         }
 
         float now = uiClock.Time;
+        if (IsProviderCircuitOpenAt(now))
+        {
+            CompletePendingThroughProviderCircuit(
+                timedOutRequest: null,
+                now,
+                "cooldown-active");
+            return;
+        }
+
         int inFlightCount = 0;
         tickBuffer.Clear();
         foreach (PendingRequest request in pending.Values)
@@ -396,6 +435,13 @@ public sealed class CharacterSkillGenerationService :
             {
                 RemoveRequest(request?.draft?.requestKey);
                 continue;
+            }
+
+            if (request.inFlight
+                && HasTimedOut(request, now))
+            {
+                OpenProviderCircuit(request, now);
+                return;
             }
 
             if (!request.inFlight
@@ -556,6 +602,7 @@ public sealed class CharacterSkillGenerationService :
         }
 
         request.inFlight = true;
+        request.submittedAt = now;
         if (string.IsNullOrEmpty(request.preparedPrompt))
         {
             request.preparedPrompt = CharacterSkillPromptBuilder.Build(
@@ -576,6 +623,7 @@ public sealed class CharacterSkillGenerationService :
         if (!accepted)
         {
             request.inFlight = false;
+            request.submittedAt = 0f;
             ScheduleRetry(request, uiClock.Time);
         }
     }
@@ -592,7 +640,14 @@ public sealed class CharacterSkillGenerationService :
             return;
         }
 
+        if (result.Status == LocalLlmRequestStatus.TimedOut)
+        {
+            OpenProviderCircuit(request, uiClock.Time);
+            return;
+        }
+
         request.inFlight = false;
+        request.submittedAt = 0f;
         List<CharacterSkillInstance> skills = null;
         string validationError = string.Empty;
         bool valid = result.IsSuccess
@@ -693,6 +748,135 @@ public sealed class CharacterSkillGenerationService :
         request.nextAttemptAt = now + delay;
     }
 
+    private bool HasTimedOut(PendingRequest request, float now)
+    {
+        if (request == null || !request.inFlight)
+        {
+            return false;
+        }
+
+        return now - request.submittedAt >= ResolveRequestTimeoutSeconds();
+    }
+
+    private float ResolveRequestTimeoutSeconds()
+    {
+        CharacterSkillSystemSettingsSO settings = settingsProvider.Settings;
+        return Mathf.Max(
+            settings.initialRetrySeconds,
+            settings.maximumRetrySeconds);
+    }
+
+    private bool IsProviderCircuitOpenAt(float now) =>
+        now < providerUnhealthyUntil;
+
+    private float ResolveProviderCircuitCooldownSeconds()
+    {
+        CharacterSkillSystemSettingsSO settings = settingsProvider.Settings;
+        return Mathf.Max(
+            ResolveRequestTimeoutSeconds(),
+            settings.maximumRetrySeconds);
+    }
+
+    private void OpenProviderCircuit(PendingRequest timedOutRequest, float now)
+    {
+        if (timedOutRequest?.draft == null
+            || timedOutRequest.progression == null)
+        {
+            throw new InvalidOperationException(
+                "Provider timeout did not retain a complete skill-generation request.");
+        }
+
+        float cooldown = ResolveProviderCircuitCooldownSeconds();
+        providerUnhealthyUntil = Mathf.Max(
+            providerUnhealthyUntil,
+            now + cooldown);
+        ProviderCircuitTripCount++;
+        CompletePendingThroughProviderCircuit(
+            timedOutRequest,
+            now,
+            "accepted-request-timeout");
+    }
+
+    private void CompletePendingThroughProviderCircuit(
+        PendingRequest timedOutRequest,
+        float now,
+        string reason)
+    {
+        PendingRequest[] requests = pending.Values
+            .Where(request => request != null)
+            .OrderBy(request => request.draft?.requestKey, StringComparer.Ordinal)
+            .ToArray();
+        if (requests.Length == 0)
+        {
+            return;
+        }
+
+        // Validate and build every fallback before committing any of them.
+        // An invalid authored rule is a content error, not permission to leave
+        // a partially prepared visitor pool behind a silent retry chain.
+        List<PreparedRuleFallback> prepared =
+            new List<PreparedRuleFallback>(requests.Length);
+        foreach (PendingRequest request in requests)
+        {
+            if (!TryBuildRuleFallback(
+                    request,
+                    out List<CharacterSkillInstance> skills,
+                    out string fallbackError))
+            {
+                LastDiagnostic = "provider-circuit-fallback-failed="
+                    + (request.draft?.requestKey ?? "<missing>")
+                    + "; reason=" + fallbackError
+                    + "; trigger="
+                    + (timedOutRequest?.draft?.requestKey ?? "cooldown")
+                    + "; pending=" + requests.Length;
+                throw new InvalidOperationException(LastDiagnostic);
+            }
+
+            prepared.Add(new PreparedRuleFallback
+            {
+                request = request,
+                skills = skills
+            });
+        }
+
+        ICorrelatedCharacterSkillLlmRuntime correlatedRuntime =
+            llmRuntimeProvider.TryGetRuntime(out ILocalLlmRuntime runtime)
+                ? runtime as ICorrelatedCharacterSkillLlmRuntime
+                : null;
+
+        // Invalidate every accepted callback before asking the provider to
+        // cancel. A provider is allowed to race a final callback with
+        // cancellation, and that late result must not overwrite the validated
+        // rule fallback committed by this circuit trip.
+        foreach (PendingRequest request in requests)
+        {
+            bool wasInFlight = request.inFlight;
+            request.cancelled = true;
+            request.inFlight = false;
+            request.submittedAt = 0f;
+            if (wasInFlight)
+            {
+                request.attempts++;
+                correlatedRuntime?.CancelCharacterSkillRequest(
+                    request.draft?.requestKey);
+            }
+        }
+
+        foreach (PreparedRuleFallback completion in prepared)
+        {
+            CommitRuleFallback(completion.request, completion.skills);
+        }
+
+        LastDiagnostic = "provider-circuit-rule-fallback"
+            + "; reason=" + reason
+            + "; trigger="
+            + (timedOutRequest?.draft?.requestKey ?? "cooldown")
+            + "; completed=" + prepared.Count
+            + "; cooldownRemaining="
+            + Mathf.Max(0f, providerUnhealthyUntil - now).ToString("0.###")
+            + "; trips=" + ProviderCircuitTripCount;
+    }
+
     private void RemoveRequest(string requestKey)
     {
         if (!string.IsNullOrWhiteSpace(requestKey))
@@ -703,6 +887,25 @@ public sealed class CharacterSkillGenerationService :
 
     private bool TryCompleteRuleFallback(PendingRequest request, out string error)
     {
+        if (!TryBuildRuleFallback(
+                request,
+                out List<CharacterSkillInstance> skills,
+                out error))
+        {
+            return false;
+        }
+
+        CommitRuleFallback(request, skills);
+        LastDiagnostic = $"rule-fallback={request.draft.requestKey}; candidates={skills.Count}";
+        return true;
+    }
+
+    private bool TryBuildRuleFallback(
+        PendingRequest request,
+        out List<CharacterSkillInstance> skills,
+        out string error)
+    {
+        skills = new List<CharacterSkillInstance>();
         error = string.Empty;
         if (request?.draft?.rules == null || request.progression == null)
         {
@@ -722,12 +925,39 @@ public sealed class CharacterSkillGenerationService :
             characterName = characterName.Substring(0, 24);
         }
 
-        List<CharacterSkillInstance> skills = new List<CharacterSkillInstance>();
         for (int index = 0; index < request.draft.rules.Count; index++)
         {
+            CharacterSkillCandidateRule rule = request.draft.rules[index];
+            List<CharacterSkillAllowedCombination> combinations =
+                CharacterSkillCombinationCatalog.Build(
+                    rule,
+                    settingsProvider.Settings,
+                    request.draft.kind);
+            if (combinations.Count == 0)
+            {
+                error = $"Rule fallback candidate {index} has no authored module combination.";
+                return false;
+            }
+
+            CharacterSkillAllowedCombination combination = combinations[0];
+            CharacterUltimateDomain ultimateDomain = CharacterUltimateDomain.None;
+            if (request.draft.kind == CharacterSkillKind.Ultimate)
+            {
+                bool management = combination.Modules.Any(selection =>
+                    settingsProvider.Settings.FindModule(selection.moduleId)
+                        is CharacterManagementSkillModuleRule);
+                ultimateDomain = management
+                    ? CharacterUltimateDomain.Management
+                    : CharacterUltimateDomain.Offense;
+            }
+
             CharacterSkillCandidateResponseDto candidate = new CharacterSkillCandidateResponseDto
             {
                 index = index,
+                trigger = rule.trigger.ToString(),
+                target = rule.target.ToString(),
+                ultimateDomain = ultimateDomain.ToString(),
+                combinationId = combination.Id,
                 name = names[index % names.Length],
                 description = $"{characterName}의 실제 기록으로 확정된 기술이다.",
                 narrativeReason = "효과와 비용은 규칙이 정하고 문구만 임시로 붙였다."
@@ -750,14 +980,19 @@ public sealed class CharacterSkillGenerationService :
             skills.Add(skill);
         }
 
+        return true;
+    }
+
+    private void CommitRuleFallback(
+        PendingRequest request,
+        List<CharacterSkillInstance> skills)
+    {
         request.draft.candidates = skills;
         request.draft.isReady = true;
         request.draft.requestSubmitted = false;
         request.progression.MarkGenerationRequestCompleted(request.draft.requestKey);
         RemoveRequest(request.draft.requestKey);
         request.progression.OnDraftReady(request.draft);
-        LastDiagnostic = $"rule-fallback={request.draft.requestKey}; candidates={skills.Count}";
-        return true;
     }
 
     private bool TryBuildSkill(

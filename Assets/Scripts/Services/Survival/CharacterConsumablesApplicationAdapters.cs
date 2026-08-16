@@ -425,6 +425,47 @@ public sealed class CharacterConsumablesApplicationPorts :
         && items.TryConsumeStackQuantity(stackId.Value, quantity, out WorldItemStackSnapshot consumed)
         && consumed != null;
 
+    public bool TryConsumeForCharacter(
+        CharacterId characterId,
+        ItemStackId stackId,
+        int quantity)
+    {
+        if (!stackId.IsValid || quantity <= 0)
+            return false;
+        WorldItemStackSnapshot stack = items.GetAllStacks().FirstOrDefault(candidate =>
+            candidate != null
+            && string.Equals(candidate.StackId, stackId.Value, StringComparison.Ordinal));
+        if (stack == null)
+            return false;
+        if (stack.State != WorldItemStackState.Carried)
+            return TryConsume(stackId, quantity);
+
+        CharacterActor actor = FindActor(characterId);
+        CharacterCarryInventory carry = actor != null
+            ? CharacterCarryInventory.Ensure(actor)
+            : null;
+        if (carry == null
+            || carry.Items.Where(item => item != null
+                    && string.Equals(
+                        item.carriedStackId,
+                        stackId.Value,
+                        StringComparison.Ordinal)
+                    && string.Equals(item.itemId, stack.ItemId, StringComparison.Ordinal))
+                .Sum(item => item.quantity) < quantity)
+        {
+            return false;
+        }
+
+        if (!TryConsume(stackId, quantity))
+            return false;
+        if (!carry.TryConsumeCarriedStack(stackId.Value, stack.ItemId, quantity))
+        {
+            throw new InvalidOperationException(
+                $"Carried stack '{stackId.Value}' was consumed physically but remained in character '{characterId.Value}' inventory.");
+        }
+        return true;
+    }
+
     public bool TryReserveMealQuantity(
         ConsumableOperationId operationId,
         CharacterId characterId,
@@ -729,6 +770,7 @@ public sealed class CharacterConsumablesCompatibilityAdapter :
     IFieldMealConsumptionCommand,
     ICharacterDietPolicyRuntime,
     IMealConsumptionRuntime,
+    ICharacterMealOperationCancellation,
     ICharacterSubstanceRuntime,
     ITickable
 {
@@ -771,6 +813,11 @@ public sealed class CharacterConsumablesCompatibilityAdapter :
         result = MealConsumptionResult.FromCore(coreResult);
         return success;
     }
+
+    public int CancelActiveMealOperations(CharacterActor actor, string reason) =>
+        runtime.CancelActiveMealOperations(
+            GetCharacterId(actor),
+            reason);
 
     public bool TryFindFieldMeal(
         CharacterActor actor,

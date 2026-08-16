@@ -96,6 +96,7 @@ public interface ICharacterDeprivationQuery
     bool NeedsPrimitiveRelief(CharacterActor actor, out string reason);
     bool NeedsPrimitiveWash(CharacterActor actor, out string reason);
     bool NeedsSafeEmergencyRelief(CharacterActor actor, out string reason);
+    bool IsRoutineDrinkActionActive(CharacterActor actor);
     CharacterDeprivationDiagnosticsSnapshot GetDiagnostics();
     bool IsSuppressible(CharacterActor actor);
     float GetMoveSpeedMultiplier(CharacterActor actor);
@@ -210,6 +211,7 @@ public sealed class NoCharacterDeprivationBoundary :
         reason = string.Empty;
         return false;
     }
+    public bool IsRoutineDrinkActionActive(CharacterActor actor) => false;
     public CharacterDeprivationDiagnosticsSnapshot GetDiagnostics() => default;
     public bool IsSuppressible(CharacterActor actor) => false;
     public float GetMoveSpeedMultiplier(CharacterActor actor) => 1f;

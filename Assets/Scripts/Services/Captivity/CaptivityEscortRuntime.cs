@@ -335,19 +335,11 @@ internal sealed class CaptivityEscortRuntime :
                      CaptivityActorAccess.RequireCharacterId(
                          subject?.Identity?.PersistentId)))
         {
-            string itemId = PhysicalItemIds.ForEquipment(instance.definitionId);
-            if (itemRuntime.SpawnUniqueItemAt(
-                    itemId,
-                    position,
-                    WorldItemStackState.Loose,
-                    string.Empty,
-                    out string stackId))
-            {
-                combatEquipment.TryLinkToWorldStack(
-                    instance.instanceId,
-                    stackId,
-                    CombatEquipmentWorldState.Loose);
-            }
+            combatEquipment.TryDropExistingEquipmentToWorld(
+                instance.instanceId,
+                position,
+                out _,
+                out _);
         }
     }
 

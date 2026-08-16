@@ -11,6 +11,85 @@ public sealed class BuildingResearchArchiveAbility : BuildingAbility
     public int capacity = 8;
 }
 
+public static class ResearchBlueprintArchiveDestinationAuthority
+{
+    public const string OwnerDomain = "research.blueprint-archive";
+
+    public static FacilityBufferDestinationClaim[] BuildClaims(
+        IEnumerable<BuildableObject> buildings) =>
+        (buildings ?? Array.Empty<BuildableObject>())
+        .Where(IsAuthoredArchiveFacility)
+        .OrderBy(building => building.RequirePersistentInstanceId().Value,
+            StringComparer.Ordinal)
+        .Select(CreateClaim)
+        .ToArray();
+
+    public static FacilityBufferDestinationClaim CreateClaim(
+        BuildableObject archive)
+    {
+        if (!IsAuthoredArchiveFacility(archive))
+        {
+            throw new InvalidOperationException(
+                "Research archive destination requires a live authored facility authority.");
+        }
+
+        string facilityId = archive.RequirePersistentInstanceId().Value;
+        string destinationId = BuildDestinationId(facilityId);
+        return new FacilityBufferDestinationClaim(
+            destinationId,
+            archive.centerPos,
+            OwnerDomain,
+            destinationId,
+            facilityId,
+            FacilityBufferDestinationAnchorKind.LiveBuilding);
+    }
+
+    public static string BuildDestinationId(string facilityId)
+    {
+        if (string.IsNullOrWhiteSpace(facilityId)
+            || !string.Equals(
+                facilityId,
+                facilityId.Trim(),
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Research archive destination requires a canonical facility id.");
+        }
+
+        return ReservedTargetDestinationIdentity.ResearchArchivePrefix
+            + facilityId;
+    }
+
+    public static bool IsAuthoredArchiveFacility(BuildableObject building) =>
+        building != null
+        && !building.IsGridDestroyed
+        && building.BuildingData != null
+        && building.BuildingData
+            .GetAbility<BuildingResearchArchiveAbility>() != null;
+
+    public static bool IsEligibleRoom(RoomInstance room) =>
+        room != null
+        && room.IsUsable
+        && !room.IsSelfContained
+        && room.SupportsFacilityRole(FacilityRole.Research);
+
+    public static bool ClaimsMatch(
+        FacilityBufferDestinationClaim left,
+        FacilityBufferDestinationClaim right) =>
+        left != null
+        && right != null
+        && left.DropPosition == right.DropPosition
+        && left.AnchorKind == right.AnchorKind
+        && string.Equals(left.DestinationId, right.DestinationId,
+            StringComparison.Ordinal)
+        && string.Equals(left.OwnerDomain, right.OwnerDomain,
+            StringComparison.Ordinal)
+        && string.Equals(left.OwnerOperationId, right.OwnerOperationId,
+            StringComparison.Ordinal)
+        && string.Equals(left.OwnerFacilityId, right.OwnerFacilityId,
+            StringComparison.Ordinal);
+}
+
 public interface IResearchBlueprintArchiveQuery
 {
     int Version { get; }
@@ -171,22 +250,22 @@ public sealed class ResearchBlueprintArchiveQuery : IResearchBlueprintArchiveQue
             return string.Empty;
         }
 
-        return $"research-archive:{archive.RequirePersistentInstanceId().Value}";
+        return ResearchBlueprintArchiveDestinationAuthority.BuildDestinationId(
+            archive.RequirePersistentInstanceId().Value);
     }
 
     private bool IsValidArchive(BuildableObject building)
     {
         if (building == null
             || !building.isActiveAndEnabled
-            || building.BuildingData?.GetAbility<BuildingResearchArchiveAbility>() == null
+            || !ResearchBlueprintArchiveDestinationAuthority
+                .IsAuthoredArchiveFacility(building)
             || !TryGetContainingRoom(building, out RoomInstance room))
         {
             return false;
         }
 
-        return room.IsUsable
-            && !room.IsSelfContained
-            && room.SupportsFacilityRole(FacilityRole.Research);
+        return ResearchBlueprintArchiveDestinationAuthority.IsEligibleRoom(room);
     }
 
     private bool TryGetContainingRoom(

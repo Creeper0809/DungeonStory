@@ -1,17 +1,18 @@
 using System;
 using System.Collections;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer;
 
 public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWarehouseFacility
 {
     private IBuildingVisitorPort worker;
+    private CharacterId workerCharacterId;
     private WarehouseInventory warehouseInventory;
     private IRoomEnvironmentExperienceService roomEnvironmentExperienceService;
     private IMealConsumptionRuntime mealConsumptionRuntime;
     private IWaterFixtureUseRuntime waterFixtureUseRuntime;
-    private IFluidWastewaterTransaction wastewaterNetworkRuntime;
     private IServiceSessionRuntime serviceSessionRuntime;
     private IServiceRoomLinkRuntime serviceRoomLinkRuntime;
     private IStockQuery stockQuery;
@@ -59,7 +60,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
         this.stockQuery = stockQuery ?? throw new System.ArgumentNullException(nameof(stockQuery));
         this.mealConsumptionRuntime = mealConsumptionRuntime;
         this.waterFixtureUseRuntime = waterFixtureUseRuntime;
-        this.wastewaterNetworkRuntime = wastewaterNetworkRuntime
+        _ = wastewaterNetworkRuntime
             ?? throw new System.ArgumentNullException(
                 nameof(wastewaterNetworkRuntime));
         this.serviceSessionRuntime = serviceSessionRuntime;
@@ -112,6 +113,9 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
         object currentAction = actor?.CurrentActionToken;
         if (!CanQueueVisit(actor, out string visitFailure))
         {
+            BuildingInteractionFailureKind failureKind = this == null || isDestroy
+                ? BuildingInteractionFailureKind.FacilityDestroyed
+                : BuildingInteractionFailureKind.AdmissionRejected;
             SetVisitOutcome(actor, this, BuildingVisitOutcome.Failed);
             actor?.RecordActivity(this, new BuildingActivitySnapshot(
                 BuildingActivityKinds.FacilityUse,
@@ -120,7 +124,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 reasonCode: visitFailure,
                 bubbleEligible: true));
             actor?.ReportInteractionFailure(
-                BuildingInteractionFailureKind.AdmissionRejected,
+                failureKind,
                 $"{interactionFacilityLabel}: {visitFailure}",
                 this);
             yield break;
@@ -128,7 +132,10 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
 
         if (!CanVisit(actor, out _))
         {
-            yield return WaitForVisitAdmission(actor, currentAction);
+            yield return WaitForVisitAdmission(
+                actor,
+                currentAction,
+                interactionFacilityLabel);
             if (actor == null
                 || !actor.IsCurrentAction(currentAction)
                 || actor.IsCurrentActionEnded)
@@ -145,6 +152,9 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
 
             if (!CanVisit(actor, out visitFailure))
             {
+                BuildingInteractionFailureKind failureKind = this == null || isDestroy
+                    ? BuildingInteractionFailureKind.FacilityDestroyed
+                    : BuildingInteractionFailureKind.AdmissionRejected;
                 SetVisitOutcome(actor, this, BuildingVisitOutcome.Abandoned);
                 actor.RecordActivity(this, new BuildingActivitySnapshot(
                     BuildingActivityKinds.FacilityUse,
@@ -153,7 +163,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                     actionId: "facility:queue",
                     reasonCode: "queue-not-admitted"));
                 actor.ReportInteractionFailure(
-                    BuildingInteractionFailureKind.AdmissionRejected,
+                    failureKind,
                     $"{interactionFacilityLabel}: {visitFailure}",
                     this);
                 yield break;
@@ -400,24 +410,11 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             }
         }
 
-        // Water and drain capacity are committed only after every interruptible
-        // movement/wait/service phase has completed. From here to the physical
-        // use result there is no voluntary action yield, so a replaced action or
-        // demolished facility cannot consume water without receiving the effect.
-        if (waterFixture != null
-            && waterFixture.wastewaterPerUse > 0f
-            && !wastewaterNetworkRuntime.CanAcceptWastewater(
-                this,
-                waterFixture.wastewaterPerUse,
-                out DomainFailure drainFailure))
-        {
-            AbortForResourceFailure(
-                actor,
-                interactionFacilityLabel,
-                serviceSession,
-                drainFailure.Code.ToString());
-            yield break;
-        }
+        // Water supply and wastewater fallback are one atomic authority in
+        // IWaterFixtureUseRuntime.  In particular, dry/manual fixtures can
+        // legitimately emit sewage or a physical waste item when no pipe is
+        // available; a separate drain precheck here would reject those authored
+        // fallback modes before the runtime can issue its use ticket.
         if (waterFixtureUseRuntime != null
             && waterFixture != null
             && !waterFixtureUseRuntime.TryBeginUse(
@@ -720,6 +717,42 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
         }
     }
 
+    public override void ReleaseTransientCharacterOwnership(
+        IBuildingVisitorPort actor,
+        string reason)
+    {
+        if (actor == null)
+        {
+            return;
+        }
+
+        string actorId = actor.BuildingCharacterId.Value;
+        string hubId = PersistentInstanceId.IsValid
+            ? PersistentInstanceId.Value
+            : string.Empty;
+        string[] sessions = serviceSessionRuntime?.ActiveSessions?
+            .Where(session => session != null
+                && session.IsActive
+                && string.Equals(session.ActorId, actorId, StringComparison.Ordinal)
+                && (string.IsNullOrWhiteSpace(hubId)
+                    || string.Equals(session.HubId, hubId, StringComparison.Ordinal)))
+            .Select(session => session.SessionId)
+            .ToArray() ?? Array.Empty<string>();
+
+        base.ReleaseTransientCharacterOwnership(actor, reason);
+        for (int index = 0; index < sessions.Length; index++)
+        {
+            serviceSessionRuntime.CancelSession(
+                sessions[index],
+                string.IsNullOrWhiteSpace(reason)
+                    ? "character-lifecycle-ended"
+                    : reason);
+        }
+
+        // CharacterActor owns actor-wide meal cancellation once per lifecycle
+        // transition.  A facility only releases ownership scoped to itself.
+    }
+
     public FacilityAssignmentStatus GetWorkerAssignmentStatus(IBuildingVisitorPort actor)
     {
         PruneInvalidWorker();
@@ -783,6 +816,8 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
         }
 
         worker = actor;
+        workerCharacterId = actor?.BuildingCharacterId ?? default;
+        TrackAllocatedWorkerOwnership(actor);
         ReleaseWorkerReservation(actor);
         if (actor == null || !actor.VisitorSnapshot.CanMove) yield break;
 
@@ -812,6 +847,8 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
         if (worker != actor) return;
 
         worker = null;
+        workerCharacterId = default;
+        UntrackAllocatedWorkerOwnership(actor);
         actor.SetActionPhase("\uC2DC\uC124 \uD1F4\uC7A5", this);
         Vector3 actorPosition = actor.VisitorSnapshot.Position - new Vector3(0f, 0.15f);
         actor.SetWorldPosition(actorPosition);
@@ -844,6 +881,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 yield break;
             }
 
+            actor?.NotifyFacilityServiceHeartbeat();
             timer += GameDeltaTime;
             yield return null;
         }
@@ -996,12 +1034,20 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
         {
             if (!worker.VisitorSnapshot.IsRuntimeActive)
             {
+                UntrackTransientOwnership(
+                    workerCharacterId,
+                    BuildingTransientOwnershipKind.AllocatedWorker);
                 worker = null;
+                workerCharacterId = default;
             }
         }
         catch (MissingReferenceException)
         {
+            UntrackTransientOwnership(
+                workerCharacterId,
+                BuildingTransientOwnershipKind.AllocatedWorker);
             worker = null;
+            workerCharacterId = default;
         }
     }
 

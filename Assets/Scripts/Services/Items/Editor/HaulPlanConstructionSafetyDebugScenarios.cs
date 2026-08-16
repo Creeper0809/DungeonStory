@@ -31,8 +31,13 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         List<string> errors = new List<string>();
 
         Run("multi_stack_haul_plan", VerifyMultiStackHaulPlan, lines, errors);
+        Run("equipment_haul_lease_survives_world_state_transition",
+            VerifyEquipmentHaulLeaseSurvivesWorldStateTransition,
+            lines,
+            errors);
         Run("priority_haul_seed_beats_value", VerifyPriorityHaulSeedBeatsValue, lines, errors);
         Run("partial_heavy_stack_reservation", VerifyPartialHeavyStackReservation, lines, errors);
+        Run("survival_stock_transit_reserve", VerifySurvivalStockTransitReserve, lines, errors);
         Run("construction_safety_forced_warning", VerifyConstructionSafetyForcedWarning, lines, errors);
 
         File.WriteAllLines(ReportPath, lines);
@@ -53,6 +58,23 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         }
 
         return true;
+    }
+
+    [MenuItem("DungeonStory/Debug/Items/Run Equipment Haul Lease World-State Transition")]
+    public static void RunEquipmentHaulLeaseWorldStateTransition()
+    {
+        const string focusedReportPath =
+            "Temp/equipment-haul-lease-world-state-transition.tsv";
+        Directory.CreateDirectory("Temp");
+        string details = VerifyEquipmentHaulLeaseSurvivesWorldStateTransition();
+        File.WriteAllLines(focusedReportPath, new[]
+        {
+            "case\tresult\tdetails",
+            $"equipment_haul_lease_survives_world_state_transition\tPASS\t{details}"
+        });
+        Debug.Log(
+            "Equipment haul lease world-state transition PASS. Report: "
+            + focusedReportPath);
     }
 
     private static string VerifyMultiStackHaulPlan()
@@ -126,6 +148,226 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 "warehouse did not receive hauled stock");
 
             return $"pickups={plan.PickupLegs.Count}; reserved={reserved}; deposited={picked}";
+        }
+        finally
+        {
+            scenario.Dispose();
+        }
+    }
+
+    private static string VerifyEquipmentHaulLeaseSurvivesWorldStateTransition()
+    {
+        ScenarioRuntime scenario = ScenarioRuntime.Create(lightStockWeight: 1f);
+        try
+        {
+            CombatEquipmentInstance created = scenario.Equipment.CreateInstance(
+                "weapon:dagger",
+                CombatEquipmentQuality.Normal,
+                CombatEquipmentWorldState.Loose);
+            string itemId = PhysicalItemIds.ForEquipment(created.definitionId);
+            Require(scenario.Items.SpawnExistingUniqueItemAt(
+                    itemId,
+                    (ItemInstanceId)created.instanceId,
+                    new Vector2Int(2, 1),
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out string stackId)
+                && scenario.Equipment.TryLinkToWorldStack(
+                    created.instanceId,
+                    stackId,
+                    CombatEquipmentWorldState.Loose),
+                "failed to materialize the reserved unique equipment");
+            Require(scenario.Equipment.TryGetInstance(
+                    created.instanceId,
+                    out CombatEquipmentInstance linkedBaseline),
+                "linked equipment authority was missing");
+
+            WorldItemStackSnapshot looseStack = scenario.Items.GetAllStacks()
+                .Single(stack => string.Equals(
+                    stack.StackId,
+                    stackId,
+                    StringComparison.Ordinal));
+            string looseSignature = ItemReservationSignature.Create(
+                looseStack.ItemId,
+                looseStack.Components);
+            Require(scenario.Items.PrioritizeHaul(stackId),
+                "failed to prioritize the exact unique equipment stack");
+            Require(scenario.Items.TryReserveBestHaulPlan(
+                    scenario.Actor,
+                    out WorldItemHaulPlan plan,
+                    out string planFailure),
+                "production haul planning failed: " + planFailure);
+            WorldItemReservedStackQuantity reservation =
+                plan.ReservedStackQuantities.Single(candidate =>
+                    string.Equals(
+                        candidate.StackId,
+                        stackId,
+                        StringComparison.Ordinal));
+            string operationId = reservation.OwnerOperationId;
+            Require(!string.IsNullOrWhiteSpace(operationId)
+                    && reservation.DestinationKind
+                        == WorldItemHaulDestinationKind.Warehouse
+                    && string.Equals(
+                        reservation.DestinationId,
+                        WarehouseStorageIdentity.RequireDestinationId(
+                            scenario.Warehouse),
+                        StringComparison.Ordinal),
+                $"production planner changed the exact equipment destination or operation: "
+                + $"operation='{operationId}'; kind={reservation.DestinationKind}; "
+                + $"actual='{reservation.DestinationId}'; expected='"
+                + WarehouseStorageIdentity.RequireDestinationId(scenario.Warehouse)
+                + "'");
+            Require(scenario.QuantityReservations.TryGetLeasesByOwner(
+                    operationId,
+                    out IReadOnlyList<ItemQuantityLease> plannedLeases)
+                && plannedLeases.Count == 1
+                && plannedLeases[0].slices.Count == 1
+                && string.Equals(
+                    plannedLeases[0].leaseId,
+                    reservation.LeaseId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    plannedLeases[0].slices[0].expectedStackSignature,
+                    looseSignature,
+                    StringComparison.Ordinal),
+                "production planner did not bind the exact equipment lease");
+
+            Require(scenario.Items.TryPickupReservedStackQuantity(
+                    scenario.Actor,
+                    scenario.Carry,
+                    reservation,
+                    out int pickedUp,
+                    out string pickupFailure)
+                && pickedUp == 1,
+                "unique equipment pickup failed: " + pickupFailure);
+            Require(scenario.QuantityReservations.Revalidate(
+                    reservation.LeaseId,
+                    out ItemQuantityLease carriedLease,
+                    out DomainFailure carriedFailure),
+                "world-state transition invalidated the exact lease: " + carriedFailure);
+
+            CharacterCarriedItemSaveData carried = scenario.Carry.Items.Single(item =>
+                string.Equals(
+                    item.ownerOperationId,
+                    operationId,
+                    StringComparison.Ordinal));
+            WorldItemStackSnapshot physicalCarried = scenario.Items.GetAllStacks()
+                .Single(stack => string.Equals(
+                    stack.StackId,
+                    stackId,
+                    StringComparison.Ordinal));
+            Require(carriedLease.slices.Count == 1
+                    && string.Equals(
+                        carriedLease.ownerOperationId,
+                        operationId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        carriedLease.slices[0].stackId,
+                        stackId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        ItemReservationSignature.Create(
+                            carried.itemId,
+                            carried.components),
+                        looseSignature,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        ItemReservationSignature.Create(
+                            physicalCarried.ItemId,
+                            physicalCarried.Components),
+                        looseSignature,
+                        StringComparison.Ordinal),
+                "plan, lease, carry and physical equipment signatures diverged");
+            Require(scenario.Equipment.TryGetInstance(
+                    created.instanceId,
+                    out CombatEquipmentInstance carriedEquipment)
+                && carriedEquipment.worldState == CombatEquipmentWorldState.Carried,
+                "equipment authority did not enter Carried state");
+            Require(scenario.Items.TryCommitHaulPickup(
+                    operationId,
+                    scenario.Carry,
+                    out string commitFailure),
+                "equipment pickup intent did not commit: " + commitFailure);
+            Require(scenario.Items.TryCaptureHaulDeliveryIntent(
+                    operationId,
+                    out HaulDeliveryIntentSaveData committedIntent)
+                && committedIntent.commitments.Count == 1
+                && string.Equals(
+                    committedIntent.commitments[0].expectedStackSignature,
+                    looseSignature,
+                    StringComparison.Ordinal),
+                "committed equipment intent lost its exact reservation identity");
+
+            CombatEquipmentInstance alternateWorldState = linkedBaseline.Clone();
+            alternateWorldState.worldState = CombatEquipmentWorldState.MaintenanceBuffer;
+            Require(string.Equals(
+                    ItemReservationSignature.Create(
+                        itemId,
+                        new[] { EquipmentItemStateCodec.Encode(alternateWorldState) }),
+                    looseSignature,
+                    StringComparison.Ordinal),
+                "equipment worldState remained part of reservation identity");
+            CombatEquipmentInstance damaged = linkedBaseline.Clone();
+            damaged.durabilityRatio = Mathf.Max(0f, damaged.durabilityRatio - 0.25f);
+            Require(!string.Equals(
+                    ItemReservationSignature.Create(
+                        itemId,
+                        new[] { EquipmentItemStateCodec.Encode(damaged) }),
+                    looseSignature,
+                    StringComparison.Ordinal),
+                "durability mutation was incorrectly ignored by reservation identity");
+            EquipmentModuleInstance attachedModule = new()
+            {
+                instanceId = "equipment-module-instance:qa-haul-signature",
+                definitionId = "module:weapon:balanced-core",
+                sourceStackId = stackId,
+                state = EquipmentModuleProcessState.Installed,
+                attachedEquipmentInstanceId = linkedBaseline.instanceId
+            };
+            Require(!string.Equals(
+                    ItemReservationSignature.Create(
+                        itemId,
+                        new[]
+                        {
+                            EquipmentItemStateCodec.Encode(
+                                linkedBaseline,
+                                new[] { attachedModule })
+                        }),
+                    looseSignature,
+                    StringComparison.Ordinal),
+                "attached-module mutation was incorrectly ignored by reservation identity");
+
+            Require(scenario.Items.TryDepositCarriedItems(
+                    scenario.Actor,
+                    scenario.Carry,
+                    scenario.Warehouse,
+                    new[] { operationId },
+                    out string depositFailure),
+                "unique equipment warehouse deposit failed: " + depositFailure);
+            Require(scenario.Items.ReleaseHaulDeliveryIntent(operationId),
+                "completed equipment delivery did not release its intent");
+            Require(!scenario.Carry.HasItems
+                    && !scenario.Items.TryCaptureHaulDeliveryIntent(
+                        operationId,
+                        out _)
+                    && (!scenario.QuantityReservations.TryGetLeasesByOwner(
+                            operationId,
+                            out IReadOnlyList<ItemQuantityLease> remainingLeases)
+                        || remainingLeases.Count == 0),
+                "equipment haul left carry, intent or lease ownership behind");
+            WorldItemStackSnapshot stored = scenario.Items.GetAllStacks().Single(stack =>
+                string.Equals(
+                    stack.ItemInstanceId,
+                    created.instanceId,
+                    StringComparison.Ordinal));
+            Require(stored.State == WorldItemStackState.Stored
+                    && scenario.Equipment.TryGetInstance(
+                        created.instanceId,
+                        out CombatEquipmentInstance storedEquipment)
+                    && storedEquipment.worldState == CombatEquipmentWorldState.Stored,
+                "equipment did not converge to stored physical authority");
+            return $"operation={operationId}; lease={reservation.LeaseId}; "
+                + $"stack={stackId}; state=Loose->Carried->Stored; cleanup=exact";
         }
         finally
         {
@@ -241,6 +483,67 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         }
     }
 
+    private static string VerifySurvivalStockTransitReserve()
+    {
+        ScenarioRuntime scenario = ScenarioRuntime.Create(lightStockWeight: 1f);
+        try
+        {
+            const string foodId = "food:preserved-ration";
+            Require(scenario.Items.SpawnItemAt(
+                    foodId,
+                    10,
+                    new Vector2Int(2, 1),
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out int spawned)
+                && spawned == 10,
+                "survival stock spawn failed");
+
+            Require(scenario.Items.TryReserveBestHaulPlan(
+                    scenario.Actor,
+                    out WorldItemHaulPlan firstPlan,
+                    out string failureReason),
+                "initial survival haul plan failed: " + failureReason);
+            int firstReserved = firstPlan.ReservedStackQuantities.Sum(value => value.Quantity);
+            Require(firstReserved == 9,
+                $"one active consumer serving must remain loose, reserved={firstReserved}");
+
+            foreach (WorldItemReservedStackQuantity reservation in firstPlan.ReservedStackQuantities)
+            {
+                Require(scenario.Items.TryPickupReservedStackQuantity(
+                        scenario.Actor,
+                        scenario.Carry,
+                        reservation,
+                        out _,
+                        out string pickupReason),
+                    "survival stock pickup failed: " + pickupReason);
+            }
+            Require(scenario.Items.TryDepositCarriedItems(
+                    scenario.Actor,
+                    scenario.Carry,
+                    scenario.Warehouse,
+                    out string depositReason),
+                "survival stock deposit failed: " + depositReason);
+            Require(scenario.Warehouse.Inventory.GetStock(StockCategory.Food) == 9,
+                "warehouse did not receive protected survival stock delivery");
+
+            Require(scenario.Items.TryReserveBestHaulPlan(
+                    scenario.Actor,
+                    out WorldItemHaulPlan secondPlan,
+                    out failureReason),
+                "remaining survival stock did not unlock after delivery: " + failureReason);
+            int secondReserved = secondPlan.ReservedStackQuantities.Sum(value => value.Quantity);
+            Require(secondReserved == 1,
+                $"remaining serving should be haulable after warehouse reserve exists, reserved={secondReserved}");
+
+            return $"firstReserved={firstReserved}; stored=9; secondReserved={secondReserved}";
+        }
+        finally
+        {
+            scenario.Dispose();
+        }
+    }
+
     private static string VerifyConstructionSafetyForcedWarning()
     {
         Grid grid = CreateWalkableExteriorGrid();
@@ -304,6 +607,8 @@ public static class HaulPlanConstructionSafetyDebugScenarios
             Grid grid,
             GridProvider gridProvider,
             WorldItemStackRuntime items,
+            CombatEquipmentRuntime equipment,
+            ItemQuantityReservationService quantityReservations,
             TestWarehouseBuilding warehouse,
             CharacterActor actor,
             CharacterCarryInventory carry,
@@ -312,6 +617,8 @@ public static class HaulPlanConstructionSafetyDebugScenarios
             Grid = grid;
             GridProvider = gridProvider;
             Items = items;
+            Equipment = equipment;
+            QuantityReservations = quantityReservations;
             Warehouse = warehouse;
             Actor = actor;
             Carry = carry;
@@ -321,6 +628,8 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         public Grid Grid { get; }
         public GridProvider GridProvider { get; }
         public WorldItemStackRuntime Items { get; }
+        public CombatEquipmentRuntime Equipment { get; }
+        public ItemQuantityReservationService QuantityReservations { get; }
         public TestWarehouseBuilding Warehouse { get; }
         public CharacterActor Actor { get; }
         public CharacterCarryInventory Carry { get; }
@@ -356,8 +665,10 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 CharacterActor actor = actorObject.GetComponent<CharacterActor>();
                 CharacterCarryInventory carry = actorObject.GetComponent<CharacterCarryInventory>();
 
+                IGameContentCatalog gameContent = new ResourceGameContentCatalog(
+                    new UnityGameContentRootLoader());
                 ICombatEquipmentCatalog combatCatalog =
-                    new ResourceCombatEquipmentCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+                    new ResourceCombatEquipmentCatalog(gameContent);
                 IDungeonItemCatalogProvider itemCatalog =
                     new TestCatalogProvider(lightStockWeight);
                 IItemHaulingSettingsProvider haulingSettings =
@@ -372,6 +683,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 WorldItemRepository repository = new WorldItemRepository(
                     new GuidPersistentIdGenerator(),
                     new DungeonRuntimeAggregateRootStore());
+                FacilityBufferDestinationClaimRegistry destinationClaims = new();
                 warehouse.BindPhysicalStock(
                     new PhysicalStockQuery(repository, itemCatalog));
                 ItemQuantityReservationService quantityReservations =
@@ -398,6 +710,18 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                     itemCatalog,
                     repository,
                     EditorNullItemMarkerPresenter.Instance);
+                EditorEquipmentPhysicalItemGatewayProxy equipmentItemGateway =
+                    new EditorEquipmentPhysicalItemGatewayProxy();
+                CombatEquipmentRuntime equipment =
+                    CombatEquipmentEditorTestFactory.Create(
+                        combatCatalog,
+                        repository,
+                        new CharacterCarryInventoryRegistry(),
+                        materialCatalog: new ResourceEconomyContentCatalog(gameContent),
+                        evolutionModules: EmptyEvolutionModuleRegistry.Instance,
+                        researchProvider: EditorAllResearchRuntimeProvider.Instance,
+                        moduleCatalog: new ResourceEquipmentModuleCatalog(gameContent),
+                        itemStackRuntime: equipmentItemGateway);
                 IWorldItemHaulPlanningService haulPlanning =
                     new WorldItemHaulPlanningService(
                         gridProvider,
@@ -407,7 +731,8 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                         pathBroker,
                         worldRegistry,
                         repository,
-                        quantityReservations);
+                        quantityReservations,
+                        destinationClaims);
                 WorldItemReadServices readServices = new WorldItemReadServices(
                     itemCatalog,
                     haulingSettings,
@@ -418,7 +743,9 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 IItemTransferService itemTransferService = new ItemTransferService(
                     readServices,
                     idRegistry,
+                    gridProvider,
                     worldRegistry,
+                    destinationClaims,
                     combatCatalog,
                     new GameEventBus(),
                     repository,
@@ -454,12 +781,15 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                     itemMarkerPresenter: EditorNullItemMarkerPresenter.Instance,
                     itemTransferService: itemTransferService,
                     performanceRecorder: new EditorCharacterAiPerformanceRecorder());
+                equipmentItemGateway.Attach(items);
                 items.Start();
 
                 scenario = new ScenarioRuntime(
                     grid,
                     gridProvider,
                     items,
+                    equipment,
+                    quantityReservations,
                     warehouse,
                     actor,
                     carry,
@@ -606,6 +936,12 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         {
             return default;
         }
+
+        public BlueprintResearchWorkResult ApplyApprovedResearchWork(
+            CharacterActor researcher,
+            BuildableObject researchFacility,
+            float approvedWorkUnits) =>
+            ApplyResearchWork(researcher, researchFacility, approvedWorkUnits);
     }
 
     private sealed class GridProvider : IGridSystemProvider
@@ -636,6 +972,8 @@ public static class HaulPlanConstructionSafetyDebugScenarios
     private sealed class TestCatalogProvider : IDungeonItemCatalogProvider
     {
         private readonly float stockWeight;
+        private readonly ResourceDungeonItemCatalogProvider authoredCatalog =
+            EditorItemCatalogFactory.Create();
 
         public TestCatalogProvider(float stockWeight)
         {
@@ -646,11 +984,25 @@ public static class HaulPlanConstructionSafetyDebugScenarios
 
         public DungeonItemDefinition GetDefinition(string itemId)
         {
+            if ((PhysicalItemIds.TryGetEquipmentDefinitionId(itemId, out _)
+                    || PhysicalItemIds.IsEquipmentModule(itemId))
+                && authoredCatalog.TryGetDefinition(
+                    itemId,
+                    out DungeonItemDefinition authored))
+            {
+                return authored;
+            }
+            StockCategory category = itemId switch
+            {
+                "food:preserved-ration" => StockCategory.Food,
+                "resource:clean-water" => StockCategory.Water,
+                _ => StockCategory.General
+            };
             return new DungeonItemDefinition(
                 itemId,
                 itemId,
                 string.Empty,
-                StockCategory.General,
+                category,
                 1,
                 null,
                 stockWeight,

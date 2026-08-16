@@ -76,10 +76,13 @@ public abstract class AIPrimitiveSurvivalAction : AIActionSet
         GridPathSearchResult searchResult = brain?.GetPathSearch(actor);
         if (searchResult == null)
         {
-            // A deferred path query is an explicit Pending state, not evidence
-            // that infrastructure is absent. Wait for the broker instead of
-            // committing a primitive action that may run for several seconds.
-            return brain?.IsPathSearchDeferred != true;
+            // No published path snapshot is a Pending state regardless of
+            // whether the broker has set its deferred bit yet. The previous
+            // `!IsPathSearchDeferred` fallback opened a one-frame gap after a
+            // cache clear: deprivation Tick committed a primitive action, then
+            // the synchronous started-event diagnostic obtained the new search
+            // and found an immediately usable authored facility.
+            return false;
         }
 
         bool hasImmediateFacility = FacilityCandidateScorer.HasCandidate(

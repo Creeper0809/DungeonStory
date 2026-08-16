@@ -53,6 +53,7 @@ internal static class CharacterAiDecisionRules
         CharacterBlackboard blackboard)
     {
         blackboard?.RecordBtStatus(branch, task, status);
+        blackboard?.RecordBtOutcome(branch, handled);
         return new CharacterAiDecisionTickResult(handled, branch, task, status);
     }
 }

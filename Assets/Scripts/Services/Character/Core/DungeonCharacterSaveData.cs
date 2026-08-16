@@ -51,6 +51,7 @@ public sealed class DungeonCharacterSaveData
         new CharacterExpeditionRecoveryState();
     public CharacterCarryInventorySaveData carryInventory =
         new CharacterCarryInventorySaveData();
+    public HaulDeliveryIntentSaveData haulDeliveryIntent;
 }
 
 [Serializable]

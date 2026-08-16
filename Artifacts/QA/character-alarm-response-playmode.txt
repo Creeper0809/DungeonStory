@@ -1,0 +1,58 @@
+CHARACTER_ALARM_RESPONSE_PLAYMODE
+checks=54; failures=0; consoleIssues=0
+case	result	detail
+SETUP	INFO	committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Arin:-9255912:character:staff:1:02:active=True,Roma:-9255844:character:staff:1:01:active=True; diagnostics=prepared-1:name=Roma;go=-9255816;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-9255884;id=character:staff:1:02;active=False || scan:name=Roma;go=-9255816;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-9255884;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-9255816;id=character:staff:1:01;active=True || retained:name=Arin;go=-9255884;id=character:staff:1:02;active=True
+LIVE_SCOPE	PASS	DungeonRuntimeSystems
+LIVE_WORKER	PASS	Roma
+ALERT_AUTHORITIES	PASS	resolved
+LIVE_GRID	PASS	resolved
+INLINE_PREVIOUS_WORK_STOPPED	PASS	working=False; routine=False
+INLINE_WORK_FIXTURE	PASS	target=building:4abd9b1ef4e443d2bf33adea2c56aaef; position=(21, 0); cleanliness=40
+INLINE_WORK_PRIORITY_ASSIGNED	PASS	exterior:DropZone:21:0
+INLINE_WORK_ACTION_SELECTED	PASS	selected=True; action=일하기; destination=QA inline timed clean target; failure=; schedulerStarted=True; priority=Priority1; priorityTarget=QA_InlineTimedExteriorWork; assigned=work:clean/QA_InlineTimedExteriorWork
+INLINE_WORK_EXECUTION_STARTED	PASS	working=True; routine=True; action=일하기; phase=이동
+INLINE_WORK_PARTIAL_PROGRESS	PASS	completed=2.838; required=30; working=True; action=일하기; phase=청소 9%; failure=None:; priority=QA_InlineTimedExteriorWork; assigned=QA_InlineTimedExteriorWork; trace=#1@t=0 epoch=0 kind=RetryScheduled branch=None action=0 destination=0 phase=None/0 progress=1 retry=1@50ms | #2@t=0.02 epoch=0 kind=RetryAttempted branch=None action=0 destination=0 phase=None/0 progress=2 retry=1@0ms | #3@t=0.02 epoch=0 kind=RetryScheduled branch=None action=0 destination=0 phase=None/0 progress=3 retry=2@50ms | #4@t=2.114 epoch=0 kind=RetryAttempted branch=None action=0 destination=0 phase=None/0 progress=4 retry=2@0ms | #5@t=2.114 epoch=0 kind=PathRequested branch=None action=0 destination=0 phase=None/0 progress=5 path=1/Requested[0/0] | #6@t=2.114 epoch=0 kind=PathResult branch=None action=0 destination=0 phase=None/0 progress=6 path=1/Found[0/1] | #7@t=2.114 epoch=0 kind=ReservationAcquired branch=None action=0 destination=0 phase=None/0 progress=7 reservation=-920906684/Acquired | #8@t=2.114 epoch=1 kind=ActionStarted branch=Work action=71240 destination=-9258516 phase=Starting/2061222397 progress=9 | #9@t=2.114 epoch=1 kind=PhaseChanged branch=Work action=71240 destination=-9258516 phase=Moving/1626625469 progress=10 | #10@t=2.114 epoch=1 kind=MovementStarted branch=Work action=71240 destination=-9258516 phase=Moving/1626625469 progress=11 | #11@t=4.781 epoch=1 kind=MovementProgress branch=Work action=71240 destination=-9258516 phase=Moving/1626625469 progress=15 | #12@t=4.781 epoch=1 kind=MovementTerminal branch=Work action=71240 destination=-9258516 phase=Moving/1626625469 progress=16 path=0/Found[0/0] | #13@t=4.781 epoch=1 kind=PhaseChanged branch=Work action=71240 destination=-9258516 phase=Moving/1128093009 progress=17 | #14@t=8.745 epoch=1 kind=PhaseChanged branch=Work action=71240 destination=-9258516 phase=Working/-892567588 progress=18 | #15@t=8.745 epoch=1 kind=ReservationReleased branch=Work action=71240 destination=-9258516 phase=Working/-892567588 progress=19 reservation=-920906684/Released | #16@t=8.745 epoch=1 kind=PhaseChanged branch=Work action=71240 destination=-9258516 phase=Unknown/-1872291779 progress=20
+INLINE_WORK_RED_ESCALATION	PASS	incident-signal-published
+INLINE_PROGRESS_CAPTURED	PASS	external=False; completed=2.838/30; target=building:4abd9b1ef4e443d2bf33adea2c56aaef
+INLINE_PROGRESS_SAVE_ROUNDTRIP	PASS	available=True; completed=2.838/30; epoch=1->1
+INLINE_WORK_INCIDENT_RESOLVED	PASS	incident-resolved
+INLINE_WORK_RETURNED_GREEN	PASS	level=Green
+INLINE_PROGRESS_RESUMED_NOT_RESTARTED	PASS	saved=2.838; resumed=4.122/30; pending=False
+INLINE_WORK_COMPLETED_ONCE_AFTER_RESUME	PASS	cleanliness=100; working=False; priority=; suspendedJournalCleared=True
+LONG_WORK_FIXTURE	PASS	order=work:000001; position=(21, 0); required=700
+WORK_PRIORITY_ASSIGNED	PASS	work:000001
+LIVE_WORK_STARTED	PASS	working=True; type=work:construct; target=ConstructionSite_QA alert persistent construction_21_0; progress=16->17
+RED_ESCALATION_IMMEDIATE	PASS	incident-signal-published; level=Red
+WORK_SUSPENDED_AT_CHECKPOINT	PASS	journal=work:construct/building:ba1280218d0c414fa76b82cb095662ef; working=False; routine=False; phase=
+PERSISTENT_PROGRESS_PRESERVED	PASS	before=1.387; suspended=1.387/700
+INCIDENT_RESOLVED	PASS	incident-resolved
+RED_HYSTERESIS_ONE_HOUR	PASS	level=Red
+RED_TO_AMBER_AFTER_TWO_HOURS	PASS	level=Amber
+NO_PREMATURE_RETURN_AT_AMBER	PASS	working=False; epoch=2; gate=2/work:threat-mitigation
+REESCALATION_CARRIES_RESPONDER_JOURNAL_AND_GATE	PASS	publish=incident-signal-published; level=Red; epoch=2->3; journal=True:3; gate=3/work:guard; revision=3->4; assigned=1; pending=0; returning=0
+SAME_EPOCH_RESPONSE_TYPE_RETARGET	PASS	medical=incident-signal-published; invasion=incident-resolved; epoch=3; gate=3/work:rescue; revision=4->5
+REESCALATED_INCIDENT_RESOLVED	PASS	incident-resolved
+REESCALATED_RED_HYSTERESIS_ONE_HOUR	PASS	level=Red
+REESCALATED_RED_TO_AMBER_AFTER_TWO_HOURS	PASS	level=Amber
+AMBER_HYSTERESIS_ONE_HOUR	PASS	level=Amber
+AMBER_TO_GREEN_AFTER_TWO_HOURS	PASS	level=Green
+GREEN_RETURN_QUEUE_REESCALATION_CARRIED_ONCE	PASS	publish=incident-signal-published; queued=1->0; assigned=1; epoch=3->4; journal=True:4; gate=4/work:guard; revision=5->6
+RETURN_QUEUE_REESCALATION_RESOLVED	PASS	incident-resolved
+RETURN_QUEUE_REESCALATION_RETURNED_GREEN	PASS	level=Green; epoch=4
+ORIGINAL_WORK_RETURNED	PASS	working=True; type=work:construct; target=ConstructionSite_QA alert persistent construction_21_0; priority=work:construct/ConstructionSite_QA alert persistent construction_21_0; preferred=False:; action=일하기; phase=건설 0%
+WORK_PROGRESS_CONTINUES_AFTER_RETURN	PASS	suspended=1.387; returned=2.371/700
+SUSPENSION_JOURNAL_CLEARED_ON_RETURN	PASS	epoch=4; cleared=True
+GREEN_RETURN_OWNERSHIP_CLEAN	PASS	pending=0; returning=0; assigned=0; gates=0; workerGate=False
+GREEN_FINAL_EIGHT_TICKS_IDEMPOTENT	PASS	gateRevision=7->7; cancellations=1->1; pending=0; returning=0; assigned=0; gates=0
+ALERT_AI_INVARIANTS	PASS	invariants=0->0; paths=0; reservations=0; trace=#88@t=71.752 epoch=5 kind=MovementProgress branch=Work action=71240 destination=-9206788 phase=Moving/1626625469 progress=114 | #89@t=72.964 epoch=5 kind=MovementProgress branch=Work action=71240 destination=-9206788 phase=Moving/1626625469 progress=116 | #90@t=72.964 epoch=5 kind=MovementTerminal branch=Work action=71240 destination=-9206788 phase=Moving/1626625469 progress=117 path=0/Found[0/0] | #91@t=72.964 epoch=5 kind=PhaseChanged branch=Work action=71240 destination=-9206788 phase=Moving/1128093009 progress=118 | #92@t=74.633 epoch=5 kind=PhaseChanged branch=Work action=71240 destination=-9206788 phase=Working/-892567588 progress=119 | #93@t=74.633 epoch=5 kind=ReservationReleased branch=Work action=71240 destination=-9206788 phase=Working/-892567588 progress=120 reservation=-920834476/Released | #94@t=74.633 epoch=5 kind=PhaseChanged branch=Work action=71240 destination=-9206788 phase=Unknown/-1372200234 progress=121 | #95@t=75.491 epoch=5 kind=PhaseChanged branch=Work action=71240 destination=-9206788 phase=Unknown/-733644880 progress=122 | #96@t=76.543 epoch=5 kind=PhaseChanged branch=Work action=71240 destination=-9206788 phase=Unknown/-525225226 progress=123 | #97@t=78.283 epoch=5 kind=PhaseChanged branch=Work action=71240 destination=-9206788 phase=Unknown/-808104955 progress=124 | #98@t=78.283 epoch=5 kind=ActionTerminal branch=Work action=71240 destination=-9206788 phase=Terminal/-808104955 progress=125 terminal=Completed | #99@t=80.737 epoch=5 kind=PathRequested branch=Work action=71240 destination=-9206788 phase=Terminal/0 progress=126 path=6/Requested[0/0] | #100@t=80.737 epoch=5 kind=PathResult branch=Work action=71240 destination=-9206788 phase=Terminal/0 progress=127 path=6/Found[0/7] | #101@t=80.737 epoch=5 kind=ReservationAcquired branch=Work action=71240 destination=-9206788 phase=Terminal/0 progress=128 reservation=-920906518/Acquired | #102@t=80.737 epoch=6 kind=ActionStarted branch=Work action=71240 destination=-9258686 phase=Starting/2061222397 progress=130 | #103@t=80.737 epoch=6 kind=PhaseChanged branch=Work action=71240 destination=-9258686 phase=Moving/1626625469 progress=131 | #104@t=80.737 epoch=6 kind=MovementStarted branch=Work action=71240 destination=-9258686 phase=Moving/1626625469 progress=132 | #105@t=83.403 epoch=6 kind=MovementProgress branch=Work action=71240 destination=-9258686 phase=Moving/1626625469 progress=136 | #106@t=84.636 epoch=6 kind=MovementProgress branch=Work action=71240 destination=-9258686 phase=Moving/1626625469 progress=138 | #107@t=85.67 epoch=6 kind=MovementProgress branch=Work action=71240 destination=-9258686 phase=Moving/1626625469 progress=140 | #108@t=86.405 epoch=6 kind=MovementProgress branch=Work action=71240 destination=-9258686 phase=Moving/1626625469 progress=142 | #109@t=91.221 epoch=6 kind=MovementProgress branch=Work action=71240 destination=-9258686 phase=Moving/1626625469 progress=144 | #110@t=93.888 epoch=6 kind=MovementProgress branch=Work action=71240 destination=-9258686 phase=Moving/1626625469 progress=146 | #111@t=95.067 epoch=6 kind=MovementProgress branch=Work action=71240 destination=-9258686 phase=Moving/1626625469 progress=148 | #112@t=95.067 epoch=6 kind=MovementTerminal branch=Work action=71240 destination=-9258686 phase=Moving/1626625469 progress=149 path=0/Found[0/0] | #113@t=95.067 epoch=6 kind=PhaseChanged branch=Work action=71240 destination=-9258686 phase=Moving/-850901255 progress=150 | #114@t=97.352 epoch=6 kind=PhaseChanged branch=Work action=71240 destination=-9258686 phase=Working/-1476019064 progress=151 | #115@t=97.352 epoch=6 kind=ReservationReleased branch=Work action=71240 destination=-9258686 phase=Working/-1476019064 progress=152 reservation=-920906518/Released | #116@t=97.352 epoch=6 kind=PhaseChanged branch=Work action=71240 destination=-9258686 phase=Unknown/1698256393 progress=153 | #117@t=99.441 epoch=6 kind=PhaseChanged branch=Work action=71240 destination=-9258686 phase=Unknown/132172452 progress=154 | #118@t=106.959 epoch=6 kind=PhaseChanged branch=Work action=71240 destination=-9258686 phase=Unknown/535456979 progress=155 | #119@t=114.952 epoch=6 kind=PhaseChanged branch=Work action=71240 destination=-9258686 phase=Unknown/-1030626962 progress=156
+DESTROY_CASE_WORK_READY	PASS	working=True; target=ConstructionSite_QA alert persistent construction_21_0
+DESTROY_CASE_RED_ESCALATION	PASS	incident-signal-published; epoch=5
+DESTROY_CASE_SUSPENDED	PASS	journal=building:ba1280218d0c414fa76b82cb095662ef; working=False; routine=False
+SUSPENDED_TARGET_DESTROYED	PASS	targetMissing=True; destroyed=True
+DESTROY_CASE_INCIDENT_RESOLVED	PASS	incident-resolved
+DESTROY_CASE_RETURNED_GREEN	PASS	level=Green; epoch=5
+DESTROYED_WORK_JOURNAL_ABANDONED	PASS	epoch=5; priority=
+DESTROYED_WORK_NOT_FALSELY_RESTORED	PASS	priority=; assigned=
+DESTROY_CASE_AI_INVARIANTS	PASS	invariants=0->0; paths=0; reservations=0
+CONSOLE_WARNING_ERROR_ZERO	PASS	
+RESULT=PASS; failures=0

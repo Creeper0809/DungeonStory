@@ -662,22 +662,14 @@ internal sealed class WildlifeHuntRuntime
 
         if (weapon.Verb?.DropsWeaponOnUse != true
             || string.IsNullOrWhiteSpace(weapon.InstanceId)
-            || string.IsNullOrWhiteSpace(weapon.DefinitionId)
-            || itemStackRuntime == null
-            || !itemStackRuntime.SpawnUniqueItemAt(
-                PhysicalItemIds.ForEquipment(weapon.DefinitionId),
+            || !equipment.TryDropExistingEquipmentToWorld(
+                weapon.InstanceId,
                 impactPosition,
-                WorldItemStackState.Loose,
-                string.Empty,
-                out string stackId))
+                out _,
+                out _))
         {
             return;
         }
-
-        equipment.TryLinkToWorldStack(
-            weapon.InstanceId,
-            stackId,
-            CombatEquipmentWorldState.Loose);
     }
 
     private static void ApplyArmorDurabilityDamage(

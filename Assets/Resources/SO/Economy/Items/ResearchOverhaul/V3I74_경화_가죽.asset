@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 14
   features:
-  - rid: 7737211905658585827
-  - rid: 7737211905658585828
-  - rid: 7737211905660420730
+  - rid: 7737211981816660622
+  - rid: 7737211981816660623
+  - rid: 7737211981816660624
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585827
+    - rid: 7737211981816660622
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:armor-tailoring
-    - rid: 7737211905658585828
+    - rid: 7737211981816660623
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 128
         sharedIntermediate: 1
-    - rid: 7737211905660420730
+    - rid: 7737211981816660624
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.60139215

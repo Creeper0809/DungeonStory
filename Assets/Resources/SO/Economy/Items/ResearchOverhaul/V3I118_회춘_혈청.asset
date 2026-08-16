@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 96
   features:
-  - rid: 7737211905658586028
-  - rid: 7737211905658586029
-  - rid: 7737211905660420784
+  - rid: 7737211981816660885
+  - rid: 7737211981816660886
+  - rid: 7737211981816660887
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658586028
+    - rid: 7737211981816660885
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:blood-rejuvenation
-    - rid: 7737211905658586029
+    - rid: 7737211981816660886
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737211905660420784
+    - rid: 7737211981816660887
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.59717935

@@ -1,0 +1,54 @@
+Character Deprivation Production BT PlayMode Matrix
+UTC=2026-08-14T11:36:05.9974787Z
+STATUS=PASS
+AUTHORITY=V18 aggregate state producer -> live BehaviorTree root -> CharacterAiDecisionPipeline Has/RunDeprivationBreakdown -> domain runner
+PROHIBITED_DIRECT_CALLS=decisionPipeline.RunDeprivationBreakdown, TryRunActiveBreakdown, BeginBreakdownAction, DebugForceBreakdown, DebugClearBreakdown
+
+INFO	START_PARTY	committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Arin:-2287600:character:staff:1:02:active=True,Roma:-2287532:character:staff:1:01:active=True; diagnostics=prepared-1:name=Roma;go=-2287504;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-2287572;id=character:staff:1:02;active=False || scan:name=Roma;go=-2287504;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-2287572;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-2287504;id=character:staff:1:01;active=True || retained:name=Arin;go=-2287572;id=character:staff:1:02;active=True
+PASS	LIVE_SCOPE	DungeonRuntimeSystems
+PASS	LIVE_ACTOR	Arin
+PASS	SAVE_RUNTIME_READY	environmentInitialized=True;version=1
+PASS	V18_BASELINE_CAPTURE	character:staff:1:02
+PASS	RELIEF_V18_BREAKDOWN_PRODUCER	kind=DesperateRelief;cause=Bladder;need=5;reason=V18 aggregate restore + production CharacterStats mutation; deterministic active breakdown cannot be reached in a bounded QA row through 30 real-time held seconds
+PASS	RELIEF_PRODUCTION_BT_ROUTE	producer=V18 aggregate restore + production CharacterStats mutation; deterministic active breakdown cannot be reached in a bounded QA row through 30 real-time held seconds;handled=0->1;typed[DesperateRelief]=0->1;lastTyped=DesperateRelief;finalRoute=BT=DeprivationBreakdown/Run Deprivation Breakdown status=배변 붕괴 CommitBreak=ManualReplan: Immediate replan with cleared failures.
+PASS	RELIEF_EXTERNAL_ACTION_STARTED	owner=survival:breakdown;epoch=1;phase=
+PASS	RELIEF_TYPED_TERMINAL	count=0->1;kind=Completed
+PASS	RELIEF_DOMAIN_TERMINAL	breakdownActive=False;external=False
+PASS	RELIEF_DOMAIN_OUTCOME	need=5->93.53;filth=0->2
+PASS	RELIEF_OWNERSHIP_CLEANUP	paths=0;brainReservations=0;fixtureLeaseClean=True
+PASS	RELIEF_NO_LIFECYCLE_ANOMALY	starts=0; switches=0; restarts=0; phases=0; replans=5; interruptedReplans=0; executionFailures=0; noAction=0; candidateRejections=0; duplicateExecutionSuppressions=0; interactionActionReplacements=0; protectedRunningActionReplans=0; orphanWorkActionRecoveries=0; jobGiverEvaluationRejections=0; repeatedPeak=0(None); terminals=0; liveActions=0; progress=11; gameplayProgress=7; queueHeartbeats=0; serviceHeartbeats=0; paths=0/0/0; reservations=0/0/0; retries=0/0; schedulerProcesses=2; schedulerOverdue=1; invariantAnomalies=0; failureLoops=0; executionByKind=none; candidateByKind=none; jobGiverByBranchKind=none
+PASS	DRINK_V18_BREAKDOWN_PRODUCER	kind=DesperateDrink;cause=Thirst;need=5;reason=V18 aggregate restore + production CharacterStats mutation; deterministic active breakdown cannot be reached in a bounded QA row through 30 real-time held seconds
+PASS	DRINK_PHYSICAL_FIXTURE	stack=stack:fe6bb44c14d74a1b92f73b7eb9989363;item=resource:clean-water;qty=1
+PASS	DRINK_PRODUCTION_BT_ROUTE	producer=V18 aggregate restore + production CharacterStats mutation; deterministic active breakdown cannot be reached in a bounded QA row through 30 real-time held seconds;handled=0->1;typed[DesperateDrink]=0->1;lastTyped=DesperateDrink;finalRoute=BT=DeprivationBreakdown/Run Deprivation Breakdown status=갈증 붕괴 CommitBreak=ManualReplan: Immediate replan with cleared failures.
+PASS	DRINK_EXTERNAL_ACTION_STARTED	owner=survival:breakdown;epoch=1;phase=
+PASS	DRINK_TYPED_TERMINAL	count=0->1;kind=Completed
+PASS	DRINK_DOMAIN_TERMINAL	breakdownActive=False;external=False
+PASS	DRINK_DOMAIN_OUTCOME	condition=THIRST;need=5->70;physicalConsumed=True
+PASS	DRINK_OWNERSHIP_CLEANUP	paths=0;brainReservations=0;fixtureLeaseClean=True
+PASS	DRINK_NO_LIFECYCLE_ANOMALY	starts=0; switches=0; restarts=0; phases=0; replans=5; interruptedReplans=0; executionFailures=0; noAction=0; candidateRejections=0; duplicateExecutionSuppressions=0; interactionActionReplacements=0; protectedRunningActionReplans=0; orphanWorkActionRecoveries=0; jobGiverEvaluationRejections=0; repeatedPeak=0(None); terminals=0; liveActions=0; progress=1; gameplayProgress=0; queueHeartbeats=0; serviceHeartbeats=0; paths=0/0/0; reservations=0/0/0; retries=0/0; schedulerProcesses=1; schedulerOverdue=0; invariantAnomalies=0; failureLoops=0; executionByKind=none; candidateByKind=none; jobGiverByBranchKind=none
+PASS	EAT_V18_BREAKDOWN_PRODUCER	kind=DesperateEat;cause=Hunger;need=5;reason=V18 aggregate restore + production CharacterStats mutation; deterministic active breakdown cannot be reached in a bounded QA row through 30 real-time held seconds
+PASS	EAT_PHYSICAL_FIXTURE	stack=stack:9ec79cc9cdb949e690a04c8571b3e9b2;item=food:preserved-ration;qty=1
+PASS	EAT_PRODUCTION_BT_ROUTE	producer=V18 aggregate restore + production CharacterStats mutation; deterministic active breakdown cannot be reached in a bounded QA row through 30 real-time held seconds;handled=0->1;typed[DesperateEat]=0->1;lastTyped=DesperateEat;finalRoute=BT=DeprivationBreakdown/Run Deprivation Breakdown status=굶주림 붕괴 CommitBreak=ManualReplan: Immediate replan with cleared failures.
+PASS	EAT_EXTERNAL_ACTION_STARTED	owner=survival:breakdown;epoch=1;phase=
+PASS	EAT_TYPED_TERMINAL	count=0->1;kind=Completed
+PASS	EAT_DOMAIN_TERMINAL	breakdownActive=False;external=False
+PASS	EAT_DOMAIN_OUTCOME	condition=HUNGER;need=5->42.35;physicalConsumed=True
+PASS	EAT_OWNERSHIP_CLEANUP	paths=0;brainReservations=0;fixtureLeaseClean=True
+PASS	EAT_NO_LIFECYCLE_ANOMALY	starts=0; switches=0; restarts=0; phases=0; replans=5; interruptedReplans=0; executionFailures=0; noAction=0; candidateRejections=0; duplicateExecutionSuppressions=0; interactionActionReplacements=0; protectedRunningActionReplans=0; orphanWorkActionRecoveries=0; jobGiverEvaluationRejections=0; repeatedPeak=0(None); terminals=0; liveActions=0; progress=1; gameplayProgress=0; queueHeartbeats=0; serviceHeartbeats=0; paths=0/0/0; reservations=0/0/0; retries=0/0; schedulerProcesses=1; schedulerOverdue=0; invariantAnomalies=0; failureLoops=0; executionByKind=none; candidateByKind=none; jobGiverByBranchKind=none
+PASS	VIOLENT_BREAKDOWN_V18_BREAKDOWN_PRODUCER	kind=ViolentImpulse;cause=MentalInstability;need=50;reason=V18 aggregate restore + production CharacterStats mutation; deterministic active breakdown cannot be reached in a bounded QA row through 30 real-time held seconds
+PASS	VIOLENT_BREAKDOWN_PRODUCTION_BT_ROUTE	producer=V18 aggregate restore + production CharacterStats mutation; deterministic active breakdown cannot be reached in a bounded QA row through 30 real-time held seconds;handled=0->1;typed[ViolentImpulse]=0->1;lastTyped=ViolentImpulse;finalRoute=BT=RoutineUtility/Run Routine Utility status=행동 후보를 나누어 평가하는 중 CommitBreak=ManualReplan: Immediate replan with cleared failures.
+PASS	VIOLENT_BREAKDOWN_EXTERNAL_ACTION_STARTED	owner=survival:breakdown;epoch=1;phase=
+PASS	VIOLENT_BREAKDOWN_TYPED_TERMINAL	count=0->1;kind=Completed
+PASS	VIOLENT_BREAKDOWN_DOMAIN_TERMINAL	breakdownActive=False;external=False
+PASS	VIOLENT_BREAKDOWN_DOMAIN_OUTCOME	burden=45;activities=0->1
+PASS	VIOLENT_BREAKDOWN_OWNERSHIP_CLEANUP	paths=0;brainReservations=0;fixtureLeaseClean=True
+PASS	VIOLENT_BREAKDOWN_NO_LIFECYCLE_ANOMALY	starts=0; switches=0; restarts=0; phases=0; replans=5; interruptedReplans=0; executionFailures=0; noAction=0; candidateRejections=0; duplicateExecutionSuppressions=0; interactionActionReplacements=0; protectedRunningActionReplans=0; orphanWorkActionRecoveries=0; jobGiverEvaluationRejections=0; repeatedPeak=0(None); terminals=0; liveActions=0; progress=3; gameplayProgress=0; queueHeartbeats=0; serviceHeartbeats=0; paths=0/0/0; reservations=0/0/0; retries=1/0; schedulerProcesses=2; schedulerOverdue=0; invariantAnomalies=0; failureLoops=0; executionByKind=none; candidateByKind=none; jobGiverByBranchKind=Work/CandidateEvaluationDeferred:1
+PASS	COLLAPSE_V18_BREAKDOWN_PRODUCER	kind=Collapse;cause=Exhaustion;need=5;reason=V18 aggregate restore + production CharacterStats mutation; deterministic active breakdown cannot be reached in a bounded QA row through 30 real-time held seconds
+PASS	COLLAPSE_PRODUCTION_BT_ROUTE	producer=V18 aggregate restore + production CharacterStats mutation; deterministic active breakdown cannot be reached in a bounded QA row through 30 real-time held seconds;handled=0->1;typed[Collapse]=0->1;lastTyped=Collapse;finalRoute=BT=RoutineUtility/Run Routine Utility status=행동 후보를 나누어 평가하는 중 CommitBreak=ManualReplan: Immediate replan with cleared failures.
+PASS	COLLAPSE_EXTERNAL_ACTION_STARTED	owner=survival:breakdown;epoch=1;phase=
+PASS	COLLAPSE_TYPED_TERMINAL	count=0->1;kind=Completed
+PASS	COLLAPSE_DOMAIN_TERMINAL	breakdownActive=False;external=False
+PASS	COLLAPSE_DOMAIN_OUTCOME	condition=SLEEP;need=5->40;physicalConsumed=True
+PASS	COLLAPSE_OWNERSHIP_CLEANUP	paths=0;brainReservations=0;fixtureLeaseClean=True
+PASS	COLLAPSE_NO_LIFECYCLE_ANOMALY	starts=0; switches=0; restarts=0; phases=0; replans=5; interruptedReplans=0; executionFailures=0; noAction=0; candidateRejections=0; duplicateExecutionSuppressions=0; interactionActionReplacements=0; protectedRunningActionReplans=0; orphanWorkActionRecoveries=0; jobGiverEvaluationRejections=0; repeatedPeak=0(None); terminals=0; liveActions=0; progress=4; gameplayProgress=0; queueHeartbeats=0; serviceHeartbeats=0; paths=0/0/0; reservations=0/0/0; retries=1/0; schedulerProcesses=3; schedulerOverdue=0; invariantAnomalies=0; failureLoops=0; executionByKind=none; candidateByKind=none; jobGiverByBranchKind=Rest/CandidateEvaluationDeferred:1
+PASS	CONSOLE_CLEAN	warnings=0;errors=0

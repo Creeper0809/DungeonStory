@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 41
   features:
-  - rid: 7737211905660420183
-  - rid: 7737211905660420184
-  - rid: 7737211905660420857
+  - rid: 7737211981818757283
+  - rid: 7737211981818757284
+  - rid: 7737211981818757285
   references:
     version: 2
     RefIds:
-    - rid: 7737211905660420183
+    - rid: 7737211981818757283
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:society:corpse-care
-    - rid: 7737211905660420184
+    - rid: 7737211981818757284
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 128
         sharedIntermediate: 0
-    - rid: 7737211905660420857
+    - rid: 7737211981818757285
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.60621715

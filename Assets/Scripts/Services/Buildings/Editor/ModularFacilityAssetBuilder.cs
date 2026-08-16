@@ -91,6 +91,12 @@ public static class ModularFacilityAssetBuilder
         PatchSurvivalFacilityAbilities();
     }
 
+    [MenuItem("DungeonStory/Content/Patch D03/R07 Work Wiring")]
+    public static void PatchCriticalWorkTypeWiringFromMenu()
+    {
+        PatchCriticalWorkTypeWiring();
+    }
+
     [MenuItem("DungeonStory/Content/Build Environment Facilities")]
     public static void BuildEnvironmentFacilities()
     {
@@ -151,6 +157,7 @@ public static class ModularFacilityAssetBuilder
             bool changed = false;
             changed |= ReplaceAbility(building, CreateWaterSourceAbility(code));
             changed |= ReplaceAbility(building, CreateCookingAbility(code));
+            changed |= ReplaceAbility(building, CreateButcherAbility(code));
             changed |= ReplaceAbility(building, CreatePreservationAbility(code));
             changed |= ReplaceAbility(building, CreateMedicalAbility(code));
             changed |= ReplaceAbility(building, CreateFuelConsumerAbility(code));
@@ -186,6 +193,43 @@ public static class ModularFacilityAssetBuilder
         Debug.Log("Survival facility abilities patched.");
     }
 
+    /// <summary>
+    /// Rebuilds only the two authored facilities whose work contracts are
+    /// required by the butcher and grand-project production pipelines.
+    /// </summary>
+    public static void PatchCriticalWorkTypeWiring()
+    {
+        FacilityPartSpec[] specs = CreateSpecs();
+        string[] targetCodes = { "D03", "R07" };
+        for (int targetIndex = 0; targetIndex < targetCodes.Length; targetIndex++)
+        {
+            string code = targetCodes[targetIndex];
+            int specIndex = Array.FindIndex(
+                specs,
+                candidate => string.Equals(candidate.Code, code, StringComparison.Ordinal));
+            if (specIndex < 0)
+            {
+                throw new InvalidOperationException(
+                    $"Critical facility '{code}' is missing from the modular catalog.");
+            }
+
+            FacilityPartSpec spec = specs[specIndex];
+            string spritePath = $"{SpriteFolder}/{spec.Code}.png";
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(spritePath) == null)
+            {
+                throw new InvalidOperationException(
+                    $"Critical facility '{code}' is missing its authored sprite at '{spritePath}'.");
+            }
+
+            EnsureBuildingAsset(spec, ResolveBuildingId(specs, specIndex), spritePath);
+        }
+
+        ValidateCriticalWorkTypeWiringAssets();
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("Patched and validated D03 butcher and R07 grand-project work wiring.");
+    }
+
     public static void BuildAll()
     {
         FacilityPartSpec[] specs = CreateSpecs();
@@ -209,6 +253,8 @@ public static class ModularFacilityAssetBuilder
 
         }
 
+        ValidateCriticalWorkTypeWiringAssets();
+
         NormalizeAbilityLists();
         ServiceRoomContentAssetBuilder.EnsureAssets();
         int shopIndex = Array.FindIndex(
@@ -220,6 +266,107 @@ public static class ModularFacilityAssetBuilder
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         Debug.Log($"Built {specs.Length} modular facility sprites and BuildingSO assets.");
+    }
+
+    public static void ValidateCriticalWorkTypeWiringAssets()
+    {
+        BuildingSO preparationTable = LoadCriticalFacility("D03", "조리손질대");
+        RequirePreparationTableWorkTypes(preparationTable);
+        BuildingButcherAbility butcherAbility =
+            preparationTable.GetAbility<BuildingButcherAbility>();
+        if (butcherAbility == null
+            || !Mathf.Approximately(butcherAbility.workSeconds, 1f))
+        {
+            throw new InvalidOperationException(
+                "D03 조리손질대 must author exactly one 1 WU BuildingButcherAbility "
+                + "for the production butcher pipeline.");
+        }
+
+        BuildingSO lordOffice = LoadCriticalFacility("R07", "영주집무책상");
+        RequireExactWorkTypes(
+            lordOffice,
+            BuiltInWorkTypeIds.Operate,
+            BuiltInWorkTypeIds.Repair,
+            BuiltInWorkTypeIds.GrandProject);
+    }
+
+    private static void RequirePreparationTableWorkTypes(BuildingSO building)
+    {
+        bool hasProcessFluid =
+            building.GetAbility<BuildingProcessFluidAbility>() != null;
+        BuildingUtilityConnectionAbility utility =
+            building.GetAbility<BuildingUtilityConnectionAbility>();
+        bool hasCleanWater = utility != null
+            && (utility.channels & UtilityChannel.CleanWater) != 0;
+        bool hasWastewater = utility != null
+            && (utility.channels & UtilityChannel.Wastewater) != 0;
+        bool hasAnyFluidOverlay =
+            hasProcessFluid || hasCleanWater || hasWastewater;
+        bool hasCompleteFluidOverlay =
+            hasProcessFluid && hasCleanWater && hasWastewater;
+
+        if (hasAnyFluidOverlay && !hasCompleteFluidOverlay)
+        {
+            throw new InvalidOperationException(
+                "D03 조리손질대 process-fluid overlay must author "
+                + "BuildingProcessFluidAbility with both clean-water and "
+                + "wastewater utility channels.");
+        }
+
+        if (hasCompleteFluidOverlay)
+        {
+            RequireExactWorkTypes(
+                building,
+                BuiltInWorkTypeIds.Cook,
+                BuiltInWorkTypeIds.Butcher,
+                BuiltInWorkTypeIds.Plumbing);
+            return;
+        }
+
+        RequireExactWorkTypes(
+            building,
+            BuiltInWorkTypeIds.Cook,
+            BuiltInWorkTypeIds.Butcher);
+    }
+
+    private static BuildingSO LoadCriticalFacility(string code, string assetName)
+    {
+        string path = $"{BuildingFolder}/{code}_{assetName}.asset";
+        BuildingSO building = AssetDatabase.LoadAssetAtPath<BuildingSO>(path);
+        if (building == null)
+        {
+            throw new InvalidOperationException(
+                $"Critical modular facility '{code}' is missing at '{path}'.");
+        }
+
+        building.ValidateAbilitiesOrThrow();
+        return building;
+    }
+
+    private static void RequireExactWorkTypes(
+        BuildingSO building,
+        params WorkTypeId[] expected)
+    {
+        FacilityData facility = building.Facility;
+        if (facility == null)
+        {
+            throw new InvalidOperationException(
+                $"Critical modular facility '{building.name}' has no facility work contract.");
+        }
+
+        WorkTypeId[] actual = facility.SupportedWorkTypeIds
+            .OrderBy(value => value.Value, StringComparer.Ordinal)
+            .ToArray();
+        WorkTypeId[] normalizedExpected = expected
+            .OrderBy(value => value.Value, StringComparer.Ordinal)
+            .ToArray();
+        if (!actual.SequenceEqual(normalizedExpected))
+        {
+            throw new InvalidOperationException(
+                $"Critical modular facility '{building.name}' work contract drifted. "
+                + $"Expected [{string.Join(", ", normalizedExpected.Select(value => value.Value))}], "
+                + $"actual [{string.Join(", ", actual.Select(value => value.Value))}].");
+        }
     }
 
     private static int ResolveBuildingId(
@@ -482,6 +629,7 @@ public static class ModularFacilityAssetBuilder
         AddAbility(abilities, EnsureMercenaryHiringAbility(spec));
         AddAbility(abilities, CreateWaterSourceAbility(spec.Code));
         AddAbility(abilities, CreateCookingAbility(spec.Code));
+        AddAbility(abilities, CreateButcherAbility(spec.Code));
         AddAbility(abilities, CreatePreservationAbility(spec.Code));
         AddAbility(abilities, CreateMedicalAbility(spec.Code));
         AddAbility(abilities, CreateFuelConsumerAbility(spec.Code));
@@ -653,6 +801,7 @@ public static class ModularFacilityAssetBuilder
         {
             BuildingWaterSourceAbility => building.AbilityModules.Remove<BuildingWaterSourceAbility>(),
             BuildingCookingAbility => building.AbilityModules.Remove<BuildingCookingAbility>(),
+            BuildingButcherAbility => building.AbilityModules.Remove<BuildingButcherAbility>(),
             BuildingPreservationAbility => building.AbilityModules.Remove<BuildingPreservationAbility>(),
             BuildingMedicalAbility => building.AbilityModules.Remove<BuildingMedicalAbility>(),
             BuildingFuelConsumerAbility => building.AbilityModules.Remove<BuildingFuelConsumerAbility>(),
@@ -1202,6 +1351,13 @@ public static class ModularFacilityAssetBuilder
         };
     }
 
+    private static BuildingButcherAbility CreateButcherAbility(string code)
+    {
+        return string.Equals(code, "D03", StringComparison.Ordinal)
+            ? new BuildingButcherAbility { workSeconds = 1f }
+            : null;
+    }
+
     private static BuildingPreservationAbility CreatePreservationAbility(string code)
     {
         return code switch
@@ -1429,6 +1585,7 @@ public static class ModularFacilityAssetBuilder
         }
         if (CreateWaterSourceAbility(code) != null) result |= FacilityWorkType.DrawWater;
         if (CreateCookingAbility(code) != null) result |= FacilityWorkType.Cook;
+        if (CreateButcherAbility(code) != null) result |= FacilityWorkType.Butcher;
         if (CreateMedicalAbility(code) != null) result |= FacilityWorkType.Treat;
         if (CreateFuelConsumerAbility(code) != null) result |= FacilityWorkType.Refuel;
         if (CreateGolemRechargeAbility(code) != null) result |= FacilityWorkType.Refuel;
@@ -1461,6 +1618,7 @@ public static class ModularFacilityAssetBuilder
         if ((workTypes & FacilityWorkType.Logging) != 0) yield return BuiltInWorkTypeIds.Logging;
         if ((workTypes & FacilityWorkType.Quarry) != 0) yield return BuiltInWorkTypeIds.Quarry;
         if ((workTypes & FacilityWorkType.AnimalCare) != 0) yield return BuiltInWorkTypeIds.AnimalCare;
+        if ((workTypes & FacilityWorkType.GrandProject) != 0) yield return BuiltInWorkTypeIds.GrandProject;
     }
 
     private static FacilityWorkType GetSurvivalFallbackWorkTypes(BuildingSO building)
@@ -1473,6 +1631,7 @@ public static class ModularFacilityAssetBuilder
 
         if (building.GetAbility<BuildingWaterSourceAbility>() != null) result |= FacilityWorkType.DrawWater;
         if (building.GetAbility<BuildingCookingAbility>() != null) result |= FacilityWorkType.Cook;
+        if (building.GetAbility<BuildingButcherAbility>() != null) result |= FacilityWorkType.Butcher;
         if (building.GetAbility<BuildingMedicalAbility>() != null) result |= FacilityWorkType.Treat;
         if (building.GetAbility<BuildingFuelConsumerAbility>() != null) result |= FacilityWorkType.Refuel;
         if (building.GetAbility<BuildingGolemRechargeAbility>() != null) result |= FacilityWorkType.Refuel;
@@ -1515,7 +1674,7 @@ public static class ModularFacilityAssetBuilder
             "T02" => Recovery(mood: 3f, fun: 16f),
             "T03" => Recovery(mood: 5f, fun: 12f),
             "H01" => Recovery(excretion: 75f, mood: 2f),
-            "H03" => Recovery(hygiene: 62f, mood: 3f),
+            "H03" => Recovery(hygiene: 45f, mood: 3f),
             "H04" => Recovery(sleep: 12f, hygiene: 85f, mood: 10f),
             _ => default
         };

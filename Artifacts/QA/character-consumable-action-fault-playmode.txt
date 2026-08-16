@@ -1,0 +1,92 @@
+# Character consumable action production-live fault matrix
+authority=Brain/BT -> AIDrink/AIEat/AISubstanceUse -> production ability/runtime
+RESULT=PASS; failures=0
+INFO	START_PARTY	committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Roma:-9034304:character:staff:1:01:active=True,Arin:-9034372:character:staff:1:02:active=True; diagnostics=prepared-1:name=Roma;go=-9034276;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-9034344;id=character:staff:1:02;active=False || scan:name=Roma;go=-9034276;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-9034344;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-9034276;id=character:staff:1:01;active=True || retained:name=Arin;go=-9034344;id=character:staff:1:02;active=True
+PASS	LIVE_SCOPE	DungeonRuntimeSystems
+PASS	LIVE_CONSUMABLE_ACTOR	Roma
+PASS	LIVE_GRID	60x3
+PASS	DRINK_SOURCE_LOSS_ROW_SETTLED	brain/action/meal/lease ownership idle
+PASS	DRINK_SOURCE_LOSS_AUTHORED	Drink
+PASS	DRINK_SOURCE_LOSS_FIXTURE	target=stack:db626f2693a24655931ba5af356d36ec;foreign=lease:qa:consumable-foreign:0001:5
+PASS	DRINK_SOURCE_LOSS_RUNNING_LEASE	epoch=1;lease=lease:safe-drink:character:staff:1:01:0000000000000001:6;action=Drink (AIDrink)
+PASS	DRINK_SOURCE_LOSS_FIXTURE_SELECTED	stack:db626f2693a24655931ba5af356d36ec
+PASS	DRINK_SOURCE_LOSS_TYPED_FAILED	epoch=1;terminal=Failed;failure=The reserved water quantity was lost or its lease was invalidated.
+PASS	DRINK_SOURCE_LOSS_FAILURE_ONCE	failures=0->1
+PASS	DRINK_SOURCE_LOSS_IMMEDIATE_REPLAN	replans=5->7
+PASS	DRINK_SOURCE_LOSS_TARGET_LEASE_CLEAN	lease:safe-drink:character:staff:1:01:0000000000000001:6
+PASS	DRINK_SOURCE_LOSS_FOREIGN_LEASE_PRESERVED	lease=lease:qa:consumable-foreign:0001:5;stack=stack:60c81634eadd4c66b82055bfae5cdf1f;remaining=1;signature=resource:clean-water::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0001,species=0:qa:foreign-lease-isolation];slices=stack:60c81634eadd4c66b82055bfae5cdf1f:1:resource:clean-water::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0001,species=0:qa:foreign-lease-isolation];failure=None;total=1;reserved=1;available=0
+PASS	DRINK_SOURCE_LOSS_AI_OWNERSHIP_CLEAN	paths=0;reservations=0
+PASS	DRINK_LEASE_INVALID_ROW_SETTLED	brain/action/meal/lease ownership idle
+PASS	DRINK_LEASE_INVALID_AUTHORED	Drink
+PASS	DRINK_LEASE_INVALID_FIXTURE	target=stack:e17abc5a1748489d844083ddfdd69ada;foreign=lease:qa:consumable-foreign:0002:7
+PASS	DRINK_LEASE_INVALID_RUNNING_LEASE	epoch=3;lease=lease:safe-drink:character:staff:1:01:0000000000000003:8;action=Drink (AIDrink)
+PASS	DRINK_LEASE_INVALID_FIXTURE_SELECTED	stack:e17abc5a1748489d844083ddfdd69ada
+PASS	DRINK_LEASE_INVALID_TYPED_FAILED	epoch=3;terminal=Failed;failure=The reserved water quantity was lost or its lease was invalidated.
+PASS	DRINK_LEASE_INVALID_FAILURE_ONCE	failures=1->2
+PASS	DRINK_LEASE_INVALID_IMMEDIATE_REPLAN	replans=8->11
+PASS	DRINK_LEASE_INVALID_TARGET_LEASE_CLEAN	lease:safe-drink:character:staff:1:01:0000000000000003:8
+PASS	DRINK_LEASE_INVALID_FOREIGN_LEASE_PRESERVED	lease=lease:qa:consumable-foreign:0002:7;stack=stack:bb6be17cd9ca475f88733625de16c168;remaining=1;signature=resource:clean-water::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0002,species=0:qa:foreign-lease-isolation];slices=stack:bb6be17cd9ca475f88733625de16c168:1:resource:clean-water::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0002,species=0:qa:foreign-lease-isolation];failure=None;total=1;reserved=1;available=0
+PASS	DRINK_LEASE_INVALID_AI_OWNERSHIP_CLEAN	paths=0;reservations=0
+PASS	EAT_SOURCE_LOSS_ROW_SETTLED	brain/action/meal/lease ownership idle
+PASS	EAT_SOURCE_LOSS_AUTHORED	Eat
+PASS	EAT_SOURCE_LOSS_FACILITY	간이화덕;distance=16;staged=(33, 1);route=16;remaining<=1
+PASS	EAT_SOURCE_LOSS_FIXTURE	target=stack:0eb1f613de134cab9b1eb79f46ea7bbc;targetSignature=food:preserved-ration::;foreignStack=stack:04b4583009ea4e9ca3499a07105af285;foreignSignature=food:preserved-ration::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0003,species=0:qa:foreign-lease-isolation];foreignLease=lease:qa:consumable-foreign:0003:9
+PASS	EAT_SOURCE_LOSS_RUNNING_MEAL_PLAN	epoch=4;plan=consumable-operation:auto:v1:0000000000000001;source=stack:0eb1f613de134cab9b1eb79f46ea7bbc;lease=lease:consumable-operation:auto:v1:0000000000000001:15;schedulerFrames=235;wakeRequests=12->13;schedulerProcesses=10->79;retrySchedules=2->69;retryAttempts=2->69;pathRequests=0->68;pathResults=0->68;committedPathDeferrals=0->67;preferredAtRequest=True;preferredNow=False;scoringPending=False;pathDeferred=False;committedPathDeferred=False;brokerSearches=1;brokerDeferrals=0;best=Eat (AIEat);phase=식사 중;phaseDetail=4s;failure=;hunger=47.24;utility=0.41;canStart=True;facilityUsers=1;facilityReservations=0
+PASS	EAT_SOURCE_LOSS_FIXTURE_SELECTED	expected=stack:0eb1f613de134cab9b1eb79f46ea7bbc;actual=stack:0eb1f613de134cab9b1eb79f46ea7bbc
+PASS	EAT_SOURCE_LOSS_PREFAULT_LEASE_ISOLATION	isolated=True;targetLive=True;targetStack=stack:0eb1f613de134cab9b1eb79f46ea7bbc;targetState=FacilityBuffer;targetDestination=facility-input:meal:building:2dd5aeee0d0645d2a019128101a1cf96;targetSignature=food:preserved-ration::;targetSlices=stack:0eb1f613de134cab9b1eb79f46ea7bbc:1:food:preserved-ration::;targetFailure=None;foreignLive=True;foreignStack=stack:04b4583009ea4e9ca3499a07105af285;foreignState=Loose;foreignDestination=;foreignSignature=food:preserved-ration::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0003,species=0:qa:foreign-lease-isolation];foreignSlices=stack:04b4583009ea4e9ca3499a07105af285:1:food:preserved-ration::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0003,species=0:qa:foreign-lease-isolation];foreignFailure=None
+PASS	EAT_SOURCE_LOSS_TYPED_FAILED	epoch=4;terminal=Failed;failure=간이화덕: ItemStackMissing:consumable-operation:auto:v1:0000000000000001,meal-stack-missing-at-commit
+PASS	EAT_SOURCE_LOSS_FAILURE_ONCE	failures=2->3
+PASS	EAT_SOURCE_LOSS_IMMEDIATE_REPLAN	replans=12->14
+PASS	EAT_SOURCE_LOSS_TARGET_LEASE_CLEAN	lease:consumable-operation:auto:v1:0000000000000001:15
+PASS	EAT_SOURCE_LOSS_FOREIGN_LEASE_PRESERVED	lease=lease:qa:consumable-foreign:0003:9;stack=stack:04b4583009ea4e9ca3499a07105af285;remaining=1;signature=food:preserved-ration::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0003,species=0:qa:foreign-lease-isolation];slices=stack:04b4583009ea4e9ca3499a07105af285:1:food:preserved-ration::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0003,species=0:qa:foreign-lease-isolation];failure=None;total=1;reserved=1;available=0
+PASS	EAT_SOURCE_LOSS_AI_OWNERSHIP_CLEAN	paths=0;reservations=0
+PASS	EAT_SOURCE_LOSS_MEAL_SEAT_PLAN_CLEAN	plans=0;users=0;reservations=0
+PASS	EAT_SPOIL_ROW_SETTLED	brain/action/meal/lease ownership idle
+PASS	EAT_SPOIL_AUTHORED	Eat
+PASS	EAT_SPOIL_FACILITY	간이화덕;distance=0;staged=(34, 1);route=0
+PASS	EAT_SPOIL_FIXTURE	target=stack:ff967ad2ec824eacb5a06cb2db356695;targetSignature=food:preserved-ration::;foreignStack=stack:0c5d763336524708848449e526cf20d9;foreignSignature=food:preserved-ration::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0004,species=0:qa:foreign-lease-isolation];foreignLease=lease:qa:consumable-foreign:0004:16
+PASS	EAT_SPOIL_RUNNING_MEAL_PLAN	epoch=5;plan=consumable-operation:auto:v1:0000000000000002;source=stack:ff967ad2ec824eacb5a06cb2db356695;lease=lease:consumable-operation:auto:v1:0000000000000002:17;schedulerFrames=30;wakeRequests=16->17;schedulerProcesses=80->81;retrySchedules=69->69;retryAttempts=69->69;pathRequests=68->68;pathResults=68->68;committedPathDeferrals=67->67;preferredAtRequest=True;preferredNow=False;scoringPending=False;pathDeferred=False;committedPathDeferred=False;brokerSearches=1;brokerDeferrals=0;best=Eat (AIEat);phase=식사 중;phaseDetail=4s;failure=;hunger=50;utility=0.35;canStart=True;facilityUsers=1;facilityReservations=0
+PASS	EAT_SPOIL_FIXTURE_SELECTED	expected=stack:ff967ad2ec824eacb5a06cb2db356695;actual=stack:ff967ad2ec824eacb5a06cb2db356695
+PASS	EAT_SPOIL_PREFAULT_LEASE_ISOLATION	isolated=True;targetLive=True;targetStack=stack:ff967ad2ec824eacb5a06cb2db356695;targetState=FacilityBuffer;targetDestination=facility-input:meal:building:2dd5aeee0d0645d2a019128101a1cf96;targetSignature=food:preserved-ration::;targetSlices=stack:ff967ad2ec824eacb5a06cb2db356695:1:food:preserved-ration::;targetFailure=None;foreignLive=True;foreignStack=stack:0c5d763336524708848449e526cf20d9;foreignState=Loose;foreignDestination=;foreignSignature=food:preserved-ration::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0004,species=0:qa:foreign-lease-isolation];foreignSlices=stack:0c5d763336524708848449e526cf20d9:1:food:preserved-ration::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0004,species=0:qa:foreign-lease-isolation];foreignFailure=None
+PASS	EAT_SPOIL_TYPED_FAILED	epoch=5;terminal=Failed;failure=간이화덕: ItemNotConsumable:consumable-operation:auto:v1:0000000000000002,meal-spoiled-before-commit
+PASS	EAT_SPOIL_FAILURE_ONCE	failures=3->4
+PASS	EAT_SPOIL_IMMEDIATE_REPLAN	replans=15->17
+PASS	EAT_SPOIL_TARGET_LEASE_CLEAN	lease:consumable-operation:auto:v1:0000000000000002:17
+PASS	EAT_SPOIL_FOREIGN_LEASE_PRESERVED	lease=lease:qa:consumable-foreign:0004:16;stack=stack:0c5d763336524708848449e526cf20d9;remaining=1;signature=food:preserved-ration::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0004,species=0:qa:foreign-lease-isolation];slices=stack:0c5d763336524708848449e526cf20d9:1:food:preserved-ration::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0004,species=0:qa:foreign-lease-isolation];failure=None;total=1;reserved=1;available=0
+PASS	EAT_SPOIL_AI_OWNERSHIP_CLEAN	paths=0;reservations=0
+PASS	EAT_SPOIL_MEAL_SEAT_PLAN_CLEAN	plans=0;users=0;reservations=0
+PASS	EAT_LEASE_INVALID_ROW_SETTLED	brain/action/meal/lease ownership idle
+PASS	EAT_LEASE_INVALID_AUTHORED	Eat
+PASS	EAT_LEASE_INVALID_FACILITY	간이화덕;distance=0;staged=(34, 1);route=0
+PASS	EAT_LEASE_INVALID_FIXTURE	target=stack:bcc9749b0e1947dd9e32c74873236626;targetSignature=food:preserved-ration::;foreignStack=stack:db89e5dac5f64136a4cbc939a0e9c27a;foreignSignature=food:preserved-ration::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0005,species=0:qa:foreign-lease-isolation];foreignLease=lease:qa:consumable-foreign:0005:18
+PASS	EAT_LEASE_INVALID_RUNNING_MEAL_PLAN	epoch=6;plan=consumable-operation:auto:v1:0000000000000003;source=stack:bcc9749b0e1947dd9e32c74873236626;lease=lease:consumable-operation:auto:v1:0000000000000003:19;schedulerFrames=22;wakeRequests=20->21;schedulerProcesses=83->84;retrySchedules=69->69;retryAttempts=69->69;pathRequests=68->68;pathResults=68->68;committedPathDeferrals=67->67;preferredAtRequest=True;preferredNow=False;scoringPending=False;pathDeferred=False;committedPathDeferred=False;brokerSearches=1;brokerDeferrals=0;best=Eat (AIEat);phase=식사 중;phaseDetail=4s;failure=;hunger=50;utility=0.35;canStart=True;facilityUsers=1;facilityReservations=0
+PASS	EAT_LEASE_INVALID_FIXTURE_SELECTED	expected=stack:bcc9749b0e1947dd9e32c74873236626;actual=stack:bcc9749b0e1947dd9e32c74873236626
+PASS	EAT_LEASE_INVALID_PREFAULT_LEASE_ISOLATION	isolated=True;targetLive=True;targetStack=stack:bcc9749b0e1947dd9e32c74873236626;targetState=FacilityBuffer;targetDestination=facility-input:meal:building:2dd5aeee0d0645d2a019128101a1cf96;targetSignature=food:preserved-ration::;targetSlices=stack:bcc9749b0e1947dd9e32c74873236626:1:food:preserved-ration::;targetFailure=None;foreignLive=True;foreignStack=stack:db89e5dac5f64136a4cbc939a0e9c27a;foreignState=Loose;foreignDestination=;foreignSignature=food:preserved-ration::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0005,species=0:qa:foreign-lease-isolation];foreignSlices=stack:db89e5dac5f64136a4cbc939a0e9c27a:1:food:preserved-ration::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0005,species=0:qa:foreign-lease-isolation];foreignFailure=None
+PASS	EAT_LEASE_INVALID_TYPED_FAILED	epoch=6;terminal=Failed;failure=간이화덕: PhysicalConsumptionFailed:consumable-operation:auto:v1:0000000000000003,meal-lease-invalid-at-commit
+PASS	EAT_LEASE_INVALID_FAILURE_ONCE	failures=4->5
+PASS	EAT_LEASE_INVALID_IMMEDIATE_REPLAN	replans=18->20
+PASS	EAT_LEASE_INVALID_TARGET_LEASE_CLEAN	lease:consumable-operation:auto:v1:0000000000000003:19
+PASS	EAT_LEASE_INVALID_FOREIGN_LEASE_PRESERVED	lease=lease:qa:consumable-foreign:0005:18;stack=stack:db89e5dac5f64136a4cbc939a0e9c27a;remaining=1;signature=food:preserved-ration::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0005,species=0:qa:foreign-lease-isolation];slices=stack:db89e5dac5f64136a4cbc939a0e9c27a:1:food:preserved-ration::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0005,species=0:qa:foreign-lease-isolation];failure=None;total=1;reserved=1;available=0
+PASS	EAT_LEASE_INVALID_AI_OWNERSHIP_CLEAN	paths=0;reservations=0
+PASS	EAT_LEASE_INVALID_MEAL_SEAT_PLAN_CLEAN	plans=0;users=0;reservations=0
+PASS	SUBSTANCE_SOURCE_LOSS_ROW_SETTLED	brain/action/meal/lease ownership idle
+PASS	SUBSTANCE_SOURCE_LOSS_AUTHORED	SubstanceUse
+PASS	SUBSTANCE_SOURCE_LOSS_FIXTURE	target=stack:840f1891019e48ae82d4a46682d61e5c;foreign=lease:qa:consumable-foreign:0006:25
+PASS	SUBSTANCE_SOURCE_LOSS_RUNNING_LEASE	epoch=7;stack=stack:840f1891019e48ae82d4a46682d61e5c;lease=lease:substance-use:character:staff:1:01:0000000000000007:26
+PASS	SUBSTANCE_SOURCE_LOSS_TYPED_FAILED	epoch=7;terminal=Failed;failure=stack disappeared
+PASS	SUBSTANCE_SOURCE_LOSS_FAILURE_ONCE	failures=5->6
+PASS	SUBSTANCE_SOURCE_LOSS_IMMEDIATE_REPLAN	replans=21->23
+PASS	SUBSTANCE_SOURCE_LOSS_TARGET_LEASE_CLEAN	lease:substance-use:character:staff:1:01:0000000000000007:26
+PASS	SUBSTANCE_SOURCE_LOSS_FOREIGN_LEASE_PRESERVED	lease=lease:qa:consumable-foreign:0006:25;stack=stack:f2c1b420c9004fcaa5b1b66b26410249;remaining=1;signature=drug:vitality-tonic::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0006,species=0:qa:foreign-lease-isolation];slices=stack:f2c1b420c9004fcaa5b1b66b26410249:1:drug:vitality-tonic::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0006,species=0:qa:foreign-lease-isolation];failure=None;total=1;reserved=1;available=0
+PASS	SUBSTANCE_SOURCE_LOSS_AI_OWNERSHIP_CLEAN	paths=0;reservations=0
+PASS	SUBSTANCE_LEASE_INVALID_ROW_SETTLED	brain/action/meal/lease ownership idle
+PASS	SUBSTANCE_LEASE_INVALID_AUTHORED	SubstanceUse
+PASS	SUBSTANCE_LEASE_INVALID_FIXTURE	target=stack:8c9fe9caf0ad4cfe84251fdecd3d2291;foreign=lease:qa:consumable-foreign:0007:27
+PASS	SUBSTANCE_LEASE_INVALID_RUNNING_LEASE	epoch=8;stack=stack:8c9fe9caf0ad4cfe84251fdecd3d2291;lease=lease:substance-use:character:staff:1:01:0000000000000008:28
+PASS	SUBSTANCE_LEASE_INVALID_TYPED_FAILED	epoch=8;terminal=Failed;failure=DomainFailure
+PASS	SUBSTANCE_LEASE_INVALID_FAILURE_ONCE	failures=6->7
+PASS	SUBSTANCE_LEASE_INVALID_IMMEDIATE_REPLAN	replans=24->26
+PASS	SUBSTANCE_LEASE_INVALID_TARGET_LEASE_CLEAN	lease:substance-use:character:staff:1:01:0000000000000008:28
+PASS	SUBSTANCE_LEASE_INVALID_FOREIGN_LEASE_PRESERVED	lease=lease:qa:consumable-foreign:0007:27;stack=stack:ebaaf5088e154b1cab9487b4e060f917;remaining=1;signature=drug:vitality-tonic::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0007,species=0:qa:foreign-lease-isolation];slices=stack:ebaaf5088e154b1cab9487b4e060f917:1:drug:vitality-tonic::item-state:provenance@1[source-character-id=0:qa:consumable-foreign:0007,species=0:qa:foreign-lease-isolation];failure=None;total=1;reserved=1;available=0
+PASS	SUBSTANCE_LEASE_INVALID_AI_OWNERSHIP_CLEAN	paths=0;reservations=0
+PASS	CONSOLE_WARNING_ERROR_ZERO	0/0

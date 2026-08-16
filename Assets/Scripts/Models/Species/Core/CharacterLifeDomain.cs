@@ -762,6 +762,7 @@ public interface ICharacterLifeCommand
         string facilityId,
         bool operational,
         int nextMaintenanceAbsoluteDay);
+    bool Remove(CharacterId characterId);
 }
 
 public interface ICharacterLifePersistence
@@ -1011,6 +1012,17 @@ public sealed class CharacterLifeRuntime :
             operational,
             nextMaintenanceAbsoluteDay);
         version = unchecked(version + 1);
+    }
+
+    public bool Remove(CharacterId characterId)
+    {
+        if (!characterId.IsValid || !Writable.Characters.Remove(characterId))
+        {
+            return false;
+        }
+
+        version = unchecked(version + 1);
+        return true;
     }
 
     private CharacterLifeRecord RequireWritableRecord(CharacterId characterId)

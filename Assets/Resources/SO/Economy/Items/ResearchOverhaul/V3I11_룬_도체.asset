@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 48
   features:
-  - rid: 7737211905658586034
-  - rid: 7737211905658586035
-  - rid: 7737211905660420788
+  - rid: 7737211981816660892
+  - rid: 7737211981816660893
+  - rid: 7737211981816660894
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658586034
+    - rid: 7737211981816660892
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        requiredResearchId: research:industry:mana-power
-    - rid: 7737211905658586035
+        requiredResearchId: research:industry:rune-grid
+    - rid: 7737211981816660893
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 1536
         sharedIntermediate: 1
-    - rid: 7737211905660420788
+    - rid: 7737211981816660894
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.60157865

@@ -14,6 +14,24 @@ public class AILookAround : AIActionSet
     [SerializeField] private float maxWaitDuration = 1.2f;
 
     public override bool RequiresDestination => false;
+    public override bool IsContinuous => true;
+
+    public override bool CanContinue(
+        CharacterActor actor,
+        AIAction runningAction,
+        out string stopReason)
+    {
+        stopReason = string.Empty;
+        if (actor != null
+            && actor.TryGetAbility(out AbilityMove move)
+            && move.HasActiveMovementRoutineForDiagnostics)
+        {
+            return true;
+        }
+
+        stopReason = "The look-around movement or timer is no longer active.";
+        return false;
+    }
 
     public override bool CanStart(CharacterActor actor)
     {
@@ -53,7 +71,7 @@ public class AILookAround : AIActionSet
         actor.TryGetAbility(out AbilityMove move);
         if (move != null)
         {
-            if (move.StartIdleWander(waitDuration, 1, 6))
+            if (move.StartIdleWanderWithDeferredRecovery(waitDuration, 1, 6))
             {
                 actor.Brain?.SetActionPhase("주변 둘러보기", detail: "가까운 곳을 돌아보는 중");
                 return;
@@ -66,7 +84,18 @@ public class AILookAround : AIActionSet
 
         if (actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = true;
+            AIBrain brain = actor.Brain;
+            AIAction failedAction = brain.bestAction;
+            brain.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.Unsupported,
+                    "look-around-movement-ability-missing",
+                    failedAction?.destination),
+                requestImmediateReplan: false);
+            brain.EndExpectedAction(
+                failedAction,
+                CharacterAiActionTerminalKind.Failed,
+                clearFailures: false);
         }
     }
 

@@ -30,12 +30,12 @@ MonoBehaviour:
   unitWeight: 0.14
   maxStack: 30
   sprite: {fileID: 0}
-  unitPrice: 42
+  unitPrice: 56
   features:
   - rid: 7737211905666711944
   - rid: 7737211905666711945
-  - rid: 7737211905666711946
   - rid: 7737211905666711947
+  - rid: 7737211981816660591
   references:
     version: 2
     RefIds:
@@ -49,10 +49,6 @@ MonoBehaviour:
         kind: 3
         ingredientTags: 1025
         sharedIntermediate: 0
-    - rid: 7737211905666711946
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.6
     - rid: 7737211905666711947
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
@@ -61,3 +57,7 @@ MonoBehaviour:
         infectionReduction: 14
         detoxReduction: 8
         painReduction: 12
+    - rid: 7737211981816660591
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.6018158

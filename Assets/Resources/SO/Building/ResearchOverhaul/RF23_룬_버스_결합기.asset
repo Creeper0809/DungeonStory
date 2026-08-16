@@ -53,14 +53,14 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211905658585784
-    - rid: 7737211905658585785
-    - rid: 7737211905658585786
-    - rid: 7737211905658585787
-    - rid: 7737211905658585788
-    - rid: 7737211905658585789
-    - rid: 7737211905658585790
-    - rid: 7737211905658585791
+    - rid: 7737211981816660575
+    - rid: 7737211981816660576
+    - rid: 7737211981816660577
+    - rid: 7737211981816660578
+    - rid: 7737211981816660579
+    - rid: 7737211981816660580
+    - rid: 7737211981816660581
+    - rid: 7737211981816660582
   width: 1
   height: 1
   layer: 1
@@ -76,12 +76,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585784
+    - rid: 7737211981816660575
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF23
-    - rid: 7737211905658585785
+    - rid: 7737211981816660576
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -89,13 +89,13 @@ MonoBehaviour:
         - research-overhaul
         - research:industry:rune-grid
         - workstation:v3:rune-conductor
-    - rid: 7737211905658585786
+    - rid: 7737211981816660577
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v3:rune-conductor
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211905658585787
+    - rid: 7737211981816660578
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -103,7 +103,7 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211905658585788
+    - rid: 7737211981816660579
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -112,7 +112,7 @@ MonoBehaviour:
         maintenance: 6
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211905658585789
+    - rid: 7737211981816660580
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -123,14 +123,15 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 32785
           disabledWhenDamaged: 1
-    - rid: 7737211905658585790
+    - rid: 7737211981816660581
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211905658585791
+    - rid: 7737211981816660582
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
         constructionWorkRequired: 136
         repairWorkRequired: 52
         cleanWorkRequired: 12
@@ -162,5 +163,3 @@ MonoBehaviour:
           amount: 4
         - itemId: component:engineering-drawing
           amount: 2
-        - itemId: component:rune-bus-coupler
-          amount: 1

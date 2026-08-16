@@ -60,6 +60,10 @@ MonoBehaviour:
     - rid: 7737211921440178926
     - rid: 7737211921440178927
     - rid: 7737211921440178928
+    - rid: 7737211981818757215
+    - rid: 7737211981818757216
+    - rid: 7737211981818757217
+    - rid: 7737211981818757218
   width: 1
   height: 1
   layer: 3
@@ -156,3 +160,35 @@ MonoBehaviour:
         abilityId: BuildingSecurityAbility
         maxAlarmCharges: 3
         chargesPerGuardWork: 1
+    - rid: 7737211981818757215
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 1
+        maxThroughput: 25
+        normallyOpen: 1
+    - rid: 7737211981818757216
+      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingPowerConsumerAbility
+        demandPerSecond: 5
+        priority: 4
+        minimumSupplyFraction: 0.75
+    - rid: 7737211981818757217
+      type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingAutomationAbility
+        maximumMode: 2
+        assistedPowerDemand: 2
+        automaticPowerDemand: 5
+        assistedWorkMultiplier: 1.35
+        automaticWorkPerSecond: 1
+        automaticQualityCap: 0.75
+        maintenancePerGameHour: 1
+    - rid: 7737211981818757218
+      type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingConveyorPortAbility
+        mode: 2
+        destinationId: 
+        capacity: 4

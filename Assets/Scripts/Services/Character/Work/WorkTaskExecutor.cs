@@ -79,22 +79,44 @@ public readonly struct EmergencyWorkSuspensionReceipt
         WorkTypeId workTypeId,
         string targetBuildingId,
         long alertEpochId,
-        bool progressExternallyPersisted)
+        bool progressExternallyPersisted,
+        float inlineCompletedWork = 0f,
+        float inlineRequiredWork = 0f)
     {
         WorkTypeId = workTypeId;
         TargetBuildingId = targetBuildingId?.Trim() ?? string.Empty;
         AlertEpochId = alertEpochId;
         ProgressExternallyPersisted = progressExternallyPersisted;
+        InlineCompletedWork = inlineCompletedWork;
+        InlineRequiredWork = inlineRequiredWork;
     }
 
     public WorkTypeId WorkTypeId { get; }
     public string TargetBuildingId { get; }
     public long AlertEpochId { get; }
     public bool ProgressExternallyPersisted { get; }
+    public float InlineCompletedWork { get; }
+    public float InlineRequiredWork { get; }
+    public bool HasInlineProgress => InlineRequiredWork > 0f
+        && InlineCompletedWork >= 0f
+        && InlineCompletedWork < InlineRequiredWork;
     public bool IsValid => WorkTypeId.IsValid
         && !string.IsNullOrWhiteSpace(TargetBuildingId)
         && AlertEpochId > 0L
-        && ProgressExternallyPersisted;
+        && (ProgressExternallyPersisted || HasInlineProgress);
+}
+
+public enum WorkPreWuExitKind
+{
+    None = 0,
+    RoutineNeedInterrupt = 1,
+    EmergencySuspension = 2,
+    EnvironmentInterrupt = 3,
+    WorkOrderLoopConditionRejected = 4,
+    WorkOrderApplyRejected = 5,
+    TimedLoopConditionRejected = 6,
+    PersistentApplyRejected = 7,
+    ExecutionHandlerRejected = 8
 }
 
 public sealed class WorkTaskExecutor
@@ -127,6 +149,7 @@ public sealed class WorkTaskExecutor
     private readonly ICharacterSpeciesCommand speciesCommands;
     private readonly IEmergencyWorkAccountingService emergencyWorkAccounting;
     private readonly ISettlementLaborAccountingService settlementLaborAccounting;
+    private readonly IReservedItemTransferService reservedItemTransfers;
     private float nextEnvironmentRecheckAt;
     private bool environmentInterrupted;
     private float approvedProficiencyWork;
@@ -144,6 +167,37 @@ public sealed class WorkTaskExecutor
     private bool emergencySuspended;
     private long requestedEmergencyEpochId;
     private EmergencyWorkSuspensionReceipt pendingSuspensionReceipt;
+    private bool genericProgressActive;
+    private WorkTypeId genericProgressWorkTypeId;
+    private string genericProgressTargetId = string.Empty;
+    private float genericProgressCompletedWork;
+    private float genericProgressRequiredWork;
+    private bool resumedGenericProgressPending;
+    private WorkTypeId resumedGenericWorkTypeId;
+    private string resumedGenericTargetId = string.Empty;
+    private float resumedGenericCompletedWork;
+    private float resumedGenericRequiredWork;
+    private string activeRestockOperationId = string.Empty;
+    private string activeRestockLeaseId = string.Empty;
+    private IDisposable activeExecutionCancellationResource;
+    private WorkPreWuExitKind lastPreWuExitKind;
+    private string lastPreWuExitDetail = string.Empty;
+    private string lastWorkOrderExecutionDetail = string.Empty;
+
+    internal bool HasActiveGenericProgressForDiagnostics =>
+        genericProgressActive;
+    internal float GenericCompletedWorkForDiagnostics =>
+        genericProgressCompletedWork;
+    internal float GenericRequiredWorkForDiagnostics =>
+        genericProgressRequiredWork;
+    internal bool HasPendingResumedGenericProgressForDiagnostics =>
+        resumedGenericProgressPending;
+    internal WorkPreWuExitKind LastPreWuExitKindForDiagnostics =>
+        lastPreWuExitKind;
+    internal string LastPreWuExitDetailForDiagnostics =>
+        lastPreWuExitDetail;
+    internal string LastWorkOrderExecutionDetailForDiagnostics =>
+        lastWorkOrderExecutionDetail;
 
     public WorkTaskExecutor(
         WorkTaskCoreDependencies core,
@@ -160,7 +214,8 @@ public sealed class WorkTaskExecutor
         IAnatomyHealthRuntime anatomyHealth = null,
         ICharacterSpeciesCommand speciesCommands = null,
         IEmergencyWorkAccountingService emergencyWorkAccounting = null,
-        ISettlementLaborAccountingService settlementLaborAccounting = null)
+        ISettlementLaborAccountingService settlementLaborAccounting = null,
+        IReservedItemTransferService reservedItemTransfers = null)
     {
         core = core ?? throw new ArgumentNullException(nameof(core));
         execution = execution ?? throw new ArgumentNullException(nameof(execution));
@@ -193,10 +248,13 @@ public sealed class WorkTaskExecutor
             ?? throw new ArgumentNullException(nameof(speciesCommands));
         this.emergencyWorkAccounting = emergencyWorkAccounting;
         this.settlementLaborAccounting = settlementLaborAccounting;
+        this.reservedItemTransfers = reservedItemTransfers;
     }
 
     public IEnumerator Work(int runId)
     {
+        ReleaseActiveRestockLease(ItemReservationReleaseReason.Replanned);
+        ReleaseActiveExecutionCancellationResource();
         currentRunId = runId;
         activeEmergencyOperationId = string.Empty;
         emergencyAccountingSequence = 0L;
@@ -210,6 +268,9 @@ public sealed class WorkTaskExecutor
         emergencySuspended = false;
         requestedEmergencyEpochId = 0L;
         approvedProficiencyWork = 0f;
+        lastPreWuExitKind = WorkPreWuExitKind.None;
+        lastPreWuExitDetail = string.Empty;
+        lastWorkOrderExecutionDetail = string.Empty;
         proficiencyAwarded = false;
         proficiencyRepetitionMultiplier = 1f;
         workAccidentOccurred = false;
@@ -244,8 +305,81 @@ public sealed class WorkTaskExecutor
         nextEnvironmentRecheckAt = gameClock.Time + 1f;
         if (work.AssignedWorkType == FacilityWorkType.Restock)
         {
-            yield return ExecuteRestockHaulWork(runId, currentAction, move, grid);
-            FinishWorkRun(actor, currentAction);
+            bool restockCompleted = false;
+            yield return ExecuteRestockHaulWork(
+                runId,
+                currentAction,
+                move,
+                grid,
+                success => restockCompleted = success);
+            if (work.IsActiveWorkRun(runId))
+            {
+                if (restockCompleted)
+                {
+                    FinishWorkRun(actor, currentAction);
+                    work.ClearActiveWorkRoutine(runId);
+                }
+                else
+                {
+                    AbortWorkRun(
+                        runId,
+                        actor,
+                        currentAction,
+                        CharacterAiActionTerminalKind.Failed);
+                }
+            }
+            yield break;
+        }
+
+        BuildableObject plannedTarget = work.assignedShop;
+        WorkTypeId plannedWorkTypeId = FacilityWorkTypeMap.TryGet(
+                work.AssignedWorkType,
+                out WorkTypeDefinition plannedWorkDefinition)
+            ? plannedWorkDefinition.WorkTypeId
+            : default;
+        string expectedWorkOrderId = string.Empty;
+        bool requiresCommonWorkOrder = RequiresCommonWorkOrderRoute(
+            plannedWorkTypeId);
+        if (workOrderRuntime != null
+            && plannedTarget != null
+            && plannedWorkTypeId.IsValid
+            && workOrderRuntime.TryGetOrderFor(
+                plannedTarget,
+                plannedWorkTypeId,
+                out WorkOrderProgressState plannedOrder))
+        {
+            expectedWorkOrderId = plannedOrder.WorkOrderId;
+            lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
+                "planned",
+                plannedTarget,
+                plannedWorkTypeId,
+                expectedWorkOrderId,
+                plannedOrder);
+        }
+        else if (requiresCommonWorkOrder)
+        {
+            lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
+                "planned-missing",
+                plannedTarget,
+                plannedWorkTypeId,
+                expectedWorkOrderId,
+                null);
+            RecordPreWuExit(
+                WorkPreWuExitKind.WorkOrderLoopConditionRejected,
+                lastWorkOrderExecutionDetail);
+            currentAction?.ReleaseReservation(actor);
+            actor?.Brain?.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.ResourceUnavailable,
+                    "required-work-order-unavailable-before-approach",
+                    plannedTarget),
+                requestImmediateReplan: false);
+            work.isWorking = false;
+            work.AssignWork(null, FacilityWorkType.None);
+            EndAiAction(
+                actor,
+                currentAction,
+                CharacterAiActionTerminalKind.Failed);
             work.ClearActiveWorkRoutine(runId);
             yield break;
         }
@@ -258,6 +392,61 @@ public sealed class WorkTaskExecutor
         }
 
         BuildableObject assignedTarget = work.assignedShop;
+        string assignedTargetName = assignedTarget != null
+            ? assignedTarget.name
+            : "<missing-work-target>";
+        string assignedTargetPersistentId = assignedTarget != null
+            ? assignedTarget.RequirePersistentInstanceId().Value
+            : string.Empty;
+        WorkOrderProgressState currentOrder = null;
+        bool approachOrderAvailable = workOrderRuntime != null
+            && assignedTarget != null
+            && workOrderRuntime.TryGetOrderFor(
+                assignedTarget,
+                plannedWorkTypeId,
+                out currentOrder);
+        if (!string.IsNullOrWhiteSpace(expectedWorkOrderId)
+            && (assignedTarget != plannedTarget
+                || !approachOrderAvailable
+                || !string.Equals(
+                    currentOrder.WorkOrderId,
+                    expectedWorkOrderId,
+                    StringComparison.Ordinal)
+                || currentOrder.Status == WorkOrderStatus.Completed
+                || currentOrder.Status == WorkOrderStatus.Cancelled))
+        {
+            lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
+                "approach-revalidation-failed",
+                assignedTarget,
+                plannedWorkTypeId,
+                expectedWorkOrderId,
+                currentOrder);
+            RecordPreWuExit(
+                WorkPreWuExitKind.WorkOrderLoopConditionRejected,
+                lastWorkOrderExecutionDetail);
+            currentAction?.ReleaseReservation(actor);
+            actor?.Brain?.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.ResourceUnavailable,
+                    "work-order-invalidated-during-approach",
+                    assignedTarget),
+                requestImmediateReplan: false);
+            actor?.AddActivity(CharacterActivityEvent.Work(
+                plannedWorkTypeId,
+                CharacterActivityOutcomes.Failed,
+                "작업 실패: 이동 중 작업 주문이 취소되거나 교체되었습니다.",
+                assignedTarget,
+                reasonCode: "work-order-invalidated-during-approach",
+                bubbleEligible: true));
+            work.isWorking = false;
+            work.AssignWork(null, FacilityWorkType.None);
+            EndAiAction(
+                actor,
+                currentAction,
+                CharacterAiActionTerminalKind.Failed);
+            work.ClearActiveWorkRoutine(runId);
+            yield break;
+        }
         if (HasReachedAssignedWorkTarget(actor, grid)
             && assignedTarget is IWorkableFacility facility)
         {
@@ -310,7 +499,10 @@ public sealed class WorkTaskExecutor
                     bubbleEligible: true));
                 facility.DeallocateWorker(visitor);
                 work.isWorking = false;
-                EndAiAction(actor, currentAction);
+                EndAiAction(
+                    actor,
+                    currentAction,
+                    CharacterAiActionTerminalKind.Failed);
                 work.ClearActiveWorkRoutine(runId);
                 yield break;
             }
@@ -319,7 +511,7 @@ public sealed class WorkTaskExecutor
                 actor,
                 assignedTarget,
                 workTypeId,
-                $"work:{runId}:{assignedTarget.RequirePersistentInstanceId().Value}:started");
+                $"work:{runId}:{assignedTargetPersistentId}:started");
             characterEnvironment.SetWorkContext(
                 new CharacterId(actor?.Identity?.PersistentId),
                 WorkExecutionRules.ResolveEnvironmentWorkKind(workTypeId));
@@ -327,9 +519,49 @@ public sealed class WorkTaskExecutor
             bool completedImmediately = false;
             bool completedSuccessfully = true;
             bool completionEffectsAlreadyApplied = false;
-            if (workOrderRuntime != null
+            string executionFailureCode = string.Empty;
+            WorkOrderProgressState executionOrder = null;
+            bool hasExecutionOrder = workOrderRuntime != null
                 && workTypeId.IsValid
-                && workOrderRuntime.TryGetOrderFor(assignedTarget, workTypeId, out _))
+                && workOrderRuntime.TryGetOrderFor(
+                    assignedTarget,
+                    workTypeId,
+                    out executionOrder);
+            bool executionOrderMatchesPlan = hasExecutionOrder
+                && (!requiresCommonWorkOrder
+                    || string.Equals(
+                        executionOrder.WorkOrderId,
+                        expectedWorkOrderId,
+                        StringComparison.Ordinal))
+                && executionOrder.Status != WorkOrderStatus.Completed
+                && executionOrder.Status != WorkOrderStatus.Cancelled;
+            lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
+                executionOrderMatchesPlan
+                    ? "execution-ready"
+                    : requiresCommonWorkOrder
+                        ? "execution-revalidation-failed"
+                        : "execution-no-order",
+                assignedTarget,
+                workTypeId,
+                expectedWorkOrderId,
+                hasExecutionOrder ? executionOrder : null);
+            if (requiresCommonWorkOrder && !executionOrderMatchesPlan)
+            {
+                // CommonWorkOrder is an authored execution contract, not a
+                // hint. Falling through to CheckActionWork used to turn a
+                // missing/replaced order into a 30-second generic duty shift,
+                // then report work-execution-unavailable with zero accepted
+                // WU. Preserve the planned identity and fail at the exact
+                // ownership boundary instead.
+                RecordPreWuExit(
+                    WorkPreWuExitKind.WorkOrderLoopConditionRejected,
+                    lastWorkOrderExecutionDetail);
+                executionFailureCode =
+                    "required-work-order-unavailable-after-allocation";
+                completedSuccessfully = false;
+                completedImmediately = true;
+            }
+            else if (executionOrderMatchesPlan)
             {
                 yield return ExecuteWorkOrderRoutine(
                     runId,
@@ -337,6 +569,7 @@ public sealed class WorkTaskExecutor
                     assignedTarget,
                     workType,
                     workDefinition,
+                    executionOrder.WorkOrderId,
                     (success, appliedEffects) =>
                     {
                         completedSuccessfully = success;
@@ -394,7 +627,11 @@ public sealed class WorkTaskExecutor
                         requiredWork,
                         label,
                         extraMultiplier),
-                    () => CanContinueTimedWork(runId, actor) && work.isWorking,
+                    () => CanContinueTimedWork(
+                            runId,
+                            actor,
+                            assignedTarget)
+                        && work.isWorking,
                     (
                         requiredWork,
                         completedWork,
@@ -417,8 +654,10 @@ public sealed class WorkTaskExecutor
                     () => TrySuspendAtSafeCheckpoint(
                         actor,
                         assignedTarget,
-                        workTypeId));
+                        workTypeId),
+                    RegisterActiveExecutionCancellationResource);
                 yield return executionHandler.Execute(executionContext, executionResult);
+                ReleaseActiveExecutionCancellationResource();
                 completedSuccessfully = executionResult.CompletedSuccessfully;
                 completionEffectsAlreadyApplied =
                     executionResult.CompletionEffectsAlreadyApplied;
@@ -451,16 +690,24 @@ public sealed class WorkTaskExecutor
                 WorkDebugLog.LogEnd(actor, "작업량 완료");
             }
 
-            // The target can be removed by completion, teardown, save restore,
-            // or another concurrent system while this coroutine is yielding.
-            // Never dereference the Unity fake-null object during finalization.
-            if (assignedTarget == null)
+            // Dismantle completion intentionally removes its own target. All
+            // other removals are external invalidations and remain failures.
+            // Cache identity above and never dereference Unity fake-null during
+            // successful dismantle finalization.
+            bool expectedDismantleRemoval =
+                workTypeId == BuiltInWorkTypeIds.Dismantle
+                && completedSuccessfully
+                && completionEffectsAlreadyApplied;
+            if (!expectedDismantleRemoval
+                && (assignedTarget == null
+                    || !assignedTarget.gameObject.activeInHierarchy))
             {
                 CompleteEmergencyAccounting("target-destroyed-after-execution");
                 actor?.Brain?.ReportRuntimeActionFailure(
                     AIActionFailure.Create(
                         AIActionFailureKind.Destroyed,
-                        "work-target-destroyed-after-execution"),
+                        "work-target-destroyed-or-inactive-after-execution",
+                        assignedTarget),
                     requestImmediateReplan: false);
                 CharacterSkillRuntimeEffects.EndWork(actor);
                 characterEnvironment.ClearWorkContext(
@@ -472,13 +719,28 @@ public sealed class WorkTaskExecutor
                 {
                     work.AssignWork(null, FacilityWorkType.None);
                 }
-                EndAiAction(actor, currentAction);
+                EndAiAction(
+                    actor,
+                    currentAction,
+                    CharacterAiActionTerminalKind.Failed);
                 work.ClearActiveWorkRoutine(runId);
                 yield break;
             }
 
             bool routineNeedInterrupted =
                 work.LastWorkRunInterruptedForRoutineNeed;
+            if (!completedSuccessfully
+                && !routineNeedInterrupted
+                && approvedProficiencyWork <= 0f)
+            {
+                RecordPreWuExit(
+                    WorkPreWuExitKind.ExecutionHandlerRejected,
+                    "workType=" + workTypeId.Value + "; "
+                    + CaptureTimedWorkGateDetail(
+                        runId,
+                        actor,
+                        assignedTarget));
+            }
             if (completedSuccessfully)
             {
                 AwardApprovedWork(actor, ProficiencyWorkOutcome.Success);
@@ -491,7 +753,7 @@ public sealed class WorkTaskExecutor
                     actor,
                     assignedTarget,
                     workTypeId,
-                    $"work:{runId}:{assignedTarget.RequirePersistentInstanceId().Value}:completed");
+                    $"work:{runId}:{assignedTargetPersistentId}:completed");
                 if (!completionEffectsAlreadyApplied)
                 {
                     ModularFacilityRuntimeEffects.ApplyWorkCompleted(
@@ -526,13 +788,21 @@ public sealed class WorkTaskExecutor
                     actor,
                     workTypeId,
                     "outcome:failure");
+                actor?.Brain?.ReportRuntimeActionFailure(
+                    AIActionFailure.Create(
+                        AIActionFailureKind.ResourceUnavailable,
+                        string.IsNullOrWhiteSpace(executionFailureCode)
+                            ? $"work-execution-unavailable:{workTypeId.Value}"
+                            : executionFailureCode,
+                        assignedTarget),
+                    requestImmediateReplan: false);
             }
 
             actor?.AiMemory?.RecordWork(
                 workTypeId,
                 assignedTarget,
                 completedSuccessfully,
-                $"{WorkTaskCatalog.GetLegacyDisplayName(workType)} {(completedSuccessfully ? "완료" : "실패")}: {assignedTarget.name}");
+                $"{WorkTaskCatalog.GetLegacyDisplayName(workType)} {(completedSuccessfully ? "완료" : "실패")}: {assignedTargetName}");
             CompleteEmergencyAccounting(
                 completedSuccessfully
                     ? "completed"
@@ -552,7 +822,12 @@ public sealed class WorkTaskExecutor
             {
                 work.ClearPriorityWorkTarget();
             }
-            EndAiAction(actor, currentAction);
+            EndAiAction(
+                actor,
+                currentAction,
+                completedSuccessfully || routineNeedInterrupted
+                    ? CharacterAiActionTerminalKind.Completed
+                    : CharacterAiActionTerminalKind.Failed);
         }
         else
         {
@@ -571,6 +846,18 @@ public sealed class WorkTaskExecutor
                 false,
                 $"작업 도달 실패: {(assignedTarget != null ? assignedTarget.name : "대상 없음")}");
             currentAction?.ReleaseReservation(actor);
+            actor?.Brain?.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.NoPath,
+                    "work-target-unreachable",
+                    assignedTarget),
+                requestImmediateReplan: false);
+            EndAiAction(
+                actor,
+                currentAction,
+                CharacterAiActionTerminalKind.Failed);
+            work.ClearActiveWorkRoutine(runId);
+            yield break;
         }
 
         EndAiAction(actor, currentAction);
@@ -584,7 +871,8 @@ public sealed class WorkTaskExecutor
             return false;
         }
 
-        return work.assignedShop.ContainsGridPosition(
+        return work.assignedShop.IsWorkAccessGridPosition(
+            grid,
             grid.GetXY(work.transform.position));
     }
 
@@ -592,19 +880,57 @@ public sealed class WorkTaskExecutor
         int runId,
         AIAction currentAction,
         AbilityMove move,
-        Grid grid)
+        Grid grid,
+        Action<bool> onCompleted)
     {
         CharacterActor actor = work.WorkerActor;
         BuildableObject restockTarget = work.assignedShop;
+        if (restockTarget == null || restockTarget.isDestroy)
+        {
+            actor?.Brain?.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.Destroyed,
+                    "restock-target-invalid-before-start"),
+                requestImmediateReplan: false);
+            work.isWorking = false;
+            yield break;
+        }
+        if (!CharacterPersistentIdentity.TryGet(
+                actor,
+                out CharacterId restockActorId)
+            || !restockTarget.PersistentInstanceId.IsValid)
+        {
+            actor?.Brain?.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.CannotStart,
+                    "restock-plan-identity-invalid",
+                    restockTarget),
+                requestImmediateReplan: false);
+            ReleaseActiveRestockLease(
+                ItemReservationReleaseReason.Cancelled);
+            work.isWorking = false;
+            yield break;
+        }
+        BuildingInstanceId restockTargetId =
+            restockTarget.PersistentInstanceId;
         CharacterSkillRuntimeEffects.BeginWork(
             actor,
             restockTarget,
             BuiltInWorkTypeIds.Restock,
-            $"work:{runId}:{restockTarget.RequirePersistentInstanceId().Value}:restock-started");
+            $"work:{runId}:{restockTargetId.Value}:restock-started");
+        actor?.Brain?.SetActionPhase(
+            "\uBCF4\uCDA9 \uACC4\uD68D",
+            restockTarget,
+            "restock:planning");
         float durationMultiplier = work.GetWorkEnvironmentDurationMultiplier(BuiltInWorkTypeIds.Restock)
             / Mathf.Max(0.1f, CharacterSkillRuntimeEffects.GetWorkSpeedMultiplier(actor));
         if (restockTarget is not IRestockableFacility restockable)
         {
+            actor?.Brain?.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.Unsupported,
+                    "restock-target-not-restockable"),
+                requestImmediateReplan: false);
             actor?.AddActivity(CharacterActivityEvent.Work(
                 FacilityWorkType.Restock,
                 CharacterActivityOutcomes.Failed,
@@ -625,9 +951,15 @@ public sealed class WorkTaskExecutor
             out IWarehouseFacility warehouse,
             out WarehouseRestockItem saleItem,
             out int loadAmount,
-            out Queue<GridMoveStep> pathToWarehouse,
             out string failureReason))
         {
+            actor?.Brain?.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.ResourceUnavailable,
+                    string.IsNullOrWhiteSpace(failureReason)
+                        ? "restock-haul-plan-unavailable"
+                        : failureReason),
+                requestImmediateReplan: false);
             actor?.AddActivity(CharacterActivityEvent.Work(
                 FacilityWorkType.Restock,
                 CharacterActivityOutcomes.Failed,
@@ -639,6 +971,87 @@ public sealed class WorkTaskExecutor
             yield break;
         }
 
+        if (restockTarget is not Shop shop
+            || !shop.TryGetSaleItem(saleItem.Id, out SaleItem authoredSaleItem)
+            || authoredSaleItem == null
+            || !authoredSaleItem.ItemDefinitionId.IsValid
+            || actor.WorldItemStackRuntime is not IWorldItemQuantityLeaseRuntime leaseRuntime
+            || reservedItemTransfers == null)
+        {
+            actor?.Brain?.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.Unsupported,
+                    "restock-quantity-lease-runtime-unavailable"),
+                requestImmediateReplan: false);
+            work.isWorking = false;
+            yield break;
+        }
+
+        activeRestockOperationId = CreateRestockOperationId(
+            restockActorId.Value,
+            restockTargetId.Value,
+            saleItem.Id);
+        WorldItemReservedStackQuantity stockReservation = default;
+        Vector2Int pickupStandPosition = default;
+        bool reserved = false;
+        for (int requested = Mathf.Max(1, loadAmount); requested >= 1; requested--)
+        {
+            if (!leaseRuntime.TryReserveAvailableItemForDirectPickup(
+                    actor,
+                    authoredSaleItem.ItemDefinitionId.Value,
+                    requested,
+                    ItemReservationPurpose.FacilityBuffer,
+                    activeRestockOperationId,
+                    out stockReservation,
+                    out pickupStandPosition,
+                    out failureReason))
+            {
+                continue;
+            }
+            loadAmount = requested;
+            reserved = true;
+            break;
+        }
+        if (!reserved || !stockReservation.IsValid)
+        {
+            activeRestockOperationId = string.Empty;
+            actor?.Brain?.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.ResourceUnavailable,
+                    string.IsNullOrWhiteSpace(failureReason)
+                        ? "restock-quantity-unavailable"
+                        : failureReason),
+                requestImmediateReplan: false);
+            work.isWorking = false;
+            yield break;
+        }
+        activeRestockLeaseId = stockReservation.LeaseId;
+        actor?.Brain?.SetActionPhase(
+            "\uC774\uB3D9",
+            warehouseBuilding,
+            "restock:move-to-stock");
+        Vector2Int pickupStart = work.WorkGridResolver.GetGridPosition(grid, actor);
+        Queue<GridMoveStep> pathToWarehouse = actor.PathSearchBroker?.GetMovePathTo(
+            grid,
+            pickupStart,
+            pickupStandPosition,
+            GridPathSearchPriority.Normal,
+            GridTraversalContext.ForCharacter(CharacterPersistentIdentity.Require(actor)));
+        if (pathToWarehouse == null
+            || (pathToWarehouse.Count == 0
+                && pickupStart != pickupStandPosition))
+        {
+            ReleaseActiveRestockLease(ItemReservationReleaseReason.Replanned);
+            actor?.Brain?.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.NoPath,
+                    "restock-pickup-path-unavailable",
+                    warehouseBuilding),
+                requestImmediateReplan: false);
+            work.isWorking = false;
+            yield break;
+        }
+
         actor?.AddActivity(CharacterActivityEvent.Work(
             FacilityWorkType.Restock,
             CharacterActivityOutcomes.Progress,
@@ -646,7 +1059,15 @@ public sealed class WorkTaskExecutor
             restockTarget,
             reasonCode: "moving-to-stock"));
         yield return move.MoveByPath(pathToWarehouse, currentAction);
-        if (ShouldAbortWorkRun(runId, actor))
+        if (ShouldAbortWorkRun(runId, actor, restockTarget))
+        {
+            AbortWorkRun(runId, actor, currentAction);
+            yield break;
+        }
+        if (TrySuspendAtSafeCheckpoint(
+                actor,
+                restockTarget,
+                BuiltInWorkTypeIds.Restock))
         {
             AbortWorkRun(runId, actor, currentAction);
             yield break;
@@ -655,28 +1076,24 @@ public sealed class WorkTaskExecutor
         int carriedAmount = 0;
         for (int i = 0; i < loadAmount; i++)
         {
-            Vector3 pickupPosition = GetWarehousePickupWorldPosition(grid, warehouseBuilding, i, loadAmount);
+            actor?.Brain?.SetActionPhase(
+                "\uBCF4\uCDA9 \uC801\uC7AC",
+                warehouseBuilding,
+                $"restock:loading:{i}/{loadAmount}");
+            Vector2 pickupWorld = grid.GetWorldPos(pickupStandPosition);
+            Vector3 pickupPosition = new Vector3(
+                pickupWorld.x,
+                pickupWorld.y,
+                actor.transform.position.z);
             yield return move.Move2PosBySpeed(pickupPosition, 0.8f, currentAction);
-            if (ShouldAbortWorkRun(runId, actor))
+            if (ShouldAbortWorkRun(runId, actor, restockTarget))
             {
-                ReturnCarriedStock(warehouse, saleItem, carriedAmount);
+                ReleaseActiveRestockLease(ItemReservationReleaseReason.Cancelled);
                 AbortWorkRun(runId, actor, currentAction);
                 yield break;
             }
 
-            IWorldItemStackRuntime physicalItems = actor.WorldItemStackRuntime
-                ?? throw new InvalidOperationException(
-                    "Restock work requires physical item runtime.");
-            int withdrawn = physicalItems.Consume(
-                warehouse,
-                saleItem.Category,
-                1);
-            if (withdrawn <= 0)
-            {
-                break;
-            }
-
-            carriedAmount += withdrawn;
+            carriedAmount++;
             actor?.AddActivity(CharacterActivityEvent.Work(
                 FacilityWorkType.Restock,
                 CharacterActivityOutcomes.Progress,
@@ -688,10 +1105,38 @@ public sealed class WorkTaskExecutor
                 actor,
                 saleItem.Sprite,
                 FloatingIconFeedbackDefaults.DefaultMaxWorldSize);
+            float loadingStartedAt = gameClock.Time;
             yield return new WaitForSeconds(RestockPickupWaitSeconds * durationMultiplier);
-            if (ShouldAbortWorkRun(runId, actor))
+            float loadingElapsed = Mathf.Max(
+                1f / 60f,
+                gameClock.Time - loadingStartedAt);
+            float approvedLoadingWork =
+                WorkExecutionRules.CalculateWorkPerSecond(
+                    workAmountCalculator,
+                    actor,
+                    restockTarget,
+                    BuiltInWorkTypeIds.Restock,
+                    durationMultiplier)
+                * loadingElapsed;
+            RecordApprovedWork(
+                approvedLoadingWork,
+                actor,
+                remainingWork: Mathf.Max(
+                    0f,
+                    loadAmount - carriedAmount)
+                    * RestockPickupWaitSeconds);
+            if (ShouldAbortWorkRun(runId, actor, restockTarget))
             {
-                ReturnCarriedStock(warehouse, saleItem, carriedAmount);
+                ReleaseActiveRestockLease(ItemReservationReleaseReason.Cancelled);
+                AbortWorkRun(runId, actor, currentAction);
+                yield break;
+            }
+            if (TrySuspendAtSafeCheckpoint(
+                    actor,
+                    restockTarget,
+                    BuiltInWorkTypeIds.Restock))
+            {
+                ReleaseActiveRestockLease(ItemReservationReleaseReason.Cancelled);
                 AbortWorkRun(runId, actor, currentAction);
                 yield break;
             }
@@ -712,7 +1157,7 @@ public sealed class WorkTaskExecutor
 
         if (!TryGetPathToBuilding(grid, actor, restockTarget, out Queue<GridMoveStep> pathToShop))
         {
-            ReturnCarriedStock(warehouse, saleItem, carriedAmount);
+            ReleaseActiveRestockLease(ItemReservationReleaseReason.Replanned);
             actor?.AddActivity(CharacterActivityEvent.Work(
                 FacilityWorkType.Restock,
                 CharacterActivityOutcomes.Blocked,
@@ -724,13 +1169,47 @@ public sealed class WorkTaskExecutor
             yield break;
         }
 
+        actor?.Brain?.SetActionPhase(
+            "\uC774\uB3D9",
+            restockTarget,
+            "restock:return-to-target");
         yield return move.MoveByPath(pathToShop, currentAction);
-        if (ShouldAbortWorkRun(runId, actor))
+        if (ShouldAbortWorkRun(runId, actor, restockTarget))
         {
-            ReturnCarriedStock(warehouse, saleItem, carriedAmount);
+            ReleaseActiveRestockLease(ItemReservationReleaseReason.Cancelled);
             AbortWorkRun(runId, actor, currentAction);
             yield break;
         }
+        if (TrySuspendAtSafeCheckpoint(
+                actor,
+                restockTarget,
+                BuiltInWorkTypeIds.Restock))
+        {
+            ReleaseActiveRestockLease(ItemReservationReleaseReason.Cancelled);
+            AbortWorkRun(runId, actor, currentAction);
+            yield break;
+        }
+
+        actor?.Brain?.SetActionPhase(
+            "\uBCF4\uCDA9 \uBC18\uC601",
+            restockTarget,
+            "restock:commit");
+        if (!reservedItemTransfers.TryConsumeReservedQuantity(
+                activeRestockLeaseId,
+                carriedAmount,
+                out DomainFailure consumeFailure))
+        {
+            actor?.Brain?.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.ResourceUnavailable,
+                    consumeFailure.ToString()),
+                requestImmediateReplan: false);
+            ReleaseActiveRestockLease(ItemReservationReleaseReason.Replanned);
+            work.isWorking = false;
+            yield break;
+        }
+        activeRestockLeaseId = string.Empty;
+        activeRestockOperationId = string.Empty;
 
         int restocked = restockable.ReceiveRestock(
             saleItem,
@@ -779,6 +1258,7 @@ public sealed class WorkTaskExecutor
                 ? $"보충 완료: {restockTarget.name}"
                 : $"보충 실패: {restockTarget.name}");
 
+        onCompleted?.Invoke(restocked > 0);
         yield return new WaitForSeconds(0.5f * durationMultiplier);
         work.isWorking = false;
         WorkDebugLog.LogEnd(actor, "보충 완료");
@@ -793,14 +1273,12 @@ public sealed class WorkTaskExecutor
         out IWarehouseFacility warehouse,
         out WarehouseRestockItem saleItem,
         out int loadAmount,
-        out Queue<GridMoveStep> pathToWarehouse,
         out string failureReason)
     {
         warehouseBuilding = null;
         warehouse = null;
         saleItem = default;
         loadAmount = 0;
-        pathToWarehouse = null;
         failureReason = string.Empty;
 
         if (actor == null || grid == null || restockTarget == null || restockable == null)
@@ -809,10 +1287,11 @@ public sealed class WorkTaskExecutor
             return false;
         }
 
-        Vector2Int startPos = work.WorkGridResolver.GetGridPosition(grid, actor);
         List<IWarehouseFacility> reachableWarehouses = targetSelector
             .FindReachableWarehouses(null)
-            .Where((candidate) => candidate.HasWarehouseInventory && candidate.Inventory != null)
+            .Where(candidate => candidate.HasWarehouseInventory
+                && candidate.Inventory != null
+                && !ReferenceEquals(candidate, restockTarget))
             .ToList();
 
         if (!restockable.TryFindRestockSource(
@@ -830,18 +1309,6 @@ public sealed class WorkTaskExecutor
         if (warehouseBuilding == null)
         {
             failureReason = "창고 건물 정보 없음";
-            return false;
-        }
-
-        pathToWarehouse = actor.PathSearchBroker?.GetMovePathTo(
-            grid,
-            startPos,
-            warehouseBuilding.centerPos,
-            GridPathSearchPriority.Normal,
-            GridTraversalContext.ForCharacter(CharacterPersistentIdentity.Require(actor)));
-        if (pathToWarehouse == null)
-        {
-            failureReason = "창고 경로 없음";
             return false;
         }
 
@@ -901,13 +1368,53 @@ public sealed class WorkTaskExecutor
             return false;
         }
 
-        path = actor.PathSearchBroker.GetMovePathTo(
-            grid,
-            startPos,
-            target.centerPos,
-            GridPathSearchPriority.Normal,
-            GridTraversalContext.ForCharacter(CharacterPersistentIdentity.Require(actor)));
+        GridTraversalContext traversal = GridTraversalContext.ForCharacter(
+            CharacterPersistentIdentity.Require(actor));
+        if (!actor.PathSearchBroker.TryGetSearch(
+                grid,
+                startPos,
+                out GridPathSearchResult search,
+                GridPathSearchPriority.Normal,
+                traversal)
+            || !WorkTargetSelectionRules.TryGetReachableWorkAccessPosition(
+                target,
+                search,
+                out Vector2Int workAccess))
+        {
+            return false;
+        }
+
+        path = search.GetMovePathTo(workAccess);
         return path != null;
+    }
+
+    private static string CreateRestockOperationId(
+        string actorId,
+        string targetId,
+        int saleItemId)
+    {
+        if (string.IsNullOrWhiteSpace(actorId)
+            || string.IsNullOrWhiteSpace(targetId)
+            || saleItemId < 0)
+        {
+            throw new ArgumentException(
+                "Restock operation identity requires actor, target and sale item IDs.");
+        }
+        return $"restock:{actorId.Trim()}:{targetId.Trim()}:{saleItemId}";
+    }
+
+    private void ReleaseActiveRestockLease(ItemReservationReleaseReason reason)
+    {
+        string leaseId = activeRestockLeaseId;
+        activeRestockLeaseId = string.Empty;
+        activeRestockOperationId = string.Empty;
+        if (string.IsNullOrWhiteSpace(leaseId))
+            return;
+        if (work.WorkerActor?.WorldItemStackRuntime
+            is IWorldItemQuantityLeaseRuntime leaseRuntime)
+        {
+            leaseRuntime.ReleaseQuantityLease(leaseId, reason);
+        }
     }
 
     private void ReturnCarriedStock(
@@ -945,12 +1452,25 @@ public sealed class WorkTaskExecutor
         BuildableObject target,
         FacilityWorkType workType,
         WorkTypeDefinition workDefinition,
+        string expectedWorkOrderId,
         Action<bool, bool> onCompleted)
     {
         bool completed = false;
         bool appliedCompletionEffects = false;
+        lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
+            "routine-entry",
+            target,
+            workDefinition?.WorkTypeId ?? default,
+            expectedWorkOrderId,
+            null);
         if (target == null || workOrderRuntime == null)
         {
+            lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
+                "routine-entry-rejected",
+                target,
+                workDefinition?.WorkTypeId ?? default,
+                expectedWorkOrderId,
+                null) + ",reason=target-or-runtime-missing";
             onCompleted?.Invoke(false, false);
             yield break;
         }
@@ -960,12 +1480,24 @@ public sealed class WorkTaskExecutor
         float durationMultiplier = work.GetWorkEnvironmentDurationMultiplier(workTypeId);
         float lastReportTime = -10f;
         float lastNeedUpdateTime = gameClock.Time;
+        bool enteredWorkOrderLoop = false;
         IConstructionProjectWorkforceRuntime constructionProject =
             workTypeId == BuiltInWorkTypeIds.Construct
                 ? workOrderRuntime as IConstructionProjectWorkforceRuntime
                 : null;
         ProjectWorkerLease constructionLease = null;
         string workforceFailure = string.Empty;
+        WorkOrderProgressState beforeLoopOrder = null;
+        workOrderRuntime.TryGetOrderFor(
+            target,
+            workTypeId,
+            out beforeLoopOrder);
+        lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
+            "routine-before-loop",
+            target,
+            workTypeId,
+            expectedWorkOrderId,
+            beforeLoopOrder);
         if (workTypeId == BuiltInWorkTypeIds.Construct
             && (constructionProject == null
                 || !constructionProject.TryJoinConstructionProject(
@@ -974,6 +1506,12 @@ public sealed class WorkTaskExecutor
                     out constructionLease,
                     out workforceFailure)))
         {
+            lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
+                "construction-workforce-rejected",
+                target,
+                workTypeId,
+                expectedWorkOrderId,
+                beforeLoopOrder) + ",reason=" + (workforceFailure ?? string.Empty);
             actor?.AddActivity(CharacterActivityEvent.Work(
                 workType,
                 CharacterActivityOutcomes.Blocked,
@@ -985,22 +1523,66 @@ public sealed class WorkTaskExecutor
             yield break;
         }
 
+        if (constructionLease != null)
+        {
+            // Unity may stop the owning work coroutine without advancing this
+            // iterator again. Register the project slot with the executor's
+            // synchronous cancellation authority so lifecycle/replan cleanup
+            // cannot leave a ghost worker in the construction project.
+            RegisterActiveExecutionCancellationResource(constructionLease);
+        }
+
         try
         {
-        while (CanContinueTimedWork(runId, actor)
+        while (CanContinueTimedWork(runId, actor, target)
             && work.isWorking
             && workOrderRuntime.TryGetOrderFor(target, workTypeId, out WorkOrderProgressState order)
+            && string.Equals(
+                order.WorkOrderId,
+                expectedWorkOrderId,
+                StringComparison.Ordinal)
             && order.Status != WorkOrderStatus.Completed
             && order.Status != WorkOrderStatus.Cancelled)
         {
-            if (ApplyTimedWorkNeedsAndInterrupt(actor, ref lastNeedUpdateTime))
+            enteredWorkOrderLoop = true;
+            lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
+                "routine-loop-entered",
+                target,
+                workTypeId,
+                expectedWorkOrderId,
+                order);
+            if (ApplyTimedWorkNeedsAndInterrupt(
+                    actor,
+                    ref lastNeedUpdateTime,
+                    out string interruptReason))
             {
+                lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
+                    "routine-need-exit",
+                    target,
+                    workTypeId,
+                    expectedWorkOrderId,
+                    order) + ",reason=" + interruptReason + "; "
+                    + CaptureTimedWorkGateDetail(runId, actor, target);
+                RecordPreWuExit(
+                    WorkPreWuExitKind.RoutineNeedInterrupt,
+                    "reason=" + interruptReason + "; "
+                    + CaptureTimedWorkGateDetail(runId, actor, target));
                 onCompleted?.Invoke(false, false);
                 yield break;
             }
 
             if (TrySuspendAtSafeCheckpoint(actor, target, workTypeId))
             {
+                lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
+                    "emergency-suspension-exit",
+                    target,
+                    workTypeId,
+                    expectedWorkOrderId,
+                    order) + "; "
+                    + CaptureTimedWorkGateDetail(runId, actor, target);
+                RecordPreWuExit(
+                    WorkPreWuExitKind.EmergencySuspension,
+                    CaptureTimedWorkGateDetail(runId, actor, target));
                 onCompleted?.Invoke(false, false);
                 yield break;
             }
@@ -1019,6 +1601,13 @@ public sealed class WorkTaskExecutor
                         actor,
                         workerRate))
                 {
+                    lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
+                        "construction-rate-rejected",
+                        target,
+                        workTypeId,
+                        expectedWorkOrderId,
+                        order) + "; "
+                        + CaptureTimedWorkGateDetail(runId, actor, target);
                     onCompleted?.Invoke(false, false);
                     yield break;
                 }
@@ -1028,6 +1617,14 @@ public sealed class WorkTaskExecutor
                         actor);
                 if (contributionMultiplier <= 0f)
                 {
+                    lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
+                        "construction-contribution-rejected",
+                        target,
+                        workTypeId,
+                        expectedWorkOrderId,
+                        order) + ",multiplier="
+                        + contributionMultiplier.ToString("0.###") + "; "
+                        + CaptureTimedWorkGateDetail(runId, actor, target);
                     onCompleted?.Invoke(false, false);
                     yield break;
                 }
@@ -1045,6 +1642,17 @@ public sealed class WorkTaskExecutor
                     workTypeId,
                     remainingSeconds))
             {
+                lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
+                    "environment-exit",
+                    target,
+                    workTypeId,
+                    expectedWorkOrderId,
+                    order) + ",remainingSeconds="
+                    + remainingSeconds.ToString("0.###") + "; "
+                    + CaptureTimedWorkGateDetail(runId, actor, target);
+                RecordPreWuExit(
+                    WorkPreWuExitKind.EnvironmentInterrupt,
+                    CaptureTimedWorkGateDetail(runId, actor, target));
                 onCompleted?.Invoke(false, false);
                 yield break;
             }
@@ -1075,15 +1683,64 @@ public sealed class WorkTaskExecutor
                 yield return null;
                 continue;
             }
-            if (!workOrderRuntime.ApplyWork(
+            bool expectsTargetDestruction =
+                workTypeId == BuiltInWorkTypeIds.Dismantle
+                && order.CompletedWork + deltaWork + 0.001f
+                    >= order.RequiredWork;
+            if (expectsTargetDestruction)
+            {
+                work.BeginExpectedWorkTargetDestruction(target);
+            }
+
+            bool applied;
+            string message;
+            lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
+                "apply-before",
+                target,
+                workTypeId,
+                expectedWorkOrderId,
+                order);
+            try
+            {
+                applied = workOrderRuntime.ApplyWork(
                     actor,
                     target,
                     workTypeId,
                     deltaWork,
                     out completed,
                     out appliedCompletionEffects,
-                    out string message))
+                    out message);
+            }
+            finally
             {
+                if (expectsTargetDestruction)
+                {
+                    work.EndExpectedWorkTargetDestruction(target);
+                }
+            }
+            lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
+                "apply-after",
+                target,
+                workTypeId,
+                expectedWorkOrderId,
+                order)
+                + ",accepted=" + applied
+                + ",completed=" + completed
+                + ",effects=" + appliedCompletionEffects
+                + ",message=" + (message ?? string.Empty);
+            if (!applied)
+            {
+                lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
+                    "apply-rejected",
+                    target,
+                    workTypeId,
+                    expectedWorkOrderId,
+                    order) + ",message=" + (message ?? string.Empty) + "; "
+                    + CaptureTimedWorkGateDetail(runId, actor, target);
+                RecordPreWuExit(
+                    WorkPreWuExitKind.WorkOrderApplyRejected,
+                    (message ?? string.Empty) + "; "
+                    + CaptureTimedWorkGateDetail(runId, actor, target));
                 actor?.AddActivity(CharacterActivityEvent.Work(
                     workType,
                     CharacterActivityOutcomes.Blocked,
@@ -1122,6 +1779,12 @@ public sealed class WorkTaskExecutor
 
             if (completed)
             {
+                lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
+                    "routine-completed",
+                    target,
+                    workTypeId,
+                    expectedWorkOrderId,
+                    order) + ",effects=" + appliedCompletionEffects;
                 actor?.AddActivity(CharacterActivityEvent.Work(
                     workType,
                     CharacterActivityOutcomes.Completed,
@@ -1138,9 +1801,56 @@ public sealed class WorkTaskExecutor
         }
         finally
         {
-            constructionLease?.Dispose();
+            if (ReferenceEquals(
+                    activeExecutionCancellationResource,
+                    constructionLease))
+            {
+                ReleaseActiveExecutionCancellationResource();
+            }
+            else
+            {
+                // CancelActiveRun may already have disposed and detached it.
+                constructionLease?.Dispose();
+            }
         }
 
+        WorkOrderProgressState exitOrder = null;
+        workOrderRuntime.TryGetOrderFor(target, workTypeId, out exitOrder);
+        lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
+            enteredWorkOrderLoop
+                ? "routine-loop-exited"
+                : "routine-loop-not-entered",
+            target,
+            workTypeId,
+            expectedWorkOrderId,
+            exitOrder) + "; "
+            + CaptureTimedWorkGateDetail(runId, actor, target);
+        if (!enteredWorkOrderLoop)
+        {
+            string orderDetail;
+            if (!workOrderRuntime.TryGetOrderFor(
+                    target,
+                    workTypeId,
+                    out WorkOrderProgressState rejectedOrder))
+            {
+                orderDetail = "order=missing";
+            }
+            else
+            {
+                orderDetail = "order=" + rejectedOrder.WorkOrderId
+                    + "/expected=" + expectedWorkOrderId
+                    + ",status=" + rejectedOrder.Status
+                    + ",remaining="
+                    + Mathf.Max(
+                        0f,
+                        rejectedOrder.RequiredWork
+                        - rejectedOrder.CompletedWork).ToString("0.###");
+            }
+            RecordPreWuExit(
+                WorkPreWuExitKind.WorkOrderLoopConditionRejected,
+                orderDetail + "; "
+                + CaptureTimedWorkGateDetail(runId, actor, target));
+        }
         onCompleted?.Invoke(false, appliedCompletionEffects);
     }
 
@@ -1167,21 +1877,53 @@ public sealed class WorkTaskExecutor
             yield break;
         }
 
-        float completedWork = 0f;
         WorkTypeId workTypeId = FacilityWorkTypeMap.TryGet(
                 workType,
                 out WorkTypeDefinition definition)
             ? definition.WorkTypeId
             : default;
+        float completedWork = TryConsumeResumedGenericProgress(
+            workTypeId,
+            target,
+            requiredWork);
         float durationMultiplier = work.GetWorkEnvironmentDurationMultiplier(workTypeId);
         float lastReportTime = -10f;
         float lastNeedUpdateTime = gameClock.Time;
+        genericProgressActive = true;
+        genericProgressWorkTypeId = workTypeId;
+        genericProgressTargetId = target?.PersistentInstanceId.Value ?? string.Empty;
+        genericProgressCompletedWork = completedWork;
+        genericProgressRequiredWork = requiredWork;
+        bool enteredTimedLoop = false;
+        try
+        {
         while (completedWork + 0.001f < requiredWork
-            && CanContinueTimedWork(runId, actor)
+            && CanContinueTimedWork(runId, actor, target)
             && work.isWorking)
         {
-            if (ApplyTimedWorkNeedsAndInterrupt(actor, ref lastNeedUpdateTime))
+            enteredTimedLoop = true;
+            // Generic timed handlers (repair, operate and other authored
+            // ExecuteWorkAmount users) are real emergency checkpoints too.
+            // Previously only persistent/work-order loops consumed the
+            // suspension request, so these jobs ignored a committed Red alert
+            // until they happened to finish.
+            if (TrySuspendAtSafeCheckpoint(actor, target, workTypeId))
             {
+                RecordPreWuExit(
+                    WorkPreWuExitKind.EmergencySuspension,
+                    CaptureTimedWorkGateDetail(runId, actor, target));
+                yield break;
+            }
+
+            if (ApplyTimedWorkNeedsAndInterrupt(
+                    actor,
+                    ref lastNeedUpdateTime,
+                    out string interruptReason))
+            {
+                RecordPreWuExit(
+                    WorkPreWuExitKind.RoutineNeedInterrupt,
+                    "reason=" + interruptReason + "; "
+                    + CaptureTimedWorkGateDetail(runId, actor, target));
                 yield break;
             }
 
@@ -1201,6 +1943,9 @@ public sealed class WorkTaskExecutor
                     workTypeId,
                     remainingSeconds))
             {
+                RecordPreWuExit(
+                    WorkPreWuExitKind.EnvironmentInterrupt,
+                    CaptureTimedWorkGateDetail(runId, actor, target));
                 yield break;
             }
 
@@ -1217,10 +1962,12 @@ public sealed class WorkTaskExecutor
                 * tickDeltaTime;
             deltaWork = Mathf.Min(requiredWork - completedWork, deltaWork);
             completedWork = Mathf.Min(requiredWork, completedWork + deltaWork);
+            genericProgressCompletedWork = completedWork;
             RecordApprovedWork(
                 deltaWork,
                 actor,
-                remainingWork: Mathf.Max(0f, requiredWork - completedWork));
+                remainingWork: Mathf.Max(0f, requiredWork - completedWork),
+                approvedWorkTypeId: workTypeId);
             if (gameClock.Time - lastReportTime >= 0.75f)
             {
                 lastReportTime = gameClock.Time;
@@ -1236,6 +1983,23 @@ public sealed class WorkTaskExecutor
             }
 
             yield return null;
+        }
+        }
+        finally
+        {
+            if (!enteredTimedLoop)
+            {
+                RecordPreWuExit(
+                    WorkPreWuExitKind.TimedLoopConditionRejected,
+                    "completed=" + completedWork.ToString("0.###")
+                    + "/" + requiredWork.ToString("0.###") + "; "
+                    + CaptureTimedWorkGateDetail(runId, actor, target));
+            }
+            genericProgressActive = false;
+            genericProgressWorkTypeId = default;
+            genericProgressTargetId = string.Empty;
+            genericProgressCompletedWork = 0f;
+            genericProgressRequiredWork = 0f;
         }
     }
 
@@ -1255,6 +2019,11 @@ public sealed class WorkTaskExecutor
         label = string.IsNullOrWhiteSpace(label)
             ? WorkTaskCatalog.GetLegacyDisplayName(workType)
             : label;
+        WorkTypeId workTypeId = FacilityWorkTypeMap.TryGet(
+                workType,
+                out WorkTypeDefinition definition)
+            ? definition.WorkTypeId
+            : work.AssignedWorkTypeId;
 
         if (debugRules.IsEnabled(DungeonDebugCheat.InstantWork))
         {
@@ -1267,7 +2036,8 @@ public sealed class WorkTaskExecutor
                         remainingWork,
                         actor,
                         allowAccident: false,
-                        remainingWork: 0f);
+                        remainingWork: 0f,
+                        approvedWorkTypeId: workTypeId);
                 }
             }
 
@@ -1276,22 +2046,24 @@ public sealed class WorkTaskExecutor
             yield break;
         }
 
-        WorkTypeId workTypeId = FacilityWorkTypeMap.TryGet(
-                workType,
-                out WorkTypeDefinition definition)
-            ? definition.WorkTypeId
-            : default;
         float durationMultiplier =
             work.GetWorkEnvironmentDurationMultiplier(workTypeId);
         float lastReportTime = -10f;
         float lastNeedUpdateTime = gameClock.Time;
 
         while (completedWork + 0.001f < requiredWork
-            && CanContinueTimedWork(runId, actor)
+            && CanContinueTimedWork(runId, actor, target)
             && work.isWorking)
         {
-            if (ApplyTimedWorkNeedsAndInterrupt(actor, ref lastNeedUpdateTime))
+            if (ApplyTimedWorkNeedsAndInterrupt(
+                    actor,
+                    ref lastNeedUpdateTime,
+                    out string interruptReason))
             {
+                RecordPreWuExit(
+                    WorkPreWuExitKind.RoutineNeedInterrupt,
+                    "reason=" + interruptReason + "; "
+                    + CaptureTimedWorkGateDetail(runId, actor, target));
                 yield break;
             }
 
@@ -1341,7 +2113,8 @@ public sealed class WorkTaskExecutor
             RecordApprovedWork(
                 deltaWork,
                 actor,
-                remainingWork: Mathf.Max(0f, requiredWork - completedWork));
+                remainingWork: Mathf.Max(0f, requiredWork - completedWork),
+                approvedWorkTypeId: workTypeId);
             if (gameClock.Time - lastReportTime >= 0.75f)
             {
                 lastReportTime = gameClock.Time;
@@ -1364,8 +2137,10 @@ public sealed class WorkTaskExecutor
 
     private bool ApplyTimedWorkNeedsAndInterrupt(
         CharacterActor actor,
-        ref float lastNeedUpdateTime)
+        ref float lastNeedUpdateTime,
+        out string interruptReason)
     {
+        interruptReason = string.Empty;
         float currentTime = gameClock.Time;
         float elapsed = Mathf.Max(0f, currentTime - lastNeedUpdateTime);
         lastNeedUpdateTime = currentTime;
@@ -1374,7 +2149,7 @@ public sealed class WorkTaskExecutor
             work.ApplyWorkNeedDepletion(elapsed);
         }
 
-        if (!work.ShouldInterruptCurrentWork(out string interruptReason))
+        if (!work.ShouldInterruptCurrentWork(out interruptReason))
         {
             return false;
         }
@@ -1485,7 +2260,11 @@ public sealed class WorkTaskExecutor
         return true;
     }
 
-    private static void EndAiAction(CharacterActor actor, AIAction currentAction)
+    private static void EndAiAction(
+        CharacterActor actor,
+        AIAction currentAction,
+        CharacterAiActionTerminalKind terminalKind =
+            CharacterAiActionTerminalKind.Completed)
     {
         currentAction?.ReleaseReservation(actor);
         AIBrain brain = actor?.Brain;
@@ -1494,12 +2273,24 @@ public sealed class WorkTaskExecutor
                 ? ReferenceEquals(brain.bestAction, currentAction)
                 : brain.bestAction == null))
         {
-            brain.isBestActionEnd = true;
+            if (currentAction != null)
+            {
+                brain.EndExpectedAction(
+                    currentAction,
+                    terminalKind,
+                    clearFailures:
+                        terminalKind == CharacterAiActionTerminalKind.Completed);
+            }
+            else
+            {
+                brain.isBestActionEnd = true;
+            }
         }
     }
 
     private void FinishWorkRun(CharacterActor actor, AIAction currentAction)
     {
+        ReleaseActiveRestockLease(ItemReservationReleaseReason.Completed);
         CompleteEmergencyAccounting("completed");
         work.RecordSuccessfulWorkAttempt(work.AssignedWorkTypeId);
         CharacterSkillRuntimeEffects.EndWork(actor);
@@ -1526,6 +2317,18 @@ public sealed class WorkTaskExecutor
             || actor.Brain.isBestActionEnd;
     }
 
+    private bool ShouldAbortWorkRun(
+        int runId,
+        CharacterActor actor,
+        BuildableObject expectedTarget)
+    {
+        return ShouldAbortWorkRun(runId, actor)
+            || expectedTarget == null
+            || expectedTarget.isDestroy
+            || !expectedTarget.gameObject.activeInHierarchy
+            || work.assignedShop != expectedTarget;
+    }
+
     private bool CanContinueTimedWork(int runId)
     {
         return runId <= 0 || work.IsActiveWorkRun(runId);
@@ -1548,8 +2351,57 @@ public sealed class WorkTaskExecutor
             && !actor.Brain.isBestActionEnd;
     }
 
-    private void AbortWorkRun(int runId, CharacterActor actor, AIAction currentAction)
+    private bool CanContinueTimedWork(
+        int runId,
+        CharacterActor actor,
+        BuildableObject expectedTarget)
     {
+        if (!CanContinueTimedWork(runId, actor))
+            return false;
+        return expectedTarget != null
+            && !expectedTarget.isDestroy
+            && expectedTarget.gameObject.activeInHierarchy
+            && work.assignedShop == expectedTarget;
+    }
+
+    internal void RecordRoutineApprovedWorkTime(
+        CharacterActor actor,
+        float elapsedGameSeconds,
+        float remainingShiftSeconds)
+    {
+        WorkTypeId workTypeId = work.AssignedWorkTypeId;
+        BuildableObject target = work.assignedShop;
+        if (elapsedGameSeconds <= 0f
+            || !workTypeId.IsValid
+            || workTypeId == BuiltInWorkTypeIds.Rest
+            || target == null
+            || target.isDestroy
+            || !target.gameObject.activeInHierarchy)
+        {
+            return;
+        }
+
+        float approvedWork = WorkExecutionRules.CalculateWorkPerSecond(
+                workAmountCalculator,
+                actor,
+                target,
+                workTypeId,
+                work.GetWorkEnvironmentDurationMultiplier(workTypeId))
+            * elapsedGameSeconds;
+        RecordApprovedWork(
+            approvedWork,
+            actor,
+            remainingWork: Mathf.Max(0f, remainingShiftSeconds));
+    }
+
+    private void AbortWorkRun(
+        int runId,
+        CharacterActor actor,
+        AIAction currentAction,
+        CharacterAiActionTerminalKind terminalKind =
+            CharacterAiActionTerminalKind.Cancelled)
+    {
+        ReleaseActiveRestockLease(ItemReservationReleaseReason.Cancelled);
         if (emergencySuspended)
         {
             CompleteEmergencyAccounting("suspended-for-emergency");
@@ -1567,7 +2419,7 @@ public sealed class WorkTaskExecutor
             {
                 work.AssignWork(null, FacilityWorkType.None);
             }
-            EndAiAction(actor, currentAction);
+            EndAiAction(actor, currentAction, terminalKind);
             work.ClearActiveWorkRoutine(runId);
             emergencySuspended = false;
             return;
@@ -1642,7 +2494,7 @@ public sealed class WorkTaskExecutor
         // Routine-need interruption previously cleared the coroutine and work
         // ownership without ending the matching AI action, producing an
         // orphan Work action (brain executed, no work routine) indefinitely.
-        EndAiAction(actor, currentAction);
+        EndAiAction(actor, currentAction, terminalKind);
         work.ClearActiveWorkRoutine(runId);
     }
 
@@ -1650,23 +2502,135 @@ public sealed class WorkTaskExecutor
         float amount,
         CharacterActor actor,
         bool allowAccident = true,
-        float remainingWork = -1f)
+        float remainingWork = -1f,
+        WorkTypeId approvedWorkTypeId = default)
     {
         if (amount > 0f && !float.IsNaN(amount) && !float.IsInfinity(amount))
         {
-            RecordEmergencyAccounting(actor, amount, remainingWork);
+            WorkTypeId workTypeId = approvedWorkTypeId.IsValid
+                ? approvedWorkTypeId
+                : work.AssignedWorkTypeId;
+            RecordEmergencyAccounting(
+                actor,
+                amount,
+                remainingWork,
+                workTypeId);
             approvedProficiencyWork += amount;
             work.RecordApprovedWorkProgressForDiagnostics(amount);
-            PublishWorkStarted(actor, work.AssignedWorkTypeId);
+            PublishWorkStarted(actor, workTypeId);
             if (allowAccident)
                 TryTriggerWorkAccident(actor, amount);
         }
     }
 
+    private void RecordPreWuExit(
+        WorkPreWuExitKind kind,
+        string detail)
+    {
+        if (kind == WorkPreWuExitKind.None
+            || approvedProficiencyWork > 0f
+            || lastPreWuExitKind != WorkPreWuExitKind.None)
+        {
+            return;
+        }
+
+        lastPreWuExitKind = kind;
+        lastPreWuExitDetail = detail?.Trim() ?? string.Empty;
+    }
+
+    private static bool RequiresCommonWorkOrderRoute(WorkTypeId workTypeId)
+    {
+        if (!workTypeId.IsValid)
+        {
+            return false;
+        }
+
+        IReadOnlyList<WorkExecutionFailureProfile> profiles =
+            BuiltInWorkExecutionFailureProfiles.All;
+        for (int index = 0; index < profiles.Count; index++)
+        {
+            WorkExecutionFailureProfile profile = profiles[index];
+            if (profile.WorkTypeId == workTypeId)
+            {
+                return profile.Route == WorkExecutorRoute.CommonWorkOrder;
+            }
+        }
+
+        return false;
+    }
+
+    private static string FormatWorkOrderExecutionDetail(
+        string stage,
+        BuildableObject target,
+        WorkTypeId workTypeId,
+        string expectedWorkOrderId,
+        WorkOrderProgressState order)
+    {
+        string targetId = target != null && target.PersistentInstanceId.IsValid
+            ? target.PersistentInstanceId.Value
+            : target != null
+                ? target.name + "@" + target.GetInstanceID()
+                : "missing";
+        return "stage=" + (stage ?? string.Empty)
+            + ",workType=" + workTypeId.Value
+            + ",target=" + targetId
+            + ",expected=" + (expectedWorkOrderId ?? string.Empty)
+            + ",actual=" + (order?.WorkOrderId ?? "missing")
+            + ",status=" + (order?.Status.ToString() ?? "missing")
+            + ",remaining=" + (order != null
+                ? Mathf.Max(0f, order.RequiredWork - order.CompletedWork)
+                    .ToString("0.###")
+                : "missing");
+    }
+
+    private string CaptureTimedWorkGateDetail(
+        int runId,
+        CharacterActor actor,
+        BuildableObject target)
+    {
+        return "run=" + runId + "/" + currentRunId
+            + ",activeRun=" + work.IsActiveWorkRun(runId)
+            + ",actor=" + (actor != null)
+            + ",brain=" + (actor?.Brain != null)
+            + ",actionEnd=" + (actor?.Brain?.isBestActionEnd ?? false)
+            + ",target=" + (target != null)
+            + ",destroyed=" + (target == null || target.isDestroy)
+            + ",active="
+            + (target != null && target.gameObject.activeInHierarchy)
+            + ",assigned=" + ReferenceEquals(work.assignedShop, target)
+            + ",working=" + work.isWorking
+            + ",accident=" + workAccidentOccurred
+            + ",emergencyRequested=" + emergencySuspensionRequested
+            + ",emergencyEpoch=" + requestedEmergencyEpochId
+            + ",environmentInterrupted=" + environmentInterrupted;
+    }
+
     public void CancelActiveRun(CharacterActor actor, string reason)
     {
+        ReleaseActiveRestockLease(ItemReservationReleaseReason.Cancelled);
+        ReleaseActiveExecutionCancellationResource();
         CompleteEmergencyAccounting(
             string.IsNullOrWhiteSpace(reason) ? "cancelled" : reason.Trim());
+        CharacterSkillRuntimeEffects.EndWork(actor);
+        characterEnvironment.ClearWorkContext(
+            new CharacterId(actor?.Identity?.PersistentId));
+        ReturnEnvironmentalWorkwear(actor);
+    }
+
+    private void RegisterActiveExecutionCancellationResource(
+        IDisposable resource)
+    {
+        if (resource == null)
+            throw new ArgumentNullException(nameof(resource));
+        ReleaseActiveExecutionCancellationResource();
+        activeExecutionCancellationResource = resource;
+    }
+
+    private void ReleaseActiveExecutionCancellationResource()
+    {
+        IDisposable resource = activeExecutionCancellationResource;
+        activeExecutionCancellationResource = null;
+        resource?.Dispose();
     }
 
     public bool RequestEmergencySuspension(long alertEpochId)
@@ -1719,6 +2683,63 @@ public sealed class WorkTaskExecutor
         return true;
     }
 
+    public void RestoreInlineEmergencyProgress(
+        WorkTypeId workTypeId,
+        string targetBuildingId,
+        float completedWork,
+        float requiredWork)
+    {
+        if (!workTypeId.IsValid
+            || string.IsNullOrWhiteSpace(targetBuildingId)
+            || completedWork < 0f
+            || requiredWork <= 0f
+            || completedWork >= requiredWork
+            || float.IsNaN(completedWork)
+            || float.IsInfinity(completedWork)
+            || float.IsNaN(requiredWork)
+            || float.IsInfinity(requiredWork))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(completedWork),
+                "Inline emergency progress must be finite and incomplete.");
+        }
+        resumedGenericProgressPending = true;
+        resumedGenericWorkTypeId = workTypeId;
+        resumedGenericTargetId = targetBuildingId.Trim();
+        resumedGenericCompletedWork = completedWork;
+        resumedGenericRequiredWork = requiredWork;
+    }
+
+    private float TryConsumeResumedGenericProgress(
+        WorkTypeId workTypeId,
+        BuildableObject target,
+        float requiredWork)
+    {
+        if (!resumedGenericProgressPending
+            || resumedGenericWorkTypeId != workTypeId
+            || target == null
+            || !string.Equals(
+                resumedGenericTargetId,
+                target.PersistentInstanceId.Value,
+                StringComparison.Ordinal)
+            || !Mathf.Approximately(
+                resumedGenericRequiredWork,
+                requiredWork))
+        {
+            return 0f;
+        }
+        float resumed = Mathf.Clamp(
+            resumedGenericCompletedWork,
+            0f,
+            Mathf.Max(0f, requiredWork - 0.001f));
+        resumedGenericProgressPending = false;
+        resumedGenericWorkTypeId = default;
+        resumedGenericTargetId = string.Empty;
+        resumedGenericCompletedWork = 0f;
+        resumedGenericRequiredWork = 0f;
+        return resumed;
+    }
+
     private bool TrySuspendAtSafeCheckpoint(
         CharacterActor actor,
         BuildableObject target,
@@ -1738,13 +2759,34 @@ public sealed class WorkTaskExecutor
             return false;
         }
 
+        bool hasInlineProgress = genericProgressActive
+            && genericProgressWorkTypeId == workTypeId
+            && string.Equals(
+                genericProgressTargetId,
+                target.PersistentInstanceId.Value,
+                StringComparison.Ordinal)
+            && genericProgressRequiredWork > 0f
+            && genericProgressCompletedWork >= 0f
+            && genericProgressCompletedWork < genericProgressRequiredWork;
         pendingSuspensionReceipt = new EmergencyWorkSuspensionReceipt(
             workTypeId,
             target.PersistentInstanceId.Value,
             requestedEmergencyEpochId,
-            progressExternallyPersisted: true);
+            progressExternallyPersisted: !hasInlineProgress,
+            inlineCompletedWork: hasInlineProgress
+                ? genericProgressCompletedWork
+                : 0f,
+            inlineRequiredWork: hasInlineProgress
+                ? genericProgressRequiredWork
+                : 0f);
         emergencySuspensionRequested = false;
         emergencySuspended = true;
+        // The suspension receipt is now the sole authority for restoring this
+        // explicit command after Green. Leaving the live priority installed
+        // lets the scheduler reacquire the same ordinary work between this
+        // checkpoint and the alarm runtime consuming the receipt, defeating
+        // both Red suspension and Amber hold semantics.
+        work.ClearPriorityWorkTarget();
         work.isWorking = false;
         actor.Brain?.SetActionPhase(
             "비상 대응을 위해 안전 지점에서 작업 일시중단",
@@ -1755,30 +2797,32 @@ public sealed class WorkTaskExecutor
             "비상 대응을 위해 진행 상태를 보존하고 작업을 일시중단했습니다.",
             target,
             reasonCode: "suspended-for-emergency"));
-        if (actor.Brain != null)
-        {
-            actor.Brain.isBestActionEnd = true;
-        }
+        actor.Brain.SuspendCurrentActionAtSafeCheckpoint(
+            "suspended-for-emergency");
         return true;
     }
 
     private void RecordEmergencyAccounting(
         CharacterActor actor,
         float approvedWork,
-        float remainingWork)
+        float remainingWork,
+        WorkTypeId workTypeId)
     {
         if (emergencyWorkAccounting == null)
         {
             return;
         }
 
-        WorkTypeId workTypeId = work.AssignedWorkTypeId;
         if (!workTypeId.IsValid
             || !WorkTypeCatalog.TryGet(workTypeId, out WorkTypeDefinition definition)
             || !CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId))
         {
             throw new InvalidOperationException(
-                "Emergency work accounting requires a registered work type and persistent worker identity.");
+                "Emergency work accounting requires a registered work type and persistent worker identity: "
+                + $"approvedWorkType={workTypeId.Value}; "
+                + $"assignedWorkType={work.AssignedWorkTypeId.Value}; "
+                + $"actor={actor?.Identity?.PersistentId ?? "<null>"}; "
+                + $"run={currentRunId}.");
         }
 
         float knownRemaining = remainingWork >= 0f

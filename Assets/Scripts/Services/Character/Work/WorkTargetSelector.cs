@@ -267,6 +267,35 @@ public sealed class WorkTargetSelector
         GridPathSearchResult searchResult,
         out WorkTargetCandidate best)
     {
+        if (work.PriorityWorkTarget != null)
+        {
+            bool canUsePriorityForRequest = requestedWorkType == FacilityWorkType.None
+                || work.PriorityWorkType == requestedWorkType;
+            if (canUsePriorityForRequest)
+            {
+                bool forced = work.PriorityWorkType != FacilityWorkType.None;
+                bool priorityFound = TryEvaluateWorkTarget(
+                    work.PriorityWorkTarget,
+                    searchResult,
+                    work.PriorityWorkType,
+                    forced,
+                    out best);
+                if (priorityFound)
+                {
+                    RecordBestWorkBreakdown(best);
+                    return true;
+                }
+
+                // A direct player order owns target selection. Temporary
+                // failures remain visible on that target and must not be
+                // replaced by unrelated autonomous work. Permanent failures
+                // are cleared by the assignment path after it emits the exact
+                // cancellation reason.
+                LastRejectedCandidate = best;
+                return false;
+            }
+        }
+
         bool useCache = searchResult == null && work.WorkerActor?.Brain != null;
         if (useCache)
         {
@@ -610,6 +639,32 @@ public sealed class WorkTargetSelector
                 if (building != null && !building.isDestroy)
                 {
                     yield return building;
+                }
+            }
+
+            // GridPathSearchResult's occupant list is visitor-oriented. A
+            // roles=None workstation is deliberately absent from it even when
+            // an adjacent actor-specific work stand is reachable. Merge the
+            // registered work targets through the separate work-access
+            // authority; visitor admission remains unchanged.
+            IReadOnlyList<BuildableObject> registeredRuntimeTargets =
+                work.WorkerActor?.WorldRegistry?.Buildings;
+            Grid reachableGrid = work.WorkGridResolver.ResolveActiveGrid(work, null);
+            if (registeredRuntimeTargets != null)
+            {
+                for (int index = 0; index < registeredRuntimeTargets.Count; index++)
+                {
+                    BuildableObject runtimeTarget = registeredRuntimeTargets[index];
+                    if (runtimeTarget != null
+                        && !runtimeTarget.isDestroy
+                        && runtimeTarget.Grid == reachableGrid
+                        && WorkTargetSelectionRules.IsReachable(
+                            runtimeTarget,
+                            searchResult)
+                        && !reachable.Contains(runtimeTarget))
+                    {
+                        yield return runtimeTarget;
+                    }
                 }
             }
 
@@ -1145,7 +1200,18 @@ public sealed class WorkTargetSelector
             return 0f;
         }
 
-        int travelCost = searchResult?.GetMoveCostTo(building) ?? int.MaxValue;
+        int travelCost = int.MaxValue;
+        if (WorkTargetSelectionRules.TryGetReachableWorkAccessPosition(
+                building,
+                searchResult,
+                out Vector2Int workAccess))
+        {
+            travelCost = searchResult.GetMoveCostTo(workAccess);
+        }
+        else if (searchResult != null)
+        {
+            travelCost = searchResult.GetMoveCostTo(building);
+        }
         if (travelCost == int.MaxValue)
         {
             Vector2Int start = work.WorkerActor != null

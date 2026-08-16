@@ -618,9 +618,6 @@ public sealed class CombatEquipmentRuntime :
             return false;
         }
 
-        instance.sourceStackId = sourceStackId.Trim();
-        instance.worldState = worldState;
-        PersistPhysicalState(instance);
         if (worldState is CombatEquipmentWorldState.Stored
             or CombatEquipmentWorldState.Loose
             or CombatEquipmentWorldState.Carried
@@ -629,6 +626,10 @@ public sealed class CombatEquipmentRuntime :
             loadoutRuntime.RemoveEquipment(instance.instanceId);
             instance.ownerCharacterId = string.Empty;
         }
+
+        instance.sourceStackId = sourceStackId.Trim();
+        instance.worldState = worldState;
+        PersistPhysicalState(instance);
 
         return true;
     }
@@ -1089,19 +1090,74 @@ public sealed class CombatEquipmentRuntime :
             failureReason = "recovered equipment is still owned or unavailable";
             return false;
         }
+        return TryDropExistingEquipmentToWorld(
+            instance.instanceId,
+            position,
+            out _,
+            out failureReason);
+    }
+
+    public bool TryDropExistingEquipmentToWorld(
+        string instanceId,
+        Vector2Int position,
+        out string stackId,
+        out string failureReason)
+    {
+        stackId = string.Empty;
+        failureReason = string.Empty;
+        if (!instances.TryGetValue(
+                instanceId?.Trim() ?? string.Empty,
+                out CombatEquipmentInstance instance))
+        {
+            failureReason = "equipment instance is missing";
+            return false;
+        }
+
         if (!string.IsNullOrWhiteSpace(instance.sourceStackId))
         {
-            return true;
+            WorldItemStackSnapshot existing = itemStackRuntime.GetAllStacks()
+                .FirstOrDefault(candidate => candidate != null
+                    && string.Equals(
+                        candidate.StackId,
+                        instance.sourceStackId,
+                        StringComparison.Ordinal));
+            if (existing == null
+                || !string.Equals(
+                    existing.ItemInstanceId,
+                    instance.instanceId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    existing.ItemId,
+                    PhysicalItemIds.ForEquipment(instance.definitionId),
+                    StringComparison.Ordinal))
+            {
+                failureReason = "equipment source stack is missing or mismatched";
+                return false;
+            }
+
+            stackId = existing.StackId;
+            if (TryLinkToWorldStack(
+                instance.instanceId,
+                stackId,
+                CombatEquipmentWorldState.Loose))
+            {
+                return true;
+            }
+
+            stackId = string.Empty;
+            failureReason = "equipment source stack link failed";
+            return false;
         }
+
         if (!itemStackRuntime.SpawnExistingUniqueItemAt(
-                instance.definitionId,
+                PhysicalItemIds.ForEquipment(instance.definitionId),
                 new ItemInstanceId(instance.instanceId),
                 position,
                 WorldItemStackState.Loose,
                 string.Empty,
-                out string stackId))
+                out stackId))
         {
-            failureReason = "recovered equipment physical stack spawn failed";
+            failureReason = "equipment physical stack spawn failed";
             return false;
         }
         if (TryLinkToWorldStack(
@@ -1112,8 +1168,15 @@ public sealed class CombatEquipmentRuntime :
             return true;
         }
 
-        itemStackRuntime.DeleteStack(stackId);
-        failureReason = "recovered equipment stack link failed";
+        string rollbackStackId = stackId;
+        stackId = string.Empty;
+        if (!itemStackRuntime.DeleteStack(rollbackStackId))
+        {
+            throw new InvalidOperationException(
+                $"Equipment world-drop rollback failed for stack '{rollbackStackId}'.");
+        }
+
+        failureReason = "equipment stack link failed";
         return false;
     }
 

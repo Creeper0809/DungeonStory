@@ -1,0 +1,21 @@
+INFO	SCENARIO	mode=RescueAlertRescuerDowned;revision=additional-chaos-v1-20260816
+INFO	START_PARTY	committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Roma:-8568466:character:staff:1:01:active=True,Arin:-8568534:character:staff:1:02:active=True; diagnostics=prepared-1:name=Roma;go=-8568438;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-8568506;id=character:staff:1:02;active=False || scan:name=Roma;go=-8568438;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-8568506;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-8568438;id=character:staff:1:01;active=True || retained:name=Arin;go=-8568506;id=character:staff:1:02;active=True
+PASS	CHAOS_SCOPE_READY	DungeonRuntimeSystems
+PASS	CHAOS_ACTOR_COUNT	activeHumanoids=3
+PASS	CHAOS_AUTHORITIES_READY	save=True;items=True;haulPlanning=True;deprivation=True;alert=True/True;body=True/True;medical=True
+PASS	CHAOS_SAVE_AUTHORITIES_SETTLED	environment=True;initialized=True
+PASS	RESCUE_ALERT_PARTICIPANTS_READY	rescuer=character:staff:1:01;patient=character:staff:1:02;replacement=owner;eligible=[character:staff:1:01,character:staff:1:02,owner]
+PASS	RESCUE_ALERT_LAWFUL_MEDICAL_FIXTURE	facility=간이침대@(19, 2);rescuer=(19, 1);patient=(20, 2);facility=(19, 2)
+PASS	RESCUE_ALERT_ORDER_AND_BRAIN_ADMISSION_READY	patient=Downed/True;order=medical:1/AwaitingRescue;canStart=True;failure=DomainFailure
+PASS	RESCUE_ALERT_PHYSICAL_CARRY_LIVE_THROUGH_BRAIN	preferred=True;action=구조;stage=bed-path;order=Carrying/Carrying;rescuer=character:staff:1:01;carried=True;parented=True
+PASS	RESCUE_ALERT_RED_BOUND_WHILE_CARRY_LIVE	alert=Red;epoch=2;gate=True;carry=True
+PASS	RESCUE_ALERT_RESCUER_DOWNED_EXACT_TERMINAL	downed=True;lifecycle=Downed;terminals=0->1;rescuing=False;move=False;order=AwaitingRescue/RescueInterrupted;rescuerId=;carried=False;parented=False
+PASS	RESCUE_ALERT_MEDICAL_ORDERS_CONSERVED	patientOrders=1;rescuerOrders=1;patientState=Downed;rescuerState=Downed
+PASS	RESCUE_ALERT_DOWNED_GATE_RETIRED	gate=False;rescuer=character:staff:1:01
+PASS	RESCUE_ALERT_REPLACEMENT_GUARD_SAME_EPOCH	replacement=owner;epoch=2;responders=character:staff:1:01:state=Downed:paused=False:gate=False/:epoch=0:action=Inactive || character:staff:1:02:state=Downed:paused=False:gate=False/:epoch=0:action=Inactive || owner:state=Active:paused=False:gate=True/work:guard:epoch=2:action=Replanning
+PASS	RESCUE_ALERT_NO_RESCUE_GUARD_OWNER_OVERLAP	overlap=False;rescuing=False;replacement=owner
+PASS	RESCUE_ALERT_BOTH_MEDICAL_RECOVERIES_CONVERGED	rescuer=Active/False;patient=Active/False;orders=0
+PASS	RESCUE_ALERT_FINAL_OWNERSHIP_CONVERGED	alert=Green/Green;gates=True;rescuing=False;parented=False
+PASS	RESCUE_ALERT_RUNTIME_GATE_CONSERVED	invariants=0->0;paths=0;reservations=0
+INFO	CONSOLE	issues=0;
+RESULT=PASS; failures=0; 

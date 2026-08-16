@@ -78,6 +78,7 @@ public class AbilityWork : CharacterAbility
     private ICharacterSpeciesCommand speciesCommands;
     private IEmergencyWorkAccountingService emergencyWorkAccounting;
     private ISettlementLaborAccountingService settlementLaborAccounting;
+    private IReservedItemTransferService reservedItemTransfers;
     private bool isScheduleBound;
     private float routineOperateCooldownUntil;
     private Coroutine activeWorkRoutine;
@@ -88,6 +89,14 @@ public class AbilityWork : CharacterAbility
     private WorkTypeId lastFailedWorkTypeId;
     private float lastFailedWorkAt = -1f;
     private long approvedWorkProgressRevision;
+    private BuildableObject observedWorkTarget;
+    private BuildableObject expectedDestroyedWorkTarget;
+    private long activeWorkCancellationCount;
+    private int lastCancelledWorkRunId;
+    private string lastActiveWorkCancellationReason = string.Empty;
+    private long emergencyResponseWorkEpochId;
+    private WorkTypeId emergencyResponseOnlyWorkTypeId;
+    private long emergencyResponseWorkGateRevision;
 
     public BuildableObject PriorityWorkTarget => CommandHandler.PriorityWorkTarget;
     public bool HasUrgentPriorityWork => CommandHandler.HasUrgentPriorityTarget();
@@ -99,6 +108,34 @@ public class AbilityWork : CharacterAbility
         DutyController.HasRoutineNeedWorkBlock;
     public long ApprovedWorkProgressRevisionForDiagnostics =>
         approvedWorkProgressRevision;
+    public bool HasActiveGenericProgressForDiagnostics =>
+        TaskExecutor.HasActiveGenericProgressForDiagnostics;
+    public float GenericCompletedWorkForDiagnostics =>
+        TaskExecutor.GenericCompletedWorkForDiagnostics;
+    public float GenericRequiredWorkForDiagnostics =>
+        TaskExecutor.GenericRequiredWorkForDiagnostics;
+    public bool HasPendingResumedGenericProgressForDiagnostics =>
+        TaskExecutor.HasPendingResumedGenericProgressForDiagnostics;
+    public WorkPreWuExitKind LastPreWuExitKindForDiagnostics =>
+        TaskExecutor.LastPreWuExitKindForDiagnostics;
+    public string LastPreWuExitDetailForDiagnostics =>
+        TaskExecutor.LastPreWuExitDetailForDiagnostics;
+    public string LastWorkOrderExecutionDetailForDiagnostics =>
+        TaskExecutor.LastWorkOrderExecutionDetailForDiagnostics;
+    public long ActiveWorkCancellationCountForDiagnostics =>
+        activeWorkCancellationCount;
+    public int LastCancelledWorkRunIdForDiagnostics =>
+        lastCancelledWorkRunId;
+    public string LastActiveWorkCancellationReasonForDiagnostics =>
+        lastActiveWorkCancellationReason;
+    public bool HasEmergencyResponseWorkGateForDiagnostics =>
+        emergencyResponseWorkEpochId > 0L;
+    public long EmergencyResponseWorkEpochForDiagnostics =>
+        emergencyResponseWorkEpochId;
+    public WorkTypeId EmergencyResponseOnlyWorkTypeForDiagnostics =>
+        emergencyResponseOnlyWorkTypeId;
+    public long EmergencyResponseWorkGateRevisionForDiagnostics =>
+        emergencyResponseWorkGateRevision;
     public CharacterActor PrioritySuppressActor => CommandHandler.PrioritySuppressActor;
     public bool HasPrioritySuppressTarget => CommandHandler.HasPrioritySuppressTarget;
     internal FacilityWorkType PriorityWorkType => CommandHandler.PriorityWorkType;
@@ -501,6 +538,15 @@ public class AbilityWork : CharacterAbility
     }
 
     [Inject]
+    public void ConstructReservedItemTransfers(
+        IReservedItemTransferService reservedItemTransfers)
+    {
+        this.reservedItemTransfers = reservedItemTransfers
+            ?? throw new ArgumentNullException(nameof(reservedItemTransfers));
+        taskExecutor = null;
+    }
+
+    [Inject]
     public void ConstructProficiencyProgression(
         ICharacterProficiencyCommand proficiencyCommands,
         ICharacterProficiencyQuery proficiencyQuery,
@@ -583,19 +629,29 @@ public class AbilityWork : CharacterAbility
 
     public bool TryAssignAnyWork(GridPathSearchResult searchResult = null)
     {
-        return TargetSelector.TryAssignAnyWork(searchResult);
+        return HasEmergencyResponseWorkGateForDiagnostics
+            ? TargetSelector.TryAssignWork(
+                searchResult,
+                emergencyResponseOnlyWorkTypeId)
+            : TargetSelector.TryAssignAnyWork(searchResult);
     }
 
     public bool TryAssignWork(WorkTypeId requestedWorkTypeId, GridPathSearchResult searchResult = null)
     {
-        return TargetSelector.TryAssignWork(searchResult, requestedWorkTypeId);
+        return IsWorkTypeAllowedByEmergencyResponseGate(requestedWorkTypeId)
+            && TargetSelector.TryAssignWork(searchResult, requestedWorkTypeId);
     }
 
     public bool TryGetBestAnyWorkCandidate(
         GridPathSearchResult searchResult,
         out WorkTargetCandidate candidate)
     {
-        bool found = TargetSelector.TryGetBestAnyCandidate(searchResult, out candidate);
+        bool found = HasEmergencyResponseWorkGateForDiagnostics
+            ? TargetSelector.TryGetBestCandidate(
+                emergencyResponseOnlyWorkTypeId,
+                searchResult,
+                out candidate)
+            : TargetSelector.TryGetBestAnyCandidate(searchResult, out candidate);
         if (!found && !isWorking)
         {
             AssignWork(null, FacilityWorkType.None);
@@ -609,7 +665,12 @@ public class AbilityWork : CharacterAbility
         GridPathSearchResult searchResult,
         out WorkTargetCandidate candidate)
     {
-        bool found = TargetSelector.TryGetBestCandidate(requestedWorkTypeId, searchResult, out candidate);
+        candidate = default;
+        bool found = IsWorkTypeAllowedByEmergencyResponseGate(requestedWorkTypeId)
+            && TargetSelector.TryGetBestCandidate(
+                requestedWorkTypeId,
+                searchResult,
+                out candidate);
         if (!found && !isWorking)
         {
             AssignWork(null, FacilityWorkType.None);
@@ -620,12 +681,18 @@ public class AbilityWork : CharacterAbility
 
     public float GetAnyWorkUtilityScore(GridPathSearchResult searchResult)
     {
-        return TargetSelector.GetAnyUtilityScore(searchResult);
+        return HasEmergencyResponseWorkGateForDiagnostics
+            ? TargetSelector.GetUtilityScore(
+                emergencyResponseOnlyWorkTypeId,
+                searchResult)
+            : TargetSelector.GetAnyUtilityScore(searchResult);
     }
 
     public float GetWorkUtilityScore(WorkTypeId requestedWorkTypeId, GridPathSearchResult searchResult)
     {
-        return TargetSelector.GetUtilityScore(requestedWorkTypeId, searchResult);
+        return IsWorkTypeAllowedByEmergencyResponseGate(requestedWorkTypeId)
+            ? TargetSelector.GetUtilityScore(requestedWorkTypeId, searchResult)
+            : 0f;
     }
 
     public bool TryGetLastRejectedWorkCandidate(out WorkTargetCandidate candidate)
@@ -638,6 +705,12 @@ public class AbilityWork : CharacterAbility
 
     public void StartAnyWork(BuildableObject preferredTarget = null)
     {
+        if (HasEmergencyResponseWorkGateForDiagnostics)
+        {
+            StartWorking(emergencyResponseOnlyWorkTypeId, preferredTarget);
+            return;
+        }
+
         StartWorkingWithLegacyType(FacilityWorkType.None, preferredTarget);
     }
 
@@ -645,6 +718,21 @@ public class AbilityWork : CharacterAbility
         FacilityWorkType requestedWorkType,
         BuildableObject preferredTarget)
     {
+        // CanStart is evaluated before the selected action is committed. A
+        // lifecycle transition can occur between those two boundaries, so the
+        // executor must revalidate at the final mutation point. Otherwise a
+        // late AIWork Execute can reserve a facility and start its coroutine
+        // after Downed/Despawned cleanup has already completed.
+        if (actor == null
+            || actor.Brain == null
+            || actor.CurrentLifecycleState != CharacterLifecycleState.Active)
+        {
+            StopAssignedWorkFromAi(
+                $"work-start-rejected:{actor?.CurrentLifecycleState}");
+            return;
+        }
+        actor.PrepareTransientAiOwnershipForActiveLifecycle();
+
         WorkerMove?.CancelActiveMovement();
 
         if (CanExecuteSuppressCommand(requestedWorkType))
@@ -677,8 +765,24 @@ public class AbilityWork : CharacterAbility
                     preferredTarget,
                     reasonCode: "no-workplace",
                     bubbleEligible: true));
-                actor.Brain.isBestActionEnd = true;
+                AIAction failedAction = actor.Brain.bestAction;
+                actor.Brain.ReportRuntimeActionFailure(
+                    AIActionFailure.Create(
+                        AIActionFailureKind.NoWork,
+                        "No valid workplace could be assigned.",
+                        preferredTarget),
+                    requestImmediateReplan: false);
+                actor.Brain.EndExpectedAction(
+                    failedAction,
+                    CharacterAiActionTerminalKind.Failed,
+                    clearFailures: false);
             }
+            return;
+        }
+
+        if (!IsWorkTypeAllowedByEmergencyResponseGate(AssignedWorkTypeId))
+        {
+            StopAssignedWorkFromAi("emergency-response-work-gate");
             return;
         }
 
@@ -718,6 +822,11 @@ public class AbilityWork : CharacterAbility
         WorkTypeId requestedWorkTypeId,
         GridPathSearchResult searchResult = null)
     {
+        if (!IsWorkTypeAllowedByEmergencyResponseGate(requestedWorkTypeId))
+        {
+            return false;
+        }
+
         FacilityWorkType requestedWorkType = WorkTypeCatalog.TryGet(
                 requestedWorkTypeId,
                 out WorkTypeDefinition definition)
@@ -728,6 +837,12 @@ public class AbilityWork : CharacterAbility
 
     public bool TrySetPriorityWorkTarget(BuildableObject building, out string errorMessage)
     {
+        if (HasEmergencyResponseWorkGateForDiagnostics)
+        {
+            errorMessage = "An emergency response owns this worker until the alert returns to Green.";
+            return false;
+        }
+
         return CommandHandler.TrySetPriorityWorkTarget(building, out errorMessage);
     }
 
@@ -737,6 +852,12 @@ public class AbilityWork : CharacterAbility
         GridPathSearchResult searchResult,
         out string errorMessage)
     {
+        if (!IsWorkTypeAllowedByEmergencyResponseGate(preferredWorkTypeId))
+        {
+            errorMessage = "Only the committed emergency response work type may be ordered before Green.";
+            return false;
+        }
+
         return CommandHandler.TrySetPriorityWorkTarget(
             building,
             preferredWorkTypeId,
@@ -887,8 +1008,20 @@ public class AbilityWork : CharacterAbility
         return DutyController.CanStartWorkAction();
     }
 
+    public WorkDutyStartDiagnostics CaptureWorkStartDiagnostics()
+    {
+        return DutyController.CaptureStartDiagnostics();
+    }
+
     public bool CanStartAnyWorkAction(GridPathSearchResult searchResult)
     {
+        if (HasEmergencyResponseWorkGateForDiagnostics)
+        {
+            return CanStartWorkAction(
+                emergencyResponseOnlyWorkTypeId,
+                searchResult);
+        }
+
         if (DutyController.HasRoutinePhysiologicalNeed())
         {
             return false;
@@ -900,6 +1033,11 @@ public class AbilityWork : CharacterAbility
 
     public bool CanStartWorkAction(WorkTypeId requestedWorkTypeId, GridPathSearchResult searchResult)
     {
+        if (!IsWorkTypeAllowedByEmergencyResponseGate(requestedWorkTypeId))
+        {
+            return false;
+        }
+
         if (DutyController.HasRoutinePhysiologicalNeed())
         {
             return false;
@@ -907,6 +1045,115 @@ public class AbilityWork : CharacterAbility
 
         return CanStartWorkAction()
             || TargetSelector.HasUrgentAvailableWork(searchResult, requestedWorkTypeId);
+    }
+
+    public void BeginEmergencyResponseWorkGate(
+        long alertEpochId,
+        WorkTypeId allowedWorkTypeId)
+    {
+        if (alertEpochId <= 0L || !allowedWorkTypeId.IsValid)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(alertEpochId),
+                "Emergency work ownership requires a positive epoch and registered work type.");
+        }
+
+        if (emergencyResponseWorkEpochId > 0L)
+        {
+            if (emergencyResponseWorkEpochId != alertEpochId
+                || emergencyResponseOnlyWorkTypeId != allowedWorkTypeId)
+            {
+                throw new InvalidOperationException(
+                    "A different emergency response already owns this worker.");
+            }
+            return;
+        }
+
+        emergencyResponseWorkEpochId = alertEpochId;
+        emergencyResponseOnlyWorkTypeId = allowedWorkTypeId;
+        emergencyResponseWorkGateRevision = checked(
+            emergencyResponseWorkGateRevision + 1L);
+    }
+
+    public void AdvanceEmergencyResponseWorkGate(
+        long expectedPreviousEpochId,
+        long alertEpochId,
+        WorkTypeId allowedWorkTypeId)
+    {
+        if (expectedPreviousEpochId <= 0L
+            || alertEpochId <= expectedPreviousEpochId
+            || !allowedWorkTypeId.IsValid)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(alertEpochId),
+                "Emergency work ownership can only advance from a positive prior epoch to a newer registered response.");
+        }
+        if (emergencyResponseWorkEpochId != expectedPreviousEpochId)
+        {
+            throw new InvalidOperationException(
+                $"Emergency work ownership advance mismatch: expected {expectedPreviousEpochId}, actual {emergencyResponseWorkEpochId}.");
+        }
+
+        emergencyResponseWorkEpochId = alertEpochId;
+        emergencyResponseOnlyWorkTypeId = allowedWorkTypeId;
+        emergencyResponseWorkGateRevision = checked(
+            emergencyResponseWorkGateRevision + 1L);
+    }
+
+    public void UpdateEmergencyResponseWorkGate(
+        long alertEpochId,
+        WorkTypeId expectedPreviousWorkTypeId,
+        WorkTypeId allowedWorkTypeId)
+    {
+        if (alertEpochId <= 0L
+            || !expectedPreviousWorkTypeId.IsValid
+            || !allowedWorkTypeId.IsValid)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(alertEpochId),
+                "Emergency work ownership requires one positive epoch and registered response work types.");
+        }
+        if (emergencyResponseWorkEpochId != alertEpochId
+            || emergencyResponseOnlyWorkTypeId != expectedPreviousWorkTypeId)
+        {
+            throw new InvalidOperationException(
+                "Emergency work ownership type update does not match the current gate.");
+        }
+        if (expectedPreviousWorkTypeId == allowedWorkTypeId)
+        {
+            return;
+        }
+
+        emergencyResponseOnlyWorkTypeId = allowedWorkTypeId;
+        emergencyResponseWorkGateRevision = checked(
+            emergencyResponseWorkGateRevision + 1L);
+    }
+
+    public bool EndEmergencyResponseWorkGate(long alertEpochId)
+    {
+        if (emergencyResponseWorkEpochId <= 0L)
+        {
+            return false;
+        }
+        if (alertEpochId <= 0L || emergencyResponseWorkEpochId != alertEpochId)
+        {
+            throw new InvalidOperationException(
+                $"Emergency work ownership epoch mismatch: expected {emergencyResponseWorkEpochId}, actual {alertEpochId}.");
+        }
+
+        emergencyResponseWorkEpochId = 0L;
+        emergencyResponseOnlyWorkTypeId = default;
+        emergencyResponseWorkGateRevision = checked(
+            emergencyResponseWorkGateRevision + 1L);
+        return true;
+    }
+
+    public bool IsWorkTypeAllowedByEmergencyResponseGate(
+        WorkTypeId requestedWorkTypeId)
+    {
+        return emergencyResponseWorkEpochId <= 0L
+            || (requestedWorkTypeId.IsValid
+                && requestedWorkTypeId == emergencyResponseOnlyWorkTypeId);
     }
 
     private bool TryAssignConfiguredWork(
@@ -1050,6 +1297,19 @@ public class AbilityWork : CharacterAbility
         return TaskExecutor.TryConsumeEmergencySuspension(out receipt);
     }
 
+    public void RestoreInlineEmergencyProgress(
+        WorkTypeId workTypeId,
+        string targetBuildingId,
+        float completedWork,
+        float requiredWork)
+    {
+        TaskExecutor.RestoreInlineEmergencyProgress(
+            workTypeId,
+            targetBuildingId,
+            completedWork,
+            requiredWork);
+    }
+
     public IEnumerator CheckActionWork()
     {
         return DutyController.CheckActionWork(activeWorkRunId);
@@ -1065,10 +1325,79 @@ public class AbilityWork : CharacterAbility
 
     internal void AssignWork(BuildableObject building, FacilityWorkType workType)
     {
+        UnbindWorkTargetDestruction();
+        expectedDestroyedWorkTarget = null;
         assignedShop = building;
         assignedWorkType = workType;
+        if (building != null)
+        {
+            observedWorkTarget = building;
+            observedWorkTarget.OnBuildingDestroyed +=
+                HandleObservedWorkTargetDestroyed;
+        }
         if (building == null)
             activeWorkStartedAt = -1f;
+    }
+
+    private void HandleObservedWorkTargetDestroyed()
+    {
+        BuildableObject destroyedTarget = observedWorkTarget;
+        UnbindWorkTargetDestruction();
+        if (ReferenceEquals(destroyedTarget, expectedDestroyedWorkTarget))
+        {
+            // A completed dismantle removes its own work target.  This is the
+            // successful domain effect, not an external invalidation.  The
+            // executor owns the terminal and clears the assignment after it
+            // has recorded the accepted labor and follow-up recovery state.
+            expectedDestroyedWorkTarget = null;
+            return;
+        }
+        if (destroyedTarget == null
+            || assignedShop != destroyedTarget)
+        {
+            return;
+        }
+
+        actor?.Brain?.ReportRuntimeActionFailure(
+            AIActionFailure.Create(
+                AIActionFailureKind.Destroyed,
+                "work-target-destroyed",
+                destroyedTarget),
+            requestImmediateReplan: false);
+        StopAssignedWorkFromAi("work-target-destroyed");
+    }
+
+    internal void BeginExpectedWorkTargetDestruction(
+        BuildableObject target)
+    {
+        if (target == null || assignedShop != target)
+        {
+            throw new InvalidOperationException(
+                "Expected work-target destruction requires the active assigned target.");
+        }
+
+        expectedDestroyedWorkTarget = target;
+    }
+
+    internal void EndExpectedWorkTargetDestruction(
+        BuildableObject target)
+    {
+        if (ReferenceEquals(expectedDestroyedWorkTarget, target))
+        {
+            expectedDestroyedWorkTarget = null;
+        }
+    }
+
+    private void UnbindWorkTargetDestruction()
+    {
+        if (observedWorkTarget == null)
+        {
+            return;
+        }
+
+        observedWorkTarget.OnBuildingDestroyed -=
+            HandleObservedWorkTargetDestroyed;
+        observedWorkTarget = null;
     }
 
     internal void AssignWork(BuildableObject building, WorkTypeId workTypeId)
@@ -1099,7 +1428,7 @@ public class AbilityWork : CharacterAbility
     {
         FacilityWorkType stoppedWorkType = assignedWorkType;
         BuildableObject stoppedTarget = assignedShop;
-        InvalidateActiveWorkRun();
+        InvalidateActiveWorkRun(reason);
         WorkerMove?.CancelActiveMovement();
 
         if (assignedShop is IWorkableFacility facility)
@@ -1114,8 +1443,21 @@ public class AbilityWork : CharacterAbility
 
         AssignWork(null, FacilityWorkType.None);
         isWorking = false;
-        MarkFacilityDynamicStateDirty();
-        if (!string.IsNullOrWhiteSpace(reason))
+        // A partially constructed actor can be disabled before VContainer has
+        // injected the scoped candidate cache (scene swap, failed spawn, or
+        // restore rollback). Teardown must still be idempotent; a missing
+        // cache means this actor never published a usable facility state to
+        // invalidate.
+        facilityCandidateCache?.MarkDynamicStateDirty();
+        // Teardown can run after scoped registries have already been disposed
+        // (scene replacement/save restore/application quit). A cancellation
+        // activity triggers narrative passives and therefore touches those
+        // registries. Only publish it while the actor is still a live runtime
+        // participant; cleanup itself must remain allocation/side-effect safe.
+        if (!string.IsNullOrWhiteSpace(reason)
+            && actor != null
+            && actor.isActiveAndEnabled
+            && actor.CurrentLifecycleState == CharacterLifecycleState.Active)
         {
             actor?.AddActivity(CharacterActivityEvent.Work(
                 stoppedWorkType,
@@ -1127,12 +1469,21 @@ public class AbilityWork : CharacterAbility
 
         if (actor != null && actor.Brain != null)
         {
-            actor.Brain.bestAction = null;
-            actor.Brain.isBestActionEnd = true;
-            if (requestImmediateReplan)
+            if (currentAction != null)
             {
-                actor.Brain.RequestImmediateReplan(clearFailures: true);
+                actor.Brain.EndExpectedAction(
+                    currentAction,
+                    CharacterAiActionTerminalKind.Cancelled,
+                    clearFailures: false);
             }
+            else if (actor.isActiveAndEnabled
+                     && actor.CurrentLifecycleState == CharacterLifecycleState.Active)
+            {
+                actor.Brain.isBestActionEnd = true;
+            }
+            actor.Brain.bestAction = null;
+            if (requestImmediateReplan)
+                actor.Brain.RequestImmediateReplan(clearFailures: false);
         }
     }
 
@@ -1143,7 +1494,10 @@ public class AbilityWork : CharacterAbility
 
     internal bool CanContinueWorkRun(int runId)
     {
-        return isWorking && IsActiveWorkRun(runId);
+        return isWorking
+            && IsActiveWorkRun(runId)
+            && actor != null
+            && actor.CurrentLifecycleState == CharacterLifecycleState.Active;
     }
 
     internal Coroutine StartCheckActionWork(int runId)
@@ -1156,6 +1510,16 @@ public class AbilityWork : CharacterAbility
         StopActiveWorkCheckRoutine();
         activeWorkCheckRoutine = StartCoroutine(DutyController.CheckActionWork(runId));
         return activeWorkCheckRoutine;
+    }
+
+    internal void RecordRoutineApprovedWorkTime(
+        float elapsedGameSeconds,
+        float remainingShiftSeconds)
+    {
+        TaskExecutor.RecordRoutineApprovedWorkTime(
+            WorkerActor,
+            elapsedGameSeconds,
+            remainingShiftSeconds);
     }
 
     internal void ClearActiveWorkRoutine(int runId)
@@ -1204,6 +1568,11 @@ public class AbilityWork : CharacterAbility
 
     private void OnDisable()
     {
+        if (Application.isPlaying)
+        {
+            StopAssignedWorkFromAi("work-ability-disabled");
+        }
+        UnbindWorkTargetDestruction();
         UnbindScheduleEvents();
     }
 
@@ -1292,7 +1661,8 @@ public class AbilityWork : CharacterAbility
             anatomyHealth,
             speciesCommands,
             emergencyWorkAccounting,
-            settlementLaborAccounting);
+            settlementLaborAccounting,
+            reservedItemTransfers);
         dutyController ??= new WorkDutyController(
             this,
             needDefinitionCatalog);
@@ -1301,33 +1671,48 @@ public class AbilityWork : CharacterAbility
 
     private int BeginWorkRun()
     {
-        StopActiveWorkRoutines();
+        StopActiveWorkRoutines("begin-work-run", activeWorkRunId);
         activeWorkRunId++;
+        // The count remains cumulative, but the descriptive latch belongs to
+        // one run. Without resetting it, a successful later row reports the
+        // cancellation reason of an unrelated earlier action.
+        lastCancelledWorkRunId = 0;
+        lastActiveWorkCancellationReason = string.Empty;
         activeWorkStartedAt = gameClock?.Time ?? 0f;
         return activeWorkRunId;
     }
 
-    private void InvalidateActiveWorkRun()
+    private void InvalidateActiveWorkRun(string reason)
     {
+        int invalidatedRunId = activeWorkRunId;
         activeWorkRunId++;
         activeWorkStartedAt = -1f;
-        StopActiveWorkRoutines();
+        StopActiveWorkRoutines(reason, invalidatedRunId);
     }
 
-    private void StopActiveWorkRoutines()
+    private void StopActiveWorkRoutines(
+        string reason,
+        int cancelledRunId)
     {
-        StopActiveWorkRoutine();
+        StopActiveWorkRoutine(reason, cancelledRunId);
         StopActiveWorkCheckRoutine();
         StopActiveSuppressRoutine();
     }
 
-    private void StopActiveWorkRoutine()
+    private void StopActiveWorkRoutine(
+        string reason,
+        int cancelledRunId)
     {
         if (activeWorkRoutine == null)
         {
             return;
         }
 
+        activeWorkCancellationCount++;
+        lastCancelledWorkRunId = cancelledRunId;
+        lastActiveWorkCancellationReason = string.IsNullOrWhiteSpace(reason)
+            ? "unspecified-work-cancellation"
+            : reason.Trim();
         taskExecutor?.CancelActiveRun(WorkerActor, "coroutine-stopped");
         StopCoroutine(activeWorkRoutine);
         activeWorkRoutine = null;

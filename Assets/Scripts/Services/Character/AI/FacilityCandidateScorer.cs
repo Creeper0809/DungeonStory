@@ -5,7 +5,13 @@ using UnityEngine;
 
 public static class FacilityCandidateScorer
 {
-    private const int MaximumFullyScoredCandidates = 20;
+    // The nearest-candidate cache already preserves spatial diversity by
+    // 16x4-cell bucket. Fully evaluating twenty facilities per role caused a
+    // 500-actor dense dungeon invalidation to miss the two-second response
+    // horizon. Six still covers the nearest room and adjacent-room options
+    // while bounding the
+    // dynamic queue/preference scoring cost.
+    private const int MaximumFullyScoredCandidates = 6;
     private const float EstimatedFacilityTravelSecondsPerCell = 1f;
     private const float PhysicalMealServiceSeconds = 4f;
     private static readonly System.Predicate<BuildableObject> AcceptAnyCandidate = _ => true;
@@ -1068,11 +1074,15 @@ public static class FacilityCandidateScorer
 
         FacilityRole matchedRole = GetBestMatchedRole(actor, building, role);
         float desireScore = GetNeedScore(actor, matchedRole);
+        RecordSlowFacilityStage(actor, building, "need", ref stageStarted);
         float preferenceScore = GetPreferenceScore(actor, building, matchedRole);
+        RecordSlowFacilityStage(actor, building, "preference", ref stageStarted);
         float stockScore = GetStockScore(building);
+        RecordSlowFacilityStage(actor, building, "stock", ref stageStarted);
         float affordabilityScore = GetAffordabilityScore(actor, building);
+        RecordSlowFacilityStage(actor, building, "affordability", ref stageStarted);
         float crowdScore = GetCrowdScore(actor, building);
-        RecordSlowFacilityStage(actor, building, "actor-and-stock", ref stageStarted);
+        RecordSlowFacilityStage(actor, building, "crowd", ref stageStarted);
         float distanceScore = GetDistanceScore(actor, building, searchResult);
         RecordSlowFacilityStage(actor, building, "distance", ref stageStarted);
         float travelOpportunityPenalty = GetTravelOpportunityPenalty(

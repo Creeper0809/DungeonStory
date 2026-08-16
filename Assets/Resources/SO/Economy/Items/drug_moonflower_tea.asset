@@ -34,8 +34,8 @@ MonoBehaviour:
   features:
   - rid: 7737211905666712171
   - rid: 7737211905666712172
-  - rid: 7737211905666712173
   - rid: 7737211905666712174
+  - rid: 7737211981816660959
   references:
     version: 2
     RefIds:
@@ -49,10 +49,6 @@ MonoBehaviour:
         kind: 4
         ingredientTags: 1025
         sharedIntermediate: 0
-    - rid: 7737211905666712173
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.6
     - rid: 7737211905666712174
       type: {class: SubstanceItemFeature, ns: , asm: DungeonStory.Economy}
       data:
@@ -66,3 +62,7 @@ MonoBehaviour:
         workSpeedEffect: 0.04
         combatEffect: 0
         durationSeconds: 180
+    - rid: 7737211981816660959
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.60103655

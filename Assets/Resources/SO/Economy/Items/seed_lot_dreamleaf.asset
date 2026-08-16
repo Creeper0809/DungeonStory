@@ -34,7 +34,7 @@ MonoBehaviour:
   features:
   - rid: 7737211785112453360
   - rid: 7737211785112453361
-  - rid: 7737211905660420619
+  - rid: 7737211981816660194
   references:
     version: 2
     RefIds:
@@ -48,7 +48,7 @@ MonoBehaviour:
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:anesthesia
-    - rid: 7737211905660420619
+    - rid: 7737211981816660194
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0

@@ -30,25 +30,25 @@ MonoBehaviour:
   unitWeight: 0.5
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 6
+  unitPrice: 16
   features:
-  - rid: 7737211905660420708
-  - rid: 7737211905666712494
-  - rid: 7737211905666712495
+  - rid: 7737211981804077118
+  - rid: 7737211981804077119
+  - rid: 7737211981816660511
   references:
     version: 2
     RefIds:
-    - rid: 7737211905660420708
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.5892102
-    - rid: 7737211905666712494
+    - rid: 7737211981804077118
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:baking
-    - rid: 7737211905666712495
+    - rid: 7737211981804077119
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 9
         sharedIntermediate: 1
+    - rid: 7737211981816660511
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.5892102

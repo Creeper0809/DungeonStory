@@ -1,0 +1,404 @@
+﻿# Character AI Fault Recovery PlayMode Verification
+pipeline=live Brain -> BehaviorTree -> AIAction -> AbilityMove/AbilityShopping
+repathAuthority=target cell reached + same action + one repath + zero terminal failure; facility interaction lifecycle is verified by the approach/queue/interaction destruction matrix
+scene=Assets/Scenes/GameplayScene.unity
+status=FINAL
+selector=subscriber
+verifierRevision=fault-recovery-selector-artifacts-v1
+utc=2026-08-16T09:04:30.5798565Z
+startedUtc=2026-08-16T09:02:30.0155623Z
+completedUtc=2026-08-16T09:04:30.5798565Z
+currentScenario=complete
+scenarioElapsedRealtime=1.196
+totalElapsedRealtime=120.564
+overallCeilingRealtime=270
+selectedScenariosStarted=1
+expectedRows=subscriber:throwing-destruction-handler
+startedRows=subscriber:throwing-destruction-handler
+completedRows=subscriber:throwing-destruction-handler
+startedRowIds=subscriber:throwing-destruction-handler
+completedRowIds=subscriber:throwing-destruction-handler
+exactRows=True
+checks=366
+failures=0
+consoleErrors=0
+
+## Row authority
+row=subscriber:throwing-destruction-handler;started=True;completed=True;result=PASS
+
+## Checks
+SETUP start-party=committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Arin:-8976232:character:staff:1:02:active=True,Roma:-8976164:character:staff:1:01:active=True; diagnostics=prepared-1:name=Roma;go=-8976136;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-8976204;id=character:staff:1:02;active=False || scan:name=Roma;go=-8976136;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-8976204;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-8976136;id=character:staff:1:01;active=True || retained:name=Arin;go=-8976204;id=character:staff:1:02;active=True
+PASS LIVE_SCOPE: active LifetimeScope
+PASS LIVE_GRID: 60x3
+PASS LIVE_PIPELINE_ACTOR: Arin
+PASS LIVE_QUEUE_HOLDER: Leon
+PASS LIVE_REST_ACTION: Rest
+PASS CORRIDOR_FIXTURE: start=(29, 1); block=(30, 1)/(30, 2); targets=(31, 1)/(31, 2)
+PASS SCENARIO setup:resolve-live-world: elapsed=0.853s
+PASS REPATH_PRIMARY_CREATED: QA Fault Rest repath-primary@(31, 1)/destroy=False
+PASS FACILITY_PUBLISHED_REPATH: QA Fault Rest repath-primary@(31, 1)/destroy=False
+PASS REPATH_TARGET_REACHED: position=(31, 1); target=(31, 1); facilityUses=0; phase=시설 접근; detail=; blocked=None
+PASS REPATH_SAME_ACTION: same=True; action=AIRest/QA Fault Rest repath-primary@(31, 1)/destroy=False/started=True
+PASS REPATH_EXACTLY_ONCE: repaths=0->1
+PASS REPATH_NO_TERMINAL_FAILURE: failures=0->0
+PASS REPATH_NO_ABA_OSCILLATION: oscillations=0
+PASS REPATH_NO_DUPLICATE_ACTION_START: starts=0->1
+PASS SCENARIO core:repath: elapsed=3.601s
+PASS NOPATH_PRIMARY_CREATED: QA Fault Rest no-path-primary@(31, 1)/destroy=False
+PASS FACILITY_PUBLISHED_NO-PATH: QA Fault Rest no-path-primary@(31, 1)/destroy=False
+PASS NOPATH_TYPED_FAILURE_ONCE: count=2->3; failure=경로 없음
+PASS NOPATH_KIND: 경로 없음
+PASS NOPATH_MOVE_TERMINAL_ONCE: moveFailures=0->1
+PASS NOPATH_RESERVATION_RELEASED: actionReservation=False; facilityReservations=0
+PASS NOPATH_FACILITY_RESERVATION_RELEASED: reservations=0
+PASS NOPATH_IMMEDIATE_REPLAN: route=direct; replans=10->11; protected=1->1; decisions=11->12
+PASS NOPATH_NO_HOT_RETRY_SAME_TOPOLOGY: samples=0; actionStarts=2->2
+PASS SCENARIO core:no-path: elapsed=1.394s
+PASS FACILITY_DESTROY_APPROACH_PRIMARY_CREATED: primary=QA Fault Rest Approach-primary@(31, 1)/destroy=False
+PASS FACILITY_PUBLISHED_APPROACH: QA Fault Rest Approach-primary@(31, 1)/destroy=False
+PASS FACILITY_DESTROY_APPROACH_PHASE_REACHED: phase=이동; users=0; reservations=1; waiting=0
+PASS FACILITY_DESTROY_APPROACH_IMMEDIATE_OCCUPANCY_CLEANUP: users=0; reservations=0; waiting=0; worker=
+PASS FACILITY_DESTROY_APPROACH_ALTERNATE_CREATED: QA Fault Rest Approach-alternate@(31, 2)/destroy=False
+PASS FACILITY_DESTROY_APPROACH_TYPED_FAILURE_ONCE: failures=3->4; Facility destination was destroyed during the active visit action.
+PASS FACILITY_DESTROY_APPROACH_DESTROYED_KIND: Facility destination was destroyed during the active visit action.
+PASS FACILITY_DESTROY_APPROACH_IMMEDIATE_REPLAN: route=direct; replans=14->15; protected=2->2; decisions=16->17
+PASS FACILITY_DESTROY_APPROACH_ALTERNATE_PUBLISHED_ORGANICALLY: alternate=QA Fault Rest Approach-alternate@(31, 2)/destroy=False; external=False; owner=
+PASS FACILITY_DESTROY_APPROACH_ALTERNATE_REPLAN: action=AIRest/QA Fault Rest Approach-alternate@(31, 2)/destroy=False/started=True; phase=이동
+PASS SCENARIO facility-shared:approach: elapsed=0.233s
+PASS FACILITY_DESTROY_QUEUE_PRIMARY_CREATED: primary=QA Fault Rest Queue-primary@(31, 1)/destroy=False
+PASS FACILITY_DESTROY_QUEUE_HOLDER_ADMITTED: 
+PASS FACILITY_PUBLISHED_QUEUE: QA Fault Rest Queue-primary@(31, 1)/destroy=False
+PASS FACILITY_DESTROY_QUEUE_PHASE_REACHED: phase=이동; users=1; reservations=1; waiting=1
+PASS FACILITY_DESTROY_QUEUE_IMMEDIATE_OCCUPANCY_CLEANUP: users=0; reservations=0; waiting=0; worker=
+PASS FACILITY_DESTROY_QUEUE_ALTERNATE_CREATED: QA Fault Rest Queue-alternate@(31, 2)/destroy=False
+PASS FACILITY_DESTROY_QUEUE_TYPED_FAILURE_ONCE: failures=5->6; Facility destination was destroyed during the active visit action.
+PASS FACILITY_DESTROY_QUEUE_DESTROYED_KIND: Facility destination was destroyed during the active visit action.
+PASS FACILITY_DESTROY_QUEUE_IMMEDIATE_REPLAN: route=direct; replans=19->20; protected=3->3; decisions=22->23
+PASS FACILITY_DESTROY_QUEUE_ALTERNATE_PUBLISHED_ORGANICALLY: alternate=QA Fault Rest Queue-alternate@(31, 2)/destroy=False; external=False; owner=
+PASS FACILITY_DESTROY_QUEUE_ALTERNATE_REPLAN: action=AIRest/QA Fault Rest Queue-alternate@(31, 2)/destroy=False/started=True; phase=이동
+PASS SCENARIO facility-shared:queue: elapsed=0.301s
+PASS FACILITY_DESTROY_INTERACTION_PRIMARY_CREATED: primary=QA Fault Rest Interaction-primary@(31, 1)/destroy=False
+PASS FACILITY_PUBLISHED_INTERACTION: QA Fault Rest Interaction-primary@(31, 1)/destroy=False
+PASS FACILITY_DESTROY_INTERACTION_PHASE_REACHED: phase=시설 접근; users=1; reservations=0; waiting=0
+PASS FACILITY_DESTROY_INTERACTION_IMMEDIATE_OCCUPANCY_CLEANUP: users=0; reservations=0; waiting=0; worker=
+PASS FACILITY_DESTROY_INTERACTION_ALTERNATE_CREATED: QA Fault Rest Interaction-alternate@(31, 2)/destroy=False
+PASS FACILITY_DESTROY_INTERACTION_TYPED_FAILURE_ONCE: failures=7->8; Facility destination was destroyed during the active visit action.
+PASS FACILITY_DESTROY_INTERACTION_DESTROYED_KIND: Facility destination was destroyed during the active visit action.
+PASS FACILITY_DESTROY_INTERACTION_IMMEDIATE_REPLAN: route=direct; replans=24->25; protected=4->4; decisions=28->29
+PASS FACILITY_DESTROY_INTERACTION_ALTERNATE_PUBLISHED_ORGANICALLY: alternate=QA Fault Rest Interaction-alternate@(31, 2)/destroy=False; external=False; owner=
+PASS FACILITY_DESTROY_INTERACTION_ALTERNATE_REPLAN: action=AIRest/QA Fault Rest Interaction-alternate@(31, 2)/destroy=False/started=True; phase=이동
+PASS SCENARIO facility-shared:interaction: elapsed=2.492s
+PASS EAT_AUTHORED_ACTION: AIEat/null/started=True
+PASS EAT_DESTROY_APPROACH_PRIMARY_CREATED: QA Fault Rest EAT_DESTROY_APPROACH_primary@(31, 1)/destroy=False
+PASS EAT_DESTROY_APPROACH_MEAL_BUFFER_SEEDED: stack:3f86092299094a449e91edc82c15b0f2
+PASS EAT_DESTROY_APPROACH_PUBLISHED: QA Fault Rest EAT_DESTROY_APPROACH_primary@(31, 1)/destroy=False
+PASS EAT_DESTROY_APPROACH_PRODUCTION_PIPELINE_SELECTED: scheduler action=AIEat/QA Fault Rest EAT_DESTROY_APPROACH_primary@(31, 1)/destroy=False/started=True; phase=이동; deferredRetries=9
+PASS EAT_DESTROY_APPROACH_ACTION_STARTED: AIEat/QA Fault Rest EAT_DESTROY_APPROACH_primary@(31, 1)/destroy=False/started=True
+PASS EAT_DESTROY_APPROACH_PHASE_REACHED: authority=eat-pre-admission/arrival; position=(29, 1); target=(31, 1); branch=; phase=; users=0; reservations=0; waiting=0
+PASS EAT_DESTROY_APPROACH_CLEANUP: users=0; reservations=0; waiting=0; worker=
+PASS EAT_DESTROY_APPROACH_TYPED_FAILURE_ONCE: failures=10->11; Facility destination was destroyed during the active visit action.
+PASS EAT_DESTROY_APPROACH_DESTROYED_KIND: Facility destination was destroyed during the active visit action.
+PASS EAT_DESTROY_APPROACH_IMMEDIATE_REPLAN: route=direct; replans=31->32; protected=4->4; decisions=35->36
+PASS EAT_DESTROY_APPROACH_MEAL_LEASE_CLEAN: reserved=0
+PASS SCENARIO facility-action:eat:approach: elapsed=0.292s
+PASS EAT_DESTROY_QUEUE_PRIMARY_CREATED: QA Fault Rest EAT_DESTROY_QUEUE_primary@(31, 1)/destroy=False
+PASS EAT_DESTROY_QUEUE_MEAL_BUFFER_SEEDED: stack:62e869aaeff14a50a47f8581ad7dcacc
+PASS EAT_DESTROY_QUEUE_HOLDER_ADMITTED: 
+PASS EAT_DESTROY_QUEUE_PUBLISHED: QA Fault Rest EAT_DESTROY_QUEUE_primary@(31, 1)/destroy=False
+PASS EAT_DESTROY_QUEUE_PRODUCTION_PIPELINE_SELECTED: scheduler action=AIEat/QA Fault Rest EAT_DESTROY_QUEUE_primary@(31, 1)/destroy=False/started=True; phase=이동; deferredRetries=10
+PASS EAT_DESTROY_QUEUE_ACTION_STARTED: AIEat/QA Fault Rest EAT_DESTROY_QUEUE_primary@(31, 1)/destroy=False/started=True
+PASS EAT_DESTROY_QUEUE_PHASE_REACHED: authority=facility-approach/queue/use; position=(29, 1); target=(31, 1); branch=Eat; phase=이동; users=1; reservations=1; waiting=1
+PASS EAT_DESTROY_QUEUE_CLEANUP: users=0; reservations=0; waiting=0; worker=
+PASS EAT_DESTROY_QUEUE_TYPED_FAILURE_ONCE: failures=11->12; Facility destination was destroyed during the active visit action.
+PASS EAT_DESTROY_QUEUE_DESTROYED_KIND: Facility destination was destroyed during the active visit action.
+PASS EAT_DESTROY_QUEUE_IMMEDIATE_REPLAN: route=direct; replans=35->36; protected=4->4; decisions=39->40
+PASS EAT_DESTROY_QUEUE_MEAL_LEASE_CLEAN: reserved=0
+PASS SCENARIO facility-action:eat:queue: elapsed=0.278s
+PASS EAT_DESTROY_INTERACTION_PRIMARY_CREATED: QA Fault Rest EAT_DESTROY_INTERACTION_primary@(31, 1)/destroy=False
+PASS EAT_DESTROY_INTERACTION_MEAL_BUFFER_SEEDED: stack:88c51e8b69934695bac18523fb5fa201
+PASS EAT_DESTROY_INTERACTION_PUBLISHED: QA Fault Rest EAT_DESTROY_INTERACTION_primary@(31, 1)/destroy=False
+PASS EAT_DESTROY_INTERACTION_PRODUCTION_PIPELINE_SELECTED: scheduler action=AIEat/QA Fault Rest EAT_DESTROY_INTERACTION_primary@(31, 1)/destroy=False/started=True; phase=이동; deferredRetries=18
+PASS EAT_DESTROY_INTERACTION_ACTION_STARTED: AIEat/QA Fault Rest EAT_DESTROY_INTERACTION_primary@(31, 1)/destroy=False/started=True
+PASS EAT_DESTROY_INTERACTION_PHASE_REACHED: authority=facility-approach/queue/use; position=(31, 1); target=(31, 1); branch=Eat; phase=시설 접근; users=1; reservations=0; waiting=0
+PASS EAT_DESTROY_INTERACTION_CLEANUP: users=0; reservations=0; waiting=0; worker=
+PASS EAT_DESTROY_INTERACTION_TYPED_FAILURE_ONCE: failures=12->13; Facility destination was destroyed during the active visit action.
+PASS EAT_DESTROY_INTERACTION_DESTROYED_KIND: Facility destination was destroyed during the active visit action.
+PASS EAT_DESTROY_INTERACTION_IMMEDIATE_REPLAN: route=direct; replans=39->40; protected=4->4; decisions=43->44
+PASS EAT_DESTROY_INTERACTION_MEAL_LEASE_CLEAN: reserved=0
+PASS SCENARIO facility-action:eat:interaction: elapsed=2.49s
+PASS TOILET_AUTHORED_ACTION: AIFacilityRoleAction/null/started=False
+PASS TOILET_DESTROY_APPROACH_PRIMARY_CREATED: QA Fault Rest TOILET_DESTROY_APPROACH_primary@(31, 1)/destroy=False
+PASS TOILET_DESTROY_APPROACH_PUBLISHED: QA Fault Rest TOILET_DESTROY_APPROACH_primary@(31, 1)/destroy=False
+PASS TOILET_DESTROY_APPROACH_PRODUCTION_PIPELINE_SELECTED: scheduler action=AIFacilityRoleAction/QA Fault Rest TOILET_DESTROY_APPROACH_primary@(31, 1)/destroy=False/started=True; phase=이동; deferredRetries=0
+PASS TOILET_DESTROY_APPROACH_ACTION_STARTED: AIFacilityRoleAction/QA Fault Rest TOILET_DESTROY_APPROACH_primary@(31, 1)/destroy=False/started=True
+PASS TOILET_DESTROY_APPROACH_PHASE_REACHED: authority=facility-approach/queue/use; position=(29, 1); target=(31, 1); branch=Toilet; phase=이동; users=0; reservations=1; waiting=0
+PASS TOILET_DESTROY_APPROACH_CLEANUP: users=0; reservations=0; waiting=0; worker=
+PASS TOILET_DESTROY_APPROACH_TYPED_FAILURE_ONCE: failures=14->15; Facility destination was destroyed during the active visit action.
+PASS TOILET_DESTROY_APPROACH_DESTROYED_KIND: Facility destination was destroyed during the active visit action.
+PASS TOILET_DESTROY_APPROACH_IMMEDIATE_REPLAN: route=direct; replans=44->45; protected=4->4; decisions=48->49
+PASS SCENARIO facility-action:toilet:approach: elapsed=0.221s
+PASS TOILET_DESTROY_QUEUE_PRIMARY_CREATED: QA Fault Rest TOILET_DESTROY_QUEUE_primary@(31, 1)/destroy=False
+PASS TOILET_DESTROY_QUEUE_HOLDER_ADMITTED: 
+PASS TOILET_DESTROY_QUEUE_PUBLISHED: QA Fault Rest TOILET_DESTROY_QUEUE_primary@(31, 1)/destroy=False
+PASS TOILET_DESTROY_QUEUE_PRODUCTION_PIPELINE_SELECTED: scheduler action=AIFacilityRoleAction/QA Fault Rest TOILET_DESTROY_QUEUE_primary@(31, 1)/destroy=False/started=True; phase=이동; deferredRetries=0
+PASS TOILET_DESTROY_QUEUE_ACTION_STARTED: AIFacilityRoleAction/QA Fault Rest TOILET_DESTROY_QUEUE_primary@(31, 1)/destroy=False/started=True
+PASS TOILET_DESTROY_QUEUE_PHASE_REACHED: authority=facility-approach/queue/use; position=(29, 1); target=(31, 1); branch=Toilet; phase=이동; users=1; reservations=1; waiting=1
+PASS TOILET_DESTROY_QUEUE_CLEANUP: users=0; reservations=0; waiting=0; worker=
+PASS TOILET_DESTROY_QUEUE_TYPED_FAILURE_ONCE: failures=15->16; Facility destination was destroyed during the active visit action.
+PASS TOILET_DESTROY_QUEUE_DESTROYED_KIND: Facility destination was destroyed during the active visit action.
+PASS TOILET_DESTROY_QUEUE_IMMEDIATE_REPLAN: route=direct; replans=48->49; protected=4->4; decisions=52->53
+PASS SCENARIO facility-action:toilet:queue: elapsed=0.268s
+PASS TOILET_DESTROY_INTERACTION_PRIMARY_CREATED: QA Fault Rest TOILET_DESTROY_INTERACTION_primary@(31, 1)/destroy=False
+PASS TOILET_DESTROY_INTERACTION_PUBLISHED: QA Fault Rest TOILET_DESTROY_INTERACTION_primary@(31, 1)/destroy=False
+PASS TOILET_DESTROY_INTERACTION_PRODUCTION_PIPELINE_SELECTED: scheduler action=AIFacilityRoleAction/QA Fault Rest TOILET_DESTROY_INTERACTION_primary@(31, 1)/destroy=False/started=True; phase=이동; deferredRetries=0
+PASS TOILET_DESTROY_INTERACTION_ACTION_STARTED: AIFacilityRoleAction/QA Fault Rest TOILET_DESTROY_INTERACTION_primary@(31, 1)/destroy=False/started=True
+PASS TOILET_DESTROY_INTERACTION_PHASE_REACHED: authority=facility-approach/queue/use; position=(31, 1); target=(31, 1); branch=Toilet; phase=시설 접근; users=1; reservations=0; waiting=0
+PASS TOILET_DESTROY_INTERACTION_CLEANUP: users=0; reservations=0; waiting=0; worker=
+PASS TOILET_DESTROY_INTERACTION_TYPED_FAILURE_ONCE: failures=16->17; Facility destination was destroyed during the active visit action.
+PASS TOILET_DESTROY_INTERACTION_DESTROYED_KIND: Facility destination was destroyed during the active visit action.
+PASS TOILET_DESTROY_INTERACTION_IMMEDIATE_REPLAN: route=direct; replans=52->53; protected=4->4; decisions=56->57
+PASS SCENARIO facility-action:toilet:interaction: elapsed=1.994s
+PASS HYGIENE_AUTHORED_ACTION: AIFacilityRoleAction/null/started=False
+PASS HYGIENE_DESTROY_APPROACH_PRIMARY_CREATED: QA Fault Rest HYGIENE_DESTROY_APPROACH_primary@(31, 1)/destroy=False
+PASS HYGIENE_DESTROY_APPROACH_PUBLISHED: QA Fault Rest HYGIENE_DESTROY_APPROACH_primary@(31, 1)/destroy=False
+PASS HYGIENE_DESTROY_APPROACH_PRODUCTION_PIPELINE_SELECTED: scheduler action=AIFacilityRoleAction/QA Fault Rest HYGIENE_DESTROY_APPROACH_primary@(31, 1)/destroy=False/started=True; phase=이동; deferredRetries=0
+PASS HYGIENE_DESTROY_APPROACH_ACTION_STARTED: AIFacilityRoleAction/QA Fault Rest HYGIENE_DESTROY_APPROACH_primary@(31, 1)/destroy=False/started=True
+PASS HYGIENE_DESTROY_APPROACH_PHASE_REACHED: authority=facility-approach/queue/use; position=(29, 1); target=(31, 1); branch=Hygiene; phase=이동; users=0; reservations=1; waiting=0
+PASS HYGIENE_DESTROY_APPROACH_CLEANUP: users=0; reservations=0; waiting=0; worker=
+PASS HYGIENE_DESTROY_APPROACH_TYPED_FAILURE_ONCE: failures=18->19; Facility destination was destroyed during the active visit action.
+PASS HYGIENE_DESTROY_APPROACH_DESTROYED_KIND: Facility destination was destroyed during the active visit action.
+PASS HYGIENE_DESTROY_APPROACH_IMMEDIATE_REPLAN: route=direct; replans=57->58; protected=4->4; decisions=61->62
+PASS SCENARIO facility-action:hygiene:approach: elapsed=0.358s
+PASS HYGIENE_DESTROY_QUEUE_PRIMARY_CREATED: QA Fault Rest HYGIENE_DESTROY_QUEUE_primary@(31, 1)/destroy=False
+PASS HYGIENE_DESTROY_QUEUE_HOLDER_ADMITTED: 
+PASS HYGIENE_DESTROY_QUEUE_PUBLISHED: QA Fault Rest HYGIENE_DESTROY_QUEUE_primary@(31, 1)/destroy=False
+PASS HYGIENE_DESTROY_QUEUE_PRODUCTION_PIPELINE_SELECTED: scheduler action=AIFacilityRoleAction/QA Fault Rest HYGIENE_DESTROY_QUEUE_primary@(31, 1)/destroy=False/started=True; phase=이동; deferredRetries=0
+PASS HYGIENE_DESTROY_QUEUE_ACTION_STARTED: AIFacilityRoleAction/QA Fault Rest HYGIENE_DESTROY_QUEUE_primary@(31, 1)/destroy=False/started=True
+PASS HYGIENE_DESTROY_QUEUE_PHASE_REACHED: authority=facility-approach/queue/use; position=(29, 1); target=(31, 1); branch=Hygiene; phase=이동; users=1; reservations=1; waiting=1
+PASS HYGIENE_DESTROY_QUEUE_CLEANUP: users=0; reservations=0; waiting=0; worker=
+PASS HYGIENE_DESTROY_QUEUE_TYPED_FAILURE_ONCE: failures=19->20; Facility destination was destroyed during the active visit action.
+PASS HYGIENE_DESTROY_QUEUE_DESTROYED_KIND: Facility destination was destroyed during the active visit action.
+PASS HYGIENE_DESTROY_QUEUE_IMMEDIATE_REPLAN: route=direct; replans=61->62; protected=4->4; decisions=65->66
+PASS SCENARIO facility-action:hygiene:queue: elapsed=0.375s
+PASS HYGIENE_DESTROY_INTERACTION_PRIMARY_CREATED: QA Fault Rest HYGIENE_DESTROY_INTERACTION_primary@(31, 1)/destroy=False
+PASS HYGIENE_DESTROY_INTERACTION_PUBLISHED: QA Fault Rest HYGIENE_DESTROY_INTERACTION_primary@(31, 1)/destroy=False
+PASS HYGIENE_DESTROY_INTERACTION_PRODUCTION_PIPELINE_SELECTED: scheduler action=AIFacilityRoleAction/QA Fault Rest HYGIENE_DESTROY_INTERACTION_primary@(31, 1)/destroy=False/started=True; phase=이동; deferredRetries=0
+PASS HYGIENE_DESTROY_INTERACTION_ACTION_STARTED: AIFacilityRoleAction/QA Fault Rest HYGIENE_DESTROY_INTERACTION_primary@(31, 1)/destroy=False/started=True
+PASS HYGIENE_DESTROY_INTERACTION_PHASE_REACHED: authority=facility-approach/queue/use; position=(31, 1); target=(31, 1); branch=Hygiene; phase=시설 접근; users=1; reservations=0; waiting=0
+PASS HYGIENE_DESTROY_INTERACTION_CLEANUP: users=0; reservations=0; waiting=0; worker=
+PASS HYGIENE_DESTROY_INTERACTION_TYPED_FAILURE_ONCE: failures=20->21; Facility destination was destroyed during the active visit action.
+PASS HYGIENE_DESTROY_INTERACTION_DESTROYED_KIND: Facility destination was destroyed during the active visit action.
+PASS HYGIENE_DESTROY_INTERACTION_IMMEDIATE_REPLAN: route=direct; replans=65->66; protected=4->4; decisions=69->70
+PASS SCENARIO facility-action:hygiene:interaction: elapsed=2.343s
+PASS RECREATION_AUTHORED_ACTION: AIFacilityRoleAction/null/started=False
+PASS RECREATION_DESTROY_APPROACH_PRIMARY_CREATED: QA Fault Rest RECREATION_DESTROY_APPROACH_primary@(31, 1)/destroy=False
+PASS RECREATION_DESTROY_APPROACH_PUBLISHED: QA Fault Rest RECREATION_DESTROY_APPROACH_primary@(31, 1)/destroy=False
+PASS RECREATION_DESTROY_APPROACH_PRODUCTION_PIPELINE_SELECTED: scheduler action=AIFacilityRoleAction/QA Fault Rest RECREATION_DESTROY_APPROACH_primary@(31, 1)/destroy=False/started=True; phase=이동; deferredRetries=0
+PASS RECREATION_DESTROY_APPROACH_ACTION_STARTED: AIFacilityRoleAction/QA Fault Rest RECREATION_DESTROY_APPROACH_primary@(31, 1)/destroy=False/started=True
+PASS RECREATION_DESTROY_APPROACH_PHASE_REACHED: authority=facility-approach/queue/use; position=(29, 1); target=(31, 1); branch=LeisureVisit; phase=이동; users=0; reservations=1; waiting=0
+PASS RECREATION_DESTROY_APPROACH_CLEANUP: users=0; reservations=0; waiting=0; worker=
+PASS RECREATION_DESTROY_APPROACH_TYPED_FAILURE_ONCE: failures=22->23; Facility destination was destroyed during the active visit action.
+PASS RECREATION_DESTROY_APPROACH_DESTROYED_KIND: Facility destination was destroyed during the active visit action.
+PASS RECREATION_DESTROY_APPROACH_IMMEDIATE_REPLAN: route=direct; replans=70->71; protected=4->4; decisions=74->75
+PASS SCENARIO facility-action:recreation:approach: elapsed=0.249s
+PASS RECREATION_DESTROY_QUEUE_PRIMARY_CREATED: QA Fault Rest RECREATION_DESTROY_QUEUE_primary@(31, 1)/destroy=False
+PASS RECREATION_DESTROY_QUEUE_HOLDER_ADMITTED: 
+PASS RECREATION_DESTROY_QUEUE_PUBLISHED: QA Fault Rest RECREATION_DESTROY_QUEUE_primary@(31, 1)/destroy=False
+PASS RECREATION_DESTROY_QUEUE_PRODUCTION_PIPELINE_SELECTED: scheduler action=AIFacilityRoleAction/QA Fault Rest RECREATION_DESTROY_QUEUE_primary@(31, 1)/destroy=False/started=True; phase=이동; deferredRetries=0
+PASS RECREATION_DESTROY_QUEUE_ACTION_STARTED: AIFacilityRoleAction/QA Fault Rest RECREATION_DESTROY_QUEUE_primary@(31, 1)/destroy=False/started=True
+PASS RECREATION_DESTROY_QUEUE_PHASE_REACHED: authority=facility-approach/queue/use; position=(29, 1); target=(31, 1); branch=LeisureVisit; phase=이동; users=1; reservations=1; waiting=1
+PASS RECREATION_DESTROY_QUEUE_CLEANUP: users=0; reservations=0; waiting=0; worker=
+PASS RECREATION_DESTROY_QUEUE_TYPED_FAILURE_ONCE: failures=23->24; Facility destination was destroyed during the active visit action.
+PASS RECREATION_DESTROY_QUEUE_DESTROYED_KIND: Facility destination was destroyed during the active visit action.
+PASS RECREATION_DESTROY_QUEUE_IMMEDIATE_REPLAN: route=direct; replans=74->75; protected=4->4; decisions=78->79
+PASS SCENARIO facility-action:recreation:queue: elapsed=0.267s
+PASS RECREATION_DESTROY_INTERACTION_PRIMARY_CREATED: QA Fault Rest RECREATION_DESTROY_INTERACTION_primary@(31, 1)/destroy=False
+PASS RECREATION_DESTROY_INTERACTION_PUBLISHED: QA Fault Rest RECREATION_DESTROY_INTERACTION_primary@(31, 1)/destroy=False
+PASS RECREATION_DESTROY_INTERACTION_PRODUCTION_PIPELINE_SELECTED: scheduler action=AIFacilityRoleAction/QA Fault Rest RECREATION_DESTROY_INTERACTION_primary@(31, 1)/destroy=False/started=True; phase=이동; deferredRetries=0
+PASS RECREATION_DESTROY_INTERACTION_ACTION_STARTED: AIFacilityRoleAction/QA Fault Rest RECREATION_DESTROY_INTERACTION_primary@(31, 1)/destroy=False/started=True
+PASS RECREATION_DESTROY_INTERACTION_PHASE_REACHED: authority=facility-approach/queue/use; position=(31, 1); target=(31, 1); branch=LeisureVisit; phase=시설 접근; users=1; reservations=0; waiting=0
+PASS RECREATION_DESTROY_INTERACTION_CLEANUP: users=0; reservations=0; waiting=0; worker=
+PASS RECREATION_DESTROY_INTERACTION_TYPED_FAILURE_ONCE: failures=24->25; Facility destination was destroyed during the active visit action.
+PASS RECREATION_DESTROY_INTERACTION_DESTROYED_KIND: Facility destination was destroyed during the active visit action.
+PASS RECREATION_DESTROY_INTERACTION_IMMEDIATE_REPLAN: route=direct; replans=78->79; protected=4->4; decisions=82->83
+PASS SCENARIO facility-action:recreation:interaction: elapsed=2.851s
+PASS SHOPPING_AUTHORED_ACTION: AIShopping/null/started=True
+PASS SHOPPING_DESTROY_APPROACH_PRIMARY_CREATED: QA Fault Rest SHOPPING_DESTROY_APPROACH_primary@(31, 1)/destroy=False
+PASS SHOPPING_DESTROY_APPROACH_PUBLISHED: QA Fault Rest SHOPPING_DESTROY_APPROACH_primary@(31, 1)/destroy=False
+PASS SHOPPING_DESTROY_APPROACH_PRODUCTION_PIPELINE_SELECTED: scheduler action=AIShopping/QA Fault Rest SHOPPING_DESTROY_APPROACH_primary@(31, 1)/destroy=False/started=True; phase=이동; deferredRetries=0
+PASS SHOPPING_DESTROY_APPROACH_ACTION_STARTED: AIShopping/QA Fault Rest SHOPPING_DESTROY_APPROACH_primary@(31, 1)/destroy=False/started=True
+PASS SHOPPING_DESTROY_APPROACH_PHASE_REACHED: authority=facility-approach/queue/use; position=(29, 1); target=(31, 1); branch=Shopping; phase=이동; users=0; reservations=1; waiting=0
+PASS SHOPPING_DESTROY_APPROACH_CLEANUP: users=0; reservations=0; waiting=0; worker=
+PASS SHOPPING_DESTROY_APPROACH_TYPED_FAILURE_ONCE: failures=26->27; Facility destination was destroyed during the active visit action.
+PASS SHOPPING_DESTROY_APPROACH_DESTROYED_KIND: Facility destination was destroyed during the active visit action.
+PASS SHOPPING_DESTROY_APPROACH_IMMEDIATE_REPLAN: route=direct; replans=84->85; protected=4->4; decisions=88->89
+PASS SCENARIO facility-action:shopping:approach: elapsed=0.304s
+PASS SHOPPING_DESTROY_QUEUE_PRIMARY_CREATED: QA Fault Rest SHOPPING_DESTROY_QUEUE_primary@(31, 1)/destroy=False
+PASS SHOPPING_DESTROY_QUEUE_HOLDER_ADMITTED: 
+PASS SHOPPING_DESTROY_QUEUE_QUEUE_CAPACITY_DISTINGUISHED: immediate=False:수용 인원 초과; queue=True:
+PASS SHOPPING_DESTROY_QUEUE_PUBLISHED: QA Fault Rest SHOPPING_DESTROY_QUEUE_primary@(31, 1)/destroy=False
+PASS SHOPPING_DESTROY_QUEUE_PRODUCTION_PIPELINE_SELECTED: scheduler action=AIShopping/QA Fault Rest SHOPPING_DESTROY_QUEUE_primary@(31, 1)/destroy=False/started=True; phase=이동; deferredRetries=0
+PASS SHOPPING_DESTROY_QUEUE_ACTION_STARTED: AIShopping/QA Fault Rest SHOPPING_DESTROY_QUEUE_primary@(31, 1)/destroy=False/started=True
+PASS SHOPPING_DESTROY_QUEUE_PHASE_REACHED: authority=facility-approach/queue/use; position=(29, 1); target=(31, 1); branch=Shopping; phase=이동; users=1; reservations=1; waiting=1
+PASS SHOPPING_DESTROY_QUEUE_CLEANUP: users=0; reservations=0; waiting=0; worker=
+PASS SHOPPING_DESTROY_QUEUE_TYPED_FAILURE_ONCE: failures=27->28; Facility destination was destroyed during the active visit action.
+PASS SHOPPING_DESTROY_QUEUE_DESTROYED_KIND: Facility destination was destroyed during the active visit action.
+PASS SHOPPING_DESTROY_QUEUE_IMMEDIATE_REPLAN: route=direct; replans=87->88; protected=5->5; decisions=92->93
+PASS SCENARIO facility-action:shopping:queue: elapsed=0.178s
+PASS SHOPPING_DESTROY_INTERACTION_PRIMARY_CREATED: QA Fault Rest SHOPPING_DESTROY_INTERACTION_primary@(31, 1)/destroy=False
+PASS SHOPPING_DESTROY_INTERACTION_PUBLISHED: QA Fault Rest SHOPPING_DESTROY_INTERACTION_primary@(31, 1)/destroy=False
+PASS SHOPPING_DESTROY_INTERACTION_PRODUCTION_PIPELINE_SELECTED: scheduler action=AIShopping/QA Fault Rest SHOPPING_DESTROY_INTERACTION_primary@(31, 1)/destroy=False/started=True; phase=이동; deferredRetries=0
+PASS SHOPPING_DESTROY_INTERACTION_ACTION_STARTED: AIShopping/QA Fault Rest SHOPPING_DESTROY_INTERACTION_primary@(31, 1)/destroy=False/started=True
+PASS SHOPPING_DESTROY_INTERACTION_PHASE_REACHED: authority=facility-approach/queue/use; position=(31, 1); target=(31, 1); branch=Shopping; phase=시설 접근; users=1; reservations=0; waiting=0
+PASS SHOPPING_DESTROY_INTERACTION_CLEANUP: users=0; reservations=0; waiting=0; worker=
+PASS SHOPPING_DESTROY_INTERACTION_TYPED_FAILURE_ONCE: failures=28->29; Facility destination was destroyed during the active visit action.
+PASS SHOPPING_DESTROY_INTERACTION_DESTROYED_KIND: Facility destination was destroyed during the active visit action.
+PASS SHOPPING_DESTROY_INTERACTION_IMMEDIATE_REPLAN: route=direct; replans=90->91; protected=6->6; decisions=96->97
+PASS SCENARIO facility-action:shopping:interaction: elapsed=1.864s
+PASS LOOK_AROUND_AUTHORED_ACTION: AILookAround/null/started=False
+PASS LOOK_AROUND_DEFERRED_RECOVERY_PRODUCTION_PIPELINE_SELECTED: scheduler action=AILookAround/null/started=True; phase=주변 둘러보기
+PASS LOOK_AROUND_DEFERRED_RECOVERY_PIPELINE_STARTED: action=AILookAround/null/started=True; phase=주변 둘러보기
+PASS LOOK_AROUND_DEFERRED_RECOVERY_SAME_ACTION_ONCE: starts=23->24; switchedBeforeTerminal=False
+PASS LOOK_AROUND_DEFERRED_RECOVERY_DEFERRED_HEARTBEATS: deferredCalls=3; retrySchedules=28->31
+PASS LOOK_AROUND_DEFERRED_RECOVERY_NO_TERMINAL_STARVATION: 
+PASS LOOK_AROUND_DEFERRED_RECOVERY_COMPLETED_AFTER_RETRY: completed=0->1
+PASS SCENARIO destinationless:look_around:recovery: elapsed=2.536s
+PASS LOOK_AROUND_STARVATION_PRODUCTION_DEFERRAL_LIMIT: 64
+PASS LOOK_AROUND_STARVATION_PRODUCTION_PIPELINE_SELECTED: scheduler action=AILookAround/null/started=True; phase=주변 둘러보기
+PASS LOOK_AROUND_STARVATION_PIPELINE_STARTED: action=AILookAround/null/started=True; phase=주변 둘러보기
+PASS LOOK_AROUND_STARVATION_SAME_ACTION_ONCE: starts=24->25; switchedBeforeTerminal=False
+PASS LOOK_AROUND_STARVATION_DEFERRED_HEARTBEATS: deferredCalls=13; retrySchedules=31->43
+PASS LOOK_AROUND_STARVATION_TYPED_TERMINAL: Idle wander path search remained deferred for 12 attempts.
+PASS LOOK_AROUND_STARVATION_FAILED_ONCE: failed=23->24; terminal=24->25
+PASS SCENARIO destinationless:look_around:starvation: elapsed=1.274s
+PASS WAIT_AUTHORED_ACTION: AIWait/null/started=False
+PASS WAIT_DEFERRED_RECOVERY_PRODUCTION_PIPELINE_SELECTED: scheduler action=AIWait/null/started=True; phase=길 비켜주기
+PASS WAIT_DEFERRED_RECOVERY_PIPELINE_STARTED: action=AIWait/null/started=True; phase=길 비켜주기
+PASS WAIT_DEFERRED_RECOVERY_SAME_ACTION_ONCE: starts=25->26; switchedBeforeTerminal=False
+PASS WAIT_DEFERRED_RECOVERY_DEFERRED_HEARTBEATS: deferredCalls=3; retrySchedules=43->46
+PASS WAIT_DEFERRED_RECOVERY_NO_TERMINAL_STARVATION: 
+PASS WAIT_DEFERRED_RECOVERY_COMPLETED_AFTER_RETRY: completed=1->2
+PASS SCENARIO destinationless:wait:recovery: elapsed=2.594s
+PASS WAIT_STARVATION_PRODUCTION_DEFERRAL_LIMIT: 64
+PASS WAIT_STARVATION_PRODUCTION_PIPELINE_SELECTED: scheduler action=AIWait/null/started=True; phase=길 비켜주기
+PASS WAIT_STARVATION_PIPELINE_STARTED: action=AIWait/null/started=True; phase=길 비켜주기
+PASS WAIT_STARVATION_SAME_ACTION_ONCE: starts=26->27; switchedBeforeTerminal=False
+PASS WAIT_STARVATION_DEFERRED_HEARTBEATS: deferredCalls=13; retrySchedules=46->58
+PASS WAIT_STARVATION_TYPED_TERMINAL: Idle wander path search remained deferred for 12 attempts.
+PASS WAIT_STARVATION_FAILED_ONCE: failed=24->25; terminal=26->27
+PASS SCENARIO destinationless:wait:starvation: elapsed=15.56s
+PASS EXIT_DUNGEON_AUTHORED_ACTION: AIExitDungeon/null/started=False
+PASS EXIT_DUNGEON_DEFERRED_RECOVERY_EXIT_PREREQUISITES: worker=False; shouldExit=True; canStart=True; visitCount=0; lookAroundCount=1
+PASS EXIT_DUNGEON_DEFERRED_RECOVERY_PRODUCTION_PIPELINE_SELECTED: scheduler action=AIExitDungeon/null/started=True; phase=Path search deferred
+PASS EXIT_DUNGEON_DEFERRED_RECOVERY_PIPELINE_STARTED: action=AIExitDungeon/null/started=True; phase=Path search deferred
+PASS EXIT_DUNGEON_DEFERRED_RECOVERY_SAME_ACTION_ONCE: starts=27->28; switchedBeforeTerminal=False
+PASS EXIT_DUNGEON_DEFERRED_RECOVERY_DEFERRED_HEARTBEATS: deferredCalls=3; retrySchedules=58->61
+PASS EXIT_DUNGEON_DEFERRED_RECOVERY_NO_TERMINAL_STARVATION: exit-dungeon-path-unreachable
+PASS EXIT_DUNGEON_DEFERRED_RECOVERY_TOPOLOGY_VERDICT_AFTER_RETRY: failure=exit-dungeon-path-unreachable; failed=25->26
+PASS SCENARIO destinationless:exit_dungeon:recovery: elapsed=13.762s
+PASS EXIT_DUNGEON_STARVATION_EXIT_PREREQUISITES: worker=False; shouldExit=True; canStart=True; visitCount=0; lookAroundCount=1
+PASS EXIT_DUNGEON_STARVATION_PRODUCTION_DEFERRAL_LIMIT: 64
+PASS EXIT_DUNGEON_STARVATION_PRODUCTION_PIPELINE_SELECTED: scheduler action=AIExitDungeon/null/started=True; phase=Path search deferred
+PASS EXIT_DUNGEON_STARVATION_PIPELINE_STARTED: action=AIExitDungeon/null/started=True; phase=Path search deferred
+PASS EXIT_DUNGEON_STARVATION_SAME_ACTION_ONCE: starts=28->29; switchedBeforeTerminal=False
+PASS EXIT_DUNGEON_STARVATION_DEFERRED_HEARTBEATS: deferredCalls=12; retrySchedules=61->72
+PASS EXIT_DUNGEON_STARVATION_TYPED_TERMINAL: exit path search remained deferred for 12 attempts
+PASS EXIT_DUNGEON_STARVATION_FAILED_ONCE: failed=26->27; terminal=28->29
+PASS SCENARIO destinationless:exit_dungeon:starvation: elapsed=36.663s
+PASS DEPRIVATION_RELIEF_PRODUCTION_COMMAND: CharacterDeprivationRuntime
+PASS DEPRIVATION_RELIEF_FORCED: DesperateRelief
+PASS DEPRIVATION_RELIEF_PRODUCTION_PIPELINE_SELECTED: 배변 붕괴
+PASS DEPRIVATION_RELIEF_PIPELINE_STARTED: branch=DeprivationBreakdown; external=True; owner=survival:breakdown; epoch=2
+PASS DEPRIVATION_RELIEF_LEASE_RELEASED: external=False; owner=
+PASS DEPRIVATION_RELIEF_TERMINAL_ONCE: externalEpoch=1->2; transitions=1->2
+PASS SCENARIO deprivation:relief: elapsed=0.553s
+PASS DEPRIVATION_DRINK_PRODUCTION_COMMAND: CharacterDeprivationRuntime
+PASS DEPRIVATION_DRINK_FORCED: DesperateDrink
+PASS DEPRIVATION_DRINK_PRODUCTION_PIPELINE_SELECTED: 갈증 붕괴
+PASS DEPRIVATION_DRINK_PIPELINE_STARTED: branch=DeprivationBreakdown; external=True; owner=survival:breakdown; epoch=3
+PASS DEPRIVATION_DRINK_LEASE_RELEASED: external=False; owner=
+PASS DEPRIVATION_DRINK_TERMINAL_ONCE: externalEpoch=2->3; transitions=2->3
+PASS SCENARIO deprivation:drink: elapsed=0.899s
+PASS DEPRIVATION_EAT_PRODUCTION_COMMAND: CharacterDeprivationRuntime
+PASS DEPRIVATION_EAT_FORCED: DesperateEat
+PASS DEPRIVATION_EAT_PRODUCTION_PIPELINE_SELECTED: 굶주림 붕괴
+PASS DEPRIVATION_EAT_PIPELINE_STARTED: branch=DeprivationBreakdown; external=True; owner=survival:breakdown; epoch=4
+PASS DEPRIVATION_EAT_LEASE_RELEASED: external=False; owner=
+PASS DEPRIVATION_EAT_TERMINAL_ONCE: externalEpoch=3->4; transitions=3->4
+PASS SCENARIO deprivation:eat: elapsed=0.53s
+PASS DEPRIVATION_COLLAPSE_PRODUCTION_COMMAND: CharacterDeprivationRuntime
+PASS DEPRIVATION_COLLAPSE_FORCED: Collapse
+PASS DEPRIVATION_COLLAPSE_PRODUCTION_PIPELINE_SELECTED: 탈진 실신
+PASS DEPRIVATION_COLLAPSE_PIPELINE_STARTED: branch=DeprivationBreakdown; external=True; owner=survival:breakdown; epoch=5
+PASS DEPRIVATION_COLLAPSE_LEASE_RELEASED: external=False; owner=
+PASS DEPRIVATION_COLLAPSE_TERMINAL_ONCE: externalEpoch=4->5; transitions=4->5
+PASS SCENARIO deprivation:collapse: elapsed=1.023s
+PASS DEPRIVATION_VIOLENT_PRODUCTION_COMMAND: CharacterDeprivationRuntime
+PASS DEPRIVATION_VIOLENT_FORCED: ViolentImpulse
+PASS DEPRIVATION_VIOLENT_PRODUCTION_PIPELINE_SELECTED: 정신 붕괴
+PASS DEPRIVATION_VIOLENT_PIPELINE_STARTED: branch=DeprivationBreakdown; external=True; owner=survival:breakdown; epoch=6
+PASS DEPRIVATION_VIOLENT_LEASE_RELEASED: external=False; owner=
+PASS DEPRIVATION_VIOLENT_TERMINAL_ONCE: externalEpoch=5->6; transitions=5->6
+PASS SCENARIO deprivation:violent: elapsed=0.504s
+PASS PRIMITIVE_FIELD_MEAL_COMMIT_LOSS_SOURCE_SEEDED: stack:1d7c32195af6457da4cc103c2636e960
+PASS PRIMITIVE_FIELD_MEAL_COMMIT_LOSS_AUTHORED_ACTION: AIPrimitiveFieldMeal/null/started=False
+PASS PRIMITIVE_FIELD_MEAL_COMMIT_LOSS_PRODUCTION_RUNNER_STARTED: started=0->1; external=True; owner=survival:primitive:FieldMeal
+PASS PRIMITIVE_FIELD_MEAL_COMMIT_LOSS_APPROACHED_SOURCE: actor=(30, 1); source=(31, 1)
+PASS PRIMITIVE_FIELD_MEAL_COMMIT_LOSS_TERMINAL_BOUNDED: external=False; owner=
+PASS PRIMITIVE_FIELD_MEAL_COMMIT_LOSS_NO_LATE_COMPLETION: completed=0->0
+PASS PRIMITIVE_FIELD_MEAL_COMMIT_LOSS_NO_RECOVERY_AFTER_LOSS: need=0->0
+PASS PRIMITIVE_FIELD_MEAL_COMMIT_LOSS_RESERVATION_CLEAN: reserved=0
+PASS SCENARIO primitive:field-meal:commit-loss: elapsed=3.483s
+PASS PRIMITIVE_BUCKET_WASH_PATH_INVALIDATED_SOURCE_SEEDED: stack:e7b72ab64df34767878f667d5d06ce52
+PASS PRIMITIVE_BUCKET_WASH_PATH_INVALIDATED_AUTHORED_ACTION: AIPrimitiveBucketWash/null/started=False
+PASS PRIMITIVE_BUCKET_WASH_PATH_INVALIDATED_PRODUCTION_RUNNER_STARTED: started=0->1; external=True; owner=survival:primitive:BucketWash
+PASS PRIMITIVE_BUCKET_WASH_PATH_INVALIDATED_TERMINAL_BOUNDED: external=False; owner=
+PASS PRIMITIVE_BUCKET_WASH_PATH_INVALIDATED_NO_COMPLETION: completed=0->0
+PASS PRIMITIVE_BUCKET_WASH_PATH_INVALIDATED_MOVEMENT_TERMINAL: MissingPath
+PASS PRIMITIVE_BUCKET_WASH_PATH_INVALIDATED_RESERVATION_CLEAN: reserved=0
+PASS SCENARIO primitive:bucket-wash:path-invalidated: elapsed=0.799s
+PASS PRIMITIVE_BUCKET_WASH_TARGET_LOST_SOURCE_SEEDED: stack:1e97492b2977429d842dd38df16d5e91
+PASS PRIMITIVE_BUCKET_WASH_TARGET_LOST_AUTHORED_ACTION: AIPrimitiveBucketWash/null/started=False
+PASS PRIMITIVE_BUCKET_WASH_TARGET_LOST_PRODUCTION_RUNNER_STARTED: started=1->2; external=True; owner=survival:primitive:BucketWash
+PASS PRIMITIVE_BUCKET_WASH_TARGET_LOST_APPROACHED_SOURCE: actor=(29, 1); source=(29, 1)
+PASS PRIMITIVE_BUCKET_WASH_TARGET_LOST_TERMINAL_BOUNDED: external=False; owner=
+PASS PRIMITIVE_BUCKET_WASH_TARGET_LOST_NO_LATE_COMPLETION: completed=0->0
+PASS PRIMITIVE_BUCKET_WASH_TARGET_LOST_NO_RECOVERY_AFTER_LOSS: need=0->0
+PASS PRIMITIVE_BUCKET_WASH_TARGET_LOST_RESERVATION_CLEAN: reserved=0
+PASS SCENARIO primitive:bucket-wash:target-lost: elapsed=9.242s
+PASS PRIMITIVE_LATRINE_PATH_INVALIDATED_AUTHORED_ACTION: AIPrimitiveLatrine/null/started=False
+PASS PRIMITIVE_LATRINE_PATH_INVALIDATED_PRODUCTION_RUNNER_STARTED: started=0->1; external=True; owner=survival:primitive:Latrine
+PASS PRIMITIVE_LATRINE_PATH_INVALIDATED_TERMINAL_BOUNDED: external=False; owner=
+PASS PRIMITIVE_LATRINE_PATH_INVALIDATED_NO_COMPLETION: completed=0->0
+PASS PRIMITIVE_LATRINE_PATH_INVALIDATED_NO_RECOVERY: need=0->0
+PASS SCENARIO primitive:latrine:path-invalidated: elapsed=1.228s
+PASS PRIMITIVE_LATRINE_TARGET_INVALIDATED_AUTHORED_ACTION: AIPrimitiveLatrine/null/started=False
+PASS PRIMITIVE_LATRINE_TARGET_INVALIDATED_PRODUCTION_RUNNER_STARTED: started=1->2; external=True; owner=survival:primitive:Latrine
+PASS PRIMITIVE_LATRINE_TARGET_INVALIDATED_TARGET_REACHED: actor=(31, 1); target=(31, 1)
+PASS PRIMITIVE_LATRINE_TARGET_INVALIDATED_TERMINAL_BOUNDED: external=False; owner=
+PASS PRIMITIVE_LATRINE_TARGET_INVALIDATED_NO_COMPLETION: completed=0->0
+PASS PRIMITIVE_LATRINE_TARGET_INVALIDATED_NO_RECOVERY: need=0->0
+PASS SCENARIO primitive:latrine:target-invalidated: elapsed=4.095s
+PASS PRIMITIVE_FLOOR_REST_INTERRUPTED_AUTHORED_ACTION: AIPrimitiveFloorRest/null/started=False
+PASS PRIMITIVE_FLOOR_REST_INTERRUPTED_PRODUCTION_RUNNER_STARTED: started=1->2; external=True; owner=survival:primitive:FloorRest
+PASS PRIMITIVE_FLOOR_REST_INTERRUPTED_INTERRUPT_ACCEPTED: owner=survival:primitive:FloorRest
+PASS PRIMITIVE_FLOOR_REST_INTERRUPTED_TERMINAL_BOUNDED: external=False; owner=
+PASS PRIMITIVE_FLOOR_REST_INTERRUPTED_NO_STALE_COMPLETION: completed=0->0
+PASS PRIMITIVE_FLOOR_REST_INTERRUPTED_NO_STALE_RECOVERY: sleep=0->0
+PASS SCENARIO primitive:floor-rest:interrupted: elapsed=0.994s
+PASS FACILITY_DESTROY_THROWING_SUBSCRIBER_CREATED: QA Fault Rest throwing-subscriber@(31, 1)/destroy=False
+PASS FACILITY_DESTROY_THROWING_SUBSCRIBER_OCCUPIED: 
+PASS FACILITY_DESTROY_THROWING_SUBSCRIBER_FAILURE_REPORTED: System.AggregateException: QA Fault Rest throwing-subscriber destruction completed, but one or more destruction subscribers failed. (qa-throwing-destruction-subscriber) ---> System.InvalidOperationException: qa-throwing-destruction-subscriber    at CharacterAiFaultRecoveryPlayModeRunner+<>c.<RunThrowingDestructionSubscriberScenario>b__88_0 () [0x00000] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Character\AI\Editor\CharacterAiFaultRecoveryPlayModeVerifier.cs:1681     at BuildableObject.PublishDestroyedEventSafely () [0x00034] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Buildings\BuildableObject.cs:654      --- End of inner exception stack trace ---    at BuildableObject.DestroySelf () [0x0005c] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Buildings\BuildableObject.cs:626     at CharacterAiFaultRecoveryPlayModeRunner+<RunThrowingDestructionSubscriberScenario>d__88.MoveNext () [0x000d0] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Character\AI\Editor\CharacterAiFaultRecoveryPlayModeVerifier.cs:1687   ---> (Inner Exception #0) System.InvalidOperationException: qa-throwing-destruction-subscriber    at CharacterAiFaultRecoveryPlayModeRunner+<>c.<RunThrowingDestructionSubscriberScenario>b__88_0 () [0x00000] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Character\AI\Editor\CharacterAiFaultRecoveryPlayModeVerifier.cs:1681     at BuildableObject.PublishDestroyedEventSafely () [0x00034] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Buildings\BuildableObject.cs:654 <---
+PASS FACILITY_DESTROY_THROWING_SUBSCRIBER_LATER_SUBSCRIBER_NOTIFIED: calls=1
+PASS FACILITY_DESTROY_THROWING_SUBSCRIBER_CORE_TEARDOWN_COMPLETED: destroy=True; users=0; reservations=0; waiting=0; worker=
+PASS FACILITY_DESTROY_THROWING_SUBSCRIBER_IDEMPOTENT: repeat=; calls=1
+PASS SCENARIO subscriber:throwing-destruction-handler: elapsed=1.131s
+
+## Failures
+PASS none
+
+## Console errors
+PASS none
+
+result=PASS
+RESULT=PASS

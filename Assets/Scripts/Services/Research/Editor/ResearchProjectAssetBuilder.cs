@@ -152,6 +152,19 @@ public static class ResearchProjectAssetBuilder
         Debug.Log($"Research tree assets rebuilt: {projects.Count} projects.");
     }
 
+    [MenuItem("Tools/DungeonStory/Research/Patch Q03 Archive Ability")]
+    public static void PatchQ03ArchiveAbility()
+    {
+        // The archive item capacity and the research-facility capability graph
+        // are one authored contract. Patching only Q03's physical archive left
+        // queued research suspended because Q01/Q03 contributed no Basic or
+        // Archive capability at runtime.
+        AttachArchiveAbility();
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("Q03 archive and research facility capabilities patched.");
+    }
+
     private static Dictionary<string, BlueprintUnlockCollection>
         CaptureConsolidatedUnlocks()
     {
@@ -620,22 +633,7 @@ public static class ResearchProjectAssetBuilder
 
     private static void AttachArchiveAbility()
     {
-        BuildingSO archive = AssetDatabase.FindAssets("Q03 t:BuildingSO", new[] { "Assets/Resources/SO/Building" })
-            .Select(AssetDatabase.GUIDToAssetPath)
-            .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
-            .FirstOrDefault(asset => asset != null
-                && asset.GetAbility<BuildingFacilityPartAbility>()?.code == "Q03");
-        if (archive == null)
-        {
-            throw new InvalidOperationException("Q03 연구용책장 BuildingSO를 찾지 못했습니다.");
-        }
-
-        archive.AbilityModules.Remove<BuildingResearchArchiveAbility>();
-        archive.AbilityModules.Add(new BuildingResearchArchiveAbility { capacity = 8 });
-        archive.AbilityModules.EnsureStableIds();
-        archive.ValidateAbilitiesOrThrow();
-        archive.unlocked = true;
-        EditorUtility.SetDirty(archive);
+        AttachQ03ArchiveAbilityDefinition();
 
         BuildingSO desk = AssetDatabase.FindAssets("Q01 t:BuildingSO", new[] { "Assets/Resources/SO/Building" })
             .Select(AssetDatabase.GUIDToAssetPath)
@@ -677,6 +675,26 @@ public static class ResearchProjectAssetBuilder
             new ResearchFacilityContribution(ResearchFacilityCapabilityId.Basic, 2),
             new ResearchFacilityContribution(ResearchFacilityCapabilityId.Archive, 1),
             new ResearchFacilityContribution(ResearchFacilityCapabilityId.Advanced, 1));
+    }
+
+    private static void AttachQ03ArchiveAbilityDefinition()
+    {
+        BuildingSO archive = AssetDatabase.FindAssets("Q03 t:BuildingSO", new[] { "Assets/Resources/SO/Building" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
+            .FirstOrDefault(asset => asset != null
+                && asset.GetAbility<BuildingFacilityPartAbility>()?.code == "Q03");
+        if (archive == null)
+        {
+            throw new InvalidOperationException("Q03 연구용책장 BuildingSO를 찾지 못했습니다.");
+        }
+
+        archive.AbilityModules.Remove<BuildingResearchArchiveAbility>();
+        archive.AbilityModules.Add(new BuildingResearchArchiveAbility { capacity = 8 });
+        archive.AbilityModules.EnsureStableIds();
+        archive.ValidateAbilitiesOrThrow();
+        archive.unlocked = true;
+        EditorUtility.SetDirty(archive);
     }
 
     private static void AttachResearchCapacity(

@@ -48,7 +48,10 @@ internal sealed class ShopCustomerInteractionService
         object currentAction = actor?.CurrentActionToken;
         if (actor != null && !owner.CanVisit(actor, out _))
         {
-            yield return owner.WaitForVisitAdmission(actor, currentAction);
+            yield return owner.WaitForVisitAdmission(
+                actor,
+                currentAction,
+                ownerDisplayName);
             if (!actor.IsCurrentAction(currentAction)
                 || actor.IsCurrentActionEnded)
             {

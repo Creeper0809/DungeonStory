@@ -752,7 +752,8 @@ public static class BatchACoreSessionSaveDebugScenarios
                     DefaultInterfaceProxy.Create<IServiceRoomResearchQuery>(),
                     rulesProvider),
                 store,
-                DefaultInterfaceProxy.Create<IRestoreWorldCandidateQuery>());
+                DefaultInterfaceProxy.Create<IRestoreWorldCandidateQuery>(),
+                DefaultInterfaceProxy.Create<ICharacterWorldPersistenceIdentityQuery>());
             services.SetAdvertisingEnabled(ServiceCategory.Dining, true);
 
             DungeonSceneRuntimeReferences references =

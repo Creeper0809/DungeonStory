@@ -27,13 +27,21 @@ public sealed class AIHaul : AIActionSet
         in CharacterAiDecisionContext context,
         float baseScore)
     {
-        if (!TryGetEnabledPriority(actor, out WorkPriorityLevel priority))
+        AbilityHaul haul = AbilityHaul.Ensure(actor);
+        if (haul == null || !haul.CanStartHauling(out _))
         {
             return 0f;
         }
 
-        AbilityHaul haul = AbilityHaul.Ensure(actor);
-        if (haul == null || !haul.CanStartHauling(out _))
+        // A restored pickup-committed delivery is already owned physical work.
+        // It is resumed by the ordinary Brain -> AIHaul path after restore,
+        // independent of whether autonomous hauling is currently enabled.
+        if (haul.HasBoundDeliveryIntent)
+        {
+            return Mathf.Clamp01(Mathf.Max(baseScore, 0.98f));
+        }
+
+        if (!TryGetEnabledPriority(actor, out WorkPriorityLevel priority))
         {
             return 0f;
         }
@@ -54,8 +62,10 @@ public sealed class AIHaul : AIActionSet
 
     public override bool CanStart(CharacterActor actor)
     {
-        return TryGetEnabledPriority(actor, out _)
-            && AbilityHaul.Ensure(actor)?.CanStartHauling(out _) == true;
+        AbilityHaul haul = AbilityHaul.Ensure(actor);
+        return haul != null
+            && (haul.HasBoundDeliveryIntent || TryGetEnabledPriority(actor, out _))
+            && haul.CanStartHauling(out _);
     }
 
     public override bool CanContinue(CharacterActor actor, AIAction runningAction, out string stopReason)
@@ -84,10 +94,24 @@ public sealed class AIHaul : AIActionSet
     private static bool TryGetEnabledPriority(CharacterActor actor, out WorkPriorityLevel priority)
     {
         priority = WorkPriorityLevel.Off;
-        return actor != null
-            && actor.TryGetAbility(out AbilityWork work)
-            && work.WorkPriorities != null
-            && (priority = work.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Haul))
-                != WorkPriorityLevel.Off;
+        if (actor == null
+            || !actor.TryGetAbility(out AbilityWork work)
+            || work.WorkPriorities == null)
+        {
+            return false;
+        }
+
+        // A priority-work target is an explicit player command. AIHaul is a
+        // separate autonomous work branch and must not become the score-based
+        // fallback while the commanded AIWork candidate is waiting for its
+        // path-search budget. Urgency still controls need/duty interruption;
+        // it does not weaken ownership of the exact work command.
+        if (work.PriorityWorkTarget != null)
+        {
+            return false;
+        }
+
+        priority = work.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Haul);
+        return priority != WorkPriorityLevel.Off;
     }
 }

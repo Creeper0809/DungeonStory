@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 80
   features:
-  - rid: 7737211905658585238
-  - rid: 7737211905658585239
-  - rid: 7737211905660420502
+  - rid: 7737211981804077917
+  - rid: 7737211981804077918
+  - rid: 7737211981804077919
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585238
+    - rid: 7737211981804077917
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:articulated-plate
-    - rid: 7737211905658585239
+    - rid: 7737211981804077918
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 512
         sharedIntermediate: 1
-    - rid: 7737211905660420502
+    - rid: 7737211981804077919
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.60325307

@@ -17,7 +17,8 @@ public enum ItemReservationPurpose
     FacilityBuffer,
     WasteProcessing,
     DirectPlayerOrder,
-    Hygiene
+    Hygiene,
+    PersonalConsumption
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -71,9 +72,10 @@ public sealed class ItemHaulingSettingsSnapshot
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonPhysicalItemSaveData
 {
-    public const int CurrentVersion = 7;
+    public const int CurrentVersion = 8;
 
     public int version = CurrentVersion;
+    public long nextHaulOperationSequence = 1;
     public ItemHaulingSettingsSnapshot haulingSettings =
         new ItemHaulingSettingsSnapshot();
     public List<WorldItemStackSaveData> stacks =
@@ -251,31 +253,6 @@ public static class ItemStackSignature
     }
 }
 
-/// <summary>
-/// Stable identity for a quantity reservation. Physical stack compatibility
-/// remains stricter and still includes exact freshness; a lease deliberately
-/// ignores only freshness because normal time passage mutates it while the
-/// reservation owner walks and eats. Current spoilage is validated separately
-/// at item use/commit boundaries.
-/// </summary>
-[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public static class ItemReservationSignature
-{
-    public static string Create(
-        string definitionId,
-        IEnumerable<ItemInstanceComponentSaveData> components)
-    {
-        return ItemStackSignature.Create(
-            definitionId,
-            (components ?? Array.Empty<ItemInstanceComponentSaveData>())
-            .Where(component => component != null
-                && !string.Equals(
-                    component.componentTypeId,
-                    ItemInstanceComponentIds.Freshness,
-                    StringComparison.Ordinal)));
-    }
-}
-
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public static class ItemInstanceComponentIds
 {
@@ -402,7 +379,12 @@ public enum WorldItemHaulPlanUnloadReason
     JobChanged = 3,
     Idle = 4,
     Interrupted = 5,
-    Completed = 6
+    Completed = 6,
+
+    // Appended to preserve the serialized numeric values of the original reasons.
+    PickupReservationLost = 7,
+    DeliveryUnavailable = 8,
+    DepositRejected = 9
 }
 
 [Serializable]
@@ -424,6 +406,48 @@ public sealed class CharacterCarriedItemSaveData
         string.IsNullOrWhiteSpace(itemInstanceId)
             ? ItemStackSignature.Create(itemId, components)
             : $"{ItemStackSignature.Create(itemId, components)}#instance={itemInstanceId.Trim()}";
+}
+
+/// <summary>
+/// Durable physical commitment for one carried stack in a haul delivery.
+/// Runtime lease IDs are deliberately absent: restore rebinds the saved
+/// operation to the newly-grandfathered lease whose slice matches this stack,
+/// signature and quantity exactly.
+/// </summary>
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class HaulDeliveryItemCommitmentSaveData
+{
+    public string carriedStackId = string.Empty;
+    public string sourceStackId = string.Empty;
+    public string itemId = string.Empty;
+    public string expectedStackSignature = string.Empty;
+    public int quantity;
+}
+
+/// <summary>
+/// Save authority for a single physical haul plan after pickup. Authored item
+/// content is immutable; the operation ID, exact destination and carried
+/// stack commitments are the only durable delivery intent. Pre-pickup plans
+/// have no commitments and are intentionally replanned after restore.
+/// </summary>
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class HaulDeliveryIntentSaveData
+{
+    public string operationId = string.Empty;
+    public string ownerCharacterId = string.Empty;
+    public WorldItemHaulDestinationKind destinationKind;
+    public string destinationId = string.Empty;
+    public int deliveryGridX;
+    public int deliveryGridY;
+    public int dropGridX;
+    public int dropGridY;
+    public List<HaulDeliveryItemCommitmentSaveData> commitments = new();
+
+    public bool HasCommittedPickup => commitments != null
+        && commitments.Any(commitment => commitment != null
+            && commitment.quantity > 0);
 }
 
 [Serializable]

@@ -212,6 +212,22 @@ public static class IndustrialInfrastructureDebugScenarios
                 building.layer == GridLayer.Utility)
             >= 4,
             "Utility-layer building content is missing.");
+        for (int utilityIndex = 1; utilityIndex <= 4; utilityIndex++)
+        {
+            string code = $"U{utilityIndex:00}";
+            BuildingSO utility = FindByCode(buildings, code);
+            Require(utility != null
+                    && utility.runtimeArchetype
+                        == BuildingRuntimeArchetypeKind.Facility,
+                $"{code} must use the Facility runtime so authored repair "
+                + "and plumbing demand can enter the production work path.");
+            if (utilityIndex >= 2)
+            {
+                Require(utility.Facility?.SupportsWork(
+                        BuiltInWorkTypeIds.Plumbing) == true,
+                    $"{code} does not publish authored plumbing work.");
+            }
+        }
         Require(buildings.Count(building =>
                 building.layer == GridLayer.Conveyor)
             >= 10,

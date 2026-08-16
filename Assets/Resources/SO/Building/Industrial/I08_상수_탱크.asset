@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211905655963825
-    - rid: 7737211905655963826
-    - rid: 7737211905655963827
-    - rid: 7737211905655963828
-    - rid: 7737211905655963829
+    - rid: 7737211981818757173
+    - rid: 7737211981818757174
+    - rid: 7737211981818757175
+    - rid: 7737211981818757176
+    - rid: 7737211981818757177
   width: 2
   height: 1
   layer: 1
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211905655963825
+    - rid: 7737211981818757173
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I08
-    - rid: 7737211905655963826
+    - rid: 7737211981818757174
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,10 +87,11 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211905655963827
+    - rid: 7737211981818757175
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
         constructionWorkRequired: 364
         repairWorkRequired: 110
         cleanWorkRequired: 18
@@ -114,14 +115,14 @@ MonoBehaviour:
           amount: 6
         - itemId: component:machine-parts
           amount: 3
-    - rid: 7737211905655963828
+    - rid: 7737211981818757176
       type: {class: BuildingWaterStorageAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWaterStorageAbility
         channels: 2
         cleanWaterCapacity: 120
         wastewaterCapacity: 0
-    - rid: 7737211905655963829
+    - rid: 7737211981818757177
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

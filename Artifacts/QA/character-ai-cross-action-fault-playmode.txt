@@ -1,0 +1,83 @@
+# AI Cross-Action Fault PlayMode Matrix
+authority=production-runtime
+rows=haul-source-despawn,haul-source-shrink,haul-destination-destroy,rescue-patient-despawn,rescue-save-load,rescue-patient-death,rescue-bed-destroy,rescue-medicine-loss,hunt-hunter-downed,hunt-hunter-dead,hunt-prey-despawn,hunt-path-invalidation,drink-item-loss,field-meal-item-loss,substance-item-loss
+PASS	live scope
+PASS	live actor
+PASS	physical item authorities resolved
+PASS	medical and wildlife authorities resolved
+PASS	stable full-world snapshot captured after AI quiescence
+PASS	haul-source-despawn: seed item found
+PASS	haul-source-despawn: physical seed spawned
+PASS	haul-source-despawn: source stack identified
+PASS	haul-source-despawn: quantity lease acquired; 
+PASS	haul-source-despawn: leased physical slice resolved
+PASS	haul-source-despawn: stale pickup performed no late commit
+PASS	haul-source-despawn: lease released exactly once
+PASS	haul-source-despawn: quantity conserved across injected physical loss
+haul-source-despawn=PASS
+PASS	haul-source-quantity-shrink: seed item found
+PASS	haul-source-quantity-shrink: physical seed spawned
+PASS	haul-source-quantity-shrink: source stack identified
+PASS	haul-source-quantity-shrink: quantity lease acquired; 
+PASS	haul-source-quantity-shrink: leased physical slice resolved
+PASS	haul-source-quantity-shrink: stale pickup performed no late commit
+PASS	haul-source-quantity-shrink: lease released exactly once
+PASS	haul-source-quantity-shrink: quantity conserved across injected physical loss
+haul-source-quantity-shrink=PASS
+PASS	haul-destination-destroy: temporary warehouse created
+PASS	haul-destination-destroy: carry recovered and coroutine terminal
+haul-destination-destroy=PASS
+PASS	rescue-save-load: medical aggregate restored through V18 transaction boundary
+PASS	rescue-patient-despawn/save-load: coroutine and reservation terminal
+PASS	rescue-patient-despawn/save-load: medical ownership released
+rescue-patient-despawn-save-load=PASS
+PASS	rescue-patient-death: temporary participants created
+PASS	rescue-patient-death: medical order created
+PASS	rescue-patient-death: coroutine terminal without late treatment
+PASS	rescue-patient-death: reservation released exactly once
+rescue-patient-death=PASS
+PASS	rescue-bed-destroy: actors created
+PASS	rescue-bed-destroy: medical order created
+PASS	rescue-bed-destroy: temporary bed created
+PASS	rescue-bed-destroy: temporary bed explicitly assigned; None
+PASS	rescue-bed-destroy: temporary bed owns destination leg
+PASS	rescue-bed-destroy: carry released and late treatment commit is zero
+rescue-bed-destroy=PASS
+PASS	rescue-medicine-loss: fixture created
+PASS	rescue-medicine-loss: medical order created
+PASS	rescue-medicine-loss: physical medicine seeded
+PASS	rescue-medicine-loss: reserved medicine located
+PASS	rescue-medicine-loss: no treatment progress or late supply commit
+PASS	rescue-medicine-loss: medical ownership released exactly once
+rescue-medicine-loss=PASS
+PASS	hunt-hunter-downed: reservation released and no late hit
+hunt-hunter-downed=PASS
+PASS	hunt-hunter-dead: reservation released and no late hit
+hunt-hunter-dead=PASS
+PASS	hunt fixture: isolated prey spawned; 동굴쥐 1마리를 소환했습니다.
+PASS	hunt fixture: only isolated prey designated
+PASS	hunt-prey-despawn: isolated prey fixture available
+PASS	hunt-prey-despawn: temporary hunter created
+PASS	hunt-prey-despawn: hunter positioned outside immediate attack range
+PASS	hunt-prey-despawn: failed terminal without carcass late commit
+hunt-prey-despawn=PASS
+PASS	hunt fixture: isolated prey spawned; 동굴쥐 1마리를 소환했습니다.
+PASS	hunt fixture: only isolated prey designated
+PASS	hunt-path-invalidation: hunter positioned outside attack range
+PASS	hunt-path-invalidation: no-path terminal without late hit
+hunt-path-invalidation=PASS
+PASS	drink-item-loss: commit rejected without duplicate spend
+drink-item-loss=PASS
+PASS	primitive-field-meal-item-loss: authored meal found
+PASS	primitive-field-meal-item-loss: physical meal seeded
+PASS	primitive-field-meal-item-loss: isolated source identified
+PASS	primitive-field-meal-item-loss: late commit rejected by physical authority
+primitive-field-meal-item-loss=PASS
+PASS	substance-item-loss: authored substance found
+PASS	substance-item-loss: physical substance seeded
+PASS	substance-item-loss: isolated source identified
+PASS	substance-item-loss: late commit rejected by missing physical stack
+substance-item-loss=PASS
+PASS	hunt-prey-despawn: wildlife restored through full V18 transaction boundary
+lateCommit=0
+result=PASS

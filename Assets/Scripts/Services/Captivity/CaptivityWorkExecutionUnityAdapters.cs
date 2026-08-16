@@ -13,6 +13,7 @@ public sealed class WardenWorkExecutionUnityAdapter :
     private static readonly WorkTypeId[] Ids = { BuiltInWorkTypeIds.Warden };
     private readonly ICaptivityRuntime captivity;
     private readonly ICaptivityCommandService commands;
+    private readonly ICaptivityWorkReadinessQuery readiness;
     private readonly IWorkAmountCalculator workAmount;
     private readonly IGameClock clock;
     private readonly WardenWorkExecutionHandler flow =
@@ -21,11 +22,13 @@ public sealed class WardenWorkExecutionUnityAdapter :
     public WardenWorkExecutionUnityAdapter(
         ICaptivityRuntime captivity,
         ICaptivityCommandService commands,
+        ICaptivityWorkReadinessQuery readiness,
         IWorkAmountCalculator workAmount,
         IGameClock clock)
     {
         this.captivity = captivity ?? throw new ArgumentNullException(nameof(captivity));
         this.commands = commands ?? throw new ArgumentNullException(nameof(commands));
+        this.readiness = readiness ?? throw new ArgumentNullException(nameof(readiness));
         this.workAmount = workAmount ?? throw new ArgumentNullException(nameof(workAmount));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
     }
@@ -38,7 +41,12 @@ public sealed class WardenWorkExecutionUnityAdapter :
         BuildableObject target,
         out string reason)
     {
-        bool available = TryFindInteraction(captivity, target, out _);
+        bool available = TryFindInteraction(
+                captivity,
+                actor,
+                target,
+                out CaptiveState state)
+            && readiness.IsInteractionReady(state.captiveId, out _);
         reason = available ? string.Empty : "진행할 포로 관리 작업이 없습니다.";
         return available;
     }
@@ -47,7 +55,8 @@ public sealed class WardenWorkExecutionUnityAdapter :
         WorkTypeId workTypeId,
         CharacterActor actor,
         BuildableObject target) =>
-        TryFindInteraction(captivity, target, out CaptiveState state)
+        TryFindInteraction(captivity, actor, target, out CaptiveState state)
+        && readiness.IsInteractionReady(state.captiveId, out _)
             ? CaptivityWorkExecutionRules.GetWardenUrgency(state)
             : 0f;
 
@@ -62,11 +71,19 @@ public sealed class WardenWorkExecutionUnityAdapter :
 
     private static bool TryFindInteraction(
         ICaptivityRuntime captivity,
+        CharacterActor actor,
         BuildableObject target,
         out CaptiveState captive)
     {
+        string actorId = actor?.Identity?.PersistentId?.Trim()
+            ?? string.Empty;
         captive = captivity.Captives.FirstOrDefault(state =>
             state.status == CaptivityStatus.Interaction
+            && actorId.Length > 0
+            && string.Equals(
+                state.reservedWardenId,
+                actorId,
+                StringComparison.Ordinal)
             && target != null
             && captivity.TryGetHousing(
                 state.captiveId,
@@ -99,7 +116,11 @@ public sealed class WardenWorkExecutionUnityAdapter :
             this.commands = commands;
             this.workAmount = workAmount;
             this.clock = clock;
-            captiveId = TryFindInteraction(captivity, context.Target, out CaptiveState state)
+            captiveId = TryFindInteraction(
+                    captivity,
+                    context.Actor,
+                    context.Target,
+                    out CaptiveState state)
                 ? state.captiveId
                 : string.Empty;
         }

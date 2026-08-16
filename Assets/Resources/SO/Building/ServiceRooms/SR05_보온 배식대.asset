@@ -53,13 +53,13 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211921440178580
-    - rid: 7737211921440178581
-    - rid: 7737211921440178582
-    - rid: 7737211921440178583
-    - rid: 7737211921440178584
-    - rid: 7737211921440178585
-    - rid: 7737211921440178586
+    - rid: 7737211981804077384
+    - rid: 7737211981804077385
+    - rid: 7737211981804077386
+    - rid: 7737211981804077387
+    - rid: 7737211981804077388
+    - rid: 7737211981804077389
+    - rid: 7737211981804077390
   width: 2
   height: 1
   layer: 1
@@ -75,7 +75,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211921440178580
+    - rid: 7737211981804077384
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -84,7 +84,7 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211921440178581
+    - rid: 7737211981804077385
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -114,23 +114,23 @@ MonoBehaviour:
           amount: 2
         - itemId: component:precision-parts
           amount: 1
-    - rid: 7737211921440178582
+    - rid: 7737211981804077386
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: SR05
-    - rid: 7737211921440178583
+    - rid: 7737211981804077387
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211921440178584
+    - rid: 7737211981804077388
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - ServiceRoom
         - WorkSpeed
-    - rid: 7737211921440178585
+    - rid: 7737211981804077389
       type: {class: BuildingServiceSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceSupportAbility
@@ -148,7 +148,7 @@ MonoBehaviour:
         workSpeedMultiplier: 1.35
         satisfactionModifier: 6
         revenueModifier: 0
-    - rid: 7737211921440178586
+    - rid: 7737211981804077390
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility

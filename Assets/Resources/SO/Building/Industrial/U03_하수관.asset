@@ -53,18 +53,18 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211905655963987
-    - rid: 7737211905655963988
-    - rid: 7737211905655963989
-    - rid: 7737211905655963990
-    - rid: 7737211905655963991
+    - rid: 7737211981816660128
+    - rid: 7737211981816660129
+    - rid: 7737211981816660130
+    - rid: 7737211981816660131
+    - rid: 7737211981816660132
   width: 1
   height: 1
   layer: 11
   category: 7
   horizontalDraggable: 0
   verticalDraggable: 0
-  runtimeArchetype: 0
+  runtimeArchetype: 1
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211905655963987
+    - rid: 7737211981816660128
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: U03
-    - rid: 7737211905655963988
+    - rid: 7737211981816660129
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,10 +87,11 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211905655963989
+    - rid: 7737211981816660130
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
         constructionWorkRequired: 160
         repairWorkRequired: 48
         cleanWorkRequired: 8
@@ -112,14 +113,14 @@ MonoBehaviour:
           amount: 3
         - itemId: material:iron-ingot
           amount: 2
-    - rid: 7737211905655963990
+    - rid: 7737211981816660131
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 4
         maxThroughput: 100
         normallyOpen: 1
-    - rid: 7737211905655963991
+    - rid: 7737211981816660132
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

@@ -34,6 +34,11 @@ public sealed class CharacterAlarmResponseRuntime :
     private IDisposable incidentSubscription;
     private long emergencyAssignedEpochId = -1L;
 
+    public int PendingResponderCountForDiagnostics => pending.Count;
+    public int ReturningResponderCountForDiagnostics => returning.Count;
+    public int AssignedResponderCountForDiagnostics => emergencyAssigned.Count;
+    public long AssignedResponderEpochForDiagnostics => emergencyAssignedEpochId;
+
     public CharacterAlarmResponseRuntime(
         IGameEventBus events,
         ICharacterWorldQuery world,
@@ -82,6 +87,18 @@ public sealed class CharacterAlarmResponseRuntime :
     public void Tick()
     {
         SettlementAlertSnapshot alert = alerts.Capture();
+        if (alert.CommittedLevel == SettlementThreatAlertLevel.Red
+            && RetireIneligibleEmergencyResponders(alert.AlertEpochId))
+        {
+            // Lifecycle cleanup owns transient actions, while this runtime owns
+            // the emergency work gate and responder accounting. Replace a
+            // casualty in the same committed epoch instead of leaving an
+            // unusable gate counted as live coverage.
+            ScheduleEmergencyResponders(
+                alert.AlertEpochId,
+                applyResponseDelay: true);
+            alert = alerts.Capture();
+        }
         ProcessEmergencyResponses(alert);
         ProcessReturns(alert);
     }
@@ -107,6 +124,17 @@ public sealed class CharacterAlarmResponseRuntime :
                     out AbilityWork activeWork)
                 && activeWork.isWorking)
             {
+                if (activeWork.HasEmergencyResponseWorkGateForDiagnostics
+                    && activeWork.AssignedWorkTypeId
+                        == activeWork.EmergencyResponseOnlyWorkTypeForDiagnostics)
+                {
+                    response.Actor?.Brain?.PreferWorkActionOnNextDecision(
+                        activeWork.EmergencyResponseOnlyWorkTypeForDiagnostics,
+                        persistenceSeconds: 90f);
+                    completedPending.Add(characterId);
+                    continue;
+                }
+
                 activeWork.RequestEmergencySuspension(response.EpochId);
                 continue;
             }
@@ -122,7 +150,9 @@ public sealed class CharacterAlarmResponseRuntime :
                         receipt.TargetBuildingId,
                         receipt.AlertEpochId,
                         calendar.AbsoluteHour,
-                        receipt.ProgressExternallyPersisted));
+                        receipt.ProgressExternallyPersisted,
+                        receipt.InlineCompletedWork,
+                        receipt.InlineRequiredWork));
                 if (!recorded.Success)
                 {
                     throw new InvalidOperationException(
@@ -158,12 +188,54 @@ public sealed class CharacterAlarmResponseRuntime :
             {
                 continue;
             }
-            if (CharacterWorkRoleUtility.TryGetWork(next.Actor, out AbilityWork work)
-                && work.isWorking)
+            CharacterWorkRoleUtility.TryGetWork(
+                next.Actor,
+                out AbilityWork work);
+            if (work != null
+                && (work.isWorking
+                    || work.HasActiveWorkRoutineForDiagnostics))
             {
                 EnqueueReturn(next.Actor, next.EpochId);
                 continue;
             }
+
+            // AIWork owns its route before AbilityWork enters the working
+            // phase.  Releasing the emergency gate while that route is still
+            // running lets the old response arrive after the original
+            // priority has been restored and overwrite that command.  Retire
+            // the in-flight emergency route first, then release the gate and
+            // restore the journal in this same tick so no scheduler decision
+            // can enter between the ownership transitions.
+            AIBrain brain = next.Actor?.Brain;
+            if (brain?.IsExternallyDrivenActionActive == true)
+            {
+                EnqueueReturn(next.Actor, next.EpochId);
+                continue;
+            }
+            if (work?.HasEmergencyResponseWorkGateForDiagnostics == true
+                && work.EmergencyResponseWorkEpochForDiagnostics
+                    != next.EpochId)
+            {
+                throw new InvalidOperationException(
+                    $"Green return gate epoch mismatch for {next.CharacterId}: "
+                    + $"queue={next.EpochId}; gate="
+                    + work.EmergencyResponseWorkEpochForDiagnostics);
+            }
+            if (brain?.HasRunningWorkAction == true)
+            {
+                bool stopped = brain.StopCurrentActionForReplan(
+                    "alert-green-return");
+                if (!stopped
+                    || brain.HasRunningWorkAction
+                    || (work?.isWorking ?? false)
+                    || (work?.HasActiveWorkRoutineForDiagnostics ?? false))
+                {
+                    EnqueueReturn(next.Actor, next.EpochId);
+                    continue;
+                }
+            }
+
+            work?.EndEmergencyResponseWorkGate(next.EpochId);
             bool restoredPriority = TryRestoreSuspendedPriority(
                 next.Actor,
                 next.CharacterId,
@@ -189,7 +261,6 @@ public sealed class CharacterAlarmResponseRuntime :
                 {
                     continue;
                 }
-                bool suspended = false;
                 if (CharacterWorkRoleUtility.TryGetWork(
                         response.Actor,
                         out AbilityWork activeWork))
@@ -205,23 +276,20 @@ public sealed class CharacterAlarmResponseRuntime :
                                     receipt.TargetBuildingId,
                                     receipt.AlertEpochId,
                                     calendar.AbsoluteHour,
-                                    receipt.ProgressExternallyPersisted));
+                                    receipt.ProgressExternallyPersisted,
+                                    receipt.InlineCompletedWork,
+                                    receipt.InlineRequiredWork));
                         if (!recorded.Success)
                         {
                             throw new InvalidOperationException(
                                 $"{recorded.Code}: {recorded.Message}");
                         }
-                        suspended = true;
                     }
                     else
                     {
                         activeWork.CancelEmergencySuspensionRequest(
                             change.EpochId);
                     }
-                }
-                if (!suspended)
-                {
-                    emergencyAssigned.Remove(characterId);
                 }
                 completedPending.Add(characterId);
             }
@@ -234,6 +302,16 @@ public sealed class CharacterAlarmResponseRuntime :
 
         if (change.Current == SettlementThreatAlertLevel.Green)
         {
+            foreach (PendingAlarmResponse response in pending.Values)
+            {
+                if (CharacterWorkRoleUtility.TryGetWork(
+                        response.Actor,
+                        out AbilityWork pendingWork))
+                {
+                    pendingWork.CancelEmergencySuspensionRequest(
+                        response.EpochId);
+                }
+            }
             pending.Clear();
             List<string> returnIds = new List<string>(emergencyAssigned);
             SettlementAlertSnapshot snapshot = alerts.Capture();
@@ -249,13 +327,30 @@ public sealed class CharacterAlarmResponseRuntime :
             for (int index = 0; index < returnIds.Count; index++)
             {
                 string characterId = returnIds[index];
-                if (TryFindCharacter(characterId, out CharacterActor actor)
+                bool foundActor = TryFindCharacter(
+                    characterId,
+                    out CharacterActor actor);
+                if (foundActor
                     && alerts.TryClaimContextTransition(
                         characterId,
                         change.EpochId,
                         toEmergency: false))
                 {
                     EnqueueReturn(actor, change.EpochId);
+                }
+                else if (!foundActor
+                         && alerts.TryGetSuspendedWork(characterId, out _))
+                {
+                    EmergencyAccountingResult abandoned =
+                        alerts.MarkSuspendedWorkAbandoned(
+                            characterId,
+                            change.EpochId,
+                            "responder-missing-at-return");
+                    if (!abandoned.Success)
+                    {
+                        throw new InvalidOperationException(
+                            $"{abandoned.Code}: {abandoned.Message}");
+                    }
                 }
             }
             emergencyAssigned.Clear();
@@ -318,17 +413,59 @@ public sealed class CharacterAlarmResponseRuntime :
             }
         }
 
+        string restoreFailure = string.Empty;
+        AbilityWork work = null;
         bool restored = actor != null
-            && actor.TryGetAbility(out AbilityWork work)
+            && actor.TryGetAbility(out work)
             && target != null
             && work.TrySetPriorityWorkTarget(
                 target,
                 suspended.WorkTypeId,
                 null,
-                out _);
-        EmergencyAccountingResult cleared = alerts.MarkSuspendedWorkResumed(
-            characterId,
-            epochId);
+                out restoreFailure);
+        EmergencyAccountingResult cleared;
+        if (restored)
+        {
+            if (suspended.HasInlineProgress)
+            {
+                work.RestoreInlineEmergencyProgress(
+                    suspended.WorkTypeId,
+                    suspended.TargetBuildingId,
+                    suspended.InlineCompletedWork,
+                    suspended.InlineRequiredWork);
+            }
+            // Restoring the domain priority alone is not enough: the alarm
+            // response may still own the brain's preferred AIWork route even
+            // after its work gate is released. Publish the restored work type
+            // through the same production scheduler boundary used by direct
+            // priority commands so a completed emergency action cannot select
+            // another response before the original order resumes.
+            actor.Brain?.PreferWorkActionOnNextDecision(
+                suspended.WorkTypeId,
+                persistenceSeconds: 90f);
+            actor.Brain?.RequestImmediateReplan(clearFailures: true);
+            cleared = alerts.MarkSuspendedWorkResumed(
+                characterId,
+                epochId);
+        }
+        else
+        {
+            string reasonCode = target == null
+                ? "target-destroyed-or-missing"
+                : "priority-restore-rejected";
+            cleared = alerts.MarkSuspendedWorkAbandoned(
+                characterId,
+                epochId,
+                reasonCode);
+            actor?.AddActivity(CharacterActivityEvent.Work(
+                suspended.WorkTypeId,
+                CharacterActivityOutcomes.Cancelled,
+                target == null
+                    ? "비상 중단 중 원래 작업 대상이 사라져 작업을 폐기하고 다시 계획합니다."
+                    : $"비상 중단 작업을 복귀하지 못해 다시 계획합니다: {restoreFailure}",
+                target,
+                reasonCode: reasonCode));
+        }
         if (!cleared.Success)
         {
             throw new InvalidOperationException(
@@ -345,6 +482,28 @@ public sealed class CharacterAlarmResponseRuntime :
             ScheduleEmergencyResponders(
                 alert.AlertEpochId,
                 applyResponseDelay: false);
+            return;
+        }
+
+        if (alert.CommittedLevel == SettlementThreatAlertLevel.Amber)
+        {
+            WorkTypeId allowedWorkType = ResolveEmergencyWorkType(alert);
+            emergencyAssigned.Clear();
+            emergencyAssignedEpochId = alert.AlertEpochId;
+            for (int index = 0; index < alert.SuspendedWork.Count; index++)
+            {
+                SettlementSuspendedWorkSnapshot suspended =
+                    alert.SuspendedWork[index];
+                if (TryFindCharacter(suspended.CharacterId, out CharacterActor actor)
+                    && actor.TryGetAbility(out AbilityWork work))
+                {
+                    BindEmergencyResponseWorkGate(
+                        work,
+                        suspended.AlertEpochId,
+                        allowedWorkType);
+                    emergencyAssigned.Add(suspended.CharacterId);
+                }
+            }
             return;
         }
 
@@ -383,18 +542,27 @@ public sealed class CharacterAlarmResponseRuntime :
         long epochId,
         bool applyResponseDelay)
     {
-        if (emergencyAssignedEpochId != epochId)
+        SettlementAlertSnapshot currentAlert = alerts.Capture();
+        if (epochId <= 0L
+            || currentAlert.AlertEpochId != epochId
+            || currentAlert.CommittedLevel != SettlementThreatAlertLevel.Red)
         {
-            emergencyAssigned.Clear();
-            emergencyAssignedEpochId = epochId;
+            throw new InvalidOperationException(
+                $"Emergency responder scheduling requires the current Red epoch. requested={epochId}; current={currentAlert.AlertEpochId}/{currentAlert.CommittedLevel}.");
         }
+        WorkTypeId allowedEmergencyWorkType =
+            ResolveEmergencyWorkType(currentAlert);
+        ReconcileEmergencyResponderOwnership(
+            currentAlert,
+            epochId,
+            allowedEmergencyWorkType);
         SettlementEmergencyReserveTargetSnapshot target =
             reserveTarget.CaptureTarget();
         EmergencyRiskForecastSnapshot risk = forecasts.Capture();
         long liveTarget = Math.Max(
             12_000L,
             Math.Max(target.MinimumMilliWu, risk.HighestP90MilliWu));
-        if (alerts.Capture().CommittedLevel == SettlementThreatAlertLevel.Red)
+        if (currentAlert.CommittedLevel == SettlementThreatAlertLevel.Red)
         {
             liveTarget = checked(liveTarget * 2L);
         }
@@ -414,11 +582,10 @@ public sealed class CharacterAlarmResponseRuntime :
         for (int index = 0; index < candidates.Count && required > 0; index++)
         {
             CharacterActor actor = candidates[index];
-            if (actor == null
-                || actor.IsDead
-                || actor.Brain == null
-                || !actor.TryGetAbility(out AbilityWork _)
-                || !TryGetCharacterId(actor, out string characterId))
+            if (!IsEmergencyResponderEligible(actor)
+                || !actor.TryGetAbility(out AbilityWork responseWork)
+                || !TryGetCharacterId(actor, out string characterId)
+                || emergencyAssigned.Contains(characterId))
             {
                 continue;
             }
@@ -449,6 +616,10 @@ public sealed class CharacterAlarmResponseRuntime :
             {
                 continue;
             }
+            BindEmergencyResponseWorkGate(
+                responseWork,
+                epochId,
+                allowedEmergencyWorkType);
             float dueAt = applyResponseDelay
                 ? clock.Time
                     + BaseResponseDelaySeconds
@@ -466,6 +637,220 @@ public sealed class CharacterAlarmResponseRuntime :
                 epochId);
             emergencyAssigned.Add(characterId);
             required--;
+        }
+    }
+
+    private bool RetireIneligibleEmergencyResponders(long epochId)
+    {
+        if (epochId <= 0L || emergencyAssigned.Count == 0)
+        {
+            return false;
+        }
+
+        List<string> retired = null;
+        foreach (string characterId in emergencyAssigned)
+        {
+            if (TryFindCharacter(characterId, out CharacterActor actor)
+                && IsEmergencyResponderEligible(actor))
+            {
+                continue;
+            }
+
+            retired ??= new List<string>();
+            retired.Add(characterId);
+        }
+        if (retired == null)
+        {
+            return false;
+        }
+
+        retired.Sort(StringComparer.Ordinal);
+        for (int index = 0; index < retired.Count; index++)
+        {
+            string characterId = retired[index];
+            if (TryFindCharacter(characterId, out CharacterActor actor)
+                && actor.TryGetAbility(out AbilityWork work))
+            {
+                work.CancelEmergencySuspensionRequest(epochId);
+                if (work.HasEmergencyResponseWorkGateForDiagnostics)
+                {
+                    work.EndEmergencyResponseWorkGate(
+                        work.EmergencyResponseWorkEpochForDiagnostics);
+                }
+            }
+            pending.Remove(characterId);
+            emergencyAssigned.Remove(characterId);
+            RemoveQueuedReturn(characterId);
+        }
+        return true;
+    }
+
+    private void RemoveQueuedReturn(string characterId)
+    {
+        queuedReturning.Remove(characterId);
+        int count = returning.Count;
+        for (int index = 0; index < count; index++)
+        {
+            ReturningWorker item = returning.Dequeue();
+            if (!string.Equals(
+                    item.CharacterId,
+                    characterId,
+                    StringComparison.Ordinal))
+            {
+                returning.Enqueue(item);
+            }
+        }
+    }
+
+    private static bool IsEmergencyResponderEligible(CharacterActor actor)
+    {
+        return actor != null
+            && !actor.IsDead
+            && actor.CurrentLifecycleState == CharacterLifecycleState.Active
+            && actor.CanRunAi
+            && actor.Brain != null
+            && actor.TryGetAbility(out AbilityWork _)
+            && actor.Stats?.EvaluatePerformance(
+                CharacterPerformanceFormulaIds.AlarmResponse)?.IsApplicable == true;
+    }
+
+    private void ReconcileEmergencyResponderOwnership(
+        SettlementAlertSnapshot currentAlert,
+        long epochId,
+        WorkTypeId allowedEmergencyWorkType)
+    {
+        if (emergencyAssignedEpochId > epochId)
+        {
+            throw new InvalidOperationException(
+                $"Emergency responder ownership cannot move backwards from epoch {emergencyAssignedEpochId} to {epochId}.");
+        }
+
+        bool epochChanged = emergencyAssignedEpochId != epochId;
+        HashSet<string> carryForward = new HashSet<string>(
+            emergencyAssigned,
+            StringComparer.Ordinal);
+        Dictionary<string, PendingAlarmResponse> carriedPending =
+            new Dictionary<string, PendingAlarmResponse>(StringComparer.Ordinal);
+
+        foreach ((string characterId, PendingAlarmResponse response) in pending)
+        {
+            carryForward.Add(characterId);
+            carriedPending[characterId] = response;
+        }
+        foreach (ReturningWorker response in returning)
+        {
+            carryForward.Add(response.CharacterId);
+        }
+        for (int index = 0; index < currentAlert.SuspendedWork.Count; index++)
+        {
+            carryForward.Add(currentAlert.SuspendedWork[index].CharacterId);
+        }
+
+        IReadOnlyList<CharacterActor> characters = world.Characters;
+        for (int index = 0; index < characters.Count; index++)
+        {
+            CharacterActor actor = characters[index];
+            if (!TryGetCharacterId(actor, out string characterId)
+                || !actor.TryGetAbility(out AbilityWork work))
+            {
+                continue;
+            }
+            if (work.HasEmergencyResponseWorkGateForDiagnostics)
+            {
+                carryForward.Add(characterId);
+                continue;
+            }
+            if (work.isWorking
+                && work.AssignedWorkTypeId.IsValid
+                && WorkTypeCatalog.TryGet(
+                    work.AssignedWorkTypeId,
+                    out WorkTypeDefinition definition)
+                && (definition.EmergencyFlags
+                    & EmergencyWorkFlags.EmergencyResponse) != 0)
+            {
+                carryForward.Add(characterId);
+            }
+        }
+
+        if (epochChanged)
+        {
+            pending.Clear();
+            returning.Clear();
+            queuedReturning.Clear();
+            emergencyAssigned.Clear();
+            emergencyAssignedEpochId = epochId;
+        }
+
+        List<string> ordered = new List<string>(carryForward);
+        ordered.Sort(StringComparer.Ordinal);
+        for (int index = 0; index < ordered.Count; index++)
+        {
+            string characterId = ordered[index];
+            if (!TryFindCharacter(characterId, out CharacterActor actor)
+                || !actor.TryGetAbility(out AbilityWork work))
+            {
+                emergencyAssigned.Remove(characterId);
+                pending.Remove(characterId);
+                continue;
+            }
+
+            bool gateChanged = BindEmergencyResponseWorkGate(
+                work,
+                epochId,
+                allowedEmergencyWorkType);
+            emergencyAssigned.Add(characterId);
+
+            if (epochChanged
+                && carriedPending.TryGetValue(
+                    characterId,
+                    out PendingAlarmResponse previousPending))
+            {
+                bool receiptRecorded = false;
+                if (work.TryConsumeEmergencySuspension(
+                        out EmergencyWorkSuspensionReceipt receipt))
+                {
+                    EmergencyAccountingResult recorded =
+                        alerts.RecordSuspendedWork(
+                            new SettlementSuspendedWorkSnapshot(
+                                characterId,
+                                receipt.WorkTypeId,
+                                receipt.TargetBuildingId,
+                                epochId,
+                                calendar.AbsoluteHour,
+                                receipt.ProgressExternallyPersisted,
+                                receipt.InlineCompletedWork,
+                                receipt.InlineRequiredWork));
+                    if (!recorded.Success)
+                    {
+                        throw new InvalidOperationException(
+                            $"{recorded.Code}: {recorded.Message}");
+                    }
+                    receiptRecorded = true;
+                }
+                else
+                {
+                    work.CancelEmergencySuspensionRequest(
+                        previousPending.EpochId);
+                }
+
+                if (!receiptRecorded)
+                {
+                    pending[characterId] = new PendingAlarmResponse(
+                        actor,
+                        previousPending.DueAt,
+                        epochId);
+                }
+            }
+
+            bool alreadyRunningAllowedResponse = work.isWorking
+                && work.AssignedWorkTypeId == allowedEmergencyWorkType;
+            if (gateChanged && !alreadyRunningAllowedResponse)
+            {
+                actor.Brain?.PreferWorkActionOnNextDecision(
+                    allowedEmergencyWorkType,
+                    persistenceSeconds: 90f);
+                actor.Brain?.RequestImmediateReplan(clearFailures: true);
+            }
         }
     }
 
@@ -493,6 +878,50 @@ public sealed class CharacterAlarmResponseRuntime :
             }
         }
         return BuiltInWorkTypeIds.ThreatMitigation;
+    }
+
+    private static bool BindEmergencyResponseWorkGate(
+        AbilityWork work,
+        long epochId,
+        WorkTypeId allowedWorkTypeId)
+    {
+        if (work == null)
+        {
+            throw new ArgumentNullException(nameof(work));
+        }
+        if (!work.HasEmergencyResponseWorkGateForDiagnostics
+            )
+        {
+            work.BeginEmergencyResponseWorkGate(epochId, allowedWorkTypeId);
+            return true;
+        }
+
+        long currentEpoch = work.EmergencyResponseWorkEpochForDiagnostics;
+        WorkTypeId currentWorkType =
+            work.EmergencyResponseOnlyWorkTypeForDiagnostics;
+        if (currentEpoch > epochId)
+        {
+            throw new InvalidOperationException(
+                $"Emergency work ownership cannot move backwards from epoch {currentEpoch} to {epochId}.");
+        }
+        if (currentEpoch == epochId)
+        {
+            if (currentWorkType == allowedWorkTypeId)
+            {
+                return false;
+            }
+            work.UpdateEmergencyResponseWorkGate(
+                epochId,
+                currentWorkType,
+                allowedWorkTypeId);
+            return true;
+        }
+
+        work.AdvanceEmergencyResponseWorkGate(
+            currentEpoch,
+            epochId,
+            allowedWorkTypeId);
+        return true;
     }
 
     private static string GetSortableCharacterId(CharacterActor actor)

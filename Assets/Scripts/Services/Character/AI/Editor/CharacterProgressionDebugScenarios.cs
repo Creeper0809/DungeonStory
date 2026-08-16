@@ -30,6 +30,10 @@ public static class CharacterProgressionDebugScenarios
         Run("active, passive, and ultimate slots", VerifySkillMilestones, errors);
         Run("permanent choice and save round trip", VerifyPermanentChoiceAndPersistence, errors);
         Run("module response validation", VerifyModuleValidation, errors);
+        Run("in-flight generation timeout fallback", VerifyInFlightGenerationTimeout, errors);
+        Run("provider timeout circuit drains queued requests",
+            VerifyProviderCircuitDrainsQueuedRequests,
+            errors);
         Run("LLM retry and request-key resume", VerifyRetryAndRequestKeyResume, errors);
         Run("ultimate domain use limits", VerifyUltimateUseLimits, errors);
         Run("independent scoped transient roots", VerifyIndependentTransientRoots, errors);
@@ -49,6 +53,15 @@ public static class CharacterProgressionDebugScenarios
         CleanupLeakedActorFixtures();
         return errors.Count == 0;
     }
+
+    public static bool RunGenerationTimeoutScenario() =>
+        VerifyInFlightGenerationTimeout();
+
+    public static bool RunProviderCircuitScenario() =>
+        VerifyProviderCircuitDrainsQueuedRequests();
+
+    public static bool RunTransientRootLifetimeScenario() =>
+        VerifyIndependentTransientRoots();
 
     private static void CleanupLeakedActorFixtures()
     {
@@ -877,14 +890,14 @@ public static class CharacterProgressionDebugScenarios
             CharacterSkillDraft draft = service.CreateDraft(source, CharacterSkillKind.Active, 1, revision: 4);
             string requestKey = draft.requestKey;
             runtime.Enqueue(new LocalLlmResult(
-                LocalLlmRequestStatus.TimedOut,
+                LocalLlmRequestStatus.Succeeded,
+                "{}",
                 string.Empty,
-                "timeout",
                 string.Empty));
             service.RequestDraft(source, draft);
             service.Tick();
             Require(runtime.CharacterSkillCallCount == 1 && !draft.isReady,
-                "A timed-out generation request did not remain pending.");
+                "A schema-rejected generation request did not remain pending.");
 
             CharacterGrowthState restoredGrowth = source.GrowthState.Clone();
             restoredGrowth.drafts.Clear();
@@ -948,6 +961,208 @@ public static class CharacterProgressionDebugScenarios
         {
             UnityEngine.Object.DestroyImmediate(sourceObject);
             UnityEngine.Object.DestroyImmediate(restoredObject);
+            UnityEngine.Object.DestroyImmediate(settings);
+        }
+    }
+
+    private static bool VerifyInFlightGenerationTimeout()
+    {
+        CharacterSkillSystemSettingsSO settings =
+            EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
+        settings.initialRetrySeconds = 1f;
+        settings.maximumRetrySeconds = 2f;
+        GameObject preview = new GameObject("SkillTimeoutPreview");
+        try
+        {
+            TestSettingsProvider settingsProvider = new TestSettingsProvider(settings);
+            MutableUiClock clock = new MutableUiClock();
+            NeverCompletingLlmRuntime runtime = new NeverCompletingLlmRuntime();
+            CharacterSkillGenerationService service = new CharacterSkillGenerationService(
+                settingsProvider,
+                new TestLlmRuntimeProvider(runtime),
+                clock);
+            CharacterProgression progression = preview.AddComponent<CharacterProgression>();
+            progression.ConfigurePreview(
+                service,
+                settingsProvider,
+                new CharacterProgressionProfileProjector(
+                    new ResourceGameContentCatalog(new UnityGameContentRootLoader()),
+                    new CharacterRuntimeProfileFactory(
+                        new ResourceGameContentCatalog(
+                            new UnityGameContentRootLoader()))));
+            progression.ApplyPreparedIdentity(
+                "Timeout verifier",
+                "deterministic test",
+                Array.Empty<int>(),
+                CharacterPotentialGrade.Ordinary,
+                992,
+                autoChooseDrafts: true);
+
+            service.Tick();
+            service.Tick();
+            Require(runtime.CharacterSkillCallCount == 2
+                    && service.PendingRequestCount == 2,
+                "The never-completing runtime did not own both pending drafts.");
+
+            clock.Advance(2.1f);
+            service.Tick();
+            Require(service.PendingRequestCount == 0,
+                "Timed-out generation requests remained pending.");
+            Require(progression.Drafts.All(draft => draft != null && draft.isReady),
+                "Timed-out generation did not complete the authored rule fallback.");
+            Require(progression.ActiveSkills.Count > 0
+                    && progression.PassiveSkills.Count > 0,
+                "Timed-out profile preparation did not become gameplay-ready.");
+            Require(service.IsProviderCircuitOpen
+                    && service.ProviderCircuitTripCount == 1
+                    && service.LastDiagnostic.StartsWith(
+                        "provider-circuit-rule-fallback",
+                    StringComparison.Ordinal),
+                "Timed-out generation did not expose its provider circuit diagnostic.");
+            return true;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(preview);
+            UnityEngine.Object.DestroyImmediate(settings);
+        }
+    }
+
+    private static bool VerifyProviderCircuitDrainsQueuedRequests()
+    {
+        CharacterSkillSystemSettingsSO settings =
+            EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
+        settings.initialRetrySeconds = 1f;
+        settings.maximumRetrySeconds = 2f;
+        List<GameObject> previews = new List<GameObject>();
+        try
+        {
+            TestSettingsProvider settingsProvider = new TestSettingsProvider(settings);
+            MutableUiClock clock = new MutableUiClock();
+            DelayedSkillLlmRuntime runtime = new DelayedSkillLlmRuntime();
+            CharacterSkillGenerationService service =
+                new CharacterSkillGenerationService(
+                    settingsProvider,
+                    new TestLlmRuntimeProvider(runtime),
+                    clock);
+            List<CharacterProgression> progressions =
+                new List<CharacterProgression>();
+            for (int index = 0; index < 3; index++)
+            {
+                GameObject preview = new GameObject(
+                    "SkillProviderCircuitPreview_" + index);
+                previews.Add(preview);
+                CharacterProgression progression =
+                    preview.AddComponent<CharacterProgression>();
+                progression.ConfigurePreview(
+                    service,
+                    settingsProvider,
+                    new CharacterProgressionProfileProjector(
+                        new ResourceGameContentCatalog(
+                            new UnityGameContentRootLoader()),
+                        new CharacterRuntimeProfileFactory(
+                            new ResourceGameContentCatalog(
+                                new UnityGameContentRootLoader()))));
+                progression.ApplyPreparedIdentity(
+                    "Circuit verifier " + index,
+                    "deterministic provider-health test",
+                    Array.Empty<int>(),
+                    CharacterPotentialGrade.Ordinary,
+                    12000 + index,
+                    autoChooseDrafts: true);
+                progressions.Add(progression);
+            }
+
+            int queuedCount = service.PendingRequestCount;
+            Require(queuedCount > 2,
+                "The provider circuit fixture did not exceed concurrent capacity.");
+            service.Tick();
+            service.Tick();
+            Require(runtime.CharacterSkillCallCount == 2
+                    && runtime.PendingCallbackCount == 2
+                    && service.PendingRequestCount == queuedCount,
+                "The fixture did not retain queued work behind two accepted requests.");
+
+            clock.Advance(service.RequestTimeoutSeconds + 0.1f);
+            service.Tick();
+            Require(service.PendingRequestCount == 0,
+                "A provider timeout did not drain every queued generation request.");
+            Require(progressions.SelectMany(value => value.Drafts)
+                    .All(draft => draft != null && draft.isReady),
+                "The provider circuit left a queued draft unprepared.");
+            Require(service.IsProviderCircuitOpen
+                    && service.ProviderCircuitTripCount == 1
+                    && service.ProviderCircuitCooldownRemainingSeconds > 0f,
+                "The provider timeout did not open a visible bounded circuit.");
+            Require(service.LastDiagnostic.Contains(
+                    "completed=" + queuedCount,
+                    StringComparison.Ordinal),
+                "The provider circuit diagnostic did not report its full drain.");
+
+            GameObject cooldownPreview = new GameObject(
+                "SkillProviderCircuitCooldownPreview");
+            previews.Add(cooldownPreview);
+            CharacterProgression cooldownProgression =
+                cooldownPreview.AddComponent<CharacterProgression>();
+            cooldownProgression.ConfigurePreview(
+                service,
+                settingsProvider,
+                new CharacterProgressionProfileProjector(
+                    new ResourceGameContentCatalog(
+                        new UnityGameContentRootLoader()),
+                    new CharacterRuntimeProfileFactory(
+                        new ResourceGameContentCatalog(
+                            new UnityGameContentRootLoader()))));
+            cooldownProgression.ApplyPreparedIdentity(
+                "Circuit cooldown verifier",
+                "deterministic provider-health test",
+                Array.Empty<int>(),
+                CharacterPotentialGrade.Ordinary,
+                12003,
+                autoChooseDrafts: true);
+            int cooldownQueued = service.PendingRequestCount;
+            Require(cooldownQueued > 0,
+                "The cooldown fixture did not enqueue generation work.");
+            service.Tick();
+            Require(runtime.CharacterSkillCallCount == 2
+                    && service.PendingRequestCount == 0
+                    && cooldownProgression.Drafts.All(
+                        draft => draft != null && draft.isReady),
+                "An open provider circuit submitted another serial timeout wave.");
+            progressions.Add(cooldownProgression);
+
+            string[] committedCandidateIds = progressions
+                .SelectMany(value => value.Drafts)
+                .SelectMany(draft => draft.candidates)
+                .Select(skill => skill.id)
+                .ToArray();
+            string circuitDiagnostic = service.LastDiagnostic;
+            runtime.CompleteAcceptedCallbacks(new LocalLlmResult(
+                LocalLlmRequestStatus.Succeeded,
+                "{}",
+                string.Empty,
+                string.Empty));
+            service.Tick();
+            Require(runtime.DeliveredCallbackCount == 2
+                    && service.PendingRequestCount == 0
+                    && progressions.SelectMany(value => value.Drafts)
+                        .SelectMany(draft => draft.candidates)
+                        .Select(skill => skill.id)
+                        .SequenceEqual(committedCandidateIds),
+                "A late provider callback overwrote a committed rule fallback.");
+            Require(string.Equals(
+                    service.LastDiagnostic,
+                    circuitDiagnostic,
+                    StringComparison.Ordinal),
+                "A late provider callback changed provider circuit diagnostics.");
+            return true;
+        }
+        finally
+        {
+            foreach (GameObject preview in previews)
+            {
+                UnityEngine.Object.DestroyImmediate(preview);
+            }
             UnityEngine.Object.DestroyImmediate(settings);
         }
     }
@@ -1294,6 +1509,77 @@ public static class CharacterProgressionDebugScenarios
         public bool GenerateFacilityEvolutionAsync(string prompt, Action<LocalLlmResult> callback) => false;
         public bool GenerateCharacterRecordAsync(string prompt, string originalText, Action<LocalLlmResult> callback) => false;
         public bool GenerateBubbleLineAsync(string prompt, string originalText, Action<LocalLlmResult> callback) => false;
+    }
+
+    private sealed class NeverCompletingLlmRuntime : ILocalLlmRuntime
+    {
+        public int CharacterSkillCallCount { get; private set; }
+
+        public bool GenerateCharacterSkillAsync(
+            string prompt,
+            Action<LocalLlmResult> callback)
+        {
+            CharacterSkillCallCount++;
+            return true;
+        }
+
+        public bool GeneratePersonaAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateMacroGoalAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateMoodImpulseAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateSocialRumorAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateFacilityEvolutionAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateCharacterRecordAsync(string prompt, string originalText, Action<LocalLlmResult> callback) => false;
+        public bool GenerateBubbleLineAsync(string prompt, string originalText, Action<LocalLlmResult> callback) => false;
+    }
+
+    private sealed class DelayedSkillLlmRuntime : ILocalLlmRuntime
+    {
+        private readonly List<Action<LocalLlmResult>> acceptedCallbacks =
+            new List<Action<LocalLlmResult>>();
+
+        public int CharacterSkillCallCount { get; private set; }
+        public int PendingCallbackCount => acceptedCallbacks.Count;
+        public int DeliveredCallbackCount { get; private set; }
+
+        public bool GenerateCharacterSkillAsync(
+            string prompt,
+            Action<LocalLlmResult> callback)
+        {
+            CharacterSkillCallCount++;
+            acceptedCallbacks.Add(callback);
+            return true;
+        }
+
+        public void CompleteAcceptedCallbacks(LocalLlmResult result)
+        {
+            Action<LocalLlmResult>[] callbacks = acceptedCallbacks.ToArray();
+            acceptedCallbacks.Clear();
+            foreach (Action<LocalLlmResult> callback in callbacks)
+            {
+                DeliveredCallbackCount++;
+                callback?.Invoke(result);
+            }
+        }
+
+        public bool GeneratePersonaAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateMacroGoalAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateMoodImpulseAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateSocialRumorAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateFacilityEvolutionAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateCharacterRecordAsync(string prompt, string originalText, Action<LocalLlmResult> callback) => false;
+        public bool GenerateBubbleLineAsync(string prompt, string originalText, Action<LocalLlmResult> callback) => false;
+    }
+
+    private sealed class MutableUiClock : IUiClock
+    {
+        public float DeltaTime { get; private set; }
+        public float Time { get; private set; }
+
+        public void Advance(float seconds)
+        {
+            DeltaTime = Mathf.Max(0f, seconds);
+            Time += DeltaTime;
+        }
     }
 }
 

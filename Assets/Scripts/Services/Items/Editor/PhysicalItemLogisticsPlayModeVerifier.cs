@@ -117,8 +117,8 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
     private Mouse originalMouse;
     private Mouse verificationMouse;
     private int verificationMouseSerial;
-    private readonly Dictionary<AIBrain, bool> disabledBrains =
-        new Dictionary<AIBrain, bool>();
+    private readonly Dictionary<CharacterActor, bool> isolatedAiPauseStates =
+        new Dictionary<CharacterActor, bool>();
     private readonly List<CharacterActor> verificationActors = new List<CharacterActor>();
     private float originalTimeScale;
     private IWorldItemStackRuntime itemRuntime;
@@ -149,6 +149,8 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         IResourceEconomyContentCatalog economyCatalog =
             Resolve<IResourceEconomyContentCatalog>(scope);
         IOffensePreparationService preparation = Resolve<IOffensePreparationService>(scope);
+        IFacilityBufferDestinationClaimQuery destinationClaims =
+            Resolve<IFacilityBufferDestinationClaimQuery>(scope);
         debugMode = Resolve<IDungeonDebugModeService>(scope);
         GridSystemManager gridSystem = UnityEngine.Object.FindFirstObjectByType<GridSystemManager>();
         Grid grid = gridSystem != null ? gridSystem.grid : null;
@@ -162,6 +164,9 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
             "equipment maintenance runtime resolved");
         Check(economyCatalog != null, "ECONOMY_CATALOG_READY", "resource economy catalog resolved");
         Check(preparation != null, "PREPARATION_RUNTIME_READY", "offense preparation service resolved");
+        Check(destinationClaims != null,
+            "DESTINATION_CLAIM_RUNTIME_READY",
+            "haul destination claim authority resolved");
         Check(debugMode != null, "DEBUG_MODE_READY", "debug mode service resolved");
         Check(grid != null, "GRID_READY", "grid resolved");
         if (scope == null
@@ -171,6 +176,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
             || equipmentMaintenance == null
             || economyCatalog == null
             || preparation == null
+            || destinationClaims == null
             || debugMode == null
             || grid == null)
         {
@@ -190,6 +196,22 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         CaptureRuntimeState(itemRuntime, equipment);
         ConfigureVerificationDebugMode();
         DisableBrainForDeterministicHauling(hauler);
+        yield return null;
+        yield return null;
+        Check(verificationActors
+                .Where(actor => actor != null && !actor.IsDead)
+                .All(actor => actor.IsAiPaused()
+                    && actor.GetComponent<AbilityMove>()
+                        ?.HasActiveMovementRoutineForDiagnostics != true
+                    && actor.GetComponent<AbilityHaul>()?.IsHauling != true),
+            "HAUL_FIXTURE_AI_OWNERSHIP_ISOLATED",
+            $"actors={verificationActors.Count}; "
+            + string.Join(",", verificationActors
+                .Where(actor => actor != null)
+                .Select(actor =>
+                    $"{actor.BuildingCharacterId}:paused={actor.IsAiPaused()}:"
+                    + $"move={actor.GetComponent<AbilityMove>()?.HasActiveMovementRoutineForDiagnostics == true}:"
+                    + $"haul={actor.GetComponent<AbilityHaul>()?.IsHauling == true}")));
 
         try
         {
@@ -245,9 +267,18 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
             }
             else
             {
-            Check(warehouse.Inventory.SeedPhysicalStockForTest(StockCategory.General, 20) == 20
-                    && warehouse.Inventory.SeedPhysicalStockForTest(StockCategory.Weapon, 20) == 20
-                    && warehouse.Inventory.SeedPhysicalStockForTest(StockCategory.Food, 5) == 5,
+            Check(itemRuntime.SpawnStockInWarehouse(
+                        warehouse,
+                        StockCategory.General,
+                        4,
+                        out int seededGeneral)
+                    && itemRuntime.SpawnStockInWarehouse(
+                        warehouse,
+                        StockCategory.Food,
+                        5,
+                        out int seededFood)
+                    && seededGeneral == 4
+                    && seededFood == 5,
                 "TEMP_WAREHOUSE_SEEDED",
                 $"food={warehouse.Inventory.GetStock(StockCategory.Food)}; general={warehouse.Inventory.GetStock(StockCategory.General)}; weapon={warehouse.Inventory.GetStock(StockCategory.Weapon)}");
             Check(SeedStoredCraftMaterial(
@@ -259,8 +290,15 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                     out string materialSeedDetails),
                 "TEMP_WAREHOUSE_IRON_SEEDED",
                 materialSeedDetails);
-            warehouse.Inventory.ConsumePhysicalStockForTest(StockCategory.Food, 5);
-
+            Check(SeedStoredCraftMaterial(
+                    itemRuntime,
+                    economyCatalog,
+                    warehouse,
+                    "material:wood",
+                    4,
+                    out string woodSeedDetails),
+                "TEMP_WAREHOUSE_WOOD_SEEDED",
+                woodSeedDetails);
             yield return VerifyLooseStackToWarehouse(itemRuntime, grid, hauler, warehouse, positions[2]);
             yield return VerifyFacilityInputDelivery(itemRuntime, hauler, warehouse, bench);
             yield return VerifyConstructionMaterialDelivery(
@@ -277,12 +315,18 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                 equipment,
                 equipmentMaintenance,
                 economyCatalog,
+                destinationClaims,
                 scope,
                 grid,
                 hauler,
                 warehouse,
                 warehouse.centerPos);
-            VerifyExpeditionPacking(preparation, itemRuntime, warehouse);
+            yield return VerifyExpeditionPacking(
+                preparation,
+                itemRuntime,
+                destinationClaims,
+                warehouse,
+                hauler);
             yield return VerifyCarryUi(itemRuntime, hauler);
             }
         }
@@ -312,6 +356,20 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
             string.Empty,
             out int amount);
         Check(spawned && amount == 3, "LOOSE_STACK_SPAWNED", $"pos={itemPosition}; amount={amount}");
+        WorldItemStackSnapshot looseTarget = itemRuntime.GetAllStacks()
+            .Where(stack => stack != null
+                && stack.State == WorldItemStackState.Loose
+                && stack.Position == itemPosition
+                && string.Equals(
+                    stack.ItemId,
+                    PreservedRationItemId,
+                    StringComparison.Ordinal))
+            .OrderByDescending(stack => stack.Quantity)
+            .FirstOrDefault();
+        Check(looseTarget != null
+                && itemRuntime.PrioritizeHaul(looseTarget.StackId),
+            "LOOSE_STACK_PRIORITIZED",
+            looseTarget != null ? looseTarget.StackId : "missing loose target");
 
         AIHaul action = ScriptableObject.CreateInstance<AIHaul>();
         try
@@ -372,10 +430,14 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         try
         {
             Check(action.CanStart(hauler), "AI_HAUL_CAN_START_FACILITY", DescribeHaulState(itemRuntime, hauler));
-            yield return RunHaul(action, hauler, () => itemRuntime.GetAllStacks().Any(stack =>
-                stack.State == WorldItemStackState.FacilityBuffer
-                && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal)
-                && stack.Quantity >= 2));
+            yield return RunHaul(action, hauler, () => itemRuntime.GetAllStacks()
+                .Where(stack =>
+                    stack.State == WorldItemStackState.FacilityBuffer
+                    && string.Equals(
+                        stack.DestinationId,
+                        destinationId,
+                        StringComparison.Ordinal))
+                .Sum(stack => stack.Quantity) >= 2);
         }
         finally
         {
@@ -464,6 +526,16 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
             Check(created,
                 "CONSTRUCTION_ORDER_CREATED",
                 created ? $"order={orderId}" : failureReason);
+            if (created)
+            {
+                site.ConfigureSite(orderId, () => true, () => { });
+                Check(string.Equals(
+                        site.WorkOrderId,
+                        orderId,
+                        StringComparison.Ordinal),
+                    "CONSTRUCTION_SITE_ORDER_AUTHORITY_PUBLISHED",
+                    $"siteOrder={site.WorkOrderId}; order={orderId}");
+            }
             if (!created
                 || !workOrderRuntime.TryGetOrderFor(
                     site,
@@ -789,6 +861,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         ICombatEquipmentRuntime equipment,
         ICombatEquipmentMaintenanceRuntime maintenance,
         IResourceEconomyContentCatalog economyCatalog,
+        IFacilityBufferDestinationClaimQuery destinationClaims,
         DungeonRuntimeLifetimeScope scope,
         Grid grid,
         CharacterActor hauler,
@@ -836,8 +909,9 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                 "material:blacksteel");
             string warehouseDestinationId =
                 WarehouseStorageIdentity.RequireDestinationId(warehouse);
-            bool stackSpawned = itemRuntime.SpawnUniqueItemAt(
+            bool stackSpawned = itemRuntime.SpawnExistingUniqueItemAt(
                 PhysicalItemIds.ForEquipment(RepairEquipmentId),
+                (ItemInstanceId)armor.instanceId,
                 warehouse.centerPos,
                 WorldItemStackState.Stored,
                 warehouseDestinationId,
@@ -882,6 +956,30 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                 yield break;
             }
 
+            bool repairClaimExact = destinationClaims.TryGetClaim(
+                    order.FacilityDestinationId,
+                    maintenanceFacility.centerPos,
+                    out FacilityBufferDestinationClaim repairClaim)
+                && repairClaim.AnchorKind
+                    == FacilityBufferDestinationAnchorKind.LiveFacility
+                && string.Equals(
+                    repairClaim.OwnerDomain,
+                    "combat.equipment-maintenance",
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    repairClaim.OwnerOperationId,
+                    order.orderId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    repairClaim.OwnerFacilityId,
+                    order.facilityBuildingId,
+                    StringComparison.Ordinal);
+            Check(repairClaimExact,
+                "MATERIAL_REPAIR_DESTINATION_CLAIM_EXACT",
+                $"destination={order.FacilityDestinationId}; "
+                + $"facility={order.facilityBuildingId}; "
+                + $"drop={maintenanceFacility.centerPos}");
+
             bool repairEquipmentDestinationReady =
                 equipment.TryGetInstance(
                     armor.instanceId,
@@ -906,6 +1004,36 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                     ? $"stack={currentRepairInstance.sourceStackId}; "
                         + DescribeStacks(itemRuntime)
                     : "repair equipment missing");
+
+            IWorldItemHaulPlanningService haulPlanning =
+                Resolve<IWorldItemHaulPlanningService>(scope);
+            WorldItemHaulPlan repairPreview = null;
+            string repairPreviewFailure = "haul planning service missing";
+            bool repairPlanReady = haulPlanning != null
+                && haulPlanning.TryPreviewBestPlan(
+                    hauler,
+                    out repairPreview,
+                    out repairPreviewFailure)
+                && repairPreview != null
+                && repairPreview.IsValid
+                && string.Equals(
+                    repairPreview.PrimaryDestinationId,
+                    order.FacilityDestinationId,
+                    StringComparison.Ordinal);
+            Check(repairPlanReady,
+                "MATERIAL_REPAIR_HAUL_PLAN_PREFLIGHT",
+                haulPlanning == null
+                    ? "haul planning service missing"
+                    : repairPlanReady
+                        ? $"destination={repairPreview.PrimaryDestinationId}; "
+                            + $"pickups={repairPreview.PickupLegs.Count}; "
+                            + $"delivery={repairPreview.DeliveryLegs[0].DeliveryPosition}"
+                        : $"failure={repairPreviewFailure}; "
+                            + $"previewDestination={repairPreview?.PrimaryDestinationId ?? "<none>"}");
+            if (!repairPlanReady)
+            {
+                yield break;
+            }
 
             yield return RunRepeatedHaul(
                 hauler,
@@ -979,6 +1107,12 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                     && repairedArmor.durabilityRatio + 0.001f >= order.targetDurability,
                 "MATERIAL_REPAIR_PRESERVES_INSTANCE_AND_MATERIAL",
                 applyMessage);
+            Check(!destinationClaims.TryGetClaim(
+                    order.FacilityDestinationId,
+                    maintenanceFacility.centerPos,
+                    out _),
+                "MATERIAL_REPAIR_DESTINATION_CLAIM_REVOKED_AFTER_COMPLETE",
+                $"destination={order.FacilityDestinationId}; completed={repairCompleted}");
 
             Check(equipment.TrySalvage(
                     armor.instanceId,
@@ -1039,12 +1173,21 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                     or CombatEquipmentRepairOrderState.InProgress);
     }
 
-    private void VerifyExpeditionPacking(
+    private IEnumerator VerifyExpeditionPacking(
         IOffensePreparationService preparation,
         IWorldItemStackRuntime itemRuntime,
-        Facility warehouse)
+        IFacilityBufferDestinationClaimQuery destinationClaims,
+        Facility warehouse,
+        CharacterActor hauler)
     {
-        warehouse.Inventory.SeedPhysicalStockForTest(StockCategory.Food, 4);
+        const string rationItemId = "food:preserved-ration";
+        int rationBefore = itemRuntime.GetAllStacks()
+            .Where(stack => stack != null
+                && string.Equals(
+                    stack.ItemId,
+                    rationItemId,
+                    StringComparison.Ordinal))
+            .Sum(stack => stack.Quantity);
         OffenseSupplyLoadout loadout = new OffenseSupplyLoadout();
         loadout.Add(OffenseSupplyType.Rations, 2);
         string packageId = "qa-package-" + Guid.NewGuid().ToString("N");
@@ -1054,20 +1197,203 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
             packageId,
             out string message);
         Check(committed,
-            "EXPEDITION_SUPPLIES_PACKED",
+            "EXPEDITION_SUPPLY_DELIVERY_COMMITTED",
             $"message={message}; stacks={DescribeStacks(itemRuntime)}");
+        if (!committed)
+        {
+            yield break;
+        }
+
+        OffenseSupplyPackingStateData package = preparation.CapturePackingState()
+            .SingleOrDefault(candidate => candidate != null
+                && string.Equals(
+                    candidate.packageId,
+                    packageId,
+                    StringComparison.Ordinal));
+        string destinationId = $"expedition:{packageId}";
+        bool exactClaim = package != null
+            && destinationClaims.TryGetClaim(
+                destinationId,
+                package.StagingPosition,
+                out FacilityBufferDestinationClaim claim)
+            && claim.AnchorKind
+                == FacilityBufferDestinationAnchorKind.ReservedTarget
+            && string.Equals(
+                claim.OwnerDomain,
+                "offense.expedition-supply",
+                StringComparison.Ordinal)
+            && string.Equals(
+                claim.OwnerOperationId,
+                packageId,
+                StringComparison.Ordinal)
+            && claim.OwnerFacilityId == null;
+        Check(exactClaim,
+            "EXPEDITION_RESERVED_TARGET_CLAIM_EXACT",
+            package == null
+                ? "package state missing"
+                : $"destination={destinationId}; staging={package.StagingPosition}");
+        if (!exactClaim)
+            yield break;
+
+        yield return RunRepeatedHaul(
+            hauler,
+            () => preparation.IsPackageReady(packageId));
+
+        OffenseSupplyPackingSnapshot packing = preparation.GetPackingSnapshot(packageId);
+        Check(packing.IsReady,
+            "EXPEDITION_SUPPLIES_PACKED",
+            $"delivered={packing.Delivered}/{packing.Required}; stacks={DescribeStacks(itemRuntime)}");
         int packed = itemRuntime.GetAllStacks().Where(stack =>
-                stack.State == WorldItemStackState.ExpeditionPacked
-                && string.Equals(stack.DestinationId, packageId, StringComparison.Ordinal))
+                stack.State == WorldItemStackState.FacilityBuffer
+                && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal))
             .Sum(stack => stack.Quantity);
         Check(packed == 2,
             "EXPEDITION_PACKED_STACK_VISIBLE",
-            $"packed={packed}; package={packageId}");
-        preparation.ConsumePackedSupplies(packageId);
-        bool removed = !itemRuntime.GetAllStacks().Any(stack =>
-            stack.State == WorldItemStackState.ExpeditionPacked
-            && string.Equals(stack.DestinationId, packageId, StringComparison.Ordinal));
-        Check(removed, "EXPEDITION_PACKED_STACK_CONSUMED", DescribeStacks(itemRuntime));
+            $"packed={packed}; destination={destinationId}");
+        int committedInTransit = itemRuntime.GetCommittedHaulDeliveryQuantity(
+            destinationId,
+            rationItemId);
+        int routedTotal = itemRuntime.GetAllStacks()
+            .Where(stack => stack != null
+                && string.Equals(
+                    stack.ItemId,
+                    rationItemId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    stack.DestinationId,
+                    destinationId,
+                    StringComparison.Ordinal))
+            .Sum(stack => stack.Quantity)
+            + committedInTransit;
+        Check(routedTotal == 2,
+            "EXPEDITION_REPEATED_READY_POLL_NO_DUPLICATE",
+            $"routed={routedTotal}; committedInTransit={committedInTransit}; "
+            + $"destination={destinationId}");
+        bool consumed = preparation.TryConsumePackedSupplies(packageId, out string consumeMessage);
+        Check(consumed,
+            "EXPEDITION_PACKED_STACK_CONSUME_COMMITTED",
+            consumeMessage);
+        bool removed = consumed
+            && !itemRuntime.GetAllStacks().Any(stack =>
+                string.Equals(
+                    stack.DestinationId,
+                    destinationId,
+                    StringComparison.Ordinal));
+        Check(removed,
+            "EXPEDITION_PACKED_STACK_CONSUMED",
+            $"consumed={consumed}; stacks={DescribeStacks(itemRuntime)}");
+        bool claimRevoked = consumed
+            && !destinationClaims.TryGetClaim(
+                destinationId,
+                package.StagingPosition,
+                out _);
+        Check(claimRevoked,
+            "EXPEDITION_RESERVED_TARGET_CLAIM_REVOKED_AFTER_CONSUME",
+            $"consumed={consumed}; destination={destinationId}");
+        int rationAfter = itemRuntime.GetAllStacks()
+            .Where(stack => stack != null
+                && string.Equals(
+                    stack.ItemId,
+                    rationItemId,
+                    StringComparison.Ordinal))
+            .Sum(stack => stack.Quantity);
+        Check(consumed && rationBefore - rationAfter == 2,
+            "EXPEDITION_SUPPLY_CONSUME_QUANTITY_CONSERVED",
+            $"before={rationBefore}; after={rationAfter}; consumed={consumed}");
+
+        string cancelPackageId = "qa-cancel-package-"
+            + Guid.NewGuid().ToString("N");
+        string warehouseDestinationId =
+            WarehouseStorageIdentity.RequireDestinationId(warehouse);
+        bool cancelStockSeeded = itemRuntime.SpawnItemAt(
+            rationItemId,
+            2,
+            warehouse.centerPos,
+            WorldItemStackState.Stored,
+            warehouseDestinationId,
+            out int cancelSeededAmount);
+        int cancelBefore = itemRuntime.GetAllStacks()
+            .Where(stack => stack != null
+                && string.Equals(
+                    stack.ItemId,
+                    rationItemId,
+                    StringComparison.Ordinal))
+            .Sum(stack => stack.Quantity);
+        Check(cancelStockSeeded && cancelSeededAmount == 2,
+            "EXPEDITION_CANCEL_STOCK_SEEDED",
+            $"spawned={cancelSeededAmount}; total={cancelBefore}");
+        bool cancelCommitted = preparation.TryCommitLoadout(
+            loadout,
+            new OffenseExpeditionPreparation(supplyCapacity: 6),
+            cancelPackageId,
+            out string cancelMessage);
+        OffenseSupplyPackingStateData cancelPackage = preparation
+            .CapturePackingState()
+            .SingleOrDefault(candidate => candidate != null
+                && string.Equals(
+                    candidate.packageId,
+                    cancelPackageId,
+                    StringComparison.Ordinal));
+        string cancelDestinationId = $"expedition:{cancelPackageId}";
+        bool cancelClaimExact = cancelCommitted
+            && cancelPackage != null
+            && destinationClaims.TryGetClaim(
+                cancelDestinationId,
+                cancelPackage.StagingPosition,
+                out FacilityBufferDestinationClaim cancelClaim)
+            && cancelClaim.AnchorKind
+                == FacilityBufferDestinationAnchorKind.ReservedTarget
+            && string.Equals(
+                cancelClaim.OwnerOperationId,
+                cancelPackageId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                cancelClaim.OwnerDomain,
+                "offense.expedition-supply",
+                StringComparison.Ordinal)
+            && cancelClaim.OwnerFacilityId == null;
+        if (cancelCommitted)
+        {
+            preparation.ReturnSupplies(loadout, cancelPackageId);
+        }
+        int cancelAfter = itemRuntime.GetAllStacks()
+            .Where(stack => stack != null
+                && string.Equals(
+                    stack.ItemId,
+                    rationItemId,
+                    StringComparison.Ordinal))
+            .Sum(stack => stack.Quantity);
+        bool cancelConserved = cancelClaimExact
+            && cancelBefore == cancelAfter
+            && !preparation.GetPackingSnapshot(cancelPackageId).Exists
+            && !itemRuntime.GetAllStacks().Any(stack => stack != null
+                && string.Equals(
+                    stack.DestinationId,
+                    cancelDestinationId,
+                    StringComparison.Ordinal))
+            && !destinationClaims.TryGetClaim(
+                cancelDestinationId,
+                    cancelPackage.StagingPosition,
+                out _)
+            && itemRuntime.GetCommittedHaulDeliveryQuantity(
+                cancelDestinationId,
+                rationItemId) == 0;
+        Check(cancelCommitted && cancelConserved,
+            "EXPEDITION_CANCEL_RELEASE_CONSERVED",
+            $"committed={cancelCommitted}; claim={cancelClaimExact}; "
+            + $"before={cancelBefore}; after={cancelAfter}; message={cancelMessage}");
+
+        preparation.ReturnSupplies(loadout, cancelPackageId);
+        int duplicateReturnAfter = itemRuntime.GetAllStacks()
+            .Where(stack => stack != null
+                && string.Equals(
+                    stack.ItemId,
+                    rationItemId,
+                    StringComparison.Ordinal))
+            .Sum(stack => stack.Quantity);
+        Check(cancelCommitted && duplicateReturnAfter == cancelAfter,
+            "EXPEDITION_UNKNOWN_OR_DUPLICATE_RETURN_NO_MINT",
+            $"before={cancelAfter}; after={duplicateReturnAfter}; package={cancelPackageId}");
     }
 
     private IEnumerator VerifyCarryUi(IWorldItemStackRuntime itemRuntime, CharacterActor hauler)
@@ -1090,10 +1416,18 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         yield return null;
         Canvas.ForceUpdateCanvases();
         string sample = GetVisibleTextSample();
-        Check(sample.Contains("kg", StringComparison.OrdinalIgnoreCase)
-                && sample.Contains("/", StringComparison.Ordinal),
+        string weightText = Resources.FindObjectsOfTypeAll<TMP_Text>()
+            .Where(text => text != null
+                && text.gameObject.scene.IsValid()
+                && text.gameObject.activeInHierarchy
+                && !string.IsNullOrWhiteSpace(text.text))
+            .Select(text => Compact(text.text))
+            .FirstOrDefault(text =>
+                text.Contains("kg", StringComparison.OrdinalIgnoreCase)
+                && text.Contains("/", StringComparison.Ordinal));
+        Check(!string.IsNullOrWhiteSpace(weightText),
             "CARRY_UI_WEIGHT_VISIBLE",
-            sample);
+            string.IsNullOrWhiteSpace(weightText) ? sample : weightText);
         yield return CaptureScreen(PhysicalItemLogisticsPlayModeVerifier.CarryCapturePath);
         carry?.RemoveAllItems();
     }
@@ -1115,11 +1449,14 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
 
             if (ability == null || !ability.IsHauling)
             {
-                yield return null;
-                if (completed())
+                for (int settleFrame = 0; settleFrame < 4; settleFrame++)
                 {
-                    Check(true, "AI_HAUL_COMPLETED", $"elapsed={Time.realtimeSinceStartup - startedAt:0.0}s");
-                    yield break;
+                    yield return null;
+                    if (completed())
+                    {
+                        Check(true, "AI_HAUL_COMPLETED", $"elapsed={Time.realtimeSinceStartup - startedAt:0.0}s");
+                        yield break;
+                    }
                 }
 
                 break;
@@ -1249,42 +1586,42 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
 
     private void DisableBrainForDeterministicHauling(CharacterActor hauler)
     {
-        disabledBrains.Clear();
+        isolatedAiPauseStates.Clear();
         verificationActors.Clear();
         foreach (CharacterActor actor in CharacterActorCollection.DistinctByGameObject(
                      UnityEngine.Object.FindObjectsByType<CharacterActor>(
                          FindObjectsInactive.Exclude,
                          FindObjectsSortMode.None)))
         {
-            if (actor == null
-                || actor.IsDead
-                || !CharacterWorkRoleUtility.TryGetWork(actor, out _))
+            if (actor == null || actor.IsDead)
             {
                 continue;
             }
 
             verificationActors.Add(actor);
+            isolatedAiPauseStates.Add(actor, actor.IsAiPaused());
+            actor.SetAiPaused(true);
             AIBrain brain = actor != null ? actor.Brain : null;
-            if (brain == null || disabledBrains.ContainsKey(brain))
-            {
-                continue;
-            }
-
-            disabledBrains.Add(brain, brain.enabled);
-            brain.enabled = false;
+            brain?.StopAllAiForLifecycleTransition(
+                "qa-physical-logistics-isolation");
+            actor.GetComponent<AbilityMove>()?.CancelActiveMovement();
+            actor.GetComponent<AbilityShopping>()?.StopShopping(
+                "qa-physical-logistics-isolation");
+            actor.GetComponent<AbilityHaul>()?.StopHauling(
+                "qa-physical-logistics-isolation");
         }
     }
 
     private void RestoreBrain()
     {
-        foreach (KeyValuePair<AIBrain, bool> pair in disabledBrains)
+        foreach (KeyValuePair<CharacterActor, bool> pair in isolatedAiPauseStates)
         {
             if (pair.Key != null)
             {
-                pair.Key.enabled = pair.Value;
+                pair.Key.SetAiPaused(pair.Value);
             }
         }
-        disabledBrains.Clear();
+        isolatedAiPauseStates.Clear();
         verificationActors.Clear();
     }
 
@@ -1355,6 +1692,15 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         asset.layer = GridLayer.Building;
         asset.category = BuildingCategory.Production;
         asset.unlocked = true;
+        asset.Facility = new FacilityData
+        {
+            roles = FacilityRole.Logistics,
+            capacity = 1,
+            useDuration = 1.5f,
+            requiredWorkers = 1,
+            disabledWhenDamaged = true
+        };
+        asset.Facility.SetSupportedWorkTypeIds(new[] { BuiltInWorkTypeIds.Repair });
         asset.AbilityModules.Add(new BuildingEquipmentMaintenanceAbility
         {
             workSpeedMultiplier = 1f,
@@ -1484,6 +1830,9 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
             + $"/{hauler?.Brain?.CurrentActionPhaseDetail ?? "<none>"}; "
             + $"haul={haul?.CurrentPlanSummary ?? "<none>"}; "
             + $"unload={haul?.CurrentUnloadReason ?? "<none>"}; "
+            + $"haulFailure={haul?.LastFailureReason ?? "<none>"}; "
+            + $"path={haul?.ActivePathDebug ?? "<none>"}; "
+            + $"brainFailure={hauler?.Brain?.LastActionFailure.ToString() ?? "<none>"}; "
             + $"carry={DescribeCarry(hauler, itemRuntime)}; "
             + $"stacks={DescribeStacks(itemRuntime)}";
     }
@@ -1665,7 +2014,6 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
     private void Cleanup()
     {
         RestoreVerificationDebugMode();
-        RestoreBrain();
         foreach (GameObject obj in temporaryObjects)
         {
             if (obj != null)
@@ -1687,6 +2035,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         }
 
         Time.timeScale = originalTimeScale;
+        RestoreBrain();
     }
 
     private static string Compact(IEnumerable<string> values)

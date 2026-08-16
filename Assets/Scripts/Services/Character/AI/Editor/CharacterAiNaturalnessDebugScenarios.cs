@@ -856,6 +856,7 @@ internal sealed class ProbeSafeReliefRuntime : ICharacterDeprivationRuntime
         reason = "갈증 10: 안전한 식수 필요";
         return actor != null;
     }
+    public bool IsRoutineDrinkActionActive(CharacterActor actor) => false;
     public bool TryRunSafeEmergencyRelief(CharacterActor actor, out string status)
     {
         status = "안전한 식수로 이동";

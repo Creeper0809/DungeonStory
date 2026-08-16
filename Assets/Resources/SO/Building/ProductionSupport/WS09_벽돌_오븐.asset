@@ -53,13 +53,13 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211905666712475
-    - rid: 7737211905666712476
-    - rid: 7737211905666712477
-    - rid: 7737211905666712478
-    - rid: 7737211905666712479
-    - rid: 7737211905666712480
-    - rid: 7737211905666712481
+    - rid: 7737211981804077083
+    - rid: 7737211981804077084
+    - rid: 7737211981804077085
+    - rid: 7737211981804077086
+    - rid: 7737211981804077087
+    - rid: 7737211981804077088
+    - rid: 7737211981804077089
   width: 1
   height: 1
   layer: 1
@@ -75,12 +75,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712475
+    - rid: 7737211981804077083
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: WS09
-    - rid: 7737211905666712476
+    - rid: 7737211981804077084
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -89,10 +89,11 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7737211905666712477
+    - rid: 7737211981804077085
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
         constructionWorkRequired: 18.8
         repairWorkRequired: 10
         cleanWorkRequired: 6.25
@@ -112,14 +113,14 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: material:lumber
           amount: 2
-    - rid: 7737211905666712478
+    - rid: 7737211981804077086
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - production-support
         - support:oven
-    - rid: 7737211905666712479
+    - rid: 7737211981804077087
       type: {class: BuildingProductionSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionSupportAbility
@@ -140,7 +141,7 @@ MonoBehaviour:
         workSpeedMultiplier: 1
         outputMultiplier: 1
         qualityModifier: 0
-    - rid: 7737211905666712480
+    - rid: 7737211981804077088
       type: {class: BuildingFacilitySupplyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilitySupplyAbility
@@ -165,7 +166,7 @@ MonoBehaviour:
           - material:charcoal
           - feed:silage
           - craft:candle
-    - rid: 7737211905666712481
+    - rid: 7737211981804077089
       type: {class: BuildingFuelConsumerAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingFuelConsumerAbility

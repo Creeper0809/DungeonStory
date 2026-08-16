@@ -9,9 +9,13 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
     private ICaptiveEscortAbilityPort port;
     private IGameClock gameClock;
     private Coroutine routine;
+    private bool escortExecutionActive;
     private string activeCaptiveId = string.Empty;
+#if UNITY_EDITOR
+    public System.Action<string> DebugBeforeEscortRoutineStart;
+#endif
 
-    public bool IsEscorting => routine != null;
+    public bool IsEscorting => escortExecutionActive;
 
     public void Configure(ICaptiveEscortAbilityPort port, IGameClock gameClock)
     {
@@ -32,12 +36,31 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
             return;
         }
 
+        if (!port.TryBeginActionOwnership(
+                normalizedId,
+                out string ownershipFailure))
+        {
+            port.FailEscort(
+                normalizedId,
+                ownershipFailure);
+            port.SetActionPhase(
+                "Escort cancelled",
+                ownershipFailure);
+            return;
+        }
+
         activeCaptiveId = normalizedId;
-        routine = StartCoroutine(EscortRoutine(activeCaptiveId));
+        escortExecutionActive = true;
+#if UNITY_EDITOR
+        DebugBeforeEscortRoutineStart?.Invoke(activeCaptiveId);
+#endif
+        Coroutine started = StartCoroutine(EscortRoutine(activeCaptiveId));
+        routine = escortExecutionActive ? started : null;
     }
 
     public void StopEscort(string reason)
     {
+        escortExecutionActive = false;
         if (routine != null)
         {
             StopCoroutine(routine);
@@ -50,10 +73,22 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
         }
 
         activeCaptiveId = string.Empty;
+        ReleaseActionIntent(clearFailures: false);
+    }
+
+    private void OnDisable()
+    {
+        StopEscort("Captive escort actor disabled.");
     }
 
     private IEnumerator EscortRoutine(string captiveId)
     {
+        if (!OwnsActionIntent())
+        {
+            Fail("Captive escort started without AI action ownership.");
+            yield break;
+        }
+
         if (!TryGetState(
                 captiveId,
                 out CaptiveState state,
@@ -80,6 +115,11 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
                 "구속구를 가지러 이동",
                 state.restraintPickupPosition.ToString());
             yield return restraintMovement;
+            if (!OwnsActionIntent())
+            {
+                Fail("Captive escort lost AI action ownership while collecting restraints.");
+                yield break;
+            }
             if (!port.TryPickupReservedRestraint(state, out failure))
             {
                 Fail(failure);
@@ -106,6 +146,11 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
 
         port.SetActionPhase("포로에게 이동", subjectName);
         yield return subjectMovement;
+        if (!OwnsActionIntent())
+        {
+            Fail("Captive escort lost AI action ownership while approaching the captive.");
+            yield break;
+        }
 
         while (TryGetState(
                    captiveId,
@@ -115,6 +160,12 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
                    out failure)
                && !state.stabilized)
         {
+            if (!OwnsActionIntent())
+            {
+                Fail("Captive escort lost AI action ownership during stabilization.");
+                yield break;
+            }
+
             float progress = port.AdvanceStabilization(
                 captiveId,
                 gameClock.DeltaTime);
@@ -122,6 +173,12 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
                 $"포로 안정화 {Mathf.RoundToInt(progress * 100f)}%",
                 subjectName);
             yield return null;
+        }
+
+        if (!OwnsActionIntent())
+        {
+            Fail("Captive escort lost AI action ownership before transport.");
+            yield break;
         }
 
         if (!port.TryBeginEscort(captiveId, out failure))
@@ -153,6 +210,11 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
 
         port.SetActionPhase("포로 호송", state.housingPosition.ToString());
         yield return housingMovement;
+        if (!OwnsActionIntent())
+        {
+            Fail("Captive escort lost AI action ownership while moving to housing.");
+            yield break;
+        }
         if (!port.TryCompleteEscort(captiveId, out failure))
         {
             Fail(failure);
@@ -160,9 +222,10 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
         }
 
         activeCaptiveId = string.Empty;
+        escortExecutionActive = false;
         routine = null;
         port.SetActionPhase("포로 수용 완료", subjectName);
-        port.RequestImmediateReplan(clearFailures: true);
+        ReleaseActionIntent(clearFailures: true);
     }
 
     private bool TryGetState(
@@ -182,8 +245,19 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
     {
         port?.FailEscort(activeCaptiveId, reason);
         activeCaptiveId = string.Empty;
+        escortExecutionActive = false;
         routine = null;
         port?.SetActionPhase("호송 중단", reason);
-        port?.RequestImmediateReplan(clearFailures: false);
+        ReleaseActionIntent(clearFailures: false);
+    }
+
+    private bool OwnsActionIntent()
+    {
+        return port?.HasActionOwnership() == true;
+    }
+
+    private void ReleaseActionIntent(bool clearFailures)
+    {
+        port?.EndActionOwnership(clearFailures);
     }
 }

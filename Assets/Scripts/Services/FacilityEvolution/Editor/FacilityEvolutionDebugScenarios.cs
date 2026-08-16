@@ -15,6 +15,8 @@ public static class FacilityEvolutionDebugScenarios
     public static bool RunAll(bool log = false)
     {
         List<string> errors = new List<string>();
+        RunScenario("Activation projection snapshots mutable building authority", () =>
+            FacilityEvolutionActivationProjectionDebugScenarios.RunAll(), errors);
         RunScenario("Engine constructor facade stays bounded and guarded", FacilityEvolutionConstructorFacadeDebugScenarios.Verify, errors);
         RunScenario("Modular strategy evolution assets are generated and loadable", VerifyP1EvolutionAssets, errors);
         RunScenario("Room profile separates crowded and fine dining", VerifyDiningProfilesSeparateCrowdedAndFineDining, errors);
@@ -1433,6 +1435,12 @@ public static class FacilityEvolutionDebugScenarios
                 false,
                 "No blueprint research runtime in facility evolution scenario.");
         }
+
+        public BlueprintResearchWorkResult ApplyApprovedResearchWork(
+            CharacterActor researcher,
+            BuildableObject researchFacility,
+            float approvedWorkUnits) =>
+            ApplyResearchWork(researcher, researchFacility, approvedWorkUnits);
     }
 
     private sealed class NoopWorldInfoClickSelector : IWorldInfoClickSelector

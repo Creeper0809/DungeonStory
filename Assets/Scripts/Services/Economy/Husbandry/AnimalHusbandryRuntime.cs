@@ -29,6 +29,7 @@ public sealed class AnimalHusbandryRuntime :
     private readonly IWildlifeCarcassService carcassService;
     private readonly IGameClock clock;
     private readonly IFacilityCapabilityQuery facilities;
+    private readonly IBuildingFacilityStateChangePort facilityCandidateCache;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly HashSet<WildlifeInstanceId> synchronizedAnimalIds = new();
     private readonly List<WildlifeInstanceId> staleAnimalIds = new();
@@ -65,6 +66,7 @@ public sealed class AnimalHusbandryRuntime :
         IWildlifeCarcassService carcassService,
         IGameClock clock,
         IFacilityCapabilityQuery facilities,
+        IBuildingFacilityStateChangePort facilityCandidateCache,
         DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         this.captureRuntime = captureRuntime
@@ -88,6 +90,8 @@ public sealed class AnimalHusbandryRuntime :
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.facilities = facilities
             ?? throw new ArgumentNullException(nameof(facilities));
+        this.facilityCandidateCache = facilityCandidateCache
+            ?? throw new ArgumentNullException(nameof(facilityCandidateCache));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
     }
@@ -123,6 +127,8 @@ public sealed class AnimalHusbandryRuntime :
                 : Mathf.Max(
                     0.01f,
                     clock.Time - (nextTickAt - TickIntervalSeconds));
+            ulong workAvailabilityBefore =
+                CaptureWorkAvailabilitySignature();
             nextTickAt = clock.Time + TickIntervalSeconds;
             captureRuntime.CopyCapturedAnimalReferences(capturedAnimalBuffer);
             SynchronizeCapturedAnimals(capturedAnimalBuffer);
@@ -133,6 +139,39 @@ public sealed class AnimalHusbandryRuntime :
                 animals.Values,
                 GetPolicyInternal,
                 IsAdult);
+            if (workAvailabilityBefore
+                != CaptureWorkAvailabilitySignature())
+            {
+                facilityCandidateCache.MarkDynamicStateDirty();
+            }
+        }
+    }
+
+    private ulong CaptureWorkAvailabilitySignature()
+    {
+        unchecked
+        {
+            ulong sum = 1469598103934665603UL;
+            ulong xor = 1099511628211UL;
+            ulong count = 0UL;
+            foreach (HusbandryAnimalState state in animals.Values)
+            {
+                AnimalHusbandryWorkKind kind = ResolveWorkKind(state);
+                if (kind == AnimalHusbandryWorkKind.None)
+                {
+                    continue;
+                }
+
+                ulong token = ((ulong)StableHash(state.AnimalId.Value) << 32)
+                    | StableHash(state.PenId.Value);
+                token ^= (ulong)((int)kind + 1) * 0x9E3779B185EBCA87UL;
+                sum += token;
+                int rotation = (int)(token & 31UL) + 1;
+                xor ^= (token << rotation) | (token >> (64 - rotation));
+                count++;
+            }
+
+            return sum ^ xor ^ (count * 0xC2B2AE3D27D4EB4FUL);
         }
     }
 
@@ -177,14 +216,31 @@ public sealed class AnimalHusbandryRuntime :
 
     public bool SetPenPolicy(
         AnimalPenPolicyData policy,
-        out AnimalHusbandryFailure failure) =>
-        commandService.SetPenPolicy(policy, out failure);
+        out AnimalHusbandryFailure failure)
+    {
+        bool changed = commandService.SetPenPolicy(policy, out failure);
+        if (changed)
+        {
+            facilityCandidateCache.MarkDynamicStateDirty();
+        }
+        return changed;
+    }
 
     public bool DesignateSlaughter(
         WildlifeInstanceId animalId,
         bool designated,
-        out AnimalHusbandryFailure failure) =>
-        commandService.DesignateSlaughter(animalId, designated, out failure);
+        out AnimalHusbandryFailure failure)
+    {
+        bool changed = commandService.DesignateSlaughter(
+            animalId,
+            designated,
+            out failure);
+        if (changed)
+        {
+            facilityCandidateCache.MarkDynamicStateDirty();
+        }
+        return changed;
+    }
 
     public bool TryGetWork(
         BuildableObject pen,
@@ -274,6 +330,7 @@ public sealed class AnimalHusbandryRuntime :
                         true,
                         out _);
                     ResetPendingWork(state);
+                    facilityCandidateCache.MarkDynamicStateDirty();
                 }
                 return true;
 
@@ -312,6 +369,7 @@ public sealed class AnimalHusbandryRuntime :
                         ? AnimalHusbandryStatusCode.ProductCollected
                         : AnimalHusbandryStatusCode.ProductStorageUnavailable,
                     definition.ItemId);
+                facilityCandidateCache.MarkDynamicStateDirty();
                 if (completed)
                 {
                     ResetPendingWork(state);
@@ -343,6 +401,7 @@ public sealed class AnimalHusbandryRuntime :
                     completed
                         ? AnimalHusbandryStatusCode.ManureCollected
                         : AnimalHusbandryStatusCode.ManureStorageUnavailable);
+                facilityCandidateCache.MarkDynamicStateDirty();
                 if (completed)
                 {
                     ResetPendingWork(state);
@@ -369,6 +428,7 @@ public sealed class AnimalHusbandryRuntime :
                 captureRuntime.TryRelease(state.AnimalId.Value, out _);
                 wildlifeRuntime.TryRemoveArrival(state.AnimalId.Value);
                 RemoveAnimal(state.AnimalId);
+                facilityCandidateCache.MarkDynamicStateDirty();
                 completed = true;
                 return true;
 
@@ -550,6 +610,7 @@ public sealed class AnimalHusbandryRuntime :
         {
             SynchronizeCapturedAnimals();
         }
+        facilityCandidateCache.MarkDynamicStateDirty();
     }
 
     private void EnsureRestoreProjectionCurrent()

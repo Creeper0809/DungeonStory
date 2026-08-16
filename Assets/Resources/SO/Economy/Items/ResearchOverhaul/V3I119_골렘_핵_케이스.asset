@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 86
   features:
-  - rid: 7737211905658585556
-  - rid: 7737211905658585557
-  - rid: 7737211905660420638
+  - rid: 7737211981816660254
+  - rid: 7737211981816660255
+  - rid: 7737211981816660256
   references:
     version: 2
     RefIds:
-    - rid: 7737211905658585556
+    - rid: 7737211981816660254
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:construct-core-engineering
-    - rid: 7737211905658585557
+    - rid: 7737211981816660255
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1536
         sharedIntermediate: 0
-    - rid: 7737211905660420638
+    - rid: 7737211981816660256
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.6023905

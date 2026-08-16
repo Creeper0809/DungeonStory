@@ -97,7 +97,12 @@ public class AIAction
     public float RunningSeconds => HasStarted && gameClock != null
         ? Mathf.Max(0f, gameClock.Time - startedAt)
         : 0f;
-    public bool HasReservation => reservedActionSet != null && reservedDestination != null;
+    // Unity's overloaded null operator reports a destroyed destination as null.
+    // The reservation still exists until its owner releases it, so using that
+    // operator here orphaned both the facility reservation and the diagnostic
+    // live-reservation counter when a work target was destroyed mid-action.
+    public bool HasReservation => !ReferenceEquals(reservedActionSet, null)
+        && !ReferenceEquals(reservedDestination, null);
     public BuildableObject ReservedDestination => reservedDestination;
     public AIActionPlan Plan => plan;
     public BuildableObject destination => plan.Destination;
@@ -358,8 +363,13 @@ public class AIAction
         }
 
         Vector2Int pathDestination = ResolveNearestDestinationCell(
+            actor,
+            grid,
             actor.GetNowXY(),
             resolvedDestination);
+        int pathRequestId = actor.Brain.NotifyPathRequested(
+            repath: false,
+            branch: actionset.Branch);
         Queue<GridMoveStep> resolvedPath = actor.PathSearchBroker?.GetMovePathTo(
             grid,
             actor.GetNowXY(),
@@ -368,6 +378,10 @@ public class AIAction
             GridTraversalContext.ForCharacter(CharacterPersistentIdentity.Require(actor)));
         if (resolvedPath == null)
         {
+            actor.Brain.NotifyPathResult(
+                pathRequestId,
+                CharacterAiPathTraceState.Deferred,
+                0);
             failure = AIActionFailure.Create(
                 AIActionFailureKind.PathSearchDeferred,
                 "경로 탐색 예산 대기",
@@ -375,14 +389,47 @@ public class AIAction
             return false;
         }
 
-        return ResolvePathPlan(actor, resolvedDestination, resolvedPath, out failure)
+        bool pathResolved = ResolvePathPlan(
+            actor,
+            resolvedDestination,
+            resolvedPath,
+            out failure);
+        actor.Brain.NotifyPathResult(
+            pathRequestId,
+            pathResolved
+                ? CharacterAiPathTraceState.Found
+                : CharacterAiPathTraceState.NoPath,
+            resolvedPath.Count);
+        return pathResolved
             && TryReserveResolvedDestination(actor, resolvedDestination, out failure);
     }
 
-    private static Vector2Int ResolveNearestDestinationCell(
+    private Vector2Int ResolveNearestDestinationCell(
+        CharacterActor actor,
+        Grid grid,
         Vector2Int start,
         BuildableObject destination)
     {
+        if (actionset is AIWork && destination != null)
+        {
+            GridPathSearchResult workSearch = actor?.Brain?.GetPathSearch(actor);
+            if (WorkTargetSelectionRules.TryGetReachableWorkAccessPosition(
+                    destination,
+                    workSearch,
+                    out Vector2Int reachableWorkAccess))
+            {
+                return reachableWorkAccess;
+            }
+
+            if (destination.TryGetNearestWorkAccessGridPosition(
+                    grid,
+                    start,
+                    out Vector2Int workAccess))
+            {
+                return workAccess;
+            }
+        }
+
         IReadOnlyList<Vector2Int> positions = destination?.buildPoses;
         if (positions == null || positions.Count == 0)
         {
@@ -444,8 +491,13 @@ public class AIAction
         }
 
         Vector2Int pathDestination = ResolveNearestDestinationCell(
+            actor,
+            grid,
             actor.GetNowXY(),
             currentDestination);
+        int pathRequestId = actor.Brain.NotifyPathRequested(
+            repath: true,
+            branch: actionset.Branch);
         Queue<GridMoveStep> rebuiltPath = actor.PathSearchBroker?.GetMovePathTo(
                 grid,
                 actor.GetNowXY(),
@@ -454,6 +506,13 @@ public class AIAction
                 GridTraversalContext.ForCharacter(CharacterPersistentIdentity.Require(actor)));
         if (rebuiltPath == null)
         {
+            actor.Brain.NotifyPathResult(
+                pathRequestId,
+                CharacterAiPathTraceState.Deferred,
+                0);
+            // Deferred is scheduler backpressure, not a topology verdict.
+            // Preserve the committed target for the next bounded retry.
+            plan = AIActionPlan.AtDestination(currentDestination);
             failure = AIActionFailure.Create(
                 AIActionFailureKind.PathSearchDeferred,
                 "경로 탐색 예산 대기",
@@ -461,7 +520,18 @@ public class AIAction
             return false;
         }
 
-        return ResolvePathPlan(actor, currentDestination, rebuiltPath, out failure);
+        bool pathResolved = ResolvePathPlan(
+            actor,
+            currentDestination,
+            rebuiltPath,
+            out failure);
+        actor.Brain.NotifyPathResult(
+            pathRequestId,
+            pathResolved
+                ? CharacterAiPathTraceState.Found
+                : CharacterAiPathTraceState.NoPath,
+            rebuiltPath.Count);
+        return pathResolved;
     }
 
     public void RefreshReservation(CharacterActor actor)
@@ -472,6 +542,7 @@ public class AIAction
         }
 
         reservedActionSet.RefreshDestinationReservation(actor, reservedDestination);
+        actor?.Brain?.NotifyReservationRefreshed(this);
     }
 
     public void ReleaseReservation(CharacterActor actor)
@@ -481,9 +552,12 @@ public class AIAction
             return;
         }
 
-        reservedActionSet.ReleaseDestinationReservation(actor, reservedDestination);
+        AIActionSet releasingActionSet = reservedActionSet;
+        BuildableObject releasingDestination = reservedDestination;
+        releasingActionSet.ReleaseDestinationReservation(actor, releasingDestination);
         reservedActionSet = null;
         reservedDestination = null;
+        actor?.Brain?.NotifyReservationReleased(this);
     }
 
     private bool TryReserveResolvedDestination(
@@ -499,6 +573,7 @@ public class AIAction
 
         if (!actionset.TryReserveDestination(actor, destination, out failure))
         {
+            actor?.Brain?.NotifyReservationFailed(this);
             if (failure.Target == null)
             {
                 failure = new AIActionFailure(failure.Kind, failure.Reason, destination);
@@ -510,6 +585,7 @@ public class AIAction
 
         reservedActionSet = actionset;
         reservedDestination = destination;
+        actor?.Brain?.NotifyReservationAcquired(this);
         return true;
     }
 
@@ -537,7 +613,7 @@ public class AIAction
         return false;
     }
 
-    private static bool IsCharacterAtDestination(CharacterActor actor, BuildableObject destination)
+    private bool IsCharacterAtDestination(CharacterActor actor, BuildableObject destination)
     {
         if (actor == null
             || actor.Brain == null
@@ -547,6 +623,9 @@ public class AIAction
             return false;
         }
 
-        return destination.ContainsGridPosition(actor.GetNowXY());
+        Vector2Int actorPosition = actor.GetNowXY();
+        return actionset is AIWork
+            ? destination.IsWorkAccessGridPosition(grid, actorPosition)
+            : destination.ContainsGridPosition(actorPosition);
     }
 }

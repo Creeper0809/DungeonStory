@@ -79,13 +79,21 @@ public sealed class WaterFixtureUseRuntime : IWaterFixtureUseRuntime
                 return true;
             }
 
-            items.TryRequestFacilityDelivery(
-                StockCategory.Water,
-                1,
-                fixture.centerPos,
-                destinationId,
-                out _,
-                out _);
+            // A dry-capable fixture can complete this use without water. Do
+            // not earmark the settlement's loose drinking stock for an
+            // optional upgrade after the authoritative dry fallback has
+            // already been selected. Fixtures that cannot run dry still
+            // publish the physical delivery request required to unblock use.
+            if (!ability.allowsDryFallback)
+            {
+                items.TryRequestFacilityDelivery(
+                    StockCategory.Water,
+                    1,
+                    fixture.centerPos,
+                    destinationId,
+                    out _,
+                    out _);
+            }
         }
 
         if (ability.allowsDryFallback)

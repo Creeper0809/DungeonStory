@@ -502,6 +502,7 @@ public sealed class OffenseBattleCombatant
     public CombatBodyPart LastHitBodyPart { get; private set; } = CombatBodyPart.Torso;
     public float CoverBlockChance { get; private set; }
     public CombatFireMode FireMode { get; private set; } = CombatFireMode.Aimed;
+    public float ArcanePowerMultiplier { get; private set; } = 1f;
 
     public void SetCombatEquipment(
         CombatWeaponSnapshot weapon,
@@ -521,6 +522,21 @@ public sealed class OffenseBattleCombatant
     public void SetFireMode(CombatFireMode mode)
     {
         FireMode = mode;
+    }
+
+    /// <summary>
+    /// Captures the arcane projection owned by this detached battle
+    /// combatant. Enemy combatants default to a healthy neutral projection;
+    /// active-world allies replace it with their live performance snapshot.
+    /// </summary>
+    public void SetArcanePowerMultiplier(float multiplier)
+    {
+        if (float.IsNaN(multiplier) || float.IsInfinity(multiplier)
+            || multiplier < 0f)
+        {
+            throw new ArgumentOutOfRangeException(nameof(multiplier));
+        }
+        ArcanePowerMultiplier = multiplier;
     }
 
     public int GetCooldown(string abilityId)
@@ -959,6 +975,8 @@ public sealed class OffenseBattlePersistenceState
     public int roundNumber = 1;
     public int currentOrderIndex;
     public long lastProcessedCommandId;
+    public int preparedPlannedTurn;
+    public int finalizedPlannedTurn;
     public List<string> initiativeOrder = new List<string>();
     public List<string> log = new List<string>();
     public List<OffenseThrownEquipmentPersistenceState> thrownEquipment =
@@ -999,6 +1017,8 @@ public sealed class OffenseBattleCombatantPersistenceState
     public float bloodLoss;
     public CombatBodyPart lastHitBodyPart = CombatBodyPart.Torso;
     public CombatFireMode fireMode = CombatFireMode.Aimed;
+    public float arcanePowerMultiplier = 1f;
+    public bool hasArcanePowerMultiplier;
     public List<CharacterBodyPartHealthState> bodyParts = new List<CharacterBodyPartHealthState>();
     public List<OffenseBattleCooldownPersistenceState> cooldowns =
         new List<OffenseBattleCooldownPersistenceState>();

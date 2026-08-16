@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.Profiling;
 using UnityEngine;
 
@@ -26,7 +27,8 @@ internal readonly struct CharacterSafeDrinkPlan
         Vector2Int approachPosition,
         Queue<GridMoveStep> path,
         string targetId = "",
-        BuildableObject facility = null)
+        BuildableObject facility = null,
+        WorldItemReservedStackQuantity itemReservation = default)
     {
         Kind = kind;
         TargetPosition = targetPosition;
@@ -34,6 +36,7 @@ internal readonly struct CharacterSafeDrinkPlan
         Path = path;
         TargetId = targetId ?? string.Empty;
         Facility = facility;
+        ItemReservation = itemReservation;
     }
 
     public CharacterSafeDrinkTargetKind Kind { get; }
@@ -42,7 +45,10 @@ internal readonly struct CharacterSafeDrinkPlan
     public Queue<GridMoveStep> Path { get; }
     public string TargetId { get; }
     public BuildableObject Facility { get; }
-    public bool IsValid => Kind != CharacterSafeDrinkTargetKind.None;
+    public WorldItemReservedStackQuantity ItemReservation { get; }
+    public bool IsValid => Kind != CharacterSafeDrinkTargetKind.None
+        && (Kind != CharacterSafeDrinkTargetKind.ItemStack
+            || ItemReservation.IsValid);
 }
 
 /// <summary>
@@ -65,18 +71,25 @@ internal sealed class CharacterSafeDrinkPlanner
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IWorldItemStackRuntime itemStackRuntime;
     private readonly IWorldWaterQuery waterQuery;
+    private readonly IItemQuantityReservationService quantityReservations;
     private readonly IDoorAccessQuery doorAccessQuery;
+    private readonly IEnvironmentWorkPolicy environmentWorkPolicy;
     private readonly CharacterDeprivationDiagnostics diagnostics;
     private readonly Dictionary<Vector2Int, string> approachOwners = new(128);
     private readonly Dictionary<string, Vector2Int> approachByActor =
         new(128, StringComparer.Ordinal);
+    private readonly Dictionary<string, WorldItemReservedStackQuantity>
+        itemReservationByActor = new(128, StringComparer.Ordinal);
     private readonly List<WorldItemStockCandidate> stockCandidates = new(64);
+    private string lastStackSearchFailureDetail = string.Empty;
 
     public CharacterSafeDrinkPlanner(
         IGridSystemProvider gridSystemProvider,
         IWorldItemStackRuntime itemStackRuntime,
         IWorldWaterQuery waterQuery,
+        IItemQuantityReservationService quantityReservations,
         IDoorAccessQuery doorAccessQuery,
+        IEnvironmentWorkPolicy environmentWorkPolicy,
         CharacterDeprivationDiagnostics diagnostics)
     {
         this.gridSystemProvider = gridSystemProvider
@@ -85,43 +98,58 @@ internal sealed class CharacterSafeDrinkPlanner
             ?? throw new ArgumentNullException(nameof(itemStackRuntime));
         this.waterQuery = waterQuery
             ?? throw new ArgumentNullException(nameof(waterQuery));
+        this.quantityReservations = quantityReservations
+            ?? throw new ArgumentNullException(nameof(quantityReservations));
         this.doorAccessQuery = doorAccessQuery
             ?? throw new ArgumentNullException(nameof(doorAccessQuery));
+        this.environmentWorkPolicy = environmentWorkPolicy
+            ?? throw new ArgumentNullException(nameof(environmentWorkPolicy));
         this.diagnostics = diagnostics
             ?? throw new ArgumentNullException(nameof(diagnostics));
     }
 
     public bool HasReservation(string actorId) =>
-        approachByActor.ContainsKey(actorId?.Trim() ?? string.Empty);
+        approachByActor.ContainsKey(actorId?.Trim() ?? string.Empty)
+        || itemReservationByActor.ContainsKey(actorId?.Trim() ?? string.Empty);
 
     public void ReleaseForActor(string actorId)
     {
+        string normalizedActorId = actorId?.Trim() ?? string.Empty;
         if (approachByActor.TryGetValue(
-                actorId?.Trim() ?? string.Empty,
+                normalizedActorId,
                 out Vector2Int approach))
         {
-            Release(actorId, approach);
+            Release(normalizedActorId, approach);
+            return;
         }
+
+        ReleaseItemReservation(normalizedActorId);
     }
 
     public void Reset()
     {
         approachOwners.Clear();
         approachByActor.Clear();
+        itemReservationByActor.Clear();
         stockCandidates.Clear();
     }
     public bool TryCreatePlan(
         CharacterActor actor,
         string actorId,
-        out CharacterSafeDrinkPlan plan)
+        out CharacterSafeDrinkPlan plan,
+        out bool searchPending)
     {
         using ProfilerMarker.AutoScope profile =
             SafeReliefPlanProfilerMarker.Auto();
         plan = default;
+        searchPending = false;
         if (actor == null
             || string.IsNullOrWhiteSpace(actorId)
             || !gridSystemProvider.TryGetGrid(out Grid grid))
         {
+            diagnostics.SafeReliefPlanNoSource++;
+            diagnostics.LastSafeReliefPlanFailureDetail =
+                $"invalid-request actorNull={actor == null}; actorId='{actorId}'; grid={gridSystemProvider.TryGetGrid(out _)}";
             return false;
         }
 
@@ -134,21 +162,78 @@ internal sealed class CharacterSafeDrinkPlanner
                 out Queue<GridMoveStep> stackPath,
                 out bool stackSearchPending))
         {
+            WorldItemStackSnapshot stackSnapshot = null;
+            IReadOnlyList<WorldItemStackSnapshot> stacks =
+                itemStackRuntime.GetAllStacks();
+            for (int index = 0; index < stacks.Count; index++)
+            {
+                WorldItemStackSnapshot candidate = stacks[index];
+                if (candidate != null
+                    && string.Equals(
+                        candidate.StackId,
+                        stack.StackId,
+                        StringComparison.Ordinal))
+                {
+                    stackSnapshot = candidate;
+                    break;
+                }
+            }
+
+            string operationId =
+                $"safe-drink:{actorId}:{(actor.Brain?.RuntimeActionEpoch ?? 0L):D16}";
+            if (stackSnapshot == null
+                || !quantityReservations.TryReserve(
+                    operationId,
+                    actorId,
+                    ItemReservationPurpose.PersonalConsumption,
+                    $"safe-drink:{actorId}",
+                    new ItemQuantityReservationRequest(
+                        new ItemStackId(stack.StackId),
+                        1,
+                        stackSnapshot.ReservationSignature),
+                    out ItemQuantityLease lease,
+                    out _))
+            {
+                diagnostics.SafeReliefPlanReservationRejected++;
+                Release(actorId, stackApproach);
+                return false;
+            }
+
+            WorldItemReservedStackQuantity reservation = new(
+                stack.StackId,
+                stackSnapshot.ItemId,
+                1,
+                stack.Position,
+                WorldItemHaulDestinationKind.Warehouse,
+                stackSnapshot.DestinationId,
+                lease.leaseId,
+                operationId);
+            itemReservationByActor[actorId] = reservation;
             plan = new CharacterSafeDrinkPlan(
                 CharacterSafeDrinkTargetKind.ItemStack,
                 stack.Position,
                 stackApproach,
                 stackPath,
-                stack.StackId);
+                stack.StackId,
+                itemReservation: reservation);
             return true;
+        }
+
+        if (stackSearchPending)
+        {
+            diagnostics.SafeReliefPlanSearchPending++;
+            searchPending = true;
+            return false;
         }
 
         if (waterQuery.TryFindDrinkSource(
                 actor.GetNowXY(),
                 allowFoul: false,
                 out WorldWaterSourceSnapshot source)
-            && source.Quality == WorldWaterQuality.Clean
-            && TryFindReachableSafeReliefApproach(
+            && source.Quality == WorldWaterQuality.Clean)
+        {
+            CharacterSafeReliefApproachSearchStatus sourceStatus =
+                TryFindReachableSafeReliefApproach(
                 grid,
                 actor,
                 actorId,
@@ -157,19 +242,29 @@ internal sealed class CharacterSafeDrinkPlanner
                     source.TerrainType != GridCellTerrainType.DeepWater,
                 allowPathSearch: true,
                 out Vector2Int sourceApproach,
-                out Queue<GridMoveStep> sourcePath)
-                == CharacterSafeReliefApproachSearchStatus.Reachable)
-        {
-            ReserveSafeReliefApproach(actorId, sourceApproach);
-            plan = new CharacterSafeDrinkPlan(
-                CharacterSafeDrinkTargetKind.WorldSource,
-                source.Position,
-                sourceApproach,
-                sourcePath,
-                source.SourceId);
-            return true;
+                out Queue<GridMoveStep> sourcePath);
+            if (sourceStatus == CharacterSafeReliefApproachSearchStatus.Pending)
+            {
+                diagnostics.SafeReliefPlanSearchPending++;
+                searchPending = true;
+                return false;
+            }
+            if (sourceStatus == CharacterSafeReliefApproachSearchStatus.Reachable)
+            {
+                ReserveSafeReliefApproach(actorId, sourceApproach);
+                plan = new CharacterSafeDrinkPlan(
+                    CharacterSafeDrinkTargetKind.WorldSource,
+                    source.Position,
+                    sourceApproach,
+                    sourcePath,
+                    source.SourceId);
+                return true;
+            }
         }
 
+        diagnostics.SafeReliefPlanNoSource++;
+        diagnostics.LastSafeReliefPlanFailureDetail =
+            $"actor={actorId}; origin={actor.GetNowXY()}; stack={lastStackSearchFailureDetail}; worldSource=unavailable-or-unreachable";
         return false;
     }
 
@@ -189,9 +284,42 @@ internal sealed class CharacterSafeDrinkPlanner
         selectedApproach = default;
         selectedPath = null;
         searchPending = false;
+        lastStackSearchFailureDetail = string.Empty;
         itemStackRuntime.CopyAvailableStockCandidates(
             StockCategory.Water,
             stockCandidates);
+
+        int transitionalWaterStackCount = 0;
+        int transitionalWaterQuantity = 0;
+        WorldItemStackState lastTransitionalWaterState = default;
+        IReadOnlyList<WorldItemStackSnapshot> allStacks =
+            itemStackRuntime.GetAllStacks();
+        for (int index = 0; index < allStacks.Count; index++)
+        {
+            WorldItemStackSnapshot snapshot = allStacks[index];
+            if (snapshot == null
+                || snapshot.Forbidden
+                || snapshot.StockCategory != StockCategory.Water
+                || snapshot.Quantity <= 0
+                || snapshot.State is not (WorldItemStackState.Carried
+                    or WorldItemStackState.InTransit))
+            {
+                continue;
+            }
+
+            transitionalWaterStackCount++;
+            transitionalWaterQuantity += snapshot.Quantity;
+            lastTransitionalWaterState = snapshot.State;
+        }
+
+        if (stockCandidates.Count == 0
+            && transitionalWaterStackCount > 0)
+        {
+            lastStackSearchFailureDetail =
+                $"transitional-water stacks={transitionalWaterStackCount}; quantity={transitionalWaterQuantity}; state={lastTransitionalWaterState}";
+            searchPending = true;
+            return false;
+        }
 
         Vector2Int origin = actor.GetNowXY();
         bool hasSameFloorCandidate = false;
@@ -313,6 +441,17 @@ internal sealed class CharacterSafeDrinkPlanner
 
         if (!selected.IsValid)
         {
+            int validCandidateCount = 0;
+            for (int index = 0; index < stockCandidates.Count; index++)
+            {
+                if (stockCandidates[index].IsValid)
+                {
+                    validCandidateCount++;
+                }
+            }
+
+            lastStackSearchFailureDetail =
+                $"no-selection candidates={stockCandidates.Count}; valid={validCandidateCount}; sameFloor={hasSameFloorCandidate}; origin={origin}; lastApproach={lastApproachFailureDetail}";
             return false;
         }
 
@@ -402,6 +541,8 @@ internal sealed class CharacterSafeDrinkPlanner
             || string.IsNullOrWhiteSpace(actorId)
             || actor.PathSearchBroker == null)
         {
+            lastApproachFailureDetail =
+                $"invalid-context target={target}; grid={grid != null}; actor={actor != null}; actorId={actorId}; broker={actor?.PathSearchBroker != null}";
             return CharacterSafeReliefApproachSearchStatus.Invalid;
         }
 
@@ -421,6 +562,7 @@ internal sealed class CharacterSafeDrinkPlanner
 
         int previousDistance = -1;
         int previousIndex = -1;
+        bool temporarilyOwnedApproach = false;
         for (int rank = 0; rank < 3; rank++)
         {
             int nextIndex = -1;
@@ -439,15 +581,21 @@ internal sealed class CharacterSafeDrinkPlanner
                     _ => target + Vector2Int.right
                 };
                 if (!grid.IsValidGridPos(candidatePosition)
-                    || (candidatePosition != origin && !grid.IsWalkable(candidatePosition))
-                    || (approachOwners.TryGetValue(
-                            candidatePosition,
-                            out string owner)
-                        && !string.Equals(
-                            owner,
-                            actorId,
-                            StringComparison.Ordinal)))
+                    || (candidatePosition != origin
+                        && !grid.IsWalkable(candidatePosition)))
                 {
+                    continue;
+                }
+
+                if (approachOwners.TryGetValue(
+                        candidatePosition,
+                        out string owner)
+                    && !string.Equals(
+                        owner,
+                        actorId,
+                        StringComparison.Ordinal))
+                {
+                    temporarilyOwnedApproach = true;
                     continue;
                 }
 
@@ -503,8 +651,12 @@ internal sealed class CharacterSafeDrinkPlanner
 
         }
 
-        return CharacterSafeReliefApproachSearchStatus.Invalid;
+        return temporarilyOwnedApproach
+            ? CharacterSafeReliefApproachSearchStatus.Pending
+            : CharacterSafeReliefApproachSearchStatus.Invalid;
     }
+
+    private string lastApproachFailureDetail = string.Empty;
 
     private CharacterSafeReliefApproachSearchStatus TryPrepareSafeReliefApproach(
         Grid grid,
@@ -526,6 +678,8 @@ internal sealed class CharacterSafeDrinkPlanner
             || !grid.IsWalkable(destination)
             || actor.PathSearchBroker == null)
         {
+            lastApproachFailureDetail =
+                $"invalid-destination origin={origin}; destination={destination}; valid={grid.IsValidGridPos(destination)}; walkable={grid.IsValidGridPos(destination) && grid.IsWalkable(destination)}; broker={actor.PathSearchBroker != null}";
             return CharacterSafeReliefApproachSearchStatus.Invalid;
         }
 
@@ -536,11 +690,18 @@ internal sealed class CharacterSafeDrinkPlanner
                 destination,
                 out path))
         {
-            return CharacterSafeReliefApproachSearchStatus.Reachable;
+            return IsEnvironmentallySafeApproach(
+                    actor,
+                    destination,
+                    path)
+                ? CharacterSafeReliefApproachSearchStatus.Reachable
+                : CharacterSafeReliefApproachSearchStatus.Invalid;
         }
 
         if (!allowPathSearch)
         {
+            lastApproachFailureDetail =
+                $"direct-path-unavailable origin={origin}; destination={destination}; exactSearch=not-requested";
             return CharacterSafeReliefApproachSearchStatus.Invalid;
         }
 
@@ -559,14 +720,60 @@ internal sealed class CharacterSafeDrinkPlanner
         }
         if (requestStatus == GridPathRequestStatus.Pending)
         {
+            lastApproachFailureDetail =
+                $"exact-path-pending origin={origin}; destination={destination}";
             return CharacterSafeReliefApproachSearchStatus.Pending;
         }
 
-        return requestStatus == GridPathRequestStatus.Reachable
-            && path != null
-            && path.Count > 0
-                ? CharacterSafeReliefApproachSearchStatus.Reachable
-                : CharacterSafeReliefApproachSearchStatus.Invalid;
+        if (requestStatus != GridPathRequestStatus.Reachable
+            || path == null
+            || path.Count == 0)
+        {
+            lastApproachFailureDetail =
+                $"exact-path-{requestStatus} origin={origin}; destination={destination}; pathSteps={path?.Count ?? 0}";
+        }
+
+        if (requestStatus != GridPathRequestStatus.Reachable
+            || path == null
+            || path.Count == 0)
+        {
+            return CharacterSafeReliefApproachSearchStatus.Invalid;
+        }
+
+        return IsEnvironmentallySafeApproach(actor, destination, path)
+            ? CharacterSafeReliefApproachSearchStatus.Reachable
+            : CharacterSafeReliefApproachSearchStatus.Invalid;
+    }
+
+    private bool IsEnvironmentallySafeApproach(
+        CharacterActor actor,
+        Vector2Int destination,
+        Queue<GridMoveStep> path)
+    {
+        GridMoveStep[] route = path?.ToArray()
+            ?? Array.Empty<GridMoveStep>();
+        float expectedSeconds = Mathf.Max(
+            1f,
+            route.Length / Mathf.Max(0.1f, actor.GetMoveSpeed()));
+        WorkEnvironmentAssessment assessment =
+            environmentWorkPolicy.AssessStart(
+                actor,
+                destination,
+                route,
+                expectedSeconds,
+                EnvironmentalWorkKind.General,
+                forced: false);
+        if (assessment.CanStart)
+        {
+            return true;
+        }
+
+        lastApproachFailureDetail =
+            $"environment-rejected destination={destination};"
+            + $"routeSteps={route.Length};"
+            + $"projected={assessment.ProjectedExposure:0.###};"
+            + $"failure={assessment.Failure.Code}";
+        return false;
     }
 
     private bool TryBuildDirectHorizontalSafeReliefPath(
@@ -652,6 +859,7 @@ internal sealed class CharacterSafeDrinkPlanner
                 actorId,
                 out Vector2Int approach))
         {
+            ReleaseItemReservation(actorId?.Trim() ?? string.Empty);
             return;
         }
 
@@ -663,6 +871,43 @@ internal sealed class CharacterSafeDrinkPlanner
             && string.Equals(owner, actorId, StringComparison.Ordinal))
         {
             approachOwners.Remove(approach);
+        }
+
+        ReleaseItemReservation(actorId);
+    }
+
+    public void CompleteItemReservation(
+        string actorId,
+        string expectedLeaseId)
+    {
+        string normalizedActorId = actorId?.Trim() ?? string.Empty;
+        if (itemReservationByActor.TryGetValue(
+                normalizedActorId,
+                out WorldItemReservedStackQuantity reservation)
+            && string.Equals(
+                reservation.LeaseId,
+                expectedLeaseId?.Trim(),
+                StringComparison.Ordinal))
+        {
+            itemReservationByActor.Remove(normalizedActorId);
+        }
+    }
+
+    private void ReleaseItemReservation(string actorId)
+    {
+        if (!itemReservationByActor.TryGetValue(
+                actorId,
+                out WorldItemReservedStackQuantity reservation))
+        {
+            return;
+        }
+
+        itemReservationByActor.Remove(actorId);
+        if (!string.IsNullOrWhiteSpace(reservation.LeaseId))
+        {
+            quantityReservations.Release(
+                reservation.LeaseId,
+                ItemReservationReleaseReason.Cancelled);
         }
     }
 

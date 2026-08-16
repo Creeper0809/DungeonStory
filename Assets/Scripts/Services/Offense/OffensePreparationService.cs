@@ -90,8 +90,14 @@ public readonly struct OffenseSupplyPackingSnapshot
     public bool IsInTransit => Exists && !Consumed && Delivered < Required;
 }
 
-public sealed class DungeonOffensePreparationService : IOffensePreparationService
+public sealed class DungeonOffensePreparationService :
+    IOffensePreparationService,
+    IDungeonRestoreTransactionParticipant
 {
+    private const string ExpeditionSupplyOwnerDomain =
+        "offense.expedition-supply";
+    private const string RestoreParticipantId =
+        "219.world.offense-supply-packages";
     internal sealed class PackingRestoreCandidate
     {
         internal PackingRestoreCandidate(
@@ -106,19 +112,33 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
     private readonly IFacilityEvolutionWarehouseInventoryQuery inventoryQuery;
     private readonly IProductionItemGateway itemGateway;
     private readonly IExteriorZoneQuery exteriorZones;
+    private readonly IFacilityBufferDestinationClaimQuery destinationClaims;
+    private readonly IFacilityBufferDestinationClaimCommand destinationClaimCommands;
     private Dictionary<string, ExpeditionSupplyPackage> packages =
         new Dictionary<string, ExpeditionSupplyPackage>(StringComparer.Ordinal);
+    private PackingRestoreCandidate stagedRestore;
+    private Dictionary<string, ExpeditionSupplyPackage> previousPackages;
+    private bool restoreActive;
+    private bool restorePublished;
+
+    public string ParticipantId => RestoreParticipantId;
 
     public DungeonOffensePreparationService(
         IFacilityEvolutionWarehouseInventoryQuery inventoryQuery,
         IProductionItemGateway itemGateway,
-        IExteriorZoneQuery exteriorZones)
+        IExteriorZoneQuery exteriorZones,
+        IFacilityBufferDestinationClaimQuery destinationClaims,
+        IFacilityBufferDestinationClaimCommand destinationClaimCommands)
     {
         this.inventoryQuery = inventoryQuery ?? throw new ArgumentNullException(nameof(inventoryQuery));
         this.itemGateway = itemGateway
             ?? throw new ArgumentNullException(nameof(itemGateway));
         this.exteriorZones = exteriorZones
             ?? throw new ArgumentNullException(nameof(exteriorZones));
+        this.destinationClaims = destinationClaims
+            ?? throw new ArgumentNullException(nameof(destinationClaims));
+        this.destinationClaimCommands = destinationClaimCommands
+            ?? throw new ArgumentNullException(nameof(destinationClaimCommands));
     }
 
     public OffensePreparationSnapshot Evaluate()
@@ -201,6 +221,23 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
 
         Dictionary<string, int> costs = BuildItemCosts(loadout);
         string destinationId = GetDestinationId(normalizedPackageId);
+        ExpeditionSupplyPackage package = new ExpeditionSupplyPackage(
+            normalizedPackageId,
+            destinationId,
+            stagingPosition,
+            costs);
+        FacilityBufferDestinationClaim claim = CreateDestinationClaim(package);
+        if (!destinationClaimCommands.TryClaim(
+                claim,
+                out FacilityBufferDestinationClaimFailureCode claimFailure,
+                out string claimReason))
+        {
+            message = string.IsNullOrWhiteSpace(claimReason)
+                ? $"원정 집결지 소유권을 만들 수 없습니다. ({claimFailure})"
+                : $"원정 집결지 소유권 실패: {claimReason}";
+            return false;
+        }
+
         foreach (KeyValuePair<string, int> pair in costs)
         {
             if (!itemGateway.RequestDelivery(
@@ -213,6 +250,7 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
                 || requested < pair.Value)
             {
                 itemGateway.ReleaseDestination(destinationId, stagingPosition);
+                RevokeDestinationClaimOrThrow(claim);
                 message = string.IsNullOrWhiteSpace(failureReason)
                     ? "원정 보급품의 물리 운반 요청을 만들 수 없습니다."
                     : $"원정 보급 요청 실패: {failureReason}";
@@ -220,13 +258,7 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
             }
         }
 
-        packages.Add(
-            normalizedPackageId,
-            new ExpeditionSupplyPackage(
-                normalizedPackageId,
-                destinationId,
-                stagingPosition,
-                costs));
+        packages.Add(normalizedPackageId, package);
         itemGateway.PrioritizeDestination(destinationId);
         message = $"보급 운반 중: 0/{loadout.TotalCount}";
         return true;
@@ -248,6 +280,12 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
             return true;
         }
 
+        if (!HasExactDestinationClaim(package))
+        {
+            message = "원정 집결지 소유권이 유실되었습니다.";
+            return false;
+        }
+
         OffenseSupplyPackingSnapshot snapshot = GetPackingSnapshot(normalized);
         if (!snapshot.IsReady)
         {
@@ -266,6 +304,7 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
             return false;
         }
 
+        RevokeDestinationClaimOrThrow(CreateDestinationClaim(package));
         package.Consumed = true;
         message = $"보급 적재 완료: {snapshot.Required}";
         return true;
@@ -284,11 +323,14 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
             return;
         }
 
-        packages.Remove(normalized);
         if (!package.Consumed)
         {
-            itemGateway.RemoveDestination(package.DestinationId);
+            itemGateway.ReleaseDestination(
+                package.DestinationId,
+                package.StagingPosition);
+            RevokeDestinationClaimOrThrow(CreateDestinationClaim(package));
         }
+        packages.Remove(normalized);
     }
 
     public void ReturnSupplies(OffenseSupplyLoadout loadout, string packageId = "")
@@ -297,14 +339,22 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
         string normalized = NormalizePackageId(packageId);
         if (packages.TryGetValue(normalized, out ExpeditionSupplyPackage package))
         {
-            packages.Remove(normalized);
             if (!package.Consumed)
             {
                 itemGateway.ReleaseDestination(
                     package.DestinationId,
                     package.StagingPosition);
+                RevokeDestinationClaimOrThrow(CreateDestinationClaim(package));
+                packages.Remove(normalized);
                 return;
             }
+            packages.Remove(normalized);
+        }
+        else if (!string.IsNullOrWhiteSpace(normalized))
+        {
+            // An explicit package id is the exact return authority. Unknown or
+            // already-returned packages must not mint the caller-provided loadout.
+            return;
         }
 
         foreach (KeyValuePair<OffenseSupplyType, int> pair in loadout.Amounts)
@@ -394,6 +444,10 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
             if (string.IsNullOrWhiteSpace(source.destinationId)
                 || !string.Equals(source.destinationId,
                     source.destinationId.Trim(),
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    source.destinationId,
+                    GetDestinationId(packageId),
                     StringComparison.Ordinal))
             {
                 throw new InvalidOperationException(
@@ -418,8 +472,106 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
 
     internal void PublishPackingRestore(PackingRestoreCandidate candidate)
     {
-        packages = (candidate ?? throw new ArgumentNullException(nameof(candidate)))
+        Dictionary<string, ExpeditionSupplyPackage> restored =
+            (candidate ?? throw new ArgumentNullException(nameof(candidate)))
             .Packages;
+        if (restoreActive && (restorePublished || stagedRestore != null))
+        {
+            throw new InvalidOperationException(
+                "Offense supply package restore was staged more than once.");
+        }
+        ExpeditionSupplyPackage[] unconsumed = restored.Values
+            .Where(package => !package.Consumed)
+            .ToArray();
+        if (unconsumed.Length > 0
+            && (!TryResolveStagingPosition(out Vector2Int currentStaging)
+                || unconsumed.Any(package =>
+                    package.StagingPosition != currentStaging)))
+        {
+            throw new InvalidOperationException(
+                "Offense supply package staging authority does not match the current world.");
+        }
+
+        FacilityBufferDestinationClaim[] desiredClaims = unconsumed
+            .OrderBy(package => package.PackageId, StringComparer.Ordinal)
+            .Select(CreateDestinationClaim)
+            .ToArray();
+        if (!destinationClaimCommands.TryReplaceOwnedClaims(
+                ExpeditionSupplyOwnerDomain,
+                desiredClaims,
+                out FacilityBufferDestinationClaimFailureCode failureCode,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Offense supply destination restore failed: "
+                + $"{failureCode}: {failureReason}");
+        }
+        if (restoreActive)
+        {
+            stagedRestore = candidate;
+            return;
+        }
+
+        packages = restored;
+    }
+
+    public void BeginRestoreCandidate()
+    {
+        if (restoreActive)
+        {
+            throw new InvalidOperationException(
+                "Offense supply package restore is already active.");
+        }
+
+        previousPackages = packages;
+        stagedRestore = null;
+        restoreActive = true;
+        restorePublished = false;
+    }
+
+    public void PublishRestoreCandidate()
+    {
+        if (!restoreActive || restorePublished || stagedRestore == null)
+        {
+            throw new InvalidOperationException(
+                "Offense supply package restore is not ready to publish.");
+        }
+
+        packages = stagedRestore.Packages;
+        restorePublished = true;
+    }
+
+    public void RollbackPublishedRestoreCandidate()
+    {
+        if (!restoreActive)
+            return;
+
+        if (restorePublished && previousPackages != null)
+            packages = previousPackages;
+        ResetRestoreTransaction();
+    }
+
+    public void CompleteRestoreCandidate()
+    {
+        ResetRestoreTransaction();
+    }
+
+    public void DiscardRestoreCandidate()
+    {
+        if (restorePublished)
+        {
+            RollbackPublishedRestoreCandidate();
+            return;
+        }
+        ResetRestoreTransaction();
+    }
+
+    private void ResetRestoreTransaction()
+    {
+        stagedRestore = null;
+        previousPackages = null;
+        restoreActive = false;
+        restorePublished = false;
     }
 
     private bool TryResolveStagingPosition(out Vector2Int position)
@@ -527,6 +679,12 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
             return true;
         }
 
+        if (!HasExactDestinationClaim(package))
+        {
+            throw new InvalidOperationException(
+                $"Expedition supply package '{package.PackageId}' lost its exact staging claim.");
+        }
+
         bool complete = true;
         foreach (KeyValuePair<string, int> cost in package.Costs)
         {
@@ -554,6 +712,53 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
 
         itemGateway.PrioritizeDestination(package.DestinationId);
         return complete;
+    }
+
+    private static FacilityBufferDestinationClaim CreateDestinationClaim(
+        ExpeditionSupplyPackage package) =>
+        new FacilityBufferDestinationClaim(
+            package?.DestinationId ?? string.Empty,
+            package?.StagingPosition ?? default,
+            ExpeditionSupplyOwnerDomain,
+            package?.PackageId ?? string.Empty,
+            ownerFacilityId: null,
+            FacilityBufferDestinationAnchorKind.ReservedTarget);
+
+    private bool HasExactDestinationClaim(ExpeditionSupplyPackage package)
+    {
+        if (package == null
+            || !destinationClaims.TryGetClaim(
+                package.DestinationId,
+                package.StagingPosition,
+                out FacilityBufferDestinationClaim claim))
+        {
+            return false;
+        }
+        FacilityBufferDestinationClaim expected = CreateDestinationClaim(package);
+        return string.Equals(
+                claim.OwnerDomain,
+                expected.OwnerDomain,
+                StringComparison.Ordinal)
+            && string.Equals(
+                claim.OwnerOperationId,
+                expected.OwnerOperationId,
+                StringComparison.Ordinal)
+            && claim.OwnerFacilityId == null
+            && claim.AnchorKind
+                == FacilityBufferDestinationAnchorKind.ReservedTarget;
+    }
+
+    private void RevokeDestinationClaimOrThrow(
+        FacilityBufferDestinationClaim claim)
+    {
+        if (!destinationClaimCommands.TryRevoke(
+                claim,
+                out FacilityBufferDestinationClaimFailureCode failureCode,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                $"Offense supply destination revoke failed: {failureCode}: {failureReason}");
+        }
     }
 
     private WarehouseInventory[] GetInventories()

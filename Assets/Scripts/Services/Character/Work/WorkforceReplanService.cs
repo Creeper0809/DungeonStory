@@ -56,7 +56,12 @@ public sealed class DungeonWorkforceReplanService : IWorkforceReplanService
 
         foreach (CharacterActor actor in characterWorld.Characters)
         {
-            if (!CharacterWorkRoleUtility.TryGetWork(actor, out AbilityWork work))
+            if (actor == null
+                || actor.Brain == null
+                || !actor.CanRunAi
+                || !CharacterWorkRoleUtility.TryGetWork(
+                    actor,
+                    out AbilityWork work))
             {
                 continue;
             }

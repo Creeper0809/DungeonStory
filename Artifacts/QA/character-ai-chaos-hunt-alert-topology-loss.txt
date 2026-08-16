@@ -1,0 +1,19 @@
+INFO	SCENARIO	mode=HuntAlertTopologyLoss;revision=additional-chaos-v1-20260816
+INFO	START_PARTY	committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Roma:-8625846:character:staff:1:01:active=True,Arin:-8625914:character:staff:1:02:active=True; diagnostics=prepared-1:name=Roma;go=-8625818;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-8625886;id=character:staff:1:02;active=False || scan:name=Roma;go=-8625818;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-8625886;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-8625818;id=character:staff:1:01;active=True || retained:name=Arin;go=-8625886;id=character:staff:1:02;active=True
+PASS	CHAOS_SCOPE_READY	DungeonRuntimeSystems
+PASS	CHAOS_ACTOR_COUNT	activeHumanoids=3
+PASS	CHAOS_AUTHORITIES_READY	save=True;items=True;haulPlanning=True;deprivation=True;alert=True/True;body=True/True;medical=True
+PASS	CHAOS_SAVE_AUTHORITIES_SETTLED	environment=True;initialized=True
+PASS	HUNT_ALERT_PARTICIPANTS_READY	hunter=character:staff:1:01;target=wild:2@(1, 0)
+PASS	HUNT_ALERT_LAWFUL_PURSUIT_ROUTE	start=(28, 2);target=(1, 0);path=32
+PASS	HUNT_ALERT_PURSUIT_LIVE_THROUGH_BRAIN	designated=True;canStart=True;failure=;action=사냥;phase=사냥 위치로 이동;hunting=True;moveOwner=raw-path;reservation=character:staff:1:01;health=10->10
+PASS	HUNT_ALERT_RED_AND_TOPOLOGY_COLLISION	alert=Red;epoch=1;gate=True;hunting=True;moveOwner=raw-path;walls=3;openCardinalExits=0;traversalVersion=229->232
+PASS	HUNT_ALERT_TOPOLOGY_NOPATH_EXACT_TERMINAL	hunting=False;failures=0->1;terminals=1->2;failure=Committed action movement was blocked (TraversalChanged).;health=10->10;reservation=
+PASS	HUNT_ALERT_NO_HUNT_GUARD_OWNER_OVERLAP	overlap=False;action=사냥;assigned=
+PASS	HUNT_ALERT_POST_COLLISION_NEEDS_NEUTRAL	reset=True;gate=True
+PASS	HUNT_ALERT_GUARD_AFTER_HUNT_TERMINAL	guard=True;action=일하기;assigned=work:guard;hunting=False
+PASS	HUNT_ALERT_NO_OWNER_OVERLAP_THROUGH_HANDOFF	overlap=False;guard=True;hunting=False
+PASS	HUNT_ALERT_FINAL_OWNERSHIP_CONVERGED	alert=Green/Green;gate=False;hunting=False;reservation=
+PASS	HUNT_ALERT_RUNTIME_GATE_CONSERVED	invariants=0->0;paths=0;reservations=0
+INFO	CONSOLE	issues=0;
+RESULT=PASS; failures=0; 

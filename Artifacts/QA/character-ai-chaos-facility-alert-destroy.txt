@@ -1,0 +1,25 @@
+INFO	SCENARIO	mode=FacilityAlertDestroy;revision=additional-chaos-v1-20260816
+INFO	START_PARTY	committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Roma:-8453604:character:staff:1:01:active=True,Arin:-8453672:character:staff:1:02:active=True; diagnostics=prepared-1:name=Roma;go=-8453576;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-8453644;id=character:staff:1:02;active=False || scan:name=Roma;go=-8453576;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-8453644;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-8453576;id=character:staff:1:01;active=True || retained:name=Arin;go=-8453644;id=character:staff:1:02;active=True
+PASS	CHAOS_SCOPE_READY	DungeonRuntimeSystems
+PASS	CHAOS_ACTOR_COUNT	activeHumanoids=3
+PASS	CHAOS_AUTHORITIES_READY	save=True;items=True;haulPlanning=True;deprivation=True;alert=True/True;body=True/True;medical=True
+PASS	CHAOS_SAVE_AUTHORITIES_SETTLED	environment=True;initialized=True
+PASS	FACILITY_ALERT_ACTOR_READY	character:staff:1:01
+PASS	FACILITY_ALERT_FACILITY_CREATED	position=(21, 0);failure=selected=(21, 0);distance=2;path=2;candidates=3
+PASS	FACILITY_ALERT_FACILITY_PUBLISHED	facility=QA Chaos Rest alert-destroy;position=(21, 0)
+PASS	FACILITY_ALERT_DEPRIVATION_RESET	reset=True
+PASS	FACILITY_ALERT_EXACT_DESTINATION_PREFLIGHT	expected=QA Chaos Rest alert-destroy@(21, 0);actual=QA Chaos Rest alert-destroy@(21, 0);failure=;visitable=True
+PASS	FACILITY_ALERT_VISIT_LIVE_BEFORE_RED	action=휴식;phase=이동;actor=(19, 0);facility=(21, 0);reservations=1;users=0
+PASS	FACILITY_ALERT_VISIT_OWNER_STABLE_AT_COLLISION	action=휴식;phase=이동;reservations=1;duty=OnDuty
+PASS	FACILITY_ALERT_RED_COMMITTED_DURING_VISIT	alert=Red;epoch=1;gate=True;action=휴식;facilityDestroyed=True
+PASS	FACILITY_ALERT_SYNCHRONOUS_OCCUPANCY_RELEASE	users=0;reservations=0;waiting=0;worker=False
+PASS	FACILITY_ALERT_DESTROYED_TERMINAL_EXACTLY_ONCE	failures=0->1;terminals=1->2;failure=Facility destination was destroyed during the active visit action.
+PASS	FACILITY_ALERT_NO_GUARD_EXECUTION_OVERLAP	overlap=False;action=휴식;assigned=
+PASS	FACILITY_ALERT_NO_LATE_INTERACTION	completedUses=0->0;users=0;reservations=0
+PASS	FACILITY_ALERT_POST_COLLISION_NEEDS_NEUTRAL	reset=True;gate=True
+PASS	FACILITY_ALERT_GUARD_AFTER_VISIT_TERMINAL	guard=True;terminal=True;action=일하기;assigned=work:guard
+PASS	FACILITY_ALERT_NO_OWNER_OVERLAP_THROUGH_HANDOFF	overlap=False;action=일하기;assigned=work:guard
+PASS	FACILITY_ALERT_FINAL_OWNERSHIP_CONVERGED	alert=Green/Green;gate=False;external=False
+PASS	FACILITY_ALERT_RUNTIME_GATE_CONSERVED	invariants=0->0;paths=0;reservations=0;move=False
+INFO	CONSOLE	issues=0;
+RESULT=PASS; failures=0; 

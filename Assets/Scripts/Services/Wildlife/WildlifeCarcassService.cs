@@ -247,6 +247,19 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
 
         Vector2Int position = target.GridPosition;
         string itemId = target.Species.CarcassItemId;
+        // Wildlife content and physical item content are authored separately.
+        // A missing carcass definition must not throw from the autonomous
+        // combat/death path and abort unrelated character AI updates. Content
+        // audits report the missing definition; runtime death remains
+        // fail-soft and simply produces no physical carcass.
+        if (!itemStackRuntime.CatalogProvider.TryGetDefinition(itemId, out _))
+        {
+            Debug.LogWarning(
+                $"Wildlife carcass '{itemId}' is not present in the physical item catalog; "
+                + $"species '{target.SpeciesId}' will despawn without a carcass.");
+            return;
+        }
+
         if (!itemStackRuntime.SpawnItemAt(
                 itemId,
                 1,

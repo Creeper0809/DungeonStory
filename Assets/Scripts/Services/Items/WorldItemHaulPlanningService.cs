@@ -32,10 +32,12 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly WorldItemRepository repository;
     private readonly IItemQuantityReservationService reservationService;
+    private readonly IFacilityBufferDestinationClaimQuery destinationClaims;
     private CharacterActor cachedAvailabilityActor;
     private int cachedAvailabilityHaulVersion = -1;
     private int cachedAvailabilityWarehouseVersion = -1;
     private int cachedAvailabilityTraversalVersion = -1;
+    private long cachedAvailabilityDestinationClaimRevision = -1;
     private bool cachedAvailability;
 
     public WorldItemHaulPlanningService(
@@ -46,7 +48,8 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         IGridPathSearchBroker pathSearchBroker,
         ICharacterAiWorldRegistry worldRegistry,
         WorldItemRepository repository,
-        IItemQuantityReservationService reservationService)
+        IItemQuantityReservationService reservationService,
+        IFacilityBufferDestinationClaimQuery destinationClaims)
     {
         this.gridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
@@ -64,6 +67,8 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             ?? throw new ArgumentNullException(nameof(repository));
         this.reservationService = reservationService
             ?? throw new ArgumentNullException(nameof(reservationService));
+        this.destinationClaims = destinationClaims
+            ?? throw new ArgumentNullException(nameof(destinationClaims));
     }
 
     public bool HasAvailablePlan(CharacterActor actor)
@@ -76,10 +81,13 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         int haulVersion = repository.HaulJobVersion;
         int warehouseVersion = worldRegistry.WarehouseVersion;
         int traversalVersion = grid.TraversalVersion;
+        long destinationClaimRevision = destinationClaims.Revision;
         if (ReferenceEquals(cachedAvailabilityActor, actor)
             && cachedAvailabilityHaulVersion == haulVersion
             && cachedAvailabilityWarehouseVersion == warehouseVersion
-            && cachedAvailabilityTraversalVersion == traversalVersion)
+            && cachedAvailabilityTraversalVersion == traversalVersion
+            && cachedAvailabilityDestinationClaimRevision
+                == destinationClaimRevision)
         {
             return cachedAvailability;
         }
@@ -88,6 +96,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         cachedAvailabilityHaulVersion = haulVersion;
         cachedAvailabilityWarehouseVersion = warehouseVersion;
         cachedAvailabilityTraversalVersion = traversalVersion;
+        cachedAvailabilityDestinationClaimRevision = destinationClaimRevision;
         cachedAvailability = HasAvailablePlanCore(actor, grid);
         return cachedAvailability;
     }
@@ -186,7 +195,11 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             seed,
             out float plannedWeight,
             out int expectedDetour);
-        string ownerOperationId = $"haul:{actorId}";
+        // A haul operation is one plan, never one actor-wide reusable owner.
+        // Its durable identity is retained by the delivery intent across save.
+        string ownerOperationId = reserve
+            ? repository.AllocateHaulDeliveryOperationId(actorId)
+            : string.Empty;
         Dictionary<string, ItemQuantityLease> leasesByStack =
             new(StringComparer.Ordinal);
         if (reserve)
@@ -245,6 +258,22 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                 candidate.DropPosition));
         }
 
+        if (reserve && !repository.HaulDeliveryIntents.TryRegisterPlan(
+                ownerOperationId,
+                actorId,
+                seed.DestinationKind,
+                seed.DestinationId,
+                seed.DeliveryPosition,
+                seed.DropPosition,
+                out string intentFailure))
+        {
+            reservationService.ReleaseByOwner(
+                ownerOperationId,
+                ItemReservationReleaseReason.Cancelled);
+            failureReason = intentFailure;
+            return false;
+        }
+
         plan = new WorldItemHaulPlan(
             pickupLegs,
             new[]
@@ -277,13 +306,14 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         for (int index = 0; index < stacks.Count; index++)
         {
             WorldItemStackRecord stack = stacks[index];
-            if (!CanUseStack(stack, actorId)
-                || GetAcceptableQuantity(
+            int acceptable = GetAcceptableQuantity(
                     inventory,
                     stack.itemId,
                     reservationService.GetAvailableQuantity(
                         new ItemStackId(stack.stackId)),
-                    plannedWeight: 0f) <= 0
+                    plannedWeight: 0f);
+            if (!CanUseStack(stack, actorId)
+                || acceptable <= 0
                 || !TryResolvePickupStandCell(
                     grid,
                     stack.position,
@@ -295,10 +325,15 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             if (stack.hasDestinationPosition
                 && !string.IsNullOrWhiteSpace(stack.destinationId))
             {
-                if (TryResolveFacilityDeliveryCell(
-                    grid,
-                    stack.destinationPosition,
-                    out _))
+                if (WorldItemHaulDestinationAuthority.TryResolve(
+                        grid,
+                        worldRegistry,
+                        destinationClaims,
+                        WorldItemHaulDestinationKind.FacilityBuffer,
+                        stack.destinationId,
+                        stack.destinationPosition,
+                        out _,
+                        out _))
                 {
                     return true;
                 }
@@ -306,7 +341,11 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                 continue;
             }
 
-            if (HasAvailableWarehouseDestination(grid, stack))
+            if (HasAvailableWarehouseDestination(grid, stack)
+                && ApplySurvivalTransitReserve(
+                    stack,
+                    WorldItemHaulDestinationKind.Warehouse,
+                    acceptable) > 0)
             {
                 return true;
             }
@@ -548,18 +587,24 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         string destinationId = stack.destinationId ?? string.Empty;
         if (stack.hasDestinationPosition && !string.IsNullOrWhiteSpace(destinationId))
         {
-            if (!TryResolveFacilityDeliveryCell(
+            if (!WorldItemHaulDestinationAuthority.TryResolve(
                     grid,
+                    worldRegistry,
+                    destinationClaims,
+                    WorldItemHaulDestinationKind.FacilityBuffer,
+                    destinationId,
                     stack.destinationPosition,
-                    out deliveryCell))
+                    out WorldItemHaulDestinationAuthority.Resolution destination,
+                    out failureReason))
             {
-                failureReason =
-                    $"no delivery stand near {stack.destinationPosition}";
                 return false;
             }
 
-            dropCell = stack.destinationPosition;
-            destinationKind = WorldItemHaulDestinationKind.FacilityBuffer;
+            warehouse = destination.Warehouse;
+            deliveryCell = destination.DeliveryPosition;
+            dropCell = destination.DropPosition;
+            destinationKind = destination.Kind;
+            destinationId = destination.DestinationId;
         }
         else if (TryFindWarehouse(
                      grid,
@@ -570,11 +615,36 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         {
             dropCell = deliveryCell;
             destinationKind = WorldItemHaulDestinationKind.Warehouse;
-            destinationId = string.Empty;
+            destinationId = WarehouseStorageIdentity.RequireDestinationId(warehouse);
+            if (!WorldItemHaulDestinationAuthority.TryResolve(
+                    grid,
+                    worldRegistry,
+                    destinationClaims,
+                    destinationKind,
+                    destinationId,
+                    dropCell,
+                    out WorldItemHaulDestinationAuthority.Resolution destination,
+                    out failureReason))
+            {
+                return false;
+            }
+            warehouse = destination.Warehouse;
+            deliveryCell = destination.DeliveryPosition;
+            dropCell = destination.DropPosition;
         }
         else
         {
             failureReason = "no reachable destination";
+            return false;
+        }
+
+        acceptable = ApplySurvivalTransitReserve(
+            stack,
+            destinationKind,
+            acceptable);
+        if (acceptable <= 0)
+        {
+            failureReason = "survival transit reserve protected";
             return false;
         }
 
@@ -624,6 +694,73 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         int byWeight = Mathf.FloorToInt(
             remainingWeight / Mathf.Max(0.01f, definition.UnitWeight));
         return Mathf.Clamp(byWeight, 0, Mathf.Max(0, requestedQuantity));
+    }
+
+    /// <summary>
+    /// Ordinary warehouse hauling must not make the settlement's last immediately
+    /// consumable food or water disappear into transit. Quantity leases let us leave
+    /// one emergency serving per active character at the source while the warehouse
+    /// has not yet received an equivalent reserve. Once the first delivery lands,
+    /// the remaining source quantity becomes haulable normally.
+    /// </summary>
+    private int ApplySurvivalTransitReserve(
+        WorldItemStackRecord stack,
+        WorldItemHaulDestinationKind destinationKind,
+        int proposedQuantity)
+    {
+        if (stack == null
+            || proposedQuantity <= 0
+            || stack.state != WorldItemStackState.Loose
+            || destinationKind != WorldItemHaulDestinationKind.Warehouse
+            || !TryGetWarehouseStockCategory(stack.itemId, out StockCategory category)
+            || category is not StockCategory.Food and not StockCategory.Water)
+        {
+            return Mathf.Max(0, proposedQuantity);
+        }
+
+        int activeConsumers = 0;
+        IReadOnlyList<CharacterActor> characters = worldRegistry.Characters;
+        for (int index = 0; index < characters.Count; index++)
+        {
+            CharacterActor character = characters[index];
+            if (character != null
+                && character.CurrentLifecycleState == CharacterLifecycleState.Active)
+            {
+                activeConsumers++;
+            }
+        }
+
+        // A planning actor may be evaluated before its runtime registry publication.
+        // Protect at least the actor's own next serving in that short bootstrap window.
+        activeConsumers = Mathf.Max(1, activeConsumers);
+
+        int availableStored = CountAvailableStoredStock(category);
+        int sourceReserve = Mathf.Max(0, activeConsumers - availableStored);
+        int sourceAvailable = reservationService.GetAvailableQuantity(
+            new ItemStackId(stack.stackId));
+        int movable = Mathf.Max(0, sourceAvailable - sourceReserve);
+        return Mathf.Min(proposedQuantity, movable);
+    }
+
+    private int CountAvailableStoredStock(StockCategory category)
+    {
+        int total = 0;
+        foreach (WorldItemStackRecord candidate in repository.Records)
+        {
+            if (candidate == null
+                || candidate.forbidden
+                || candidate.state != WorldItemStackState.Stored
+                || !TryGetWarehouseStockCategory(candidate.itemId, out StockCategory storedCategory)
+                || storedCategory != category)
+            {
+                continue;
+            }
+
+            total += reservationService.GetAvailableQuantity(
+                new ItemStackId(candidate.stackId));
+        }
+
+        return Mathf.Max(0, total);
     }
 
     private bool TryFindWarehouse(
