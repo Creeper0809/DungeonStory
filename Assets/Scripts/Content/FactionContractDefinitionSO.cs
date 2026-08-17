@@ -7,10 +7,8 @@ public enum V20FactionContractKind { Supply, CrisisResponse, Strategic }
 public static class AuthoredFactionContractBalanceRules
 {
     public const int ReferenceAdultWorkers = 12;
-    // DungeonStory.Content cannot depend on the service assembly. The V23
-    // balance audit verifies this authored mirror against
-    // SettlementLaborBalanceRules.BaselineWuPerAdultDay.
-    public const float WorkUnitsPerAdultDay = 20f;
+    public const float WorkUnitsPerAdultDay =
+        SettlementLaborAuthority.EffectiveOutputWuPerAdultDay;
     public const float ProductiveLaborShare = 0.425f;
 
     public static float CalculateReferenceProduction(int deadlineDays) =>

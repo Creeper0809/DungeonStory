@@ -28,6 +28,12 @@ MonoBehaviour:
   maximumSiteStrength: 12
   elite: 0
   boss: 1
+  enemyHealthMultiplier: 2.53
+  enemyDamageMultiplier: 1
+  enemyAccuracyMultiplier: 1
+  additionalEnemyCount: 0
+  objectiveHealthMultiplier: 1
+  objectiveControlResistanceMultiplier: 0.5
   objective: 5
   objectiveRoundLimit: 6
   objectiveTargetId: enemy:neutral-smoke-sapper

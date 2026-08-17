@@ -43,7 +43,7 @@ MonoBehaviour:
     recommendedRank: 3
     minimumRiskRank: 2
   requiredResearchId: research:equipment:black-powder
-  requiredWork: 86
+  requiredWork: 194
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

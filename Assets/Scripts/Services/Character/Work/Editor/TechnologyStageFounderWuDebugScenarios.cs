@@ -91,7 +91,7 @@ public static class TechnologyStageFounderWuDebugScenarios
                 .Append(" | +").Append(F(checkpoint.AutomationWu))
                 .Append(" | ").Append(F(neutralOutput))
                 .Append(" | ").Append(F(neutralOutput
-                    / SettlementLaborBalanceRules.BaselineWuPerAdultDay))
+                    / SettlementLaborAuthority.EffectiveOutputWuPerAdultDay))
                 .AppendLine(" |");
         }
 
@@ -191,8 +191,8 @@ public static class TechnologyStageFounderWuDebugScenarios
         File.WriteAllText(ReportPath, report.ToString(), Encoding.UTF8);
         string result = $"PHASE157_TECH_FOUNDER_WU=PASS; stages={stages.Count}; "
             + $"regimes={founderDistributions.Count}; naturalSamples={natural.SampleCount}; "
-            + $"naturalDay1={Range(natural.AssignmentP10 * SettlementLaborBalanceRules.BaselineWuPerAdultDay, natural.AssignmentMedian * SettlementLaborBalanceRules.BaselineWuPerAdultDay, natural.AssignmentP90 * SettlementLaborBalanceRules.BaselineWuPerAdultDay)}; "
-            + $"endlessIndex={stages[^1].NeutralOutputEquivalentWu / SettlementLaborBalanceRules.BaselineWuPerAdultDay:0.000}";
+            + $"naturalDay1={Range(natural.AssignmentP10 * SettlementLaborAuthority.ActualWuPerAdultDay, natural.AssignmentMedian * SettlementLaborAuthority.ActualWuPerAdultDay, natural.AssignmentP90 * SettlementLaborAuthority.ActualWuPerAdultDay)}; "
+            + $"endlessIndex={stages[^1].NeutralOutputEquivalentWu / SettlementLaborAuthority.EffectiveOutputWuPerAdultDay:0.000}";
         Debug.Log(result);
         return result;
     }

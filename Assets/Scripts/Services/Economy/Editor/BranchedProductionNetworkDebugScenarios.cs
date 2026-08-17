@@ -7,6 +7,8 @@ using UnityEngine;
 
 public static class BranchedProductionNetworkDebugScenarios
 {
+    public static ProductionNetworkCoverageSnapshot LastCoverage { get; private set; }
+
     private static readonly HashSet<string> StrategicIntermediates = new(
         new[]
         {
@@ -694,6 +696,32 @@ public static class BranchedProductionNetworkDebugScenarios
             failures.Add("production V7 save round trip lost network state");
         }
 
+        int consumerOrphans = items.Count(item =>
+        {
+            int minimum = StrategicIntermediates.Contains(item.ItemId)
+                ? 3
+                : item.Kind == ResourceItemKind.Intermediate ? 2 : 1;
+            return consumers[item.ItemId].Count(id =>
+                !id.StartsWith("sink:", StringComparison.Ordinal)) < minimum;
+        });
+        int producerOrphans = items.Count(item =>
+            producers[item.ItemId].Count == 0
+            && acquisitionProducers[item.ItemId].Count == 0
+            && item.Kind != ResourceItemKind.Raw
+            && item.ItemId is not "offense:unappraised-loot"
+            && item.ItemId is not "resource:rune-dust"
+            && item.ItemId is not EquipmentProgressionItemIds.LineageSeal);
+        LastCoverage = new ProductionNetworkCoverageSnapshot(
+            byId.Count,
+            recipes.Count(value => value != null),
+            producers.Sum(value => value.Value.Count)
+                + acquisitionProducers.Sum(value => value.Value.Count),
+            consumers.Sum(value => value.Value.Count(id =>
+                !id.StartsWith("sink:", StringComparison.Ordinal))),
+            producerOrphans,
+            consumerOrphans,
+            memo.Count == 0 ? 0 : memo.Values.Max());
+
         return failures
             .Distinct(StringComparer.Ordinal)
             .OrderBy(value => value, StringComparer.Ordinal)
@@ -791,5 +819,34 @@ public static class BranchedProductionNetworkDebugScenarios
         memo[itemId] = depth;
         return depth;
     }
+}
+
+public readonly struct ProductionNetworkCoverageSnapshot
+{
+    public ProductionNetworkCoverageSnapshot(
+        int definitionCount,
+        int recipeCount,
+        int producerLinkCount,
+        int consumerLinkCount,
+        int producerOrphanCount,
+        int consumerOrphanCount,
+        int maximumRecipeDepth)
+    {
+        DefinitionCount = definitionCount;
+        RecipeCount = recipeCount;
+        ProducerLinkCount = producerLinkCount;
+        ConsumerLinkCount = consumerLinkCount;
+        ProducerOrphanCount = producerOrphanCount;
+        ConsumerOrphanCount = consumerOrphanCount;
+        MaximumRecipeDepth = maximumRecipeDepth;
+    }
+
+    public int DefinitionCount { get; }
+    public int RecipeCount { get; }
+    public int ProducerLinkCount { get; }
+    public int ConsumerLinkCount { get; }
+    public int ProducerOrphanCount { get; }
+    public int ConsumerOrphanCount { get; }
+    public int MaximumRecipeDepth { get; }
 }
 #endif

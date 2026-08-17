@@ -114,7 +114,8 @@ MonoBehaviour:
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
-        constructionWorkRequired: 86
+        constructionProjectScale: 0
+        constructionWorkRequired: 194
         repairWorkRequired: 17.2
         cleanWorkRequired: 8
         researchWorkRequired: 6

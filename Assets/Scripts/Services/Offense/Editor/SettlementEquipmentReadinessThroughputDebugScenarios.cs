@@ -11,8 +11,7 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
 {
     private const string ReportPath =
         "Artifacts/QA/v26-equipment-readiness-throughput.md";
-    private const float WorkerDayWork = 99f;
-    private const float GrowthProductionShare = 0.35f;
+    private const float GrowthProductionShare = 0.37f;
     private const int MaximumQualityAttempts = 10;
 
     private sealed class Checkpoint
@@ -33,26 +32,63 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
             CombatEquipmentDefinitionSO definition,
             float directWork,
             float embeddedWork,
-            float qualityProbability)
+            float qualityProbability,
+            float rejectedDismantleWork,
+            float rejectedRecoveryCredit)
         {
             Definition = definition;
             DirectWork = directWork;
             EmbeddedWork = embeddedWork;
             QualityProbability = qualityProbability;
+            RejectedDismantleWork = rejectedDismantleWork;
+            RejectedRecoveryCredit = rejectedRecoveryCredit;
         }
 
         public CombatEquipmentDefinitionSO Definition { get; }
         public float DirectWork { get; }
         public float EmbeddedWork { get; }
         public float QualityProbability { get; }
+        public float RejectedDismantleWork { get; }
+        public float RejectedRecoveryCredit { get; }
         public float ExpectedAttempts => QualityProbability > 0f
             ? 1f / QualityProbability
             : float.PositiveInfinity;
+        public float ExpectedRejectedAttempts => QualityProbability > 0f
+            ? (1f - QualityProbability) / QualityProbability
+            : float.PositiveInfinity;
+        public float ExpectedDirectWork => QualityProbability > 0f
+            ? DirectWork * ExpectedAttempts
+                + RejectedDismantleWork * ExpectedRejectedAttempts
+            : float.PositiveInfinity;
+        public float GrossExpectedEwu => QualityProbability > 0f
+            ? EmbeddedWork * ExpectedAttempts
+            : float.PositiveInfinity;
+        public float NetExpectedEwu => QualityProbability > 0f
+            ? GrossExpectedEwu
+                + RejectedDismantleWork * ExpectedRejectedAttempts
+                - RejectedRecoveryCredit * ExpectedRejectedAttempts
+            : float.PositiveInfinity;
         public bool HasEmbeddedWork =>
-            !float.IsNaN(EmbeddedWork) && !float.IsInfinity(EmbeddedWork);
+            !float.IsNaN(EmbeddedWork) && !float.IsInfinity(EmbeddedWork)
+            && !float.IsNaN(RejectedRecoveryCredit)
+            && !float.IsInfinity(RejectedRecoveryCredit);
         public float AcceptanceWithinLimit => QualityProbability <= 0f
             ? 0f
             : 1f - Mathf.Pow(1f - QualityProbability, MaximumQualityAttempts);
+    }
+
+    private readonly struct EquipmentCostSummary
+    {
+        public EquipmentCostSummary(float direct, float grossEwu, float netEwu)
+        {
+            Direct = direct;
+            GrossEwu = grossEwu;
+            NetEwu = netEwu;
+        }
+
+        public float Direct { get; }
+        public float GrossEwu { get; }
+        public float NetEwu { get; }
     }
 
     private readonly struct ReadinessCrossover
@@ -116,6 +152,7 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
             .OrderBy(value => value.RecipeId, StringComparer.Ordinal)
             .ToArray();
         ResourceMaterialEconomicProfileCatalog materialProfiles = new(content);
+        V23MaterialSalvageCalculator salvageCalculator = new(materialProfiles);
         V23BalanceWorkCalculator workCalculator = new(materialProfiles);
         EmbeddedWorkValueSnapshot embeddedWork =
             new V23EmbeddedWorkValueCalculator(
@@ -160,13 +197,13 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
         report.AppendLine();
         report.AppendLine(
             "The period capacity is a conservative floor: the natural founders' measured industry speed sum, "
-            + $"plus neutral additional workers, × {SettlementLaborBalanceRules.BaselineWuPerAdultDay:0.##} WU/day × the baseline 35% growth/production share. "
-            + "Quality-adjusted EWU is a gross upper envelope because rejected-output salvage "
-            + "is not credited here.");
+            + $"plus neutral additional workers, × {SettlementLaborAuthority.EffectiveOutputWuPerAdultDay:0.##} effective WU/day × the V27 37% equipment growth/production share. "
+            + "Quality-adjusted EWU reports both gross fresh-input pressure and production-exact "
+            + "net pressure after rejected-output dismantle work and recovered physical inputs.");
         report.AppendLine();
         report.AppendLine(
-            "| Day | Playtime | Window | Crafter rank | Party quality and direct / gross EWU | "
-            + "Party qty / growth share | Ready quality and direct / gross EWU | New-ready qty / growth share | "
+            "| Day | Playtime | Window | Crafter rank | Party quality and direct / gross / net EWU | "
+            + "Party qty / net growth share | Ready quality and direct / gross / net EWU | New-ready qty / net growth share | "
             + "Full reserve qty / growth share | Research WU / isolated days | Status |");
         report.AppendLine(
             "|---:|---:|---:|---|---:|---:|---:|---:|---:|---|");
@@ -178,6 +215,10 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
         int previousCombatReadyMinimum = 0;
         foreach (Checkpoint checkpoint in checkpoints)
         {
+            TechnologyWuCheckpoint laborCheckpoint = ResolveWindowLaborCheckpoint(
+                checkpoint.Day);
+            float actualWorkerDayWork = laborCheckpoint.ActualLaborWu;
+            float effectiveWorkerDayWork = laborCheckpoint.OutputEquivalentWu;
             CharacterProficiencyRank rank = ResolveSpecialistRank(checkpoint.Day);
             List<EquipmentCost> partyCosts = ResolveCosts(
                 checkpoint.Day,
@@ -189,6 +230,7 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
                 materialsById,
                 workCalculator,
                 embeddedWork,
+                salvageCalculator,
                 failures);
             List<EquipmentCost> readinessCosts = ResolveCosts(
                 checkpoint.Day,
@@ -200,11 +242,10 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
                 materialsById,
                 workCalculator,
                 embeddedWork,
+                salvageCalculator,
                 failures);
-            (float partyDirectPerSet, float partyEwuPerSet) =
-                SumQualityAdjusted(partyCosts);
-            (float readinessDirectPerSet, float readinessEwuPerSet) =
-                SumQualityAdjusted(readinessCosts);
+            EquipmentCostSummary partySummary = SumQualityAdjusted(partyCosts);
+            EquipmentCostSummary readinessSummary = SumQualityAdjusted(readinessCosts);
             int windowDays = checkpoint.Day == 1
                 ? 0
                 : checkpoint.Day - previousDay;
@@ -213,13 +254,13 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
             float growthCapacity = windowDays <= 0
                 ? 0f
                 : effectiveIndustryWorkers
-                    * WorkerDayWork
+                    * effectiveWorkerDayWork
                     * windowDays
                     * GrowthProductionShare;
             float specialistCapacity = windowDays <= 0
                 ? 0f
                 : founderBaseline.CraftSpeed
-                    * WorkerDayWork
+                    * actualWorkerDayWork
                     * windowDays;
             OffenseTargetDefinition target = RequireTarget(
                 campaign,
@@ -230,12 +271,12 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
                 checkpoint.CombatReadyMinimum - previousCombatReadyMinimum);
             int reserveQuantity = checkpoint.CombatReadyMinimum;
             float dailyGrowthCapacity = effectiveIndustryWorkers
-                * WorkerDayWork
+                * effectiveWorkerDayWork
                 * GrowthProductionShare;
-            float supplySetsPerDay = readinessEwuPerSet > 0f
-                && !float.IsNaN(readinessEwuPerSet)
-                && !float.IsInfinity(readinessEwuPerSet)
-                ? dailyGrowthCapacity / readinessEwuPerSet
+            float supplySetsPerDay = readinessSummary.NetEwu > 0f
+                && !float.IsNaN(readinessSummary.NetEwu)
+                && !float.IsInfinity(readinessSummary.NetEwu)
+                ? dailyGrowthCapacity / readinessSummary.NetEwu
                 : 0f;
             float demandPeoplePerDay = windowDays > 0
                 ? newReadyQuantity / (float)windowDays
@@ -251,7 +292,7 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
                 windowDays,
                 newReadyQuantity,
                 dailyGrowthCapacity,
-                readinessEwuPerSet,
+                readinessSummary.NetEwu,
                 supplySetsPerDay,
                 demandPeoplePerDay,
                 completionDays,
@@ -264,8 +305,8 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
                     checkpoint.Day,
                     "party",
                     partyQuantity,
-                    partyDirectPerSet,
-                    partyEwuPerSet,
+                    partySummary.Direct,
+                    partySummary.NetEwu,
                     specialistCapacity,
                     growthCapacity,
                     failures);
@@ -277,8 +318,8 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
                     checkpoint.Day,
                     "new-ready",
                     newReadyQuantity,
-                    readinessDirectPerSet,
-                    readinessEwuPerSet,
+                    readinessSummary.Direct,
+                    readinessSummary.NetEwu,
                     specialistCapacity,
                     growthCapacity,
                     failures);
@@ -300,7 +341,7 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
                 research,
                 failures,
                 checkpoint.Day,
-                founderBaseline.ResearchSpeed * WorkerDayWork);
+                founderBaseline.ResearchSpeed * effectiveWorkerDayWork);
             if (checkpoint.Day > 1 && researchDays > checkpoint.Day + 0.001f)
             {
                 failures.Add(
@@ -318,20 +359,20 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
                 .Append(" | ").Append(windowDays == 0 ? "start" : windowDays.ToString())
                 .Append(" | ").Append(rank)
                 .Append(" | ").Append(checkpoint.PartyQuality).Append(' ')
-                .Append(FormatPair(partyDirectPerSet, partyEwuPerSet))
+                .Append(FormatSummary(partySummary))
                 .Append(" | ").Append(FormatEnvelope(
                     partyQuantity,
-                    partyEwuPerSet,
+                    partySummary.NetEwu,
                     growthCapacity))
                 .Append(" | ").Append(checkpoint.ReadinessQuality).Append(' ')
-                .Append(FormatPair(readinessDirectPerSet, readinessEwuPerSet))
+                .Append(FormatSummary(readinessSummary))
                 .Append(" | ").Append(FormatEnvelope(
                     newReadyQuantity,
-                    readinessEwuPerSet,
+                    readinessSummary.NetEwu,
                     growthCapacity))
                 .Append(" | ").Append(FormatEnvelope(
                     reserveQuantity,
-                    readinessEwuPerSet,
+                    readinessSummary.NetEwu,
                     growthCapacity))
                 .Append(" | ").Append(researchWork.ToString("0.#", CultureInfo.InvariantCulture))
                 .Append(" / ").Append(researchDays.ToString("0.0", CultureInfo.InvariantCulture))
@@ -346,7 +387,7 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
         report.AppendLine("## Minimum readiness demand crossover");
         report.AppendLine();
         report.AppendLine(
-            "Supply is the minimum readiness sets producible per day from the same 35% growth-production allocation. "
+            "Supply is the minimum readiness sets producible per day from the same 37% equipment growth-production allocation. "
             + "Demand is the increase in the lower-bound combat-ready target divided by the checkpoint window. "
             + "Crossover day is the first absolute day on which that window's new minimum kits can be completed if production starts at the previous checkpoint.");
         report.AppendLine();
@@ -382,9 +423,9 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
         report.AppendLine("## Equipment detail");
         report.AppendLine();
         report.AppendLine(
-            "| Day | Purpose | Target quality | Equipment | Material and components | Direct WU | EWU | "
-            + "Single attempt | Within 10 | Research |");
-        report.AppendLine("|---:|---|---|---|---|---:|---:|---:|---:|---|");
+            "| Day | Purpose | Target quality | Equipment | Material and components | Direct WU | Item EWU | "
+            + "Single attempt | Expected attempts / rejects | Rejected recovery EWU / dismantle WU | Net expected EWU | Within 10 | Research |");
+        report.AppendLine("|---:|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|");
         foreach (Checkpoint checkpoint in checkpoints)
         {
             CharacterProficiencyRank rank = ResolveSpecialistRank(checkpoint.Day);
@@ -415,6 +456,27 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
                         out float itemEwu);
                     float direct = workCalculator.CalculateEquipment(definition, material.ItemId);
                     float probability = CalculateQualityProbability(rank, direct, quality);
+                    (float recoveryCredit, float dismantleWork) = ResolveRejectedRecovery(
+                        definition,
+                        material,
+                        direct,
+                        rank,
+                        embeddedWork,
+                        salvageCalculator,
+                        failures,
+                        checkpoint.Day,
+                        purpose);
+                    float expectedAttempts = probability > 0f
+                        ? 1f / probability
+                        : float.PositiveInfinity;
+                    float expectedRejects = probability > 0f
+                        ? (1f - probability) / probability
+                        : float.PositiveInfinity;
+                    float netExpectedEwu = hasItemEwu && probability > 0f
+                        ? itemEwu * expectedAttempts
+                            + dismantleWork * expectedRejects
+                            - recoveryCredit * expectedRejects
+                        : float.NaN;
                     string inputs = material.ItemId + " x " + definition.PrimaryMaterialAmount;
                     if (definition.RequiredComponentInputs.Count > 0)
                     {
@@ -434,7 +496,10 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
                             ? itemEwu.ToString("0.#", CultureInfo.InvariantCulture)
                             : "unresolved")
                         .Append(" | ").Append((probability * 100f).ToString("0.0", CultureInfo.InvariantCulture))
-                        .Append("% | ").Append(((1f - Mathf.Pow(
+                        .Append("% | ").Append(F(expectedAttempts)).Append(" / ").Append(F(expectedRejects))
+                        .Append(" | ").Append(F(recoveryCredit)).Append(" / ").Append(F(dismantleWork))
+                        .Append(" | ").Append(F(netExpectedEwu))
+                        .Append(" | ").Append(((1f - Mathf.Pow(
                             1f - probability,
                             MaximumQualityAttempts)) * 100f).ToString("0.0", CultureInfo.InvariantCulture))
                         .Append("% | ").Append(string.IsNullOrWhiteSpace(definition.RequiredResearchId)
@@ -457,8 +522,9 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
         report.AppendLine(
             "- Old equipment remains usable physical reserve stock. No upgrade, deletion, salvage or sale value is credited automatically.");
         report.AppendLine(
-            "- Gross quality EWU assumes a fresh full input on each rejected attempt. Runtime auto-dismantle can reduce net material cost, "
-            + "but direct craft time and player attention remain real; a later live production simulation must measure the net value.");
+            "- Gross quality EWU assumes a fresh full input on each rejected attempt. Net expected EWU uses the same production "
+            + "V23MaterialSalvageCalculator, rank-derived relevant skill, Floor recovery quantities and 25% rejected dismantle WU. "
+            + "Recovered inputs reduce only material acquisition pressure; craft and dismantle labor remain real.");
         report.AppendLine(
             "- Research days are an isolated one-researcher lower bound over the de-duplicated prerequisite closure of equipment, "
             + "primary materials and every cheapest-EWU upstream production recipe. "
@@ -516,6 +582,7 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
         IReadOnlyDictionary<string, CraftMaterialDefinitionSO> materialsById,
         IBalanceWorkCalculator workCalculator,
         EmbeddedWorkValueSnapshot embeddedWork,
+        IMaterialSalvageCalculator salvageCalculator,
         ICollection<string> failures)
     {
         List<EquipmentCost> costs = new();
@@ -555,11 +622,23 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
                 rank,
                 directWork,
                 quality);
+            (float recoveryCredit, float dismantleWork) = ResolveRejectedRecovery(
+                definition,
+                material,
+                directWork,
+                rank,
+                embeddedWork,
+                salvageCalculator,
+                failures,
+                day,
+                purpose);
             costs.Add(new EquipmentCost(
                 definition,
                 directWork,
                 equipmentEmbeddedWork,
-                qualityProbability));
+                qualityProbability,
+                dismantleWork,
+                recoveryCredit));
             if (qualityProbability <= 0f)
             {
                 failures.Add(
@@ -578,20 +657,66 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
         return costs;
     }
 
-    private static (float Direct, float Ewu) SumQualityAdjusted(
+    private static EquipmentCostSummary SumQualityAdjusted(
         IReadOnlyCollection<EquipmentCost> costs)
     {
-        float direct = costs.Sum(value =>
-            value.QualityProbability > 0f
-                ? value.DirectWork * value.ExpectedAttempts
-                : 0f);
-        float ewu = costs.Any(value => !value.HasEmbeddedWork)
+        float direct = costs.Sum(value => value.ExpectedDirectWork);
+        float grossEwu = costs.Any(value => !value.HasEmbeddedWork)
             ? float.NaN
-            : costs.Sum(value =>
-                value.QualityProbability > 0f
-                    ? value.EmbeddedWork * value.ExpectedAttempts
-                    : 0f);
-        return (direct, ewu);
+            : costs.Sum(value => value.GrossExpectedEwu);
+        float netEwu = costs.Any(value => !value.HasEmbeddedWork)
+            ? float.NaN
+            : costs.Sum(value => value.NetExpectedEwu);
+        return new EquipmentCostSummary(direct, grossEwu, netEwu);
+    }
+
+    private static (float RecoveryCredit, float DismantleWork) ResolveRejectedRecovery(
+        CombatEquipmentDefinitionSO definition,
+        CraftMaterialDefinitionSO material,
+        float directWork,
+        CharacterProficiencyRank rank,
+        EmbeddedWorkValueSnapshot embeddedWork,
+        IMaterialSalvageCalculator salvageCalculator,
+        ICollection<string> failures,
+        int day,
+        string purpose)
+    {
+        Dictionary<string, int> inputs = new Dictionary<string, int>(StringComparer.Ordinal);
+        if (material != null && !string.IsNullOrWhiteSpace(material.ItemId))
+        {
+            inputs[material.ItemId] = Mathf.Max(1, definition.PrimaryMaterialAmount);
+        }
+        foreach (ItemAmountDefinition component in definition.RequiredComponentInputs
+                     ?? Array.Empty<ItemAmountDefinition>())
+        {
+            if (component == null
+                || string.IsNullOrWhiteSpace(component.ItemId)
+                || component.Amount <= 0)
+            {
+                continue;
+            }
+            inputs.TryGetValue(component.ItemId, out int current);
+            inputs[component.ItemId] = current + component.Amount;
+        }
+
+        MaterialSalvageResult salvage = salvageCalculator.Calculate(
+            DismantleTargetKind.CombatEquipment,
+            directWork,
+            inputs.Select(pair => new ItemAmountDefinition(pair.Key, pair.Value)),
+            ProficiencyProgressionRules.ResolveQualityScore(rank));
+        float credit = 0f;
+        foreach (ItemAmountDefinition recovered in salvage.RecoveredMaterials)
+        {
+            if (!embeddedWork.TryGetItemWork(recovered.ItemId, out float itemEwu))
+            {
+                failures.Add(
+                    $"Day {day}: {purpose} rejected recovery item "
+                    + $"'{recovered.ItemId}' has no embedded work.");
+                return (float.NaN, salvage.RequiredWork);
+            }
+            credit += recovered.Amount * itemEwu;
+        }
+        return (credit, salvage.RequiredWork);
     }
 
     private static Dictionary<string, ProductionRecipeSO> ResolveCheapestRecipesByOutput(
@@ -691,7 +816,7 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
     {
         if (!string.IsNullOrWhiteSpace(researchId))
         {
-            researchIds.Add(researchId.Trim());
+            researchIds.Add(V21ResearchConsolidation.Normalize(researchId));
         }
     }
 
@@ -721,7 +846,7 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
             && ewu > growthCapacity + 0.01f)
         {
             failures.Add(
-                $"Day {day}: {label} gross equipment EWU {ewu:0.0} exceeds "
+                $"Day {day}: {label} net equipment EWU {ewu:0.0} exceeds "
                 + $"the lower growth/production capacity {growthCapacity:0.0}.");
         }
     }
@@ -761,13 +886,46 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
     private static CharacterProficiencyRank ResolveSpecialistRank(int day)
     {
         float experience = 30f
-            + Math.Max(0, day - 1)
-            * WorkerDayWork
+            + ResolveCumulativeActualWork(day)
             * ProficiencyProgressionRules.ExperiencePerApprovedWork;
         long milliExperience = checked((long)Math.Round(
             experience * ProficiencyProgressionRules.MilliPerExperience,
             MidpointRounding.AwayFromZero));
         return ProficiencyProgressionRules.ResolveRank(milliExperience);
+    }
+
+    private static TechnologyWuCheckpoint ResolveWindowLaborCheckpoint(int day)
+    {
+        IReadOnlyList<TechnologyWuCheckpoint> checkpoints =
+            SettlementLaborBalanceRules.TechnologyCheckpoints;
+        TechnologyWuCheckpoint result = checkpoints[0];
+        for (int index = 1; index < checkpoints.Count; index++)
+        {
+            if (day <= checkpoints[index].AbsoluteDay)
+                break;
+            result = checkpoints[index];
+        }
+        return result;
+    }
+
+    private static float ResolveCumulativeActualWork(int day)
+    {
+        int remainingDays = Math.Max(0, day - 1);
+        int previousDay = 1;
+        float total = 0f;
+        IReadOnlyList<TechnologyWuCheckpoint> checkpoints =
+            SettlementLaborBalanceRules.TechnologyCheckpoints;
+        for (int index = 0; index < checkpoints.Count && remainingDays > 0; index++)
+        {
+            int nextDay = index + 1 < checkpoints.Count
+                ? checkpoints[index + 1].AbsoluteDay
+                : day;
+            int segmentDays = Math.Min(remainingDays, Math.Max(0, nextDay - previousDay));
+            total += segmentDays * checkpoints[index].ActualLaborWu;
+            remainingDays -= segmentDays;
+            previousDay = nextDay;
+        }
+        return total;
     }
 
     private static (float Work, float Days) ResolveResearchBurden(
@@ -822,12 +980,8 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
         return target;
     }
 
-    private static string FormatPair(float direct, float ewu) =>
-        direct.ToString("0.#", CultureInfo.InvariantCulture)
-        + " / "
-        + (float.IsNaN(ewu) || float.IsInfinity(ewu)
-            ? "unresolved"
-            : ewu.ToString("0.#", CultureInfo.InvariantCulture));
+    private static string FormatSummary(EquipmentCostSummary summary) =>
+        F(summary.Direct) + " / " + F(summary.GrossEwu) + " / " + F(summary.NetEwu);
 
     private static string FormatEnvelope(
         int quantity,
@@ -846,37 +1000,23 @@ public static class SettlementEquipmentReadinessThroughputDebugScenarios
         return quantity + " / " + share.ToString("0.0", CultureInfo.InvariantCulture) + "%";
     }
 
-    private static Checkpoint[] CreateCheckpoints() => new[]
-    {
-        Point(1, 3, 2, "food_farm", CombatEquipmentQuality.Normal,
-            new[] { "weapon:spear", "armor:cloth-hood" }),
-        Point(30, 3, 2, "merchant_road", CombatEquipmentQuality.Normal,
-            new[] { "weapon:falchion", "armor:leather", "shield:wood" }),
-        Point(120, 5, 3, "old_armory", CombatEquipmentQuality.Normal,
-            new[] { "weapon:mace", "armor:mail-shirt", "shield:wood" }),
-        Point(240, 8, 5, "mana_ruins", CombatEquipmentQuality.Good,
-            new[] { "weapon:estoc", "armor:articulated-plate", "shield:iron" }),
-        Point(400, 15, 10, "rival_dungeon", CombatEquipmentQuality.Good,
-            new[] { "weapon:powered-striking-gauntlet", "armor:powered-harness", "shield:powered" }),
-        Point(960, 55, 25, "truth_core", CombatEquipmentQuality.Excellent,
-            new[] { "weapon:rune-blade", "armor:rune-ward-mail", "shield:rune" })
-    };
-
-    private static Checkpoint Point(
-        int day,
-        int workingMinimum,
-        int combatReadyMinimum,
-        string targetId,
-        CombatEquipmentQuality partyQuality,
-        string[] partyEquipmentIds) => new()
-    {
-        Day = day,
-        WorkingMinimum = workingMinimum,
-        CombatReadyMinimum = combatReadyMinimum,
-        TargetId = targetId,
-        PartyQuality = partyQuality,
-        PartyEquipmentIds = partyEquipmentIds ?? Array.Empty<string>(),
-        ReadinessQuality = CombatEquipmentQuality.Normal,
-        ReadinessEquipmentIds = new[] { "weapon:spear", "armor:cloth-hood" }
-    };
+    private static Checkpoint[] CreateCheckpoints() =>
+        CombatBalanceCheckpointAuthority.All.Select(value => new Checkpoint
+        {
+            Day = value.Day,
+            WorkingMinimum = value.WorkingMinimum,
+            CombatReadyMinimum = value.CombatReadyMinimum,
+            TargetId = value.TargetId,
+            PartyQuality = value.Quality,
+            PartyEquipmentIds = new[]
+                {
+                    value.WeaponId,
+                    value.ArmorId,
+                    value.ShieldId
+                }
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .ToArray(),
+            ReadinessQuality = CombatEquipmentQuality.Normal,
+            ReadinessEquipmentIds = new[] { "weapon:spear", "armor:cloth-hood" }
+        }).ToArray();
 }

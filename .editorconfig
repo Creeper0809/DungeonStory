@@ -1,0 +1,11 @@
+root = true
+
+[*.cs]
+dotnet_diagnostic.DSB001.severity = error
+dotnet_diagnostic.DSB002.severity = error
+dotnet_diagnostic.DSB003.severity = error
+dotnet_diagnostic.DSB004.severity = error
+dotnet_diagnostic.DSB005.severity = error
+dotnet_diagnostic.DSB006.severity = error
+dotnet_diagnostic.DSB007.severity = error
+dotnet_diagnostic.DSB008.severity = error

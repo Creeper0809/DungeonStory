@@ -19,7 +19,7 @@ public static class ResearchTreeDebugScenarios
         float work = closure.Sum(project => project.RequiredWork);
         int projectsWithoutInlineUnlocks = projects.Count(project => project.Unlocks.Count == 0);
         return $"V19_RESEARCH_GRAPH count={projects.Length};closure={closure.Count};"
-            + $"work={work:F0};days={work / SettlementLaborBalanceRules.BaselineWuPerAdultDay:F1};"
+            + $"work={work:F0};days={work / SettlementLaborAuthority.EffectiveOutputWuPerAdultDay:F1};"
             + $"projectsWithoutInlineUnlocks={projectsWithoutInlineUnlocks}";
     }
 
@@ -116,12 +116,11 @@ public static class ResearchTreeDebugScenarios
             && projectUnlockCount > 0
             && temporalStasis != null
             && temporalClosure.Count == 90
-            && Mathf.Approximately(temporalClosureWork, 95448f)
+            && Mathf.Approximately(temporalClosureWork, 43423f)
             && Mathf.Abs(
-                temporalClosureWork / SettlementLaborBalanceRules.BaselineWuPerAdultDay
-                - 964.1212f
-                    * SettlementLaborBalanceRules.HistoricalTheoreticalCapacityWuPerAdultDay
-                    / SettlementLaborBalanceRules.BaselineWuPerAdultDay) < 0.05f
+                temporalClosureWork
+                    / SettlementLaborAuthority.EffectiveOutputWuPerAdultDay
+                - 964.9556f) < 0.05f
             && archiveConfigured;
         if (!valid)
         {

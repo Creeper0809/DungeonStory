@@ -42,7 +42,7 @@ MonoBehaviour:
     recommendedRank: 1
     minimumRiskRank: 0
   requiredResearchId: research:environment:rune-insulation
-  requiredWork: 18
+  requiredWork: 41
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

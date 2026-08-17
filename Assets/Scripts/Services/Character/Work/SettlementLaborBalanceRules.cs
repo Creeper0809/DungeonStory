@@ -33,10 +33,9 @@ public static class SettlementLaborBalanceRules
     public const float BaselineRecreationSeconds = 10f;
     public const float BaselineActiveWorkSeconds = 100f;
     public const float WorkTransitionEfficiency = 0.99f;
-    public const float HistoricalTheoreticalCapacityWuPerAdultDay = 99f;
-    public const float BaselineWuPerAdultDay = 20f;
-    public const float BaselineLiveLaborUtilization =
-        BaselineWuPerAdultDay / HistoricalTheoreticalCapacityWuPerAdultDay;
+    public const float ActualLaborUtilization =
+        SettlementLaborAuthority.ActualWuPerAdultDay
+        / SettlementLaborAuthority.HistoricalTheoreticalCapacityWuPerAdultDay;
 
     private static readonly float[] GeneralContributionCurve =
         { 1f, 0.85f, 0.75f, 0.65f, 0.55f, 0.45f, 0.40f, 0.35f };
@@ -45,12 +44,12 @@ public static class SettlementLaborBalanceRules
 
     private static readonly TechnologyWuCheckpoint[] Checkpoints =
     {
-        new TechnologyWuCheckpoint(1, 3, 20f, 1f, 0f, 20f),
-        new TechnologyWuCheckpoint(30, 5, 20.8f, 1.05f, 0f, 21.84f),
-        new TechnologyWuCheckpoint(120, 11, 22f, 1.14f, 0f, 25.08f),
-        new TechnologyWuCheckpoint(240, 20, 23.4f, 1.26f, 0.4f, 29.884f),
-        new TechnologyWuCheckpoint(400, 30, 24.6f, 1.38f, 0f, 33.948f),
-        new TechnologyWuCheckpoint(960, 64, 25.83f, 1.50f, 1.255f, 40f)
+        new TechnologyWuCheckpoint(1, 3, 50f, 0.90f, 0f, 45f),
+        new TechnologyWuCheckpoint(30, 5, 54.5f, 0.90f, 0f, 49.05f),
+        new TechnologyWuCheckpoint(120, 11, 62.5f, 0.90f, 0f, 56.25f),
+        new TechnologyWuCheckpoint(240, 20, 74.5f, 0.90f, 0f, 67.05f),
+        new TechnologyWuCheckpoint(400, 30, 85f, 0.90f, 0f, 76.5f),
+        new TechnologyWuCheckpoint(960, 64, 100f, 0.90f, 0f, 90f)
     };
 
     public static IReadOnlyList<TechnologyWuCheckpoint> TechnologyCheckpoints =>
@@ -68,7 +67,8 @@ public static class SettlementLaborBalanceRules
             WorkTransitionEfficiency);
         if (Math.Abs(result.TotalSeconds - SecondsPerDay) > 0.0001f
             || Math.Abs(
-                result.NetLaborWu - HistoricalTheoreticalCapacityWuPerAdultDay)
+                result.NetLaborWu
+                - SettlementLaborAuthority.HistoricalTheoreticalCapacityWuPerAdultDay)
                 > 0.0001f)
         {
             throw new InvalidOperationException(
@@ -90,12 +90,11 @@ public static class SettlementLaborBalanceRules
             BaselineRecreationSeconds - savings.RecreationSeconds,
             activeWorkSeconds,
             WorkTransitionEfficiency);
-        float activeWorkPerformance = stage == SettlementTechnologyStage.Endless
-            ? 1.05f
-            : 1f;
-        float actualLaborWu = budget.NetLaborWu
-            * BaselineLiveLaborUtilization
-            * activeWorkPerformance;
+        TechnologyWuCheckpoint checkpoint = Checkpoints[(int)stage];
+        float unmodifiedActualLaborWu = budget.NetLaborWu * ActualLaborUtilization;
+        float activeWorkPerformance = checkpoint.ActualLaborWu
+            / unmodifiedActualLaborWu;
+        float actualLaborWu = unmodifiedActualLaborWu * activeWorkPerformance;
         if (Math.Abs(budget.TotalSeconds - SecondsPerDay) > 0.0001f)
         {
             throw new InvalidOperationException(
@@ -531,7 +530,8 @@ public readonly struct TechnologyWuCheckpoint
     public float ProcessConversion { get; }
     public float AutomationWu { get; }
     public float OutputEquivalentWu { get; }
-    public float Index => OutputEquivalentWu / SettlementLaborBalanceRules.BaselineWuPerAdultDay;
+    public float Index => OutputEquivalentWu
+        / SettlementLaborAuthority.EffectiveOutputWuPerAdultDay;
 }
 
 public readonly struct SettlementLaborSnapshot

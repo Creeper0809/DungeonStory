@@ -28,8 +28,14 @@ MonoBehaviour:
   maximumSiteStrength: 4
   elite: 0
   boss: 0
+  enemyHealthMultiplier: 0.122
+  enemyDamageMultiplier: 1
+  enemyAccuracyMultiplier: 1
+  additionalEnemyCount: 0
+  objectiveHealthMultiplier: 0.8
+  objectiveControlResistanceMultiplier: 1
   objective: 3
-  objectiveRoundLimit: 7
+  objectiveRoundLimit: 9
   objectiveTargetId: target:war-device
   battlefieldModifierIds:
   - battlefield:flooded-floor

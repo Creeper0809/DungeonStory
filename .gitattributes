@@ -22,6 +22,17 @@
 *.raytrace              text linguist-language=hlsl
 *.shader                text
 
+# V27 balance ledger artifacts use format-specific deterministic line endings.
+Artifacts/QA/v27-balance-before-after.csv text eol=crlf
+Artifacts/QA/v27-balance-economy-256-seed.txt text eol=crlf
+Artifacts/QA/v27-balance-vertical-slice-full-loop-playmode.txt text eol=crlf
+Artifacts/QA/combat-balance-final.txt text eol=crlf
+Artifacts/QA/v27-balance-recalibration-audit.txt text eol=lf
+Artifacts/QA/v27-balance-anomaly-graph.json text eol=lf
+Artifacts/QA/v27-balance-artifact-manifest.json text eol=lf
+docs/generated/V27_Balance_Before_After.md text eol=lf
+docs/game-design/v27-balance-critical-approvals.json text eol=lf
+
 # Unity JSON files
 *.asmdef                unity-json
 *.asmref                unity-json

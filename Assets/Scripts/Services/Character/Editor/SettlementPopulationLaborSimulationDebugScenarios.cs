@@ -19,7 +19,8 @@ public static class SettlementPopulationLaborSimulationDebugScenarios
 {
     private const int SeedCount = 256;
     private const int LastDay = 960;
-    private const float NeutralDailyApprovedWork = 99f;
+    private const float NeutralDailyApprovedWork =
+        SettlementLaborAuthority.HistoricalTheoreticalCapacityWuPerAdultDay;
     private const int FatalConditionProgressionYears = 4;
     private static readonly int[] CheckpointDays = { 1, 30, 120, 240, 400, 960 };
     private static readonly string[] StarterSpecies = { "Slime", "Orc", "Vampire" };
@@ -399,7 +400,7 @@ public static class SettlementPopulationLaborSimulationDebugScenarios
         text.AppendLine("- this is a policy envelope, not a prediction of player choices");
         text.AppendLine("- same-lineage adult recruits isolate maturity and mortality; mixed-culture candidate scarcity is a later PlayMode pressure probe");
         text.AppendLine("- safe temperature, health 100, nutrition 100; no fertility treatment or emergency extraction");
-        text.AppendLine($"- elder labor availability is 25%; continuous primary work uses the measured {SettlementLaborBalanceRules.BaselineWuPerAdultDay:0.##} WU/day baseline and the live 0.08 XP/WU rule");
+        text.AppendLine($"- V26 historical envelope only: elder labor availability is 25%; continuous primary work uses {NeutralDailyApprovedWork:0.##} theoretical WU/day and the live 0.08 XP/WU rule; current V27 pacing uses explicit 50 actual / 45 effective authority");
         text.AppendLine();
         text.AppendLine("## Authored species authority");
         text.AppendLine();

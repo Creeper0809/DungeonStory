@@ -28,6 +28,12 @@ MonoBehaviour:
   maximumSiteStrength: 10
   elite: 1
   boss: 0
+  enemyHealthMultiplier: 2.53
+  enemyDamageMultiplier: 4
+  enemyAccuracyMultiplier: 1
+  additionalEnemyCount: 0
+  objectiveHealthMultiplier: 1
+  objectiveControlResistanceMultiplier: 1
   objective: 0
   objectiveRoundLimit: 0
   objectiveTargetId: 

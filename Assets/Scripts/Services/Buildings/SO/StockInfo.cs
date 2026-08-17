@@ -411,7 +411,7 @@ public static class StockSupplyService
     {
         int safeAmount = Mathf.Max(0, amount);
         float costMultiplier = stockCostMultiplier(category);
-        int cost = Mathf.RoundToInt(
+        int cost = Mathf.CeilToInt(
             safeAmount * Mathf.Max(0f, unitCost) * Mathf.Max(0.05f, costMultiplier));
         return new StockDeliveryOffer(category, itemId, safeAmount, cost, sourceLabel);
     }

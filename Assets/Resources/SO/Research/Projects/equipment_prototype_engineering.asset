@@ -28,7 +28,8 @@ MonoBehaviour:
     \uC548\uC5D0\uC11C \uBC18\uBCF5 \uAC00\uB2A5\uD55C \uC2DC\uC81C\uD488 \uACF5\uC815\uC73C\uB85C
     \uB9CC\uB4E0\uB2E4."
   field: 15
-  requiredWork: 720
+  requiredWork: 328
+  maximumResearchers: 1
   prerequisites:
   - {fileID: 11400000, guid: 8977def00211a7544a442835d7cfaf58, type: 2}
   prerequisiteLinks:

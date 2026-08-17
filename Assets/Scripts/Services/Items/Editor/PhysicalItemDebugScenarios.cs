@@ -219,11 +219,30 @@ public static class PhysicalItemDebugScenarios
         GameObject carrierObject = new GameObject("PhysicalItemDeliveryCarrier");
         WorldItemStackRuntime runtime = null;
         TestWarehouseFacility warehouse = null;
+        FacilityBufferDestinationClaimRegistry destinationClaims = null;
+        FacilityBufferDestinationClaim destinationClaim = null;
         try
         {
+            Grid deliveryGrid = new Grid(8, 4);
+            for (int y = 0; y < deliveryGrid.height; y++)
+            {
+                for (int x = 0; x < deliveryGrid.width; x++)
+                {
+                    deliveryGrid.SetAreaType(
+                        new Vector2Int(x, y),
+                        GridCellAreaType.ExteriorPath);
+                }
+            }
+
             warehouse = warehouseObject.AddComponent<TestWarehouseFacility>();
             CharacterAiEditorTestDependencies.WorldRegistry.RegisterWarehouse(warehouse);
-            runtime = CreateRuntime(out WorldItemRepository repository, out _);
+            runtime = CreateRuntime(
+                out WorldItemRepository repository,
+                out _,
+                out _,
+                out _,
+                out destinationClaims,
+                new TestGridProvider(deliveryGrid));
             warehouse.BindPhysicalStock(new PhysicalStockQuery(repository, runtime.CatalogProvider));
             runtime.Start();
             Require(runtime.SpawnStockInWarehouse(
@@ -235,6 +254,18 @@ public static class PhysicalItemDebugScenarios
                 "warehouse physical stock seed failed");
 
             string destinationId = WorldItemStackRuntime.FacilityInputDestinationPrefix + "delivery-test";
+            destinationClaim = new FacilityBufferDestinationClaim(
+                destinationId,
+                new Vector2Int(4, 1),
+                "qa.physical-item",
+                "qa.physical-item:facility-delivery-buffer",
+                ownerFacilityId: null,
+                anchorKind: FacilityBufferDestinationAnchorKind.ReservedTarget);
+            Require(destinationClaims.TryClaim(
+                    destinationClaim,
+                    out FacilityBufferDestinationClaimFailureCode claimFailure,
+                    out string claimReason),
+                $"facility delivery destination claim failed: {claimFailure}; {claimReason}");
             bool requested = runtime.TryRequestFacilityDelivery(
                 StockCategory.General,
                 3,
@@ -295,6 +326,13 @@ public static class PhysicalItemDebugScenarios
         }
         finally
         {
+            if (destinationClaim != null && destinationClaims != null)
+            {
+                destinationClaims.TryRevoke(
+                    destinationClaim,
+                    out _,
+                    out _);
+            }
             runtime?.Dispose();
             CharacterAiEditorTestDependencies.WorldRegistry.UnregisterWarehouse(warehouse);
             UnityEngine.Object.DestroyImmediate(carrierObject);
@@ -2061,11 +2099,27 @@ public static class PhysicalItemDebugScenarios
         out ItemQuantityReservationService quantityReservations,
         out IReservedItemTransferService reservedTransfer)
     {
+        return CreateRuntime(
+            out repository,
+            out equipmentRuntime,
+            out quantityReservations,
+            out reservedTransfer,
+            out _);
+    }
+
+    private static WorldItemStackRuntime CreateRuntime(
+        out WorldItemRepository repository,
+        out CombatEquipmentRuntime equipmentRuntime,
+        out ItemQuantityReservationService quantityReservations,
+        out IReservedItemTransferService reservedTransfer,
+        out FacilityBufferDestinationClaimRegistry destinationClaims,
+        IGridSystemProvider gridProvider = null)
+    {
         IGameContentCatalog gameContent = new ResourceGameContentCatalog(
             new UnityGameContentRootLoader());
         ICombatEquipmentCatalog combatCatalog =
             new ResourceCombatEquipmentCatalog(gameContent);
-        IGridSystemProvider gridProvider = new NoGridProvider();
+        gridProvider ??= new NoGridProvider();
         IDungeonItemCatalogProvider itemCatalog = new TestCatalogProvider();
         IItemHaulingSettingsProvider haulingSettings =
             new TestHaulingSettings(1.5f);
@@ -2077,7 +2131,7 @@ public static class PhysicalItemDebugScenarios
         repository = new WorldItemRepository(
             new GuidPersistentIdGenerator(),
             new DungeonRuntimeAggregateRootStore());
-        FacilityBufferDestinationClaimRegistry destinationClaims = new();
+        destinationClaims = new FacilityBufferDestinationClaimRegistry();
         quantityReservations =
             new ItemQuantityReservationService(
                 repository,
@@ -3087,6 +3141,31 @@ public static class PhysicalItemDebugScenarios
         {
             grid = null;
             return false;
+        }
+    }
+
+    private sealed class TestGridProvider : IGridSystemProvider
+    {
+        private readonly Grid grid;
+
+        public TestGridProvider(Grid grid)
+        {
+            this.grid = grid ?? throw new ArgumentNullException(nameof(grid));
+        }
+
+        public GridSystemManager Manager => null;
+        public Grid Grid => grid;
+
+        public bool TryGetManager(out GridSystemManager manager)
+        {
+            manager = null;
+            return false;
+        }
+
+        public bool TryGetGrid(out Grid result)
+        {
+            result = grid;
+            return true;
         }
     }
 

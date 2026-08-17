@@ -1,0 +1,7 @@
+RESULT=PASS; rows=84323; critical=0; collapsed=9; approved=3; scc=313; minimumMarginMilliEwu=-23643097; integrityFailures=0
+
+APPROVED recipe:resource:clean-water metric=authored-required-wu reason=v27-duration-preserving-first-candidate
+
+APPROVED source:logging metric=authored-required-wu reason=v27-duration-preserving-first-candidate
+
+APPROVED source:quarry metric=authored-required-wu reason=v27-duration-preserving-first-candidate

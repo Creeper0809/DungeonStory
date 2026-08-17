@@ -43,7 +43,7 @@ MonoBehaviour:
     recommendedRank: 3
     minimumRiskRank: 2
   requiredResearchId: research:industry:dark-foundry
-  requiredWork: 152
+  requiredWork: 342
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

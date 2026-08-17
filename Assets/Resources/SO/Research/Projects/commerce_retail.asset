@@ -26,7 +26,8 @@ MonoBehaviour:
   displayName: "\uC0C1\uC5C5 \uC9C4\uC5F4"
   description: "\uC190\uB2D8 \uB3D9\uC120\uACFC \uC0C1\uD488 \uC9C4\uC5F4\uC744 \uC815\uBE44\uD55C\uB2E4."
   field: 1
-  requiredWork: 60
+  requiredWork: 28
+  maximumResearchers: 1
   prerequisites:
   - {fileID: 11400000, guid: b3b38e91925a91943b4303ee3edc9533, type: 2}
   prerequisiteLinks:

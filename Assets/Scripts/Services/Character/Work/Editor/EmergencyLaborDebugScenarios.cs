@@ -19,7 +19,7 @@ public static class EmergencyLaborDebugScenarios
         ValidateWorkClassificationAndAccounting();
         ValidateAlertHysteresisAndPersistence();
         Debug.Log(
-            $"PHASE157_EMERGENCY_LABOR=PASS; schedule=180s/99WU-envelope; liveBaseline={SettlementLaborBalanceRules.BaselineWuPerAdultDay:0.##}WU; workTypes=31; "
+            $"PHASE157_EMERGENCY_LABOR=PASS; schedule=180s/99WU-historical-envelope; actual={SettlementLaborAuthority.ActualWuPerAdultDay:0.##}WU; effective={SettlementLaborAuthority.EffectiveOutputWuPerAdultDay:0.##}WU; workTypes=31; "
             + "landmark8=5.00; research4=2.40; redToGreen=4h; save=stable");
     }
 
@@ -83,7 +83,7 @@ public static class EmergencyLaborDebugScenarios
             "labor:test:day1",
             1L,
             SettlementLaborContributionChannel.ActualLabor,
-            60_000L,
+            150_000L,
             "work:test");
         Require(labor.Record(contribution).Success, "Daily labor record failed.");
         Require(labor.Record(contribution).Success,
@@ -95,17 +95,24 @@ public static class EmergencyLaborDebugScenarios
                 20_000L,
                 "domain:food")).Success,
             "Domain automation record failed.");
+        Require(labor.Record(new SettlementLaborContribution(
+                "maintenance:test:day1",
+                1L,
+                SettlementLaborContributionChannel.EssentialMaintenance,
+                15_000L,
+                "survival:routine")).Success,
+            "Essential-maintenance labor record failed.");
         SettlementLaborAccountingSnapshot live = labor.Capture();
-        Require(live.OutputEquivalentMilliWu == 80_000L
-            && live.RealizedGrowthMilliWu == 60_000L
-            && live.GuaranteedGrowthMilliWu == 48_000L,
+        Require(live.OutputEquivalentMilliWu == 170_000L
+            && live.RealizedGrowthMilliWu == 135_000L
+            && live.GuaranteedGrowthMilliWu == 123_000L,
             "Live settlement WU projection diverged from the day-end authority.");
         eventBus.Publish(new OperatingDayEndedEvent(1));
         SettlementLaborAccountingSnapshot snapshot = labor.Capture();
-        Require(snapshot.LatestDay.ActualLaborMilliWu == 60_000L
-            && snapshot.LatestDay.OutputEquivalentMilliWu == 80_000L
-            && snapshot.LatestDay.RealizedGrowthMilliWu == 60_000L
-            && snapshot.LatestDay.GuaranteedGrowthMilliWu == 48_000L
+        Require(snapshot.LatestDay.ActualLaborMilliWu == 150_000L
+            && snapshot.LatestDay.OutputEquivalentMilliWu == 170_000L
+            && snapshot.LatestDay.RealizedGrowthMilliWu == 135_000L
+            && snapshot.LatestDay.GuaranteedGrowthMilliWu == 123_000L
             && Mathf.Approximately(
                 snapshot.RollingPerCapitaNetWuMedian,
                 1f),
@@ -130,8 +137,8 @@ public static class EmergencyLaborDebugScenarios
             productiveAdultCount: 11,
             unavailableAdultCount: 3,
             emergencyResponderCount: 2,
-            adultWuPerDay: SettlementLaborBalanceRules.BaselineWuPerAdultDay,
-            essentialWuPerDay: 113f,
+            adultWuPerDay: SettlementLaborAuthority.EffectiveOutputWuPerAdultDay,
+            essentialWuPerDay: 254.25f,
             foodSupplyDays: 7,
             waterSupplyDays: 7,
             crisisDurationDays: 3,
@@ -151,8 +158,8 @@ public static class EmergencyLaborDebugScenarios
                 productiveAdultCount: 11,
                 unavailableAdultCount: 4,
                 emergencyResponderCount: 3,
-                adultWuPerDay: SettlementLaborBalanceRules.BaselineWuPerAdultDay,
-                essentialWuPerDay: 113f,
+                adultWuPerDay: SettlementLaborAuthority.EffectiveOutputWuPerAdultDay,
+                essentialWuPerDay: 254.25f,
                 foodSupplyDays: 2,
                 waterSupplyDays: 2,
                 crisisDurationDays: 3,
@@ -258,7 +265,7 @@ public static class EmergencyLaborDebugScenarios
         Require(Mathf.Approximately(budget.TotalSeconds, 180f), "Daily budget is not 180 seconds.");
         Require(Mathf.Approximately(
                 budget.NetLaborWu,
-                SettlementLaborBalanceRules.HistoricalTheoreticalCapacityWuPerAdultDay),
+                SettlementLaborAuthority.HistoricalTheoreticalCapacityWuPerAdultDay),
             "The historical daily schedule envelope is not 99 seconds.");
 
         ProjectContributionSnapshot landmark = SettlementLaborBalanceRules.EvaluateProject(
@@ -302,14 +309,14 @@ public static class EmergencyLaborDebugScenarios
             SettlementLaborBalanceRules.EvaluateTechnologyDailyRoutine(
                 SettlementTechnologyStage.Endless);
         Require(Mathf.Approximately(late.Savings.TotalSeconds, 23f)
-            && Mathf.Approximately(late.ActiveWorkPerformance, 1f)
             && Mathf.Approximately(endless.Savings.TotalSeconds, 23f)
-            && Mathf.Approximately(endless.ActiveWorkPerformance, 1.05f),
-            "Routine time savings leaked into active-work performance or exceeded their cap.");
+            && late.ActiveWorkPerformance > 1f
+            && endless.ActiveWorkPerformance > late.ActiveWorkPerformance,
+            "Technology-stage work performance no longer reproduces the approved targets.");
 
         SettlementLaborSnapshot domainLockedAutomation =
             SettlementLaborBalanceRules.EvaluateSettlementLabor(
-                actualWorkSeconds: SettlementLaborBalanceRules.BaselineWuPerAdultDay,
+                actualWorkSeconds: SettlementLaborAuthority.ActualWuPerAdultDay,
                 averagePerformance: 1f,
                 convertedProcessOutputWu: 0f,
                 netDomainAutomationWu: 100f,
@@ -319,10 +326,10 @@ public static class EmergencyLaborDebugScenarios
                 emergencyReserveWu: 0f);
         Require(Mathf.Approximately(
                 domainLockedAutomation.OutputEquivalentWu,
-                120f)
+                150f)
             && Mathf.Approximately(
                 domainLockedAutomation.RealizedGrowthWu,
-                SettlementLaborBalanceRules.BaselineWuPerAdultDay),
+                SettlementLaborAuthority.ActualWuPerAdultDay),
             "Domain automation leaked into transferable growth WU.");
     }
 

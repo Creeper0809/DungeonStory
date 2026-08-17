@@ -1,46 +1,112 @@
-﻿COMBAT_OUTCOME_BALANCE_V1
-samplesPerEncounter=32; encounters=36; stallDetails=0
-encounter | campaign | objective | party | required power | wins | win rate | median rounds | mean ally health | severe casualty | stalled | capture down/dead/active | shots/executed/hits | end/peak sedation
-encounter:01 | 1 | DefeatAll | 2 | 10.0 | 0 | 0.0 % | 6.0 | 3.3 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:02 | 1 | SurviveRounds | 2 | 10.0 | 28 | 87.5 % | 9.0 | 46.7 % | 93.8 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:03 | 1 | ProtectTarget | 2 | 10.0 | 22 | 68.8 % | 7.0 | 6.9 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:04 | 1 | SabotageTarget | 2 | 10.0 | 3 | 9.4 % | 4.0 | 19.2 % | 90.6 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:05 | 1 | Escape | 2 | 10.0 | 28 | 87.5 % | 8.0 | 38.3 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:06 | 1 | CaptureLeader | 2 | 10.0 | 3 | 9.4 % | 3.0 | 15.2 % | 90.6 % | 0 | 3/0/29 | 64/64/26 | 0.20/0.28
-encounter:07 | 2 | DefeatAll | 3 | 16.0 | 3 | 9.4 % | 9.0 | 12.0 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:08 | 2 | SurviveRounds | 3 | 16.0 | 32 | 100.0 % | 9.0 | 38.7 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:09 | 2 | ProtectTarget | 3 | 16.0 | 29 | 90.6 % | 8.0 | 53.9 % | 84.4 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:10 | 2 | SabotageTarget | 3 | 16.0 | 0 | 0.0 % | 5.0 | 6.2 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:11 | 2 | Escape | 3 | 16.0 | 29 | 90.6 % | 7.0 | 50.9 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:12 | 2 | CaptureLeader | 3 | 16.0 | 2 | 6.3 % | 4.0 | 11.1 % | 93.8 % | 0 | 2/0/30 | 57/57/16 | 0.10/0.18
-encounter:13 | 3 | DefeatAll | 3 | 32.0 | 14 | 43.8 % | 10.0 | 39.0 % | 81.3 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:14 | 3 | SurviveRounds | 3 | 32.0 | 17 | 53.1 % | 9.0 | 40.2 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:15 | 3 | ProtectTarget | 3 | 32.0 | 0 | 0.0 % | 4.0 | 11.5 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:16 | 3 | SabotageTarget | 3 | 32.0 | 3 | 9.4 % | 6.0 | 9.4 % | 90.6 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:17 | 3 | Escape | 3 | 32.0 | 32 | 100.0 % | 8.0 | 65.5 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:18 | 3 | CaptureLeader | 3 | 32.0 | 14 | 43.8 % | 5.5 | 54.6 % | 53.1 % | 0 | 14/0/18 | 62/62/44 | 0.31/0.48
-encounter:19 | 4 | DefeatAll | 4 | 42.0 | 29 | 90.6 % | 5.5 | 87.8 % | 28.1 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:20 | 4 | SurviveRounds | 4 | 42.0 | 30 | 93.8 % | 9.0 | 47.6 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:21 | 4 | ProtectTarget | 4 | 42.0 | 32 | 100.0 % | 8.0 | 77.2 % | 43.8 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:22 | 4 | SabotageTarget | 4 | 42.0 | 8 | 25.0 % | 8.0 | 64.4 % | 78.1 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:23 | 4 | Escape | 4 | 42.0 | 32 | 100.0 % | 7.0 | 77.4 % | 59.4 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:24 | 4 | CaptureLeader | 4 | 42.0 | 17 | 53.1 % | 1.0 | 81.0 % | 43.8 % | 0 | 17/0/15 | 64/64/45 | 0.37/0.49
-encounter:25 | 5 | DefeatAll | 5 | 60.0 | 2 | 6.3 % | 9.0 | 18.1 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:26 | 5 | SurviveRounds | 5 | 60.0 | 32 | 100.0 % | 9.0 | 64.7 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:27 | 5 | ProtectTarget | 5 | 60.0 | 32 | 100.0 % | 8.0 | 57.3 % | 90.6 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:28 | 5 | SabotageTarget | 5 | 60.0 | 18 | 56.3 % | 1.0 | 53.8 % | 53.1 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:29 | 5 | Escape | 5 | 60.0 | 32 | 100.0 % | 7.0 | 77.2 % | 96.9 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:30 | 5 | CaptureLeader | 5 | 60.0 | 18 | 56.3 % | 1.0 | 74.3 % | 43.8 % | 0 | 18/0/14 | 64/64/46 | 0.39/0.50
-encounter:31 | 6 | DefeatAll | 5 | 85.0 | 32 | 100.0 % | 4.0 | 66.3 % | 84.4 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:32 | 6 | SurviveRounds | 5 | 85.0 | 17 | 53.1 % | 9.0 | 23.6 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:33 | 6 | ProtectTarget | 5 | 85.0 | 0 | 0.0 % | 3.0 | 0.5 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:34 | 6 | SabotageTarget | 5 | 85.0 | 26 | 81.3 % | 4.5 | 53.4 % | 93.8 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:35 | 6 | Escape | 5 | 85.0 | 28 | 87.5 % | 8.0 | 44.4 % | 100.0 % | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
-encounter:36 | 6 | CaptureLeader | 5 | 85.0 | 0 | 0.0 % | 7.0 | 38.8 % | 100.0 % | 0 | 0/0/32 | 62/62/20 | 0.00/0.22
+RESULT=FAIL; samplesPerEncounter=1000; encounters=36; stalled=0; balanceFailures=64
+COMBAT_OUTCOME_BALANCE_V27
+samplesPerEncounter=1000; encounters=36; stallDetails=0
+encounter | campaign | risk | objective | party | required power | wins | win rate | target win | median rounds | mean ally health | severe casualty | target severe | stalled | capture down/dead/active | shots/executed/hits | end/peak sedation
+encounter:01 | 1 | standard | DefeatAll | 2 | 10.0 | 17 | 1.7 % | 65-80% | 4.0 | 5.5 % | 98.4 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:02 | 1 | standard | SurviveRounds | 2 | 10.0 | 283 | 28.3 % | 65-80% | 7.0 | 22.8 % | 88.7 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:03 | 1 | standard | ProtectTarget | 2 | 10.0 | 0 | 0.0 % | 65-80% | 1.0 | 0.0 % | 100.0 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:04 | 1 | standard | SabotageTarget | 2 | 10.0 | 87 | 8.7 % | 65-80% | 2.0 | 23.1 % | 91.3 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:05 | 1 | danger | Escape | 2 | 10.0 | 0 | 0.0 % | 45-65% | 6.0 | 17.4 % | 100.0 % | 20-35% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:06 | 1 | boss-first | CaptureLeader | 2 | 10.0 | 0 | 0.0 % | 25-45% | 2.0 | 17.3 % | 100.0 % | 30-50% | 0 | 0/0/1000 | 1000/1000/195 | 0.07/0.07
+encounter:07 | 2 | standard | DefeatAll | 2 | 16.0 | 6 | 0.6 % | 65-80% | 3.0 | 19.0 % | 99.4 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:08 | 2 | standard | SurviveRounds | 2 | 16.0 | 0 | 0.0 % | 65-80% | 4.0 | 0.1 % | 100.0 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:09 | 2 | standard | ProtectTarget | 2 | 16.0 | 302 | 30.2 % | 65-80% | 5.0 | 29.5 % | 77.2 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:10 | 2 | danger | SabotageTarget | 2 | 16.0 | 76 | 7.6 % | 45-65% | 3.0 | 12.7 % | 92.4 % | 20-35% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:11 | 2 | standard | Escape | 2 | 16.0 | 22 | 2.2 % | 65-80% | 3.0 | 19.8 % | 98.9 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:12 | 2 | boss-first | CaptureLeader | 2 | 16.0 | 0 | 0.0 % | 25-45% | 2.0 | 0.6 % | 100.0 % | 30-50% | 0 | 0/0/1000 | 938/938/79 | 0.03/0.03
+encounter:13 | 3 | standard | DefeatAll | 3 | 32.0 | 571 | 57.1 % | 65-80% | 7.0 | 46.6 % | 62.3 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:14 | 3 | standard | SurviveRounds | 3 | 32.0 | 2 | 0.2 % | 65-80% | 5.0 | 20.1 % | 100.0 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:15 | 3 | danger | ProtectTarget | 3 | 32.0 | 0 | 0.0 % | 45-65% | 2.0 | 10.5 % | 100.0 % | 20-35% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:16 | 3 | standard | SabotageTarget | 3 | 32.0 | 28 | 2.8 % | 65-80% | 5.0 | 2.8 % | 100.0 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:17 | 3 | standard | Escape | 3 | 32.0 | 797 | 79.7 % | 65-80% | 8.0 | 45.9 % | 95.2 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:18 | 3 | boss-first | CaptureLeader | 3 | 32.0 | 333 | 33.3 % | 25-45% | 5.0 | 34.3 % | 66.7 % | 30-50% | 0 | 333/0/667 | 1915/1915/1193 | 0.24/0.42
+encounter:19 | 4 | standard | DefeatAll | 5 | 42.0 | 705 | 70.5 % | 65-80% | 6.0 | 69.0 % | 50.4 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:20 | 4 | danger | SurviveRounds | 5 | 42.0 | 183 | 18.3 % | 45-65% | 7.0 | 16.0 % | 100.0 % | 20-35% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:21 | 4 | standard | ProtectTarget | 5 | 42.0 | 720 | 72.0 % | 65-80% | 6.0 | 52.1 % | 67.5 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:22 | 4 | standard | SabotageTarget | 5 | 42.0 | 132 | 13.2 % | 65-80% | 7.0 | 44.4 % | 93.2 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:23 | 4 | standard | Escape | 5 | 42.0 | 949 | 94.9 % | 65-80% | 7.0 | 60.8 % | 60.5 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:24 | 4 | boss-first | CaptureLeader | 5 | 42.0 | 555 | 55.5 % | 25-45% | 1.0 | 63.9 % | 44.5 % | 30-50% | 0 | 555/0/445 | 2000/2000/1480 | 0.39/0.52
+encounter:25 | 5 | danger | DefeatAll | 5 | 60.0 | 110 | 11.0 % | 45-65% | 5.0 | 17.1 % | 99.9 % | 20-35% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:26 | 5 | standard | SurviveRounds | 5 | 60.0 | 845 | 84.5 % | 65-80% | 9.0 | 31.7 % | 100.0 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:27 | 5 | standard | ProtectTarget | 5 | 60.0 | 752 | 75.2 % | 65-80% | 3.0 | 46.0 % | 83.7 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:28 | 5 | standard | SabotageTarget | 5 | 60.0 | 487 | 48.7 % | 65-80% | 4.0 | 30.2 % | 88.7 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:29 | 5 | standard | Escape | 5 | 60.0 | 988 | 98.8 % | 65-80% | 7.0 | 60.7 % | 93.8 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:30 | 5 | boss-first | CaptureLeader | 5 | 60.0 | 629 | 62.9 % | 25-45% | 1.0 | 66.7 % | 37.1 % | 30-50% | 0 | 629/0/371 | 2000/2000/1584 | 0.47/0.55
+encounter:31 | 6 | standard | DefeatAll | 5 | 85.0 | 766 | 76.6 % | 65-80% | 4.0 | 47.6 % | 84.0 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:32 | 6 | standard | SurviveRounds | 5 | 85.0 | 14 | 1.4 % | 65-80% | 6.0 | 12.8 % | 100.0 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:33 | 6 | danger | ProtectTarget | 5 | 85.0 | 0 | 0.0 % | 45-65% | 3.0 | 7.1 % | 100.0 % | 20-35% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:34 | 6 | standard | SabotageTarget | 5 | 85.0 | 550 | 55.0 % | 65-80% | 5.0 | 29.5 % | 98.7 % | 10-20% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:35 | 6 | danger | Escape | 5 | 85.0 | 128 | 12.8 % | 45-65% | 7.0 | 20.5 % | 100.0 % | 20-35% | 0 | 0/0/0 | 0/0/0 | 0.00/0.00
+encounter:36 | 6 | boss-first | CaptureLeader | 5 | 85.0 | 140 | 14.0 % | 25-45% | 5.0 | 23.4 % | 100.0 % | 30-50% | 0 | 140/0/860 | 2000/2000/973 | 0.11/0.34
+BALANCE_FAILURES
+- encounter:01 standard win 1.7 % outside 65 %-80 %.
+- encounter:01 standard severe 98.4 % outside 10 %-20 %.
+- encounter:02 standard win 28.3 % outside 65 %-80 %.
+- encounter:02 standard severe 88.7 % outside 10 %-20 %.
+- encounter:03 standard win 0.0 % outside 65 %-80 %.
+- encounter:03 standard severe 100.0 % outside 10 %-20 %.
+- encounter:04 standard win 8.7 % outside 65 %-80 %.
+- encounter:04 standard severe 91.3 % outside 10 %-20 %.
+- encounter:05 danger win 0.0 % outside 45 %-65 %.
+- encounter:05 danger severe 100.0 % outside 20 %-35 %.
+- encounter:06 boss-first win 0.0 % outside 25 %-45 %.
+- encounter:06 boss-first severe 100.0 % outside 30 %-50 %.
+- encounter:07 standard win 0.6 % outside 65 %-80 %.
+- encounter:07 standard severe 99.4 % outside 10 %-20 %.
+- encounter:08 standard win 0.0 % outside 65 %-80 %.
+- encounter:08 standard severe 100.0 % outside 10 %-20 %.
+- encounter:09 standard win 30.2 % outside 65 %-80 %.
+- encounter:09 standard severe 77.2 % outside 10 %-20 %.
+- encounter:10 danger win 7.6 % outside 45 %-65 %.
+- encounter:10 danger severe 92.4 % outside 20 %-35 %.
+- encounter:11 standard win 2.2 % outside 65 %-80 %.
+- encounter:11 standard severe 98.9 % outside 10 %-20 %.
+- encounter:12 boss-first win 0.0 % outside 25 %-45 %.
+- encounter:12 boss-first severe 100.0 % outside 30 %-50 %.
+- encounter:13 standard win 57.1 % outside 65 %-80 %.
+- encounter:13 standard severe 62.3 % outside 10 %-20 %.
+- encounter:14 standard win 0.2 % outside 65 %-80 %.
+- encounter:14 standard severe 100.0 % outside 10 %-20 %.
+- encounter:15 danger win 0.0 % outside 45 %-65 %.
+- encounter:15 danger severe 100.0 % outside 20 %-35 %.
+- encounter:16 standard win 2.8 % outside 65 %-80 %.
+- encounter:16 standard severe 100.0 % outside 10 %-20 %.
+- encounter:17 standard severe 95.2 % outside 10 %-20 %.
+- encounter:18 boss-first severe 66.7 % outside 30 %-50 %.
+- encounter:19 standard severe 50.4 % outside 10 %-20 %.
+- encounter:20 danger win 18.3 % outside 45 %-65 %.
+- encounter:20 danger severe 100.0 % outside 20 %-35 %.
+- encounter:21 standard severe 67.5 % outside 10 %-20 %.
+- encounter:22 standard win 13.2 % outside 65 %-80 %.
+- encounter:22 standard severe 93.2 % outside 10 %-20 %.
+- encounter:23 standard win 94.9 % outside 65 %-80 %.
+- encounter:23 standard severe 60.5 % outside 10 %-20 %.
+- encounter:24 boss-first win 55.5 % outside 25 %-45 %.
+- encounter:25 danger win 11.0 % outside 45 %-65 %.
+- encounter:25 danger severe 99.9 % outside 20 %-35 %.
+- encounter:26 standard win 84.5 % outside 65 %-80 %.
+- encounter:26 standard severe 100.0 % outside 10 %-20 %.
+- encounter:27 standard severe 83.7 % outside 10 %-20 %.
+- encounter:28 standard win 48.7 % outside 65 %-80 %.
+- encounter:28 standard severe 88.7 % outside 10 %-20 %.
+- encounter:29 standard win 98.8 % outside 65 %-80 %.
+- encounter:29 standard severe 93.8 % outside 10 %-20 %.
+- encounter:30 boss-first win 62.9 % outside 25 %-45 %.
+- encounter:31 standard severe 84.0 % outside 10 %-20 %.
+- encounter:32 standard win 1.4 % outside 65 %-80 %.
+- encounter:32 standard severe 100.0 % outside 10 %-20 %.
+- encounter:33 danger win 0.0 % outside 45 %-65 %.
+- encounter:33 danger severe 100.0 % outside 20 %-35 %.
+- encounter:34 standard win 55.0 % outside 65 %-80 %.
+- encounter:34 standard severe 98.7 % outside 10 %-20 %.
+- encounter:35 danger win 12.8 % outside 45 %-65 %.
+- encounter:35 danger severe 100.0 % outside 20 %-35 %.
+- encounter:36 boss-first win 14.0 % outside 25 %-45 %.
+- encounter:36 boss-first severe 100.0 % outside 30 %-50 %.
 CAMPAIGN_SUMMARY
-campaign=1; win_rate=43.8 %; min=0.0 %; max=87.5 %; severe=95.8 %
-campaign=2; win_rate=49.5 %; min=0.0 %; max=100.0 %; severe=96.4 %
-campaign=3; win_rate=41.7 %; min=0.0 %; max=100.0 %; severe=87.5 %
-campaign=4; win_rate=77.1 %; min=25.0 %; max=100.0 %; severe=58.9 %
-campaign=5; win_rate=69.8 %; min=6.3 %; max=100.0 %; severe=80.7 %
-campaign=6; win_rate=53.6 %; min=0.0 %; max=100.0 %; severe=96.4 %
+campaign=1; win_rate=6.5 %; min=0.0 %; max=28.3 %; severe=96.4 %
+campaign=2; win_rate=6.8 %; min=0.0 %; max=30.2 %; severe=94.7 %
+campaign=3; win_rate=28.9 %; min=0.0 %; max=79.7 %; severe=87.4 %
+campaign=4; win_rate=54.1 %; min=13.2 %; max=94.9 %; severe=69.4 %
+campaign=5; win_rate=63.5 %; min=11.0 %; max=98.8 %; severe=83.9 %
+campaign=6; win_rate=26.6 %; min=0.0 %; max=76.6 %; severe=97.1 %

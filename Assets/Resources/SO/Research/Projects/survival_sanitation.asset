@@ -27,7 +27,8 @@ MonoBehaviour:
   description: "\uC624\uC5FC\uC744 \uD1B5\uC81C\uD558\uACE0 \uAE30\uBCF8 \uC704\uC0DD
     \uC124\uBE44\uB97C \uC6B4\uC6A9\uD55C\uB2E4."
   field: 0
-  requiredWork: 36
+  requiredWork: 17
+  maximumResearchers: 1
   prerequisites: []
   prerequisiteLinks: []
   blueprintRule: 0

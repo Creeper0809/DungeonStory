@@ -12,24 +12,6 @@ public static class SettlementPopulationPowerCheckpointDebugScenarios
     private const string ReportPath =
         "Artifacts/QA/v26-population-power-checkpoints.md";
 
-    private sealed class Checkpoint
-    {
-        public int Day;
-        public int TotalMinimum;
-        public int TotalMaximum;
-        public int WorkingMinimum;
-        public int WorkingMaximum;
-        public int DependentMinimum;
-        public int DependentMaximum;
-        public int CombatReadyMinimum;
-        public int CombatReadyMaximum;
-        public string TargetId;
-        public string WeaponId;
-        public string ArmorId;
-        public string ShieldId;
-        public CombatEquipmentQuality Quality;
-    }
-
     [MenuItem("DungeonStory/Debug/Balance/Validate Population Power Checkpoints")]
     public static void RunFromMenu()
     {
@@ -38,7 +20,8 @@ public static class SettlementPopulationPowerCheckpointDebugScenarios
 
     public static string Run()
     {
-        Checkpoint[] checkpoints = CreateCheckpoints();
+        IReadOnlyList<CombatBalanceCheckpoint> checkpoints =
+            CombatBalanceCheckpointAuthority.All;
         IOffenseCampaignCatalog campaign =
             OffenseEditorTestDependencies.CreateCampaignCatalog();
         EquipmentFixture equipment = CreateEquipmentFixture();
@@ -56,13 +39,15 @@ public static class SettlementPopulationPowerCheckpointDebugScenarios
             "|---:|---:|---:|---:|---:|---:|---|---:|---|---:|---:|");
 
         float previousMemberPower = 0f;
-        foreach (Checkpoint checkpoint in checkpoints)
+        foreach (CombatBalanceCheckpoint checkpoint in checkpoints)
         {
             ValidatePopulationBand(checkpoint);
             OffenseTargetDefinition target = RequireTarget(
                 campaign,
                 checkpoint.TargetId);
-            float basePower = CalculateBasePower(checkpoint.Day);
+            float basePower =
+                CombatBalanceCheckpointAuthority.CalculateProjectedBasePower(
+                    checkpoint.Day);
             float equipmentPower = equipment.ProjectLoadout(
                 $"checkpoint:{checkpoint.Day}",
                 checkpoint.WeaponId,
@@ -134,102 +119,10 @@ public static class SettlementPopulationPowerCheckpointDebugScenarios
             ?? throw new InvalidOperationException("Checkpoint report directory is unavailable."));
         File.WriteAllText(absolutePath, report.ToString(), new UTF8Encoding(false));
         AssetDatabase.Refresh();
-        return $"PASS: {checkpoints.Length} population/power checkpoints -> {ReportPath}";
+        return $"PASS: {checkpoints.Count} population/power checkpoints -> {ReportPath}";
     }
 
-    private static float CalculateBasePower(int day)
-    {
-        long Milli(float experience) =>
-            checked((long)Math.Round(
-                Math.Max(0f, experience) * 1000f,
-                MidpointRounding.AwayFromZero));
-        float fieldExperience = 30f + day * 1.20f;
-        float constructionExperience = 30f + day * 0.30f;
-        float foodExperience = 30f + day * 0.30f;
-        float meleeExperience = 30f + day * 2.00f;
-        float rangedExperience = 30f + day * 0.25f;
-
-        return OffenseExpeditionService.CalculateProjectedProficiencyPower(id =>
-        {
-            if (id == BuiltInCharacterProficiencyIds.Fieldwork)
-            {
-                return Milli(fieldExperience);
-            }
-            if (id == BuiltInCharacterProficiencyIds.ConstructionEngineering)
-            {
-                return Milli(constructionExperience);
-            }
-            if (id == BuiltInCharacterProficiencyIds.FoodProduction)
-            {
-                return Milli(foodExperience);
-            }
-            if (id == BuiltInCharacterProficiencyIds.MeleeCombat)
-            {
-                return Milli(meleeExperience);
-            }
-            if (id == BuiltInCharacterProficiencyIds.RangedCombat)
-            {
-                return Milli(rangedExperience);
-            }
-            return Milli(30f);
-        });
-    }
-
-    private static Checkpoint[] CreateCheckpoints() => new[]
-    {
-        Point(1, 3, 3, 3, 3, 0, 0, 2, 2,
-            "food_farm", "weapon:spear", "armor:cloth-hood", string.Empty,
-            CombatEquipmentQuality.Normal),
-        Point(30, 3, 6, 3, 6, 0, 2, 2, 4,
-            "merchant_road", "weapon:falchion", "armor:leather", "shield:wood",
-            CombatEquipmentQuality.Normal),
-        Point(120, 6, 14, 5, 12, 1, 4, 3, 7,
-            "old_armory", "weapon:mace", "armor:mail-shirt", "shield:wood",
-            CombatEquipmentQuality.Normal),
-        Point(240, 12, 28, 8, 20, 4, 12, 5, 12,
-            "mana_ruins", "weapon:estoc", "armor:articulated-plate", "shield:iron",
-            CombatEquipmentQuality.Good),
-        Point(400, 25, 60, 15, 40, 10, 25, 10, 24,
-            "rival_dungeon", "weapon:powered-striking-gauntlet", "armor:powered-harness", "shield:powered",
-            CombatEquipmentQuality.Good),
-        Point(960, 80, 220, 55, 160, 25, 70, 25, 70,
-            "truth_core", "weapon:rune-blade", "armor:rune-ward-mail", "shield:rune",
-            CombatEquipmentQuality.Excellent)
-    };
-
-    private static Checkpoint Point(
-        int day,
-        int totalMin,
-        int totalMax,
-        int workingMin,
-        int workingMax,
-        int dependentMin,
-        int dependentMax,
-        int combatMin,
-        int combatMax,
-        string targetId,
-        string weaponId,
-        string armorId,
-        string shieldId,
-        CombatEquipmentQuality quality) => new Checkpoint
-    {
-        Day = day,
-        TotalMinimum = totalMin,
-        TotalMaximum = totalMax,
-        WorkingMinimum = workingMin,
-        WorkingMaximum = workingMax,
-        DependentMinimum = dependentMin,
-        DependentMaximum = dependentMax,
-        CombatReadyMinimum = combatMin,
-        CombatReadyMaximum = combatMax,
-        TargetId = targetId,
-        WeaponId = weaponId,
-        ArmorId = armorId,
-        ShieldId = shieldId,
-        Quality = quality
-    };
-
-    private static void ValidatePopulationBand(Checkpoint point)
+    private static void ValidatePopulationBand(CombatBalanceCheckpoint point)
     {
         Require(point.Day > 0, "Checkpoint day must be positive.");
         Require(point.TotalMinimum <= point.TotalMaximum, "Invalid total-population band.");
@@ -363,9 +256,15 @@ public static class SettlementPopulationPowerCheckpointDebugScenarios
     private static string Band(int minimum, int maximum) =>
         minimum == maximum ? minimum.ToString() : $"{minimum}-{maximum}";
 
-    private static string DescribeLoadout(Checkpoint point)
+    private static string DescribeLoadout(CombatBalanceCheckpoint point)
     {
-        string[] parts = new[] { point.WeaponId, point.ArmorId, point.ShieldId }
+        string[] parts = new[]
+            {
+                point.WeaponId,
+                point.RangedWeaponId,
+                point.ArmorId,
+                point.ShieldId
+            }
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .ToArray();
         return $"{string.Join(" + ", parts)} ({point.Quality})";

@@ -42,7 +42,7 @@ MonoBehaviour:
     recommendedRank: 3
     minimumRiskRank: 0
   requiredResearchId: research:equipment:relic-appraisal
-  requiredWork: 122
+  requiredWork: 275
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

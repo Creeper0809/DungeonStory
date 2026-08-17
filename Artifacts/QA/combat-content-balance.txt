@@ -1,46 +1,46 @@
 COMBAT_CONTENT_BALANCE_V1
 encounters=36; archetypes=36; failures=0
 Columns: encounter | campaign | target power | enemy reference power | site metadata | flags | objective | expected enemies | raw threat | projected threat | reward EWU | unpriced rewards | reward/threat
-encounter:01 | 1 | 10.0 | 10.0 | 1-4 (band 2) | standard | DefeatAll | 4 | 282.03 | 282.03 | 160.84 | 0 | 0.570
-encounter:02 | 1 | 10.0 | 10.0 | 1-4 (band 2) | standard | SurviveRounds | 4 | 333.02 | 333.02 | 160.84 | 0 | 0.483
-encounter:03 | 1 | 10.0 | 10.0 | 1-4 (band 2) | standard | ProtectTarget | 6 | 559.80 | 559.80 | 221.16 | 0 | 0.395
-encounter:04 | 1 | 10.0 | 10.0 | 1-4 (band 2) | standard | SabotageTarget | 6 | 593.50 | 593.50 | 221.16 | 0 | 0.373
-encounter:05 | 1 | 10.0 | 10.0 | 2-5 (band 4) | elite | Escape | 4 | 444.51 | 444.51 | 160.84 | 0 | 0.362
-encounter:06 | 1 | 10.0 | 10.0 | 2-5 (band 4) | boss | CaptureLeader | 3 | 652.60 | 652.60 | 140.74 | 0 | 0.216
-encounter:07 | 2 | 16.0 | 16.0 | 2-5 (band 4) | standard | DefeatAll | 4 | 341.07 | 545.72 | 160.84 | 0 | 0.295
-encounter:08 | 2 | 16.0 | 16.0 | 2-5 (band 4) | standard | SurviveRounds | 4 | 412.89 | 660.63 | 160.84 | 0 | 0.243
-encounter:09 | 2 | 16.0 | 16.0 | 3-6 (band 4) | standard | ProtectTarget | 6 | 499.30 | 798.88 | 221.16 | 0 | 0.277
-encounter:10 | 2 | 16.0 | 16.0 | 3-6 (band 4) | elite | SabotageTarget | 4 | 507.29 | 811.66 | 160.84 | 0 | 0.198
-encounter:11 | 2 | 16.0 | 16.0 | 3-6 (band 4) | standard | Escape | 4 | 340.93 | 545.48 | 160.84 | 0 | 0.295
-encounter:12 | 2 | 16.0 | 16.0 | 3-6 (band 4) | boss | CaptureLeader | 3 | 487.16 | 779.46 | 140.74 | 0 | 0.181
-encounter:13 | 3 | 32.0 | 32.0 | 4-7 (band 6) | standard | DefeatAll | 4 | 366.21 | 1171.86 | 160.84 | 0 | 0.137
-encounter:14 | 3 | 32.0 | 32.0 | 4-7 (band 6) | standard | SurviveRounds | 4 | 373.72 | 1195.92 | 160.84 | 0 | 0.134
-encounter:15 | 3 | 32.0 | 32.0 | 4-7 (band 6) | elite | ProtectTarget | 6 | 834.67 | 2670.94 | 221.16 | 0 | 0.083
-encounter:16 | 3 | 32.0 | 32.0 | 4-7 (band 6) | standard | SabotageTarget | 4 | 340.67 | 1090.13 | 160.84 | 0 | 0.148
-encounter:17 | 3 | 32.0 | 32.0 | 5-8 (band 6) | standard | Escape | 4 | 351.30 | 1124.15 | 160.84 | 0 | 0.143
-encounter:18 | 3 | 32.0 | 32.0 | 5-8 (band 6) | boss | CaptureLeader | 3 | 339.14 | 1085.26 | 140.74 | 0 | 0.130
-encounter:19 | 4 | 42.0 | 42.0 | 5-8 (band 6) | standard | DefeatAll | 4 | 317.33 | 1332.80 | 160.84 | 0 | 0.121
-encounter:20 | 4 | 42.0 | 42.0 | 5-8 (band 6) | elite | SurviveRounds | 6 | 585.85 | 2460.55 | 221.16 | 0 | 0.090
-encounter:21 | 4 | 42.0 | 42.0 | 6-9 (band 8) | standard | ProtectTarget | 4 | 335.19 | 1407.81 | 160.84 | 0 | 0.114
-encounter:22 | 4 | 42.0 | 42.0 | 6-9 (band 8) | standard | SabotageTarget | 4 | 342.79 | 1439.73 | 160.84 | 0 | 0.112
-encounter:23 | 4 | 42.0 | 42.0 | 6-9 (band 8) | standard | Escape | 4 | 314.24 | 1319.82 | 160.84 | 0 | 0.122
-encounter:24 | 4 | 42.0 | 42.0 | 6-9 (band 8) | boss | CaptureLeader | 3 | 358.24 | 1504.62 | 140.74 | 0 | 0.094
-encounter:25 | 5 | 60.0 | 60.0 | 7-10 (band 8) | elite | DefeatAll | 6 | 633.69 | 3802.13 | 221.16 | 0 | 0.058
-encounter:26 | 5 | 60.0 | 60.0 | 7-10 (band 8) | standard | SurviveRounds | 4 | 397.57 | 2385.45 | 160.84 | 0 | 0.067
-encounter:27 | 5 | 60.0 | 60.0 | 7-10 (band 8) | standard | ProtectTarget | 4 | 445.99 | 2675.94 | 160.84 | 0 | 0.060
-encounter:28 | 5 | 60.0 | 60.0 | 7-10 (band 8) | standard | SabotageTarget | 4 | 523.88 | 3143.27 | 160.84 | 0 | 0.051
-encounter:29 | 5 | 60.0 | 60.0 | 8-11 (band 10) | standard | Escape | 4 | 386.53 | 2319.19 | 160.84 | 0 | 0.069
-encounter:30 | 5 | 60.0 | 60.0 | 8-11 (band 10) | boss | CaptureLeader | 3 | 503.80 | 3022.78 | 140.74 | 0 | 0.047
-encounter:31 | 6 | 85.0 | 85.0 | 8-11 (band 10) | standard | DefeatAll | 4 | 513.68 | 4366.25 | 160.84 | 0 | 0.037
-encounter:32 | 6 | 85.0 | 85.0 | 8-11 (band 10) | standard | SurviveRounds | 4 | 554.77 | 4715.55 | 160.84 | 0 | 0.034
-encounter:33 | 6 | 85.0 | 85.0 | 9-12 (band 10) | elite | ProtectTarget | 6 | 1121.51 | 9532.81 | 221.16 | 0 | 0.023
-encounter:34 | 6 | 85.0 | 85.0 | 9-12 (band 10) | standard | SabotageTarget | 4 | 349.40 | 2969.88 | 160.84 | 0 | 0.054
-encounter:35 | 6 | 85.0 | 85.0 | 9-12 (band 10) | elite | Escape | 4 | 474.00 | 4029.03 | 160.84 | 0 | 0.040
-encounter:36 | 6 | 85.0 | 85.0 | 9-12 (band 10) | boss | CaptureLeader | 3 | 451.42 | 3837.08 | 140.74 | 0 | 0.037
+encounter:01 | 1 | 10.0 | 10.0 | 1-4 (band 2) | standard | DefeatAll | 4 | 282.03 | 282.03 | 158.97 | 0 | 0.564
+encounter:02 | 1 | 10.0 | 10.0 | 1-4 (band 2) | standard | SurviveRounds | 4 | 333.02 | 333.02 | 158.97 | 0 | 0.477
+encounter:03 | 1 | 10.0 | 10.0 | 1-4 (band 2) | standard | ProtectTarget | 6 | 559.80 | 559.80 | 218.58 | 0 | 0.390
+encounter:04 | 1 | 10.0 | 10.0 | 1-4 (band 2) | standard | SabotageTarget | 6 | 593.50 | 593.50 | 218.58 | 0 | 0.368
+encounter:05 | 1 | 10.0 | 10.0 | 2-5 (band 4) | elite | Escape | 4 | 444.51 | 444.51 | 158.97 | 0 | 0.358
+encounter:06 | 1 | 10.0 | 10.0 | 2-5 (band 4) | boss | CaptureLeader | 3 | 652.60 | 652.60 | 139.10 | 0 | 0.213
+encounter:07 | 2 | 16.0 | 16.0 | 2-5 (band 4) | standard | DefeatAll | 4 | 341.07 | 545.72 | 158.97 | 0 | 0.291
+encounter:08 | 2 | 16.0 | 16.0 | 2-5 (band 4) | standard | SurviveRounds | 4 | 412.89 | 660.63 | 158.97 | 0 | 0.241
+encounter:09 | 2 | 16.0 | 16.0 | 3-6 (band 4) | standard | ProtectTarget | 6 | 499.30 | 798.88 | 218.58 | 0 | 0.274
+encounter:10 | 2 | 16.0 | 16.0 | 3-6 (band 4) | elite | SabotageTarget | 4 | 507.29 | 811.66 | 158.97 | 0 | 0.196
+encounter:11 | 2 | 16.0 | 16.0 | 3-6 (band 4) | standard | Escape | 4 | 340.93 | 545.48 | 158.97 | 0 | 0.291
+encounter:12 | 2 | 16.0 | 16.0 | 3-6 (band 4) | boss | CaptureLeader | 3 | 487.16 | 779.46 | 139.10 | 0 | 0.178
+encounter:13 | 3 | 32.0 | 32.0 | 4-7 (band 6) | standard | DefeatAll | 4 | 366.21 | 1171.86 | 158.97 | 0 | 0.136
+encounter:14 | 3 | 32.0 | 32.0 | 4-7 (band 6) | standard | SurviveRounds | 4 | 373.72 | 1195.92 | 158.97 | 0 | 0.133
+encounter:15 | 3 | 32.0 | 32.0 | 4-7 (band 6) | elite | ProtectTarget | 6 | 834.67 | 2670.94 | 218.58 | 0 | 0.082
+encounter:16 | 3 | 32.0 | 32.0 | 4-7 (band 6) | standard | SabotageTarget | 4 | 340.67 | 1090.13 | 158.97 | 0 | 0.146
+encounter:17 | 3 | 32.0 | 32.0 | 5-8 (band 6) | standard | Escape | 4 | 351.30 | 1124.15 | 158.97 | 0 | 0.141
+encounter:18 | 3 | 32.0 | 32.0 | 5-8 (band 6) | boss | CaptureLeader | 3 | 339.14 | 1085.26 | 139.10 | 0 | 0.128
+encounter:19 | 4 | 42.0 | 42.0 | 5-8 (band 6) | standard | DefeatAll | 4 | 317.33 | 1332.80 | 158.97 | 0 | 0.119
+encounter:20 | 4 | 42.0 | 42.0 | 5-8 (band 6) | elite | SurviveRounds | 6 | 585.85 | 2460.55 | 218.58 | 0 | 0.089
+encounter:21 | 4 | 42.0 | 42.0 | 6-9 (band 8) | standard | ProtectTarget | 4 | 335.19 | 1407.81 | 158.97 | 0 | 0.113
+encounter:22 | 4 | 42.0 | 42.0 | 6-9 (band 8) | standard | SabotageTarget | 4 | 347.10 | 1457.81 | 158.97 | 0 | 0.109
+encounter:23 | 4 | 42.0 | 42.0 | 6-9 (band 8) | standard | Escape | 4 | 314.24 | 1319.82 | 158.97 | 0 | 0.120
+encounter:24 | 4 | 42.0 | 42.0 | 6-9 (band 8) | boss | CaptureLeader | 3 | 364.14 | 1529.40 | 139.10 | 0 | 0.091
+encounter:25 | 5 | 60.0 | 60.0 | 7-10 (band 8) | elite | DefeatAll | 6 | 633.69 | 3802.13 | 218.58 | 0 | 0.057
+encounter:26 | 5 | 60.0 | 60.0 | 7-10 (band 8) | standard | SurviveRounds | 4 | 397.57 | 2385.45 | 158.97 | 0 | 0.067
+encounter:27 | 5 | 60.0 | 60.0 | 7-10 (band 8) | standard | ProtectTarget | 4 | 445.99 | 2675.94 | 158.97 | 0 | 0.059
+encounter:28 | 5 | 60.0 | 60.0 | 7-10 (band 8) | standard | SabotageTarget | 4 | 523.88 | 3143.27 | 158.97 | 0 | 0.051
+encounter:29 | 5 | 60.0 | 60.0 | 8-11 (band 10) | standard | Escape | 4 | 386.53 | 2319.19 | 158.97 | 0 | 0.069
+encounter:30 | 5 | 60.0 | 60.0 | 8-11 (band 10) | boss | CaptureLeader | 3 | 503.80 | 3022.78 | 139.10 | 0 | 0.046
+encounter:31 | 6 | 85.0 | 85.0 | 8-11 (band 10) | standard | DefeatAll | 4 | 513.68 | 4366.25 | 158.97 | 0 | 0.036
+encounter:32 | 6 | 85.0 | 85.0 | 8-11 (band 10) | standard | SurviveRounds | 4 | 554.77 | 4715.55 | 158.97 | 0 | 0.034
+encounter:33 | 6 | 85.0 | 85.0 | 9-12 (band 10) | elite | ProtectTarget | 6 | 1121.51 | 9532.81 | 218.58 | 0 | 0.023
+encounter:34 | 6 | 85.0 | 85.0 | 9-12 (band 10) | standard | SabotageTarget | 4 | 349.40 | 2969.88 | 158.97 | 0 | 0.054
+encounter:35 | 6 | 85.0 | 85.0 | 9-12 (band 10) | elite | Escape | 4 | 464.61 | 3949.22 | 158.97 | 0 | 0.040
+encounter:36 | 6 | 85.0 | 85.0 | 9-12 (band 10) | boss | CaptureLeader | 3 | 451.42 | 3837.08 | 139.10 | 0 | 0.036
 CAMPAIGN_MEDIANS
-campaign=1; target_power=10.0; enemy_reference_power=10.0; encounters=6; threat_median=502.15; threat_min=282.03; threat_max=652.60; reward_ewu_median=160.84
-campaign=2; target_power=16.0; enemy_reference_power=16.0; encounters=6; threat_median=720.05; threat_min=545.48; threat_max=811.66; reward_ewu_median=160.84
-campaign=3; target_power=32.0; enemy_reference_power=32.0; encounters=6; threat_median=1148.01; threat_min=1085.26; threat_max=2670.94; reward_ewu_median=160.84
-campaign=4; target_power=42.0; enemy_reference_power=42.0; encounters=6; threat_median=1423.77; threat_min=1319.82; threat_max=2460.55; reward_ewu_median=160.84
-campaign=5; target_power=60.0; enemy_reference_power=60.0; encounters=6; threat_median=2849.36; threat_min=2319.19; threat_max=3802.13; reward_ewu_median=160.84
-campaign=6; target_power=85.0; enemy_reference_power=85.0; encounters=6; threat_median=4197.64; threat_min=2969.88; threat_max=9532.81; reward_ewu_median=160.84
+campaign=1; target_power=10.0; enemy_reference_power=10.0; encounters=6; threat_median=502.15; threat_min=282.03; threat_max=652.60; reward_ewu_median=158.97
+campaign=2; target_power=16.0; enemy_reference_power=16.0; encounters=6; threat_median=720.05; threat_min=545.48; threat_max=811.66; reward_ewu_median=158.97
+campaign=3; target_power=32.0; enemy_reference_power=32.0; encounters=6; threat_median=1148.01; threat_min=1085.26; threat_max=2670.94; reward_ewu_median=158.97
+campaign=4; target_power=42.0; enemy_reference_power=42.0; encounters=6; threat_median=1432.81; threat_min=1319.82; threat_max=2460.55; reward_ewu_median=158.97
+campaign=5; target_power=60.0; enemy_reference_power=60.0; encounters=6; threat_median=2849.36; threat_min=2319.19; threat_max=3802.13; reward_ewu_median=158.97
+campaign=6; target_power=85.0; enemy_reference_power=85.0; encounters=6; threat_median=4157.73; threat_min=2969.88; threat_max=9532.81; reward_ewu_median=158.97

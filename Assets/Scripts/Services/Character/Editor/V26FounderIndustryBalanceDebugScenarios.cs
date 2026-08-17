@@ -16,7 +16,8 @@ public static class V26FounderIndustryBalanceDebugScenarios
     private const string ReportPath =
         "Artifacts/QA/v26-founder-industry-bottom-up.md";
     private const int PartyRolls = 10_000;
-    private const float ApprovedWorkPerDay = 99f;
+    private const float ApprovedWorkPerDay =
+        SettlementLaborAuthority.HistoricalTheoreticalCapacityWuPerAdultDay;
     private const float IndustryShare = .35f;
 
     private static readonly CharacterProficiencyId[] ManufacturingJobs =

@@ -43,7 +43,7 @@ MonoBehaviour:
     recommendedRank: 3
     minimumRiskRank: 0
   requiredResearchId: research:equipment:rune-module-tuning
-  requiredWork: 136
+  requiredWork: 306
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

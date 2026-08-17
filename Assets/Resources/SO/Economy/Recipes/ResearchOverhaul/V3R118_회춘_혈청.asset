@@ -43,7 +43,7 @@ MonoBehaviour:
     recommendedRank: 2
     minimumRiskRank: 2
   requiredResearchId: research:medical:blood-rejuvenation
-  requiredWork: 36
+  requiredWork: 81
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

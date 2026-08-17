@@ -1,0 +1,8 @@
+RESULT=PASS; samples=1000; failures=0; stalled=0
+COMBAT_BALANCE_FINAL_CHECKPOINT_V2
+enemyDecisionAuthority=EnemyTacticalDecisionService
+encounter=encounter:30
+objective=CaptureLeader
+health=2.53; damage=1; accuracy=1; objectiveHealth=1; controlResistance=2; additionalEnemyCount=0; round=7
+win=0.373; targetWin=25 %-45 %; severe=0; targetSevere=<=60 %; lowHealth=0; failureCasualty=0.246570975
+medianRounds=8; meanHealth=0.8083873; score=0.0016213664719909829

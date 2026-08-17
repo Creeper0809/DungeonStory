@@ -1113,7 +1113,9 @@ public sealed class CharacterConsumablesRuntime :
                     medicalContext: false,
                     combatContext: false),
                 automaticOperation: true,
-                out result);
+                out result,
+                allowedFacilityDestinationId:
+                    GetRecreationalSubstanceDestinationId(facilityId));
         }
 
         List<RecreationalSubstanceCandidate> deliverable =
@@ -1182,7 +1184,8 @@ public sealed class CharacterConsumablesRuntime :
     private bool TryConsumeSubstance(
         ConsumeSubstanceByIdCommand command,
         bool automaticOperation,
-        out CharacterConsumablesSubstanceResult result)
+        out CharacterConsumablesSubstanceResult result,
+        string allowedFacilityDestinationId = null)
     {
         if (!command.IsValid
             || !IsAllowedOperationId(command.OperationId, automaticOperation))
@@ -1234,7 +1237,20 @@ public sealed class CharacterConsumablesRuntime :
             return false;
         }
         CharacterConsumablesStackSnapshot stack = FindStack(command.ItemStackId);
-        if (!IsSubstanceStackAvailableToCharacter(stack, command.CharacterId)
+        bool availableToCharacter = IsSubstanceStackAvailableToCharacter(
+            stack,
+            command.CharacterId);
+        bool availableAtAuthorizedFacility =
+            !string.IsNullOrWhiteSpace(allowedFacilityDestinationId)
+            && stack.StackId.IsValid
+            && stack.AvailableQuantity > 0
+            && !stack.Forbidden
+            && stack.State == CharacterConsumablesStackState.FacilityBuffer
+            && string.Equals(
+                stack.DestinationId,
+                allowedFacilityDestinationId,
+                StringComparison.Ordinal);
+        if ((!availableToCharacter && !availableAtAuthorizedFacility)
             || !stack.ItemId.Equals(substance.Id))
         {
             result = FailedSubstance(

@@ -28,7 +28,8 @@ MonoBehaviour:
     \uBAA8\uB450 \uD65C\uC6A9\uD574 \uD638\uD654\uC2DD\uACFC \uBCF4\uC874\uC2DD\uC744
     \uB9CC\uB4E0\uB2E4."
   field: 12
-  requiredWork: 184
+  requiredWork: 84
+  maximumResearchers: 1
   prerequisites:
   - {fileID: 11400000, guid: 4ab25e7b549727647902fa1512f46642, type: 2}
   - {fileID: 11400000, guid: aa7c653b442a12b44b0581cfac9b62bd, type: 2}

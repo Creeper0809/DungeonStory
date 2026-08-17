@@ -18,6 +18,9 @@ public sealed partial class SurvivalFoodRuntime :
 {
     private const int DailyFuelDemand = 1;
     private const float TreatmentMedicineHeal = 16f;
+    private const string CleanWaterItemId = "resource:clean-water";
+    private const string CookedMealItemId = "survival:cooked_meal";
+    private const string PreservedFoodItemId = "survival:preserved_food";
 
     private readonly IWildlifeSpeciesCatalogProvider speciesCatalog;
     private readonly ICharacterAiWorldRegistry worldRegistry;
@@ -841,6 +844,7 @@ public sealed partial class SurvivalFoodRuntime :
 
         amount = Mathf.Max(1, ability.waterPerWork);
         string waterItemId = RequireAuthoredItemId(
+            CleanWaterItemId,
             definition => definition.StockCategory == StockCategory.Water,
             "water");
         bool spawned = itemStackRuntime.SpawnItemAt(
@@ -917,6 +921,9 @@ public sealed partial class SurvivalFoodRuntime :
         BuildingPreservationAbility preservation =
             SurvivalFacilityWorkRules.FindPreservationAbility(building);
         string outputId = RequireAuthoredItemId(
+            preservation != null
+                ? PreservedFoodItemId
+                : CookedMealItemId,
             definition => definition.StockCategory == StockCategory.Food
                 && definition.TryGetFeature(out FoodItemFeature food)
                 && food.preserved == (preservation != null),
@@ -959,17 +966,20 @@ public sealed partial class SurvivalFoodRuntime :
     }
 
     private string RequireAuthoredItemId(
+        string itemId,
         Func<ItemDefinitionSO, bool> predicate,
         string role)
     {
-        ItemDefinitionSO definition = itemCatalog.All
-            .Where(candidate => candidate != null && predicate(candidate))
-            .OrderBy(candidate => candidate.ItemId, StringComparer.Ordinal)
-            .FirstOrDefault();
-        return definition != null
-            ? definition.ItemId
-            : throw new InvalidOperationException(
-                $"No authored item definition satisfies survival role '{role}'.");
+        if (!itemCatalog.TryGet(
+                (ItemDefinitionId)itemId,
+                out ItemDefinitionSO definition)
+            || definition == null
+            || !predicate(definition))
+        {
+            throw new InvalidOperationException(
+                $"Authored survival item '{itemId}' does not satisfy role '{role}'.");
+        }
+        return definition.ItemId;
     }
 
     private bool TryApplyTreat(

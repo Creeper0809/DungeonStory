@@ -1,0 +1,51 @@
+name: V27 ledger integrity
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/v27-ledger-integrity.yml"
+      - "tools/V27Balance/**"
+      - "tools/DungeonStory.BalanceAnalyzers/**"
+      - "Assets/Analyzers/**"
+      - "Artifacts/QA/v27-balance-*"
+      - "Artifacts/QA/combat-balance-final/**"
+      - "Artifacts/QA/combat-balance-final.txt"
+      - "Artifacts/QA/final-acceptance-report.txt"
+      - "Artifacts/QA/phase157-daily-routine-wu-seed-*.txt"
+      - "docs/generated/V27_Balance_Before_After.md"
+      - "docs/game-design/v27-balance-critical-approvals.json"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/v27-ledger-integrity.yml"
+      - "tools/V27Balance/**"
+      - "tools/DungeonStory.BalanceAnalyzers/**"
+      - "Assets/Analyzers/**"
+      - "Artifacts/QA/v27-balance-*"
+      - "Artifacts/QA/combat-balance-final/**"
+      - "Artifacts/QA/combat-balance-final.txt"
+      - "Artifacts/QA/final-acceptance-report.txt"
+      - "Artifacts/QA/phase157-daily-routine-wu-seed-*.txt"
+      - "docs/generated/V27_Balance_Before_After.md"
+      - "docs/game-design/v27-balance-critical-approvals.json"
+
+permissions:
+  contents: read
+
+jobs:
+  verify-committed-ledger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout with LFS evidence
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify deterministic ledger and durable evidence
+        run: python tools/V27Balance/verify_committed_artifacts.py

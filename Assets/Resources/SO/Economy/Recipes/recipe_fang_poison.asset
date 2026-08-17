@@ -42,7 +42,7 @@ MonoBehaviour:
     recommendedRank: 1
     minimumRiskRank: 2
   requiredResearchId: research:arcane:alchemy
-  requiredWork: 22
+  requiredWork: 50
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

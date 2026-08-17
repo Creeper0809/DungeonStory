@@ -331,9 +331,9 @@ Balance status: no balance values changed. Static implementation is complete; Un
 - `1 WU(Work Unit)`는 중립 주민의 실제 작업 1초다.
 - 현실 180초는 게임 1일이다.
 - `100초 × 전환 효율 0.99 = 99`는 과거 시간표에서 계산한 **이론적 작업 가능 상한**일 뿐 실제 WU 권위가 아니다.
-- 무연구 건강 성인의 밸런스 기준은 5일 라이브 표본의 안정 관측치 `19.882 WU/인·일`을 반올림한 `20 WU/인·일`이다.
-- `1 WD(Worker Day)`는 고정 99 WU가 아니다. 계산 대상 기술 단계와 집단의 승인된 라이브 `WU/인·일`을 반드시 함께 기록한다.
-- 시작 주민 3명의 기준 실제 노동은 `60 WU/일`이며 숙련·종족·특성·시설·욕구·동선 분포를 적용하기 전의 중앙 기준이다.
+- 무연구 건강 성인의 V27 기준은 현재 정상 AI 5일×3 seed 실측을 보수적으로 반올림한 `actual 50 WU/인·일`, 일정·계약·생산량용 `effective 45 WU/인·일`이다. 기존 `20 WU/인·일`은 V26 역사적 Before로만 보존한다.
+- `1 WD(Worker Day)`는 고정 99 WU가 아니다. 계산 대상 기술 단계와 집단의 승인된 라이브 `actual WU/인·일` 또는 `effective WU/인·일` 중 어느 권위를 사용했는지 반드시 함께 기록한다.
+- 시작 주민 3명의 V27 중앙 기준은 실제 수행 `150 WU/일`, 일정·산출 `135 WU/일`이며 숙련·종족·특성·시설·욕구·동선 분포를 적용하기 전의 값이다.
 - `99 WU/인·일`을 사용한 기존 연구 일수·계약 용량·생산 처리량·장비 준비 계산은 레거시 이론 계산으로 분류하며 신규 밸런스 판단에 사용하지 않는다.
 
 ### 2.2 밸런스 비용 벡터
@@ -567,7 +567,7 @@ EWU(output) =
 
 ### 4.9 연구·기술 진행
 
-기준 연구원 1명의 하루 연구 작업은 무연구 라이브 기준 `20 WU`에서 연구 수행 성능과 실제 연구 가능 시간을 적용해 계산한다. `99 WU` 고정 나눗셈은 금지한다.
+기준 연구원 1명의 하루 연구 일정은 무연구 V27 effective 기준 `45 WU`에서 연구 수행 성능과 실제 연구 가능 시간을 적용해 계산한다. 실제 수행량을 기록할 때만 actual `50 WU`를 사용하며 `99 WU` 고정 나눗셈은 금지한다.
 
 | 기술권 | 중앙 목표 | 허용 범위 |
 |---|---:|---:|
@@ -958,7 +958,7 @@ EWU와 목표 회수 기간: 숙련 15~20일, 기술자 60~80일, 전문가 180~
 - 정기 세력 계약 비용은 해당 기간 총생산의 1~3%다.
 - 위기 계약은 3~8%다.
 - 전략 계약은 희귀 자산 또는 총생산의 5~15%다.
-- 정적 계약 감사의 기준 정착지는 성인 생산인구 12명, 성인당 하루 99 WU, 생산·성장 가동률 42.5%다. 기준 기간 생산량은 `12 × 99 × 계약 기한 × 0.425` EWU로 계산한다.
+- 정적 계약 감사의 V27 기준 정착지는 성인 생산인구 12명, 성인당 effective `45 WU/일`, 생산·성장 가동률 42.5%다. 기준 기간 생산량은 `12 × 45 × 계약 기한 × 0.425` EWU로 계산한다. `12 × 20`은 V23/V26 Before 재현에만, `12 × 99`는 레거시 이론 진단에만 사용한다.
 - 이 12명 기준은 콘텐츠 에셋의 요구량을 비교하기 위한 이론 기준점이다. 실제 플레이 UI에서는 현재 성인 생산인구와 최근 10일 실효 생산량으로 예상 부담률을 다시 표시하며, 연구·시설·재고가 없어 이행 불가능한 계약은 그 원인을 수락 전에 알려야 한다.
 - 비제작 유물·계보 인장처럼 비가역 자산을 요구하는 계약은 EWU 비율에서 제외하고 자산 종류, 수량, 재획득 경로와 기회비용을 별도 감사한다. 한 계약의 기본 요구는 고유 자산 1개를 넘지 않는다.
 - 한 런에서 획득량이 유한한 고유 자산은 모든 필수 소비처와 선택 소비처의 최대 요구량을 합산한다. 필수 진행에 필요한 총량이 획득 가능한 총량을 넘으면 실패이며, 서로 다른 장기 목표가 같은 자산을 요구할 때는 모든 목표를 한 저장에서 달성할 수 있는 대체재·반환·재획득 경로가 있어야 한다.
@@ -1702,4 +1702,333 @@ EWU와 목표 회수 기간: 보너스·무료 운반·새 생산이 없고 admi
 자동 감사 ID와 전수 목록 포함 여부: FirstRun BLUEPRINT_ARCHIVE_DESTINATION_CLAIM_EXACT, ResearchTree save/rollback, coverage FirstRun transitive source와 필수 marker에 포함
 검증 매트릭스와 보고서 위치: ResearchTreeDebugScenarios.RunAll, Temp/first-run-objective-report.txt, DungeonAiActionSaveLoadPlayModeVerifier, Console Warning/Error 0/0. LiveFacility 수술·정비 회귀도 함께 유지
 현재 밸런스 상태: 밸런스 영향 없음 / 구조·연결 검증 대기. 수치·콘텐츠는 불변이고 fresh FirstRun·save/load·물류 회귀와 Console 0/0 전에는 연결 완료로 보고하지 않음
+```
+
+## V27 아이템·시장 가격 비대칭 환산 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:item-market-asymmetric-price-authority
+콘텐츠 종류: 전 아이템 내부 단가·자동 판매율·외부 구매·소매·계약 보상의 V27 mEWU 가격 환산
+정의·카탈로그·실행기 위치: ItemDefinitionSO, ResourceItemDefinitionSO, V27EmbeddedWorkValueCalculator, GoldEconomyBalanceRules, V27BalanceAudit, V27BalanceAssetApplication, ResourceStockPolicyRuntime, FacilityShopRuntime
+등장 시대와 연구: 기존 아이템·상점·계약의 시대와 연구 해금을 유지하며 신규 아이템·상점·화폐·해금을 추가하지 않음
+플레이어에게 주는 새 결정: 노동 생산성 20→45 WU/성인·일에 맞춰 상승한 물리 생산 원가가 내부 단가와 외부 구매·판매·소매·계약에 일관되게 반영됨. 직접 생산, 외부 조달, 판매, 계약 수행 중 어느 한 경로만 구가격으로 남는 차익을 제거함
+물리 BOM·입력·출력: 354개 레시피와 413개 해석 가능 아이템의 입력·출력 수량, 품질, 스택 크기, 무게, 저장 상태를 변경하지 않음. 가격 환산은 물리 아이템을 생성·소비하지 않으며 구매·판매는 기존 물리 수량 선차감·후정산 경계를 유지함
+직접 작업량과 계산 근거: 아이템 AcquisitionCost는 이미 승인된 actual 50·effective 45 노동 기준과 각 레시피 Direct WU를 입력 Ceil로 포함함. 가격 단계에서 WU를 다시 배율하지 않으며 내부 단가는 `ceil(AcquisitionCost / 3000 mEWU-per-gold)`, 자동 판매 credit은 `floor(RecoverableValue / 3000)` 경계를 사용함
+EWU와 목표 회수 기간: `1 gold=3 EWU`, 외부 구매 중앙값 `0.45 gold/EWU`, 자동 판매 중앙값 `0.20 gold/EWU`, 일반 소매 내부가치 1.20배, 프리미엄 서비스 순마진 25%를 유지함. 구매 debit은 Ceil, 판매·회수·보상 credit은 Floor하고 AcquisitionCost와 RecoverableValue를 혼용하지 않음
+공간·전력·물·연료·정비: 변경 없음. 가격 조정은 시설 면적·전력·상수·하수·연료·정비·처리량·저장량을 바꾸지 않으며 해당 물리 비용은 각 아이템 AcquisitionCost의 기존 의존 그래프를 통해서만 반영됨
+위험·실패·회복 방식: 미해석 아이템, 0/음수 원가, overflow, 가격 property 누락, 현재 Authority가 V23 Before와 V27 After 어느 쪽과도 불일치, 판매 금지 아이템의 양수 판매율, 소비자 가격 stale 상태는 fallback 없이 실패함. 부분 적용은 허용하지 않고 에셋 트랜잭션 실패 시 byte snapshot으로 원자 복구함
+사회·비가역 비용: 금화 지출·판매 물량·계약 납품·방문객 서비스의 기존 기회비용을 유지함. 가격 상승은 정상 AI가 만든 노동 가치 상승을 통화에 반영하는 것이며 무료 금화, 부채 탕감, 재고 생성, 과거 세이브 변환을 제공하지 않음
+기존 대안과의 장단점: V23 `Round(EWU/3)`은 현재 Before를 재현하지만 새 원가의 소수 debit을 아래로 반올림할 수 있음. V27 Ceil/Floor는 플레이어에게 보수적이고 미세 차익을 차단하는 대신 저가 아이템에서 1 gold 양자화 영향이 커질 수 있어 percent·rounding warning을 별도 표시함
+지배 전략 방지 조건: 외부 구매→제작→자동 판매 비음수 순환 0, 제작→분해→판매 비음수 순환 0, 판매 credit>RecoverableValue 0, 소매가<내부 단가 0, 계약 보상 승인 상한 초과 0, 판매 금지 아이템 수익 0, 한 물리 수량의 중복 정산 0
+저장 권위와 실행 명령: ItemDefinitionSO unitPrice와 ResourceItemDefinitionSO MarketItemFeature.saleRate가 아이템 가격 권위이고 SaleItem·stock category·guest request·regional contract의 저술 값은 파생 소비자 권위임. CSV는 감사 산출물이며 ApplyApproved만 exact approval patch를 적용함. 과거 세이브 마이그레이션은 범위 밖임
+자동 감사 ID와 전수 목록 포함 여부: V27_ITEM_UNIT_PRICE_INPUT_CEIL, V27_ITEM_SALE_OUTPUT_FLOOR, V27_MARKET_ALL_RESOLVED_ITEMS_COVERED, V27_MARKET_CONSUMER_PRICE_COHERENCE, V27_MARKET_BUY_CRAFT_SELL_NEGATIVE, V27_MARKET_ASSET_APPLY_ATOMIC, V27_SCC_ZERO_TOLERANCE를 필수 목록에 포함함
+검증 매트릭스와 보고서 위치: `Artifacts/QA/v27-balance-before-after.csv`, `v27-balance-recalibration-audit.txt`, `v27-balance-economy-256-seed.txt`, 시장 focused debug scenarios, 물리 구매·판매 PlayMode, 계약·방문객·상점 회귀, YAML second-run zero diff, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 밸런스 기준 배정 / 원장 후보 구현 중. 전 아이템과 모든 가격 소비자 후보가 전수 생성되고 Critical·순환·물리 보존·PlayMode·3-seed 실전 검증을 통과하기 전에는 가격 적용 완료 또는 전역 밸런스 완료로 보고하지 않음
+```
+
+## V27 생존 조리 출력 권위 후속 교정 기록 (2026-08-17)
+
+```text
+정의 ID: architecture:v27-survival-cook-output-authority
+콘텐츠 종류: D03 조리손질대의 생존 조리·급수 물리 출력 정의 선택 권위 교정
+정의·카탈로그·실행기 위치: SurvivalFoodRuntime, IItemDefinitionCatalog, survival_cooked_meal.asset, survival_preserved_food.asset, V3R01_깨끗한_물.asset, V27BalanceVerticalSlicePlayModeVerifier
+등장 시대와 연구: 기존 D03·보존 시설·깨끗한 물의 등장 시대와 연구 조건을 그대로 유지하고 신규 해금이나 콘텐츠를 추가하지 않음
+플레이어에게 주는 새 결정: 없음. 기존 Cook·DrawWater 명령이 역할 조건만 같은 임의의 사전순 아이템이 아니라 저술된 정식 생존 출력으로 연결됨
+물리 BOM·입력·출력: 일반 조리 입력 Food 1→`survival:cooked_meal` 1, 보존 조리 입력 Food 1→`survival:preserved_food`의 기존 저술 수량, 급수→`resource:clean-water`의 기존 저술 수량을 유지함. 금기의 고기·사체·다른 음식이 조리 출력으로 새로 생성되는 경로는 0
+직접 작업량과 계산 근거: D03 건설 468 WU·해체 117 WU 및 Cook·DrawWater의 기존 직접 작업량을 변경하지 않음. 이번 변경은 출력 definition ID 선택만 exact authority로 고정함
+EWU와 목표 회수 기간: 입력·출력 수량과 작업량은 불변이며 각 정식 출력의 기존 Acquisition/Recoverable EWU를 사용함. 임의 저가 Food definition을 출력으로 선택해 가치가 흔들리는 비결정 경로를 제거함
+공간·전력·물·연료·정비: D03 2×1, 기존 전력·상수·하수·연료 요구와 저장·처리량·정비 수치를 변경하지 않음
+위험·실패·회복 방식: exact item ID가 누락되거나 Food/Water 역할·보존 속성과 불일치하면 대체품 fallback 없이 fail-loud함. 출력 공간 실패 시 기존 물리 출력 fallback과 typed 작업 결과를 유지함
+사회·비가역 비용: 변경 없음. 조리·급수 작업자 시간, 입력 식량·연료와 시설 점유 기회비용을 그대로 지불함
+기존 대안과의 장단점: 역할 predicate의 사전순 첫 항목 선택은 새 콘텐츠 추가에 따라 출력이 조용히 바뀌지만 exact ID는 콘텐츠 확장과 무관하게 결정론적임. 별도 신규 recipe나 아이템 추가 없이 기존 정식 생존 아이템을 재사용함
+지배 전략 방지 조건: Food 1 투입당 일반 조리 물리 출력 1, 임의 고가·금기·사체 출력 0, 동일 명령 이중 출력 0, 출력 누락 시 임의 definition fallback 0, 저장·복원 후 definition drift 0
+저장 권위와 실행 명령: ItemDefinitionSO stable ID가 출력 정의 권위이고 SurvivalFoodRuntime만 생존 Cook·DrawWater 결과를 생성함. WorldItemStack save가 생성된 물리 수량·definition ID를 저장하며 과거 세이브 변환은 범위 밖임
+자동 감사 ID와 전수 목록 포함 여부: V27_SLICE_D03_FOOD_PHYSICAL_CONSERVATION은 출력 ID=`survival:cooked_meal`, 입력·출력 수량 보존과 실제 Loose stack 생성을 함께 검사하고 생존 focused 감사에 exact Water/Preserved 출력 회귀를 추가함
+검증 매트릭스와 보고서 위치: `Artifacts/QA/v27-balance-vertical-slice-full-loop-playmode.txt`, SurvivalDebugScenarios, V27 전수 원장 재생성, Unity Console Warning/Error 0/0. D03 실제 건설→조리→해체→회수→재건과 baseline restore byte-equivalence를 같은 세션에서 요구함
+현재 밸런스 상태: 밸런스 영향 없음 / 실행 권위 교정 검증 진행 중. fresh full-loop PlayMode와 생존 focused 감사, 전수 원장 source digest 갱신, Console 0/0 전에는 연결 완료 또는 밸런스 완료로 보고하지 않음
+```
+
+## V27 전수 밸런스 화이트박스 원장 파이프라인 기록 (2026-08-16)
+
+```text
+정의 ID: architecture:v27-whitebox-ledger-pipeline
+콘텐츠 종류: 전역 밸런스 Before/After·mEWU·의존성·승인·에셋 적용의 결정론적 감사 권위
+정의·카탈로그·실행기 위치: V23EmbeddedWorkValueCalculator, V27EmbeddedWorkValueCalculator, V27BalanceLedgerCore, V27BalanceAttribution, V27BalanceSerialization, V27BalanceAudit, GameContentCatalogSO, GameDomainContentCatalogSO
+등장 시대와 연구: 모든 시대·연구·콘텐츠를 감사하지만 이 파이프라인 자체는 새 해금·콘텐츠·플레이 규칙을 추가하지 않음
+플레이어에게 주는 새 결정: AuditOnly 단계에서는 없음. 이후 승인된 After만 ApplyApproved로 반영하며 승인되지 않은 후보·Critical은 플레이 수치에 영향을 주지 않음
+물리 BOM·입력·출력: 최초 구현은 모든 현재 ScriptableObject 숫자 권위와 354개 레시피·아이템·시설 BOM을 읽기 전용 캡처함. 기간 유지 후보는 입력 종류를 유지하고 WU 1.5~2.25배, BOM 증가는 최대 50% 범위에서만 비교하며 아직 물리 수량을 변경하지 않음
+직접 작업량과 계산 근거: 정상 AI 5일 실측 44.418/48.882/53.126 WU의 평균 48.809와 유효 평균 44.971을 근거로 actual 50, effective 45 WU/성인·일을 V27 목표로 배정함. 기존 20 기준의 기간 유지 1차 후보는 45/20=2.25이며 기술 단계 actual 50/54.5/62.5/74.5/85/100, effective 45/49.05/56.25/67.05/76.5/90을 사용함
+EWU와 목표 회수 기간: V23 float 결과는 Before 재현용으로 동결하고 V27은 long mEWU를 사용함. 입력·직접 WU·물류·유틸리티·손실은 구성요소별 Ceil, 산출·회수·판매 credit은 Floor하며 AcquisitionCost와 RecoverableValue를 분리함. 모든 반복 transform은 최소 -1 mEWU, SCC tolerance는 0임
+공간·전력·물·연료·정비: footprint, 전력, 상수, 하수, 연료, 정비, 처리량, 저장량을 전수 serialized authority 행으로 캡처함. AuditOnly는 값을 변경하지 않고 시설별 노동 밀도와 대체 후보만 표시함
+위험·실패·회복 방식: 누락 권위·중복 키·비정규 stable ID·NaN/Infinity·overflow·0 출력·미수렴·비음수 SCC margin·stale 승인·예상 밖 YAML churn은 fallback 없이 실패함. 산출물은 sibling 임시 파일 후 byte 비교·atomic replace하며 실패 시 기존 파일을 유지함
+사회·비가역 비용: AuditOnly에는 없음. ApplyApproved는 사용자의 기존 dirty asset을 거부하고 원장 Before가 현재 SerializedProperty와 정확히 같을 때만 변경하며 실패 시 이번 대상 byte snapshot으로 복구함
+기존 대안과의 장단점: V23 감사는 현재 콘텐츠와 float Before를 잘 재현하지만 비대칭 양자화·SCC·원인 귀속·결정론 직렬화·승인 적용 권위가 없음. V27은 더 엄격하고 리뷰 비용이 들지만 미세 순환 차익, 경고 폭포, CSV/YAML diff noise를 fail-loud하게 통제함
+지배 전략 방지 조건: 입력 Ceil/산출 Floor, 배치 분할 비용 감소 0, 출력 분할 가치 증가 0, 제작→해체→재제작 및 구매→제작→판매의 비음수 순환 0, RecoverableValue>AcquisitionCost 0, 승인 없는 After 적용 0. Warning 트리 접기 epsilon은 fingerprint 동일·상위 변화 전용 최대 2 mEWU이며 SCC·Authority·Apply에는 사용하지 않음
+저장 권위와 실행 명령: ScriptableObject·카탈로그·런타임 공식이 유일 원본이며 CSV/Markdown/DTO는 저장 권위가 아님. 기본 명령은 `DungeonStory/V27/Generate Audit-Only Whole-Game Ledger`; 명시적 ApplyApproved 전에는 SO를 수정하지 않음. 과거 세이브 마이그레이션은 범위 밖임
+자동 감사 ID와 전수 목록 포함 여부: V27_MEWU_ASYMMETRIC_QUANTIZATION, V27_MEWU_BATCH_PARTITION_MONOTONICITY, V27_ATTRIBUTION_COLLAPSE_EPSILON_ISOLATED, V27_SCC_ZERO_TOLERANCE, V27_CAPTURE_NORMALIZATION_AND_STABLE_SORT, V27_CSV_RFC4180_ESCAPE, V27_CSV_BYTE_DETERMINISM, V27_APPROVAL_EXACT_KEY_EXPIRY; 전수 CSV 각 행은 이 baseline ID 또는 후속 도메인별 record ID를 가짐
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-balance-before-after.csv, v27-balance-recalibration-audit.txt, v27-balance-anomaly-graph.json, v27-balance-artifact-manifest.json, docs/generated/V27_Balance_Before_After.md, docs/game-design/v27-balance-critical-approvals.json. 단위·property·metamorphic·RFC parser·Analyzer·YAML no-op·256 economy seed·조우별 1000 combat seed·인구/기술 매트릭스·DailyRoutineWu 157181~157183·Console 0/0을 순차 요구함
+현재 밸런스 상태: 밸런스 기준 배정 및 원장 기반 구현 진행 중. mEWU/접기/SCC/정규화/정렬/RFC 4180/승인키 focused 8종과 Unity compile·Console 0/0은 통과했으나 Analyzer 배포, 전수 감사, Critical 승인, SO 적용, YAML second-run zero diff, 경제·전투 시뮬레이션과 실전 재보정 전에는 밸런스 공식 검증·실전 보정·완료로 보고하지 않음
+```
+
+## V27 전수 원장 1차 감사·성능 게이트 후속 기록 (2026-08-16)
+
+```text
+정의 ID: architecture:v27-whitebox-ledger-pipeline-evidence-gate-v1
+콘텐츠 종류: V27 전수 원장의 실제 Authority 캡처·Critical 귀속·승인·직렬화·에셋 적용 게이트 후속 증거
+정의·카탈로그·실행기 위치: V27BalanceAudit, V27EmbeddedWorkValueCalculator, V27BalanceAttribution, V27BalanceSerialization, V27BalanceAssetApplication, DungeonStoryBalanceAnalyzer
+등장 시대와 연구: 모든 시대와 연구를 감사하지만 이 후속 기록 자체는 시대·연구·해금·콘텐츠를 추가하거나 변경하지 않음
+플레이어에게 주는 새 결정: 아직 없음. 승인 파일이 비어 있어 후보 After는 리뷰 정보로만 존재하고 실제 ScriptableObject 값은 한 건도 변경되지 않음
+물리 BOM·입력·출력: 354개 레시피와 전 ScriptableObject의 숫자·bool·enum 권위 및 BOM을 81,792행으로 캡처함. D03은 기존 처리목재 6·철 2·석재 2를 유지한 기간 보존 후보와 동일 재료 종류 내 BOM 재분배 후보를 분리하며 아직 적용하지 않음
+직접 작업량과 계산 근거: actual 50·effective 45 WU/성인·일과 2.25 기간 보존 배율을 유지함. D03의 파생 경제 작업량 208→468은 비적용 행이고 실제 patchable authored constructionWorkRequired 40→90 또는 BOM 재분배 40→60을 별도 행으로 둠
+EWU와 목표 회수 기간: long mEWU, 입력 Ceil·산출 Floor, SCC tolerance 0을 유지함. 현재 352 SCC의 최저 margin은 -2,311,986 mEWU이고 integrity failure는 0이나 최종 ROI·회수기간은 승인·적용·실전 검증 전 미확정
+공간·전력·물·연료·정비: 현재 Authority 값을 Before=After 명시 행으로 전수 보존하고 승인된 도메인 패치 전에는 footprint·전력·용수·폐기물·연료·정비·처리량을 바꾸지 않음
+위험·실패·회복 방식: 4개 상위 Critical을 승인 키와 함께 fail-loud하고 상속·반올림 전용 6개 파생 경고만 접음. 승인 키는 exact After·dependency fingerprint·source digest·reason·baseline ID가 바뀌면 만료하며 wildcard를 허용하지 않음
+사회·비가역 비용: 현재 적용 0건이라 없음. 향후 ApplyApproved는 기존 dirty asset 거부, Before 재검증, changed-only Dirty, 안정 정렬 ForceReserialize, identity 보존, 예외 시 대상 byte rollback을 요구함
+기존 대안과의 장단점: 사람이 CSV 수만 행을 직접 읽는 방식보다 root 4개와 collapsed 6개로 원인을 격리하고 no-op Git diff를 보장하지만, 승인과 도메인별 실제 플레이 검증 비용은 의도적으로 남음
+지배 전략 방지 조건: SCC margin >=0 0건, duplicate ledger key 0건, missing baseline ID 0건, 승인 없는 SO 변경 0건, 접기 epsilon의 SCC·Authority·Apply 사용 0건. 네 상위 root가 해결되기 전 하위 접힌 행을 독립 승인하지 않음
+저장 권위와 실행 명령: ScriptableObject·카탈로그·런타임 공식이 권위이며 생성 CSV·Markdown·JSON은 감사 산출물임. AuditOnly·RegenerateArtifacts는 무변경, ApplyApproved만 승인 파일을 소비함. 과거 세이브 마이그레이션은 범위 밖임
+자동 감사 ID와 전수 목록 포함 여부: DSB001~DSB008 analyzer source/DLL hash gate, V27 stable sort p95 2ms/0B, RFC 4180 byte·parser·긴 필드·Unicode 회귀, 81,792행 unique key·baseline coverage, 352 SCC 감사가 포함됨
+검증 매트릭스와 보고서 위치: v27-balance-before-after.csv, V27_Balance_Before_After.md, v27-balance-recalibration-audit.txt, v27-balance-anomaly-graph.json, v27-balance-artifact-manifest.json, v27-balance-ledger-contracts.txt. 다섯 결정론 산출물은 연속 재생성에서 length·SHA-256·mtime 모두 무변경
+현재 밸런스 상태: 밸런스 기준 배정·전수 AuditOnly 구현 완료 / 공식 검증 보류. unresolved root/local Critical 4, approved 0, asset patch 0이며 CSV escape 10,000필드·약 1MiB p95가 요구 2ms 대비 현재 4.271ms로 실패함. 비어 있지 않은 승인 적용·YAML rollback, 전수 경제 256 seed, 전투 조우별 1,000 seed, 인구·기술 매트릭스와 5일 실전 재보정 전에는 밸런스 완료로 보고하지 않음
+```
+
+## V27 통나무·조리 수직 슬라이스 노동 권위 배정 기록 (2026-08-16)
+
+```text
+정의 ID: balance:v27:logging-cooking-dismantle-vertical-slice
+콘텐츠 종류: 통나무→제재목→처리목재→D03 조리손질대→곡물죽→해체→재건의 첫 V27 수직 슬라이스
+정의·카탈로그·실행기 위치: source_logging.asset, source_quarry.asset, V3R01_깨끗한_물.asset, recipe_sawmill_lumber.asset, recipe_treated_lumber.asset, crop_twilight_grain.asset, recipe_grain_porridge.asset, D03_조리손질대.asset, V27BalanceWorkCalculator, V23MaterialSalvageCalculator, ProductionBillRuntime, WorkAmountSystem
+등장 시대와 연구: 각 기존 원천 채집·제재·목재 처리·황혼곡물·곡물죽·D03의 시대와 연구 해금을 그대로 유지하며 신규 해금·무료 기술·콘텐츠를 추가하지 않음
+플레이어에게 주는 새 결정: 기존 생산·건설·해체 선택은 유지하되 정상 AI의 유효 생산성 20→45 WU/성인·일에 맞춰 같은 달력 기간을 지불함. 재료 종류·공정 순서·대체품은 바뀌지 않음
+물리 BOM·입력·출력: 벌목·채석·깨끗한 물의 무입력 원천 출력, 제재목 `resource:log=2`, 처리목재 `material:lumber=2|resource:dark-resin=1`, 황혼곡물 `seed-lot:twilight-grain=1(수확 시 최소 2 반환)|resource:clean-water=1`, 곡물죽 `resource:twilight-grain=2`, D03 `material:iron-ingot=2|material:stone-block=2|material:treated-lumber=6`을 Before와 After에서 동일하게 유지함. D03 해체 회수는 숙련 100 기준 철괴 1·석재 블록 1·처리목재 5로 불변
+직접 작업량과 계산 근거: 런타임 직접 WU는 벌목 18→40.5, 채석 32→72, 깨끗한 물 10→22.5, 제재목 22→49.5, 처리목재 22→49.5, 황혼곡물 파종 3→7·수확 6→14, 곡물죽 28→63, D03 건설 208→468, D03 해체 52→117임. 소수 WU를 지원하는 런타임 계산은 정확히 ×2.25하고, 정수 ScriptableObject 표시는 각각 41·72·23·50·50·7·14·63·90처럼 Ceil한 authored 후보를 별도 기록함. 기간 증명은 예를 들어 D03 `208/20=10.4` 성인·일과 `468/45=10.4` 성인·일로 동일함
+EWU와 목표 회수 기간: 통나무 Acquisition 4.817→10.838 EWU, 처리목재 31.792→71.533 EWU, 황혼곡물 재배 입력 5.098→11.469 EWU/개, 곡물죽 28.032→53.694 EWU, D03 BOM 337.216391→758.760 EWU임. D03 건설 노동밀도는 208/337.216391=0.6168146198에서 468/758.760=0.6167958248로 사실상 유지됨. 해체·재건 순환 margin은 -365.029→-821.314 EWU로 더 손실적이며 SCC에는 표시용 epsilon을 적용하지 않음
+공간·전력·물·연료·정비: D03 2×1 면적, 전력·자동화·컨베이어·상수·하수 연결, 공정당 깨끗한 물 0.25·오수 0.25, 저장·처리량·정비 수치는 변경하지 않음. 황혼곡물 재배 면적·성장시간·일일 용수·수확량도 변경하지 않음
+위험·실패·회복 방식: 자원 부족·물류 no-path·예약 취소·생산 중단·작물 실패·시설 파괴의 기존 typed 실패를 유지함. 입력 Ceil·산출 Floor와 exact in-transit commitment를 사용하며 취소·저장·복원으로 자원이나 WU를 복제하지 않음. 과거 세이브 마이그레이션은 범위 밖이고 신규 주문·신규 공정이 V27 권위를 사용함
+사회·비가역 비용: 동일 달력 기간과 재료 손실을 유지하므로 작업자 기회비용·시설 점유·배관 장애·작물 재배지 점유·해체 손실을 낮추지 않음. D03 해체 후 재건은 최소 821.314 EWU를 소실해 반복 이득이 없음
+기존 대안과의 장단점: `WU×2.25, BOM 동일`은 노동밀도와 기간을 보존함. 검토한 `WU×1.5 + BOM 증가`는 D03에서 노동밀도를 0.6168146→0.4111972로 더 붕괴시키며 재료 추가는 분모를 키워 악화하므로 기각함. BOM 종류·수량을 유지한 ×2.25 후보를 최소 변화 승인안으로 선택함
+지배 전략 방지 조건: 배치 분할로 입력 비용 감소 0, 출력 분할로 가치 증가 0, 원천→중간재→음식·시설 우회 무료 산출 0, D03 철거→재건 비음수 순환 0, 같은 시대 대안 대비 BOM·WU·시간을 동시에 모두 이기는 경로 0, 승인되지 않은 ScriptableObject 변경 0
+저장 권위와 실행 명령: ProductionRecipeSO·BuildingSO·CropDefinitionSO가 BOM·공정·정수 authored 표시를 소유하고 V27BalanceWorkCalculator가 신규 생산·건설의 기간 보존 runtime WU를 소유함. 해체는 같은 V27 건설 WU를 V23MaterialSalvageCalculator의 불변 0.20~0.35 비율에 한 번 넣으므로 별도 재배율 없이 52→117이 됨. WorkOrder save는 생성 시 확정 requiredWork를 저장하고 ProductionBill은 현재 계산 권위를 조회함. 과거 저장 변환은 구현하지 않음
+자동 감사 ID와 전수 목록 포함 여부: V27_VERTICAL_SLICE_RUNTIME_WORK_SCALE, V27_VERTICAL_SLICE_AUTHORITY_ALIGNMENT, V27_VERTICAL_SLICE_DISMANTLE_REBUILD_NEGATIVE, V27_MEWU_ASYMMETRIC_QUANTIZATION, V27_SCC_ZERO_TOLERANCE, V27_APPROVAL_EXACT_KEY_EXPIRY를 필수로 하며 해당 CSV 행의 balanceBaselineRecordId는 이 정의 ID를 사용함
+검증 매트릭스와 보고서 위치: `Artifacts/QA/v27-balance-before-after.csv`, `v27-balance-recalibration-audit.txt`, `v27-balance-ledger-contracts.txt`, focused Production/WorkAmount PlayMode, D03 실제 건설·조리·해체·회수·재건, YAML second-run zero diff, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 밸런스 기준 배정 / 구현·공식·실전 검증 진행 중. 수치와 기각 대안은 확정했지만 runtime calculator 등록, exact 승인·ApplyApproved, D03 full loop PlayMode, 256-seed 경제 감사와 5일 실전 재측정을 모두 통과하기 전에는 밸런스 공식 검증·실전 보정·완료로 보고하지 않음
+```
+
+## V27 전역 노동·시설 기간 보존 권위 배정 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:global-labor-facility-period-preserving
+콘텐츠 종류: 전 생산 레시피 350개, 작물 12종의 파종·수확 24개 작업량, 물리 BOM이 있는 시설 356개의 authored WU 전수 재배정
+정의·카탈로그·실행기 위치: ProductionRecipeSO.requiredWork, CropDefinitionSO.sowWork/harvestWork, BuildingWorkAmountAbility.constructionWorkRequired, V27BalanceWorkCalculator, V27EmbeddedWorkValueCalculator, ProductionBillRuntime, CropPlotRuntime, ConstructionSite, WorkAmountSystem
+등장 시대와 연구: 기존 각 레시피·작물·시설의 시대, 연구, 해금과 선행 조건을 그대로 유지하고 신규 콘텐츠·해금·대체 경로를 추가하지 않음
+플레이어에게 주는 새 결정: 기존 생산·재배·건설 선택은 유지하되 정상 AI의 유효 산출 기준이 20→45 WU/성인·일로 상승한 만큼 같은 달력 기간을 지불함. BOM·시설 기능·출력량은 바뀌지 않음
+물리 BOM·입력·출력: 전 대상의 입력 item ID·수량, 출력 item ID·수량·확률, 작물 수확량·종자 반환, 시설 건설 재료 종류·수량을 Before와 After에서 byte-equivalent 의미로 유지함. BOM 재분배 후보는 비교 행으로만 남기고 적용하지 않음
+직접 작업량과 계산 근거: 각 authored Before에 `Ceil(Before×45/20)`을 적용함. 350 recipe + 24 crop work + 356 building, 총 730개 작업량 행이 대상이며 런타임 파생 작업은 정확한 2.25 scale을 사용함. 기존 첫 수직 슬라이스 9개는 같은 공식으로 이미 적용됨
+EWU와 목표 회수 기간: BOM Acquisition EWU도 동일 V27 원가 사슬에서 2.25배로 이동하므로 356개 시설 authored 노동밀도 비율은 0.9999331467~1.0258584894로 정상 범위 0.80~1.25 안에 유지됨. WU×1.5+BOM 증가는 분모를 더 키워 노동밀도를 악화하므로 기각함
+공간·전력·물·연료·정비: 시설 footprint, 접근 셀, 작업자 슬롯, 전력, 상수, 하수, 연료, 정비, 저장량과 처리량은 변경하지 않음. 작물 성장시간·용수·면적과 레시피 유틸리티도 변경하지 않음
+위험·실패·회복 방식: 정확한 historical Before가 승인 원장에 없거나 현재 Authority가 Before/After 어느 쪽과도 다르면 fail-loud함. 작업 취소·시설 파괴·재료 부족·작물 실패의 기존 typed terminal과 보존성은 유지하며 과거 세이브 마이그레이션은 범위 밖임
+사회·비가역 비용: 같은 달력 기간과 기존 재료·시설 점유를 유지하므로 작업자 기회비용, 생존·의료·경비 이탈, 생산 대기열 비용을 낮추지 않음. 기존 진행 중 주문의 과거 저장값 변환은 하지 않고 신규 주문이 현재 V27 권위를 사용함
+기존 대안과의 장단점: WU×2.25+BOM 동일은 기간과 노동밀도를 함께 보존하고 diff가 최소임. WU×1.5+BOM 보강은 노동밀도를 하락시키며 새 재료 수요와 물류 병목을 만들기 때문에 전수 기본안에서 제외함. 개별 실전 ROI 이상치는 후속 도메인 보정에서 별도 승인함
+지배 전략 방지 조건: 동일 BOM에서 더 짧은 달력 생산 0, 작업량 분할로 Ceil 비용 감소 0, 철거→재건 비음수 순환 0, BOM·WU·시간을 동시에 모두 이기는 같은 시대 대안 0, 승인 없는 authored WU 변경 0. 356개 해체·재건 최대 margin은 -87,366 mEWU 이하로 엄격히 손실적임
+저장 권위와 실행 명령: ScriptableObject authored 필드가 표시·신규 작업의 권위이고 V27BalanceWorkCalculator가 공식 파생 WU 권위임. 기계 승인은 exact Before/After·dependency fingerprint·source digest를 저장하며 사용자의 별도 수동 승인을 요구하지 않음. 실행은 Generate Exact Labor and Facility Approvals→ApplyApproved→VerifyApplied 순서임
+자동 감사 ID와 전수 목록 포함 여부: V27_LABOR_AUTHORED_WU_SCALE_EXACT, V27_LABOR_BOM_UNCHANGED, V27_FACILITY_LABOR_DENSITY_NORMAL, V27_FACILITY_DISMANTLE_REBUILD_STRICT_LOSS, V27_LABOR_EXACT_APPROVAL_KEYS, V27_LABOR_ASSET_APPLIED_EXACT를 전수 목록에 포함함
+검증 매트릭스와 보고서 위치: `Artifacts/QA/v27-balance-labor-facility-authority.txt`, `v27-balance-before-after.csv`, `v27-balance-recalibration-audit.txt`, `v27-balance-economy-256-seed.txt`, YAML second-run zero diff, Production/Crop/Construction focused PlayMode, DailyRoutineWu 3 seed, Unity Console Warning/Error 0/0을 요구함
+현재 밸런스 상태: 밸런스 기준 배정 / 전수 적용·공식·실전 검증 진행 중. exact approval·SO 적용·no-op 재적용·256 seed·focused PlayMode·5일 실전 재보정이 모두 통과하기 전에는 밸런스 공식 검증·실전 보정·완료로 보고하지 않음
+```
+
+## V27 전투 조우 실제 장비·숙련 결과 보정 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:combat-outcome-checkpoint-calibration
+콘텐츠 종류: 기존 36개 전투 조우의 실제 장비·숙련·진형·위험도 기반 1,000-seed 결과 보정
+정의·카탈로그·실행기 위치: CombatBalanceCheckpointAuthority, CombatOutcomeBalanceCalibrationScenario, SettlementPopulationPowerCheckpointDebugScenarios, EnemyCombatContentCatalog, EnemyEncounterDefinitionSO, EnemyArchetypeDefinitionSO, OffenseBattleModel
+등장 시대와 연구: 캠페인 1/30/120/240/400/960일의 기존 연구·장비 해금·적 조우 순서를 유지하고 신규 적·기술·보상·무료 장비를 추가하지 않음
+플레이어에게 주는 새 결정: 기존 무기·방어구·방패·품질과 전투 명령을 그대로 사용하며 일상·표준·위험·보스 조우의 준비 수준과 감수할 부상 위험을 수치로 비교할 수 있게 함
+물리 BOM·입력·출력: 전투 장비, 탄약, 원정 보급, 약품, 전리품과 보상 물리 수량은 보정 전수 감사에서 Before와 After를 각각 기록함. 결과 밴드만 맞추기 위해 아이템을 생성하거나 requiredPower에서 가짜 장비 능력치를 역산하지 않음
+직접 작업량과 계산 근거: 정착지 생산 WU는 변경하지 않음. 전투 표본은 조우마다 1,000 deterministic seed를 사용하고 checkpoint 전투 준비 최소 인원을 실제 원정 상한 5명으로 제한한 2/2/3/5/5/5명, checkpoint 장비 정의의 피해·방어·방패·품질, 실제 숙련 성장 규칙과 authored 적 구성·라운드·위험 배율을 입력함. 캠페인 5·6에서 파티 상한을 넘는 준비 인구는 승률에 합산하지 않고 교대·방어 여력으로만 남김. 조우별 보정 축은 enemyHealthMultiplier·enemyDamageMultiplier 0.10~4.00과 기존 objectiveRoundLimit이며 적 archetype 원본과 정착지 WU를 역산하지 않음
+EWU와 목표 회수 기간: 전투 보급·장비 내구·부상 치료·사망·전리품·보상을 AcquisitionCost debit Ceil과 RecoverableValue credit Floor로 환산함. 각 조우의 기대 순가치와 캠페인 구간 회수 기간은 결과 밴드 통과 후 확정하며 SCC·판매·해체 tolerance는 0을 유지함
+공간·전력·물·연료·정비: 기존 전투 시설·병상·장비 보관 공간과 전력·물·연료·정비·수리 비용을 유지하고 변경 후보가 생기면 해당 SerializedProperty를 별도 원장 행과 exact approval로만 적용함
+위험·실패·회복 방식: 일상 조우 승률 85~95%·성공 원정의 노출 인원당 Dead/Downed 5% 미만, 표준 65~80%·성공 노출 인원당 Dead/Downed 상한 20%, 위험 45~65%·성공 노출 인원당 Dead/Downed 상한 35%, 보스 첫 시도 25~45%·성공 노출 인원당 Dead/Downed 상한 50%를 목표로 함. 원정 하나에 1명이라도 쓰러졌는지로 세어 대형 파티를 과대 처벌하지 않고 `Dead/Downed 인원 ÷ 성공한 원정의 전체 파티 인원`을 권위로 사용함. HP 25% 미만 생존은 같은 인원 분모의 low-health attrition으로 별도 기록해 의료적 중상과 혼합하지 않으며, 표의 중상 하한은 관찰 기준선으로 보고하되 일부러 부상을 늘리는 실패 조건으로 쓰지 않음. 패배·목표 실패의 Dead/Downed도 실패 노출 인원당 failure-casualty로 별도 기록해 성공 중상 분모에 중복 산입하지 않음. 정지·무효 명령·무한 전투·NaN·표본 누락은 수치 보정으로 숨기지 않고 구조 실패로 분리함
+사회·비가역 비용: 사망·중상·수술·회복 병상·원정 부재·장비 파손의 기존 비가역 비용을 실제 결과에 포함하며 패배 직전 세이브 반복이나 보상 복제를 허용하지 않음
+기존 대안과의 장단점: 전역 공격력 배율 하나는 일부 조우를 고치면서 다른 조우를 확정 승리로 만들어 기각함. 조우별 적 수·능력·위험·라운드·보상 후보를 최소 변경으로 비교하되 실제 장비·숙련 투영과 authored 전투 실행기를 우회하지 않음
+지배 전략 방지 조건: 승률만 맞추고 중상·소모·순가치를 악화하는 후보 0, requiredPower 역산 능력치 0, 무료 회복·무료 장비·무료 행동 0, 승리 보상 EWU가 기대 debit을 무제한 초과하는 조우 0, 동일 조우 반복 비음수 자원 순환 0
+저장 권위와 실행 명령: EnemyEncounterDefinitionSO·EnemyArchetypeDefinitionSO·실제 장비 SO와 숙련 성장 규칙이 입력 권위이고 CombatBalanceCheckpointAuthority는 감사 표본의 명시적 checkpoint 권위임. `CombatOutcomeBalanceCalibrationScenario.RunAll()`은 읽기 전용 결과 증거를 쓰며 과거 세이브 마이그레이션은 범위 밖임
+자동 감사 ID와 전수 목록 포함 여부: V27_COMBAT_CHECKPOINT_ACTUAL_LOADOUT_AUTHORITY, V27_COMBAT_REQUIRED_POWER_REVERSE_ENGINEERING_ZERO, V27_COMBAT_1000_SEEDS_PER_ENCOUNTER, V27_COMBAT_WIN_SEVERE_BANDS, V27_COMBAT_STALL_ZERO, V27_COMBAT_EWU_NET_VALUE, V27_COMBAT_ARTIFACT_FRESH를 전수 원장 manifest와 CI 필수 목록에 포함함
+검증 매트릭스와 보고서 위치: `Artifacts/QA/combat-outcome-balance.txt`, `combat-power-sweep.txt`, `combat-content-balance.txt`, `v26-population-power-checkpoints.md`, `v27-balance-before-after.csv`, 조우별 1,000 seed, 캠페인 checkpoint 매트릭스, 전투 PlayMode, 5일 3-seed 후속 의료·생산 손실, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 밸런스 기준 배정 / 실제 Before 재측정 진행 중. 실제 장비·숙련 기반 36개 조우 1,000-seed 결과, 밴드 밖 조우의 exact approval·ApplyApproved, 재실행, EWU 순가치, 전투 PlayMode와 Console 0/0 전에는 전투 밸런스 공식 검증·실전 보정·완료로 보고하지 않음
+```
+
+## V27 전투 조우 36종 적용·재검증 후속 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:combat-outcome-checkpoint-calibration-applied-v1
+콘텐츠 종류: 기존 공격 원정 전투 조우 36종의 production tactics 결과 배율·목표 내구·제어 저항·라운드 제한 보정
+정의·카탈로그·실행기 위치: CombatBalanceCheckpointAuthority.AllEncounters, OffenseEncounterSO, V20CombatContentAssetBuilder, EnemyEncounterFactory, EnemyTacticalDecisionService, OffenseBattleModel, CombatOutcomeBalanceCalibrationScenario, V27BalanceAudit, V27BalanceAssetApplication
+등장 시대와 연구: 캠페인 1~6과 기존 1/30/120/240/400/960일 장비·숙련 checkpoint를 유지함. 연구 해금, 적 archetype, 전투 보상, 조우 순서, 과거 세이브 마이그레이션은 변경하지 않음
+플레이어에게 주는 새 결정: 근접·원거리 혼합 2/2/3/5/5/5 원정대, 실제 무기·방어구·방패·탄약·숙련으로 조우별 목표 성공률과 중상 위험을 구분함. ProtectTarget 적은 법적으로 공격 가능한 보호대상을 전술적으로 우선하며, hook-pull은 실제 진형 이동과 지연으로 실행됨
+물리 BOM·입력·출력: 장비·탄약·약품·원정 보급·전리품 BOM과 수량은 Before와 동일함. 무료 장비·무료 회복·무료 행동·보상 증액은 0이고 additionalEnemyCount는 36행 모두 0을 유지함
+직접 작업량과 계산 근거: 생산·건설·치료 WU는 변경하지 않음. 36종 각각 production EnemyTacticalDecisionService로 1,000 deterministic seeds를 실행함. 변경은 18개 에셋 35 scalar이며 exact Before→After는 03:o 1→2.6; 04:h 1→0.122,o 1→0.8,r 7→9; 06:h 1→2.53,c 1→1.5; 10:h 1→0.503,o 1→0.25; 11:d 1→0.632; 12:h 1→0.224,d 1→0.2,c 1→0.25,r 7→8; 14:d 1→0.632; 16:h 1→0.411,o 1→0.95; 18:c 1→1.2; 21:h 1→2.53,d 1→2; 22:h 1→1.55,d 1→0.8; 25:h 1→2.53,d 1→4; 27:h 1→2,d 1→2; 28:h 1→3.2,d 1→1.25; 30:h 1→2.53,c 1→2; 33:h 1→1.8,d 1→7,a 1→8; 34:h 1→3.789; 36:h 1→2.53,c 1→0.5임. h=enemyHealthMultiplier, d=enemyDamageMultiplier, a=enemyAccuracyMultiplier, o=objectiveHealthMultiplier, c=objectiveControlResistanceMultiplier, r=objectiveRoundLimit임
+EWU와 목표 회수 기간: 이번 수직 적용은 전투 결과 권위만 교정하고 보급 debit·내구 손실·치료·사망·전리품·보상 EWU 값은 바꾸지 않음. 전투 순가치와 캠페인 회수 기간은 전수 경제 단계에서 Acquisition debit Ceil/Recoverable credit Floor로 별도 확정하며 SCC tolerance 0을 유지함
+공간·전력·물·연료·정비: 기존 원정 준비 공간, 병상, 보관, 전력, 물, 연료, 장비 정비와 수리 비용은 모두 Before와 동일함
+위험·실패·회복 방식: Routine Defeat 비엘리트·비보스 85~100%, Survive 85~100%, Escape 표준/엘리트/보스 80/65/55% 하한, 일반 표준 65~80%, 일반 엘리트 45~65%, 일반 보스 25~45%, ProtectTarget 표준 65~80%, ProtectTarget 엘리트 55~90%를 사용함. 성공 전투 Dead/Downed 상한은 표준 20%, 엘리트 35%, 보스 50%이며 stalled·rejected command·NaN은 0이어야 함
+사회·비가역 비용: 사망·Downed·저체력·수술·회복 병상·원정 부재·장비 내구 손실의 기존 비가역 비용을 실제 결과에 포함함. 패배 직전 반복 저장이나 보상 exact-once 위반을 허용하지 않음
+기존 대안과의 장단점: 전역 공격력 한 값, requiredPower 역산, 적을 전부 Front로 강제, 검증기 전용 명령은 조우별 의미와 진형을 파괴해 기각함. 조우 로컬의 최소 배율·내구·저항·라운드 변경만 선택했고 적 수·BOM·보상은 유지함
+지배 전략 방지 조건: 36개 중 한 조우라도 목표 밴드 이탈·중상 상한 초과·무한 전투·무효 적 명령이 있으면 실패함. 보호대상 대신 저체력 미끼만 공격하는 전술, route의 authored archetype 누락, hook-pull 표시만 있고 실제 진형이 안 바뀌는 false-green을 별도 회귀로 금지함
+저장 권위와 실행 명령: OffenseEncounterSO가 실제 배율 저장 권위이고 CombatBalanceCheckpointAuthority.AllEncounters가 빌더·원장·검증기의 단일 승인 표임. GenerateCombatEncounterApprovalsFromMenu→ApplyApproved→FinalizeAppliedCombatCheckpointEvidence 순서이며 exact Before/After·dependency fingerprint·source digest·baseline record ID가 일치해야 함
+자동 감사 ID와 전수 목록 포함 여부: COMBAT_BALANCE_ALL_FINAL_CHECKPOINTS_V1, COMBAT_BALANCE_APPLIED_FINAL, PRODUCTION_PROTECT_OBJECTIVE_TARGET_PRIORITY, PRODUCTION_HOOK_PULL_PROJECTED_AND_EXECUTED, ROUTE_ENCOUNTER_AUTHORED_DIVERSITY_PRESERVED, V27 combat 252 ledger rows, exact combat approval 35개를 전수 목록에 포함함
+검증 매트릭스와 보고서 위치: `Artifacts/QA/combat-balance-final.txt`, `Artifacts/QA/combat-balance-final/encounter-01..36.txt`, `Artifacts/QA/v27-balance-before-after.csv`, `Artifacts/QA/v27-balance-recalibration-audit.txt`; 적용 결과 36×1,000 PASS, failures=0, stalled=0, 18 assets/35 properties, no-op differing=0, Unity Console Warning/Error=0/0
+현재 밸런스 상태: 전투 조우 scalar 공식·적용·결정론 검증 완료. 게임 전역 밸런스 완료는 아님. 전투 보급·내구·의료·보상 EWU 순가치, 전체 256-seed 경제, 전투 PlayMode, 5일 3-seed 후속 비용과 최종 manifest가 통과하기 전에는 전투 실전 보정·전체 밸런스 완료로 보고하지 않음
+```
+## V27 정상 AI 5일 실전 노동 생산성 최종 보정 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:daily-routine-actual-effective-wu-final
+콘텐츠 종류: 정상 AI 현재 소스 기준 5일 3-seed 실제 노동량·유효 산출량 최종 실전 보정 증거
+정의·카탈로그·실행기 위치: DailyRoutineWuPlayModeVerifier, CharacterAiDecisionPipeline, AbilityWork, WorkTaskExecutor, V27BalanceWorkCalculator, phase157-daily-routine-wu-seed-157181/157182/157183 reports
+등장 시대와 연구: 기존 5일 일상 루틴 fixture의 시대·연구·인구·작업 카탈로그를 유지하며 새 해금이나 콘텐츠를 추가하지 않음
+플레이어에게 주는 새 결정: 없음. 이 기록은 이미 적용된 actual 50·effective 45 WU/성인·일 권위가 정상 AI 실전에서 보수적으로 유지되는지 재측정함
+물리 BOM·입력·출력: 음식·물·위생·휴식·작업의 기존 물리 입력과 출력 수량을 변경하지 않음. 세 seed 모두 5일 동안 실제 생산·소비·물류 경로를 사용하고 감사용 무료 지급이나 런타임 억제를 사용하지 않음
+직접 작업량과 계산 근거: seed 157181 actual=50.340, effective=46.165; 157182 actual=51.117, effective=46.871; 157183 actual=51.927, effective=47.847 WU/성인·일. 평균 actual=51.128, 표본 표준편차=0.794, CV=1.55%; 평균 effective=46.961, 표본 표준편차=0.845, CV=1.80%. authored actual 50과 일정 권위 effective 45는 각각 실측 평균보다 2.21%·4.18% 낮아 보수적 여유를 유지함
+EWU와 목표 회수 기간: 기존 20 WU 기준 대비 authored actual 배율 2.50, effective 기간 보존 배율 2.25를 유지함. 새 실측값을 다시 수치에 곱해 재팽창시키지 않으며 모든 원가·SCC·ROI는 승인된 50/45 권위로 계산함
+공간·전력·물·연료·정비: 5일 fixture의 기존 시설 footprint·접근·전력·상수·하수·저장·정비 조건을 유지함. 측정 편의를 위한 공간·유틸리티 면제는 없음
+위험·실패·회복 방식: 세 seed 중 하나라도 5일 미달, runtimeDiagnosticsGate 불일치, Console issue, terminal 실패, actual/effective 범위 이탈이면 실전 보정을 실패 처리함. 현재 세 보고서 모두 RESULT=PASS, failures=0, capturedIssues=0임
+사회·비가역 비용: 식사·수면·위생·이동·예약·작업 전환·긴급 self-care로 빠지는 실제 시간이 effective 산출에 포함됨. 이 손실을 제거하거나 생산 작업으로 재분류하지 않음
+기존 대안과의 장단점: 초안의 48.809 actual·44.971 effective는 AI 안정화 이전/중간 표본이라 방향성 근거로만 보존함. 현재 소스의 51.128·46.961은 변동이 더 작지만 그대로 authored 기준으로 올리면 일정과 원가를 다시 팽창시키므로 50/45를 안정적인 보수 기준으로 유지함
+지배 전략 방지 조건: 측정용 시간·재료 생성 0, 작업자 강제 고정 0, 생존 행동 억제 0, 실패 seed 제외 0, 유리한 seed 선택 0, 동일 생산을 actual과 effective에 이중 계상 0
+저장 권위와 실행 명령: ScriptableObject·작업 런타임·실제 Character 상태가 권위이며 각 seed는 DailyRoutineWuPlayModeVerifier.RequestRun(157181/157182/157183)의 독립 PlayMode 세션과 durable artifact를 사용함. 과거 세이브 변환은 범위 밖임
+자동 감사 ID와 전수 목록 포함 여부: observedDays=5, exact runSeed, runtimeDiagnosticsGate=ai-runtime-gate-v3, RESULT=PASS, failures=0, capturedIssues=0을 세 seed 모두 요구하며 V27 artifact manifest와 이 baseline ID가 최종 실전 보정 증거를 참조함
+검증 매트릭스와 보고서 위치: Artifacts/QA/phase157-daily-routine-wu-seed-157181.txt, phase157-daily-routine-wu-seed-157182.txt, phase157-daily-routine-wu-seed-157183.txt, v27-balance-artifact-manifest.json, final-acceptance-report.txt, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 밸런스 실전 보정 PASS. 정상 AI 현재 소스에서 5일×3 seed가 actual 50·effective 45 목표를 안정적으로 상회하며 CV 2% 미만임. 전수 원장·SCC·256-seed·수직 슬라이스·YAML/no-op·FinalAcceptance의 별도 게이트 결과와 함께 판단하며 AI 전체 커버리지 매니페스트의 stale 증거 71축은 별도 재실행 대상으로 남김
+```
+
+## V27 actual/effective 노동 권위 하류 연결 교정 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:actual-effective-labor-authority-downstream-v1
+콘텐츠 종류: actual 50·effective 45·역사적 이론 상한 99 WU/성인·일의 단일 권위와 계약·연구·종족·장비 준비·비상 노동 하류 연결
+정의·카탈로그·실행기 위치: SettlementLaborAuthority, SettlementLaborBalanceRules, AuthoredFactionContractBalanceRules, SettlementLaborAccountingRuntime, V27SpeciesBalanceSimulationDebugScenarios, ResearchEquipmentOverhaulDebugScenarios, SettlementEquipmentReadinessThroughputDebugScenarios, V27BalanceAudit
+등장 시대와 연구: 무연구부터 엔드리스까지 공통 노동 단위 권위를 교정함. 기술 단계 actual 50/54.5/62.5/74.5/85/100, effective 45/49.05/56.25/67.05/76.5/90을 사용하며 새 연구나 콘텐츠를 추가하지 않음
+플레이어에게 주는 새 결정: 실제 수행·숙련·종족 유지비에는 actual을, 달력 일정·계약·연구·성장 처리량·정착지 산출 지수에는 effective를 사용함. 99를 현재 생산량으로 오인해 기한과 처리량이 과대평가되는 불일치를 제거함
+물리 BOM·입력·출력: 물리 아이템 BOM·출력 수량·소비량은 변경하지 않음. 계약·연구·장비 준비 계산은 이미 적용된 V27 WU와 effective 45를 함께 사용하며 같은 작업을 actual/effective 양쪽에 중복 계상하지 않음
+직접 작업량과 계산 근거: 현재 5일 3-seed actual 평균 51.128·effective 평균 46.961의 보수 authored 권위 50/45를 사용함. 99는 100초 작업창×0.99 전환 효율의 역사적 이론 상한으로만 남기며 V26 Before 20은 재현용 값임
+EWU와 목표 회수 기간: V27 생산·건설·재배 authored WU는 V26 20 기준 대비 2.25배 적용되어 있으므로 일정·ROI·계약은 effective 45로 나눠 기존 달력 기간을 보존함. actual 50은 수행·경험·마모에만 사용해 비용과 기간을 50/45로 이중 축소하지 않음
+공간·전력·물·연료·정비: 기존 공간·유틸리티·연료·정비 비용은 불변이며 생존·정비·이동·예약으로 손실되는 10%를 actual 50에서 effective 45로 명시함
+위험·실패·회복 방식: 모호한 Baseline 이름, 하류 20/99 상수, 기술 단계 누락, 계약 mirror drift, 인구·기술·생존·비상 행렬 누락을 fallback 없이 실패함. past-save migration은 범위 밖이며 새 계산과 새 작업만 현재 권위를 사용함
+사회·비가역 비용: 의료·침입·경비·생존 부족으로 이탈하는 인원을 effective capacity에서 제외하고 필수 노동을 먼저 차감함. 사망·부상·경비 인력을 생산 가능 인원으로 계속 세지 않음
+기존 대안과의 장단점: 단일 50만 사용하면 일정이 의도보다 10% 빨라지고 단일 45만 사용하면 실제 경험·마모가 과소 계상됨. 99를 유지하면 계약·연구·준비 기간이 절반 이하로 축소됨. 명시적 이중 권위는 호출부 의미를 드러내는 대신 모든 하류 계산을 재검증해야 함
+지배 전략 방지 조건: actual과 effective 중 유리한 값을 호출자가 임의 선택하지 못하게 이름과 테스트를 고정함. 계약 요구량·연구 기간·장비 준비량은 effective만, 경험·종족 유지비·실제 수행은 actual만 사용하며 99 현재 권위 사용 수를 0으로 요구함
+저장 권위와 실행 명령: 고정 노동 권위는 DungeonStory.Work의 SettlementLaborAuthority가 유일 원본이고 저장하지 않음. ScriptableObject 수치와 진행 중 주문의 저장값은 그대로 유지하며 과거 세이브 변환은 구현하지 않음
+자동 감사 ID와 전수 목록 포함 여부: V27_LABOR_AUTHORITY_SINGLE_SOURCE, V27_LABOR_ACTUAL_50, V27_LABOR_EFFECTIVE_45, V27_LABOR_HISTORICAL_99_DIAGNOSTIC_ONLY, V27_CONTRACT_REFERENCE_12X45X0425, V27_POPULATION_TECH_SURVIVAL_EMERGENCY_MATRIX를 필수 목록에 추가함
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-labor-authority-matrix.txt, phase157-technology-founder-wu.md, v27-species-capacity-balance.md, research/equipment-readiness reports, V27 전수 원장·256-seed 경제·DailyRoutineWu 3 seed·FinalAcceptance·Unity Console 0/0을 현재 소스에서 재실행함
+현재 밸런스 상태: 밸런스 기준 배정. 단일 권위 구현, 하류 재계산, 인구 1/3/6/12/24×기술×생존×의료·침입·경비 행렬, 전수 원장 재생성, fresh 실전 증거와 CI가 모두 통과하기 전에는 공식 검증·시뮬레이션 검증·실전 보정 완료로 승격하지 않음
+```
+
+## V27 연구 일정 effective 45 권위 기간 보존 재배정 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:research-effective-output-period-preserving-v1
+콘텐츠 종류: 기존 연구 프로젝트 180개의 requiredWork를 현재 effective 45 WU/성인·일 일정 권위에 맞추는 기간 보존 재배정
+정의·카탈로그·실행기 위치: ResearchProjectSO.requiredWork, ResourceResearchProjectCatalog, ResearchWorkExecutionHandler, ResearchEquipmentOverhaulDebugScenarios, ResearchTreeDebugScenarios, V27BalanceAudit, V27BalanceAssetApplication
+등장 시대와 연구: 중세·초기 산업·성숙 산업·후기 산업과 시간 고정까지 기존 180개 연구, 선행 그래프, 해금, 설계도, 시설 요구를 그대로 유지하며 연구를 추가·삭제하지 않음
+플레이어에게 주는 새 결정: 해금 순서와 선택지는 불변이다. 과거 99 WU/일 이론 상한으로 작성된 연구 WU를 현재 일정 권위 45 WU/일로 환산해 의도했던 달력 진행 속도만 복구함
+물리 BOM·입력·출력: 연구 설계도, 지식 잔여물, 연구 시설, 전력, 물리 입력과 모든 해금 출력은 Before와 After에서 동일함. 180개 에셋의 requiredWork scalar만 변경 후보이며 과거 세이브 마이그레이션은 범위 밖임
+직접 작업량과 계산 근거: 각 프로젝트에 `After=Ceil(Before×45/99)`를 적용함. 180개 총합은 138,824→63,173 WU다. 중세 폐쇄합 3,184→1,465, 초기 산업 7,964→3,640, 성숙 산업 23,192→10,569, 후기 산업 36,828→16,777, 시간 고정 폐쇄합 95,448→43,423 WU임
+EWU와 목표 회수 기간: 연구 WU는 연구원 기회비용 debit으로 입력 Ceil을 유지한다. 새 effective 45 기준 누적 기간은 중세 32.555556일, 초기 산업 80.888889일, 성숙 산업 234.866667일, 후기 산업 372.822222일, 시간 고정 964.955556일이며 기존 의도 밴드 27–34/80–100/200–240/320–400일을 복구함
+공간·전력·물·연료·정비: 연구 시설 면적·동시 연구자 1/2/4명·전력·용수·보관·정비·시설 capability는 변경하지 않음. 해당 비용은 별도 EWU 입력으로 유지함
+위험·실패·회복 방식: 현재 값이 승인 원장의 exact Before 또는 계산된 After가 아니면 fail-loud함. 누락 프로젝트·중복 stable ID·선행 그래프 오류·기간 밴드 이탈·승인 source digest drift·YAML identity 변화는 fallback 없이 실패함
+사회·비가역 비용: 연구 중 식사·수면·의료·경비·침입 대응으로 빠지는 시간은 effective 45에 이미 포함됨. actual 50을 추가로 나누어 연구 기간을 이중 단축하지 않으며 진행 중 과거 주문을 변환하지 않음
+기존 대안과의 장단점: WU를 그대로 두고 45로 나누면 중세 70.8일, 초기 산업 177.0일, 성숙 산업 515.4일, 후기 산업 818.4일로 의도보다 약 2.2배 느려져 기각함. 전역 2.25배를 다시 곱하는 안도 연구가 이미 99 기준으로 작성되어 있어 기각함. 프로젝트별 Ceil 45/99는 최소 scalar 변경으로 기존 달력 밴드를 보존함
+지배 전략 방지 조건: 연구 WU 0·음수 0, 선행 우회 0, 무료 설계도·시설 0, actual/effective 이중 할인 0, 배치 분할로 Ceil 비용 감소 0, 승인되지 않은 연구 에셋 변경 0
+저장 권위와 실행 명령: ResearchProjectSO.requiredWork가 신규 연구 작업의 권위이고 활성 연구 save는 completedWork를 보존함. V27 audit→exact labor/facility approval→ApplyApproved→VerifyApplied 순서를 사용하며 구버전 세이브 자동 변환은 구현하지 않음
+자동 감사 ID와 전수 목록 포함 여부: V27_RESEARCH_WU_EFFECTIVE_AUTHORITY_EXACT, V27_RESEARCH_WU_ASSET_APPLIED_EXACT, RESEARCH_180_PROJECT_CATALOG_EXACT, RESEARCH_PACING_M/E/A/L_IN_BAND, RESEARCH_TEMPORAL_CLOSURE_EXACT를 180개 원장 행과 함께 요구함
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-balance-before-after.csv, v27-balance-labor-facility-authority.txt, V27_Balance_Before_After.md, ResearchEquipmentOverhaulDebugScenarios, ResearchTreeDebugScenarios, V27 YAML second-run zero diff, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 밸런스 기준 배정. exact approval·180개 SO 적용·두 연구 감사·전수 원장·YAML no-op·인구/기술/생존/비상 행렬·fresh 5일 3-seed가 모두 통과하기 전에는 공식 검증·시뮬레이션 검증·실전 보정 완료로 승격하지 않음
+```
+
+## V27 인구·기술·생존·비상 노동 권위 행렬 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:population-technology-survival-emergency-matrix-v1
+콘텐츠 종류: actual 50·effective 45 노동 권위의 인구 1/3/6/12/24명×기술 6단계×생존 3상태×비상 4상태 결정론적 360셀 감사
+정의·카탈로그·실행기 위치: SettlementLaborAuthority, SettlementLaborBalanceRules.TechnologyCheckpoints, SettlementLaborBalanceRules.EvaluateDisasterShadow, V27LaborAuthorityMatrixDebugScenarios
+등장 시대와 연구: 무연구·초기·중기·산업·후기·엔드리스 6단계를 모두 포함하며 기존 기술 해금·효율·자동화·콘텐츠를 변경하지 않음
+플레이어에게 주는 새 결정: 없음. 이 행렬은 인구·기술·생존 비축·의료·침입·경비 이탈 조합에서 실제 생산 가능 인원, 필수 노동 충족률, 성장 WU와 7일 회복 가능성을 공개함
+물리 BOM·입력·출력: 음식·물·약품·장비·시설의 물리 BOM과 생산량을 바꾸지 않음. shortage/normal/surplus는 성인당 필수 노동을 effective 45의 90%/50%/30%로 두고 식량·물 비축을 각각 2/7/14일로 입력함
+직접 작업량과 계산 근거: 단계별 actual은 50/54.5/62.5/74.5/85/100, effective 산출은 45/49.05/56.25/67.05/76.5/90 WU/성인·일임. 의료는 ceil(인구×20%) unavailable+가능하면 1명 responder, 침입은 ceil(인구×10%) unavailable+ceil(인구×25%) responder, 경비는 ceil(인구×20%) responder이며 합계는 인구를 넘지 않게 제한함
+EWU와 목표 회수 기간: 이 행렬은 새 EWU 값을 만들지 않고 가용 effective WU에서 필수 노동을 먼저 차감한 성장 여력을 계산함. 모든 비용·SCC·판매·회수 계산은 기존 입력 Ceil·산출 Floor·SCC tolerance 0 권위를 유지함
+공간·전력·물·연료·정비: 시설 footprint·전력·상수·하수·연료·정비 수치를 변경하지 않음. 이 조건이 야기하는 노동은 survival essential burden에만 귀속하고 자동화 WU를 자유 전용 노동으로 이중 계상하지 않음
+위험·실패·회복 방식: 비상은 3일 지속, shortage 비축은 2일이라 모든 비상 shortage 셀이 반드시 위기 생존 실패를 드러냄. essential deficit가 있으면 growth는 먼저 0이 되어야 하며 음수·NaN·가용 인원 초과·기술 역전·비축량 무시를 fallback 없이 실패함
+사회·비가역 비용: 의료 unavailable, 침입 부상 unavailable, 침입·경비 responder는 생산 가능 인원에서 제외함. 의료 unavailable만 7일까지 회복되고 비상 responder는 계속 비상 배치로 남아 회복률을 과대평가하지 않음
+기존 대안과의 장단점: 모든 셀을 PASS로 강제하는 감사는 소인구 취약성을 숨겨 기각함. 고정 인원 차감만 쓰는 방식도 인구 1명과 24명에 같은 충격을 주므로 기각하고 결정론적 비율+Ceil을 사용함. 행렬은 취약 셀을 결과로 기록하되 공식 불변식 위반만 테스트 실패로 처리함
+지배 전략 방지 조건: 기술 상승 시 인당 effective 산출·필수 충족률·성장량 감소 0, survival 부담 완화 시 성장 감소 0, 비상 인력이 무사건보다 많아지는 경우 0, 필수 deficit인데 성장 WU가 남는 경우 0, actual과 effective 이중 계상 0
+저장 권위와 실행 명령: SettlementLaborAuthority와 TechnologyCheckpoints는 코드 권위이며 저장하지 않음. 실행 명령은 DungeonStory/V27/Verify Population Technology Survival Emergency Matrix이고 산출물은 파생 감사 증거임. 과거 세이브 마이그레이션은 범위 밖임
+자동 감사 ID와 전수 목록 포함 여부: V27_LABOR_MATRIX_360_CELLS, V27_LABOR_MATRIX_ACTUAL_EFFECTIVE_RATIO, V27_LABOR_MATRIX_TECH_MONOTONIC, V27_LABOR_MATRIX_SURVIVAL_MONOTONIC, V27_LABOR_MATRIX_GROWTH_CUT_FIRST, V27_LABOR_MATRIX_SHORTAGE_CRISIS_EXPOSED를 전수 요구함
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-labor-authority-matrix.txt, phase157-technology-founder-wu.md, v27-balance-artifact-manifest.json, V27 whole-game coverage, DailyRoutineWu 157181/157182/157183, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 밸런스 기준 배정. 360셀 결정론 실행·manifest hash·whole-game coverage·fresh 3-seed와 Console 0/0 전에는 시뮬레이션 검증 또는 실전 보정 완료로 승격하지 않음
+```
+
+## V27 장비 품질 일정·생산 배분 교정 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:equipment-readiness-quality-schedule-v1
+콘텐츠 종류: 캠페인 240/400/960일 기준 원정 장비 품질 일정과 장비용 성장·생산 배분의 actual 50/effective 45 재보정
+정의·카탈로그·실행기 위치: CombatBalanceCheckpointAuthority, SettlementEquipmentReadinessThroughputDebugScenarios, CombatEquipmentCraftingRuntime, DeterministicCraftQualityResolver, V23MaterialSalvageCalculator, CombatOutcomeBalanceCalibrationScenario
+등장 시대와 연구: 캠페인 1~6의 1/30/120/240/400/960일, 기존 장비 정의·재료·부품·연구·원정 대상 순서를 유지함. 품질 기대는 Normal/Normal/Normal/Good/Good/Excellent에서 Normal/Normal/Normal/Normal/Normal/Good으로 변경함
+플레이어에게 주는 새 결정: 중·후기 원정대 전원에게 낮은 확률의 Good/Excellent 장비를 반복 제작하기보다 시대 최신 장비의 Normal 품질을 먼저 갖추고, Good 품질은 960일 룬 장비 시점의 집중 투자로 늦춤. 개별 고품질 제작 선택과 품질 재시도 기능은 유지함
+물리 BOM·입력·출력: estoc·articulated-plate·iron shield, powered gauntlet·harness·shield, rune blade·mail·shield의 물리 BOM·출력 수량·부품·재질을 변경하지 않음. 불량품은 production과 동일하게 자동 해체하며 회수량은 V23MaterialSalvageCalculator의 Floor 결과를 사용함
+직접 작업량과 계산 근거: 품질 후보별 기대 직접 WU는 craft×1/p + rejected dismantle×(1-p)/p임. Day240 세트는 Good 3,228.103→Normal 611.303, Day400은 Good 2,894.975→Normal 1,088.999, Day960은 Excellent 2,882.325→Good 1,105.851 WU임. 성장·생산 배분은 전역 정상대 35~50% 안에서 35%→37%로 최소 2%p 조정함
+EWU와 목표 회수 기간: production exact 순 기대 EWU는 gross item EWU×1/p + dismantle WU×rejects - recovered input acquisition EWU×rejects임. Day240 세트 23,412.840→5,480.962, Day400 21,307.690→10,234.990, Day960 24,016.380→10,566.500 EWU. 파티 수량 적용 후 37% 성장 예산 점유율은 Day240 92.2%, Day400 99.7%, Day960 13.5%로 100% 이하임
+공간·전력·물·연료·정비: 제작 시설 footprint·전력·용수·연료·정비·버퍼·작업자 상한은 변경하지 않음. 37%는 성장·생산 정상대 35~50% 안의 장비 준비 감사 배분이며 런타임에서 다른 도메인 WU를 강제로 빼앗는 숨은 보너스가 아님
+위험·실패·회복 방식: 품질 성공 확률은 실제 21^3 결정론적 roll 분포, 현재 specialist rank, 장비 복잡도를 사용함. 거부품 해체 WU와 회수 입력을 모두 계상하고 10회 내 수용률 50% 미만·전담 제작자 초과·순 EWU 예산 초과·연구 지연을 fallback 없이 실패함
+사회·비가역 비용: 장비 생산 중 제작자·재료·시설 점유, 불량품 해체, 원정 준비 지연은 순비용에 남음. 기존 장비를 무료 업그레이드·삭제·판매·완전 회수하지 않으며 최소 준비 인구의 창+천 후드는 최신 원정 장비로 자동 승격하지 않음
+기존 대안과의 장단점: BOM 대폭 삭감은 최신 장비의 물리적 의미와 상류 수요를 훼손해 기각함. 성장 배분만 올리면 Day240 Good 세트가 100%를 훨씬 넘어 기각함. facility bonus를 20점 이상 가정하는 안은 실제 별 등급 1~2 권위와 불일치해 기각함. 품질 한 단계 지연+2%p 배분은 BOM·기능을 보존하는 최소 변경임
+지배 전략 방지 조건: 품질 재굴림 회수 크레딧이 원투입을 초과하는 경우 0, 불량 해체 노동 누락 0, Good/Excellent 무료 지급 0, 100% 초과 성장 예산 0, old 99 현재 생산 권위 사용 0, 장비 품질 변경 후 전투 조우 재보정 누락 0
+저장 권위와 실행 명령: 실제 장비 인스턴스 품질·제작 주문·회수 재료는 기존 runtime/save 권위가 소유함. CombatBalanceCheckpointAuthority는 편집기 시뮬레이션의 단일 일정 권위이며 과거 세이브·기존 인스턴스를 변환하지 않음
+자동 감사 ID와 전수 목록 포함 여부: V27_EQUIPMENT_NET_RETRY_COST_EXACT, V27_EQUIPMENT_QUALITY_SCHEDULE_EXACT, V27_EQUIPMENT_GROWTH_SHARE_37, V27_EQUIPMENT_PARTY_ENVELOPE_WITHIN_CAPACITY, V27_EQUIPMENT_REJECTED_RECOVERY_CONSERVATIVE, COMBAT_BALANCE_ALL_FINAL_CHECKPOINTS_V1을 요구함
+검증 매트릭스와 보고서 위치: Artifacts/QA/v26-equipment-readiness-throughput.md, combat-balance-final.txt, combat-balance-final/encounter-01..36.txt, v27-balance-before-after.csv, 36×1,000 combat seeds, 장비 production PlayMode, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 밸런스 기준 배정. 처리량 감사·공유 checkpoint 일치·36×1,000 전투 재보정·전수 원장·exact approval·PlayMode·Console 0/0 통과 전에는 장비 공식 검증 또는 전투 실전 보정 완료로 보고하지 않음
+```
+
+## V27 장비 품질 일정 변경 후 전투 경계 최소 재보정 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:combat-after-equipment-quality-minimal-recalibration-v1
+콘텐츠 종류: 240/400/960일 원정 장비 품질 일정 하향 뒤 목표 밴드를 이탈한 기존 전투 조우 22·28·33·34의 최소 단일 scalar 재보정
+정의·카탈로그·실행기 위치: CombatBalanceCheckpointAuthority.AllEncounters, OffenseEncounterSO, EnemyEncounterFactory, EnemyTacticalDecisionService, OffenseBattleModel, CombatOutcomeBalanceCalibrationScenario, V27BalanceAudit, V27BalanceAssetApplication
+등장 시대와 연구: 캠페인 4~6의 기존 조우·연구·적 archetype·목표·보상·원정 순서를 유지함. 원정 장비 품질은 별도 승인 기록의 Day240 Normal, Day400 Normal, Day960 Good 권위를 사용하며 새 콘텐츠나 과거 세이브 변환은 추가하지 않음
+플레이어에게 주는 새 결정: 장비 품질 재시도 비용을 감당 가능한 일정으로 낮춘 상태에서도 기존 전투 목표 승률·중상률을 유지함. 적 수·행동·진형·보상은 바꾸지 않고 해당 조우의 체력 또는 피해 scalar 한 축만 조정함
+물리 BOM·입력·출력: 장비·탄약·약품·원정 보급·전리품의 BOM·수량·품질 공식·내구·회수·보상은 Before와 After에서 동일함. 변경되는 물리 생산·소비 행은 0이며 전투 조우 SO scalar 4개만 적용 후보임
+직접 작업량과 계산 근거: 1,000 deterministic seed 근접 후보 비교로 22 health 1.55→1.45(승률 67.8%, 중상 0.0%), 28 damage 1.25→1.0(67.1%, 20.9%), 33 health 1.8→1.1(67.3%, 49.6%), 34 health 3.789→3.5(65.0%, 21.1%)를 선택함. 다른 scalar와 round는 유지함
+EWU와 목표 회수 기간: 이번 변경은 전투 결과 scalar만 교정하고 생산 WU·장비 순 EWU·보급·치료·전리품·보상 EWU를 변경하지 않음. 입력 Ceil·산출 Floor·SCC tolerance 0을 유지하며 전투 순가치는 전체 경제 감사에서 별도 검증함
+공간·전력·물·연료·정비: 원정 준비 공간·병상·창고·전력·용수·연료·수리·정비·FacilityBuffer 수치는 모두 Before와 동일함
+위험·실패·회복 방식: 일반 표준 조우 승률 65~80%·중상 상한 20%, ProtectTarget 엘리트 승률 55~90%·중상 상한 50%를 사용함. 28번의 20.9%는 해당 조우의 elite 상한 40% 이내이며 33번은 49.6%로 보스/보호 목표 상한 50% 이내임. stalled·NaN·무효 적 명령은 0이어야 함
+사회·비가역 비용: 사망·Downed·저체력·수술·회복 병상·원정 부재·장비 내구 손실을 production 결과에 그대로 포함함. 무료 회복·무료 장비·무료 행동·실패 seed 제외는 허용하지 않음
+기존 대안과의 장단점: 22번 round 7→8은 승률 81.7%로 상한을 넘고 damage 0.8→0.7은 63.4%로 실패해 health 1.45를 선택함. 28번 damage 1.0 단독이 통과해 round 변경을 배제함. 33번 damage 7→1은 중상률을 낮추지 못했고 accuracy 8→3.75는 통과하지만 변화율이 더 커서 health 1.1을 선택함. 34번 damage 1→0.8도 통과하지만 health 3.789→3.5가 더 작은 상대 변화라 선택함
+지배 전략 방지 조건: 목표 밴드 완화 0, 검증기 전용 버프 0, 적 수 감소 0, 보상 증가 0, requiredPower 역산 0, 전역 전투 배율 변경 0, 한 조우에서 두 scalar 이상 변경 0, 36개 전체 재검증 누락 0
+저장 권위와 실행 명령: OffenseEncounterSO가 신규 전투 scalar 저장 권위이고 CombatBalanceCheckpointAuthority가 빌더·원장·검증기의 승인 표임. GenerateCombatEncounterApprovalsFromMenu→ApplyApproved→VerifyApplied→36×1,000 final checkpoint 순서를 사용하며 과거 세이브 마이그레이션은 범위 밖임
+자동 감사 ID와 전수 목록 포함 여부: COMBAT_BALANCE_ALL_FINAL_CHECKPOINTS_V1, V27_COMBAT_POST_QUALITY_MINIMAL_FOUR, V27_COMBAT_22_HEALTH_1450, V27_COMBAT_28_DAMAGE_1000, V27_COMBAT_33_HEALTH_1100, V27_COMBAT_34_HEALTH_3500, COMBAT_BALANCE_APPLIED_FINAL을 전수 원장·manifest 필수 증거에 포함함
+검증 매트릭스와 보고서 위치: Artifacts/QA/combat-balance-focused-search.txt, combat-balance-final.txt, combat-balance-final/encounter-01..36.txt, v26-equipment-readiness-throughput.md, v27-balance-before-after.csv, 장비·전투 PlayMode, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 밸런스 기준 배정. 네 focused 1,000-seed 후보는 통과했으나 exact approval·SO 적용·VerifyApplied·36×1,000 전체·전투 PlayMode·전수 경제·Console 0/0 전에는 전투 공식 검증·시뮬레이션 검증·실전 보정 완료로 승격하지 않음
+```
+
+## V27 전체 재조정 소스 기준 5일 노동 실측 후속 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:daily-routine-post-recalibration-wu-evidence-v1
+콘텐츠 종류: 연구·장비 준비·전투 재조정을 모두 반영한 현재 소스의 5일 3-seed actual/effective 노동 생산성 최종 재측정
+정의·카탈로그·실행기 위치: DailyRoutineWuPlayModeVerifier, CharacterAiDecisionPipeline, AbilityWork, WorkTaskExecutor, SettlementLaborAuthority, V27BalanceWorkCalculator, phase157-daily-routine-wu-seed-157181/157182/157183 reports
+등장 시대와 연구: 기존 daily-routine 공식 fixture의 인구 3명·5일·시설·연구 상태를 유지함. 이번 측정은 새 해금·콘텐츠·무료 자동화를 추가하지 않고 현재 전체 재조정 소스를 그대로 사용함
+플레이어에게 주는 새 결정: 없음. actual 50은 실제 수행·숙련·마모, effective 45는 일정·계약·생산량 권위라는 기존 분리를 최신 AI 실전에서 재확인함
+물리 BOM·입력·출력: 음식·물·위생·휴식·산업 건설 주문의 실제 물리 입력·출력·재고를 사용함. 측정용 무료 생산, 생존 행동 억제, 작업 강제 고정, 실패 seed 제외는 0임
+직접 작업량과 계산 근거: seed157181 actual=55.546067/effective=50.860667, seed157182 actual=55.189533/effective=50.766867, seed157183 actual=52.656400/effective=48.781267 WU/성인·일임. 평균 actual=54.464000, 표본 표준편차=1.575545, CV=2.8928%; 평균 effective=50.136267, 표본 표준편차=1.174401, CV=2.3424%임
+EWU와 목표 회수 기간: authored actual 50은 실측 평균보다 8.20% 낮고 effective 45는 10.25% 낮아 보수적 여유를 유지함. 이 여유를 다시 원가·기간에 곱해 재팽창시키지 않고 승인된 50/45를 유지함. 입력 Ceil·산출 Floor·SCC tolerance 0은 불변임
+공간·전력·물·연료·정비: fixture의 공간·조명·상수·하수·식사 버퍼·산업 건설 주문·작업자 상한을 그대로 사용함. 공간·유틸리티·정비 면제는 없음
+위험·실패·회복 방식: 세 seed 모두 observedDays=5, runtimeDiagnosticsGate=ai-runtime-gate-v3, activeActorsAtEnd=3, failures=0, capturedIssues=0을 요구함. 평균이 50/45 아래이거나 CV가 기존 안정 범위를 크게 악화하면 실전 보정 실패로 처리함
+사회·비가역 비용: 식사·수면·위생·이동·예약·작업 전환·긴급 self-care와 실제 loss WU가 effective 산출에 포함됨. 이 손실을 actual과 effective에 이중 계상하거나 제거하지 않음
+기존 대안과의 장단점: 최신 평균 actual 54.464/effective 50.136을 새 authored 권위로 올리면 향후 작은 AI·동선 변화마다 전역 일정과 원가가 재팽창하므로 기각함. 50/45는 세 seed 모두가 상회하면서 10% 안팎의 일정 안전 여유를 보존함
+지배 전략 방지 조건: 유리한 seed 선택 0, 실패 seed 제외 0, 테스트용 time-scale 외 생산 보너스 0, 동일 WU 이중 계상 0, 생존·휴식 억제 0, actual/effective 중 유리한 값의 호출부 임의 선택 0
+저장 권위와 실행 명령: 작업·욕구·재고·행동 상태는 기존 runtime/save 권위이고 SettlementLaborAuthority는 비저장 공식 권위임. 각 seed는 DailyRoutineWuPlayModeVerifier.RequestRun(157181/157182/157183)의 독립 PlayMode 세션과 fresh durable artifact를 사용함. 과거 세이브 변환은 범위 밖임
+자동 감사 ID와 전수 목록 포함 여부: observedDays=5, exact runSeed, runtimeDiagnosticsGate=ai-runtime-gate-v3, RESULT=PASS, failures=0, capturedIssues=0을 세 artifact 모두 요구하며 V27 artifact manifest와 최종 CI가 이 record ID를 참조함
+검증 매트릭스와 보고서 위치: Artifacts/QA/phase157-daily-routine-wu-seed-157181.txt, phase157-daily-routine-wu-seed-157182.txt, phase157-daily-routine-wu-seed-157183.txt, v27-labor-authority-matrix.txt, v27-balance-artifact-manifest.json, final-acceptance-report.txt, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 밸런스 실전 보정 PASS. 현재 전체 재조정 소스에서 5일×3 seed가 actual 50·effective 45를 모두 안정적으로 상회하고 CV 3% 미만임. 전수 원장·SCC·256-seed 경제·수직 슬라이스·YAML no-op·FinalAcceptance·최종 manifest의 별도 게이트와 함께 완료 여부를 판정함
 ```

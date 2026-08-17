@@ -44,7 +44,7 @@ MonoBehaviour:
     recommendedRank: 2
     minimumRiskRank: 0
   requiredResearchId: research:medical:prosthetics
-  requiredWork: 32
+  requiredWork: 72
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

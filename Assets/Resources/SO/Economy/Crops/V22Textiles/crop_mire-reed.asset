@@ -31,8 +31,8 @@ MonoBehaviour:
   endemicDisease: 1
   requiredResearchId: research:textile:fiber
   growthHours: 100
-  sowWork: 4
-  harvestWork: 7
+  sowWork: 9
+  harvestWork: 16
   dailyWater: 0.45
   yield: 6
   indoorAllowed: 1

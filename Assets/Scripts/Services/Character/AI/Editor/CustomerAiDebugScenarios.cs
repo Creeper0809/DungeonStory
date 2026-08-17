@@ -923,7 +923,10 @@ public static class CustomerAiDebugScenarios
         BuildableObject alternative = world.Place("P1_WeaponShop", new Vector2Int(12, 0));
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 20f);
         AbilityShopping shopping = customer.GetAbility<AbilityShopping>();
-        shopping.RestorePersistentState(2, 0, 100);
+        // This row proves visit ownership, not purchasing-power balance. Keep
+        // the customer able to afford every authored alternative after a
+        // whole-game market recalibration.
+        shopping.RestorePersistentState(2, 0, 100_000);
 
         shopping.BeginVisitInteraction(shop);
         shopping.SetVisitOutcome(shop, ShoppingVisitOutcome.Abandoned);

@@ -1,0 +1,5 @@
+RESULT=PASS; checks=4
+PASS V27_LIVE_CONTAINER_WORK_AUTHORITY=V27BalanceWorkCalculator
+PASS V27_LIVE_D03_CONSTRUCTION_WU=208->468
+PASS V27_LIVE_SAWMILL_RECIPE_WU=22->49.5
+PASS V27_LIVE_D03_DISMANTLE_WU=52->117; recovered=material:iron-ingot=1|material:stone-block=1|material:treated-lumber=5

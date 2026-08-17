@@ -35,6 +35,12 @@ public sealed class OffenseEncounterSO : DataScriptableObject
     [Min(1)] public int maximumSiteStrength = 10;
     public bool elite;
     public bool boss;
+    [Range(0.1f, 64f)] public float enemyHealthMultiplier = 1f;
+    [Range(0.1f, 8f)] public float enemyDamageMultiplier = 1f;
+    [Range(0.1f, 8f)] public float enemyAccuracyMultiplier = 1f;
+    [Range(0, 4)] public int additionalEnemyCount;
+    [Range(0.02f, 32f)] public float objectiveHealthMultiplier = 1f;
+    [Range(0.1f, 4f)] public float objectiveControlResistanceMultiplier = 1f;
     public OffenseEncounterObjective objective;
     [Min(0)] public int objectiveRoundLimit;
     public string objectiveTargetId = string.Empty;
@@ -51,6 +57,28 @@ public sealed class OffenseEncounterSO : DataScriptableObject
         if (string.IsNullOrWhiteSpace(displayName)) errors.Add($"'{encounterId}' display name is required.");
         if (minimumSiteStrength < 1 || maximumSiteStrength < minimumSiteStrength)
             errors.Add($"'{encounterId}' strength range is invalid.");
+        if (!float.IsFinite(enemyHealthMultiplier)
+            || enemyHealthMultiplier < 0.1f
+            || enemyHealthMultiplier > 64f)
+            errors.Add($"'{encounterId}' enemy health multiplier is invalid.");
+        if (!float.IsFinite(enemyDamageMultiplier)
+            || enemyDamageMultiplier < 0.1f
+            || enemyDamageMultiplier > 8f)
+            errors.Add($"'{encounterId}' enemy damage multiplier is invalid.");
+        if (!float.IsFinite(enemyAccuracyMultiplier)
+            || enemyAccuracyMultiplier < 0.1f
+            || enemyAccuracyMultiplier > 8f)
+            errors.Add($"'{encounterId}' enemy accuracy multiplier is invalid.");
+        if (additionalEnemyCount < 0 || additionalEnemyCount > 4)
+            errors.Add($"'{encounterId}' additional enemy count is invalid.");
+        if (!float.IsFinite(objectiveHealthMultiplier)
+            || objectiveHealthMultiplier < 0.02f
+            || objectiveHealthMultiplier > 32f)
+            errors.Add($"'{encounterId}' objective health multiplier is invalid.");
+        if (!float.IsFinite(objectiveControlResistanceMultiplier)
+            || objectiveControlResistanceMultiplier < 0.1f
+            || objectiveControlResistanceMultiplier > 4f)
+            errors.Add($"'{encounterId}' objective control resistance multiplier is invalid.");
         if (enemies == null || enemies.Count == 0
             || enemies.Exists(value => value == null
                 || string.IsNullOrWhiteSpace(value.enemyArchetypeId)

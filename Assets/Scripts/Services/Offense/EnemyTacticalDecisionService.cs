@@ -69,7 +69,7 @@ public sealed class EnemyTacticalDecisionService : IEnemyTacticalDecisionService
             .Where(value => value.Team == OffenseBattleTeam.Allies
                 && !value.IsDead
                 && !value.IsDowned)
-            .OrderBy(value => TargetScore(value, profile))
+            .OrderBy(value => TargetScore(session, value, profile))
             .ThenBy(value => StableTie(session, actor, value))
             .ToArray();
         if (opponents.Length == 0)
@@ -91,7 +91,8 @@ public sealed class EnemyTacticalDecisionService : IEnemyTacticalDecisionService
 
             float utility = attackWeight
                 + preview.ExpectedDamage / Math.Max(1f, candidate.CurrentHealth) * 5f
-                - TargetScore(candidate, profile) * 0.05f;
+                - TargetScore(session, candidate, profile) * 0.05f
+                + (IsProtectedObjectiveTarget(session, candidate) ? 1_000f : 0f);
             if (utility > bestAttackUtility)
             {
                 bestAttackUtility = utility;
@@ -226,7 +227,7 @@ public sealed class EnemyTacticalDecisionService : IEnemyTacticalDecisionService
             IsPositionAllowed(value.Formation, ability.TargetPositions));
         return ability.TargetRule == OffenseBattleTargetRule.Enemy
             ? candidates
-                .OrderBy(value => TargetScore(value, profile))
+                .OrderBy(value => TargetScore(session, value, profile))
                 .ThenBy(value => StableTie(session, actor, value))
                 .FirstOrDefault()
             : candidates
@@ -271,21 +272,49 @@ public sealed class EnemyTacticalDecisionService : IEnemyTacticalDecisionService
                 case OffenseCleanseEffect:
                     utility += target.Statuses.Count * 0.5f;
                     break;
+                case OffenseRepositionEffect reposition:
+                    if (ability.TargetRule == OffenseBattleTargetRule.Enemy
+                        && reposition.Offset < 0)
+                    {
+                        utility += target.Formation switch
+                        {
+                            OffenseFormationSlot.Rear => 5.5f,
+                            OffenseFormationSlot.Middle => 2.5f,
+                            _ => 0f
+                        };
+                    }
+                    break;
+                case OffenseDelayEffect delay:
+                    utility += Math.Min(4f, delay.InitiativePenalty) * 1.25f;
+                    break;
             }
         }
 
         if (ability.TargetRule == OffenseBattleTargetRule.Enemy)
         {
-            utility -= TargetScore(target, profile) * 0.05f;
+            utility -= TargetScore(session, target, profile) * 0.05f;
+            if (IsProtectedObjectiveTarget(session, target))
+            {
+                utility += 1_000f;
+            }
         }
         return utility;
     }
 
     private static float TargetScore(
+        OffenseBattleSession session,
         OffenseBattleCombatant target,
         EnemyTacticalProfile profile)
     {
         float score = target.HealthRatio * 10f - target.Stats.Attack * 0.05f;
+        if (IsProtectedObjectiveTarget(session, target))
+        {
+            // ProtectTarget is a production objective, not merely presentation
+            // text. Reachable basic attacks and valid hostile abilities must
+            // therefore prefer the protected combatant, matching the legal
+            // command selector in OffenseBattleSession.
+            score -= 100f;
+        }
         foreach (string tag in profile.preferredTargetTags ?? new List<string>())
         {
             if (MatchesTargetTag(target, tag))
@@ -302,6 +331,15 @@ public sealed class EnemyTacticalDecisionService : IEnemyTacticalDecisionService
         }
         return score;
     }
+
+    private static bool IsProtectedObjectiveTarget(
+        OffenseBattleSession session,
+        OffenseBattleCombatant target) =>
+        session.EncounterRules.Objective == OffenseEncounterObjective.ProtectTarget
+        && string.Equals(
+            target?.PersistentId,
+            session.EncounterRules.ObjectiveCombatantId,
+            StringComparison.Ordinal);
 
     private static bool MatchesTargetTag(
         OffenseBattleCombatant target,

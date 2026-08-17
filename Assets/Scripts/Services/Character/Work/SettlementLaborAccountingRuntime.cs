@@ -364,7 +364,7 @@ public sealed class SettlementLaborAccountingRuntime :
         float index = reserve.ProductiveAdultCount > 0
             ? realized / (float)EmergencyWuUnits.UnitsPerWu
                 / reserve.ProductiveAdultCount
-                / SettlementLaborBalanceRules.BaselineWuPerAdultDay
+                / SettlementLaborAuthority.EffectiveOutputWuPerAdultDay
             : 0f;
         latest = new SettlementLaborDailyRecord(
             ended.day,
