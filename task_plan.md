@@ -3020,3 +3020,4 @@ Current errors:
 - [x] Run FinalAcceptance, the 256-seed economy audit, vertical-slice PlayMode, analyzer DSB001-DSB008 tests, YAML rollback/no-op, architecture metrics, and final Console 0/0.
 - [ ] Keep the AI coverage manifest's 71 stale/ContractOnly scopes explicit; do not conflate them with the V27 ledger acceptance result or claim a fresh all-AI coverage sweep.
 - Error log: GitHub had no Actions workflows and no protected-main rule. The only direct collaborator is the PR author, so a GitHub self-approval is impossible. Added a portable hosted-runner integrity gate rather than silently treating local evidence as remote CI.
+- Error log: the first hosted V27 integrity run failed because three manifest-hashed text artifacts were generated as CRLF on Windows but checked out as LF on Linux. Added exact path-level `eol=crlf` attributes; no economic value or evidence content changed.
