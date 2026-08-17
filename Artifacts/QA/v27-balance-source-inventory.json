@@ -1,7 +1,7 @@
 {
   "schemaVersion": "v27.source.v1",
   "entries": [
-    {"path":".gitattributes","sha256":"6c8d646b6660bbf6c724804aeaf5e6deba5b3967dfed0f2346be6a0f12c86b05"},
+    {"path":".gitattributes","sha256":"8aedb8d5bfffb7de5f27458c22060cdb2418bfc52cd7d24f819883cbb06abdbc"},
     {"path":".github/workflows/v27-ledger-integrity.yml","sha256":"0e47493ded3d450b795987a17894f6396cb437564183382b88d39b5a5e2e98b4"},
     {"path":"Assets/Resources/Audio/DungeonAudioLibrary.asset","sha256":"228dda3d591a809d846939a7dcb31343aacde2f69e1032f1bc964e83d37cfddd"},
     {"path":"Assets/Resources/Config/CharacterAiPerfSettings.asset","sha256":"36b5cf5c7683384dbaaad0333d8aaf564ae38bdafa3458cc67a76209cbe2d900"},
