@@ -3,31 +3,43 @@ name: V27 ledger integrity
 on:
   pull_request:
     paths:
+      - ".gitattributes"
       - ".github/workflows/v27-ledger-integrity.yml"
       - "tools/V27Balance/**"
       - "tools/DungeonStory.BalanceAnalyzers/**"
       - "Assets/Analyzers/**"
+      - "Assets/Scripts/**"
+      - "Assets/Resources/**/*.asset"
       - "Artifacts/QA/v27-balance-*"
+      - "Artifacts/QA/v26-equipment-readiness-throughput.md"
+      - "Artifacts/QA/v27-labor-authority-matrix.txt"
       - "Artifacts/QA/combat-balance-final/**"
       - "Artifacts/QA/combat-balance-final.txt"
       - "Artifacts/QA/final-acceptance-report.txt"
       - "Artifacts/QA/phase157-daily-routine-wu-seed-*.txt"
       - "docs/generated/V27_Balance_Before_After.md"
       - "docs/game-design/v27-balance-critical-approvals.json"
+      - "docs/game-design/whole-game-balance-baseline.md"
   push:
     branches: [main]
     paths:
+      - ".gitattributes"
       - ".github/workflows/v27-ledger-integrity.yml"
       - "tools/V27Balance/**"
       - "tools/DungeonStory.BalanceAnalyzers/**"
       - "Assets/Analyzers/**"
+      - "Assets/Scripts/**"
+      - "Assets/Resources/**/*.asset"
       - "Artifacts/QA/v27-balance-*"
+      - "Artifacts/QA/v26-equipment-readiness-throughput.md"
+      - "Artifacts/QA/v27-labor-authority-matrix.txt"
       - "Artifacts/QA/combat-balance-final/**"
       - "Artifacts/QA/combat-balance-final.txt"
       - "Artifacts/QA/final-acceptance-report.txt"
       - "Artifacts/QA/phase157-daily-routine-wu-seed-*.txt"
       - "docs/generated/V27_Balance_Before_After.md"
       - "docs/game-design/v27-balance-critical-approvals.json"
+      - "docs/game-design/whole-game-balance-baseline.md"
 
 permissions:
   contents: read
@@ -46,6 +58,14 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Set up pinned analyzer runtime
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.421"
+
+      - name: Rebuild and verify Roslyn analyzer
+        run: python tools/DungeonStory.BalanceAnalyzers/verify_analyzer.py --dotnet dotnet
 
       - name: Verify deterministic ledger and durable evidence
         run: python tools/V27Balance/verify_committed_artifacts.py
