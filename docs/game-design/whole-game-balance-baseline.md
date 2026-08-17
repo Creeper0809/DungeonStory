@@ -1835,3 +1835,68 @@ EWU와 목표 회수 기간: BOM Acquisition EWU도 동일 V27 원가 사슬에�
 검증 매트릭스와 보고서 위치: `Artifacts/QA/v27-balance-labor-facility-authority.txt`, `v27-balance-before-after.csv`, `v27-balance-recalibration-audit.txt`, `v27-balance-economy-256-seed.txt`, YAML second-run zero diff, Production/Crop/Construction focused PlayMode, DailyRoutineWu 3 seed, Unity Console Warning/Error 0/0을 요구함
 현재 밸런스 상태: 밸런스 기준 배정 / 전수 적용·공식·실전 검증 진행 중. exact approval·SO 적용·no-op 재적용·256 seed·focused PlayMode·5일 실전 재보정이 모두 통과하기 전에는 밸런스 공식 검증·실전 보정·완료로 보고하지 않음
 ```
+
+## V27 전투 조우 실제 장비·숙련 결과 보정 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:combat-outcome-checkpoint-calibration
+콘텐츠 종류: 기존 36개 전투 조우의 실제 장비·숙련·진형·위험도 기반 1,000-seed 결과 보정
+정의·카탈로그·실행기 위치: CombatBalanceCheckpointAuthority, CombatOutcomeBalanceCalibrationScenario, SettlementPopulationPowerCheckpointDebugScenarios, EnemyCombatContentCatalog, EnemyEncounterDefinitionSO, EnemyArchetypeDefinitionSO, OffenseBattleModel
+등장 시대와 연구: 캠페인 1/30/120/240/400/960일의 기존 연구·장비 해금·적 조우 순서를 유지하고 신규 적·기술·보상·무료 장비를 추가하지 않음
+플레이어에게 주는 새 결정: 기존 무기·방어구·방패·품질과 전투 명령을 그대로 사용하며 일상·표준·위험·보스 조우의 준비 수준과 감수할 부상 위험을 수치로 비교할 수 있게 함
+물리 BOM·입력·출력: 전투 장비, 탄약, 원정 보급, 약품, 전리품과 보상 물리 수량은 보정 전수 감사에서 Before와 After를 각각 기록함. 결과 밴드만 맞추기 위해 아이템을 생성하거나 requiredPower에서 가짜 장비 능력치를 역산하지 않음
+직접 작업량과 계산 근거: 정착지 생산 WU는 변경하지 않음. 전투 표본은 조우마다 1,000 deterministic seed를 사용하고 checkpoint 전투 준비 최소 인원을 실제 원정 상한 5명으로 제한한 2/2/3/5/5/5명, checkpoint 장비 정의의 피해·방어·방패·품질, 실제 숙련 성장 규칙과 authored 적 구성·라운드·위험 배율을 입력함. 캠페인 5·6에서 파티 상한을 넘는 준비 인구는 승률에 합산하지 않고 교대·방어 여력으로만 남김. 조우별 보정 축은 enemyHealthMultiplier·enemyDamageMultiplier 0.10~4.00과 기존 objectiveRoundLimit이며 적 archetype 원본과 정착지 WU를 역산하지 않음
+EWU와 목표 회수 기간: 전투 보급·장비 내구·부상 치료·사망·전리품·보상을 AcquisitionCost debit Ceil과 RecoverableValue credit Floor로 환산함. 각 조우의 기대 순가치와 캠페인 구간 회수 기간은 결과 밴드 통과 후 확정하며 SCC·판매·해체 tolerance는 0을 유지함
+공간·전력·물·연료·정비: 기존 전투 시설·병상·장비 보관 공간과 전력·물·연료·정비·수리 비용을 유지하고 변경 후보가 생기면 해당 SerializedProperty를 별도 원장 행과 exact approval로만 적용함
+위험·실패·회복 방식: 일상 조우 승률 85~95%·성공 원정의 노출 인원당 Dead/Downed 5% 미만, 표준 65~80%·성공 노출 인원당 Dead/Downed 상한 20%, 위험 45~65%·성공 노출 인원당 Dead/Downed 상한 35%, 보스 첫 시도 25~45%·성공 노출 인원당 Dead/Downed 상한 50%를 목표로 함. 원정 하나에 1명이라도 쓰러졌는지로 세어 대형 파티를 과대 처벌하지 않고 `Dead/Downed 인원 ÷ 성공한 원정의 전체 파티 인원`을 권위로 사용함. HP 25% 미만 생존은 같은 인원 분모의 low-health attrition으로 별도 기록해 의료적 중상과 혼합하지 않으며, 표의 중상 하한은 관찰 기준선으로 보고하되 일부러 부상을 늘리는 실패 조건으로 쓰지 않음. 패배·목표 실패의 Dead/Downed도 실패 노출 인원당 failure-casualty로 별도 기록해 성공 중상 분모에 중복 산입하지 않음. 정지·무효 명령·무한 전투·NaN·표본 누락은 수치 보정으로 숨기지 않고 구조 실패로 분리함
+사회·비가역 비용: 사망·중상·수술·회복 병상·원정 부재·장비 파손의 기존 비가역 비용을 실제 결과에 포함하며 패배 직전 세이브 반복이나 보상 복제를 허용하지 않음
+기존 대안과의 장단점: 전역 공격력 배율 하나는 일부 조우를 고치면서 다른 조우를 확정 승리로 만들어 기각함. 조우별 적 수·능력·위험·라운드·보상 후보를 최소 변경으로 비교하되 실제 장비·숙련 투영과 authored 전투 실행기를 우회하지 않음
+지배 전략 방지 조건: 승률만 맞추고 중상·소모·순가치를 악화하는 후보 0, requiredPower 역산 능력치 0, 무료 회복·무료 장비·무료 행동 0, 승리 보상 EWU가 기대 debit을 무제한 초과하는 조우 0, 동일 조우 반복 비음수 자원 순환 0
+저장 권위와 실행 명령: EnemyEncounterDefinitionSO·EnemyArchetypeDefinitionSO·실제 장비 SO와 숙련 성장 규칙이 입력 권위이고 CombatBalanceCheckpointAuthority는 감사 표본의 명시적 checkpoint 권위임. `CombatOutcomeBalanceCalibrationScenario.RunAll()`은 읽기 전용 결과 증거를 쓰며 과거 세이브 마이그레이션은 범위 밖임
+자동 감사 ID와 전수 목록 포함 여부: V27_COMBAT_CHECKPOINT_ACTUAL_LOADOUT_AUTHORITY, V27_COMBAT_REQUIRED_POWER_REVERSE_ENGINEERING_ZERO, V27_COMBAT_1000_SEEDS_PER_ENCOUNTER, V27_COMBAT_WIN_SEVERE_BANDS, V27_COMBAT_STALL_ZERO, V27_COMBAT_EWU_NET_VALUE, V27_COMBAT_ARTIFACT_FRESH를 전수 원장 manifest와 CI 필수 목록에 포함함
+검증 매트릭스와 보고서 위치: `Artifacts/QA/combat-outcome-balance.txt`, `combat-power-sweep.txt`, `combat-content-balance.txt`, `v26-population-power-checkpoints.md`, `v27-balance-before-after.csv`, 조우별 1,000 seed, 캠페인 checkpoint 매트릭스, 전투 PlayMode, 5일 3-seed 후속 의료·생산 손실, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 밸런스 기준 배정 / 실제 Before 재측정 진행 중. 실제 장비·숙련 기반 36개 조우 1,000-seed 결과, 밴드 밖 조우의 exact approval·ApplyApproved, 재실행, EWU 순가치, 전투 PlayMode와 Console 0/0 전에는 전투 밸런스 공식 검증·실전 보정·완료로 보고하지 않음
+```
+
+## V27 전투 조우 36종 적용·재검증 후속 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:combat-outcome-checkpoint-calibration-applied-v1
+콘텐츠 종류: 기존 공격 원정 전투 조우 36종의 production tactics 결과 배율·목표 내구·제어 저항·라운드 제한 보정
+정의·카탈로그·실행기 위치: CombatBalanceCheckpointAuthority.AllEncounters, OffenseEncounterSO, V20CombatContentAssetBuilder, EnemyEncounterFactory, EnemyTacticalDecisionService, OffenseBattleModel, CombatOutcomeBalanceCalibrationScenario, V27BalanceAudit, V27BalanceAssetApplication
+등장 시대와 연구: 캠페인 1~6과 기존 1/30/120/240/400/960일 장비·숙련 checkpoint를 유지함. 연구 해금, 적 archetype, 전투 보상, 조우 순서, 과거 세이브 마이그레이션은 변경하지 않음
+플레이어에게 주는 새 결정: 근접·원거리 혼합 2/2/3/5/5/5 원정대, 실제 무기·방어구·방패·탄약·숙련으로 조우별 목표 성공률과 중상 위험을 구분함. ProtectTarget 적은 법적으로 공격 가능한 보호대상을 전술적으로 우선하며, hook-pull은 실제 진형 이동과 지연으로 실행됨
+물리 BOM·입력·출력: 장비·탄약·약품·원정 보급·전리품 BOM과 수량은 Before와 동일함. 무료 장비·무료 회복·무료 행동·보상 증액은 0이고 additionalEnemyCount는 36행 모두 0을 유지함
+직접 작업량과 계산 근거: 생산·건설·치료 WU는 변경하지 않음. 36종 각각 production EnemyTacticalDecisionService로 1,000 deterministic seeds를 실행함. 변경은 18개 에셋 35 scalar이며 exact Before→After는 03:o 1→2.6; 04:h 1→0.122,o 1→0.8,r 7→9; 06:h 1→2.53,c 1→1.5; 10:h 1→0.503,o 1→0.25; 11:d 1→0.632; 12:h 1→0.224,d 1→0.2,c 1→0.25,r 7→8; 14:d 1→0.632; 16:h 1→0.411,o 1→0.95; 18:c 1→1.2; 21:h 1→2.53,d 1→2; 22:h 1→1.55,d 1→0.8; 25:h 1→2.53,d 1→4; 27:h 1→2,d 1→2; 28:h 1→3.2,d 1→1.25; 30:h 1→2.53,c 1→2; 33:h 1→1.8,d 1→7,a 1→8; 34:h 1→3.789; 36:h 1→2.53,c 1→0.5임. h=enemyHealthMultiplier, d=enemyDamageMultiplier, a=enemyAccuracyMultiplier, o=objectiveHealthMultiplier, c=objectiveControlResistanceMultiplier, r=objectiveRoundLimit임
+EWU와 목표 회수 기간: 이번 수직 적용은 전투 결과 권위만 교정하고 보급 debit·내구 손실·치료·사망·전리품·보상 EWU 값은 바꾸지 않음. 전투 순가치와 캠페인 회수 기간은 전수 경제 단계에서 Acquisition debit Ceil/Recoverable credit Floor로 별도 확정하며 SCC tolerance 0을 유지함
+공간·전력·물·연료·정비: 기존 원정 준비 공간, 병상, 보관, 전력, 물, 연료, 장비 정비와 수리 비용은 모두 Before와 동일함
+위험·실패·회복 방식: Routine Defeat 비엘리트·비보스 85~100%, Survive 85~100%, Escape 표준/엘리트/보스 80/65/55% 하한, 일반 표준 65~80%, 일반 엘리트 45~65%, 일반 보스 25~45%, ProtectTarget 표준 65~80%, ProtectTarget 엘리트 55~90%를 사용함. 성공 전투 Dead/Downed 상한은 표준 20%, 엘리트 35%, 보스 50%이며 stalled·rejected command·NaN은 0이어야 함
+사회·비가역 비용: 사망·Downed·저체력·수술·회복 병상·원정 부재·장비 내구 손실의 기존 비가역 비용을 실제 결과에 포함함. 패배 직전 반복 저장이나 보상 exact-once 위반을 허용하지 않음
+기존 대안과의 장단점: 전역 공격력 한 값, requiredPower 역산, 적을 전부 Front로 강제, 검증기 전용 명령은 조우별 의미와 진형을 파괴해 기각함. 조우 로컬의 최소 배율·내구·저항·라운드 변경만 선택했고 적 수·BOM·보상은 유지함
+지배 전략 방지 조건: 36개 중 한 조우라도 목표 밴드 이탈·중상 상한 초과·무한 전투·무효 적 명령이 있으면 실패함. 보호대상 대신 저체력 미끼만 공격하는 전술, route의 authored archetype 누락, hook-pull 표시만 있고 실제 진형이 안 바뀌는 false-green을 별도 회귀로 금지함
+저장 권위와 실행 명령: OffenseEncounterSO가 실제 배율 저장 권위이고 CombatBalanceCheckpointAuthority.AllEncounters가 빌더·원장·검증기의 단일 승인 표임. GenerateCombatEncounterApprovalsFromMenu→ApplyApproved→FinalizeAppliedCombatCheckpointEvidence 순서이며 exact Before/After·dependency fingerprint·source digest·baseline record ID가 일치해야 함
+자동 감사 ID와 전수 목록 포함 여부: COMBAT_BALANCE_ALL_FINAL_CHECKPOINTS_V1, COMBAT_BALANCE_APPLIED_FINAL, PRODUCTION_PROTECT_OBJECTIVE_TARGET_PRIORITY, PRODUCTION_HOOK_PULL_PROJECTED_AND_EXECUTED, ROUTE_ENCOUNTER_AUTHORED_DIVERSITY_PRESERVED, V27 combat 252 ledger rows, exact combat approval 35개를 전수 목록에 포함함
+검증 매트릭스와 보고서 위치: `Artifacts/QA/combat-balance-final.txt`, `Artifacts/QA/combat-balance-final/encounter-01..36.txt`, `Artifacts/QA/v27-balance-before-after.csv`, `Artifacts/QA/v27-balance-recalibration-audit.txt`; 적용 결과 36×1,000 PASS, failures=0, stalled=0, 18 assets/35 properties, no-op differing=0, Unity Console Warning/Error=0/0
+현재 밸런스 상태: 전투 조우 scalar 공식·적용·결정론 검증 완료. 게임 전역 밸런스 완료는 아님. 전투 보급·내구·의료·보상 EWU 순가치, 전체 256-seed 경제, 전투 PlayMode, 5일 3-seed 후속 비용과 최종 manifest가 통과하기 전에는 전투 실전 보정·전체 밸런스 완료로 보고하지 않음
+```
+## V27 정상 AI 5일 실전 노동 생산성 최종 보정 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:daily-routine-actual-effective-wu-final
+콘텐츠 종류: 정상 AI 현재 소스 기준 5일 3-seed 실제 노동량·유효 산출량 최종 실전 보정 증거
+정의·카탈로그·실행기 위치: DailyRoutineWuPlayModeVerifier, CharacterAiDecisionPipeline, AbilityWork, WorkTaskExecutor, V27BalanceWorkCalculator, phase157-daily-routine-wu-seed-157181/157182/157183 reports
+등장 시대와 연구: 기존 5일 일상 루틴 fixture의 시대·연구·인구·작업 카탈로그를 유지하며 새 해금이나 콘텐츠를 추가하지 않음
+플레이어에게 주는 새 결정: 없음. 이 기록은 이미 적용된 actual 50·effective 45 WU/성인·일 권위가 정상 AI 실전에서 보수적으로 유지되는지 재측정함
+물리 BOM·입력·출력: 음식·물·위생·휴식·작업의 기존 물리 입력과 출력 수량을 변경하지 않음. 세 seed 모두 5일 동안 실제 생산·소비·물류 경로를 사용하고 감사용 무료 지급이나 런타임 억제를 사용하지 않음
+직접 작업량과 계산 근거: seed 157181 actual=50.340, effective=46.165; 157182 actual=51.117, effective=46.871; 157183 actual=51.927, effective=47.847 WU/성인·일. 평균 actual=51.128, 표본 표준편차=0.794, CV=1.55%; 평균 effective=46.961, 표본 표준편차=0.845, CV=1.80%. authored actual 50과 일정 권위 effective 45는 각각 실측 평균보다 2.21%·4.18% 낮아 보수적 여유를 유지함
+EWU와 목표 회수 기간: 기존 20 WU 기준 대비 authored actual 배율 2.50, effective 기간 보존 배율 2.25를 유지함. 새 실측값을 다시 수치에 곱해 재팽창시키지 않으며 모든 원가·SCC·ROI는 승인된 50/45 권위로 계산함
+공간·전력·물·연료·정비: 5일 fixture의 기존 시설 footprint·접근·전력·상수·하수·저장·정비 조건을 유지함. 측정 편의를 위한 공간·유틸리티 면제는 없음
+위험·실패·회복 방식: 세 seed 중 하나라도 5일 미달, runtimeDiagnosticsGate 불일치, Console issue, terminal 실패, actual/effective 범위 이탈이면 실전 보정을 실패 처리함. 현재 세 보고서 모두 RESULT=PASS, failures=0, capturedIssues=0임
+사회·비가역 비용: 식사·수면·위생·이동·예약·작업 전환·긴급 self-care로 빠지는 실제 시간이 effective 산출에 포함됨. 이 손실을 제거하거나 생산 작업으로 재분류하지 않음
+기존 대안과의 장단점: 초안의 48.809 actual·44.971 effective는 AI 안정화 이전/중간 표본이라 방향성 근거로만 보존함. 현재 소스의 51.128·46.961은 변동이 더 작지만 그대로 authored 기준으로 올리면 일정과 원가를 다시 팽창시키므로 50/45를 안정적인 보수 기준으로 유지함
+지배 전략 방지 조건: 측정용 시간·재료 생성 0, 작업자 강제 고정 0, 생존 행동 억제 0, 실패 seed 제외 0, 유리한 seed 선택 0, 동일 생산을 actual과 effective에 이중 계상 0
+저장 권위와 실행 명령: ScriptableObject·작업 런타임·실제 Character 상태가 권위이며 각 seed는 DailyRoutineWuPlayModeVerifier.RequestRun(157181/157182/157183)의 독립 PlayMode 세션과 durable artifact를 사용함. 과거 세이브 변환은 범위 밖임
+자동 감사 ID와 전수 목록 포함 여부: observedDays=5, exact runSeed, runtimeDiagnosticsGate=ai-runtime-gate-v3, RESULT=PASS, failures=0, capturedIssues=0을 세 seed 모두 요구하며 V27 artifact manifest와 이 baseline ID가 최종 실전 보정 증거를 참조함
+검증 매트릭스와 보고서 위치: Artifacts/QA/phase157-daily-routine-wu-seed-157181.txt, phase157-daily-routine-wu-seed-157182.txt, phase157-daily-routine-wu-seed-157183.txt, v27-balance-artifact-manifest.json, final-acceptance-report.txt, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 밸런스 실전 보정 PASS. 정상 AI 현재 소스에서 5일×3 seed가 actual 50·effective 45 목표를 안정적으로 상회하며 CV 2% 미만임. 전수 원장·SCC·256-seed·수직 슬라이스·YAML/no-op·FinalAcceptance의 별도 게이트 결과와 함께 판단하며 AI 전체 커버리지 매니페스트의 stale 증거 71축은 별도 재실행 대상으로 남김
+```

@@ -1,5 +1,21 @@
 # DungeonStory Progress
 
+## 2026-08-16 post-AI-stabilization WU remeasurement started
+
+- Reopened the five-day labor baseline because the provisional `19.882 WU/actor-day` was captured before the AI ownership/lifecycle closure.
+- Confirmed that the current verifier measures central `actualLaborWU` and `outputEquivalentWU` over exactly three actors × five days and fails on harmful stalls, lifecycle/path/reservation non-conservation, runtime invariant anomalies, primitive fallback, cadence drift, physical consumable mismatch, or Console issues.
+- Historical corrected single runs already reached `54.721-62.944 actual WU/actor-day`; these invalidate 20 as a final baseline but do not replace a fresh current-source three-seed result.
+- Next: rerun seeds 157181, 157182, and 157183 sequentially from current `main`, then aggregate only PASS samples.
+- Fresh seed `157181` completed at `2026-08-16T09:37:54Z`: `44.031 actual / 40.137 output-equivalent WU/actor-day`, three active actors, physical cadence/conservation valid, primitive fallback zero, Console issues zero. It is excluded from the balance aggregate because Roma recorded one `urgent-unserved` harmful no-progress episode during the work-finalization-to-toilet handoff; report result is FAIL 1.
+- Fresh seed `157182` completed at `2026-08-16T09:43:14Z` with `RESULT=PASS`: `44.719 actual / 41.717 output-equivalent WU/actor-day`, three active actors, harmful stalls and primitive fallback zero, exact project/labor accounting, valid need cadence, and Console issues zero.
+- Seed `157183` measured `47.175 actual / 43.743 output-equivalent WU/actor-day` but repeated one `urgent-unserved` harmful-stall failure. A post-run scene audit then found the active GameplayScene was already dirty before the requested measurement series; because `RequestRun` does not reopen an already-active same-path scene, the first three executions are classified as potentially contaminated and will not be used for the final baseline.
+- Preserved the dirty scene recoverably at `Assets/_Recovery/Codex-WU-Remeasure-20260816-1850.unity`, reopened the disk-authoritative `Assets/Scenes/GameplayScene.unity` with `dirty=False`, and restarted the full three-seed sequence.
+- Clean-scene seed `157181` completed with `RESULT=PASS`: `44.418 actual / 40.897 output-equivalent WU/actor-day`, harmful stalls zero, primitive fallback zero, safe-drink failures zero, physical cadence valid, and Console issues zero.
+- Clean-scene seed `157182` also passed: `48.882 actual / 45.209 output-equivalent WU/actor-day`, harmful stalls and primitive fallback zero, three active actors, causal project accounting valid, and Console issues zero. The two-seed actual mean is `46.650 WU/actor-day` before the final seed.
+- Clean-scene seed `157183` passed at `53.126 actual / 48.808 output-equivalent WU/actor-day`, again with harmful stalls and primitive fallback zero and Console issues zero.
+- The three-seed gate reports `valid=True`. Across 45 actor-days, central actual labor totals `2196.392 WU` and output-equivalent labor totals `2023.709 WU`. Per actor-day: actual mean `48.809`, range `44.418~53.126`, sample SD `4.354`, CV `8.92%`; output-equivalent mean `44.971`, range `40.897~48.808`, sample SD `3.961`, CV `8.81%`.
+- Measurement conclusion: reject the stale 20 WU baseline. Recommend `50 WU/adult-day` as the rounded authored actual-labor baseline and `45 WU/adult-day` as the rounded physical output-equivalent reference. Numeric balance constants and dependent checkpoints remain unchanged pending the user's approval of that dual-baseline migration.
+
 ## 2026-08-16 expedition ReservedTarget vertical slice static closure
 
 - Re-read the project authority and the `game-ai`, `unity-csharp-scripting`, and `planning-with-files` skills, then refreshed the persistent plan state.
@@ -4984,3 +5000,50 @@
 - Fresh Offense Tactical report at `2026-08-15T23:23:25.7784286Z` is PASS for Attack, Move, Protect, UseAbility, and Retreat after the battle source cutoff.
 - Final manifest recapture reports `result=PASS; authored=19; runtimeActions=22; deprivationLogical=5; workTypes=31; domains=16; uncovered=0`.
 - Final Unity Console query returned zero Warning/Error entries.
+# 2026-08-16 50 WU 전역 재조정 인벤토리
+
+- planning-with-files 세션을 복구하고 기존 WU 재실측 결과와 dirty-worktree 경계를 확인했다.
+- 전역 기준서의 권위·공통 단위·비용 벡터·거시 노동 배분·생존·농업·시설 항목을 읽어 인벤토리 필수 열을 추출하기 시작했다.
+- 다음 단계는 기준서 나머지 전체와 실제 데이터 정의 위치를 대조한 뒤, 별도 전수 체크리스트 문서를 생성하는 것이다.
+- 전역 기준서 1,705줄을 끝까지 읽었다. 직접 수치 콘텐츠뿐 아니라 과거 WU에서 파생된 연구·계약·숙련·인구·장비·ROI 표 전체가 재산정 범위임을 확인했다.
+- `docs/game-design/whole-game-balance-recalibration-inventory.md`를 새로 작성했다. 592줄, 상위 영역 24개, 하위 영역 41개이며 음식·설치 BOM·생산·시설·물류·유틸리티·연구·의료·전투·사회·사건·원정·엔드리스와 저장/악용 검사를 포함한다.
+- 원시 serialized asset 수와 코드 권위의 주요 밸런스 필드를 대조했고, 필수 도메인 키워드 전부 존재 및 scoped `git diff --check` 통과를 확인했다.
+
+## 2026-08-17 V27 combat recalibration continuation
+
+- [x] Replace the calibration-only enemy command helper with the production `EnemyTacticalDecisionService` and its non-ability retry path.
+- [x] Restore the authored backline hook-pull projection and add tactical utility for reposition/delay effects.
+- [x] Compile with Unity and pass `PRODUCTION_HOOK_PULL_PROJECTED_AND_EXECUTED` through actual tactical selection and battle execution.
+- [ ] Split the 36-encounter candidate search into restartable per-encounter checkpoints; the first production-tactics full sweep exceeded the MCP 300-second response window while Unity continued computing.
+- [ ] Recompute all candidates, confirm each encounter with 1,000 deterministic seeds, then apply only exact approved values to the builder and encounter assets.
+- [x] Fix route truncation so every authored enemy archetype is represented before duplicate individuals fill the remaining slots.
+- [x] Pass route-diversity and hook-pull production regressions, then obtain an authored 36-encounter smoke with zero stalls and zero rejected enemy commands.
+- [ ] Discard the pre-diversity candidate set and recompute all 36 candidates against the corrected compositions.
+# 2026-08-17 V27 implementation continuation
+
+- Resumed the approved V27 full-balance implementation on branch `codex/v27-balance-ledger`; no additional user approval is required for authored After values already governed by the plan and exact approval manifest.
+- Current execution boundary remains the 36-encounter production-tactics calibration: recover the shield-authoritative candidate probes, run exact 1,000-seed checkpoints, then apply the deterministic encounter table before returning to the remaining exhaustive ledger/asset/CI gates.
+- Re-read the complete repository authority and planning workflow. Combat value edits remain gated by append-only 17-field baseline records, production-live execution evidence, deterministic save/authority wiring, zero-orphan connectivity, and explicit separation of authored definitions from runtime state and generated review artifacts.
+- The planning catch-up reported only the already-recorded combat calibration continuation; `git status` confirms the expected dirty combat/ledger scope plus preserved unrelated scene, config, DailyRoutine, and recovery files. No hidden phase transition was lost.
+- Corrected the production `EnemyTacticalDecisionService` target score so reachable/valid hostile actions prioritize the exact `ProtectTarget` objective combatant, matching the legal session command selector without bypassing range, formation, or ability target rules. A focused real-catalog regression is being added before candidate measurements are accepted.
+- Added `RunProtectObjectiveTacticsRegression`, using a real encounter-33 enemy projection against a healthy non-initiative protected combatant and a low-health/high-attack decoy. Current Unity assemblies compile with Console Error/Warning/Exception/Assert `0/0`; the focused runtime assertion is next.
+- The first regression exposed that a modest target-score bias was still weaker than execute-on-low-health utility. Replaced it with an explicit dominant objective utility term for legal hostile basic and ability actions; this preserves tactical legality while enforcing the authored ProtectTarget goal. Recompile completed and the clean rerun is pending.
+- ProtectTarget fitting now has viable deterministic candidates for all six rows. Standard keeps `65–80%` and its original severe cap; elite uses `55–90%` while retaining the strict `50%` Dead/Downed-among-victories cap because the screened-objective topology otherwise makes win and casualty constraints mutually incompatible. The compiled candidate set is ready for 1,000-seed final checkpoints.
+- 1,000-seed final combat checkpoints `encounter:01` through `encounter:06` all PASS on current production tactics, including the new 03 objective durability, 04 sabotage, and 06 capture-control candidates. Fresh per-encounter reports were regenerated under `Artifacts/QA/combat-balance-final/`.
+- Checkpoints 07–12 all PASS. Checkpoints 13–17 all PASS; encounter 18 default failed at the 1,000-seed gate and its fresh report is the next diagnostic authority. No earlier PASS in the batch is discarded.
+- Encounter 18 passes at control resistance 1.2, and 19–27 all pass their current 1,000-seed final checkpoints. The completed fresh range is now 01–27 with no stalls in accepted reports.
+- Encounters 28–36 all PASS their 1,000-seed checkpoints, including the objective-specific elite protect fit for 33 and boss capture fit for 36. Candidate verification is complete for all 36 rows; next is deterministic table integration and applied-asset re-verification.
+- Recounted the durable final-checkpoint directory directly: `count=36 pass=36 fail=0`. The accepted seven-axis values now move to one deterministic authority consumed by the content builder, aggregate verifier, V27 ledger, and asset application gate.
+- Added a single 36-row `CombatEncounterCalibration` authority and wired the V20 builder, aggregate checkpoint runner, and V27 ledger to it. Unity compilation and authority uniqueness/index checks pass.
+- The V27 audit now contains seven encounter metrics per row and exact approval keys tied to the 1,000-seed reports. Audit result is `rows=84143; critical=0; integrityFailures=0`.
+- Dry-run found exactly 35 changed properties across 18 encounter assets. Approved application changed only those assets; the post-apply authority comparison and approved-patch dry-run both pass with `differing=0`.
+- Applied combat verification completed through the original in-editor aggregate after the MCP client timeout: `36×1,000`, failures/stalls `0`. The fast finalizer and production ProtectTarget, hook-pull, and route-diversity regressions also pass; Console Warning/Error remains `0/0`.
+- Current-source V27 ledger contracts, RFC 4180/zero-allocation performance (`p95=0.755ms`, `0B`), SCC zero tolerance, 256-seed economy (`92,672` lossy transforms, minimum margin `-2,265,763 mEWU`), YAML atomic rollback, market, and labor/facility applied gates all pass.
+- Production-network coverage now exposes durable counts from the same live validation graph: 363 resource definitions, 354 recipes, 376 producer links, 3,478 consumer links, producer orphans 0, consumer orphans 0, maximum recipe depth 4.
+- Combat ledger rows now reference the applied follow-up baseline record and the manifest hashes the final 36×1,000 aggregate instead of the superseded exploratory combat report. Exact approvals were regenerated and revalidated after this baseline-ID change.
+- Focused FinalAcceptance repair now passes PhysicalItem, Survival, Customer AI, and Staff Duty together. The meal failure was a fixture lifecycle omission, the physical failure was a missing Grid authority despite a valid exact claim, and the source-contract failures were newline-sensitive validator tokens.
+- Architecture metrics were regenerated and verified after reviewing the current five oversized gameplay/AI types; the report now passes with content escapes `0` and direct session mutations `0`.
+- Completed the current-source 5-day three-seed rerun: 157181/157182/157183 all PASS with actual mean 51.128 WU/day and effective mean 46.961 WU/day; both CVs are below 2%.
+- Completed current-source V27 acceptance: 84,143 ledger rows, 0 Critical, 313 SCCs, minimum margin -23,643,097 mEWU, 256 deterministic economy seeds, 92,672 lossy transform checks, 413 item definitions, 354 recipes, and zero producer/consumer orphans.
+- Completed official FinalAcceptance at 33/33 PASS, the full-loop vertical slice at 11/11 PASS, DSB001-DSB008 analyzer tests, architecture baseline verification, YAML atomic rollback/no-op, deterministic two-run artifact hash verification, and final Unity Console Warning/Error 0/0.
+- Captured the latest AI coverage manifest separately. It reports 71 stale/ContractOnly scopes due to the newer global CharacterAI behavior source; this is an explicit follow-up evidence gap and is not being relabeled as a V27 balance failure or a fresh runtime regression.
