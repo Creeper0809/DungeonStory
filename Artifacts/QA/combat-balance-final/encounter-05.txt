@@ -1,0 +1,8 @@
+RESULT=PASS; samples=1000; failures=0; stalled=0
+COMBAT_BALANCE_FINAL_CHECKPOINT_V2
+enemyDecisionAuthority=EnemyTacticalDecisionService
+encounter=encounter:05
+objective=Escape
+health=1; damage=1; accuracy=1; objectiveHealth=1; controlResistance=1; additionalEnemyCount=0; round=8
+win=0.998; targetWin=65 %-100 %; severe=0.126753509; targetSevere=<=50 %; lowHealth=0.07965932; failureCasualty=1
+medianRounds=8; meanHealth=0.715423048; score=0

@@ -1,0 +1,8 @@
+RESULT=PASS; samples=1000; failures=0; stalled=0
+COMBAT_BALANCE_FINAL_CHECKPOINT_V2
+enemyDecisionAuthority=EnemyTacticalDecisionService
+encounter=encounter:01
+objective=DefeatAll
+health=1; damage=1; accuracy=1; objectiveHealth=1; controlResistance=1; additionalEnemyCount=0; round=0
+win=0.908; targetWin=85 %-100 %; severe=0.152533039; targetSevere=<=40 %; lowHealth=0.184471369; failureCasualty=1
+medianRounds=7; meanHealth=0.6078498; score=0

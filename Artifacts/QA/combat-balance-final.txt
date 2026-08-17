@@ -1,0 +1,3 @@
+RESULT=PASS; encounters=36; samplesPerEncounter=1000; failures=0
+COMBAT_BALANCE_ALL_FINAL_CHECKPOINTS_V1
+authority=CombatBalanceCheckpointAuthority.AllEncounters

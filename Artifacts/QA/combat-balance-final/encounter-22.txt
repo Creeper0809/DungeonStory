@@ -1,0 +1,8 @@
+RESULT=PASS; samples=1000; failures=0; stalled=0
+COMBAT_BALANCE_FINAL_CHECKPOINT_V2
+enemyDecisionAuthority=EnemyTacticalDecisionService
+encounter=encounter:22
+objective=SabotageTarget
+health=1.55; damage=0.8; accuracy=1; objectiveHealth=1; controlResistance=1; additionalEnemyCount=0; round=7
+win=0.749; targetWin=65 %-80 %; severe=0; targetSevere=<=40 %; lowHealth=0; failureCasualty=0
+medianRounds=6; meanHealth=0.9917993; score=0.00066139843658051588

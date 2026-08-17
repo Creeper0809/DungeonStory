@@ -1,0 +1,20 @@
+RESULT=PASS; rows=84143; domains=12; producerOrphans=0; consumerOrphans=0; approvedUnapplied=0
+PASS V27_WHOLE_GAME_SERIALIZED_AUTHORITY definitions=3473
+PASS V27_WHOLE_GAME_ITEM_DEFINITIONS total=413; resource=363; nonResource=50
+PASS V27_WHOLE_GAME_RECIPE_DEFINITIONS total=354; maxDepth=4
+PASS V27_WHOLE_GAME_ACTIVE_BUILDINGS total=356
+PASS V27_WHOLE_GAME_PRODUCER_LINKS links=376; orphans=0
+PASS V27_WHOLE_GAME_CONSUMER_LINKS links=3478; orphans=0
+PASS V27_WHOLE_GAME_EXACT_APPROVAL_APPLICATION unapplied=0
+PASS V27_DOMAIN_ROWS domain=agriculture; rows=931
+PASS V27_DOMAIN_ROWS domain=combat; rows=5555
+PASS V27_DOMAIN_ROWS domain=content; rows=14324
+PASS V27_DOMAIN_ROWS domain=defense; rows=185
+PASS V27_DOMAIN_ROWS domain=economy; rows=468
+PASS V27_DOMAIN_ROWS domain=facilities; rows=18731
+PASS V27_DOMAIN_ROWS domain=items; rows=12082
+PASS V27_DOMAIN_ROWS domain=labor; rows=12
+PASS V27_DOMAIN_ROWS domain=medical; rows=4030
+PASS V27_DOMAIN_ROWS domain=offense; rows=1291
+PASS V27_DOMAIN_ROWS domain=production; rows=7565
+PASS V27_DOMAIN_ROWS domain=research; rows=18969

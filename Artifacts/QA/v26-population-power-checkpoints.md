@@ -4,12 +4,12 @@ This is a deterministic theoretical baseline, not long-run player telemetry. Cha
 
 | Day | Total | Working adults | Dependents | Combat ready | Projected member | Authored loadout | Party | Target | Required | Ratio |
 |---:|---:|---:|---:|---:|---:|---|---:|---|---:|---:|
-| 1 | 3 | 3 | 0 | 2 | 16.3 | weapon:spear + armor:cloth-hood (Normal) | 16.3 | food_farm | 10.0 | 1.63 |
-| 30 | 3-6 | 3-6 | 0-2 | 2-4 | 20.2 | weapon:falchion + armor:leather + shield:wood (Normal) | 20.2 | merchant_road | 16.0 | 1.26 |
-| 120 | 6-14 | 5-12 | 1-4 | 3-7 | 24.4 | weapon:mace + armor:mail-shirt + shield:wood (Normal) | 48.7 | old_armory | 32.0 | 1.52 |
-| 240 | 12-28 | 8-20 | 4-12 | 5-12 | 32.5 | weapon:estoc + armor:articulated-plate + shield:iron (Good) | 65.0 | mana_ruins | 42.0 | 1.55 |
-| 400 | 25-60 | 15-40 | 10-25 | 10-24 | 36.6 | weapon:powered-striking-gauntlet + armor:powered-harness + shield:powered (Good) | 109.9 | rival_dungeon | 60.0 | 1.83 |
-| 960 | 80-220 | 55-160 | 25-70 | 25-70 | 44.2 | weapon:rune-blade + armor:rune-ward-mail + shield:rune (Excellent) | 132.6 | truth_core | 85.0 | 1.56 |
+| 1 | 3 | 3 | 0 | 2 | 14.4 | weapon:spear + armor:cloth-hood (Normal) | 14.4 | food_farm | 10.0 | 1.44 |
+| 30 | 3-6 | 3-6 | 0-2 | 2-4 | 19.9 | weapon:falchion + armor:leather + shield:wood (Normal) | 19.9 | merchant_road | 16.0 | 1.24 |
+| 120 | 6-14 | 5-12 | 1-4 | 3-7 | 21.5 | weapon:mace + armor:mail-shirt + shield:wood (Normal) | 43.0 | old_armory | 32.0 | 1.34 |
+| 240 | 12-28 | 8-20 | 4-12 | 5-12 | 28.4 | weapon:estoc + armor:articulated-plate + shield:iron (Good) | 56.9 | mana_ruins | 42.0 | 1.35 |
+| 400 | 25-60 | 15-40 | 10-25 | 10-24 | 30.9 | weapon:powered-striking-gauntlet + armor:powered-harness + shield:powered (Good) | 92.6 | rival_dungeon | 60.0 | 1.54 |
+| 960 | 80-220 | 55-160 | 25-70 | 25-70 | 35.8 | weapon:rune-blade + armor:rune-ward-mail + shield:rune (Excellent) | 107.3 | truth_core | 85.0 | 1.26 |
 
 ## Authority notes
 
