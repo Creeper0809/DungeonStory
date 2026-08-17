@@ -150,7 +150,10 @@ def main() -> int:
     )
     require_text(
         QA / "v27-balance-economy-256-seed.txt",
-        ("RESULT=PASS; seeds=256; failures=0", "rows=84143; critical=0; scc=313"),
+        (
+            "RESULT=PASS; seeds=256; failures=0",
+            f"rows={manifest['rowCount']}; critical=0; scc={manifest['sccCount']}",
+        ),
     )
     require_text(
         QA / "v27-balance-whole-game-coverage.txt",
