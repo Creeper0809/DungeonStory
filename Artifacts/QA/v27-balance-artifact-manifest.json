@@ -1,8 +1,8 @@
 {
   "schemaVersion": "v27.1",
-  "generatorVersion": "v27.10.0",
-  "sourceDigest": "54e3012b36f67ae582b014e0e407a41731e324100f7b8a723f95901bee497ffe",
-  "sourceInventoryByteHash": "c5af6f839d583f1966c6d3e48d355de23868c226e62a8520eb82587119831217",
+  "generatorVersion": "v27.11.0",
+  "sourceDigest": "f4a5a74d2e91d3f36fea780343c5004c02ef93f2f30971ffab7e55f46f92aa78",
+  "sourceInventoryByteHash": "c2a56ce0b0dd7013e46211318aed66e2d852ee88ee7a6035e864f05a59b6ac8a",
   "sourceCount": 3519,
   "rowCount": 84323,
   "csvByteHash": "e49523e98e25bc2e3ade0529d97b6d81e61ecf813ed42af83f8c388fbb509205",
