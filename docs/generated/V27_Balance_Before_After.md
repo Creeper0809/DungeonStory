@@ -3,9 +3,9 @@
 This file is generated deterministically from current Unity authority. The exhaustive machine ledger is `Artifacts/QA/v27-balance-before-after.csv`.
 
 - Schema: v27.1
-- Rows: 84143
+- Rows: 84323
 - Unresolved root/local Critical nodes: 0
-- Collapsed Critical descendants: 11
+- Collapsed Critical descendants: 9
 - SCCs: 313
 - Integrity failures: 0
 
@@ -1031,15 +1031,15 @@ This file is generated deterministically from current Unity authority. The exhau
 |combat|offense-encounter|encounter:03|enemy-damage-multiplier|1|1|none|
 |combat|offense-encounter|encounter:03|enemy-health-multiplier|1|1|none|
 |combat|offense-encounter|encounter:03|objective-control-resistance-multiplier|1|1|none|
-|combat|offense-encounter|encounter:03|objective-health-multiplier|1|2.6|approved|
+|combat|offense-encounter|encounter:03|objective-health-multiplier|2.6|2.6|none|
 |combat|offense-encounter|encounter:03|objective-round-limit|6|6|none|
 |combat|offense-encounter|encounter:04|additional-enemy-count|0|0|none|
 |combat|offense-encounter|encounter:04|enemy-accuracy-multiplier|1|1|none|
 |combat|offense-encounter|encounter:04|enemy-damage-multiplier|1|1|none|
-|combat|offense-encounter|encounter:04|enemy-health-multiplier|1|0.122|approved|
+|combat|offense-encounter|encounter:04|enemy-health-multiplier|0.122|0.122|none|
 |combat|offense-encounter|encounter:04|objective-control-resistance-multiplier|1|1|none|
-|combat|offense-encounter|encounter:04|objective-health-multiplier|1|0.8|approved|
-|combat|offense-encounter|encounter:04|objective-round-limit|7|9|approved|
+|combat|offense-encounter|encounter:04|objective-health-multiplier|0.8|0.8|none|
+|combat|offense-encounter|encounter:04|objective-round-limit|9|9|none|
 |combat|offense-encounter|encounter:05|additional-enemy-count|0|0|none|
 |combat|offense-encounter|encounter:05|enemy-accuracy-multiplier|1|1|none|
 |combat|offense-encounter|encounter:05|enemy-damage-multiplier|1|1|none|
@@ -1050,8 +1050,8 @@ This file is generated deterministically from current Unity authority. The exhau
 |combat|offense-encounter|encounter:06|additional-enemy-count|0|0|none|
 |combat|offense-encounter|encounter:06|enemy-accuracy-multiplier|1|1|none|
 |combat|offense-encounter|encounter:06|enemy-damage-multiplier|1|1|none|
-|combat|offense-encounter|encounter:06|enemy-health-multiplier|1|2.53|approved|
-|combat|offense-encounter|encounter:06|objective-control-resistance-multiplier|1|1.5|approved|
+|combat|offense-encounter|encounter:06|enemy-health-multiplier|2.53|2.53|none|
+|combat|offense-encounter|encounter:06|objective-control-resistance-multiplier|1.5|1.5|none|
 |combat|offense-encounter|encounter:06|objective-health-multiplier|1|1|none|
 |combat|offense-encounter|encounter:06|objective-round-limit|6|6|none|
 |combat|offense-encounter|encounter:07|additional-enemy-count|0|0|none|
@@ -1078,24 +1078,24 @@ This file is generated deterministically from current Unity authority. The exhau
 |combat|offense-encounter|encounter:10|additional-enemy-count|0|0|none|
 |combat|offense-encounter|encounter:10|enemy-accuracy-multiplier|1|1|none|
 |combat|offense-encounter|encounter:10|enemy-damage-multiplier|1|1|none|
-|combat|offense-encounter|encounter:10|enemy-health-multiplier|1|0.503|approved|
+|combat|offense-encounter|encounter:10|enemy-health-multiplier|0.503|0.503|none|
 |combat|offense-encounter|encounter:10|objective-control-resistance-multiplier|1|1|none|
-|combat|offense-encounter|encounter:10|objective-health-multiplier|1|0.25|approved|
+|combat|offense-encounter|encounter:10|objective-health-multiplier|0.25|0.25|none|
 |combat|offense-encounter|encounter:10|objective-round-limit|7|7|none|
 |combat|offense-encounter|encounter:11|additional-enemy-count|0|0|none|
 |combat|offense-encounter|encounter:11|enemy-accuracy-multiplier|1|1|none|
-|combat|offense-encounter|encounter:11|enemy-damage-multiplier|1|0.632|approved|
+|combat|offense-encounter|encounter:11|enemy-damage-multiplier|0.632|0.632|none|
 |combat|offense-encounter|encounter:11|enemy-health-multiplier|1|1|none|
 |combat|offense-encounter|encounter:11|objective-control-resistance-multiplier|1|1|none|
 |combat|offense-encounter|encounter:11|objective-health-multiplier|1|1|none|
 |combat|offense-encounter|encounter:11|objective-round-limit|7|7|none|
 |combat|offense-encounter|encounter:12|additional-enemy-count|0|0|none|
 |combat|offense-encounter|encounter:12|enemy-accuracy-multiplier|1|1|none|
-|combat|offense-encounter|encounter:12|enemy-damage-multiplier|1|0.2|approved|
-|combat|offense-encounter|encounter:12|enemy-health-multiplier|1|0.224|approved|
-|combat|offense-encounter|encounter:12|objective-control-resistance-multiplier|1|0.25|approved|
+|combat|offense-encounter|encounter:12|enemy-damage-multiplier|0.2|0.2|none|
+|combat|offense-encounter|encounter:12|enemy-health-multiplier|0.224|0.224|none|
+|combat|offense-encounter|encounter:12|objective-control-resistance-multiplier|0.25|0.25|none|
 |combat|offense-encounter|encounter:12|objective-health-multiplier|1|1|none|
-|combat|offense-encounter|encounter:12|objective-round-limit|7|8|approved|
+|combat|offense-encounter|encounter:12|objective-round-limit|8|8|none|
 |combat|offense-encounter|encounter:13|additional-enemy-count|0|0|none|
 |combat|offense-encounter|encounter:13|enemy-accuracy-multiplier|1|1|none|
 |combat|offense-encounter|encounter:13|enemy-damage-multiplier|1|1|none|
@@ -1105,7 +1105,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |combat|offense-encounter|encounter:13|objective-round-limit|0|0|none|
 |combat|offense-encounter|encounter:14|additional-enemy-count|0|0|none|
 |combat|offense-encounter|encounter:14|enemy-accuracy-multiplier|1|1|none|
-|combat|offense-encounter|encounter:14|enemy-damage-multiplier|1|0.632|approved|
+|combat|offense-encounter|encounter:14|enemy-damage-multiplier|0.632|0.632|none|
 |combat|offense-encounter|encounter:14|enemy-health-multiplier|1|1|none|
 |combat|offense-encounter|encounter:14|objective-control-resistance-multiplier|1|1|none|
 |combat|offense-encounter|encounter:14|objective-health-multiplier|1|1|none|
@@ -1120,9 +1120,9 @@ This file is generated deterministically from current Unity authority. The exhau
 |combat|offense-encounter|encounter:16|additional-enemy-count|0|0|none|
 |combat|offense-encounter|encounter:16|enemy-accuracy-multiplier|1|1|none|
 |combat|offense-encounter|encounter:16|enemy-damage-multiplier|1|1|none|
-|combat|offense-encounter|encounter:16|enemy-health-multiplier|1|0.411|approved|
+|combat|offense-encounter|encounter:16|enemy-health-multiplier|0.411|0.411|none|
 |combat|offense-encounter|encounter:16|objective-control-resistance-multiplier|1|1|none|
-|combat|offense-encounter|encounter:16|objective-health-multiplier|1|0.95|approved|
+|combat|offense-encounter|encounter:16|objective-health-multiplier|0.95|0.95|none|
 |combat|offense-encounter|encounter:16|objective-round-limit|7|7|none|
 |combat|offense-encounter|encounter:17|additional-enemy-count|0|0|none|
 |combat|offense-encounter|encounter:17|enemy-accuracy-multiplier|1|1|none|
@@ -1135,7 +1135,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |combat|offense-encounter|encounter:18|enemy-accuracy-multiplier|1|1|none|
 |combat|offense-encounter|encounter:18|enemy-damage-multiplier|1|1|none|
 |combat|offense-encounter|encounter:18|enemy-health-multiplier|1|1|none|
-|combat|offense-encounter|encounter:18|objective-control-resistance-multiplier|1|1.2|approved|
+|combat|offense-encounter|encounter:18|objective-control-resistance-multiplier|1.2|1.2|none|
 |combat|offense-encounter|encounter:18|objective-health-multiplier|1|1|none|
 |combat|offense-encounter|encounter:18|objective-round-limit|6|6|none|
 |combat|offense-encounter|encounter:19|additional-enemy-count|0|0|none|
@@ -1154,15 +1154,15 @@ This file is generated deterministically from current Unity authority. The exhau
 |combat|offense-encounter|encounter:20|objective-round-limit|8|8|none|
 |combat|offense-encounter|encounter:21|additional-enemy-count|0|0|none|
 |combat|offense-encounter|encounter:21|enemy-accuracy-multiplier|1|1|none|
-|combat|offense-encounter|encounter:21|enemy-damage-multiplier|1|2|approved|
-|combat|offense-encounter|encounter:21|enemy-health-multiplier|1|2.53|approved|
+|combat|offense-encounter|encounter:21|enemy-damage-multiplier|2|2|none|
+|combat|offense-encounter|encounter:21|enemy-health-multiplier|2.53|2.53|none|
 |combat|offense-encounter|encounter:21|objective-control-resistance-multiplier|1|1|none|
 |combat|offense-encounter|encounter:21|objective-health-multiplier|1|1|none|
 |combat|offense-encounter|encounter:21|objective-round-limit|7|7|none|
 |combat|offense-encounter|encounter:22|additional-enemy-count|0|0|none|
 |combat|offense-encounter|encounter:22|enemy-accuracy-multiplier|1|1|none|
-|combat|offense-encounter|encounter:22|enemy-damage-multiplier|1|0.8|approved|
-|combat|offense-encounter|encounter:22|enemy-health-multiplier|1|1.55|approved|
+|combat|offense-encounter|encounter:22|enemy-damage-multiplier|0.8|0.8|none|
+|combat|offense-encounter|encounter:22|enemy-health-multiplier|1.55|1.45|approved|
 |combat|offense-encounter|encounter:22|objective-control-resistance-multiplier|1|1|none|
 |combat|offense-encounter|encounter:22|objective-health-multiplier|1|1|none|
 |combat|offense-encounter|encounter:22|objective-round-limit|7|7|none|
@@ -1182,8 +1182,8 @@ This file is generated deterministically from current Unity authority. The exhau
 |combat|offense-encounter|encounter:24|objective-round-limit|6|6|none|
 |combat|offense-encounter|encounter:25|additional-enemy-count|0|0|none|
 |combat|offense-encounter|encounter:25|enemy-accuracy-multiplier|1|1|none|
-|combat|offense-encounter|encounter:25|enemy-damage-multiplier|1|4|approved|
-|combat|offense-encounter|encounter:25|enemy-health-multiplier|1|2.53|approved|
+|combat|offense-encounter|encounter:25|enemy-damage-multiplier|4|4|none|
+|combat|offense-encounter|encounter:25|enemy-health-multiplier|2.53|2.53|none|
 |combat|offense-encounter|encounter:25|objective-control-resistance-multiplier|1|1|none|
 |combat|offense-encounter|encounter:25|objective-health-multiplier|1|1|none|
 |combat|offense-encounter|encounter:25|objective-round-limit|0|0|none|
@@ -1196,15 +1196,15 @@ This file is generated deterministically from current Unity authority. The exhau
 |combat|offense-encounter|encounter:26|objective-round-limit|8|8|none|
 |combat|offense-encounter|encounter:27|additional-enemy-count|0|0|none|
 |combat|offense-encounter|encounter:27|enemy-accuracy-multiplier|1|1|none|
-|combat|offense-encounter|encounter:27|enemy-damage-multiplier|1|2|approved|
-|combat|offense-encounter|encounter:27|enemy-health-multiplier|1|2|approved|
+|combat|offense-encounter|encounter:27|enemy-damage-multiplier|2|2|none|
+|combat|offense-encounter|encounter:27|enemy-health-multiplier|2|2|none|
 |combat|offense-encounter|encounter:27|objective-control-resistance-multiplier|1|1|none|
 |combat|offense-encounter|encounter:27|objective-health-multiplier|1|1|none|
 |combat|offense-encounter|encounter:27|objective-round-limit|7|7|none|
 |combat|offense-encounter|encounter:28|additional-enemy-count|0|0|none|
 |combat|offense-encounter|encounter:28|enemy-accuracy-multiplier|1|1|none|
-|combat|offense-encounter|encounter:28|enemy-damage-multiplier|1|1.25|approved|
-|combat|offense-encounter|encounter:28|enemy-health-multiplier|1|3.2|approved|
+|combat|offense-encounter|encounter:28|enemy-damage-multiplier|1.25|1|approved|
+|combat|offense-encounter|encounter:28|enemy-health-multiplier|3.2|3.2|none|
 |combat|offense-encounter|encounter:28|objective-control-resistance-multiplier|1|1|none|
 |combat|offense-encounter|encounter:28|objective-health-multiplier|1|1|none|
 |combat|offense-encounter|encounter:28|objective-round-limit|8|8|none|
@@ -1218,8 +1218,8 @@ This file is generated deterministically from current Unity authority. The exhau
 |combat|offense-encounter|encounter:30|additional-enemy-count|0|0|none|
 |combat|offense-encounter|encounter:30|enemy-accuracy-multiplier|1|1|none|
 |combat|offense-encounter|encounter:30|enemy-damage-multiplier|1|1|none|
-|combat|offense-encounter|encounter:30|enemy-health-multiplier|1|2.53|approved|
-|combat|offense-encounter|encounter:30|objective-control-resistance-multiplier|1|2|approved|
+|combat|offense-encounter|encounter:30|enemy-health-multiplier|2.53|2.53|none|
+|combat|offense-encounter|encounter:30|objective-control-resistance-multiplier|2|2|none|
 |combat|offense-encounter|encounter:30|objective-health-multiplier|1|1|none|
 |combat|offense-encounter|encounter:30|objective-round-limit|7|7|none|
 |combat|offense-encounter|encounter:31|additional-enemy-count|0|0|none|
@@ -1237,16 +1237,16 @@ This file is generated deterministically from current Unity authority. The exhau
 |combat|offense-encounter|encounter:32|objective-health-multiplier|1|1|none|
 |combat|offense-encounter|encounter:32|objective-round-limit|8|8|none|
 |combat|offense-encounter|encounter:33|additional-enemy-count|0|0|none|
-|combat|offense-encounter|encounter:33|enemy-accuracy-multiplier|1|8|approved|
-|combat|offense-encounter|encounter:33|enemy-damage-multiplier|1|7|approved|
-|combat|offense-encounter|encounter:33|enemy-health-multiplier|1|1.8|approved|
+|combat|offense-encounter|encounter:33|enemy-accuracy-multiplier|8|8|none|
+|combat|offense-encounter|encounter:33|enemy-damage-multiplier|7|7|none|
+|combat|offense-encounter|encounter:33|enemy-health-multiplier|1.8|1.1|approved|
 |combat|offense-encounter|encounter:33|objective-control-resistance-multiplier|1|1|none|
 |combat|offense-encounter|encounter:33|objective-health-multiplier|1|1|none|
 |combat|offense-encounter|encounter:33|objective-round-limit|8|8|none|
 |combat|offense-encounter|encounter:34|additional-enemy-count|0|0|none|
 |combat|offense-encounter|encounter:34|enemy-accuracy-multiplier|1|1|none|
 |combat|offense-encounter|encounter:34|enemy-damage-multiplier|1|1|none|
-|combat|offense-encounter|encounter:34|enemy-health-multiplier|1|3.789|approved|
+|combat|offense-encounter|encounter:34|enemy-health-multiplier|3.789|3.5|approved|
 |combat|offense-encounter|encounter:34|objective-control-resistance-multiplier|1|1|none|
 |combat|offense-encounter|encounter:34|objective-health-multiplier|1|1|none|
 |combat|offense-encounter|encounter:34|objective-round-limit|7|7|none|
@@ -1260,8 +1260,8 @@ This file is generated deterministically from current Unity authority. The exhau
 |combat|offense-encounter|encounter:36|additional-enemy-count|0|0|none|
 |combat|offense-encounter|encounter:36|enemy-accuracy-multiplier|1|1|none|
 |combat|offense-encounter|encounter:36|enemy-damage-multiplier|1|1|none|
-|combat|offense-encounter|encounter:36|enemy-health-multiplier|1|2.53|approved|
-|combat|offense-encounter|encounter:36|objective-control-resistance-multiplier|1|0.5|approved|
+|combat|offense-encounter|encounter:36|enemy-health-multiplier|2.53|2.53|none|
+|combat|offense-encounter|encounter:36|objective-control-resistance-multiplier|0.5|0.5|none|
 |combat|offense-encounter|encounter:36|objective-health-multiplier|1|1|none|
 |combat|offense-encounter|encounter:36|objective-round-limit|6|6|none|
 |combat|serialized-property|asset:00539539133500843ace2c2ca4923fbd|serialized:0d550964ab18e5b8174405ff|1|1|none|
@@ -4021,7 +4021,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |combat|serialized-property|asset:8b5cb7aedda14d945a45dcdba93ef33c|serialized:30b9a6454e76344fb1da5ad0|1|1|none|
 |combat|serialized-property|asset:8b5cb7aedda14d945a45dcdba93ef33c|serialized:38a005713b6ed35c223f6386|7|7|none|
 |combat|serialized-property|asset:8b5cb7aedda14d945a45dcdba93ef33c|serialized:3f321d12e1f604f063fd3163|0|0|none|
-|combat|serialized-property|asset:8b5cb7aedda14d945a45dcdba93ef33c|serialized:51642618d2784b4617ea0769|3.7890000343322754|3.7890000343322754|none|
+|combat|serialized-property|asset:8b5cb7aedda14d945a45dcdba93ef33c|serialized:51642618d2784b4617ea0769|3.5|3.5|none|
 |combat|serialized-property|asset:8b5cb7aedda14d945a45dcdba93ef33c|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
 |combat|serialized-property|asset:8b5cb7aedda14d945a45dcdba93ef33c|serialized:6d1c5b3d39ae9dacfbbdd529|2|2|none|
 |combat|serialized-property|asset:8b5cb7aedda14d945a45dcdba93ef33c|serialized:7e594bf61d75de7129b5def8|1|1|none|
@@ -4226,7 +4226,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |combat|serialized-property|asset:9a12e3fcfb02d884ba0a0b9db05b6bd5|serialized:a19fea1bad31ee683ae598b7|1|1|none|
 |combat|serialized-property|asset:9a12e3fcfb02d884ba0a0b9db05b6bd5|serialized:a56145270ce6b3bebd1dd012|8028|8028|none|
 |combat|serialized-property|asset:9a12e3fcfb02d884ba0a0b9db05b6bd5|serialized:a5e7c002443743c5836758c7|false|false|none|
-|combat|serialized-property|asset:9a12e3fcfb02d884ba0a0b9db05b6bd5|serialized:cc3af18ad772dd8ede277dc1|1.25|1.25|none|
+|combat|serialized-property|asset:9a12e3fcfb02d884ba0a0b9db05b6bd5|serialized:cc3af18ad772dd8ede277dc1|1|1|none|
 |combat|serialized-property|asset:9a12e3fcfb02d884ba0a0b9db05b6bd5|serialized:d41627076a90ea36306ea111|2|2|none|
 |combat|serialized-property|asset:9a12e3fcfb02d884ba0a0b9db05b6bd5|serialized:d454bec656d3272340496102|3|3|none|
 |combat|serialized-property|asset:9a12e3fcfb02d884ba0a0b9db05b6bd5|serialized:f32f4f767950892292b1ebc8|1|1|none|
@@ -4364,7 +4364,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |combat|serialized-property|asset:a27651bd9468b8942ae17f5629c78aaa|serialized:30b9a6454e76344fb1da5ad0|8|8|none|
 |combat|serialized-property|asset:a27651bd9468b8942ae17f5629c78aaa|serialized:38a005713b6ed35c223f6386|8|8|none|
 |combat|serialized-property|asset:a27651bd9468b8942ae17f5629c78aaa|serialized:3f321d12e1f604f063fd3163|0|0|none|
-|combat|serialized-property|asset:a27651bd9468b8942ae17f5629c78aaa|serialized:51642618d2784b4617ea0769|1.7999999523162842|1.7999999523162842|none|
+|combat|serialized-property|asset:a27651bd9468b8942ae17f5629c78aaa|serialized:51642618d2784b4617ea0769|1.1000000238418579|1.1000000238418579|none|
 |combat|serialized-property|asset:a27651bd9468b8942ae17f5629c78aaa|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
 |combat|serialized-property|asset:a27651bd9468b8942ae17f5629c78aaa|serialized:6d1c5b3d39ae9dacfbbdd529|2|2|none|
 |combat|serialized-property|asset:a27651bd9468b8942ae17f5629c78aaa|serialized:7e594bf61d75de7129b5def8|1|1|none|
@@ -5860,7 +5860,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |combat|serialized-property|asset:e885bfafb3131a54293cb891e0354a48|serialized:30b9a6454e76344fb1da5ad0|1|1|none|
 |combat|serialized-property|asset:e885bfafb3131a54293cb891e0354a48|serialized:38a005713b6ed35c223f6386|7|7|none|
 |combat|serialized-property|asset:e885bfafb3131a54293cb891e0354a48|serialized:3f321d12e1f604f063fd3163|0|0|none|
-|combat|serialized-property|asset:e885bfafb3131a54293cb891e0354a48|serialized:51642618d2784b4617ea0769|1.5499999523162842|1.5499999523162842|none|
+|combat|serialized-property|asset:e885bfafb3131a54293cb891e0354a48|serialized:51642618d2784b4617ea0769|1.4500000476837158|1.4500000476837158|none|
 |combat|serialized-property|asset:e885bfafb3131a54293cb891e0354a48|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
 |combat|serialized-property|asset:e885bfafb3131a54293cb891e0354a48|serialized:6d1c5b3d39ae9dacfbbdd529|2|2|none|
 |combat|serialized-property|asset:e885bfafb3131a54293cb891e0354a48|serialized:7e594bf61d75de7129b5def8|1|1|none|
@@ -52289,15 +52289,15 @@ This file is generated deterministically from current Unity authority. The exhau
 |items|serialized-property|asset:fffef3407b11a754e9958719e6148ac2|serialized:c2b4b5eef0b03b08a231a747|0|0|none|
 |labor|technology-stage|technology-stage:0|actual-wu-per-adult-day|20|50|warning|
 |labor|technology-stage|technology-stage:0|effective-wu-per-adult-day|20|45|warning|
-|labor|technology-stage|technology-stage:1|actual-wu-per-adult-day|21.84|54.5|warning|
+|labor|technology-stage|technology-stage:1|actual-wu-per-adult-day|20.8|54.5|warning|
 |labor|technology-stage|technology-stage:1|effective-wu-per-adult-day|21.84|49.05|warning|
-|labor|technology-stage|technology-stage:2|actual-wu-per-adult-day|25.08|62.5|warning|
+|labor|technology-stage|technology-stage:2|actual-wu-per-adult-day|22|62.5|warning|
 |labor|technology-stage|technology-stage:2|effective-wu-per-adult-day|25.08|56.25|warning|
-|labor|technology-stage|technology-stage:3|actual-wu-per-adult-day|29.884|74.5|warning|
+|labor|technology-stage|technology-stage:3|actual-wu-per-adult-day|23.4|74.5|warning|
 |labor|technology-stage|technology-stage:3|effective-wu-per-adult-day|29.884|67.05|warning|
-|labor|technology-stage|technology-stage:4|actual-wu-per-adult-day|33.948|85|warning|
+|labor|technology-stage|technology-stage:4|actual-wu-per-adult-day|24.6|85|warning|
 |labor|technology-stage|technology-stage:4|effective-wu-per-adult-day|33.948|76.5|warning|
-|labor|technology-stage|technology-stage:5|actual-wu-per-adult-day|40|100|warning|
+|labor|technology-stage|technology-stage:5|actual-wu-per-adult-day|25.83|100|warning|
 |labor|technology-stage|technology-stage:5|effective-wu-per-adult-day|40|90|warning|
 |medical|guest-request|guest-request:emergency-surgery|authored-money-reward-gold|224|492|approved|
 |medical|item-market|surgery:prosthetic:arm:left|authored-unit-price-gold|173|391|approved|
@@ -65593,6 +65593,186 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|item-market|tool:weather-observation-kit|authored-market-sale-rate|0.60180443525314331|0.596554696559906|approved|
 |research|item-market|tool:weather-observation-kit|authored-unit-price-gold|63|143|approved|
 |research|item-market|tool:weather-observation-kit|market-sale-credit|113741|255921|none|
+|research|research-project|research:agriculture:compost|authored-research-required-wu|60|28|approved|
+|research|research-project|research:agriculture:cultivar-breeding|authored-research-required-wu|1200|546|approved|
+|research|research-project|research:agriculture:field|authored-research-required-wu|60|28|approved|
+|research|research-project|research:agriculture:gathering|authored-research-required-wu|36|17|approved|
+|research|research-project|research:agriculture:greenhouse-horticulture|authored-research-required-wu|560|255|approved|
+|research|research-project|research:agriculture:indoor|authored-research-required-wu|132|60|approved|
+|research|research-project|research:agriculture:irrigation|authored-research-required-wu|92|42|approved|
+|research|research-project|research:agriculture:phenology|authored-research-required-wu|588|268|approved|
+|research|research-project|research:agriculture:soil-cycles|authored-research-required-wu|1532|697|approved|
+|research|research-project|research:agriculture:subterranean|authored-research-required-wu|184|84|approved|
+|research|research-project|research:arcane:advanced|authored-research-required-wu|92|42|approved|
+|research|research-project|research:arcane:alchemy|authored-research-required-wu|60|28|approved|
+|research|research-project|research:arcane:records|authored-research-required-wu|36|17|approved|
+|research|research-project|research:arcane:resonance|authored-research-required-wu|132|60|approved|
+|research|research-project|research:authority:office|authored-research-required-wu|92|42|approved|
+|research|research-project|research:authority:prestige|authored-research-required-wu|60|28|approved|
+|research|research-project|research:authority:quarters|authored-research-required-wu|36|17|approved|
+|research|research-project|research:authority:ritual|authored-research-required-wu|132|60|approved|
+|research|research-project|research:bath-business|authored-research-required-wu|92|42|approved|
+|research|research-project|research:climate:environment-control|authored-research-required-wu|960|437|approved|
+|research|research-project|research:climate:regional-climatology|authored-research-required-wu|8400|3819|approved|
+|research|research-project|research:climate:weather-observation|authored-research-required-wu|336|153|approved|
+|research|research-project|research:commerce:expansion|authored-research-required-wu|92|42|approved|
+|research|research-project|research:commerce:logistics|authored-research-required-wu|36|17|approved|
+|research|research-project|research:commerce:retail|authored-research-required-wu|60|28|approved|
+|research|research-project|research:commerce:secure-trade|authored-research-required-wu|132|60|approved|
+|research|research-project|research:control:blood-show|authored-research-required-wu|132|60|approved|
+|research|research-project|research:control:labor|authored-research-required-wu|60|28|approved|
+|research|research-project|research:control:restraints|authored-research-required-wu|36|17|approved|
+|research|research-project|research:control:show|authored-research-required-wu|92|42|approved|
+|research|research-project|research:cuisine:baking|authored-research-required-wu|132|60|approved|
+|research|research-project|research:cuisine:controlled-fermentation|authored-research-required-wu|184|84|approved|
+|research|research-project|research:cuisine:crops|authored-research-required-wu|36|17|approved|
+|research|research-project|research:cuisine:distilling-aging|authored-research-required-wu|252|115|approved|
+|research|research-project|research:cuisine:fermentation|authored-research-required-wu|132|60|approved|
+|research|research-project|research:cuisine:kitchen-hygiene|authored-research-required-wu|184|84|approved|
+|research|research-project|research:cuisine:lavish|authored-research-required-wu|184|84|approved|
+|research|research-project|research:cuisine:livestock|authored-research-required-wu|92|42|approved|
+|research|research-project|research:cuisine:milling|authored-research-required-wu|60|28|approved|
+|research|research-project|research:cuisine:vegan|authored-research-required-wu|92|42|approved|
+|research|research-project|research:defense:alliance-signals|authored-research-required-wu|336|153|approved|
+|research|research-project|research:defense:corridor-mechanisms|authored-research-required-wu|132|60|approved|
+|research|research-project|research:defense:fortification|authored-research-required-wu|60|28|approved|
+|research|research-project|research:defense:ranged-positions|authored-research-required-wu|92|42|approved|
+|research|research-project|research:defense:remote-control|authored-research-required-wu|184|84|approved|
+|research|research-project|research:defense:rune-identification|authored-research-required-wu|184|84|approved|
+|research|research-project|research:defense:siege-fortification|authored-research-required-wu|252|115|approved|
+|research|research-project|research:defense:supply|authored-research-required-wu|92|42|approved|
+|research|research-project|research:defense:tactical-command|authored-research-required-wu|132|60|approved|
+|research|research-project|research:defense:watch|authored-research-required-wu|36|17|approved|
+|research|research-project|research:environment:cold-work|authored-research-required-wu|92|42|approved|
+|research|research-project|research:environment:rune-insulation|authored-research-required-wu|184|84|approved|
+|research|research-project|research:equipment:armor-tailoring|authored-research-required-wu|132|60|approved|
+|research|research-project|research:equipment:articulated-plate|authored-research-required-wu|252|115|approved|
+|research|research-project|research:equipment:ballistics|authored-research-required-wu|560|255|approved|
+|research|research-project|research:equipment:black-powder|authored-research-required-wu|420|191|approved|
+|research|research-project|research:equipment:bowyery|authored-research-required-wu|132|60|approved|
+|research|research-project|research:equipment:field-maintenance|authored-research-required-wu|184|84|approved|
+|research|research-project|research:equipment:ignition-mechanisms|authored-research-required-wu|560|255|approved|
+|research|research-project|research:equipment:industrial-metrology|authored-research-required-wu|960|437|approved|
+|research|research-project|research:equipment:lineage-binding|authored-research-required-wu|1200|546|approved|
+|research|research-project|research:equipment:mail-weaving|authored-research-required-wu|184|84|approved|
+|research|research-project|research:equipment:material-testing|authored-research-required-wu|560|255|approved|
+|research|research-project|research:equipment:mechanical-projectiles|authored-research-required-wu|184|84|approved|
+|research|research-project|research:equipment:modular-frames|authored-research-required-wu|960|437|approved|
+|research|research-project|research:equipment:powered-armor|authored-research-required-wu|1200|546|approved|
+|research|research-project|research:equipment:precision-fitting|authored-research-required-wu|720|328|approved|
+|research|research-project|research:equipment:pressure-barrels|authored-research-required-wu|1440|655|approved|
+|research|research-project|research:equipment:prototype-engineering|authored-research-required-wu|720|328|approved|
+|research|research-project|research:equipment:relic-appraisal|authored-research-required-wu|672|306|approved|
+|research|research-project|research:equipment:rune-module-tuning|authored-research-required-wu|1200|546|approved|
+|research|research-project|research:equipment:standard-ammunition|authored-research-required-wu|720|328|approved|
+|research|research-project|research:equipment:weapon-patterns|authored-research-required-wu|92|42|approved|
+|research|research-project|research:forestry:charcoal|authored-research-required-wu|92|42|approved|
+|research|research-project|research:forestry:fungal|authored-research-required-wu|184|84|approved|
+|research|research-project|research:forestry:logging|authored-research-required-wu|60|28|approved|
+|research|research-project|research:forestry:sawmill|authored-research-required-wu|60|28|approved|
+|research|research-project|research:forestry:tools|authored-research-required-wu|36|17|approved|
+|research|research-project|research:forestry:treated|authored-research-required-wu|132|60|approved|
+|research|research-project|research:genetics:controlled-heredity|authored-research-required-wu|1800|819|approved|
+|research|research-project|research:genetics:cross-lineage-stabilization|authored-research-required-wu|9600|4364|approved|
+|research|research-project|research:genetics:hereditary-records|authored-research-required-wu|1520|691|approved|
+|research|research-project|research:health:isolation-medicine|authored-research-required-wu|560|255|approved|
+|research|research-project|research:health:pathogen-observation|authored-research-required-wu|1140|519|approved|
+|research|research-project|research:health:vaccination|authored-research-required-wu|2160|982|approved|
+|research|research-project|research:hospitality-operations|authored-research-required-wu|92|42|approved|
+|research|research-project|research:housing:room-assignment|authored-research-required-wu|520|237|approved|
+|research|research-project|research:husbandry:breeding|authored-research-required-wu|132|60|approved|
+|research|research-project|research:husbandry:capture|authored-research-required-wu|36|17|approved|
+|research|research-project|research:husbandry:feed|authored-research-required-wu|92|42|approved|
+|research|research-project|research:husbandry:seasonal-breeding|authored-research-required-wu|420|191|approved|
+|research|research-project|research:husbandry:selective|authored-research-required-wu|184|84|approved|
+|research|research-project|research:husbandry:stable|authored-research-required-wu|60|28|approved|
+|research|research-project|research:husbandry:taming|authored-research-required-wu|92|42|approved|
+|research|research-project|research:industry:assisted-processing|authored-research-required-wu|720|328|approved|
+|research|research-project|research:industry:automatic-bills|authored-research-required-wu|1920|873|approved|
+|research|research-project|research:industry:automatic-sanitation|authored-research-required-wu|1920|873|approved|
+|research|research-project|research:industry:breakers|authored-research-required-wu|1280|582|approved|
+|research|research-project|research:industry:conveyor|authored-research-required-wu|1280|582|approved|
+|research|research-project|research:industry:dark-foundry|authored-research-required-wu|1200|546|approved|
+|research|research-project|research:industry:electric-lighting|authored-research-required-wu|720|328|approved|
+|research|research-project|research:industry:electric-smelting|authored-research-required-wu|1440|655|approved|
+|research|research-project|research:industry:junctions|authored-research-required-wu|2000|910|approved|
+|research|research-project|research:industry:lifts|authored-research-required-wu|2640|1200|approved|
+|research|research-project|research:industry:line-balancing|authored-research-required-wu|1920|873|approved|
+|research|research-project|research:industry:mana-power|authored-research-required-wu|1680|764|approved|
+|research|research-project|research:industry:powered-tools|authored-research-required-wu|1540|700|approved|
+|research|research-project|research:industry:precision|authored-research-required-wu|960|437|approved|
+|research|research-project|research:industry:rune-automation|authored-research-required-wu|1200|546|approved|
+|research|research-project|research:industry:steam-power|authored-research-required-wu|980|446|approved|
+|research|research-project|research:industry:storage|authored-research-required-wu|1280|582|approved|
+|research|research-project|research:industry:waterwheel|authored-research-required-wu|560|255|approved|
+|research|research-project|research:life:seasonal-calendar|authored-research-required-wu|184|84|approved|
+|research|research-project|research:medical-reception|authored-research-required-wu|92|42|approved|
+|research|research-project|research:medical:aberrant-augmentation|authored-research-required-wu|336|153|approved|
+|research|research-project|research:medical:anatomy|authored-research-required-wu|92|42|approved|
+|research|research-project|research:medical:avian-prosthetics|authored-research-required-wu|184|84|approved|
+|research|research-project|research:medical:blood-rejuvenation|authored-research-required-wu|4800|2182|approved|
+|research|research-project|research:medical:bloodcraft-augmentation|authored-research-required-wu|252|115|approved|
+|research|research-project|research:medical:construct-core-engineering|authored-research-required-wu|252|115|approved|
+|research|research-project|research:medical:construct-core-maintenance|authored-research-required-wu|184|84|approved|
+|research|research-project|research:medical:geriatric-medicine|authored-research-required-wu|1280|582|approved|
+|research|research-project|research:medical:gerontology|authored-research-required-wu|1140|519|approved|
+|research|research-project|research:medical:mana-core-engineering|authored-research-required-wu|252|115|approved|
+|research|research-project|research:medical:mycelial-grafting|authored-research-required-wu|184|84|approved|
+|research|research-project|research:medical:organ-preservation|authored-research-required-wu|184|84|approved|
+|research|research-project|research:medical:organ-regeneration|authored-research-required-wu|7200|3273|approved|
+|research|research-project|research:medical:prosthetics|authored-research-required-wu|184|84|approved|
+|research|research-project|research:medical:regenerative-culture|authored-research-required-wu|4800|2182|approved|
+|research|research-project|research:medical:reproductive-medicine|authored-research-required-wu|560|255|approved|
+|research|research-project|research:medical:rune-hibernation|authored-research-required-wu|4800|2182|approved|
+|research|research-project|research:medical:slime-bioengineering|authored-research-required-wu|184|84|approved|
+|research|research-project|research:medical:surgery|authored-research-required-wu|132|60|approved|
+|research|research-project|research:medical:temporal-stasis|authored-research-required-wu|12000|5455|approved|
+|research|research-project|research:medical:trauma-medicine|authored-research-required-wu|560|255|approved|
+|research|research-project|research:medical:whole-body-regeneration|authored-research-required-wu|12000|5455|approved|
+|research|research-project|research:medical:xenotransplant|authored-research-required-wu|252|115|approved|
+|research|research-project|research:metallurgy:advanced|authored-research-required-wu|132|60|approved|
+|research|research-project|research:metallurgy:blacksteel|authored-research-required-wu|184|84|approved|
+|research|research-project|research:metallurgy:iron|authored-research-required-wu|60|28|approved|
+|research|research-project|research:metallurgy:precious|authored-research-required-wu|184|84|approved|
+|research|research-project|research:metallurgy:primitive|authored-research-required-wu|36|17|approved|
+|research|research-project|research:metallurgy:steel|authored-research-required-wu|92|42|approved|
+|research|research-project|research:mining:deep|authored-research-required-wu|132|60|approved|
+|research|research-project|research:mining:mana|authored-research-required-wu|184|84|approved|
+|research|research-project|research:mining:quarry|authored-research-required-wu|60|28|approved|
+|research|research-project|research:mining:sorting|authored-research-required-wu|92|42|approved|
+|research|research-project|research:mining:stonecutting|authored-research-required-wu|92|42|approved|
+|research|research-project|research:mining:surface|authored-research-required-wu|36|17|approved|
+|research|research-project|research:pharmacology:advanced|authored-research-required-wu|184|84|approved|
+|research|research-project|research:pharmacology:anesthesia|authored-research-required-wu|132|60|approved|
+|research|research-project|research:pharmacology:antiseptic|authored-research-required-wu|60|28|approved|
+|research|research-project|research:pharmacology:distillation|authored-research-required-wu|92|42|approved|
+|research|research-project|research:pharmacology:herbalism|authored-research-required-wu|36|17|approved|
+|research|research-project|research:pharmacology:stimulants|authored-research-required-wu|132|60|approved|
+|research|research-project|research:plumbing:basics|authored-research-required-wu|284|130|approved|
+|research|research-project|research:plumbing:reuse|authored-research-required-wu|252|115|approved|
+|research|research-project|research:plumbing:rune-purification|authored-research-required-wu|336|153|approved|
+|research|research-project|research:plumbing:sewer|authored-research-required-wu|500|228|approved|
+|research|research-project|research:service-automation|authored-research-required-wu|720|328|approved|
+|research|research-project|research:service-flow|authored-research-required-wu|60|28|approved|
+|research|research-project|research:service:dining-operations|authored-research-required-wu|184|84|approved|
+|research|research-project|research:society:career-records|authored-research-required-wu|252|115|approved|
+|research|research-project|research:society:child-education|authored-research-required-wu|896|408|approved|
+|research|research-project|research:society:corpse-care|authored-research-required-wu|672|306|approved|
+|research|research-project|research:society:generation-management|authored-research-required-wu|1520|691|approved|
+|research|research-project|research:society:household-records|authored-research-required-wu|436|199|approved|
+|research|research-project|research:society:retirement|authored-research-required-wu|1380|628|approved|
+|research|research-project|research:survival:field-rations|authored-research-required-wu|132|60|approved|
+|research|research-project|research:survival:medical|authored-research-required-wu|132|60|approved|
+|research|research-project|research:survival:preservation|authored-research-required-wu|92|42|approved|
+|research|research-project|research:survival:sanitation|authored-research-required-wu|36|17|approved|
+|research|research-project|research:survival:seasonal-storage|authored-research-required-wu|336|153|approved|
+|research|research-project|research:survival:support|authored-research-required-wu|60|28|approved|
+|research|research-project|research:textile:dreamweave|authored-research-required-wu|184|84|approved|
+|research|research-project|research:textile:fiber|authored-research-required-wu|36|17|approved|
+|research|research-project|research:textile:layered|authored-research-required-wu|132|60|approved|
+|research|research-project|research:textile:rune-leather|authored-research-required-wu|132|60|approved|
+|research|research-project|research:textile:tailoring|authored-research-required-wu|92|42|approved|
+|research|research-project|research:textile:tanning|authored-research-required-wu|60|28|approved|
 |research|serialized-property|asset:000b3de342770b345b95bba8a5b5fa8f|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:000b3de342770b345b95bba8a5b5fa8f|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:000b3de342770b345b95bba8a5b5fa8f|serialized:252b2505dcf8e6c4f414ffb6|1|1|none|
@@ -65721,7 +65901,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:00b8c28931f47544faecc8b510851912|serialized:8a50af1a7a56bbd9484c18a7|0|0|none|
 |research|serialized-property|asset:00b8c28931f47544faecc8b510851912|serialized:a56145270ce6b3bebd1dd012|7104|7104|none|
 |research|serialized-property|asset:00b8c28931f47544faecc8b510851912|serialized:c0d2856b74d0df05b9d4456b|10|10|none|
-|research|serialized-property|asset:00b8c28931f47544faecc8b510851912|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:00b8c28931f47544faecc8b510851912|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:012c6e1c93f26124e8e8743e9075c38d|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:012c6e1c93f26124e8e8743e9075c38d|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:012c6e1c93f26124e8e8743e9075c38d|serialized:252b2505dcf8e6c4f414ffb6|1|1|none|
@@ -65961,7 +66141,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:03cfd04c2b1ad654a9b9ff7542b01332|serialized:a56145270ce6b3bebd1dd012|7031|7031|none|
 |research|serialized-property|asset:03cfd04c2b1ad654a9b9ff7542b01332|serialized:bbcac3543cfa47da13df9707|1032|1032|none|
 |research|serialized-property|asset:03cfd04c2b1ad654a9b9ff7542b01332|serialized:c0d2856b74d0df05b9d4456b|3|3|none|
-|research|serialized-property|asset:03cfd04c2b1ad654a9b9ff7542b01332|serialized:f77039ccfe48ce3dc0881777|36|36|none|
+|research|serialized-property|asset:03cfd04c2b1ad654a9b9ff7542b01332|serialized:f77039ccfe48ce3dc0881777|17|17|none|
 |research|serialized-property|asset:03e0affce608d1349a05f5d45d3b84d9|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:03e0affce608d1349a05f5d45d3b84d9|serialized:48579c8b6dfcfd51486e83eb|false|false|none|
 |research|serialized-property|asset:03e0affce608d1349a05f5d45d3b84d9|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -66143,7 +66323,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:06ebf1937f853144db068060e289c96d|serialized:a56145270ce6b3bebd1dd012|7064|7064|none|
 |research|serialized-property|asset:06ebf1937f853144db068060e289c96d|serialized:bbcac3543cfa47da13df9707|8802|8802|none|
 |research|serialized-property|asset:06ebf1937f853144db068060e289c96d|serialized:c0d2856b74d0df05b9d4456b|6|6|none|
-|research|serialized-property|asset:06ebf1937f853144db068060e289c96d|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:06ebf1937f853144db068060e289c96d|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:07093fb8e63486ce6ab79eba8236cdc9|serialized:0b725ef9338f132450da6f37|2|2|none|
 |research|serialized-property|asset:07093fb8e63486ce6ab79eba8236cdc9|serialized:0c47aa124f5e4bc1cfa056e4|0|0|none|
 |research|serialized-property|asset:07093fb8e63486ce6ab79eba8236cdc9|serialized:19e52f871d75af912ae3e17e|-2|-2|none|
@@ -66401,7 +66581,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:0a9db7d3befc0c14881a362ca2f54415|serialized:a56145270ce6b3bebd1dd012|7061|7061|none|
 |research|serialized-property|asset:0a9db7d3befc0c14881a362ca2f54415|serialized:bbcac3543cfa47da13df9707|8801|8801|none|
 |research|serialized-property|asset:0a9db7d3befc0c14881a362ca2f54415|serialized:c0d2856b74d0df05b9d4456b|6|6|none|
-|research|serialized-property|asset:0a9db7d3befc0c14881a362ca2f54415|serialized:f77039ccfe48ce3dc0881777|36|36|none|
+|research|serialized-property|asset:0a9db7d3befc0c14881a362ca2f54415|serialized:f77039ccfe48ce3dc0881777|17|17|none|
 |research|serialized-property|asset:0b3fa4a532f783941a8eecb96b425e0f|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
 |research|serialized-property|asset:0b3fa4a532f783941a8eecb96b425e0f|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:0b3fa4a532f783941a8eecb96b425e0f|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -66416,7 +66596,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:0b3fa4a532f783941a8eecb96b425e0f|serialized:ab0cfbf551498cc7d7da6b46|1619|1619|none|
 |research|serialized-property|asset:0b3fa4a532f783941a8eecb96b425e0f|serialized:bbcac3543cfa47da13df9707|1077|1077|none|
 |research|serialized-property|asset:0b3fa4a532f783941a8eecb96b425e0f|serialized:c0d2856b74d0df05b9d4456b|8|8|none|
-|research|serialized-property|asset:0b3fa4a532f783941a8eecb96b425e0f|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:0b3fa4a532f783941a8eecb96b425e0f|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:0bbcc9aa811fd5e4c840444868ba8a4b|serialized:0109bebb70f4e0af514cb830|1505|1505|none|
 |research|serialized-property|asset:0bbcc9aa811fd5e4c840444868ba8a4b|serialized:08b76fffef09a3421e6983a9|1504|1504|none|
 |research|serialized-property|asset:0bbcc9aa811fd5e4c840444868ba8a4b|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
@@ -66435,7 +66615,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:0bbcc9aa811fd5e4c840444868ba8a4b|serialized:b90fc152d78e412229422b3e|1503|1503|none|
 |research|serialized-property|asset:0bbcc9aa811fd5e4c840444868ba8a4b|serialized:bbcac3543cfa47da13df9707|1500|1500|none|
 |research|serialized-property|asset:0bbcc9aa811fd5e4c840444868ba8a4b|serialized:c0d2856b74d0df05b9d4456b|0|0|none|
-|research|serialized-property|asset:0bbcc9aa811fd5e4c840444868ba8a4b|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:0bbcc9aa811fd5e4c840444868ba8a4b|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:0d09dc14e60240f49a09052a3461e41c|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:0d09dc14e60240f49a09052a3461e41c|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:0d09dc14e60240f49a09052a3461e41c|serialized:1590378b0b1f8e41d2bf6032|0|0|none|
@@ -66621,7 +66801,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:0e987e63f3ceb724aa404607804069ad|serialized:ab0cfbf551498cc7d7da6b46|8857|8857|none|
 |research|serialized-property|asset:0e987e63f3ceb724aa404607804069ad|serialized:bbcac3543cfa47da13df9707|8858|8858|none|
 |research|serialized-property|asset:0e987e63f3ceb724aa404607804069ad|serialized:c0d2856b74d0df05b9d4456b|5|5|none|
-|research|serialized-property|asset:0e987e63f3ceb724aa404607804069ad|serialized:f77039ccfe48ce3dc0881777|436|436|none|
+|research|serialized-property|asset:0e987e63f3ceb724aa404607804069ad|serialized:f77039ccfe48ce3dc0881777|199|199|none|
 |research|serialized-property|asset:0ed24ce0b08d17e46861765c8ac225b3|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:0ed24ce0b08d17e46861765c8ac225b3|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:0ed24ce0b08d17e46861765c8ac225b3|serialized:175b666232a125f492f4af26|35|35|none|
@@ -66812,7 +66992,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:10551a752e9bf144ab099178e5d363d2|serialized:ab0cfbf551498cc7d7da6b46|1621|1621|none|
 |research|serialized-property|asset:10551a752e9bf144ab099178e5d363d2|serialized:bbcac3543cfa47da13df9707|1081|1081|none|
 |research|serialized-property|asset:10551a752e9bf144ab099178e5d363d2|serialized:c0d2856b74d0df05b9d4456b|10|10|none|
-|research|serialized-property|asset:10551a752e9bf144ab099178e5d363d2|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:10551a752e9bf144ab099178e5d363d2|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:10cfa1234ee0ebd4eb1e4f5c9938305b|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:10cfa1234ee0ebd4eb1e4f5c9938305b|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:10cfa1234ee0ebd4eb1e4f5c9938305b|serialized:175b666232a125f492f4af26|35|35|none|
@@ -66886,7 +67066,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:113a95410d965e04e9305eeabfd30003|serialized:a56145270ce6b3bebd1dd012|7052|7052|none|
 |research|serialized-property|asset:113a95410d965e04e9305eeabfd30003|serialized:bbcac3543cfa47da13df9707|8804|8804|none|
 |research|serialized-property|asset:113a95410d965e04e9305eeabfd30003|serialized:c0d2856b74d0df05b9d4456b|5|5|none|
-|research|serialized-property|asset:113a95410d965e04e9305eeabfd30003|serialized:f77039ccfe48ce3dc0881777|60|60|none|
+|research|serialized-property|asset:113a95410d965e04e9305eeabfd30003|serialized:f77039ccfe48ce3dc0881777|28|28|none|
 |research|serialized-property|asset:116270d061bf3bc49bc12485f663fc82|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:116270d061bf3bc49bc12485f663fc82|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:116270d061bf3bc49bc12485f663fc82|serialized:175b666232a125f492f4af26|35|35|none|
@@ -66948,7 +67128,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:1209b51361314de42b18a3c910690c82|serialized:a56145270ce6b3bebd1dd012|7054|7054|none|
 |research|serialized-property|asset:1209b51361314de42b18a3c910690c82|serialized:bbcac3543cfa47da13df9707|8805|8805|none|
 |research|serialized-property|asset:1209b51361314de42b18a3c910690c82|serialized:c0d2856b74d0df05b9d4456b|5|5|none|
-|research|serialized-property|asset:1209b51361314de42b18a3c910690c82|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:1209b51361314de42b18a3c910690c82|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:121a3ca15a95bd44fb7fa4f48b455bf9|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:121a3ca15a95bd44fb7fa4f48b455bf9|serialized:2070f16269037d94694a47f7|2|2|none|
 |research|serialized-property|asset:121a3ca15a95bd44fb7fa4f48b455bf9|serialized:252b2505dcf8e6c4f414ffb6|2|2|none|
@@ -67204,7 +67384,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:14cff071c7b50164e897a3bf13dde4ee|serialized:a56145270ce6b3bebd1dd012|7114|7114|none|
 |research|serialized-property|asset:14cff071c7b50164e897a3bf13dde4ee|serialized:bbcac3543cfa47da13df9707|9312|9312|none|
 |research|serialized-property|asset:14cff071c7b50164e897a3bf13dde4ee|serialized:c0d2856b74d0df05b9d4456b|11|11|none|
-|research|serialized-property|asset:14cff071c7b50164e897a3bf13dde4ee|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:14cff071c7b50164e897a3bf13dde4ee|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:1515d275a38a57c4ab79890326217f8e|serialized:1419ce6e730f5ec4daaccb58|1|1|none|
 |research|serialized-property|asset:1515d275a38a57c4ab79890326217f8e|serialized:261cc1ff808f0ba9f3a913b6|0|0|none|
 |research|serialized-property|asset:1515d275a38a57c4ab79890326217f8e|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -67220,7 +67400,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:1515d275a38a57c4ab79890326217f8e|serialized:ab0cfbf551498cc7d7da6b46|8882|8882|none|
 |research|serialized-property|asset:1515d275a38a57c4ab79890326217f8e|serialized:bbcac3543cfa47da13df9707|8883|8883|none|
 |research|serialized-property|asset:1515d275a38a57c4ab79890326217f8e|serialized:c0d2856b74d0df05b9d4456b|5|5|none|
-|research|serialized-property|asset:1515d275a38a57c4ab79890326217f8e|serialized:f77039ccfe48ce3dc0881777|520|520|none|
+|research|serialized-property|asset:1515d275a38a57c4ab79890326217f8e|serialized:f77039ccfe48ce3dc0881777|237|237|none|
 |research|serialized-property|asset:157f4f757f122474e96fe599e8c29e1e|serialized:374e191a70aeed0ee29f5405|false|false|none|
 |research|serialized-property|asset:157f4f757f122474e96fe599e8c29e1e|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:157f4f757f122474e96fe599e8c29e1e|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -67274,7 +67454,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:15debf0ab3fbbed42baae417568308af|serialized:ab0cfbf551498cc7d7da6b46|8890|8890|none|
 |research|serialized-property|asset:15debf0ab3fbbed42baae417568308af|serialized:bbcac3543cfa47da13df9707|8850|8850|none|
 |research|serialized-property|asset:15debf0ab3fbbed42baae417568308af|serialized:c0d2856b74d0df05b9d4456b|6|6|none|
-|research|serialized-property|asset:15debf0ab3fbbed42baae417568308af|serialized:f77039ccfe48ce3dc0881777|588|588|none|
+|research|serialized-property|asset:15debf0ab3fbbed42baae417568308af|serialized:f77039ccfe48ce3dc0881777|268|268|none|
 |research|serialized-property|asset:160a67e09d752d64eb163f402dc3625b|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:160a67e09d752d64eb163f402dc3625b|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:160a67e09d752d64eb163f402dc3625b|serialized:1590378b0b1f8e41d2bf6032|0|0|none|
@@ -67615,7 +67795,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:192a20ded821fc5458bd5c12955fb116|serialized:a56145270ce6b3bebd1dd012|7225|7225|none|
 |research|serialized-property|asset:192a20ded821fc5458bd5c12955fb116|serialized:bbcac3543cfa47da13df9707|8835|8835|none|
 |research|serialized-property|asset:192a20ded821fc5458bd5c12955fb116|serialized:c0d2856b74d0df05b9d4456b|11|11|none|
-|research|serialized-property|asset:192a20ded821fc5458bd5c12955fb116|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:192a20ded821fc5458bd5c12955fb116|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:1a1e2ae1db674d64a86bce91b8c5111a|serialized:374e191a70aeed0ee29f5405|false|false|none|
 |research|serialized-property|asset:1a1e2ae1db674d64a86bce91b8c5111a|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:1a1e2ae1db674d64a86bce91b8c5111a|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -67660,7 +67840,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:1a7073707a20a5d419993498d184aea5|serialized:a56145270ce6b3bebd1dd012|7043|7043|none|
 |research|serialized-property|asset:1a7073707a20a5d419993498d184aea5|serialized:bbcac3543cfa47da13df9707|8811|8811|none|
 |research|serialized-property|asset:1a7073707a20a5d419993498d184aea5|serialized:c0d2856b74d0df05b9d4456b|4|4|none|
-|research|serialized-property|asset:1a7073707a20a5d419993498d184aea5|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:1a7073707a20a5d419993498d184aea5|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:1aae0042b739a2842a518c708dce4fc1|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:1aae0042b739a2842a518c708dce4fc1|serialized:2070f16269037d94694a47f7|2|2|none|
 |research|serialized-property|asset:1aae0042b739a2842a518c708dce4fc1|serialized:252b2505dcf8e6c4f414ffb6|1|1|none|
@@ -67779,7 +67959,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:1b30537694984254893c29294d533bab|serialized:a56145270ce6b3bebd1dd012|7044|7044|none|
 |research|serialized-property|asset:1b30537694984254893c29294d533bab|serialized:bbcac3543cfa47da13df9707|8808|8808|none|
 |research|serialized-property|asset:1b30537694984254893c29294d533bab|serialized:c0d2856b74d0df05b9d4456b|4|4|none|
-|research|serialized-property|asset:1b30537694984254893c29294d533bab|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:1b30537694984254893c29294d533bab|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:1b35148f44abef84485d40cf60b5ea1b|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:1b35148f44abef84485d40cf60b5ea1b|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:1b35148f44abef84485d40cf60b5ea1b|serialized:252b2505dcf8e6c4f414ffb6|2|2|none|
@@ -67915,7 +68095,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:1bbb2845e79f6b649a3c80a133ede933|serialized:ab0cfbf551498cc7d7da6b46|8830|8830|none|
 |research|serialized-property|asset:1bbb2845e79f6b649a3c80a133ede933|serialized:bbcac3543cfa47da13df9707|9814|9814|none|
 |research|serialized-property|asset:1bbb2845e79f6b649a3c80a133ede933|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:1bbb2845e79f6b649a3c80a133ede933|serialized:f77039ccfe48ce3dc0881777|1280|1280|none|
+|research|serialized-property|asset:1bbb2845e79f6b649a3c80a133ede933|serialized:f77039ccfe48ce3dc0881777|582|582|none|
 |research|serialized-property|asset:1becb1322c7a2ce418c5c388a571d52f|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:1becb1322c7a2ce418c5c388a571d52f|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:1becb1322c7a2ce418c5c388a571d52f|serialized:175b666232a125f492f4af26|35|35|none|
@@ -68109,7 +68289,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:1e00aa14d0b75ed47aca30ba5989c043|serialized:a4ff1c3e96fbc1b4d228d8e8|5|5|none|
 |research|serialized-property|asset:1e00aa14d0b75ed47aca30ba5989c043|serialized:a56145270ce6b3bebd1dd012|7135|7135|none|
 |research|serialized-property|asset:1e00aa14d0b75ed47aca30ba5989c043|serialized:c0d2856b74d0df05b9d4456b|13|13|none|
-|research|serialized-property|asset:1e00aa14d0b75ed47aca30ba5989c043|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:1e00aa14d0b75ed47aca30ba5989c043|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:1ee0d9192cb4e064fb039a4c49a685b5|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:1ee0d9192cb4e064fb039a4c49a685b5|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
 |research|serialized-property|asset:1ee0d9192cb4e064fb039a4c49a685b5|serialized:742a013befa3d8b0419cf7f0|1|1|none|
@@ -68120,7 +68300,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:1ee0d9192cb4e064fb039a4c49a685b5|serialized:a56145270ce6b3bebd1dd012|7091|7091|none|
 |research|serialized-property|asset:1ee0d9192cb4e064fb039a4c49a685b5|serialized:bbcac3543cfa47da13df9707|1034|1034|none|
 |research|serialized-property|asset:1ee0d9192cb4e064fb039a4c49a685b5|serialized:c0d2856b74d0df05b9d4456b|9|9|none|
-|research|serialized-property|asset:1ee0d9192cb4e064fb039a4c49a685b5|serialized:f77039ccfe48ce3dc0881777|36|36|none|
+|research|serialized-property|asset:1ee0d9192cb4e064fb039a4c49a685b5|serialized:f77039ccfe48ce3dc0881777|17|17|none|
 |research|serialized-property|asset:1f0f04477ee507543893f06592b0442c|serialized:1419ce6e730f5ec4daaccb58|1|1|none|
 |research|serialized-property|asset:1f0f04477ee507543893f06592b0442c|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:1f0f04477ee507543893f06592b0442c|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -68137,7 +68317,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:1f0f04477ee507543893f06592b0442c|serialized:ab0cfbf551498cc7d7da6b46|1625|1625|none|
 |research|serialized-property|asset:1f0f04477ee507543893f06592b0442c|serialized:bbcac3543cfa47da13df9707|1091|1091|none|
 |research|serialized-property|asset:1f0f04477ee507543893f06592b0442c|serialized:c0d2856b74d0df05b9d4456b|3|3|none|
-|research|serialized-property|asset:1f0f04477ee507543893f06592b0442c|serialized:f77039ccfe48ce3dc0881777|60|60|none|
+|research|serialized-property|asset:1f0f04477ee507543893f06592b0442c|serialized:f77039ccfe48ce3dc0881777|28|28|none|
 |research|serialized-property|asset:1f114916525ccd340b1c4ff4581a07a3|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:1f114916525ccd340b1c4ff4581a07a3|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:1f114916525ccd340b1c4ff4581a07a3|serialized:175b666232a125f492f4af26|35|35|none|
@@ -68212,7 +68392,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:2003d0743f58f9d4e855d2cb7f421843|serialized:ab0cfbf551498cc7d7da6b46|1618|1618|none|
 |research|serialized-property|asset:2003d0743f58f9d4e855d2cb7f421843|serialized:bbcac3543cfa47da13df9707|1075|1075|none|
 |research|serialized-property|asset:2003d0743f58f9d4e855d2cb7f421843|serialized:c0d2856b74d0df05b9d4456b|7|7|none|
-|research|serialized-property|asset:2003d0743f58f9d4e855d2cb7f421843|serialized:f77039ccfe48ce3dc0881777|60|60|none|
+|research|serialized-property|asset:2003d0743f58f9d4e855d2cb7f421843|serialized:f77039ccfe48ce3dc0881777|28|28|none|
 |research|serialized-property|asset:20350afe14601724487c117e3292f478|serialized:1419ce6e730f5ec4daaccb58|2|2|none|
 |research|serialized-property|asset:20350afe14601724487c117e3292f478|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:20350afe14601724487c117e3292f478|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -68226,7 +68406,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:20350afe14601724487c117e3292f478|serialized:8a50af1a7a56bbd9484c18a7|0|0|none|
 |research|serialized-property|asset:20350afe14601724487c117e3292f478|serialized:a56145270ce6b3bebd1dd012|7214|7214|none|
 |research|serialized-property|asset:20350afe14601724487c117e3292f478|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:20350afe14601724487c117e3292f478|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:20350afe14601724487c117e3292f478|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:205cca742f2bcc748b6c88ab53d2c7df|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:205cca742f2bcc748b6c88ab53d2c7df|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:205cca742f2bcc748b6c88ab53d2c7df|serialized:175b666232a125f492f4af26|35|35|none|
@@ -68359,7 +68539,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:212219e2e99209a469357092f71d146e|serialized:a56145270ce6b3bebd1dd012|7074|7074|none|
 |research|serialized-property|asset:212219e2e99209a469357092f71d146e|serialized:bbcac3543cfa47da13df9707|1076|1076|none|
 |research|serialized-property|asset:212219e2e99209a469357092f71d146e|serialized:c0d2856b74d0df05b9d4456b|7|7|none|
-|research|serialized-property|asset:212219e2e99209a469357092f71d146e|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:212219e2e99209a469357092f71d146e|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:214988153853aea4ea13fb67afecd3a3|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:214988153853aea4ea13fb67afecd3a3|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:214988153853aea4ea13fb67afecd3a3|serialized:1590378b0b1f8e41d2bf6032|0|0|none|
@@ -68428,7 +68608,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:21a9024ce51f1f841b06f6f22497cc05|serialized:a4ff1c3e96fbc1b4d228d8e8|6|6|none|
 |research|serialized-property|asset:21a9024ce51f1f841b06f6f22497cc05|serialized:a56145270ce6b3bebd1dd012|7247|7247|none|
 |research|serialized-property|asset:21a9024ce51f1f841b06f6f22497cc05|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:21a9024ce51f1f841b06f6f22497cc05|serialized:f77039ccfe48ce3dc0881777|1200|1200|none|
+|research|serialized-property|asset:21a9024ce51f1f841b06f6f22497cc05|serialized:f77039ccfe48ce3dc0881777|546|546|none|
 |research|serialized-property|asset:21c2607e3bc8f154ca01eb6e680df126|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:21c2607e3bc8f154ca01eb6e680df126|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:21c2607e3bc8f154ca01eb6e680df126|serialized:1590378b0b1f8e41d2bf6032|0|0|none|
@@ -68651,7 +68831,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:24153518ee9fc3048b20565518cfaa49|serialized:a56145270ce6b3bebd1dd012|7188|7188|none|
 |research|serialized-property|asset:24153518ee9fc3048b20565518cfaa49|serialized:bbcac3543cfa47da13df9707|8901|8901|none|
 |research|serialized-property|asset:24153518ee9fc3048b20565518cfaa49|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:24153518ee9fc3048b20565518cfaa49|serialized:f77039ccfe48ce3dc0881777|1200|1200|none|
+|research|serialized-property|asset:24153518ee9fc3048b20565518cfaa49|serialized:f77039ccfe48ce3dc0881777|546|546|none|
 |research|serialized-property|asset:2526b3591992d024d8b181dee11cb2ab|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:2526b3591992d024d8b181dee11cb2ab|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:2526b3591992d024d8b181dee11cb2ab|serialized:252b2505dcf8e6c4f414ffb6|2|2|none|
@@ -68796,7 +68976,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:2576ffdcd1c76fd4997ed554e22668c8|serialized:b90fc152d78e412229422b3e|1612|1612|none|
 |research|serialized-property|asset:2576ffdcd1c76fd4997ed554e22668c8|serialized:bbcac3543cfa47da13df9707|1610|1610|none|
 |research|serialized-property|asset:2576ffdcd1c76fd4997ed554e22668c8|serialized:c0d2856b74d0df05b9d4456b|12|12|none|
-|research|serialized-property|asset:2576ffdcd1c76fd4997ed554e22668c8|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:2576ffdcd1c76fd4997ed554e22668c8|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:25857e8e4cdda764d80de71500573d12|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:25857e8e4cdda764d80de71500573d12|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:25857e8e4cdda764d80de71500573d12|serialized:1590378b0b1f8e41d2bf6032|0|0|none|
@@ -68867,7 +69047,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:2594e67f84c3f1444a2738ea7ce0f81f|serialized:ab0cfbf551498cc7d7da6b46|1803|1803|none|
 |research|serialized-property|asset:2594e67f84c3f1444a2738ea7ce0f81f|serialized:bbcac3543cfa47da13df9707|1802|1802|none|
 |research|serialized-property|asset:2594e67f84c3f1444a2738ea7ce0f81f|serialized:c0d2856b74d0df05b9d4456b|2|2|none|
-|research|serialized-property|asset:2594e67f84c3f1444a2738ea7ce0f81f|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:2594e67f84c3f1444a2738ea7ce0f81f|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:25b7413b5535250488c0cabfad56ae8b|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
 |research|serialized-property|asset:25b7413b5535250488c0cabfad56ae8b|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:25b7413b5535250488c0cabfad56ae8b|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -68884,7 +69064,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:25b7413b5535250488c0cabfad56ae8b|serialized:a56145270ce6b3bebd1dd012|7178|7178|none|
 |research|serialized-property|asset:25b7413b5535250488c0cabfad56ae8b|serialized:bbcac3543cfa47da13df9707|8833|8833|none|
 |research|serialized-property|asset:25b7413b5535250488c0cabfad56ae8b|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:25b7413b5535250488c0cabfad56ae8b|serialized:f77039ccfe48ce3dc0881777|1200|1200|none|
+|research|serialized-property|asset:25b7413b5535250488c0cabfad56ae8b|serialized:f77039ccfe48ce3dc0881777|546|546|none|
 |research|serialized-property|asset:2609dd919df14de418865775bfee052c|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:2609dd919df14de418865775bfee052c|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:2609dd919df14de418865775bfee052c|serialized:1590378b0b1f8e41d2bf6032|0|0|none|
@@ -68962,7 +69142,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:267e6f558200e604ba61f34e665242b2|serialized:b90fc152d78e412229422b3e|8831|8831|none|
 |research|serialized-property|asset:267e6f558200e604ba61f34e665242b2|serialized:bbcac3543cfa47da13df9707|1035|1035|none|
 |research|serialized-property|asset:267e6f558200e604ba61f34e665242b2|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:267e6f558200e604ba61f34e665242b2|serialized:f77039ccfe48ce3dc0881777|1540|1540|none|
+|research|serialized-property|asset:267e6f558200e604ba61f34e665242b2|serialized:f77039ccfe48ce3dc0881777|700|700|none|
 |research|serialized-property|asset:277be0a5a35d6f84bbf9d9980c5ee991|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:277be0a5a35d6f84bbf9d9980c5ee991|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:277be0a5a35d6f84bbf9d9980c5ee991|serialized:252b2505dcf8e6c4f414ffb6|2|2|none|
@@ -69043,7 +69223,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:2a6b0ed0e88929c4dabd29e4462697af|serialized:ab0cfbf551498cc7d7da6b46|1620|1620|none|
 |research|serialized-property|asset:2a6b0ed0e88929c4dabd29e4462697af|serialized:bbcac3543cfa47da13df9707|1079|1079|none|
 |research|serialized-property|asset:2a6b0ed0e88929c4dabd29e4462697af|serialized:c0d2856b74d0df05b9d4456b|10|10|none|
-|research|serialized-property|asset:2a6b0ed0e88929c4dabd29e4462697af|serialized:f77039ccfe48ce3dc0881777|60|60|none|
+|research|serialized-property|asset:2a6b0ed0e88929c4dabd29e4462697af|serialized:f77039ccfe48ce3dc0881777|28|28|none|
 |research|serialized-property|asset:2ac92600c09422d4e9feb3cdc29ebcd2|serialized:027385bcb8433e608b4ef4b6|0|0|none|
 |research|serialized-property|asset:2ac92600c09422d4e9feb3cdc29ebcd2|serialized:03f2ae38482b06ba95ef5c77|1|1|none|
 |research|serialized-property|asset:2ac92600c09422d4e9feb3cdc29ebcd2|serialized:0c9e32d3875f854361ad090f|306|306|none|
@@ -69121,7 +69301,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:2b9e3ae10f111c442a6bc0906d3f5072|serialized:a56145270ce6b3bebd1dd012|7197|7197|none|
 |research|serialized-property|asset:2b9e3ae10f111c442a6bc0906d3f5072|serialized:bbcac3543cfa47da13df9707|9821|9821|none|
 |research|serialized-property|asset:2b9e3ae10f111c442a6bc0906d3f5072|serialized:c0d2856b74d0df05b9d4456b|16|16|none|
-|research|serialized-property|asset:2b9e3ae10f111c442a6bc0906d3f5072|serialized:f77039ccfe48ce3dc0881777|252|252|none|
+|research|serialized-property|asset:2b9e3ae10f111c442a6bc0906d3f5072|serialized:f77039ccfe48ce3dc0881777|115|115|none|
 |research|serialized-property|asset:2bd11bf601b702f4caeb30b36770d1bc|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:2bd11bf601b702f4caeb30b36770d1bc|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:2bd11bf601b702f4caeb30b36770d1bc|serialized:175b666232a125f492f4af26|35|35|none|
@@ -69163,7 +69343,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:2c7273310732d4443b629960e67a303a|serialized:ab0cfbf551498cc7d7da6b46|9815|9815|none|
 |research|serialized-property|asset:2c7273310732d4443b629960e67a303a|serialized:bbcac3543cfa47da13df9707|9813|9813|none|
 |research|serialized-property|asset:2c7273310732d4443b629960e67a303a|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:2c7273310732d4443b629960e67a303a|serialized:f77039ccfe48ce3dc0881777|1280|1280|none|
+|research|serialized-property|asset:2c7273310732d4443b629960e67a303a|serialized:f77039ccfe48ce3dc0881777|582|582|none|
 |research|serialized-property|asset:2cbd7e28f6dc917429250d02899e2113|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
 |research|serialized-property|asset:2cbd7e28f6dc917429250d02899e2113|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:2cbd7e28f6dc917429250d02899e2113|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -69181,7 +69361,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:2cbd7e28f6dc917429250d02899e2113|serialized:a56145270ce6b3bebd1dd012|7253|7253|none|
 |research|serialized-property|asset:2cbd7e28f6dc917429250d02899e2113|serialized:bbcac3543cfa47da13df9707|8854|8854|none|
 |research|serialized-property|asset:2cbd7e28f6dc917429250d02899e2113|serialized:c0d2856b74d0df05b9d4456b|6|6|none|
-|research|serialized-property|asset:2cbd7e28f6dc917429250d02899e2113|serialized:f77039ccfe48ce3dc0881777|560|560|none|
+|research|serialized-property|asset:2cbd7e28f6dc917429250d02899e2113|serialized:f77039ccfe48ce3dc0881777|255|255|none|
 |research|serialized-property|asset:2cf3570cc80cb7049b9a1b0a96c918ad|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:2cf3570cc80cb7049b9a1b0a96c918ad|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:2cf3570cc80cb7049b9a1b0a96c918ad|serialized:175b666232a125f492f4af26|35|35|none|
@@ -69389,7 +69569,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:30bd82079e05a0d4ca9c1c9b7fb4133f|serialized:b90fc152d78e412229422b3e|9306|9306|none|
 |research|serialized-property|asset:30bd82079e05a0d4ca9c1c9b7fb4133f|serialized:bbcac3543cfa47da13df9707|9301|9301|none|
 |research|serialized-property|asset:30bd82079e05a0d4ca9c1c9b7fb4133f|serialized:c0d2856b74d0df05b9d4456b|11|11|none|
-|research|serialized-property|asset:30bd82079e05a0d4ca9c1c9b7fb4133f|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:30bd82079e05a0d4ca9c1c9b7fb4133f|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:30c5f14729b2c334e8cc80f755d39cf6|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:30c5f14729b2c334e8cc80f755d39cf6|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:30c5f14729b2c334e8cc80f755d39cf6|serialized:175b666232a125f492f4af26|35|35|none|
@@ -69579,7 +69759,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:3219414118f1fd04c8c0a8a30d7e5a48|serialized:a56145270ce6b3bebd1dd012|7041|7041|none|
 |research|serialized-property|asset:3219414118f1fd04c8c0a8a30d7e5a48|serialized:bbcac3543cfa47da13df9707|8810|8810|none|
 |research|serialized-property|asset:3219414118f1fd04c8c0a8a30d7e5a48|serialized:c0d2856b74d0df05b9d4456b|4|4|none|
-|research|serialized-property|asset:3219414118f1fd04c8c0a8a30d7e5a48|serialized:f77039ccfe48ce3dc0881777|36|36|none|
+|research|serialized-property|asset:3219414118f1fd04c8c0a8a30d7e5a48|serialized:f77039ccfe48ce3dc0881777|17|17|none|
 |research|serialized-property|asset:327202bb0a17cec46a7ed70ac5f33e5c|serialized:1419ce6e730f5ec4daaccb58|1|1|none|
 |research|serialized-property|asset:327202bb0a17cec46a7ed70ac5f33e5c|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:327202bb0a17cec46a7ed70ac5f33e5c|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -69599,7 +69779,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:327202bb0a17cec46a7ed70ac5f33e5c|serialized:bbcac3543cfa47da13df9707|8878|8878|none|
 |research|serialized-property|asset:327202bb0a17cec46a7ed70ac5f33e5c|serialized:bded241e15df2ecae3f29f80|1|1|none|
 |research|serialized-property|asset:327202bb0a17cec46a7ed70ac5f33e5c|serialized:c0d2856b74d0df05b9d4456b|3|3|none|
-|research|serialized-property|asset:327202bb0a17cec46a7ed70ac5f33e5c|serialized:f77039ccfe48ce3dc0881777|1520|1520|none|
+|research|serialized-property|asset:327202bb0a17cec46a7ed70ac5f33e5c|serialized:f77039ccfe48ce3dc0881777|691|691|none|
 |research|serialized-property|asset:32d517c15f72a5343bd7193558c213fa|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:32d517c15f72a5343bd7193558c213fa|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:32d517c15f72a5343bd7193558c213fa|serialized:175b666232a125f492f4af26|35|35|none|
@@ -69640,7 +69820,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:32fd03e066753da45b755b4f22fd8b88|serialized:9824ac3feb9e18b922b06e38|2|2|none|
 |research|serialized-property|asset:32fd03e066753da45b755b4f22fd8b88|serialized:a56145270ce6b3bebd1dd012|7126|7126|none|
 |research|serialized-property|asset:32fd03e066753da45b755b4f22fd8b88|serialized:c0d2856b74d0df05b9d4456b|12|12|none|
-|research|serialized-property|asset:32fd03e066753da45b755b4f22fd8b88|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:32fd03e066753da45b755b4f22fd8b88|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:333f6c5dcc3d3e84aa842a93a35945e2|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:333f6c5dcc3d3e84aa842a93a35945e2|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:333f6c5dcc3d3e84aa842a93a35945e2|serialized:252b2505dcf8e6c4f414ffb6|1|1|none|
@@ -69744,7 +69924,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:339280fb1bb82e748a464ecbcdab97d0|serialized:a56145270ce6b3bebd1dd012|7072|7072|none|
 |research|serialized-property|asset:339280fb1bb82e748a464ecbcdab97d0|serialized:bbcac3543cfa47da13df9707|8814|8814|none|
 |research|serialized-property|asset:339280fb1bb82e748a464ecbcdab97d0|serialized:c0d2856b74d0df05b9d4456b|7|7|none|
-|research|serialized-property|asset:339280fb1bb82e748a464ecbcdab97d0|serialized:f77039ccfe48ce3dc0881777|60|60|none|
+|research|serialized-property|asset:339280fb1bb82e748a464ecbcdab97d0|serialized:f77039ccfe48ce3dc0881777|28|28|none|
 |research|serialized-property|asset:33a07ade94640d749894d7eba6e55648|serialized:374e191a70aeed0ee29f5405|true|true|none|
 |research|serialized-property|asset:33a07ade94640d749894d7eba6e55648|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:33a07ade94640d749894d7eba6e55648|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -69776,7 +69956,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:33a2ab1e26ba19044abf858282a4c338|serialized:b90fc152d78e412229422b3e|8852|8852|none|
 |research|serialized-property|asset:33a2ab1e26ba19044abf858282a4c338|serialized:bbcac3543cfa47da13df9707|8892|8892|none|
 |research|serialized-property|asset:33a2ab1e26ba19044abf858282a4c338|serialized:c0d2856b74d0df05b9d4456b|6|6|none|
-|research|serialized-property|asset:33a2ab1e26ba19044abf858282a4c338|serialized:f77039ccfe48ce3dc0881777|1532|1532|none|
+|research|serialized-property|asset:33a2ab1e26ba19044abf858282a4c338|serialized:f77039ccfe48ce3dc0881777|697|697|none|
 |research|serialized-property|asset:342057402b936bc41997bf8f71fc4bd9|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:342057402b936bc41997bf8f71fc4bd9|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:342057402b936bc41997bf8f71fc4bd9|serialized:175b666232a125f492f4af26|35|35|none|
@@ -69990,7 +70170,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:35b0271bac2979541bcef9f4a1014dc3|serialized:ab0cfbf551498cc7d7da6b46|9513|9513|none|
 |research|serialized-property|asset:35b0271bac2979541bcef9f4a1014dc3|serialized:bbcac3543cfa47da13df9707|9512|9512|none|
 |research|serialized-property|asset:35b0271bac2979541bcef9f4a1014dc3|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:35b0271bac2979541bcef9f4a1014dc3|serialized:f77039ccfe48ce3dc0881777|336|336|none|
+|research|serialized-property|asset:35b0271bac2979541bcef9f4a1014dc3|serialized:f77039ccfe48ce3dc0881777|153|153|none|
 |research|serialized-property|asset:35c2c5d1d6222c74d985081ba517ce29|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:35c2c5d1d6222c74d985081ba517ce29|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:35c2c5d1d6222c74d985081ba517ce29|serialized:0beb5fa3040d624b6cfacab9|25|25|none|
@@ -70075,7 +70255,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:360e4db2acac324488cd14391e8378e1|serialized:ab0cfbf551498cc7d7da6b46|1615|1615|none|
 |research|serialized-property|asset:360e4db2acac324488cd14391e8378e1|serialized:bbcac3543cfa47da13df9707|1614|1614|none|
 |research|serialized-property|asset:360e4db2acac324488cd14391e8378e1|serialized:c0d2856b74d0df05b9d4456b|12|12|none|
-|research|serialized-property|asset:360e4db2acac324488cd14391e8378e1|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:360e4db2acac324488cd14391e8378e1|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:3646db8ff0f993944ad528bca23d5883|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:3646db8ff0f993944ad528bca23d5883|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:3646db8ff0f993944ad528bca23d5883|serialized:175b666232a125f492f4af26|35|35|none|
@@ -70112,7 +70292,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:365b4b8715ab58a47ac9e166216354d6|serialized:a56145270ce6b3bebd1dd012|7092|7092|none|
 |research|serialized-property|asset:365b4b8715ab58a47ac9e166216354d6|serialized:bbcac3543cfa47da13df9707|8819|8819|none|
 |research|serialized-property|asset:365b4b8715ab58a47ac9e166216354d6|serialized:c0d2856b74d0df05b9d4456b|9|9|none|
-|research|serialized-property|asset:365b4b8715ab58a47ac9e166216354d6|serialized:f77039ccfe48ce3dc0881777|60|60|none|
+|research|serialized-property|asset:365b4b8715ab58a47ac9e166216354d6|serialized:f77039ccfe48ce3dc0881777|28|28|none|
 |research|serialized-property|asset:36ea1732c9a8ac5488a5376f7daeada6|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:36ea1732c9a8ac5488a5376f7daeada6|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
 |research|serialized-property|asset:36ea1732c9a8ac5488a5376f7daeada6|serialized:742a013befa3d8b0419cf7f0|1|1|none|
@@ -70123,7 +70303,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:36ea1732c9a8ac5488a5376f7daeada6|serialized:a56145270ce6b3bebd1dd012|7121|7121|none|
 |research|serialized-property|asset:36ea1732c9a8ac5488a5376f7daeada6|serialized:bbcac3543cfa47da13df9707|1087|1087|none|
 |research|serialized-property|asset:36ea1732c9a8ac5488a5376f7daeada6|serialized:c0d2856b74d0df05b9d4456b|12|12|none|
-|research|serialized-property|asset:36ea1732c9a8ac5488a5376f7daeada6|serialized:f77039ccfe48ce3dc0881777|36|36|none|
+|research|serialized-property|asset:36ea1732c9a8ac5488a5376f7daeada6|serialized:f77039ccfe48ce3dc0881777|17|17|none|
 |research|serialized-property|asset:3740fb4fba74268459375bac15f553c0|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:3740fb4fba74268459375bac15f553c0|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:3740fb4fba74268459375bac15f553c0|serialized:175b666232a125f492f4af26|35|35|none|
@@ -70207,7 +70387,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:37bea86414c60b04d9c5bcd13cfcef4b|serialized:a56145270ce6b3bebd1dd012|7012|7012|none|
 |research|serialized-property|asset:37bea86414c60b04d9c5bcd13cfcef4b|serialized:bbcac3543cfa47da13df9707|8807|8807|none|
 |research|serialized-property|asset:37bea86414c60b04d9c5bcd13cfcef4b|serialized:c0d2856b74d0df05b9d4456b|1|1|none|
-|research|serialized-property|asset:37bea86414c60b04d9c5bcd13cfcef4b|serialized:f77039ccfe48ce3dc0881777|60|60|none|
+|research|serialized-property|asset:37bea86414c60b04d9c5bcd13cfcef4b|serialized:f77039ccfe48ce3dc0881777|28|28|none|
 |research|serialized-property|asset:37e465f9d6073ea488569b0b6ea732cf|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:37e465f9d6073ea488569b0b6ea732cf|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:37e465f9d6073ea488569b0b6ea732cf|serialized:175b666232a125f492f4af26|35|35|none|
@@ -70382,7 +70562,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:39c9c8d2eed6f67418e05ff5be476510|serialized:8a50af1a7a56bbd9484c18a7|0|0|none|
 |research|serialized-property|asset:39c9c8d2eed6f67418e05ff5be476510|serialized:a56145270ce6b3bebd1dd012|7085|7085|none|
 |research|serialized-property|asset:39c9c8d2eed6f67418e05ff5be476510|serialized:c0d2856b74d0df05b9d4456b|8|8|none|
-|research|serialized-property|asset:39c9c8d2eed6f67418e05ff5be476510|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:39c9c8d2eed6f67418e05ff5be476510|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:3a0a613b69957f144a24408dd9f77322|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:3a0a613b69957f144a24408dd9f77322|serialized:45727ec8710e99c579cef911|8|8|none|
 |research|serialized-property|asset:3a0a613b69957f144a24408dd9f77322|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -70429,7 +70609,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:3b8bc1e2ec3aab249a39884f4356fe0d|serialized:a56145270ce6b3bebd1dd012|7051|7051|none|
 |research|serialized-property|asset:3b8bc1e2ec3aab249a39884f4356fe0d|serialized:bbcac3543cfa47da13df9707|1029|1029|none|
 |research|serialized-property|asset:3b8bc1e2ec3aab249a39884f4356fe0d|serialized:c0d2856b74d0df05b9d4456b|5|5|none|
-|research|serialized-property|asset:3b8bc1e2ec3aab249a39884f4356fe0d|serialized:f77039ccfe48ce3dc0881777|36|36|none|
+|research|serialized-property|asset:3b8bc1e2ec3aab249a39884f4356fe0d|serialized:f77039ccfe48ce3dc0881777|17|17|none|
 |research|serialized-property|asset:3ba22236e9c0dbc4c8cdaffa7c08dd8d|serialized:374e191a70aeed0ee29f5405|true|true|none|
 |research|serialized-property|asset:3ba22236e9c0dbc4c8cdaffa7c08dd8d|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:3ba22236e9c0dbc4c8cdaffa7c08dd8d|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -70459,7 +70639,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:3bc026565c152be48b6ba5fb44ad839f|serialized:a56145270ce6b3bebd1dd012|7273|7273|none|
 |research|serialized-property|asset:3bc026565c152be48b6ba5fb44ad839f|serialized:bbcac3543cfa47da13df9707|8874|8874|none|
 |research|serialized-property|asset:3bc026565c152be48b6ba5fb44ad839f|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:3bc026565c152be48b6ba5fb44ad839f|serialized:f77039ccfe48ce3dc0881777|560|560|none|
+|research|serialized-property|asset:3bc026565c152be48b6ba5fb44ad839f|serialized:f77039ccfe48ce3dc0881777|255|255|none|
 |research|serialized-property|asset:3bfc96437a3454a4385ec410960263dd|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:3bfc96437a3454a4385ec410960263dd|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:3bfc96437a3454a4385ec410960263dd|serialized:175b666232a125f492f4af26|35|35|none|
@@ -70571,7 +70751,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:3cf28d5b589b21647a65f6b037fedc43|serialized:a56145270ce6b3bebd1dd012|7266|7266|none|
 |research|serialized-property|asset:3cf28d5b589b21647a65f6b037fedc43|serialized:bbcac3543cfa47da13df9707|8867|8867|none|
 |research|serialized-property|asset:3cf28d5b589b21647a65f6b037fedc43|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:3cf28d5b589b21647a65f6b037fedc43|serialized:f77039ccfe48ce3dc0881777|4800|4800|none|
+|research|serialized-property|asset:3cf28d5b589b21647a65f6b037fedc43|serialized:f77039ccfe48ce3dc0881777|2182|2182|none|
 |research|serialized-property|asset:3d189834fc97f784aab489bf3550c5ac|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:3d189834fc97f784aab489bf3550c5ac|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:3d189834fc97f784aab489bf3550c5ac|serialized:175b666232a125f492f4af26|35|35|none|
@@ -70613,7 +70793,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:3d2b73018d9a68f4e8b603e489da6388|serialized:a56145270ce6b3bebd1dd012|7292|7292|none|
 |research|serialized-property|asset:3d2b73018d9a68f4e8b603e489da6388|serialized:bbcac3543cfa47da13df9707|8893|8893|none|
 |research|serialized-property|asset:3d2b73018d9a68f4e8b603e489da6388|serialized:c0d2856b74d0df05b9d4456b|6|6|none|
-|research|serialized-property|asset:3d2b73018d9a68f4e8b603e489da6388|serialized:f77039ccfe48ce3dc0881777|1200|1200|none|
+|research|serialized-property|asset:3d2b73018d9a68f4e8b603e489da6388|serialized:f77039ccfe48ce3dc0881777|546|546|none|
 |research|serialized-property|asset:3d46698b7e0fb1a4691c913da022fe95|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:3d46698b7e0fb1a4691c913da022fe95|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:3d46698b7e0fb1a4691c913da022fe95|serialized:0beb5fa3040d624b6cfacab9|25|25|none|
@@ -70805,7 +70985,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:3e4e4a169a0e7864c9b9a801bf294a7e|serialized:a56145270ce6b3bebd1dd012|7229|7229|none|
 |research|serialized-property|asset:3e4e4a169a0e7864c9b9a801bf294a7e|serialized:bbcac3543cfa47da13df9707|8839|8839|none|
 |research|serialized-property|asset:3e4e4a169a0e7864c9b9a801bf294a7e|serialized:c0d2856b74d0df05b9d4456b|10|10|none|
-|research|serialized-property|asset:3e4e4a169a0e7864c9b9a801bf294a7e|serialized:f77039ccfe48ce3dc0881777|252|252|none|
+|research|serialized-property|asset:3e4e4a169a0e7864c9b9a801bf294a7e|serialized:f77039ccfe48ce3dc0881777|115|115|none|
 |research|serialized-property|asset:3e7ee6d9a29efcf49a4035427664765d|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:3e7ee6d9a29efcf49a4035427664765d|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:3e7ee6d9a29efcf49a4035427664765d|serialized:175b666232a125f492f4af26|35|35|none|
@@ -70845,7 +71025,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:3e92a60a5d0530d4abe6c67462148c11|serialized:a56145270ce6b3bebd1dd012|7004|7004|none|
 |research|serialized-property|asset:3e92a60a5d0530d4abe6c67462148c11|serialized:bbcac3543cfa47da13df9707|9501|9501|none|
 |research|serialized-property|asset:3e92a60a5d0530d4abe6c67462148c11|serialized:c0d2856b74d0df05b9d4456b|0|0|none|
-|research|serialized-property|asset:3e92a60a5d0530d4abe6c67462148c11|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:3e92a60a5d0530d4abe6c67462148c11|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:3ea567c56052bf74ba72ff7f0973bb9b|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:3ea567c56052bf74ba72ff7f0973bb9b|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:3ea567c56052bf74ba72ff7f0973bb9b|serialized:0beb5fa3040d624b6cfacab9|25|25|none|
@@ -71008,7 +71188,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:4054a9baf1399df40b066cc53cd96b8c|serialized:ab0cfbf551498cc7d7da6b46|1616|1616|none|
 |research|serialized-property|asset:4054a9baf1399df40b066cc53cd96b8c|serialized:bbcac3543cfa47da13df9707|1089|1089|none|
 |research|serialized-property|asset:4054a9baf1399df40b066cc53cd96b8c|serialized:c0d2856b74d0df05b9d4456b|9|9|none|
-|research|serialized-property|asset:4054a9baf1399df40b066cc53cd96b8c|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:4054a9baf1399df40b066cc53cd96b8c|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:41781edcdd5151b4087342069709d1eb|serialized:1419ce6e730f5ec4daaccb58|2|2|none|
 |research|serialized-property|asset:41781edcdd5151b4087342069709d1eb|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:41781edcdd5151b4087342069709d1eb|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -71026,7 +71206,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:41781edcdd5151b4087342069709d1eb|serialized:a56145270ce6b3bebd1dd012|7284|7284|none|
 |research|serialized-property|asset:41781edcdd5151b4087342069709d1eb|serialized:bbcac3543cfa47da13df9707|8885|8885|none|
 |research|serialized-property|asset:41781edcdd5151b4087342069709d1eb|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:41781edcdd5151b4087342069709d1eb|serialized:f77039ccfe48ce3dc0881777|560|560|none|
+|research|serialized-property|asset:41781edcdd5151b4087342069709d1eb|serialized:f77039ccfe48ce3dc0881777|255|255|none|
 |research|serialized-property|asset:4190273624da3fd4295628d315afd8e9|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:4190273624da3fd4295628d315afd8e9|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:4190273624da3fd4295628d315afd8e9|serialized:1590378b0b1f8e41d2bf6032|0|0|none|
@@ -71298,7 +71478,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:43ee324a215503947ba129efc4143e5b|serialized:a56145270ce6b3bebd1dd012|7246|7246|none|
 |research|serialized-property|asset:43ee324a215503947ba129efc4143e5b|serialized:bbcac3543cfa47da13df9707|8841|8841|none|
 |research|serialized-property|asset:43ee324a215503947ba129efc4143e5b|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:43ee324a215503947ba129efc4143e5b|serialized:f77039ccfe48ce3dc0881777|720|720|none|
+|research|serialized-property|asset:43ee324a215503947ba129efc4143e5b|serialized:f77039ccfe48ce3dc0881777|328|328|none|
 |research|serialized-property|asset:43fdbba056b62d34cb7bae16fd381a71|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:43fdbba056b62d34cb7bae16fd381a71|serialized:48579c8b6dfcfd51486e83eb|false|false|none|
 |research|serialized-property|asset:43fdbba056b62d34cb7bae16fd381a71|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -71421,7 +71601,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:464827d49a6d4654f8c5bf76b8816dc9|serialized:ab0cfbf551498cc7d7da6b46|1710|1710|none|
 |research|serialized-property|asset:464827d49a6d4654f8c5bf76b8816dc9|serialized:bbcac3543cfa47da13df9707|1701|1701|none|
 |research|serialized-property|asset:464827d49a6d4654f8c5bf76b8816dc9|serialized:c0d2856b74d0df05b9d4456b|16|16|none|
-|research|serialized-property|asset:464827d49a6d4654f8c5bf76b8816dc9|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:464827d49a6d4654f8c5bf76b8816dc9|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:469195c9abbd2194c8e535fbb9207305|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:469195c9abbd2194c8e535fbb9207305|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:469195c9abbd2194c8e535fbb9207305|serialized:175b666232a125f492f4af26|35|35|none|
@@ -71461,7 +71641,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:4736dc67de517194bba2ecc8eb663cc3|serialized:a56145270ce6b3bebd1dd012|7103|7103|none|
 |research|serialized-property|asset:4736dc67de517194bba2ecc8eb663cc3|serialized:bbcac3543cfa47da13df9707|1080|1080|none|
 |research|serialized-property|asset:4736dc67de517194bba2ecc8eb663cc3|serialized:c0d2856b74d0df05b9d4456b|10|10|none|
-|research|serialized-property|asset:4736dc67de517194bba2ecc8eb663cc3|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:4736dc67de517194bba2ecc8eb663cc3|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:47ee878c237e0804f905223c07dea293|serialized:374e191a70aeed0ee29f5405|false|false|none|
 |research|serialized-property|asset:47ee878c237e0804f905223c07dea293|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:47ee878c237e0804f905223c07dea293|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -71657,7 +71837,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:4ab25e7b549727647902fa1512f46642|serialized:a56145270ce6b3bebd1dd012|7127|7127|none|
 |research|serialized-property|asset:4ab25e7b549727647902fa1512f46642|serialized:bbcac3543cfa47da13df9707|1608|1608|none|
 |research|serialized-property|asset:4ab25e7b549727647902fa1512f46642|serialized:c0d2856b74d0df05b9d4456b|12|12|none|
-|research|serialized-property|asset:4ab25e7b549727647902fa1512f46642|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:4ab25e7b549727647902fa1512f46642|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:4ad631dff508a1d4abc19e5ec62155ee|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:4ad631dff508a1d4abc19e5ec62155ee|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:4ad631dff508a1d4abc19e5ec62155ee|serialized:175b666232a125f492f4af26|35|35|none|
@@ -71700,7 +71880,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:4b3074860ed56d9429b554e903f0d8e7|serialized:ab0cfbf551498cc7d7da6b46|8823|8823|none|
 |research|serialized-property|asset:4b3074860ed56d9429b554e903f0d8e7|serialized:bbcac3543cfa47da13df9707|9812|9812|none|
 |research|serialized-property|asset:4b3074860ed56d9429b554e903f0d8e7|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:4b3074860ed56d9429b554e903f0d8e7|serialized:f77039ccfe48ce3dc0881777|1680|1680|none|
+|research|serialized-property|asset:4b3074860ed56d9429b554e903f0d8e7|serialized:f77039ccfe48ce3dc0881777|764|764|none|
 |research|serialized-property|asset:4b3f63725f35b3c4381e31ad4f591064|serialized:374e191a70aeed0ee29f5405|false|false|none|
 |research|serialized-property|asset:4b3f63725f35b3c4381e31ad4f591064|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:4b3f63725f35b3c4381e31ad4f591064|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -71753,7 +71933,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:4bbd81a4458238048b2132a10ada782b|serialized:ab0cfbf551498cc7d7da6b46|8829|8829|none|
 |research|serialized-property|asset:4bbd81a4458238048b2132a10ada782b|serialized:bbcac3543cfa47da13df9707|8824|8824|none|
 |research|serialized-property|asset:4bbd81a4458238048b2132a10ada782b|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:4bbd81a4458238048b2132a10ada782b|serialized:f77039ccfe48ce3dc0881777|1920|1920|none|
+|research|serialized-property|asset:4bbd81a4458238048b2132a10ada782b|serialized:f77039ccfe48ce3dc0881777|873|873|none|
 |research|serialized-property|asset:4bf5d5ddca4c8a84889a856d648466d7|serialized:374e191a70aeed0ee29f5405|true|true|none|
 |research|serialized-property|asset:4bf5d5ddca4c8a84889a856d648466d7|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:4bf5d5ddca4c8a84889a856d648466d7|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -71782,7 +71962,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:4c5bb648708e35746b90c496e58e4c60|serialized:a56145270ce6b3bebd1dd012|7198|7198|none|
 |research|serialized-property|asset:4c5bb648708e35746b90c496e58e4c60|serialized:bbcac3543cfa47da13df9707|9822|9822|none|
 |research|serialized-property|asset:4c5bb648708e35746b90c496e58e4c60|serialized:c0d2856b74d0df05b9d4456b|16|16|none|
-|research|serialized-property|asset:4c5bb648708e35746b90c496e58e4c60|serialized:f77039ccfe48ce3dc0881777|336|336|none|
+|research|serialized-property|asset:4c5bb648708e35746b90c496e58e4c60|serialized:f77039ccfe48ce3dc0881777|153|153|none|
 |research|serialized-property|asset:4ce0e84af53572546a0f74fccf48985e|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
 |research|serialized-property|asset:4ce0e84af53572546a0f74fccf48985e|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:4ce0e84af53572546a0f74fccf48985e|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -71799,7 +71979,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:4ce0e84af53572546a0f74fccf48985e|serialized:a56145270ce6b3bebd1dd012|7232|7232|none|
 |research|serialized-property|asset:4ce0e84af53572546a0f74fccf48985e|serialized:bbcac3543cfa47da13df9707|8900|8900|none|
 |research|serialized-property|asset:4ce0e84af53572546a0f74fccf48985e|serialized:c0d2856b74d0df05b9d4456b|2|2|none|
-|research|serialized-property|asset:4ce0e84af53572546a0f74fccf48985e|serialized:f77039ccfe48ce3dc0881777|560|560|none|
+|research|serialized-property|asset:4ce0e84af53572546a0f74fccf48985e|serialized:f77039ccfe48ce3dc0881777|255|255|none|
 |research|serialized-property|asset:4d940db0b2a0c7d4683f516f2629b74a|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:4d940db0b2a0c7d4683f516f2629b74a|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:4d940db0b2a0c7d4683f516f2629b74a|serialized:1590378b0b1f8e41d2bf6032|0|0|none|
@@ -71883,7 +72063,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:4db6f6908a9bba947908a1269f3845ef|serialized:bbcac3543cfa47da13df9707|8849|8849|none|
 |research|serialized-property|asset:4db6f6908a9bba947908a1269f3845ef|serialized:bded241e15df2ecae3f29f80|1|1|none|
 |research|serialized-property|asset:4db6f6908a9bba947908a1269f3845ef|serialized:c0d2856b74d0df05b9d4456b|3|3|none|
-|research|serialized-property|asset:4db6f6908a9bba947908a1269f3845ef|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:4db6f6908a9bba947908a1269f3845ef|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:4ecb34354189f174894b7360555a835d|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:4ecb34354189f174894b7360555a835d|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:4ecb34354189f174894b7360555a835d|serialized:175b666232a125f492f4af26|35|35|none|
@@ -71926,7 +72106,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:4ee2df589417d314295a42c252406053|serialized:ab0cfbf551498cc7d7da6b46|9810|9810|none|
 |research|serialized-property|asset:4ee2df589417d314295a42c252406053|serialized:bbcac3543cfa47da13df9707|9801|9801|none|
 |research|serialized-property|asset:4ee2df589417d314295a42c252406053|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:4ee2df589417d314295a42c252406053|serialized:f77039ccfe48ce3dc0881777|980|980|none|
+|research|serialized-property|asset:4ee2df589417d314295a42c252406053|serialized:f77039ccfe48ce3dc0881777|446|446|none|
 |research|serialized-property|asset:4ee6ab0a2d5e42348ad7507de2ce6921|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:4ee6ab0a2d5e42348ad7507de2ce6921|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:4ee6ab0a2d5e42348ad7507de2ce6921|serialized:175b666232a125f492f4af26|35|35|none|
@@ -71993,7 +72173,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:4f834632a53941b439cb9e9b2fd7ab5e|serialized:a56145270ce6b3bebd1dd012|7280|7280|none|
 |research|serialized-property|asset:4f834632a53941b439cb9e9b2fd7ab5e|serialized:bbcac3543cfa47da13df9707|8881|8881|none|
 |research|serialized-property|asset:4f834632a53941b439cb9e9b2fd7ab5e|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:4f834632a53941b439cb9e9b2fd7ab5e|serialized:f77039ccfe48ce3dc0881777|9600|9600|none|
+|research|serialized-property|asset:4f834632a53941b439cb9e9b2fd7ab5e|serialized:f77039ccfe48ce3dc0881777|4364|4364|none|
 |research|serialized-property|asset:505f22548ab48e04886a10845d151268|serialized:374e191a70aeed0ee29f5405|true|true|none|
 |research|serialized-property|asset:505f22548ab48e04886a10845d151268|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:505f22548ab48e04886a10845d151268|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -72269,7 +72449,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:56ffa2cea97e51048b951d004cec9b2b|serialized:a56145270ce6b3bebd1dd012|7034|7034|none|
 |research|serialized-property|asset:56ffa2cea97e51048b951d004cec9b2b|serialized:ab0cfbf551498cc7d7da6b46|8897|8897|none|
 |research|serialized-property|asset:56ffa2cea97e51048b951d004cec9b2b|serialized:c0d2856b74d0df05b9d4456b|3|3|none|
-|research|serialized-property|asset:56ffa2cea97e51048b951d004cec9b2b|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:56ffa2cea97e51048b951d004cec9b2b|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:5776e8c9401bb874baa402a4ce71d465|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:5776e8c9401bb874baa402a4ce71d465|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:5776e8c9401bb874baa402a4ce71d465|serialized:0beb5fa3040d624b6cfacab9|25|25|none|
@@ -72431,7 +72611,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:5910327a5258de84d8d7536cb7416719|serialized:ab0cfbf551498cc7d7da6b46|1627|1627|none|
 |research|serialized-property|asset:5910327a5258de84d8d7536cb7416719|serialized:bbcac3543cfa47da13df9707|1096|1096|none|
 |research|serialized-property|asset:5910327a5258de84d8d7536cb7416719|serialized:c0d2856b74d0df05b9d4456b|6|6|none|
-|research|serialized-property|asset:5910327a5258de84d8d7536cb7416719|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:5910327a5258de84d8d7536cb7416719|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:59ded3f6dee766c468e1d0c2b8dc7a9c|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:59ded3f6dee766c468e1d0c2b8dc7a9c|serialized:2070f16269037d94694a47f7|2|2|none|
 |research|serialized-property|asset:59ded3f6dee766c468e1d0c2b8dc7a9c|serialized:252b2505dcf8e6c4f414ffb6|2|2|none|
@@ -72556,7 +72736,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:5b1a660d9c084df44bd76fdea941027e|serialized:a56145270ce6b3bebd1dd012|7082|7082|none|
 |research|serialized-property|asset:5b1a660d9c084df44bd76fdea941027e|serialized:bbcac3543cfa47da13df9707|1094|1094|none|
 |research|serialized-property|asset:5b1a660d9c084df44bd76fdea941027e|serialized:c0d2856b74d0df05b9d4456b|8|8|none|
-|research|serialized-property|asset:5b1a660d9c084df44bd76fdea941027e|serialized:f77039ccfe48ce3dc0881777|60|60|none|
+|research|serialized-property|asset:5b1a660d9c084df44bd76fdea941027e|serialized:f77039ccfe48ce3dc0881777|28|28|none|
 |research|serialized-property|asset:5b2ce659b3eeb534aa1e7deac91f8bf8|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:5b2ce659b3eeb534aa1e7deac91f8bf8|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:5b2ce659b3eeb534aa1e7deac91f8bf8|serialized:175b666232a125f492f4af26|35|35|none|
@@ -72777,7 +72957,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:5c723e0afc8d22b44bf32fea13a05b17|serialized:a56145270ce6b3bebd1dd012|7230|7230|none|
 |research|serialized-property|asset:5c723e0afc8d22b44bf32fea13a05b17|serialized:bbcac3543cfa47da13df9707|8840|8840|none|
 |research|serialized-property|asset:5c723e0afc8d22b44bf32fea13a05b17|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:5c723e0afc8d22b44bf32fea13a05b17|serialized:f77039ccfe48ce3dc0881777|420|420|none|
+|research|serialized-property|asset:5c723e0afc8d22b44bf32fea13a05b17|serialized:f77039ccfe48ce3dc0881777|191|191|none|
 |research|serialized-property|asset:5d24ff7a48d2e42439661cde8f81fdae|serialized:1419ce6e730f5ec4daaccb58|4|4|none|
 |research|serialized-property|asset:5d24ff7a48d2e42439661cde8f81fdae|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:5d24ff7a48d2e42439661cde8f81fdae|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -72792,7 +72972,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:5d24ff7a48d2e42439661cde8f81fdae|serialized:a4ff1c3e96fbc1b4d228d8e8|5|5|none|
 |research|serialized-property|asset:5d24ff7a48d2e42439661cde8f81fdae|serialized:a56145270ce6b3bebd1dd012|7134|7134|none|
 |research|serialized-property|asset:5d24ff7a48d2e42439661cde8f81fdae|serialized:c0d2856b74d0df05b9d4456b|13|13|none|
-|research|serialized-property|asset:5d24ff7a48d2e42439661cde8f81fdae|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:5d24ff7a48d2e42439661cde8f81fdae|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:5d4b72cf65b5047458be9276b23d2055|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:5d4b72cf65b5047458be9276b23d2055|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:5d4b72cf65b5047458be9276b23d2055|serialized:175b666232a125f492f4af26|35|35|none|
@@ -72899,7 +73079,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:5e6daba52a76ac0409910907f9648f9c|serialized:bbcac3543cfa47da13df9707|8889|8889|none|
 |research|serialized-property|asset:5e6daba52a76ac0409910907f9648f9c|serialized:bded241e15df2ecae3f29f80|1|1|none|
 |research|serialized-property|asset:5e6daba52a76ac0409910907f9648f9c|serialized:c0d2856b74d0df05b9d4456b|3|3|none|
-|research|serialized-property|asset:5e6daba52a76ac0409910907f9648f9c|serialized:f77039ccfe48ce3dc0881777|8400|8400|none|
+|research|serialized-property|asset:5e6daba52a76ac0409910907f9648f9c|serialized:f77039ccfe48ce3dc0881777|3819|3819|none|
 |research|serialized-property|asset:5e8aabd4bf4e105469b0041306deac87|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:5e8aabd4bf4e105469b0041306deac87|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:5e8aabd4bf4e105469b0041306deac87|serialized:175b666232a125f492f4af26|35|35|none|
@@ -72941,7 +73121,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:5f482d6d36c48094fbdc08be33a2735a|serialized:a56145270ce6b3bebd1dd012|7176|7176|none|
 |research|serialized-property|asset:5f482d6d36c48094fbdc08be33a2735a|serialized:bbcac3543cfa47da13df9707|8832|8832|none|
 |research|serialized-property|asset:5f482d6d36c48094fbdc08be33a2735a|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:5f482d6d36c48094fbdc08be33a2735a|serialized:f77039ccfe48ce3dc0881777|960|960|none|
+|research|serialized-property|asset:5f482d6d36c48094fbdc08be33a2735a|serialized:f77039ccfe48ce3dc0881777|437|437|none|
 |research|serialized-property|asset:5fabef7a696a474459b987147ce3b596|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:5fabef7a696a474459b987147ce3b596|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:5fabef7a696a474459b987147ce3b596|serialized:175b666232a125f492f4af26|35|35|none|
@@ -73086,7 +73266,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:604db0724798adb40a2e9d31f7e0fb50|serialized:a56145270ce6b3bebd1dd012|7155|7155|none|
 |research|serialized-property|asset:604db0724798adb40a2e9d31f7e0fb50|serialized:bbcac3543cfa47da13df9707|9811|9811|none|
 |research|serialized-property|asset:604db0724798adb40a2e9d31f7e0fb50|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:604db0724798adb40a2e9d31f7e0fb50|serialized:f77039ccfe48ce3dc0881777|560|560|none|
+|research|serialized-property|asset:604db0724798adb40a2e9d31f7e0fb50|serialized:f77039ccfe48ce3dc0881777|255|255|none|
 |research|serialized-property|asset:605d2f26eb52060489dec987c76054f1|serialized:1419ce6e730f5ec4daaccb58|1|1|none|
 |research|serialized-property|asset:605d2f26eb52060489dec987c76054f1|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:605d2f26eb52060489dec987c76054f1|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -73106,7 +73286,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:605d2f26eb52060489dec987c76054f1|serialized:bbcac3543cfa47da13df9707|8870|8870|none|
 |research|serialized-property|asset:605d2f26eb52060489dec987c76054f1|serialized:bded241e15df2ecae3f29f80|1|1|none|
 |research|serialized-property|asset:605d2f26eb52060489dec987c76054f1|serialized:c0d2856b74d0df05b9d4456b|3|3|none|
-|research|serialized-property|asset:605d2f26eb52060489dec987c76054f1|serialized:f77039ccfe48ce3dc0881777|4800|4800|none|
+|research|serialized-property|asset:605d2f26eb52060489dec987c76054f1|serialized:f77039ccfe48ce3dc0881777|2182|2182|none|
 |research|serialized-property|asset:60d6880ba48bf28429b76e0b84a66edb|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:60d6880ba48bf28429b76e0b84a66edb|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:60d6880ba48bf28429b76e0b84a66edb|serialized:175b666232a125f492f4af26|35|35|none|
@@ -73602,7 +73782,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:66c33badde0f72d468e5a799faa3c921|serialized:b90fc152d78e412229422b3e|1049|1049|none|
 |research|serialized-property|asset:66c33badde0f72d468e5a799faa3c921|serialized:bbcac3543cfa47da13df9707|1046|1046|none|
 |research|serialized-property|asset:66c33badde0f72d468e5a799faa3c921|serialized:c0d2856b74d0df05b9d4456b|2|2|none|
-|research|serialized-property|asset:66c33badde0f72d468e5a799faa3c921|serialized:f77039ccfe48ce3dc0881777|60|60|none|
+|research|serialized-property|asset:66c33badde0f72d468e5a799faa3c921|serialized:f77039ccfe48ce3dc0881777|28|28|none|
 |research|serialized-property|asset:6733d3524442a5a4f920a477e412171a|serialized:374e191a70aeed0ee29f5405|false|false|none|
 |research|serialized-property|asset:6733d3524442a5a4f920a477e412171a|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:6733d3524442a5a4f920a477e412171a|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -73834,7 +74014,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:69d06336986d48642bdbb05010661791|serialized:ab0cfbf551498cc7d7da6b46|8865|8865|none|
 |research|serialized-property|asset:69d06336986d48642bdbb05010661791|serialized:bbcac3543cfa47da13df9707|8866|8866|none|
 |research|serialized-property|asset:69d06336986d48642bdbb05010661791|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:69d06336986d48642bdbb05010661791|serialized:f77039ccfe48ce3dc0881777|1280|1280|none|
+|research|serialized-property|asset:69d06336986d48642bdbb05010661791|serialized:f77039ccfe48ce3dc0881777|582|582|none|
 |research|serialized-property|asset:6a9999e4c8ceb80498ce91499d656261|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:6a9999e4c8ceb80498ce91499d656261|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:6a9999e4c8ceb80498ce91499d656261|serialized:252b2505dcf8e6c4f414ffb6|1|1|none|
@@ -73870,7 +74050,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:6aad2fa6256460344ae24710945369ff|serialized:a56145270ce6b3bebd1dd012|7042|7042|none|
 |research|serialized-property|asset:6aad2fa6256460344ae24710945369ff|serialized:bbcac3543cfa47da13df9707|8809|8809|none|
 |research|serialized-property|asset:6aad2fa6256460344ae24710945369ff|serialized:c0d2856b74d0df05b9d4456b|4|4|none|
-|research|serialized-property|asset:6aad2fa6256460344ae24710945369ff|serialized:f77039ccfe48ce3dc0881777|60|60|none|
+|research|serialized-property|asset:6aad2fa6256460344ae24710945369ff|serialized:f77039ccfe48ce3dc0881777|28|28|none|
 |research|serialized-property|asset:6ab4f10c96fb2424583773fe5e8aa198|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:6ab4f10c96fb2424583773fe5e8aa198|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:6ab4f10c96fb2424583773fe5e8aa198|serialized:175b666232a125f492f4af26|35|35|none|
@@ -74175,7 +74355,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:6f3e58b7b201b544682f1db3ef11d54e|serialized:ab0cfbf551498cc7d7da6b46|8899|8899|none|
 |research|serialized-property|asset:6f3e58b7b201b544682f1db3ef11d54e|serialized:bbcac3543cfa47da13df9707|1801|1801|none|
 |research|serialized-property|asset:6f3e58b7b201b544682f1db3ef11d54e|serialized:c0d2856b74d0df05b9d4456b|2|2|none|
-|research|serialized-property|asset:6f3e58b7b201b544682f1db3ef11d54e|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:6f3e58b7b201b544682f1db3ef11d54e|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:6fe9812400b63d946a7c2d9041cc6add|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:6fe9812400b63d946a7c2d9041cc6add|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:6fe9812400b63d946a7c2d9041cc6add|serialized:1590378b0b1f8e41d2bf6032|0|0|none|
@@ -74274,7 +74454,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:71c807e1b7aff89438bef5aa1ff83bf8|serialized:a56145270ce6b3bebd1dd012|7116|7116|none|
 |research|serialized-property|asset:71c807e1b7aff89438bef5aa1ff83bf8|serialized:bbcac3543cfa47da13df9707|1092|1092|none|
 |research|serialized-property|asset:71c807e1b7aff89438bef5aa1ff83bf8|serialized:c0d2856b74d0df05b9d4456b|11|11|none|
-|research|serialized-property|asset:71c807e1b7aff89438bef5aa1ff83bf8|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:71c807e1b7aff89438bef5aa1ff83bf8|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:7275c6c4fb1c8cd49afbf93f5e592e7f|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:7275c6c4fb1c8cd49afbf93f5e592e7f|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:7275c6c4fb1c8cd49afbf93f5e592e7f|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -74287,7 +74467,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:7275c6c4fb1c8cd49afbf93f5e592e7f|serialized:a56145270ce6b3bebd1dd012|7252|7252|none|
 |research|serialized-property|asset:7275c6c4fb1c8cd49afbf93f5e592e7f|serialized:bbcac3543cfa47da13df9707|8853|8853|none|
 |research|serialized-property|asset:7275c6c4fb1c8cd49afbf93f5e592e7f|serialized:c0d2856b74d0df05b9d4456b|0|0|none|
-|research|serialized-property|asset:7275c6c4fb1c8cd49afbf93f5e592e7f|serialized:f77039ccfe48ce3dc0881777|336|336|none|
+|research|serialized-property|asset:7275c6c4fb1c8cd49afbf93f5e592e7f|serialized:f77039ccfe48ce3dc0881777|153|153|none|
 |research|serialized-property|asset:72f02836257c27b4588fb8262a833821|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:72f02836257c27b4588fb8262a833821|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:72f02836257c27b4588fb8262a833821|serialized:0beb5fa3040d624b6cfacab9|25|25|none|
@@ -74371,7 +74551,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:73753b12f84700248be5a17b8fbb7a41|serialized:a56145270ce6b3bebd1dd012|7221|7221|none|
 |research|serialized-property|asset:73753b12f84700248be5a17b8fbb7a41|serialized:bbcac3543cfa47da13df9707|8848|8848|none|
 |research|serialized-property|asset:73753b12f84700248be5a17b8fbb7a41|serialized:c0d2856b74d0df05b9d4456b|1|1|none|
-|research|serialized-property|asset:73753b12f84700248be5a17b8fbb7a41|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:73753b12f84700248be5a17b8fbb7a41|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:73b59a74547d5774680c4d3937d79220|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
 |research|serialized-property|asset:73b59a74547d5774680c4d3937d79220|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:73b59a74547d5774680c4d3937d79220|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -74386,7 +74566,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:73b59a74547d5774680c4d3937d79220|serialized:a56145270ce6b3bebd1dd012|7227|7227|none|
 |research|serialized-property|asset:73b59a74547d5774680c4d3937d79220|serialized:bbcac3543cfa47da13df9707|8837|8837|none|
 |research|serialized-property|asset:73b59a74547d5774680c4d3937d79220|serialized:c0d2856b74d0df05b9d4456b|2|2|none|
-|research|serialized-property|asset:73b59a74547d5774680c4d3937d79220|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:73b59a74547d5774680c4d3937d79220|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:73be19cb680de1d4a810fe3baf38c823|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:73be19cb680de1d4a810fe3baf38c823|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:73be19cb680de1d4a810fe3baf38c823|serialized:175b666232a125f492f4af26|35|35|none|
@@ -74496,7 +74676,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:745852d5424766d4da7f0a89af942c14|serialized:a56145270ce6b3bebd1dd012|7173|7173|none|
 |research|serialized-property|asset:745852d5424766d4da7f0a89af942c14|serialized:bbcac3543cfa47da13df9707|9860|9860|none|
 |research|serialized-property|asset:745852d5424766d4da7f0a89af942c14|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:745852d5424766d4da7f0a89af942c14|serialized:f77039ccfe48ce3dc0881777|1920|1920|none|
+|research|serialized-property|asset:745852d5424766d4da7f0a89af942c14|serialized:f77039ccfe48ce3dc0881777|873|873|none|
 |research|serialized-property|asset:746640c1d9aeb82419e4d4f5735c9f51|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:746640c1d9aeb82419e4d4f5735c9f51|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:746640c1d9aeb82419e4d4f5735c9f51|serialized:252b2505dcf8e6c4f414ffb6|1|1|none|
@@ -74534,7 +74714,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:74bca340e2753f1489135a84adf7a24d|serialized:a56145270ce6b3bebd1dd012|7006|7006|none|
 |research|serialized-property|asset:74bca340e2753f1489135a84adf7a24d|serialized:bbcac3543cfa47da13df9707|1502|1502|none|
 |research|serialized-property|asset:74bca340e2753f1489135a84adf7a24d|serialized:c0d2856b74d0df05b9d4456b|0|0|none|
-|research|serialized-property|asset:74bca340e2753f1489135a84adf7a24d|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:74bca340e2753f1489135a84adf7a24d|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:74d138569f66a544f9324ef4badaf419|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:74d138569f66a544f9324ef4badaf419|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:74d138569f66a544f9324ef4badaf419|serialized:252b2505dcf8e6c4f414ffb6|1|1|none|
@@ -74704,7 +74884,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:75c38d39f76b2bc4da7e0ca9959e3a9a|serialized:ab0cfbf551498cc7d7da6b46|8863|8863|none|
 |research|serialized-property|asset:75c38d39f76b2bc4da7e0ca9959e3a9a|serialized:bbcac3543cfa47da13df9707|8864|8864|none|
 |research|serialized-property|asset:75c38d39f76b2bc4da7e0ca9959e3a9a|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:75c38d39f76b2bc4da7e0ca9959e3a9a|serialized:f77039ccfe48ce3dc0881777|1140|1140|none|
+|research|serialized-property|asset:75c38d39f76b2bc4da7e0ca9959e3a9a|serialized:f77039ccfe48ce3dc0881777|519|519|none|
 |research|serialized-property|asset:765dfb6b2c115914585220b130b759d0|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:765dfb6b2c115914585220b130b759d0|serialized:2070f16269037d94694a47f7|2|2|none|
 |research|serialized-property|asset:765dfb6b2c115914585220b130b759d0|serialized:252b2505dcf8e6c4f414ffb6|1|1|none|
@@ -74764,7 +74944,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:7681fe1cfe9727242a20ce258f588d0b|serialized:8a50af1a7a56bbd9484c18a7|0|0|none|
 |research|serialized-property|asset:7681fe1cfe9727242a20ce258f588d0b|serialized:a56145270ce6b3bebd1dd012|7222|7222|none|
 |research|serialized-property|asset:7681fe1cfe9727242a20ce258f588d0b|serialized:c0d2856b74d0df05b9d4456b|0|0|none|
-|research|serialized-property|asset:7681fe1cfe9727242a20ce258f588d0b|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:7681fe1cfe9727242a20ce258f588d0b|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:7697e3aaf574a95469fd01a14b0c4b78|serialized:1419ce6e730f5ec4daaccb58|4|4|none|
 |research|serialized-property|asset:7697e3aaf574a95469fd01a14b0c4b78|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:7697e3aaf574a95469fd01a14b0c4b78|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -74780,7 +74960,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:7697e3aaf574a95469fd01a14b0c4b78|serialized:a4ff1c3e96fbc1b4d228d8e8|5|5|none|
 |research|serialized-property|asset:7697e3aaf574a95469fd01a14b0c4b78|serialized:a56145270ce6b3bebd1dd012|7136|7136|none|
 |research|serialized-property|asset:7697e3aaf574a95469fd01a14b0c4b78|serialized:c0d2856b74d0df05b9d4456b|13|13|none|
-|research|serialized-property|asset:7697e3aaf574a95469fd01a14b0c4b78|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:7697e3aaf574a95469fd01a14b0c4b78|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:76b63d21e86fcae468364e4146a8f657|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:76b63d21e86fcae468364e4146a8f657|serialized:48579c8b6dfcfd51486e83eb|false|false|none|
 |research|serialized-property|asset:76b63d21e86fcae468364e4146a8f657|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -74935,7 +75115,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:788cfb46f343472449658f49b34111f4|serialized:8a50af1a7a56bbd9484c18a7|0|0|none|
 |research|serialized-property|asset:788cfb46f343472449658f49b34111f4|serialized:a56145270ce6b3bebd1dd012|7212|7212|none|
 |research|serialized-property|asset:788cfb46f343472449658f49b34111f4|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:788cfb46f343472449658f49b34111f4|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:788cfb46f343472449658f49b34111f4|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:7973f28fd44df2e49b474378b2ff1b7e|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:7973f28fd44df2e49b474378b2ff1b7e|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:7973f28fd44df2e49b474378b2ff1b7e|serialized:175b666232a125f492f4af26|35|35|none|
@@ -75076,7 +75256,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:7b52a6635613de84cacb3b29226f032e|serialized:8a50af1a7a56bbd9484c18a7|0|0|none|
 |research|serialized-property|asset:7b52a6635613de84cacb3b29226f032e|serialized:a56145270ce6b3bebd1dd012|7211|7211|none|
 |research|serialized-property|asset:7b52a6635613de84cacb3b29226f032e|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:7b52a6635613de84cacb3b29226f032e|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:7b52a6635613de84cacb3b29226f032e|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:7b721f3f0f4f9424793992fa0bed1b74|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:7b721f3f0f4f9424793992fa0bed1b74|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:7b721f3f0f4f9424793992fa0bed1b74|serialized:252b2505dcf8e6c4f414ffb6|1|1|none|
@@ -75137,7 +75317,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:7b91558f8c545e84b8057994f0868974|serialized:a56145270ce6b3bebd1dd012|7062|7062|none|
 |research|serialized-property|asset:7b91558f8c545e84b8057994f0868974|serialized:bbcac3543cfa47da13df9707|1095|1095|none|
 |research|serialized-property|asset:7b91558f8c545e84b8057994f0868974|serialized:c0d2856b74d0df05b9d4456b|6|6|none|
-|research|serialized-property|asset:7b91558f8c545e84b8057994f0868974|serialized:f77039ccfe48ce3dc0881777|60|60|none|
+|research|serialized-property|asset:7b91558f8c545e84b8057994f0868974|serialized:f77039ccfe48ce3dc0881777|28|28|none|
 |research|serialized-property|asset:7ba278a6c4c9978429e665e9cf4cd89c|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:7ba278a6c4c9978429e665e9cf4cd89c|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:7ba278a6c4c9978429e665e9cf4cd89c|serialized:252b2505dcf8e6c4f414ffb6|1|1|none|
@@ -75175,7 +75355,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:7c586f943b30620469b33c1bdd3d1e1f|serialized:a56145270ce6b3bebd1dd012|7224|7224|none|
 |research|serialized-property|asset:7c586f943b30620469b33c1bdd3d1e1f|serialized:bbcac3543cfa47da13df9707|8834|8834|none|
 |research|serialized-property|asset:7c586f943b30620469b33c1bdd3d1e1f|serialized:c0d2856b74d0df05b9d4456b|1|1|none|
-|research|serialized-property|asset:7c586f943b30620469b33c1bdd3d1e1f|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:7c586f943b30620469b33c1bdd3d1e1f|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:7cdfc462074213d4889c1ac8f947512b|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:7cdfc462074213d4889c1ac8f947512b|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:7cdfc462074213d4889c1ac8f947512b|serialized:175b666232a125f492f4af26|35|35|none|
@@ -75226,7 +75406,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:7d420104e4fd2744bbbd51a9c1e5e9cb|serialized:a56145270ce6b3bebd1dd012|7084|7084|none|
 |research|serialized-property|asset:7d420104e4fd2744bbbd51a9c1e5e9cb|serialized:bbcac3543cfa47da13df9707|1078|1078|none|
 |research|serialized-property|asset:7d420104e4fd2744bbbd51a9c1e5e9cb|serialized:c0d2856b74d0df05b9d4456b|8|8|none|
-|research|serialized-property|asset:7d420104e4fd2744bbbd51a9c1e5e9cb|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:7d420104e4fd2744bbbd51a9c1e5e9cb|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:7d76e461a12e7314eacf08d9040a5340|serialized:0109bebb70f4e0af514cb830|1019|1019|none|
 |research|serialized-property|asset:7d76e461a12e7314eacf08d9040a5340|serialized:08b76fffef09a3421e6983a9|1011|1011|none|
 |research|serialized-property|asset:7d76e461a12e7314eacf08d9040a5340|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
@@ -75244,7 +75424,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:7d76e461a12e7314eacf08d9040a5340|serialized:b90fc152d78e412229422b3e|1010|1010|none|
 |research|serialized-property|asset:7d76e461a12e7314eacf08d9040a5340|serialized:bbcac3543cfa47da13df9707|1005|1005|none|
 |research|serialized-property|asset:7d76e461a12e7314eacf08d9040a5340|serialized:c0d2856b74d0df05b9d4456b|1|1|none|
-|research|serialized-property|asset:7d76e461a12e7314eacf08d9040a5340|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:7d76e461a12e7314eacf08d9040a5340|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:7d94b89f414608342ba20573b3301d6e|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:7d94b89f414608342ba20573b3301d6e|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:7d94b89f414608342ba20573b3301d6e|serialized:1590378b0b1f8e41d2bf6032|0|0|none|
@@ -75470,7 +75650,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:80563de7eb8837243b0fb07ff1ea1680|serialized:a4ff1c3e96fbc1b4d228d8e8|6|6|none|
 |research|serialized-property|asset:80563de7eb8837243b0fb07ff1ea1680|serialized:a56145270ce6b3bebd1dd012|7233|7233|none|
 |research|serialized-property|asset:80563de7eb8837243b0fb07ff1ea1680|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:80563de7eb8837243b0fb07ff1ea1680|serialized:f77039ccfe48ce3dc0881777|1440|1440|none|
+|research|serialized-property|asset:80563de7eb8837243b0fb07ff1ea1680|serialized:f77039ccfe48ce3dc0881777|655|655|none|
 |research|serialized-property|asset:805c1c90b4001074a9d12d6316d92fa1|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
 |research|serialized-property|asset:805c1c90b4001074a9d12d6316d92fa1|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:805c1c90b4001074a9d12d6316d92fa1|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -75489,7 +75669,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:805c1c90b4001074a9d12d6316d92fa1|serialized:b90fc152d78e412229422b3e|9305|9305|none|
 |research|serialized-property|asset:805c1c90b4001074a9d12d6316d92fa1|serialized:bbcac3543cfa47da13df9707|8822|8822|none|
 |research|serialized-property|asset:805c1c90b4001074a9d12d6316d92fa1|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:805c1c90b4001074a9d12d6316d92fa1|serialized:f77039ccfe48ce3dc0881777|1920|1920|none|
+|research|serialized-property|asset:805c1c90b4001074a9d12d6316d92fa1|serialized:f77039ccfe48ce3dc0881777|873|873|none|
 |research|serialized-property|asset:80a8e089cf5f5e34c8c1de46eedf8426|serialized:374e191a70aeed0ee29f5405|false|false|none|
 |research|serialized-property|asset:80a8e089cf5f5e34c8c1de46eedf8426|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:80a8e089cf5f5e34c8c1de46eedf8426|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -75515,7 +75695,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:80c33ed657a2d1c4eb1266d6f8826dd2|serialized:a56145270ce6b3bebd1dd012|7095|7095|none|
 |research|serialized-property|asset:80c33ed657a2d1c4eb1266d6f8826dd2|serialized:bbcac3543cfa47da13df9707|8817|8817|none|
 |research|serialized-property|asset:80c33ed657a2d1c4eb1266d6f8826dd2|serialized:c0d2856b74d0df05b9d4456b|9|9|none|
-|research|serialized-property|asset:80c33ed657a2d1c4eb1266d6f8826dd2|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:80c33ed657a2d1c4eb1266d6f8826dd2|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:80cc955120d8f354e98ace458be9104f|serialized:374e191a70aeed0ee29f5405|true|true|none|
 |research|serialized-property|asset:80cc955120d8f354e98ace458be9104f|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:80cc955120d8f354e98ace458be9104f|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -75543,7 +75723,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:81003f66b70835f44b6e4ed6dd7bb783|serialized:ab0cfbf551498cc7d7da6b46|1624|1624|none|
 |research|serialized-property|asset:81003f66b70835f44b6e4ed6dd7bb783|serialized:bbcac3543cfa47da13df9707|1090|1090|none|
 |research|serialized-property|asset:81003f66b70835f44b6e4ed6dd7bb783|serialized:c0d2856b74d0df05b9d4456b|13|13|none|
-|research|serialized-property|asset:81003f66b70835f44b6e4ed6dd7bb783|serialized:f77039ccfe48ce3dc0881777|60|60|none|
+|research|serialized-property|asset:81003f66b70835f44b6e4ed6dd7bb783|serialized:f77039ccfe48ce3dc0881777|28|28|none|
 |research|serialized-property|asset:82a79626c397c8e408ed9f19fb9f85ff|serialized:027385bcb8433e608b4ef4b6|0|0|none|
 |research|serialized-property|asset:82a79626c397c8e408ed9f19fb9f85ff|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:82a79626c397c8e408ed9f19fb9f85ff|serialized:0993d5c1f3918336c1b06318|1|1|none|
@@ -75627,7 +75807,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:82bbfedc4cbbd4645b7f5fcc34ae88ab|serialized:a4ff1c3e96fbc1b4d228d8e8|6|6|none|
 |research|serialized-property|asset:82bbfedc4cbbd4645b7f5fcc34ae88ab|serialized:a56145270ce6b3bebd1dd012|7231|7231|none|
 |research|serialized-property|asset:82bbfedc4cbbd4645b7f5fcc34ae88ab|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:82bbfedc4cbbd4645b7f5fcc34ae88ab|serialized:f77039ccfe48ce3dc0881777|560|560|none|
+|research|serialized-property|asset:82bbfedc4cbbd4645b7f5fcc34ae88ab|serialized:f77039ccfe48ce3dc0881777|255|255|none|
 |research|serialized-property|asset:8327dfc6cc2c16d4f8a8e3da00d7c497|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:8327dfc6cc2c16d4f8a8e3da00d7c497|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:8327dfc6cc2c16d4f8a8e3da00d7c497|serialized:252b2505dcf8e6c4f414ffb6|1|1|none|
@@ -75664,7 +75844,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:836922bee804a9843bc8119d8aa15bb9|serialized:a56145270ce6b3bebd1dd012|7144|7144|none|
 |research|serialized-property|asset:836922bee804a9843bc8119d8aa15bb9|serialized:bbcac3543cfa47da13df9707|9508|9508|none|
 |research|serialized-property|asset:836922bee804a9843bc8119d8aa15bb9|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:836922bee804a9843bc8119d8aa15bb9|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:836922bee804a9843bc8119d8aa15bb9|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:840b5dc550a77244cb423fb96c415e0d|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:840b5dc550a77244cb423fb96c415e0d|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:840b5dc550a77244cb423fb96c415e0d|serialized:252b2505dcf8e6c4f414ffb6|6|6|none|
@@ -75797,7 +75977,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:86942f51ed093024ca893dd17fc05eb0|serialized:a56145270ce6b3bebd1dd012|7270|7270|none|
 |research|serialized-property|asset:86942f51ed093024ca893dd17fc05eb0|serialized:bbcac3543cfa47da13df9707|8871|8871|none|
 |research|serialized-property|asset:86942f51ed093024ca893dd17fc05eb0|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:86942f51ed093024ca893dd17fc05eb0|serialized:f77039ccfe48ce3dc0881777|12000|12000|none|
+|research|serialized-property|asset:86942f51ed093024ca893dd17fc05eb0|serialized:f77039ccfe48ce3dc0881777|5455|5455|none|
 |research|serialized-property|asset:86a1e9a106c72f143be59b54a510e502|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:86a1e9a106c72f143be59b54a510e502|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:86a1e9a106c72f143be59b54a510e502|serialized:175b666232a125f492f4af26|35|35|none|
@@ -75905,7 +76085,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:8759e3b63cde14348921e731f72bef15|serialized:8a50af1a7a56bbd9484c18a7|0|0|none|
 |research|serialized-property|asset:8759e3b63cde14348921e731f72bef15|serialized:a56145270ce6b3bebd1dd012|7213|7213|none|
 |research|serialized-property|asset:8759e3b63cde14348921e731f72bef15|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:8759e3b63cde14348921e731f72bef15|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:8759e3b63cde14348921e731f72bef15|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:87d1d701390376a4d856a6c9b24d03f9|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:87d1d701390376a4d856a6c9b24d03f9|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
 |research|serialized-property|asset:87d1d701390376a4d856a6c9b24d03f9|serialized:7f86ccc9aa395ae10286ae81|true|true|none|
@@ -75948,7 +76128,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:8839eece9e0123c429a6f8b47e3801b2|serialized:a56145270ce6b3bebd1dd012|7243|7243|none|
 |research|serialized-property|asset:8839eece9e0123c429a6f8b47e3801b2|serialized:bbcac3543cfa47da13df9707|8825|8825|none|
 |research|serialized-property|asset:8839eece9e0123c429a6f8b47e3801b2|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:8839eece9e0123c429a6f8b47e3801b2|serialized:f77039ccfe48ce3dc0881777|720|720|none|
+|research|serialized-property|asset:8839eece9e0123c429a6f8b47e3801b2|serialized:f77039ccfe48ce3dc0881777|328|328|none|
 |research|serialized-property|asset:8867070ea5ce886419800ed83587f013|serialized:1419ce6e730f5ec4daaccb58|2|2|none|
 |research|serialized-property|asset:8867070ea5ce886419800ed83587f013|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:8867070ea5ce886419800ed83587f013|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -75963,7 +76143,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:8867070ea5ce886419800ed83587f013|serialized:a4ff1c3e96fbc1b4d228d8e8|6|6|none|
 |research|serialized-property|asset:8867070ea5ce886419800ed83587f013|serialized:a56145270ce6b3bebd1dd012|7215|7215|none|
 |research|serialized-property|asset:8867070ea5ce886419800ed83587f013|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:8867070ea5ce886419800ed83587f013|serialized:f77039ccfe48ce3dc0881777|252|252|none|
+|research|serialized-property|asset:8867070ea5ce886419800ed83587f013|serialized:f77039ccfe48ce3dc0881777|115|115|none|
 |research|serialized-property|asset:886fd4f57934bbf4a8d3b3b0e91fb924|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:886fd4f57934bbf4a8d3b3b0e91fb924|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:886fd4f57934bbf4a8d3b3b0e91fb924|serialized:175b666232a125f492f4af26|35|35|none|
@@ -76003,7 +76183,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:88950de57b4caed4f96bf046b4a6798f|serialized:a56145270ce6b3bebd1dd012|7053|7053|none|
 |research|serialized-property|asset:88950de57b4caed4f96bf046b4a6798f|serialized:bbcac3543cfa47da13df9707|1026|1026|none|
 |research|serialized-property|asset:88950de57b4caed4f96bf046b4a6798f|serialized:c0d2856b74d0df05b9d4456b|5|5|none|
-|research|serialized-property|asset:88950de57b4caed4f96bf046b4a6798f|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:88950de57b4caed4f96bf046b4a6798f|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:88a592a0d7144d843be772b13b405b01|serialized:374e191a70aeed0ee29f5405|false|false|none|
 |research|serialized-property|asset:88a592a0d7144d843be772b13b405b01|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:88a592a0d7144d843be772b13b405b01|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -76057,7 +76237,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:8977def00211a7544a442835d7cfaf58|serialized:a56145270ce6b3bebd1dd012|7242|7242|none|
 |research|serialized-property|asset:8977def00211a7544a442835d7cfaf58|serialized:bbcac3543cfa47da13df9707|8826|8826|none|
 |research|serialized-property|asset:8977def00211a7544a442835d7cfaf58|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:8977def00211a7544a442835d7cfaf58|serialized:f77039ccfe48ce3dc0881777|560|560|none|
+|research|serialized-property|asset:8977def00211a7544a442835d7cfaf58|serialized:f77039ccfe48ce3dc0881777|255|255|none|
 |research|serialized-property|asset:89de3185a6bf70542b17ca7f3d397cba|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:89de3185a6bf70542b17ca7f3d397cba|serialized:45727ec8710e99c579cef911|8|8|none|
 |research|serialized-property|asset:89de3185a6bf70542b17ca7f3d397cba|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -76130,7 +76310,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:8a32e1ee5d90b1a4c92bd4f6627ed906|serialized:a56145270ce6b3bebd1dd012|7066|7066|none|
 |research|serialized-property|asset:8a32e1ee5d90b1a4c92bd4f6627ed906|serialized:bbcac3543cfa47da13df9707|8803|8803|none|
 |research|serialized-property|asset:8a32e1ee5d90b1a4c92bd4f6627ed906|serialized:c0d2856b74d0df05b9d4456b|6|6|none|
-|research|serialized-property|asset:8a32e1ee5d90b1a4c92bd4f6627ed906|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:8a32e1ee5d90b1a4c92bd4f6627ed906|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:8a6f45246a268e64685b17b05ce83fb3|serialized:027385bcb8433e608b4ef4b6|0|0|none|
 |research|serialized-property|asset:8a6f45246a268e64685b17b05ce83fb3|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:8a6f45246a268e64685b17b05ce83fb3|serialized:0993d5c1f3918336c1b06318|1|1|none|
@@ -76236,7 +76416,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:8ac67a646af7ea148bef357bd91c4bb7|serialized:8a50af1a7a56bbd9484c18a7|0|0|none|
 |research|serialized-property|asset:8ac67a646af7ea148bef357bd91c4bb7|serialized:a56145270ce6b3bebd1dd012|7115|7115|none|
 |research|serialized-property|asset:8ac67a646af7ea148bef357bd91c4bb7|serialized:c0d2856b74d0df05b9d4456b|11|11|none|
-|research|serialized-property|asset:8ac67a646af7ea148bef357bd91c4bb7|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:8ac67a646af7ea148bef357bd91c4bb7|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:8bb408def87e6b041be391ca5453aab1|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:8bb408def87e6b041be391ca5453aab1|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:8bb408def87e6b041be391ca5453aab1|serialized:252b2505dcf8e6c4f414ffb6|1|1|none|
@@ -76391,7 +76571,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:8f2a5bca31574f1478107e01d22cd5f2|serialized:b90fc152d78e412229422b3e|9303|9303|none|
 |research|serialized-property|asset:8f2a5bca31574f1478107e01d22cd5f2|serialized:bbcac3543cfa47da13df9707|1083|1083|none|
 |research|serialized-property|asset:8f2a5bca31574f1478107e01d22cd5f2|serialized:c0d2856b74d0df05b9d4456b|11|11|none|
-|research|serialized-property|asset:8f2a5bca31574f1478107e01d22cd5f2|serialized:f77039ccfe48ce3dc0881777|36|36|none|
+|research|serialized-property|asset:8f2a5bca31574f1478107e01d22cd5f2|serialized:f77039ccfe48ce3dc0881777|17|17|none|
 |research|serialized-property|asset:8f9b91c05c6a8d74f9593ffbc55c667d|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
 |research|serialized-property|asset:8f9b91c05c6a8d74f9593ffbc55c667d|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:8f9b91c05c6a8d74f9593ffbc55c667d|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -76408,7 +76588,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:8f9b91c05c6a8d74f9593ffbc55c667d|serialized:a56145270ce6b3bebd1dd012|7244|7244|none|
 |research|serialized-property|asset:8f9b91c05c6a8d74f9593ffbc55c667d|serialized:bbcac3543cfa47da13df9707|8846|8846|none|
 |research|serialized-property|asset:8f9b91c05c6a8d74f9593ffbc55c667d|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:8f9b91c05c6a8d74f9593ffbc55c667d|serialized:f77039ccfe48ce3dc0881777|960|960|none|
+|research|serialized-property|asset:8f9b91c05c6a8d74f9593ffbc55c667d|serialized:f77039ccfe48ce3dc0881777|437|437|none|
 |research|serialized-property|asset:8fb5ca5a34195ab4cb8ff0aff405f5d6|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:8fb5ca5a34195ab4cb8ff0aff405f5d6|serialized:45727ec8710e99c579cef911|8|8|none|
 |research|serialized-property|asset:8fb5ca5a34195ab4cb8ff0aff405f5d6|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -76688,7 +76868,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:91ce29549284d184892156dd7fcab4ae|serialized:a56145270ce6b3bebd1dd012|7075|7075|none|
 |research|serialized-property|asset:91ce29549284d184892156dd7fcab4ae|serialized:bbcac3543cfa47da13df9707|8816|8816|none|
 |research|serialized-property|asset:91ce29549284d184892156dd7fcab4ae|serialized:c0d2856b74d0df05b9d4456b|7|7|none|
-|research|serialized-property|asset:91ce29549284d184892156dd7fcab4ae|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:91ce29549284d184892156dd7fcab4ae|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:91d41a0b76c00544c896d7c86a79762f|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:91d41a0b76c00544c896d7c86a79762f|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:91d41a0b76c00544c896d7c86a79762f|serialized:252b2505dcf8e6c4f414ffb6|1|1|none|
@@ -76810,7 +76990,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:94c250e80abfe814a9a2b60a972836f0|serialized:a56145270ce6b3bebd1dd012|7112|7112|none|
 |research|serialized-property|asset:94c250e80abfe814a9a2b60a972836f0|serialized:bbcac3543cfa47da13df9707|1084|1084|none|
 |research|serialized-property|asset:94c250e80abfe814a9a2b60a972836f0|serialized:c0d2856b74d0df05b9d4456b|11|11|none|
-|research|serialized-property|asset:94c250e80abfe814a9a2b60a972836f0|serialized:f77039ccfe48ce3dc0881777|60|60|none|
+|research|serialized-property|asset:94c250e80abfe814a9a2b60a972836f0|serialized:f77039ccfe48ce3dc0881777|28|28|none|
 |research|serialized-property|asset:952106124a8efac46b2d213fc4bd55ce|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:952106124a8efac46b2d213fc4bd55ce|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:952106124a8efac46b2d213fc4bd55ce|serialized:1590378b0b1f8e41d2bf6032|0|0|none|
@@ -76945,7 +77125,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:95417a94ca080a740b183c0ab32898cc|serialized:b90fc152d78e412229422b3e|1713|1713|none|
 |research|serialized-property|asset:95417a94ca080a740b183c0ab32898cc|serialized:bbcac3543cfa47da13df9707|1703|1703|none|
 |research|serialized-property|asset:95417a94ca080a740b183c0ab32898cc|serialized:c0d2856b74d0df05b9d4456b|1|1|none|
-|research|serialized-property|asset:95417a94ca080a740b183c0ab32898cc|serialized:f77039ccfe48ce3dc0881777|60|60|none|
+|research|serialized-property|asset:95417a94ca080a740b183c0ab32898cc|serialized:f77039ccfe48ce3dc0881777|28|28|none|
 |research|serialized-property|asset:9550a7265d565414b96e4c9f684eef26|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:9550a7265d565414b96e4c9f684eef26|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:9550a7265d565414b96e4c9f684eef26|serialized:175b666232a125f492f4af26|35|35|none|
@@ -76985,7 +77165,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:9567546579f39ac48bc0a0a5f1d87ef7|serialized:a56145270ce6b3bebd1dd012|7245|7245|none|
 |research|serialized-property|asset:9567546579f39ac48bc0a0a5f1d87ef7|serialized:bbcac3543cfa47da13df9707|9308|9308|none|
 |research|serialized-property|asset:9567546579f39ac48bc0a0a5f1d87ef7|serialized:c0d2856b74d0df05b9d4456b|2|2|none|
-|research|serialized-property|asset:9567546579f39ac48bc0a0a5f1d87ef7|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:9567546579f39ac48bc0a0a5f1d87ef7|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:957f0a8d21cf1c543b3497f4e0be1385|serialized:08b76fffef09a3421e6983a9|9849|9849|none|
 |research|serialized-property|asset:957f0a8d21cf1c543b3497f4e0be1385|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
 |research|serialized-property|asset:957f0a8d21cf1c543b3497f4e0be1385|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -77004,7 +77184,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:957f0a8d21cf1c543b3497f4e0be1385|serialized:b90fc152d78e412229422b3e|9847|9847|none|
 |research|serialized-property|asset:957f0a8d21cf1c543b3497f4e0be1385|serialized:bbcac3543cfa47da13df9707|9848|9848|none|
 |research|serialized-property|asset:957f0a8d21cf1c543b3497f4e0be1385|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:957f0a8d21cf1c543b3497f4e0be1385|serialized:f77039ccfe48ce3dc0881777|2000|2000|none|
+|research|serialized-property|asset:957f0a8d21cf1c543b3497f4e0be1385|serialized:f77039ccfe48ce3dc0881777|910|910|none|
 |research|serialized-property|asset:95dd8c2230aef774689165de38236a5c|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
 |research|serialized-property|asset:95dd8c2230aef774689165de38236a5c|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:95dd8c2230aef774689165de38236a5c|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -77018,7 +77198,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:95dd8c2230aef774689165de38236a5c|serialized:8a50af1a7a56bbd9484c18a7|0|0|none|
 |research|serialized-property|asset:95dd8c2230aef774689165de38236a5c|serialized:a56145270ce6b3bebd1dd012|7086|7086|none|
 |research|serialized-property|asset:95dd8c2230aef774689165de38236a5c|serialized:c0d2856b74d0df05b9d4456b|8|8|none|
-|research|serialized-property|asset:95dd8c2230aef774689165de38236a5c|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:95dd8c2230aef774689165de38236a5c|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:965bf9a92d56c344fb29d9cc7432de77|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:965bf9a92d56c344fb29d9cc7432de77|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:965bf9a92d56c344fb29d9cc7432de77|serialized:175b666232a125f492f4af26|35|35|none|
@@ -77082,7 +77262,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:969470a77353b3d45a9026b935c6c7bd|serialized:b90fc152d78e412229422b3e|1617|1617|none|
 |research|serialized-property|asset:969470a77353b3d45a9026b935c6c7bd|serialized:bbcac3543cfa47da13df9707|1088|1088|none|
 |research|serialized-property|asset:969470a77353b3d45a9026b935c6c7bd|serialized:c0d2856b74d0df05b9d4456b|0|0|none|
-|research|serialized-property|asset:969470a77353b3d45a9026b935c6c7bd|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:969470a77353b3d45a9026b935c6c7bd|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:96b26bc02a3a20a49868e5195ad145a4|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:96b26bc02a3a20a49868e5195ad145a4|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:96b26bc02a3a20a49868e5195ad145a4|serialized:175b666232a125f492f4af26|35|35|none|
@@ -77516,7 +77696,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:9fce6367650d81e48a5379ad21080807|serialized:8a50af1a7a56bbd9484c18a7|0|0|none|
 |research|serialized-property|asset:9fce6367650d81e48a5379ad21080807|serialized:a56145270ce6b3bebd1dd012|7081|7081|none|
 |research|serialized-property|asset:9fce6367650d81e48a5379ad21080807|serialized:c0d2856b74d0df05b9d4456b|8|8|none|
-|research|serialized-property|asset:9fce6367650d81e48a5379ad21080807|serialized:f77039ccfe48ce3dc0881777|36|36|none|
+|research|serialized-property|asset:9fce6367650d81e48a5379ad21080807|serialized:f77039ccfe48ce3dc0881777|17|17|none|
 |research|serialized-property|asset:a0b29f48572db174e94b62afb3cba67c|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:a0b29f48572db174e94b62afb3cba67c|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:a0b29f48572db174e94b62afb3cba67c|serialized:175b666232a125f492f4af26|35|35|none|
@@ -77557,7 +77737,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:a179537d62cbe0743bfd6661ee2155c2|serialized:a56145270ce6b3bebd1dd012|7223|7223|none|
 |research|serialized-property|asset:a179537d62cbe0743bfd6661ee2155c2|serialized:bbcac3543cfa47da13df9707|8847|8847|none|
 |research|serialized-property|asset:a179537d62cbe0743bfd6661ee2155c2|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:a179537d62cbe0743bfd6661ee2155c2|serialized:f77039ccfe48ce3dc0881777|252|252|none|
+|research|serialized-property|asset:a179537d62cbe0743bfd6661ee2155c2|serialized:f77039ccfe48ce3dc0881777|115|115|none|
 |research|serialized-property|asset:a1c0e806f0a41f14d9ec96b45b52c63f|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:a1c0e806f0a41f14d9ec96b45b52c63f|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:a1c0e806f0a41f14d9ec96b45b52c63f|serialized:0beb5fa3040d624b6cfacab9|25|25|none|
@@ -77668,7 +77848,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:a24581a41b78d0344aaf0472e0db52c6|serialized:a56145270ce6b3bebd1dd012|7205|7205|none|
 |research|serialized-property|asset:a24581a41b78d0344aaf0472e0db52c6|serialized:bbcac3543cfa47da13df9707|1805|1805|none|
 |research|serialized-property|asset:a24581a41b78d0344aaf0472e0db52c6|serialized:c0d2856b74d0df05b9d4456b|2|2|none|
-|research|serialized-property|asset:a24581a41b78d0344aaf0472e0db52c6|serialized:f77039ccfe48ce3dc0881777|252|252|none|
+|research|serialized-property|asset:a24581a41b78d0344aaf0472e0db52c6|serialized:f77039ccfe48ce3dc0881777|115|115|none|
 |research|serialized-property|asset:a24f8518a9e1c4f4fa139589d541aa68|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:a24f8518a9e1c4f4fa139589d541aa68|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:a24f8518a9e1c4f4fa139589d541aa68|serialized:175b666232a125f492f4af26|35|35|none|
@@ -77806,7 +77986,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:a43694aaa3ed9fd4eb3061371f0c5a56|serialized:b90fc152d78e412229422b3e|9505|9505|none|
 |research|serialized-property|asset:a43694aaa3ed9fd4eb3061371f0c5a56|serialized:bbcac3543cfa47da13df9707|9503|9503|none|
 |research|serialized-property|asset:a43694aaa3ed9fd4eb3061371f0c5a56|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:a43694aaa3ed9fd4eb3061371f0c5a56|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:a43694aaa3ed9fd4eb3061371f0c5a56|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:a52966f6a0223334d91e048b6daeeffa|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:a52966f6a0223334d91e048b6daeeffa|serialized:48579c8b6dfcfd51486e83eb|false|false|none|
 |research|serialized-property|asset:a52966f6a0223334d91e048b6daeeffa|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -77914,7 +78094,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:a5c90fba9f8b65141a148ebbd954b803|serialized:a56145270ce6b3bebd1dd012|7202|7202|none|
 |research|serialized-property|asset:a5c90fba9f8b65141a148ebbd954b803|serialized:bbcac3543cfa47da13df9707|1804|1804|none|
 |research|serialized-property|asset:a5c90fba9f8b65141a148ebbd954b803|serialized:c0d2856b74d0df05b9d4456b|2|2|none|
-|research|serialized-property|asset:a5c90fba9f8b65141a148ebbd954b803|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:a5c90fba9f8b65141a148ebbd954b803|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:a607c8217010ec14c95b96c551819f24|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:a607c8217010ec14c95b96c551819f24|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:a607c8217010ec14c95b96c551819f24|serialized:175b666232a125f492f4af26|35|35|none|
@@ -78199,7 +78379,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:a9740647e988d9d488968a7017c56f85|serialized:ab0cfbf551498cc7d7da6b46|8887|8887|none|
 |research|serialized-property|asset:a9740647e988d9d488968a7017c56f85|serialized:bbcac3543cfa47da13df9707|8886|8886|none|
 |research|serialized-property|asset:a9740647e988d9d488968a7017c56f85|serialized:c0d2856b74d0df05b9d4456b|0|0|none|
-|research|serialized-property|asset:a9740647e988d9d488968a7017c56f85|serialized:f77039ccfe48ce3dc0881777|672|672|none|
+|research|serialized-property|asset:a9740647e988d9d488968a7017c56f85|serialized:f77039ccfe48ce3dc0881777|306|306|none|
 |research|serialized-property|asset:aa7c653b442a12b44b0581cfac9b62bd|serialized:08b76fffef09a3421e6983a9|1604|1604|none|
 |research|serialized-property|asset:aa7c653b442a12b44b0581cfac9b62bd|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
 |research|serialized-property|asset:aa7c653b442a12b44b0581cfac9b62bd|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -78216,7 +78396,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:aa7c653b442a12b44b0581cfac9b62bd|serialized:b90fc152d78e412229422b3e|1602|1602|none|
 |research|serialized-property|asset:aa7c653b442a12b44b0581cfac9b62bd|serialized:bbcac3543cfa47da13df9707|1074|1074|none|
 |research|serialized-property|asset:aa7c653b442a12b44b0581cfac9b62bd|serialized:c0d2856b74d0df05b9d4456b|12|12|none|
-|research|serialized-property|asset:aa7c653b442a12b44b0581cfac9b62bd|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:aa7c653b442a12b44b0581cfac9b62bd|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:aace6a2289f895049974e2d3c13ed313|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:aace6a2289f895049974e2d3c13ed313|serialized:2070f16269037d94694a47f7|2|2|none|
 |research|serialized-property|asset:aace6a2289f895049974e2d3c13ed313|serialized:252b2505dcf8e6c4f414ffb6|4|4|none|
@@ -78282,7 +78462,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:ab84d33186cca914daf2b16fa1f89833|serialized:a56145270ce6b3bebd1dd012|7238|7238|none|
 |research|serialized-property|asset:ab84d33186cca914daf2b16fa1f89833|serialized:bbcac3543cfa47da13df9707|9826|9826|none|
 |research|serialized-property|asset:ab84d33186cca914daf2b16fa1f89833|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:ab84d33186cca914daf2b16fa1f89833|serialized:f77039ccfe48ce3dc0881777|1200|1200|none|
+|research|serialized-property|asset:ab84d33186cca914daf2b16fa1f89833|serialized:f77039ccfe48ce3dc0881777|546|546|none|
 |research|serialized-property|asset:abd0c6bdb3d5a3344a1b52065512ac59|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:abd0c6bdb3d5a3344a1b52065512ac59|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:abd0c6bdb3d5a3344a1b52065512ac59|serialized:175b666232a125f492f4af26|35|35|none|
@@ -78584,7 +78764,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:aeb6e98556bff3b41b55faf3f0a53ce9|serialized:ab0cfbf551498cc7d7da6b46|8895|8895|none|
 |research|serialized-property|asset:aeb6e98556bff3b41b55faf3f0a53ce9|serialized:bbcac3543cfa47da13df9707|8896|8896|none|
 |research|serialized-property|asset:aeb6e98556bff3b41b55faf3f0a53ce9|serialized:c0d2856b74d0df05b9d4456b|5|5|none|
-|research|serialized-property|asset:aeb6e98556bff3b41b55faf3f0a53ce9|serialized:f77039ccfe48ce3dc0881777|1380|1380|none|
+|research|serialized-property|asset:aeb6e98556bff3b41b55faf3f0a53ce9|serialized:f77039ccfe48ce3dc0881777|628|628|none|
 |research|serialized-property|asset:af8d1083ef39a484ca821aab98ccb71b|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:af8d1083ef39a484ca821aab98ccb71b|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:af8d1083ef39a484ca821aab98ccb71b|serialized:175b666232a125f492f4af26|35|35|none|
@@ -78626,7 +78806,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:b0216d256e85f4f4da770d05c38f5419|serialized:ab0cfbf551498cc7d7da6b46|8873|8873|none|
 |research|serialized-property|asset:b0216d256e85f4f4da770d05c38f5419|serialized:bbcac3543cfa47da13df9707|8875|8875|none|
 |research|serialized-property|asset:b0216d256e85f4f4da770d05c38f5419|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:b0216d256e85f4f4da770d05c38f5419|serialized:f77039ccfe48ce3dc0881777|1140|1140|none|
+|research|serialized-property|asset:b0216d256e85f4f4da770d05c38f5419|serialized:f77039ccfe48ce3dc0881777|519|519|none|
 |research|serialized-property|asset:b07a708600f13974ba7983b1777aec9a|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:b07a708600f13974ba7983b1777aec9a|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:b07a708600f13974ba7983b1777aec9a|serialized:0beb5fa3040d624b6cfacab9|25|25|none|
@@ -78839,7 +79019,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:b2f0323893ce05646a3073bc1da33d95|serialized:a56145270ce6b3bebd1dd012|7203|7203|none|
 |research|serialized-property|asset:b2f0323893ce05646a3073bc1da33d95|serialized:bbcac3543cfa47da13df9707|1800|1800|none|
 |research|serialized-property|asset:b2f0323893ce05646a3073bc1da33d95|serialized:c0d2856b74d0df05b9d4456b|2|2|none|
-|research|serialized-property|asset:b2f0323893ce05646a3073bc1da33d95|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:b2f0323893ce05646a3073bc1da33d95|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:b2f87cac202dc13488f16fddff521202|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:b2f87cac202dc13488f16fddff521202|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:b2f87cac202dc13488f16fddff521202|serialized:175b666232a125f492f4af26|35|35|none|
@@ -78879,7 +79059,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:b31c590b9a05bdc4a940faa140dfc5e0|serialized:a56145270ce6b3bebd1dd012|7096|7096|none|
 |research|serialized-property|asset:b31c590b9a05bdc4a940faa140dfc5e0|serialized:bbcac3543cfa47da13df9707|8818|8818|none|
 |research|serialized-property|asset:b31c590b9a05bdc4a940faa140dfc5e0|serialized:c0d2856b74d0df05b9d4456b|9|9|none|
-|research|serialized-property|asset:b31c590b9a05bdc4a940faa140dfc5e0|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:b31c590b9a05bdc4a940faa140dfc5e0|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:b3b38e91925a91943b4303ee3edc9533|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:b3b38e91925a91943b4303ee3edc9533|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
 |research|serialized-property|asset:b3b38e91925a91943b4303ee3edc9533|serialized:742a013befa3d8b0419cf7f0|1|1|none|
@@ -78890,7 +79070,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:b3b38e91925a91943b4303ee3edc9533|serialized:a56145270ce6b3bebd1dd012|7011|7011|none|
 |research|serialized-property|asset:b3b38e91925a91943b4303ee3edc9533|serialized:bbcac3543cfa47da13df9707|8806|8806|none|
 |research|serialized-property|asset:b3b38e91925a91943b4303ee3edc9533|serialized:c0d2856b74d0df05b9d4456b|1|1|none|
-|research|serialized-property|asset:b3b38e91925a91943b4303ee3edc9533|serialized:f77039ccfe48ce3dc0881777|36|36|none|
+|research|serialized-property|asset:b3b38e91925a91943b4303ee3edc9533|serialized:f77039ccfe48ce3dc0881777|17|17|none|
 |research|serialized-property|asset:b42ab48faf0daef4c8150ceed6c0754c|serialized:374e191a70aeed0ee29f5405|false|false|none|
 |research|serialized-property|asset:b42ab48faf0daef4c8150ceed6c0754c|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:b42ab48faf0daef4c8150ceed6c0754c|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -78941,7 +79121,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:b462c179c4b26c541834f2f126d3123f|serialized:ab0cfbf551498cc7d7da6b46|1605|1605|none|
 |research|serialized-property|asset:b462c179c4b26c541834f2f126d3123f|serialized:bbcac3543cfa47da13df9707|1603|1603|none|
 |research|serialized-property|asset:b462c179c4b26c541834f2f126d3123f|serialized:c0d2856b74d0df05b9d4456b|12|12|none|
-|research|serialized-property|asset:b462c179c4b26c541834f2f126d3123f|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:b462c179c4b26c541834f2f126d3123f|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:b4feb82c78234814685145fa0697d910|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
 |research|serialized-property|asset:b4feb82c78234814685145fa0697d910|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:b4feb82c78234814685145fa0697d910|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -78959,7 +79139,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:b4feb82c78234814685145fa0697d910|serialized:a56145270ce6b3bebd1dd012|7255|7255|none|
 |research|serialized-property|asset:b4feb82c78234814685145fa0697d910|serialized:bbcac3543cfa47da13df9707|8856|8856|none|
 |research|serialized-property|asset:b4feb82c78234814685145fa0697d910|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:b4feb82c78234814685145fa0697d910|serialized:f77039ccfe48ce3dc0881777|960|960|none|
+|research|serialized-property|asset:b4feb82c78234814685145fa0697d910|serialized:f77039ccfe48ce3dc0881777|437|437|none|
 |research|serialized-property|asset:b535cde2ae92e2f449564e48e16d838c|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:b535cde2ae92e2f449564e48e16d838c|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:b535cde2ae92e2f449564e48e16d838c|serialized:252b2505dcf8e6c4f414ffb6|1|1|none|
@@ -79024,7 +79204,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:b628440602c1fa74686c7cef46ade579|serialized:ab0cfbf551498cc7d7da6b46|8862|8862|none|
 |research|serialized-property|asset:b628440602c1fa74686c7cef46ade579|serialized:bbcac3543cfa47da13df9707|8884|8884|none|
 |research|serialized-property|asset:b628440602c1fa74686c7cef46ade579|serialized:c0d2856b74d0df05b9d4456b|5|5|none|
-|research|serialized-property|asset:b628440602c1fa74686c7cef46ade579|serialized:f77039ccfe48ce3dc0881777|1520|1520|none|
+|research|serialized-property|asset:b628440602c1fa74686c7cef46ade579|serialized:f77039ccfe48ce3dc0881777|691|691|none|
 |research|serialized-property|asset:b6be061dbd2841f44bd396016b8a4033|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:b6be061dbd2841f44bd396016b8a4033|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:b6be061dbd2841f44bd396016b8a4033|serialized:0beb5fa3040d624b6cfacab9|25|25|none|
@@ -79110,7 +79290,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:b7af7cdcd76c6a94d8c97d9480c6d123|serialized:a56145270ce6b3bebd1dd012|7254|7254|none|
 |research|serialized-property|asset:b7af7cdcd76c6a94d8c97d9480c6d123|serialized:bbcac3543cfa47da13df9707|8855|8855|none|
 |research|serialized-property|asset:b7af7cdcd76c6a94d8c97d9480c6d123|serialized:c0d2856b74d0df05b9d4456b|9|9|none|
-|research|serialized-property|asset:b7af7cdcd76c6a94d8c97d9480c6d123|serialized:f77039ccfe48ce3dc0881777|420|420|none|
+|research|serialized-property|asset:b7af7cdcd76c6a94d8c97d9480c6d123|serialized:f77039ccfe48ce3dc0881777|191|191|none|
 |research|serialized-property|asset:b878d263fd9463541b554e7c3e6b95be|serialized:374e191a70aeed0ee29f5405|true|true|none|
 |research|serialized-property|asset:b878d263fd9463541b554e7c3e6b95be|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:b878d263fd9463541b554e7c3e6b95be|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -79146,7 +79326,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:b9254d61fabad164aace68dc96014bf5|serialized:ab0cfbf551498cc7d7da6b46|1626|1626|none|
 |research|serialized-property|asset:b9254d61fabad164aace68dc96014bf5|serialized:bbcac3543cfa47da13df9707|1093|1093|none|
 |research|serialized-property|asset:b9254d61fabad164aace68dc96014bf5|serialized:c0d2856b74d0df05b9d4456b|10|10|none|
-|research|serialized-property|asset:b9254d61fabad164aace68dc96014bf5|serialized:f77039ccfe48ce3dc0881777|36|36|none|
+|research|serialized-property|asset:b9254d61fabad164aace68dc96014bf5|serialized:f77039ccfe48ce3dc0881777|17|17|none|
 |research|serialized-property|asset:b9337534841172143a6b88692dc9dbca|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
 |research|serialized-property|asset:b9337534841172143a6b88692dc9dbca|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:b9337534841172143a6b88692dc9dbca|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -79163,7 +79343,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:b9337534841172143a6b88692dc9dbca|serialized:a56145270ce6b3bebd1dd012|7130|7130|none|
 |research|serialized-property|asset:b9337534841172143a6b88692dc9dbca|serialized:bbcac3543cfa47da13df9707|1606|1606|none|
 |research|serialized-property|asset:b9337534841172143a6b88692dc9dbca|serialized:c0d2856b74d0df05b9d4456b|12|12|none|
-|research|serialized-property|asset:b9337534841172143a6b88692dc9dbca|serialized:f77039ccfe48ce3dc0881777|252|252|none|
+|research|serialized-property|asset:b9337534841172143a6b88692dc9dbca|serialized:f77039ccfe48ce3dc0881777|115|115|none|
 |research|serialized-property|asset:b93e6ce4e35ff9840bb6fc97e60a8999|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:b93e6ce4e35ff9840bb6fc97e60a8999|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:b93e6ce4e35ff9840bb6fc97e60a8999|serialized:0beb5fa3040d624b6cfacab9|25|25|none|
@@ -79478,7 +79658,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:bcbfd433c9ec42c4abf5a91bacd704b7|serialized:a56145270ce6b3bebd1dd012|7021|7021|none|
 |research|serialized-property|asset:bcbfd433c9ec42c4abf5a91bacd704b7|serialized:bbcac3543cfa47da13df9707|1045|1045|none|
 |research|serialized-property|asset:bcbfd433c9ec42c4abf5a91bacd704b7|serialized:c0d2856b74d0df05b9d4456b|2|2|none|
-|research|serialized-property|asset:bcbfd433c9ec42c4abf5a91bacd704b7|serialized:f77039ccfe48ce3dc0881777|36|36|none|
+|research|serialized-property|asset:bcbfd433c9ec42c4abf5a91bacd704b7|serialized:f77039ccfe48ce3dc0881777|17|17|none|
 |research|serialized-property|asset:bd88feccae77f7b4598f58dbc9a68db1|serialized:1419ce6e730f5ec4daaccb58|1|1|none|
 |research|serialized-property|asset:bd88feccae77f7b4598f58dbc9a68db1|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:bd88feccae77f7b4598f58dbc9a68db1|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -79497,7 +79677,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:bd88feccae77f7b4598f58dbc9a68db1|serialized:bbcac3543cfa47da13df9707|8851|8851|none|
 |research|serialized-property|asset:bd88feccae77f7b4598f58dbc9a68db1|serialized:bded241e15df2ecae3f29f80|1|1|none|
 |research|serialized-property|asset:bd88feccae77f7b4598f58dbc9a68db1|serialized:c0d2856b74d0df05b9d4456b|3|3|none|
-|research|serialized-property|asset:bd88feccae77f7b4598f58dbc9a68db1|serialized:f77039ccfe48ce3dc0881777|336|336|none|
+|research|serialized-property|asset:bd88feccae77f7b4598f58dbc9a68db1|serialized:f77039ccfe48ce3dc0881777|153|153|none|
 |research|serialized-property|asset:be777628743408540b4e8380e36752af|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:be777628743408540b4e8380e36752af|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:be777628743408540b4e8380e36752af|serialized:0beb5fa3040d624b6cfacab9|25|25|none|
@@ -79586,7 +79766,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:bea0ba010ab47b745ad5a17a505932e8|serialized:b90fc152d78e412229422b3e|9511|9511|none|
 |research|serialized-property|asset:bea0ba010ab47b745ad5a17a505932e8|serialized:bbcac3543cfa47da13df9707|9509|9509|none|
 |research|serialized-property|asset:bea0ba010ab47b745ad5a17a505932e8|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:bea0ba010ab47b745ad5a17a505932e8|serialized:f77039ccfe48ce3dc0881777|252|252|none|
+|research|serialized-property|asset:bea0ba010ab47b745ad5a17a505932e8|serialized:f77039ccfe48ce3dc0881777|115|115|none|
 |research|serialized-property|asset:beb95bdfa12cfd2409502cd2eaafa2d7|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
 |research|serialized-property|asset:beb95bdfa12cfd2409502cd2eaafa2d7|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:beb95bdfa12cfd2409502cd2eaafa2d7|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -79601,7 +79781,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:beb95bdfa12cfd2409502cd2eaafa2d7|serialized:ab0cfbf551498cc7d7da6b46|9961|9961|none|
 |research|serialized-property|asset:beb95bdfa12cfd2409502cd2eaafa2d7|serialized:b90fc152d78e412229422b3e|1040|1040|none|
 |research|serialized-property|asset:beb95bdfa12cfd2409502cd2eaafa2d7|serialized:c0d2856b74d0df05b9d4456b|2|2|none|
-|research|serialized-property|asset:beb95bdfa12cfd2409502cd2eaafa2d7|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:beb95bdfa12cfd2409502cd2eaafa2d7|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:bf0c8137e52bc5045b9b35eb1fa368d8|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:bf0c8137e52bc5045b9b35eb1fa368d8|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:bf0c8137e52bc5045b9b35eb1fa368d8|serialized:175b666232a125f492f4af26|35|35|none|
@@ -79641,7 +79821,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:bf20f6e0daefa5f45b490d5a4555869d|serialized:a56145270ce6b3bebd1dd012|7014|7014|none|
 |research|serialized-property|asset:bf20f6e0daefa5f45b490d5a4555869d|serialized:ab0cfbf551498cc7d7da6b46|8898|8898|none|
 |research|serialized-property|asset:bf20f6e0daefa5f45b490d5a4555869d|serialized:c0d2856b74d0df05b9d4456b|1|1|none|
-|research|serialized-property|asset:bf20f6e0daefa5f45b490d5a4555869d|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:bf20f6e0daefa5f45b490d5a4555869d|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:bf22cab76707e9d4f9bf25449d97d258|serialized:1419ce6e730f5ec4daaccb58|2|2|none|
 |research|serialized-property|asset:bf22cab76707e9d4f9bf25449d97d258|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:bf22cab76707e9d4f9bf25449d97d258|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -79659,7 +79839,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:bf22cab76707e9d4f9bf25449d97d258|serialized:a56145270ce6b3bebd1dd012|7258|7258|none|
 |research|serialized-property|asset:bf22cab76707e9d4f9bf25449d97d258|serialized:bbcac3543cfa47da13df9707|8859|8859|none|
 |research|serialized-property|asset:bf22cab76707e9d4f9bf25449d97d258|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:bf22cab76707e9d4f9bf25449d97d258|serialized:f77039ccfe48ce3dc0881777|560|560|none|
+|research|serialized-property|asset:bf22cab76707e9d4f9bf25449d97d258|serialized:f77039ccfe48ce3dc0881777|255|255|none|
 |research|serialized-property|asset:bfc41be8d7724724ab7ec1a8436f2818|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:bfc41be8d7724724ab7ec1a8436f2818|serialized:48579c8b6dfcfd51486e83eb|false|false|none|
 |research|serialized-property|asset:bfc41be8d7724724ab7ec1a8436f2818|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -79769,7 +79949,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:c0d83d9b22695e647ae6539ae8984847|serialized:b90fc152d78e412229422b3e|1706|1706|none|
 |research|serialized-property|asset:c0d83d9b22695e647ae6539ae8984847|serialized:bbcac3543cfa47da13df9707|1704|1704|none|
 |research|serialized-property|asset:c0d83d9b22695e647ae6539ae8984847|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:c0d83d9b22695e647ae6539ae8984847|serialized:f77039ccfe48ce3dc0881777|720|720|none|
+|research|serialized-property|asset:c0d83d9b22695e647ae6539ae8984847|serialized:f77039ccfe48ce3dc0881777|328|328|none|
 |research|serialized-property|asset:c16a4b97ed1b42c41bc2bfff43fde75b|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:c16a4b97ed1b42c41bc2bfff43fde75b|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:c16a4b97ed1b42c41bc2bfff43fde75b|serialized:1590378b0b1f8e41d2bf6032|0|0|none|
@@ -79877,7 +80057,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:c34ef262e09f44d4e84bf04c8ca5153f|serialized:b90fc152d78e412229422b3e|9314|9314|none|
 |research|serialized-property|asset:c34ef262e09f44d4e84bf04c8ca5153f|serialized:bbcac3543cfa47da13df9707|8821|8821|none|
 |research|serialized-property|asset:c34ef262e09f44d4e84bf04c8ca5153f|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:c34ef262e09f44d4e84bf04c8ca5153f|serialized:f77039ccfe48ce3dc0881777|720|720|none|
+|research|serialized-property|asset:c34ef262e09f44d4e84bf04c8ca5153f|serialized:f77039ccfe48ce3dc0881777|328|328|none|
 |research|serialized-property|asset:c3586831cca686b429081bfb55775944|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
 |research|serialized-property|asset:c3586831cca686b429081bfb55775944|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:c3586831cca686b429081bfb55775944|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -79894,7 +80074,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:c3586831cca686b429081bfb55775944|serialized:a56145270ce6b3bebd1dd012|7237|7237|none|
 |research|serialized-property|asset:c3586831cca686b429081bfb55775944|serialized:bbcac3543cfa47da13df9707|8844|8844|none|
 |research|serialized-property|asset:c3586831cca686b429081bfb55775944|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:c3586831cca686b429081bfb55775944|serialized:f77039ccfe48ce3dc0881777|720|720|none|
+|research|serialized-property|asset:c3586831cca686b429081bfb55775944|serialized:f77039ccfe48ce3dc0881777|328|328|none|
 |research|serialized-property|asset:c37d79a975ad6084ea9bed1397141236|serialized:1419ce6e730f5ec4daaccb58|1|1|none|
 |research|serialized-property|asset:c37d79a975ad6084ea9bed1397141236|serialized:261cc1ff808f0ba9f3a913b6|4|4|none|
 |research|serialized-property|asset:c37d79a975ad6084ea9bed1397141236|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -79916,7 +80096,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:c37d79a975ad6084ea9bed1397141236|serialized:bbcac3543cfa47da13df9707|8842|8842|none|
 |research|serialized-property|asset:c37d79a975ad6084ea9bed1397141236|serialized:bded241e15df2ecae3f29f80|1|1|none|
 |research|serialized-property|asset:c37d79a975ad6084ea9bed1397141236|serialized:c0d2856b74d0df05b9d4456b|3|3|none|
-|research|serialized-property|asset:c37d79a975ad6084ea9bed1397141236|serialized:f77039ccfe48ce3dc0881777|672|672|none|
+|research|serialized-property|asset:c37d79a975ad6084ea9bed1397141236|serialized:f77039ccfe48ce3dc0881777|306|306|none|
 |research|serialized-property|asset:c38e91a99c175764d83bdbef52ed6024|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
 |research|serialized-property|asset:c38e91a99c175764d83bdbef52ed6024|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:c38e91a99c175764d83bdbef52ed6024|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -79933,7 +80113,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:c38e91a99c175764d83bdbef52ed6024|serialized:a56145270ce6b3bebd1dd012|7206|7206|none|
 |research|serialized-property|asset:c38e91a99c175764d83bdbef52ed6024|serialized:bbcac3543cfa47da13df9707|8812|8812|none|
 |research|serialized-property|asset:c38e91a99c175764d83bdbef52ed6024|serialized:c0d2856b74d0df05b9d4456b|2|2|none|
-|research|serialized-property|asset:c38e91a99c175764d83bdbef52ed6024|serialized:f77039ccfe48ce3dc0881777|336|336|none|
+|research|serialized-property|asset:c38e91a99c175764d83bdbef52ed6024|serialized:f77039ccfe48ce3dc0881777|153|153|none|
 |research|serialized-property|asset:c3afa8a466828104da9d3306b090fbb3|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
 |research|serialized-property|asset:c3afa8a466828104da9d3306b090fbb3|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:c3afa8a466828104da9d3306b090fbb3|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -79950,7 +80130,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:c3afa8a466828104da9d3306b090fbb3|serialized:a56145270ce6b3bebd1dd012|7184|7184|none|
 |research|serialized-property|asset:c3afa8a466828104da9d3306b090fbb3|serialized:bbcac3543cfa47da13df9707|9824|9824|none|
 |research|serialized-property|asset:c3afa8a466828104da9d3306b090fbb3|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:c3afa8a466828104da9d3306b090fbb3|serialized:f77039ccfe48ce3dc0881777|720|720|none|
+|research|serialized-property|asset:c3afa8a466828104da9d3306b090fbb3|serialized:f77039ccfe48ce3dc0881777|328|328|none|
 |research|serialized-property|asset:c437b3f5d26ba2148b71dfd18697573c|serialized:374e191a70aeed0ee29f5405|true|true|none|
 |research|serialized-property|asset:c437b3f5d26ba2148b71dfd18697573c|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:c437b3f5d26ba2148b71dfd18697573c|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -80025,7 +80205,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:c52785d031f4ec84e99b815e21ffaf41|serialized:ab0cfbf551498cc7d7da6b46|9507|9507|none|
 |research|serialized-property|asset:c52785d031f4ec84e99b815e21ffaf41|serialized:bbcac3543cfa47da13df9707|9506|9506|none|
 |research|serialized-property|asset:c52785d031f4ec84e99b815e21ffaf41|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:c52785d031f4ec84e99b815e21ffaf41|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:c52785d031f4ec84e99b815e21ffaf41|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:c54a6bb9ec6bc914280b29c9e40f64a6|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:c54a6bb9ec6bc914280b29c9e40f64a6|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:c54a6bb9ec6bc914280b29c9e40f64a6|serialized:175b666232a125f492f4af26|35|35|none|
@@ -80245,7 +80425,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:c842252eac7214149b538f1308162eac|serialized:b90fc152d78e412229422b3e|1024|1024|none|
 |research|serialized-property|asset:c842252eac7214149b538f1308162eac|serialized:bbcac3543cfa47da13df9707|1021|1021|none|
 |research|serialized-property|asset:c842252eac7214149b538f1308162eac|serialized:c0d2856b74d0df05b9d4456b|0|0|none|
-|research|serialized-property|asset:c842252eac7214149b538f1308162eac|serialized:f77039ccfe48ce3dc0881777|60|60|none|
+|research|serialized-property|asset:c842252eac7214149b538f1308162eac|serialized:f77039ccfe48ce3dc0881777|28|28|none|
 |research|serialized-property|asset:c85a7f923c24ce24782b543240f0c82a|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
 |research|serialized-property|asset:c85a7f923c24ce24782b543240f0c82a|serialized:261cc1ff808f0ba9f3a913b6|1|1|none|
 |research|serialized-property|asset:c85a7f923c24ce24782b543240f0c82a|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -80259,7 +80439,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:c85a7f923c24ce24782b543240f0c82a|serialized:8a50af1a7a56bbd9484c18a7|0|0|none|
 |research|serialized-property|asset:c85a7f923c24ce24782b543240f0c82a|serialized:a56145270ce6b3bebd1dd012|7123|7123|none|
 |research|serialized-property|asset:c85a7f923c24ce24782b543240f0c82a|serialized:c0d2856b74d0df05b9d4456b|12|12|none|
-|research|serialized-property|asset:c85a7f923c24ce24782b543240f0c82a|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:c85a7f923c24ce24782b543240f0c82a|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:c8f55415dcbedaa478c0115e259996a4|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:c8f55415dcbedaa478c0115e259996a4|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:c8f55415dcbedaa478c0115e259996a4|serialized:1590378b0b1f8e41d2bf6032|0|0|none|
@@ -80375,7 +80555,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:c9c568a7e5b1f1a41b9662a14070c655|serialized:a56145270ce6b3bebd1dd012|7094|7094|none|
 |research|serialized-property|asset:c9c568a7e5b1f1a41b9662a14070c655|serialized:bbcac3543cfa47da13df9707|8820|8820|none|
 |research|serialized-property|asset:c9c568a7e5b1f1a41b9662a14070c655|serialized:c0d2856b74d0df05b9d4456b|9|9|none|
-|research|serialized-property|asset:c9c568a7e5b1f1a41b9662a14070c655|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:c9c568a7e5b1f1a41b9662a14070c655|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:c9ce776f1cbfd3f498ad8051018bc4f3|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:c9ce776f1cbfd3f498ad8051018bc4f3|serialized:48579c8b6dfcfd51486e83eb|false|false|none|
 |research|serialized-property|asset:c9ce776f1cbfd3f498ad8051018bc4f3|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -80501,7 +80681,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:cba480f7439733e4c84f154fc71b1085|serialized:a56145270ce6b3bebd1dd012|7267|7267|none|
 |research|serialized-property|asset:cba480f7439733e4c84f154fc71b1085|serialized:bbcac3543cfa47da13df9707|8868|8868|none|
 |research|serialized-property|asset:cba480f7439733e4c84f154fc71b1085|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:cba480f7439733e4c84f154fc71b1085|serialized:f77039ccfe48ce3dc0881777|7200|7200|none|
+|research|serialized-property|asset:cba480f7439733e4c84f154fc71b1085|serialized:f77039ccfe48ce3dc0881777|3273|3273|none|
 |research|serialized-property|asset:cba4954662d7845428dffe977bf50103|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
 |research|serialized-property|asset:cba4954662d7845428dffe977bf50103|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:cba4954662d7845428dffe977bf50103|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -80520,7 +80700,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:cba4954662d7845428dffe977bf50103|serialized:b90fc152d78e412229422b3e|9851|9851|none|
 |research|serialized-property|asset:cba4954662d7845428dffe977bf50103|serialized:bbcac3543cfa47da13df9707|9852|9852|none|
 |research|serialized-property|asset:cba4954662d7845428dffe977bf50103|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:cba4954662d7845428dffe977bf50103|serialized:f77039ccfe48ce3dc0881777|2640|2640|none|
+|research|serialized-property|asset:cba4954662d7845428dffe977bf50103|serialized:f77039ccfe48ce3dc0881777|1200|1200|none|
 |research|serialized-property|asset:cbc0fc208f9883a4fae8540aae8bfe96|serialized:1419ce6e730f5ec4daaccb58|3|3|none|
 |research|serialized-property|asset:cbc0fc208f9883a4fae8540aae8bfe96|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:cbc0fc208f9883a4fae8540aae8bfe96|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -80536,7 +80716,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:cbc0fc208f9883a4fae8540aae8bfe96|serialized:a56145270ce6b3bebd1dd012|7239|7239|none|
 |research|serialized-property|asset:cbc0fc208f9883a4fae8540aae8bfe96|serialized:bbcac3543cfa47da13df9707|8845|8845|none|
 |research|serialized-property|asset:cbc0fc208f9883a4fae8540aae8bfe96|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:cbc0fc208f9883a4fae8540aae8bfe96|serialized:f77039ccfe48ce3dc0881777|960|960|none|
+|research|serialized-property|asset:cbc0fc208f9883a4fae8540aae8bfe96|serialized:f77039ccfe48ce3dc0881777|437|437|none|
 |research|serialized-property|asset:ccc6179a9b527904793ba283a152b035|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:ccc6179a9b527904793ba283a152b035|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:ccc6179a9b527904793ba283a152b035|serialized:252b2505dcf8e6c4f414ffb6|2|2|none|
@@ -80712,7 +80892,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:ced79e3bcdd00964f8eef3f30ff1946d|serialized:b90fc152d78e412229422b3e|9819|9819|none|
 |research|serialized-property|asset:ced79e3bcdd00964f8eef3f30ff1946d|serialized:bbcac3543cfa47da13df9707|9802|9802|none|
 |research|serialized-property|asset:ced79e3bcdd00964f8eef3f30ff1946d|serialized:c0d2856b74d0df05b9d4456b|16|16|none|
-|research|serialized-property|asset:ced79e3bcdd00964f8eef3f30ff1946d|serialized:f77039ccfe48ce3dc0881777|284|284|none|
+|research|serialized-property|asset:ced79e3bcdd00964f8eef3f30ff1946d|serialized:f77039ccfe48ce3dc0881777|130|130|none|
 |research|serialized-property|asset:cf0919cd4abe1be45ada4b7dce2482c5|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:cf0919cd4abe1be45ada4b7dce2482c5|serialized:2070f16269037d94694a47f7|2|2|none|
 |research|serialized-property|asset:cf0919cd4abe1be45ada4b7dce2482c5|serialized:252b2505dcf8e6c4f414ffb6|1|1|none|
@@ -80896,7 +81076,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:d08ec2d8f354ecd42b52680558349254|serialized:bbcac3543cfa47da13df9707|8872|8872|none|
 |research|serialized-property|asset:d08ec2d8f354ecd42b52680558349254|serialized:bded241e15df2ecae3f29f80|1|1|none|
 |research|serialized-property|asset:d08ec2d8f354ecd42b52680558349254|serialized:c0d2856b74d0df05b9d4456b|3|3|none|
-|research|serialized-property|asset:d08ec2d8f354ecd42b52680558349254|serialized:f77039ccfe48ce3dc0881777|12000|12000|none|
+|research|serialized-property|asset:d08ec2d8f354ecd42b52680558349254|serialized:f77039ccfe48ce3dc0881777|5455|5455|none|
 |research|serialized-property|asset:d13e688ca2952e34687c43d3ac68537e|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:d13e688ca2952e34687c43d3ac68537e|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:d13e688ca2952e34687c43d3ac68537e|serialized:1590378b0b1f8e41d2bf6032|0|0|none|
@@ -81092,7 +81272,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:d4a6af96d6d3a894ea7d05a008cfa007|serialized:b90fc152d78e412229422b3e|9840|9840|none|
 |research|serialized-property|asset:d4a6af96d6d3a894ea7d05a008cfa007|serialized:bbcac3543cfa47da13df9707|9843|9843|none|
 |research|serialized-property|asset:d4a6af96d6d3a894ea7d05a008cfa007|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:d4a6af96d6d3a894ea7d05a008cfa007|serialized:f77039ccfe48ce3dc0881777|1280|1280|none|
+|research|serialized-property|asset:d4a6af96d6d3a894ea7d05a008cfa007|serialized:f77039ccfe48ce3dc0881777|582|582|none|
 |research|serialized-property|asset:d4af20d26e7c328419045a330ff73330|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:d4af20d26e7c328419045a330ff73330|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:d4af20d26e7c328419045a330ff73330|serialized:175b666232a125f492f4af26|35|35|none|
@@ -81234,7 +81414,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:d65c623dd675e484fabfdebee5928c69|serialized:a4ff1c3e96fbc1b4d228d8e8|6|6|none|
 |research|serialized-property|asset:d65c623dd675e484fabfdebee5928c69|serialized:a56145270ce6b3bebd1dd012|7216|7216|none|
 |research|serialized-property|asset:d65c623dd675e484fabfdebee5928c69|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:d65c623dd675e484fabfdebee5928c69|serialized:f77039ccfe48ce3dc0881777|252|252|none|
+|research|serialized-property|asset:d65c623dd675e484fabfdebee5928c69|serialized:f77039ccfe48ce3dc0881777|115|115|none|
 |research|serialized-property|asset:d680101673a7cc1429318c2cc6e4ebd0|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:d680101673a7cc1429318c2cc6e4ebd0|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:d680101673a7cc1429318c2cc6e4ebd0|serialized:175b666232a125f492f4af26|35|35|none|
@@ -81377,7 +81557,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:d75bc5c0a1a2a2e4aa3f082b164eadfa|serialized:a56145270ce6b3bebd1dd012|7001|7001|none|
 |research|serialized-property|asset:d75bc5c0a1a2a2e4aa3f082b164eadfa|serialized:bbcac3543cfa47da13df9707|1097|1097|none|
 |research|serialized-property|asset:d75bc5c0a1a2a2e4aa3f082b164eadfa|serialized:c0d2856b74d0df05b9d4456b|0|0|none|
-|research|serialized-property|asset:d75bc5c0a1a2a2e4aa3f082b164eadfa|serialized:f77039ccfe48ce3dc0881777|36|36|none|
+|research|serialized-property|asset:d75bc5c0a1a2a2e4aa3f082b164eadfa|serialized:f77039ccfe48ce3dc0881777|17|17|none|
 |research|serialized-property|asset:d7600d92baff8d94d95c73c967471b72|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:d7600d92baff8d94d95c73c967471b72|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
 |research|serialized-property|asset:d7600d92baff8d94d95c73c967471b72|serialized:742a013befa3d8b0419cf7f0|1|1|none|
@@ -81389,7 +81569,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:d7600d92baff8d94d95c73c967471b72|serialized:a56145270ce6b3bebd1dd012|7063|7063|none|
 |research|serialized-property|asset:d7600d92baff8d94d95c73c967471b72|serialized:bbcac3543cfa47da13df9707|1085|1085|none|
 |research|serialized-property|asset:d7600d92baff8d94d95c73c967471b72|serialized:c0d2856b74d0df05b9d4456b|6|6|none|
-|research|serialized-property|asset:d7600d92baff8d94d95c73c967471b72|serialized:f77039ccfe48ce3dc0881777|60|60|none|
+|research|serialized-property|asset:d7600d92baff8d94d95c73c967471b72|serialized:f77039ccfe48ce3dc0881777|28|28|none|
 |research|serialized-property|asset:d77be2184f807bf45ab82029a1e382e6|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:d77be2184f807bf45ab82029a1e382e6|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:d77be2184f807bf45ab82029a1e382e6|serialized:175b666232a125f492f4af26|35|35|none|
@@ -81501,7 +81681,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:d7a47cc53ceae284c8fb5e4d509b5be3|serialized:ab0cfbf551498cc7d7da6b46|8876|8876|none|
 |research|serialized-property|asset:d7a47cc53ceae284c8fb5e4d509b5be3|serialized:bbcac3543cfa47da13df9707|8877|8877|none|
 |research|serialized-property|asset:d7a47cc53ceae284c8fb5e4d509b5be3|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:d7a47cc53ceae284c8fb5e4d509b5be3|serialized:f77039ccfe48ce3dc0881777|2160|2160|none|
+|research|serialized-property|asset:d7a47cc53ceae284c8fb5e4d509b5be3|serialized:f77039ccfe48ce3dc0881777|982|982|none|
 |research|serialized-property|asset:d7c5690f37e096840969e3b49e9b9b4c|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:d7c5690f37e096840969e3b49e9b9b4c|serialized:2070f16269037d94694a47f7|2|2|none|
 |research|serialized-property|asset:d7c5690f37e096840969e3b49e9b9b4c|serialized:252b2505dcf8e6c4f414ffb6|1|1|none|
@@ -81656,7 +81836,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:d9d88a07a17ae884480e0716857f1184|serialized:a56145270ce6b3bebd1dd012|7279|7279|none|
 |research|serialized-property|asset:d9d88a07a17ae884480e0716857f1184|serialized:bbcac3543cfa47da13df9707|8880|8880|none|
 |research|serialized-property|asset:d9d88a07a17ae884480e0716857f1184|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:d9d88a07a17ae884480e0716857f1184|serialized:f77039ccfe48ce3dc0881777|1800|1800|none|
+|research|serialized-property|asset:d9d88a07a17ae884480e0716857f1184|serialized:f77039ccfe48ce3dc0881777|819|819|none|
 |research|serialized-property|asset:da30f1bd9ea0ea04982d20162ddaa4fe|serialized:1336f5e1d04a8af9a7cfd014|9|9|none|
 |research|serialized-property|asset:da30f1bd9ea0ea04982d20162ddaa4fe|serialized:16bf8acc306452164ba5ae24|0.15000000596046448|0.15000000596046448|none|
 |research|serialized-property|asset:da30f1bd9ea0ea04982d20162ddaa4fe|serialized:25c6937c9a976859645a65e8|0.10000000149011612|0.10000000149011612|none|
@@ -81743,7 +81923,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:db52b6c4042583d41a582bd0c7d9d6a3|serialized:a56145270ce6b3bebd1dd012|7141|7141|none|
 |research|serialized-property|asset:db52b6c4042583d41a582bd0c7d9d6a3|serialized:bbcac3543cfa47da13df9707|9502|9502|none|
 |research|serialized-property|asset:db52b6c4042583d41a582bd0c7d9d6a3|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:db52b6c4042583d41a582bd0c7d9d6a3|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:db52b6c4042583d41a582bd0c7d9d6a3|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:db7187a473568f945814d68374526000|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:db7187a473568f945814d68374526000|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:db7187a473568f945814d68374526000|serialized:0beb5fa3040d624b6cfacab9|25|25|none|
@@ -81947,7 +82127,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:dd2109148e59a2244a05b77b4681c17b|serialized:ab0cfbf551498cc7d7da6b46|1711|1711|none|
 |research|serialized-property|asset:dd2109148e59a2244a05b77b4681c17b|serialized:bbcac3543cfa47da13df9707|1702|1702|none|
 |research|serialized-property|asset:dd2109148e59a2244a05b77b4681c17b|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:dd2109148e59a2244a05b77b4681c17b|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:dd2109148e59a2244a05b77b4681c17b|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:dd30cea984c79e646896c9bb0838c130|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:dd30cea984c79e646896c9bb0838c130|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:dd30cea984c79e646896c9bb0838c130|serialized:1590378b0b1f8e41d2bf6032|0|0|none|
@@ -82081,7 +82261,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:de7e3fd13a5a05348a3597a9fd2ba2d7|serialized:ab0cfbf551498cc7d7da6b46|8860|8860|none|
 |research|serialized-property|asset:de7e3fd13a5a05348a3597a9fd2ba2d7|serialized:bbcac3543cfa47da13df9707|8861|8861|none|
 |research|serialized-property|asset:de7e3fd13a5a05348a3597a9fd2ba2d7|serialized:c0d2856b74d0df05b9d4456b|5|5|none|
-|research|serialized-property|asset:de7e3fd13a5a05348a3597a9fd2ba2d7|serialized:f77039ccfe48ce3dc0881777|896|896|none|
+|research|serialized-property|asset:de7e3fd13a5a05348a3597a9fd2ba2d7|serialized:f77039ccfe48ce3dc0881777|408|408|none|
 |research|serialized-property|asset:df3e27b9d13cb4340b5f90a836d87d12|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:df3e27b9d13cb4340b5f90a836d87d12|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:df3e27b9d13cb4340b5f90a836d87d12|serialized:252b2505dcf8e6c4f414ffb6|1|1|none|
@@ -82338,7 +82518,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:e352d43e288d89f45b1bc8be3bf62967|serialized:a56145270ce6b3bebd1dd012|7033|7033|none|
 |research|serialized-property|asset:e352d43e288d89f45b1bc8be3bf62967|serialized:bbcac3543cfa47da13df9707|1056|1056|none|
 |research|serialized-property|asset:e352d43e288d89f45b1bc8be3bf62967|serialized:c0d2856b74d0df05b9d4456b|3|3|none|
-|research|serialized-property|asset:e352d43e288d89f45b1bc8be3bf62967|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:e352d43e288d89f45b1bc8be3bf62967|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:e483b33cb8ad49840b70380b88e2efc1|serialized:1419ce6e730f5ec4daaccb58|2|2|none|
 |research|serialized-property|asset:e483b33cb8ad49840b70380b88e2efc1|serialized:261cc1ff808f0ba9f3a913b6|2|2|none|
 |research|serialized-property|asset:e483b33cb8ad49840b70380b88e2efc1|serialized:3f321d12e1f604f063fd3163|0|0|none|
@@ -82355,7 +82535,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:e483b33cb8ad49840b70380b88e2efc1|serialized:a56145270ce6b3bebd1dd012|7268|7268|none|
 |research|serialized-property|asset:e483b33cb8ad49840b70380b88e2efc1|serialized:bbcac3543cfa47da13df9707|8869|8869|none|
 |research|serialized-property|asset:e483b33cb8ad49840b70380b88e2efc1|serialized:c0d2856b74d0df05b9d4456b|14|14|none|
-|research|serialized-property|asset:e483b33cb8ad49840b70380b88e2efc1|serialized:f77039ccfe48ce3dc0881777|4800|4800|none|
+|research|serialized-property|asset:e483b33cb8ad49840b70380b88e2efc1|serialized:f77039ccfe48ce3dc0881777|2182|2182|none|
 |research|serialized-property|asset:e4b48099b41f6c448ad465398e8f5b34|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:e4b48099b41f6c448ad465398e8f5b34|serialized:45727ec8710e99c579cef911|8|8|none|
 |research|serialized-property|asset:e4b48099b41f6c448ad465398e8f5b34|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
@@ -82642,7 +82822,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:e8304218a91814b44bbdc6fb4d4705b2|serialized:b90fc152d78e412229422b3e|9818|9818|none|
 |research|serialized-property|asset:e8304218a91814b44bbdc6fb4d4705b2|serialized:bbcac3543cfa47da13df9707|9823|9823|none|
 |research|serialized-property|asset:e8304218a91814b44bbdc6fb4d4705b2|serialized:c0d2856b74d0df05b9d4456b|16|16|none|
-|research|serialized-property|asset:e8304218a91814b44bbdc6fb4d4705b2|serialized:f77039ccfe48ce3dc0881777|500|500|none|
+|research|serialized-property|asset:e8304218a91814b44bbdc6fb4d4705b2|serialized:f77039ccfe48ce3dc0881777|228|228|none|
 |research|serialized-property|asset:e92f05211159900479e2b86c0661eeda|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:e92f05211159900479e2b86c0661eeda|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:e92f05211159900479e2b86c0661eeda|serialized:252b2505dcf8e6c4f414ffb6|1|1|none|
@@ -82680,7 +82860,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:e955f0b01ce59194e85a72b3de7d1c30|serialized:a56145270ce6b3bebd1dd012|7023|7023|none|
 |research|serialized-property|asset:e955f0b01ce59194e85a72b3de7d1c30|serialized:bbcac3543cfa47da13df9707|1041|1041|none|
 |research|serialized-property|asset:e955f0b01ce59194e85a72b3de7d1c30|serialized:c0d2856b74d0df05b9d4456b|2|2|none|
-|research|serialized-property|asset:e955f0b01ce59194e85a72b3de7d1c30|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:e955f0b01ce59194e85a72b3de7d1c30|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:e9a804831aba0564d8de9e231d236086|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:e9a804831aba0564d8de9e231d236086|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:e9a804831aba0564d8de9e231d236086|serialized:175b666232a125f492f4af26|35|35|none|
@@ -82859,7 +83039,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:ec657baa6adfda94d991f5df80a7780e|serialized:a56145270ce6b3bebd1dd012|7228|7228|none|
 |research|serialized-property|asset:ec657baa6adfda94d991f5df80a7780e|serialized:bbcac3543cfa47da13df9707|8838|8838|none|
 |research|serialized-property|asset:ec657baa6adfda94d991f5df80a7780e|serialized:c0d2856b74d0df05b9d4456b|10|10|none|
-|research|serialized-property|asset:ec657baa6adfda94d991f5df80a7780e|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:ec657baa6adfda94d991f5df80a7780e|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:ec990c7869193eb449ea002702799011|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:ec990c7869193eb449ea002702799011|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:ec990c7869193eb449ea002702799011|serialized:175b666232a125f492f4af26|35|35|none|
@@ -82923,7 +83103,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:ede5bf7330f463c43a516178f7b01fc7|serialized:a56145270ce6b3bebd1dd012|7293|7293|none|
 |research|serialized-property|asset:ede5bf7330f463c43a516178f7b01fc7|serialized:bbcac3543cfa47da13df9707|8894|8894|none|
 |research|serialized-property|asset:ede5bf7330f463c43a516178f7b01fc7|serialized:c0d2856b74d0df05b9d4456b|5|5|none|
-|research|serialized-property|asset:ede5bf7330f463c43a516178f7b01fc7|serialized:f77039ccfe48ce3dc0881777|252|252|none|
+|research|serialized-property|asset:ede5bf7330f463c43a516178f7b01fc7|serialized:f77039ccfe48ce3dc0881777|115|115|none|
 |research|serialized-property|asset:ee8a2a883e5dd9a4a96fb49e9627d999|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:ee8a2a883e5dd9a4a96fb49e9627d999|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:ee8a2a883e5dd9a4a96fb49e9627d999|serialized:175b666232a125f492f4af26|35|35|none|
@@ -83016,7 +83196,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:f115c236ee997ae4c849fb7b1fc8409b|serialized:ab0cfbf551498cc7d7da6b46|1709|1709|none|
 |research|serialized-property|asset:f115c236ee997ae4c849fb7b1fc8409b|serialized:bbcac3543cfa47da13df9707|1700|1700|none|
 |research|serialized-property|asset:f115c236ee997ae4c849fb7b1fc8409b|serialized:c0d2856b74d0df05b9d4456b|5|5|none|
-|research|serialized-property|asset:f115c236ee997ae4c849fb7b1fc8409b|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:f115c236ee997ae4c849fb7b1fc8409b|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:f1173f0c18c7a684ebd30fecce8262cd|serialized:3f321d12e1f604f063fd3163|0|0|none|
 |research|serialized-property|asset:f1173f0c18c7a684ebd30fecce8262cd|serialized:5f7dde9b4cc50c69635a1bd6|0|0|none|
 |research|serialized-property|asset:f1173f0c18c7a684ebd30fecce8262cd|serialized:742a013befa3d8b0419cf7f0|1|1|none|
@@ -83029,7 +83209,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:f1173f0c18c7a684ebd30fecce8262cd|serialized:ab0cfbf551498cc7d7da6b46|1600|1600|none|
 |research|serialized-property|asset:f1173f0c18c7a684ebd30fecce8262cd|serialized:bbcac3543cfa47da13df9707|1073|1073|none|
 |research|serialized-property|asset:f1173f0c18c7a684ebd30fecce8262cd|serialized:c0d2856b74d0df05b9d4456b|12|12|none|
-|research|serialized-property|asset:f1173f0c18c7a684ebd30fecce8262cd|serialized:f77039ccfe48ce3dc0881777|60|60|none|
+|research|serialized-property|asset:f1173f0c18c7a684ebd30fecce8262cd|serialized:f77039ccfe48ce3dc0881777|28|28|none|
 |research|serialized-property|asset:f11ad747075c2a54c9402c8a41c639d8|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:f11ad747075c2a54c9402c8a41c639d8|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:f11ad747075c2a54c9402c8a41c639d8|serialized:175b666232a125f492f4af26|35|35|none|
@@ -83200,7 +83380,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:f1db925fce4f93242ae9ff9d6ee5eae8|serialized:a56145270ce6b3bebd1dd012|7226|7226|none|
 |research|serialized-property|asset:f1db925fce4f93242ae9ff9d6ee5eae8|serialized:bbcac3543cfa47da13df9707|8836|8836|none|
 |research|serialized-property|asset:f1db925fce4f93242ae9ff9d6ee5eae8|serialized:c0d2856b74d0df05b9d4456b|1|1|none|
-|research|serialized-property|asset:f1db925fce4f93242ae9ff9d6ee5eae8|serialized:f77039ccfe48ce3dc0881777|132|132|none|
+|research|serialized-property|asset:f1db925fce4f93242ae9ff9d6ee5eae8|serialized:f77039ccfe48ce3dc0881777|60|60|none|
 |research|serialized-property|asset:f25a3d4e605ab5847a1ab1fc37243461|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:f25a3d4e605ab5847a1ab1fc37243461|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:f25a3d4e605ab5847a1ab1fc37243461|serialized:175b666232a125f492f4af26|35|35|none|
@@ -83362,7 +83542,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:f48e4ad521ac5b144b5f3f26be913789|serialized:a56145270ce6b3bebd1dd012|7076|7076|none|
 |research|serialized-property|asset:f48e4ad521ac5b144b5f3f26be913789|serialized:bbcac3543cfa47da13df9707|8813|8813|none|
 |research|serialized-property|asset:f48e4ad521ac5b144b5f3f26be913789|serialized:c0d2856b74d0df05b9d4456b|7|7|none|
-|research|serialized-property|asset:f48e4ad521ac5b144b5f3f26be913789|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:f48e4ad521ac5b144b5f3f26be913789|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:f5047ac270cba3c4a9c65cbe67dee344|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:f5047ac270cba3c4a9c65cbe67dee344|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:f5047ac270cba3c4a9c65cbe67dee344|serialized:175b666232a125f492f4af26|35|35|none|
@@ -83500,7 +83680,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:f76a55b99c0eca341bc889b330cb9756|serialized:bbcac3543cfa47da13df9707|9827|9827|none|
 |research|serialized-property|asset:f76a55b99c0eca341bc889b330cb9756|serialized:bded241e15df2ecae3f29f80|1|1|none|
 |research|serialized-property|asset:f76a55b99c0eca341bc889b330cb9756|serialized:c0d2856b74d0df05b9d4456b|3|3|none|
-|research|serialized-property|asset:f76a55b99c0eca341bc889b330cb9756|serialized:f77039ccfe48ce3dc0881777|1200|1200|none|
+|research|serialized-property|asset:f76a55b99c0eca341bc889b330cb9756|serialized:f77039ccfe48ce3dc0881777|546|546|none|
 |research|serialized-property|asset:f7a0d08b052e01742bcda7f4238ca39b|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:f7a0d08b052e01742bcda7f4238ca39b|serialized:2070f16269037d94694a47f7|0|0|none|
 |research|serialized-property|asset:f7a0d08b052e01742bcda7f4238ca39b|serialized:252b2505dcf8e6c4f414ffb6|1|1|none|
@@ -83566,7 +83746,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:f7c5117f9e4c6ec438b9e5463bda8dea|serialized:ab0cfbf551498cc7d7da6b46|8828|8828|none|
 |research|serialized-property|asset:f7c5117f9e4c6ec438b9e5463bda8dea|serialized:bbcac3543cfa47da13df9707|9825|9825|none|
 |research|serialized-property|asset:f7c5117f9e4c6ec438b9e5463bda8dea|serialized:c0d2856b74d0df05b9d4456b|15|15|none|
-|research|serialized-property|asset:f7c5117f9e4c6ec438b9e5463bda8dea|serialized:f77039ccfe48ce3dc0881777|1440|1440|none|
+|research|serialized-property|asset:f7c5117f9e4c6ec438b9e5463bda8dea|serialized:f77039ccfe48ce3dc0881777|655|655|none|
 |research|serialized-property|asset:f80ecda241f24ce42b197947886b41a4|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:f80ecda241f24ce42b197947886b41a4|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:f80ecda241f24ce42b197947886b41a4|serialized:175b666232a125f492f4af26|35|35|none|
@@ -83632,7 +83812,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:f8979a9659eeb294590440db919173b1|serialized:ab0cfbf551498cc7d7da6b46|1622|1622|none|
 |research|serialized-property|asset:f8979a9659eeb294590440db919173b1|serialized:bbcac3543cfa47da13df9707|1082|1082|none|
 |research|serialized-property|asset:f8979a9659eeb294590440db919173b1|serialized:c0d2856b74d0df05b9d4456b|10|10|none|
-|research|serialized-property|asset:f8979a9659eeb294590440db919173b1|serialized:f77039ccfe48ce3dc0881777|184|184|none|
+|research|serialized-property|asset:f8979a9659eeb294590440db919173b1|serialized:f77039ccfe48ce3dc0881777|84|84|none|
 |research|serialized-property|asset:f8a5cc6a6594b3741910ae9ea6249ee2|serialized:076b0d73dbe302131d6ebb21|0|0|none|
 |research|serialized-property|asset:f8a5cc6a6594b3741910ae9ea6249ee2|serialized:1515f9e567d625fcb1865751|3|3|none|
 |research|serialized-property|asset:f8a5cc6a6594b3741910ae9ea6249ee2|serialized:175b666232a125f492f4af26|35|35|none|
@@ -83705,7 +83885,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:fa1b0718630dd0244b3cfafb2e1cb805|serialized:a56145270ce6b3bebd1dd012|7131|7131|none|
 |research|serialized-property|asset:fa1b0718630dd0244b3cfafb2e1cb805|serialized:bbcac3543cfa47da13df9707|1033|1033|none|
 |research|serialized-property|asset:fa1b0718630dd0244b3cfafb2e1cb805|serialized:c0d2856b74d0df05b9d4456b|13|13|none|
-|research|serialized-property|asset:fa1b0718630dd0244b3cfafb2e1cb805|serialized:f77039ccfe48ce3dc0881777|36|36|none|
+|research|serialized-property|asset:fa1b0718630dd0244b3cfafb2e1cb805|serialized:f77039ccfe48ce3dc0881777|17|17|none|
 |research|serialized-property|asset:fa342b7c0a245fc40b2d3e844f593fa5|serialized:17591522636437670cb00a03|0|0|none|
 |research|serialized-property|asset:fa342b7c0a245fc40b2d3e844f593fa5|serialized:2070f16269037d94694a47f7|2|2|none|
 |research|serialized-property|asset:fa342b7c0a245fc40b2d3e844f593fa5|serialized:252b2505dcf8e6c4f414ffb6|6|6|none|
@@ -83881,7 +84061,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:fb61abf264b540742a4404eaf74dfbc9|serialized:a56145270ce6b3bebd1dd012|7071|7071|none|
 |research|serialized-property|asset:fb61abf264b540742a4404eaf74dfbc9|serialized:bbcac3543cfa47da13df9707|8815|8815|none|
 |research|serialized-property|asset:fb61abf264b540742a4404eaf74dfbc9|serialized:c0d2856b74d0df05b9d4456b|7|7|none|
-|research|serialized-property|asset:fb61abf264b540742a4404eaf74dfbc9|serialized:f77039ccfe48ce3dc0881777|36|36|none|
+|research|serialized-property|asset:fb61abf264b540742a4404eaf74dfbc9|serialized:f77039ccfe48ce3dc0881777|17|17|none|
 |research|serialized-property|asset:fbb96f47d1f58ed4eb22a5be7fa390cf|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:fbb96f47d1f58ed4eb22a5be7fa390cf|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:fbb96f47d1f58ed4eb22a5be7fa390cf|serialized:1590378b0b1f8e41d2bf6032|0|0|none|
@@ -83975,7 +84155,7 @@ This file is generated deterministically from current Unity authority. The exhau
 |research|serialized-property|asset:fc08c2ecdc5e40b49a2513a1eb3385bf|serialized:a56145270ce6b3bebd1dd012|7133|7133|none|
 |research|serialized-property|asset:fc08c2ecdc5e40b49a2513a1eb3385bf|serialized:bbcac3543cfa47da13df9707|1086|1086|none|
 |research|serialized-property|asset:fc08c2ecdc5e40b49a2513a1eb3385bf|serialized:c0d2856b74d0df05b9d4456b|13|13|none|
-|research|serialized-property|asset:fc08c2ecdc5e40b49a2513a1eb3385bf|serialized:f77039ccfe48ce3dc0881777|92|92|none|
+|research|serialized-property|asset:fc08c2ecdc5e40b49a2513a1eb3385bf|serialized:f77039ccfe48ce3dc0881777|42|42|none|
 |research|serialized-property|asset:fc2c0d1530ab44142845bc36b1082f01|serialized:08b5f77de65ad9fa296b34c6|0.5|0.5|none|
 |research|serialized-property|asset:fc2c0d1530ab44142845bc36b1082f01|serialized:0993d5c1f3918336c1b06318|1|1|none|
 |research|serialized-property|asset:fc2c0d1530ab44142845bc36b1082f01|serialized:1590378b0b1f8e41d2bf6032|0|0|none|

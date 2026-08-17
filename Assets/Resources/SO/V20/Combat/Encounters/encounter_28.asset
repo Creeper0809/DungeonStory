@@ -29,7 +29,7 @@ MonoBehaviour:
   elite: 0
   boss: 0
   enemyHealthMultiplier: 3.2
-  enemyDamageMultiplier: 1.25
+  enemyDamageMultiplier: 1
   enemyAccuracyMultiplier: 1
   additionalEnemyCount: 0
   objectiveHealthMultiplier: 1

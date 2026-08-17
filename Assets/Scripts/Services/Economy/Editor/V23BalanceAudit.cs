@@ -104,7 +104,7 @@ public static class V23BalanceAudit
         List<string> failures = new();
         if (!Mathf.Approximately(
                 AuthoredFactionContractBalanceRules.WorkUnitsPerAdultDay,
-                SettlementLaborBalanceRules.BaselineWuPerAdultDay))
+                SettlementLaborAuthority.EffectiveOutputWuPerAdultDay))
         {
             failures.Add(
                 "Faction contract WU mirror does not match the measured settlement labor baseline.");

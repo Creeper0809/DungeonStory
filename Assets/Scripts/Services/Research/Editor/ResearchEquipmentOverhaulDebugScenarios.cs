@@ -25,7 +25,8 @@ public static class ResearchEquipmentOverhaulDebugScenarios
         FacilityRoot + "/RF44_정밀_장착대.asset";
     private const string WrongProgressionFacilityPath =
         "Assets/Resources/SO/Building/Modular/S08_대장작업대.asset";
-    private const float EffectiveWorkPerDay = 180f * 0.55f;
+    private const float EffectiveWorkPerDay =
+        SettlementLaborAuthority.EffectiveOutputWuPerAdultDay;
 
     private static readonly string[] MedievalQueue =
     {
@@ -279,8 +280,8 @@ public static class ResearchEquipmentOverhaulDebugScenarios
         ICollection<string> failures)
     {
         Require(projects.Count == 180, $"research count {projects.Count}, expected 180", failures);
-        Require(Mathf.Approximately(projects.Sum(project => project.RequiredWork), 138824f),
-            $"research total work {projects.Sum(project => project.RequiredWork):0.##}, expected 138824",
+        Require(Mathf.Approximately(projects.Sum(project => project.RequiredWork), 63173f),
+            $"research total work {projects.Sum(project => project.RequiredWork):0.##}, expected 63173",
             failures);
         Require(projects.Select(project => project.ProjectId.Value)
                 .Distinct(StringComparer.Ordinal).Count() == projects.Count,

@@ -30,6 +30,7 @@ public static class V27BalanceAssetApplication
         "authored-required-wu",
         "authored-sow-wu",
         "authored-harvest-wu",
+        "authored-research-required-wu",
         "construction-authored-wu:period-preserving"
     };
     private static readonly HashSet<string> CombatEncounterApprovalMetrics = new(
@@ -409,6 +410,19 @@ public static class V27BalanceAssetApplication
         {
             if (string.IsNullOrEmpty(entry.exactBeforeValue))
                 continue;
+            if (CombatEncounterApprovalMetrics.Contains(entry.metric)
+                && !string.Equals(
+                    entry.balanceBaselineRecordId,
+                    V27BalanceAudit.CombatOutcomeBaselineRecordId,
+                    StringComparison.Ordinal))
+            {
+                // A completed encounter calibration becomes the authored Before
+                // of the next explicit checkpoint revision. Carrying an older
+                // baseline's original Before forward would make a minimal
+                // follow-up appear to drift outside both its current and target
+                // values, and would retain approvals for already-applied scalars.
+                continue;
+            }
             string key = BuildHistoricalBeforeKey(entry.rootStableId, entry.metric);
             if (!result.TryAdd(key, entry.exactBeforeValue))
             {

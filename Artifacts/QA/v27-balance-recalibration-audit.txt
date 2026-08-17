@@ -1,8 +1,4 @@
-RESULT=PASS; rows=84143; critical=0; collapsed=11; approved=5; scc=313; minimumMarginMilliEwu=-23643097; integrityFailures=0
-
-APPROVED encounter:33 metric=enemy-accuracy-multiplier reason=v27-combat-1000-seed-outcome-calibration
-
-APPROVED encounter:33 metric=enemy-damage-multiplier reason=v27-combat-1000-seed-outcome-calibration
+RESULT=PASS; rows=84323; critical=0; collapsed=9; approved=3; scc=313; minimumMarginMilliEwu=-23643097; integrityFailures=0
 
 APPROVED recipe:resource:clean-water metric=authored-required-wu reason=v27-duration-preserving-first-candidate
 

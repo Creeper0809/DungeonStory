@@ -28,7 +28,7 @@ MonoBehaviour:
   maximumSiteStrength: 12
   elite: 1
   boss: 0
-  enemyHealthMultiplier: 1.8
+  enemyHealthMultiplier: 1.1
   enemyDamageMultiplier: 7
   enemyAccuracyMultiplier: 8
   additionalEnemyCount: 0

@@ -20,6 +20,7 @@ public static class V27BalanceLaborFacilityDebugScenarios
         "authored-harvest-wu",
         "construction-authored-wu:period-preserving"
     };
+    private const string ResearchMetric = "authored-research-required-wu";
 
     [MenuItem("DungeonStory/V27/Verify Labor and Facility Candidates")]
     public static void VerifyCandidatesFromMenu() => RunAndWrite(requireApplied: false);
@@ -49,6 +50,7 @@ public static class V27BalanceLaborFacilityDebugScenarios
             "construction-authored-wu:period-preserving",
             356,
             requireApplied);
+        RequireMetric(records, ResearchMetric, 180, requireApplied);
 
         CanonicalBalanceMetricRecord[] authored = records
             .Where(value => AuthoredMetrics.Contains(value.Metric, StringComparer.Ordinal))
@@ -65,6 +67,18 @@ public static class V27BalanceLaborFacilityDebugScenarios
                 $"BOM changed in labor-only patch: {record.StableId}:{record.Metric}.");
             Require(record.ApprovalKey.Length != 0,
                 $"Exact approval key is missing: {record.StableId}:{record.Metric}.");
+        }
+        foreach (CanonicalBalanceMetricRecord record in records
+                     .Where(value => value.Metric == ResearchMetric))
+        {
+            decimal before = Parse(record.Before);
+            decimal after = Parse(record.After);
+            decimal expected = decimal.Ceiling(before * 45m / 99m);
+            Require(after == expected,
+                $"Research duration-preserving WU mismatch: {record.StableId}; "
+                + $"before={record.Before}; after={record.After}; expected={expected}.");
+            Require(record.ApprovalKey.Length != 0,
+                $"Research exact approval key is missing: {record.StableId}.");
         }
 
         CanonicalBalanceMetricRecord[] facilities = records
@@ -117,6 +131,9 @@ public static class V27BalanceLaborFacilityDebugScenarios
         int appliedCount = records.Count(value =>
             AuthoredMetrics.Contains(value.Metric, StringComparer.Ordinal)
             && value.AssetApplied == "true");
+        int researchCount = records.Count(value => value.Metric == ResearchMetric);
+        int researchAppliedCount = records.Count(value =>
+            value.Metric == ResearchMetric && value.AssetApplied == "true");
 
         StringBuilder report = new StringBuilder();
         report.Append("RESULT=PASS; stage=")
@@ -139,6 +156,11 @@ public static class V27BalanceLaborFacilityDebugScenarios
             .Append(authoredCount).Append('\n');
         report.Append("PASS V27_LABOR_ASSET_APPLIED_EXACT applied=")
             .Append(appliedCount).Append("; total=").Append(authoredCount)
+            .Append('\n');
+        report.Append("PASS V27_RESEARCH_WU_EFFECTIVE_AUTHORITY_EXACT rows=")
+            .Append(researchCount).Append("; factor=45/99\n");
+        report.Append("PASS V27_RESEARCH_WU_ASSET_APPLIED_EXACT applied=")
+            .Append(researchAppliedCount).Append("; total=").Append(researchCount)
             .Append('\n');
         byte[] bytes = new UTF8Encoding(false, true).GetBytes(report.ToString());
         V27BalanceArtifactWriter.WriteIfDifferent(ReportPath, stream =>

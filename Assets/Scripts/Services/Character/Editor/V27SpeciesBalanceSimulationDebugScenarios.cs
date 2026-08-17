@@ -14,7 +14,8 @@ public static class V27SpeciesBalanceSimulationDebugScenarios
     private const int Samples = 100_000;
     private const int ConditionSamplesPerSpecies = 10_000;
     private const int SimulationDays = 30;
-    private const float NeutralDailyWork = 99f;
+    private const float NeutralDailyWork =
+        SettlementLaborAuthority.ActualWuPerAdultDay;
     private const string CatalogPath =
         "Assets/Resources/SO/Content/GameDomainContentCatalog.asset";
     private const string ReportPath =

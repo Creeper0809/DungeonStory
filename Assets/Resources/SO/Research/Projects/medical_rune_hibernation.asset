@@ -27,7 +27,8 @@ MonoBehaviour:
   description: "\uC0DD\uBB3C\uD559\uC801 \uC5F0\uB839 \uACC4\uCE21\uACFC \uACF5\uBA85,
     \uB8EC \uC804\uB825\xB7\uB0C9\uAC01\uC744 \uB3D9\uBA74 \uC720\uC9C0\uC5D0 \uD1B5\uD569\uD55C\uB2E4."
   field: 3
-  requiredWork: 4800
+  requiredWork: 2182
+  maximumResearchers: 1
   prerequisites:
   - {fileID: 11400000, guid: f7c5117f9e4c6ec438b9e5463bda8dea, type: 2}
   - {fileID: 11400000, guid: 4b3074860ed56d9429b554e903f0d8e7, type: 2}

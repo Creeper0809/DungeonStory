@@ -17,6 +17,7 @@ public static class ResearchProjectAssetBuilder
         public string Description;
         public ResearchField Field;
         public float Work;
+        public float FacilityThresholdWork;
         public ResearchBlueprintRule Rule;
         public int BlueprintId;
         public string[] Prerequisites;
@@ -739,6 +740,9 @@ public static class ResearchProjectAssetBuilder
     private static IReadOnlyList<ResearchFacilityRequirement>
         ResolveFacilityRequirements(Spec spec)
     {
+        float facilityWork = spec.FacilityThresholdWork > 0f
+            ? spec.FacilityThresholdWork
+            : spec.Work;
         List<ResearchFacilityRequirement> requirements =
             new List<ResearchFacilityRequirement>();
         void Add(ResearchFacilityCapabilityId capability, int count = 1) =>
@@ -749,7 +753,7 @@ public static class ResearchProjectAssetBuilder
             case ResearchField.SurgeryAndTransplant:
                 Add(ResearchFacilityCapabilityId.Basic);
                 Add(ResearchFacilityCapabilityId.Specimen);
-                if (spec.Work >= 200f)
+                if (facilityWork >= 200f)
                 {
                     Add(ResearchFacilityCapabilityId.Advanced);
                 }
@@ -757,11 +761,11 @@ public static class ResearchProjectAssetBuilder
             case ResearchField.Pharmacology:
                 Add(ResearchFacilityCapabilityId.Basic);
                 Add(ResearchFacilityCapabilityId.Reagent);
-                if (spec.Work >= 120f)
+                if (facilityWork >= 120f)
                 {
                     Add(ResearchFacilityCapabilityId.Arcane);
                 }
-                if (spec.Work >= 220f)
+                if (facilityWork >= 220f)
                 {
                     Add(ResearchFacilityCapabilityId.Advanced);
                 }
@@ -769,11 +773,11 @@ public static class ResearchProjectAssetBuilder
             case ResearchField.RecordsAndArcane:
                 Add(ResearchFacilityCapabilityId.Basic);
                 Add(ResearchFacilityCapabilityId.Archive);
-                if (spec.Work >= 55f)
+                if (facilityWork >= 55f)
                 {
                     Add(ResearchFacilityCapabilityId.Arcane);
                 }
-                if (spec.Work >= 180f)
+                if (facilityWork >= 180f)
                 {
                     Add(ResearchFacilityCapabilityId.Advanced);
                 }
@@ -781,7 +785,7 @@ public static class ResearchProjectAssetBuilder
             case ResearchField.IndustryAndAutomation:
                 Add(ResearchFacilityCapabilityId.Basic, 2);
                 Add(ResearchFacilityCapabilityId.Design);
-                if (spec.Work >= 190f)
+                if (facilityWork >= 190f)
                 {
                     Add(ResearchFacilityCapabilityId.Advanced);
                 }
@@ -790,9 +794,9 @@ public static class ResearchProjectAssetBuilder
             case ResearchField.DefenseAndTactics:
                 Add(
                     ResearchFacilityCapabilityId.Basic,
-                    spec.Work >= 130f ? 2 : 1);
+                    facilityWork >= 130f ? 2 : 1);
                 Add(ResearchFacilityCapabilityId.Design);
-                if (spec.Work >= 220f)
+                if (facilityWork >= 220f)
                 {
                     Add(ResearchFacilityCapabilityId.Advanced);
                 }
@@ -806,11 +810,11 @@ public static class ResearchProjectAssetBuilder
             case ResearchField.Textiles:
             case ResearchField.Cuisine:
                 Add(ResearchFacilityCapabilityId.Basic);
-                if (spec.Work >= 90f)
+                if (facilityWork >= 90f)
                 {
                     Add(ResearchFacilityCapabilityId.Design);
                 }
-                if (spec.Work >= 210f)
+                if (facilityWork >= 210f)
                 {
                     Add(ResearchFacilityCapabilityId.Advanced);
                 }
@@ -818,7 +822,7 @@ public static class ResearchProjectAssetBuilder
             case ResearchField.AuthorityAndHousing:
             case ResearchField.CaptivityAndEntertainment:
                 Add(ResearchFacilityCapabilityId.Basic);
-                if (spec.Work >= 90f)
+                if (facilityWork >= 90f)
                 {
                     Add(ResearchFacilityCapabilityId.Archive);
                 }
@@ -1022,7 +1026,21 @@ public static class ResearchProjectAssetBuilder
             .Concat(CreateExpansionSpecs())
             .Select(ApplyApprovedWorkBand)
             .ToArray();
-        return ConsolidateForV21(authored);
+        Spec[] consolidated = ConsolidateForV21(authored).ToArray();
+        foreach (Spec spec in consolidated)
+        {
+            spec.FacilityThresholdWork = spec.Work;
+            spec.Work = Mathf.Ceil(spec.Work
+                * SettlementLaborAuthority.EffectiveOutputWuPerAdultDay
+                / SettlementLaborAuthority.HistoricalTheoreticalCapacityWuPerAdultDay);
+        }
+        float totalWork = consolidated.Sum(spec => spec.Work);
+        if (!Mathf.Approximately(totalWork, 63173f))
+        {
+            throw new InvalidOperationException(
+                $"V27 research pacing contract mismatch: {totalWork:0.##} work; expected 63173.");
+        }
+        return consolidated;
     }
 
     private static IReadOnlyList<Spec> ConsolidateForV21(
@@ -1054,6 +1072,7 @@ public static class ResearchProjectAssetBuilder
                     pair.Value.Length),
                 Field = survivor.Field,
                 Work = pair.Value.Sum(spec => spec.Work),
+                FacilityThresholdWork = pair.Value.Sum(spec => spec.Work),
                 Rule = blueprintOwner.Rule,
                 BlueprintId = blueprintOwner.BlueprintId,
                 Prerequisites = pair.Value

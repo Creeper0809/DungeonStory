@@ -4,5 +4,5 @@ enemyDecisionAuthority=EnemyTacticalDecisionService
 encounter=encounter:20
 objective=SurviveRounds
 health=1; damage=1; accuracy=1; objectiveHealth=1; controlResistance=1; additionalEnemyCount=0; round=8
-win=1; targetWin=85 %-100 %; severe=0.0366; targetSevere=<=50 %; lowHealth=0.0024; failureCasualty=0
-medianRounds=9; meanHealth=0.894781232; score=0
+win=1; targetWin=85 %-100 %; severe=0.0374; targetSevere=<=50 %; lowHealth=0.0024; failureCasualty=0
+medianRounds=9; meanHealth=0.894024968; score=0

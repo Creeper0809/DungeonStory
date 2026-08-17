@@ -116,16 +116,16 @@ public static class CombatBalanceCheckpointAuthority
         Point(4, 240, 12, 28, 8, 20, 4, 12, 5, 12,
             "mana_ruins", "weapon:estoc", "weapon:arquebus",
             "armor:articulated-plate", "shield:iron",
-            CombatEquipmentQuality.Good),
+            CombatEquipmentQuality.Normal),
         Point(5, 400, 25, 60, 15, 40, 10, 25, 10, 24,
             "rival_dungeon", "weapon:powered-striking-gauntlet",
             "weapon:repeating-crossbow",
             "armor:powered-harness", "shield:powered",
-            CombatEquipmentQuality.Good),
+            CombatEquipmentQuality.Normal),
         Point(6, 960, 80, 220, 55, 160, 25, 70, 25, 70,
             "truth_core", "weapon:rune-blade", "weapon:rune-bow",
             "armor:rune-ward-mail", "shield:rune",
-            CombatEquipmentQuality.Excellent)
+            CombatEquipmentQuality.Good)
     };
 
     private static readonly CombatEncounterCalibration[] encounterCalibrations =
@@ -151,19 +151,19 @@ public static class CombatBalanceCheckpointAuthority
         Encounter(19, 1f, 1f, 1f, 1f, 1f, 0, 0),
         Encounter(20, 1f, 1f, 1f, 1f, 1f, 0, 8),
         Encounter(21, 2.53f, 2f, 1f, 1f, 1f, 0, 7),
-        Encounter(22, 1.55f, 0.8f, 1f, 1f, 1f, 0, 7),
+        Encounter(22, 1.45f, 0.8f, 1f, 1f, 1f, 0, 7),
         Encounter(23, 1f, 1f, 1f, 1f, 1f, 0, 7),
         Encounter(24, 1f, 1f, 1f, 1f, 1f, 0, 6),
         Encounter(25, 2.53f, 4f, 1f, 1f, 1f, 0, 0),
         Encounter(26, 1f, 1f, 1f, 1f, 1f, 0, 8),
         Encounter(27, 2f, 2f, 1f, 1f, 1f, 0, 7),
-        Encounter(28, 3.2f, 1.25f, 1f, 1f, 1f, 0, 8),
+        Encounter(28, 3.2f, 1f, 1f, 1f, 1f, 0, 8),
         Encounter(29, 1f, 1f, 1f, 1f, 1f, 0, 7),
         Encounter(30, 2.53f, 1f, 1f, 1f, 2f, 0, 7),
         Encounter(31, 1f, 1f, 1f, 1f, 1f, 0, 0),
         Encounter(32, 1f, 1f, 1f, 1f, 1f, 0, 8),
-        Encounter(33, 1.8f, 7f, 8f, 1f, 1f, 0, 8),
-        Encounter(34, 3.789f, 1f, 1f, 1f, 1f, 0, 7),
+        Encounter(33, 1.1f, 7f, 8f, 1f, 1f, 0, 8),
+        Encounter(34, 3.5f, 1f, 1f, 1f, 1f, 0, 7),
         Encounter(35, 1f, 1f, 1f, 1f, 1f, 0, 8),
         Encounter(36, 2.53f, 1f, 1f, 1f, 0.5f, 0, 6)
     };

@@ -27,9 +27,19 @@ public static class V27BalanceAudit
         "balance:v27:item-market-asymmetric-price-authority";
     public const string LaborFacilityBaselineRecordId =
         "balance:v27:global-labor-facility-period-preserving";
+    public const string ResearchScheduleBaselineRecordId =
+        "balance:v27:research-effective-output-period-preserving-v1";
+    public const string LaborAuthorityBaselineRecordId =
+        "balance:v27:actual-effective-labor-authority-downstream-v1";
+    public const string LaborMatrixBaselineRecordId =
+        "balance:v27:population-technology-survival-emergency-matrix-v1";
+    public const string EquipmentReadinessBaselineRecordId =
+        "balance:v27:equipment-readiness-quality-schedule-v1";
     public const string CombatOutcomeBaselineRecordId =
-        "balance:v27:combat-outcome-checkpoint-calibration-applied-v1";
-    private const string GeneratorVersion = "v27.6.0";
+        "balance:v27:combat-after-equipment-quality-minimal-recalibration-v1";
+    public const string DailyRoutineEvidenceBaselineRecordId =
+        "balance:v27:daily-routine-post-recalibration-wu-evidence-v1";
+    private const string GeneratorVersion = "v27.8.0";
     private const decimal LaborScale = 2.25m;
 
     [MenuItem("DungeonStory/V27/Generate Audit-Only Whole-Game Ledger")]
@@ -136,6 +146,11 @@ public static class V27BalanceAudit
         BalanceCaptureFactory capture = new BalanceCaptureFactory();
         List<BalanceAnomalyNode> anomalies = new List<BalanceAnomalyNode>();
         CaptureLaborTargets(capture, anomalies, sourceDigests);
+        CaptureResearchScheduleTargets(
+            source.GetAll<ResearchProjectSO>(),
+            capture,
+            sourceDigests,
+            historicalBeforeValues);
         CaptureSerializedAuthority(source, capture, sourceDigests);
         CaptureItemValues(
             items,
@@ -533,18 +548,25 @@ public static class V27BalanceAudit
         ICollection<BalanceAnomalyNode> anomalies,
         IDictionary<string, string> sourceDigests)
     {
-        const string sourcePath = "docs/game-design/whole-game-balance-baseline.md";
+        const string sourcePath =
+            "Assets/Scripts/Models/Work/SettlementLaborAuthority.cs";
         string sourceDigest = GetSourceDigest(sourcePath, sourceDigests);
-        decimal[] actual = { 50m, 54.5m, 62.5m, 74.5m, 85m, 100m };
-        decimal[] effective = { 45m, 49.05m, 56.25m, 67.05m, 76.5m, 90m };
-        for (int stage = 0; stage < actual.Length; stage++)
+        decimal[] historicalActual = { 20m, 20.8m, 22m, 23.4m, 24.6m, 25.83m };
+        decimal[] historicalEffective = { 20m, 21.84m, 25.08m, 29.884m, 33.948m, 40m };
+        IReadOnlyList<TechnologyWuCheckpoint> checkpoints =
+            SettlementLaborBalanceRules.TechnologyCheckpoints;
+        for (int stage = 0; stage < checkpoints.Count; stage++)
         {
             CaptureLaborMetric(
                 capture, anomalies, sourcePath, sourceDigest, stage,
-                "actual-wu-per-adult-day", 20m * ResolveLegacyStageMultiplier(stage), actual[stage]);
+                "actual-wu-per-adult-day",
+                historicalActual[stage],
+                Convert.ToDecimal(checkpoints[stage].ActualLaborWu, CultureInfo.InvariantCulture));
             CaptureLaborMetric(
                 capture, anomalies, sourcePath, sourceDigest, stage,
-                "effective-wu-per-adult-day", 20m * ResolveLegacyStageMultiplier(stage), effective[stage]);
+                "effective-wu-per-adult-day",
+                historicalEffective[stage],
+                Convert.ToDecimal(checkpoints[stage].OutputEquivalentWu, CultureInfo.InvariantCulture));
         }
     }
 
@@ -625,16 +647,131 @@ public static class V27BalanceAudit
         }
     }
 
-    private static decimal ResolveLegacyStageMultiplier(int stage) => stage switch
+    private static void CaptureResearchScheduleTargets(
+        IEnumerable<ResearchProjectSO> definitions,
+        BalanceCaptureFactory capture,
+        IDictionary<string, string> sourceDigests,
+        IReadOnlyDictionary<string, string> historicalBeforeValues)
     {
-        0 => 1m,
-        1 => 1.092m,
-        2 => 1.254m,
-        3 => 1.4942m,
-        4 => 1.6974m,
-        5 => 2m,
-        _ => throw new ArgumentOutOfRangeException(nameof(stage))
-    };
+        ResearchProjectSO[] projects = definitions
+            .Where(value => value != null)
+            .OrderBy(value => value.ProjectId.Value, StringComparer.Ordinal)
+            .ToArray();
+        Dictionary<string, int> downstream = projects
+            .SelectMany(project => project.PrerequisiteIds.Select(prerequisite =>
+                prerequisite.Value))
+            .GroupBy(value => value, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+        const string metric = "authored-research-required-wu";
+        const string reasonCode = "v27-research-duration-preserving-effective-authority";
+        foreach (ResearchProjectSO project in projects)
+        {
+            string stableId = project.ProjectId.Value;
+            string path = BalanceCanonicalText.ProjectRelativePath(
+                AssetDatabase.GetAssetPath(project));
+            decimal current = BalanceCanonicalText.DecimalFromFiniteFloat(
+                project.RequiredWork,
+                stableId + ":requiredWork");
+            decimal before = ResolveHistoricalAuthoredBefore(
+                stableId,
+                metric,
+                current,
+                historicalBeforeValues);
+            decimal after = decimal.Ceiling(
+                before
+                * Convert.ToDecimal(
+                    SettlementLaborAuthority.EffectiveOutputWuPerAdultDay,
+                    CultureInfo.InvariantCulture)
+                / Convert.ToDecimal(
+                    SettlementLaborAuthority.HistoricalTheoreticalCapacityWuPerAdultDay,
+                    CultureInfo.InvariantCulture));
+            if (current != before && current != after)
+            {
+                throw new InvalidOperationException(
+                    $"Research work drifted outside its V27 Before/After contract: "
+                    + $"{stableId}; current={Token(current)}, before={Token(before)}, "
+                    + $"after={Token(after)}.");
+            }
+
+            string[] dependencies = project.PrerequisiteIds
+                .Select(value => value.Value)
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray();
+            string dependencyFingerprint = HashText(
+                stableId + "|" + project.Field + "|" + project.MaximumResearchers + "|"
+                + project.BlueprintRule + "|" + project.BlueprintId + "|"
+                + string.Join("|", dependencies));
+            string sourceDigest = HashText(
+                GetApprovalSourceDigest(path, "requiredWork") + "|"
+                + GetSourceDigest(
+                    "Assets/Scripts/Services/Research/Editor/ResearchProjectAssetBuilder.cs",
+                    sourceDigests) + "|"
+                + GetSourceDigest(
+                    "Assets/Scripts/Models/Research/Core/ResearchProjectSO.cs",
+                    sourceDigests) + "|"
+                + GetSourceDigest(
+                    "Assets/Scripts/Models/Work/SettlementLaborAuthority.cs",
+                    sourceDigests));
+            string afterToken = Token(after);
+            int consumerCount = downstream.TryGetValue(stableId, out int count) ? count : 0;
+            capture.Capture(new BalanceMetricCaptureRequest
+            {
+                Domain = "research",
+                DefinitionKind = "research-project",
+                StableId = stableId,
+                Metric = metric,
+                Unit = "WU",
+                Before = Token(before),
+                After = afterToken,
+                AuthoredRoundedValue = afterToken,
+                PercentDelta = Token(PercentDelta(before, after)),
+                ExactFormula = "ceil(V26 requiredWork*45 effective WU/99 historical WU)",
+                BeforeBom = "N/A",
+                AfterBom = "N/A",
+                BeforeDirectWu = Token(before),
+                AfterDirectWu = afterToken,
+                BeforeBomEwu = "N/A",
+                AfterBomEwu = "N/A",
+                BeforeLaborDensity = "N/A",
+                AfterLaborDensity = "N/A",
+                UpstreamOnlyAfter = Token(before),
+                InheritedDelta = "0",
+                RawLocalDelta = Token(after - before),
+                LocalQuantizationBoundaryCount = 1,
+                DownstreamConsumerCount = consumerCount.ToString(CultureInfo.InvariantCulture),
+                DependencyIds = dependencies,
+                RootCauseIds = Array.Empty<string>(),
+                AnomalyDisposition = "review",
+                ReasonCode = reasonCode,
+                ReasonDetail = "The authored research tree used the historical 99 WU/day "
+                    + "pacing divisor. Re-authoring with ceil(Before*45/99) preserves the "
+                    + "existing calendar bands under the current effective-output authority.",
+                SourceAuthority = path,
+                SourcePropertyPath = "requiredWork",
+                ExecutionRoute = "ResearchProjectSO->ResearchWorkExecutionHandler->AIWork",
+                SaveAuthority = "ResearchProjectSO.requiredWork; active progress saves completedWork",
+                VerificationEvidence = "ResearchTreeDebugScenarios + ResearchEquipmentOverhaulDebugScenarios",
+                ReviewStatus = before == after ? "unchanged" : "pending",
+                ApprovalKey = before != after
+                    ? BuildApprovalKey(
+                        stableId,
+                        metric,
+                        afterToken,
+                        dependencyFingerprint,
+                        sourceDigest,
+                        reasonCode,
+                        ResearchScheduleBaselineRecordId)
+                    : string.Empty,
+                DependencyFingerprint = dependencyFingerprint,
+                LocalFingerprint = HashText(
+                    stableId + "|requiredWork|" + Token(before)),
+                SourceDigest = sourceDigest,
+                SemanticHash = HashText(stableId + "|" + metric + "|" + afterToken),
+                AssetApplied = current == after ? "true" : "false",
+                BalanceBaselineRecordId = ResearchScheduleBaselineRecordId
+            });
+        }
+    }
 
     private static void CaptureSerializedAuthority(
         V27EditorContentSource source,
@@ -3145,10 +3282,24 @@ public static class V27BalanceAudit
             V27BalanceMarketDebugScenarios.ReportPath);
         string laborFacilityEvidence = ProjectAbsolutePath(
             V27BalanceLaborFacilityDebugScenarios.ReportPath);
+        string laborMatrixEvidence = ProjectAbsolutePath(
+            V27LaborAuthorityMatrixDebugScenarios.ReportPath);
         string combatOutcomeEvidence = ProjectAbsolutePath(
             CombatOutcomeBalanceCalibrationScenario.FinalCheckpointAggregateReportPath);
         string wholeGameCoverageEvidence = ProjectAbsolutePath(
             V27BalanceWholeGameCoverageDebugScenarios.ReportPath);
+        string ledgerContractEvidence = ProjectAbsolutePath(
+            V27BalanceLedgerDebugScenarios.ReportPath);
+        string equipmentReadinessEvidence = ProjectAbsolutePath(
+            "Artifacts/QA/v26-equipment-readiness-throughput.md");
+        string dailyRoutine157181Evidence = ProjectAbsolutePath(
+            "Artifacts/QA/phase157-daily-routine-wu-seed-157181.txt");
+        string dailyRoutine157182Evidence = ProjectAbsolutePath(
+            "Artifacts/QA/phase157-daily-routine-wu-seed-157182.txt");
+        string dailyRoutine157183Evidence = ProjectAbsolutePath(
+            "Artifacts/QA/phase157-daily-routine-wu-seed-157183.txt");
+        string finalAcceptanceEvidence = ProjectAbsolutePath(
+            DungeonStoryFinalAcceptanceRunner.ReportRelativePath);
         WriteJsonProperty(writer, "economy256EvidenceHash",
             File.Exists(economyEvidence)
                 ? HashFile(economyEvidence)
@@ -3169,6 +3320,10 @@ public static class V27BalanceAudit
             File.Exists(laborFacilityEvidence)
                 ? HashFile(laborFacilityEvidence)
                 : HashText(string.Empty), true);
+        WriteJsonProperty(writer, "laborAuthorityMatrixEvidenceHash",
+            File.Exists(laborMatrixEvidence)
+                ? HashFile(laborMatrixEvidence)
+                : HashText(string.Empty), true);
         WriteJsonProperty(writer, "combatOutcome1000SeedEvidenceHash",
             File.Exists(combatOutcomeEvidence)
                 ? HashFile(combatOutcomeEvidence)
@@ -3176,6 +3331,30 @@ public static class V27BalanceAudit
         WriteJsonProperty(writer, "wholeGameCoverageEvidenceHash",
             File.Exists(wholeGameCoverageEvidence)
                 ? HashFile(wholeGameCoverageEvidence)
+                : HashText(string.Empty), true);
+        WriteJsonProperty(writer, "ledgerContractEvidenceHash",
+            File.Exists(ledgerContractEvidence)
+                ? HashFile(ledgerContractEvidence)
+                : HashText(string.Empty), true);
+        WriteJsonProperty(writer, "equipmentReadinessEvidenceHash",
+            File.Exists(equipmentReadinessEvidence)
+                ? HashFile(equipmentReadinessEvidence)
+                : HashText(string.Empty), true);
+        WriteJsonProperty(writer, "dailyRoutine157181EvidenceHash",
+            File.Exists(dailyRoutine157181Evidence)
+                ? HashFile(dailyRoutine157181Evidence)
+                : HashText(string.Empty), true);
+        WriteJsonProperty(writer, "dailyRoutine157182EvidenceHash",
+            File.Exists(dailyRoutine157182Evidence)
+                ? HashFile(dailyRoutine157182Evidence)
+                : HashText(string.Empty), true);
+        WriteJsonProperty(writer, "dailyRoutine157183EvidenceHash",
+            File.Exists(dailyRoutine157183Evidence)
+                ? HashFile(dailyRoutine157183Evidence)
+                : HashText(string.Empty), true);
+        WriteJsonProperty(writer, "finalAcceptanceEvidenceHash",
+            File.Exists(finalAcceptanceEvidence)
+                ? HashFile(finalAcceptanceEvidence)
                 : HashText(string.Empty), true);
         WriteJsonProperty(writer, "approvalDigest", approvalHash, true);
         WriteJsonProperty(writer, "assetPatchDigest", assetPatchDigest, true);
@@ -3207,7 +3386,17 @@ public static class V27BalanceAudit
         writer.Write(',');
         V27BalanceJsonSerializer.WriteJsonString(writer, LaborFacilityBaselineRecordId);
         writer.Write(',');
+        V27BalanceJsonSerializer.WriteJsonString(writer, ResearchScheduleBaselineRecordId);
+        writer.Write(',');
+        V27BalanceJsonSerializer.WriteJsonString(writer, LaborAuthorityBaselineRecordId);
+        writer.Write(',');
+        V27BalanceJsonSerializer.WriteJsonString(writer, LaborMatrixBaselineRecordId);
+        writer.Write(',');
+        V27BalanceJsonSerializer.WriteJsonString(writer, EquipmentReadinessBaselineRecordId);
+        writer.Write(',');
         V27BalanceJsonSerializer.WriteJsonString(writer, CombatOutcomeBaselineRecordId);
+        writer.Write(',');
+        V27BalanceJsonSerializer.WriteJsonString(writer, DailyRoutineEvidenceBaselineRecordId);
         writer.Write("]\n");
         writer.Write("}\n");
         writer.Flush();
@@ -3507,9 +3696,14 @@ public static class V27BalanceAudit
             "Assets/Scripts/Services/Economy/Editor/V27BalanceMarketDebugScenarios.cs",
             "Assets/Scripts/Services/Economy/Editor/V27BalanceLaborFacilityDebugScenarios.cs",
             "Assets/Scripts/Services/Economy/Editor/V27BalanceWholeGameCoverageDebugScenarios.cs",
+            "Assets/Scripts/Services/Character/Work/Editor/V27LaborAuthorityMatrixDebugScenarios.cs",
+            "Assets/Scripts/Services/Character/Work/Editor/DailyRoutineWuPlayModeVerifier.cs",
+            "Assets/Scripts/Services/Character/Work/SettlementLaborBalanceRules.cs",
+            "Assets/Scripts/Models/Work/SettlementLaborAuthority.cs",
             "Assets/Scripts/Services/Economy/Editor/BranchedProductionNetworkDebugScenarios.cs",
             "Assets/Scripts/Services/Offense/Editor/CombatOutcomeBalanceCalibrationScenario.cs",
             "Assets/Scripts/Services/Offense/Editor/CombatBalanceCheckpointAuthority.cs",
+            "Assets/Scripts/Services/Offense/Editor/SettlementEquipmentReadinessThroughputDebugScenarios.cs",
             "Assets/Scripts/Services/Offense/Editor/V20CombatContentAssetBuilder.cs",
             "Assets/Scripts/Services/Offense/EnemyEncounterFactory.cs",
             "Assets/Scripts/Services/Offense/EnemyTacticalDecisionService.cs",

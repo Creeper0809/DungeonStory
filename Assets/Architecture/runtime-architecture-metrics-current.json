@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
-  "sourceFingerprint": "24d6dde91a04902fee7d183a5f1beee231efe71cd842d159c5add989d1d27a02",
-  "runtimeSourceFileCount": 1570,
-  "runtimeTypeCount": 5227,
+  "sourceFingerprint": "4394270091106ec5174d65316cec1f410ed9a2f4dbe58ba4038e51e738117ae4",
+  "runtimeSourceFileCount": 1571,
+  "runtimeTypeCount": 5228,
   "mutableStaticCount": 3,
   "mutableStaticSetHash": "7f17c621cc207f5211d70ff09ddc7a7b361863b628a87d857d6cb4deddcf001e",
   "mutableStatics": ["Assets/Scripts/Services/Character/AI/NarrativeRequestContext.cs|NarrativeRequestContextBuilder.authoritativeNarratives", "Assets/Scripts/Services/Character/AI/NarrativeRequestContext.cs|NarrativeRequestContextBuilder.authoritativeLife", "Assets/Scripts/Services/Character/AI/NarrativeRequestContext.cs|NarrativeRequestContextBuilder.authoritativeCatalog"],
