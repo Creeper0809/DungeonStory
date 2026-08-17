@@ -41,7 +41,7 @@ public static class V27BalanceAudit
         "balance:v27:combat-after-equipment-quality-minimal-recalibration-v1";
     public const string DailyRoutineEvidenceBaselineRecordId =
         "balance:v27:daily-routine-post-recalibration-wu-evidence-v1";
-    private const string GeneratorVersion = "v27.10.0";
+    private const string GeneratorVersion = "v27.11.0";
     private const decimal LaborScale = 2.25m;
 
     [MenuItem("DungeonStory/V27/Generate Audit-Only Whole-Game Ledger")]
@@ -3418,7 +3418,9 @@ public static class V27BalanceAudit
             "tools/DungeonStory.BalanceAnalyzers/DungeonStoryBalanceAnalyzer.cs");
         string analyzerDll = ProjectAbsolutePath("Assets/Analyzers/DungeonStory.BalanceAnalyzers.dll");
         WriteJsonProperty(writer, "analyzerSourceHash",
-            File.Exists(analyzerSource) ? HashFile(analyzerSource) : HashText(string.Empty), true);
+            File.Exists(analyzerSource)
+                ? HashCanonicalSourceFile(analyzerSource)
+                : HashText(string.Empty), true);
         WriteJsonProperty(writer, "analyzerDllHash",
             File.Exists(analyzerDll) ? HashFile(analyzerDll) : HashText(string.Empty), true);
         WriteJsonNumber(writer, "criticalCount", manifest.CriticalCount, true);

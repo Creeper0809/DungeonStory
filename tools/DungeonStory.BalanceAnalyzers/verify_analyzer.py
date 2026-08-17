@@ -65,6 +65,12 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def canonical_source_sha256(path: Path) -> str:
+    raw = path.read_bytes()
+    canonical = raw.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return hashlib.sha256(canonical).hexdigest()
+
+
 def download_pinned(url: str, expected: str, destination: Path) -> None:
     if destination.is_file() and sha256(destination) == expected:
         return
@@ -231,7 +237,7 @@ def verify(dotnet: str, compiler: Path, runtime: Path) -> None:
 
     print(
         "RESULT=PASS; analyzerRules=DSB001-DSB008; "
-        f"sourceHash={sha256(SOURCE)}; binaryHash={sha256(COMMITTED)}; "
+        f"sourceHash={canonical_source_sha256(SOURCE)}; binaryHash={sha256(COMMITTED)}; "
         f"compilerPackage={COMPILER_SHA256}; runtimePackage={RUNTIME_SHA256}"
     )
 

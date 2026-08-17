@@ -256,11 +256,19 @@ def main() -> int:
         "dailyRoutine157183EvidenceHash": "Artifacts/QA/phase157-daily-routine-wu-seed-157183.txt",
         "finalAcceptanceEvidenceHash": "Artifacts/QA/final-acceptance-report.txt",
         "approvalDigest": "docs/game-design/v27-balance-critical-approvals.json",
-        "analyzerSourceHash": "tools/DungeonStory.BalanceAnalyzers/DungeonStoryBalanceAnalyzer.cs",
         "analyzerDllHash": "Assets/Analyzers/DungeonStory.BalanceAnalyzers.dll",
     }
     for key, path in hashes.items():
         require_hash(manifest, key, path)
+
+    analyzer_source = ROOT / "tools/DungeonStory.BalanceAnalyzers/DungeonStoryBalanceAnalyzer.cs"
+    expected_analyzer_source = str(manifest.get("analyzerSourceHash", "")).lower()
+    actual_analyzer_source = canonical_source_sha256(analyzer_source)
+    if not expected_analyzer_source or actual_analyzer_source != expected_analyzer_source:
+        fail(
+            "analyzerSourceHash mismatch for canonical analyzer source: "
+            f"expected={expected_analyzer_source} actual={actual_analyzer_source}"
+        )
 
     verify_source_inventory(manifest)
     baseline_ids = verify_csv(manifest)
