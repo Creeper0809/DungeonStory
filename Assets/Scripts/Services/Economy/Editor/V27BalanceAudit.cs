@@ -41,7 +41,7 @@ public static class V27BalanceAudit
         "balance:v27:combat-after-equipment-quality-minimal-recalibration-v1";
     public const string DailyRoutineEvidenceBaselineRecordId =
         "balance:v27:daily-routine-post-recalibration-wu-evidence-v1";
-    private const string GeneratorVersion = "v27.9.0";
+    private const string GeneratorVersion = "v27.10.0";
     private const decimal LaborScale = 2.25m;
 
     [MenuItem("DungeonStory/V27/Generate Audit-Only Whole-Game Ledger")]
@@ -3270,7 +3270,7 @@ public static class V27BalanceAudit
     {
         using StreamWriter writer = NewLfWriter(stream);
         writer.Write("{\n");
-        WriteJsonProperty(writer, "schemaVersion", "v27.source.v1", true);
+        WriteJsonProperty(writer, "schemaVersion", "v27.source.v2", true);
         writer.Write("  \"entries\": [\n");
         KeyValuePair<string, string>[] ordered = sourceDigests
             .OrderBy(value => value.Key, StringComparer.Ordinal)
@@ -3714,7 +3714,7 @@ public static class V27BalanceAudit
         string path = BalanceCanonicalText.ProjectRelativePath(projectRelativePath);
         if (!cache.TryGetValue(path, out string digest))
         {
-            digest = HashFile(ProjectAbsolutePath(path));
+            digest = HashCanonicalSourceFile(ProjectAbsolutePath(path));
             cache.Add(path, digest);
         }
         return digest;
@@ -3812,6 +3812,29 @@ public static class V27BalanceAudit
         using FileStream stream = File.OpenRead(absolutePath);
         using SHA256 sha = SHA256.Create();
         return Hex(sha.ComputeHash(stream));
+    }
+
+    private static string HashCanonicalSourceFile(string absolutePath)
+    {
+        byte[] bytes = File.ReadAllBytes(absolutePath);
+        using MemoryStream normalized = new MemoryStream(bytes.Length);
+        for (int index = 0; index < bytes.Length; index++)
+        {
+            byte value = bytes[index];
+            if (value != (byte)'\r')
+            {
+                normalized.WriteByte(value);
+                continue;
+            }
+
+            if (index + 1 < bytes.Length && bytes[index + 1] == (byte)'\n')
+                index++;
+            normalized.WriteByte((byte)'\n');
+        }
+
+        normalized.Position = 0L;
+        using SHA256 sha = SHA256.Create();
+        return Hex(sha.ComputeHash(normalized));
     }
 
     private static string HashDirectory(string absolutePath)

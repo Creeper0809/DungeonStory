@@ -36,6 +36,14 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def canonical_source_sha256(path: Path) -> str:
+    if not path.is_file():
+        fail(f"required source is missing: {path.relative_to(ROOT)}")
+    raw = path.read_bytes()
+    canonical = raw.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return hashlib.sha256(canonical).hexdigest()
+
+
 def require_hash(manifest: dict[str, object], key: str, relative: str) -> None:
     expected = str(manifest.get(key, "")).lower()
     actual = sha256(ROOT / relative)
@@ -54,7 +62,7 @@ def require_text(path: Path, markers: tuple[str, ...]) -> None:
 
 def verify_source_inventory(manifest: dict[str, object]) -> None:
     inventory = json.loads(SOURCE_INVENTORY_PATH.read_text(encoding="utf-8"))
-    if inventory.get("schemaVersion") != "v27.source.v1":
+    if inventory.get("schemaVersion") != "v27.source.v2":
         fail(f"unexpected source inventory schema: {inventory.get('schemaVersion')}")
     entries = inventory.get("entries")
     if not isinstance(entries, list) or not entries:
@@ -81,7 +89,7 @@ def verify_source_inventory(manifest: dict[str, object]) -> None:
         path = (ROOT / relative).resolve()
         if root not in path.parents or not path.is_file():
             fail(f"source inventory path is missing or outside the repository: {relative}")
-        actual = sha256(path)
+        actual = canonical_source_sha256(path)
         if actual != expected:
             fail(f"source digest mismatch for {relative}: expected={expected} actual={actual}")
         seen.add(relative)
