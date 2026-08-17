@@ -100,6 +100,7 @@ public static class SurvivalDebugScenarios
             CharacterAiEditorTestDependencies.Inject(actorObject);
             actor.EnsureRuntimeState();
             actor.Identity.SetPersistentId("character:meal-action-test");
+            actor.SetLifecycleState(CharacterLifecycleState.Active);
             world.RegisterCharacter(actor);
             world.RegisterCharacterLifetime(actor);
 
@@ -217,9 +218,22 @@ public static class SurvivalDebugScenarios
                 "meal committed before four seconds elapsed");
             clock.Advance(0.2f);
             runtime.Tick();
-            Require(!items.GetAllStacks().Any(stack => stack.StackId == firstStack.StackId)
-                && runtime.Capture().completedOperations.Count == 1,
-                "meal did not commit exactly once after four seconds");
+            DungeonCharacterConsumablesSaveData completedSave = runtime.Capture();
+            bool firstStackRemoved = !items.GetAllStacks().Any(
+                stack => stack.StackId == firstStack.StackId);
+            bool resultAvailable = runtime.TryGetMealOperationResult(
+                firstCommand.OperationId,
+                out CharacterConsumablesMealResult operationResult);
+            Require(firstStackRemoved
+                    && completedSave.completedOperations.Count == 1,
+                "meal did not commit exactly once after four seconds; "
+                + $"stackRemoved={firstStackRemoved}; "
+                + $"activePlans={completedSave.activeMealPlans.Count}; "
+                + $"completed={completedSave.completedOperations.Count}; "
+                + $"resultAvailable={resultAvailable}; "
+                + $"success={operationResult.Success}; "
+                + $"failure={operationResult.FailureCode}; "
+                + $"parameters=[{string.Join(",", operationResult.Parameters)}]");
 
             Require(items.SpawnItemAt(
                     FoodId,

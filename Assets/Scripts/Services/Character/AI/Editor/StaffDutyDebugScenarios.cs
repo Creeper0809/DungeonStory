@@ -53,7 +53,7 @@ public static class StaffDutyDebugScenarios
         RunScenario("Idle wander can use valid stairs", VerifyIdleWanderCanUseValidStairs, errors);
         RunScenario("Off-duty wait can wander", VerifyOffDutyWaitCanWander, errors);
         RunScenario("Occupied work wait uses dungeon wander", VerifyOccupiedWorkWaitUsesDungeonWander, errors);
-        RunScenario("Customer 타입 직원도 직원 AI 규칙 적용", VerifyCustomerTypedWorkerUsesStaffRules, errors);
+        RunScenario("NPC로 승격된 직원은 직원 AI 규칙 적용", VerifyPromotedNpcWorkerUsesStaffRules, errors);
         RunScenario("Expedition return wakes staff work decision", VerifyExpeditionReturnWakesWorkDecision, errors);
 
         if (errors.Count > 0)
@@ -935,13 +935,13 @@ public static class StaffDutyDebugScenarios
         }
     }
 
-    private static bool VerifyCustomerTypedWorkerUsesStaffRules()
+    private static bool VerifyPromotedNpcWorkerUsesStaffRules()
     {
         CharacterActor staff = CreateStaff(
-            "Customer Typed Staff",
+            "Promoted NPC Staff",
             withShopping: true,
             withWorkAction: true,
-            characterType: CharacterType.Customer);
+            characterType: CharacterType.NPC);
         AbilityWork work = staff.GetAbility<AbilityWork>();
         AIWait wait = ScriptableObject.CreateInstance<AIWait>();
         ConsiderationCanLookAround lookAround = ScriptableObject.CreateInstance<ConsiderationCanLookAround>();

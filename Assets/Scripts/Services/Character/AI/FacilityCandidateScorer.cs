@@ -1186,8 +1186,9 @@ public static class FacilityCandidateScorer
         }
 
         long finished = Stopwatch.GetTimestamp();
+        string buildingName = building == null ? "none" : building.name;
         actor.Brain.PerformanceRecorder.RecordSlowOperation(
-            $"facility:{stage}:{building?.name ?? "none"}",
+            $"facility:{stage}:{buildingName}",
             actor,
             null,
             null,

@@ -1459,7 +1459,7 @@ public static class RuntimeAuthorityV18Validator
         RequireSourceContract(
             errors,
             "Assets/Scripts/Services/Infrastructure/Save/WorldAndCharacterSaveSections.cs",
-            "DungeonStrictJsonSaveSection<\n        ModularFacilityWorldSaveData,\n        ModularFacilityWorldRestoreCandidate>",
+            "ModularFacilityWorldRestoreCandidate>,",
             "Facility section commits must write only to detached candidates.");
         RequireSourceContract(
             errors,
@@ -1499,7 +1499,7 @@ public static class RuntimeAuthorityV18Validator
         RequireSourceContract(
             errors,
             "Assets/Scripts/Services/Infrastructure/Save/WorldAndCharacterSaveSections.cs",
-            "DungeonStrictJsonSaveSection<\n        DungeonCharacterWorldSaveData,\n        CharacterWorldRestoreCandidate>",
+            "CharacterWorldRestoreCandidate>,",
             "Character section commits must stage detached actors without requiring a rollback image.");
         RequireSourceContract(
             errors,
@@ -1869,12 +1869,12 @@ public static class RuntimeAuthorityV18Validator
         RequireSourceContract(
             errors,
             "Assets/Scripts/Services/Survival/SurvivalSaveSections.cs",
-            "DungeonStrictJsonSaveSection<\n        DungeonSurvivalSaveData,\n        SurvivalFoodRestoreCandidate>",
+            "SurvivalFoodRestoreCandidate>,",
             "Survival resources persistence must use the common strict typed boundary.");
         RequireSourceContract(
             errors,
             "Assets/Scripts/Services/Survival/SurvivalSaveSections.cs",
-            "DungeonStrictJsonSaveSection<\n        DungeonDarkSurvivalSaveData,\n        DarkSurvivalRestoreCandidate>",
+            "DarkSurvivalRestoreCandidate>,",
             "Deprivation persistence must stage its complete character, filth, and water candidate.");
         RequireSourceContract(
             errors,
@@ -3121,8 +3121,18 @@ public static class RuntimeAuthorityV18Validator
         RequireSourceContract(
             errors,
             "Assets/Scripts/Services/FacilityShop/Editor/FacilityShopDebugScenarios.cs",
-            "IDungeonStagedSaveSection,\n        IDungeonRollbackFreeSaveSection",
+            "private sealed class FacilityShopFailureSection :",
             "Facility-shop late-failure proof must execute the all-marker discard path.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/FacilityShop/Editor/FacilityShopDebugScenarios.cs",
+            "IDungeonSaveSectionPreflight,",
+            "Facility-shop late-failure proof must run the preflight contract.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/FacilityShop/Editor/FacilityShopDebugScenarios.cs",
+            "IDungeonRollbackFreeSaveSection",
+            "Facility-shop late-failure proof must execute the rollback-free discard contract.");
 
         const string staffDiscontentSavePath =
             "Assets/Scripts/Services/Character/Work/StaffDiscontentSaveSection.cs";
@@ -6263,10 +6273,10 @@ public static class RuntimeAuthorityV18Validator
     {
         int physicalSaveVersion = Convert.ToInt32(
             DungeonPhysicalItemSaveData.CurrentVersion);
-        if (physicalSaveVersion != 7)
+        if (physicalSaveVersion != 8)
         {
             errors.Add(
-                $"Physical item save must be V7, found V{physicalSaveVersion}.");
+                $"Physical item save must be V8, found V{physicalSaveVersion}.");
         }
         if (typeof(DungeonCombatEquipmentSaveData).GetField("instances") != null
             || typeof(DungeonCombatEquipmentSaveData).GetField("moduleInstances") != null)
