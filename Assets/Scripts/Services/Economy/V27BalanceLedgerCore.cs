@@ -575,6 +575,110 @@ namespace DungeonStory.Balance
         public int Count => Records.Count;
     }
 
+    [BalanceImmutableRecord]
+    public sealed class BalanceAuthoritySnapshot
+    {
+        private BalanceAuthoritySnapshot(
+            FrozenBalanceLedger ledger,
+            string sourceDigest,
+            int sourceCount)
+        {
+            Ledger = ledger ?? throw new ArgumentNullException(nameof(ledger));
+            SourceDigest = sourceDigest ?? throw new ArgumentNullException(nameof(sourceDigest));
+            if (SourceDigest.Length != 64)
+                throw new ArgumentException("Source digest must be SHA-256 hex.", nameof(sourceDigest));
+            if (sourceCount <= 0)
+                throw new ArgumentOutOfRangeException(nameof(sourceCount));
+            SourceCount = sourceCount;
+        }
+
+        public FrozenBalanceLedger Ledger { get; }
+        public string SourceDigest { get; }
+        public int SourceCount { get; }
+
+        [BalanceCaptureFactory]
+        public static BalanceAuthoritySnapshot Capture(
+            FrozenBalanceLedger ledger,
+            string sourceDigest,
+            int sourceCount) => new BalanceAuthoritySnapshot(
+                ledger,
+                sourceDigest,
+                sourceCount);
+    }
+
+    [BalanceImmutableRecord]
+    public sealed class BalanceArtifactManifest
+    {
+        private BalanceArtifactManifest(
+            string schemaVersion,
+            string generatorVersion,
+            BalanceAuthoritySnapshot authority,
+            int criticalCount,
+            int collapsedCriticalCount,
+            int approvedCount,
+            int sccCount,
+            int integrityFailureCount,
+            IEnumerable<string> balanceBaselineRecordIds)
+        {
+            SchemaVersion = schemaVersion ?? throw new ArgumentNullException(nameof(schemaVersion));
+            GeneratorVersion = generatorVersion
+                ?? throw new ArgumentNullException(nameof(generatorVersion));
+            Authority = authority ?? throw new ArgumentNullException(nameof(authority));
+            if (criticalCount < 0 || collapsedCriticalCount < 0 || approvedCount < 0
+                || sccCount < 0 || integrityFailureCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(criticalCount),
+                    "Manifest counts cannot be negative.");
+            }
+            CriticalCount = criticalCount;
+            CollapsedCriticalCount = collapsedCriticalCount;
+            ApprovedCount = approvedCount;
+            SccCount = sccCount;
+            IntegrityFailureCount = integrityFailureCount;
+            string[] baselineIds = (balanceBaselineRecordIds
+                    ?? throw new ArgumentNullException(nameof(balanceBaselineRecordIds)))
+                .Select(value => value
+                    ?? throw new ArgumentException("Baseline record id cannot be null."))
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            if (baselineIds.Length == 0)
+                throw new ArgumentException("At least one baseline record id is required.");
+            BalanceBaselineRecordIds = Array.AsReadOnly(baselineIds);
+        }
+
+        public string SchemaVersion { get; }
+        public string GeneratorVersion { get; }
+        public BalanceAuthoritySnapshot Authority { get; }
+        public int CriticalCount { get; }
+        public int CollapsedCriticalCount { get; }
+        public int ApprovedCount { get; }
+        public int SccCount { get; }
+        public int IntegrityFailureCount { get; }
+        public IReadOnlyList<string> BalanceBaselineRecordIds { get; }
+
+        [BalanceCaptureFactory]
+        public static BalanceArtifactManifest Capture(
+            string schemaVersion,
+            string generatorVersion,
+            BalanceAuthoritySnapshot authority,
+            int criticalCount,
+            int collapsedCriticalCount,
+            int approvedCount,
+            int sccCount,
+            int integrityFailureCount,
+            IEnumerable<string> balanceBaselineRecordIds) => new BalanceArtifactManifest(
+                schemaVersion,
+                generatorVersion,
+                authority,
+                criticalCount,
+                collapsedCriticalCount,
+                approvedCount,
+                sccCount,
+                integrityFailureCount,
+                balanceBaselineRecordIds);
+    }
+
     [BalanceCaptureFactory]
     public static class BalanceLedgerReviewFactory
     {

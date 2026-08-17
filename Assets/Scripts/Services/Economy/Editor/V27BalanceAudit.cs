@@ -15,6 +15,8 @@ public static class V27BalanceAudit
     public const string MarkdownPath = "docs/generated/V27_Balance_Before_After.md";
     public const string AuditPath = "Artifacts/QA/v27-balance-recalibration-audit.txt";
     public const string ManifestPath = "Artifacts/QA/v27-balance-artifact-manifest.json";
+    public const string SourceInventoryPath =
+        "Artifacts/QA/v27-balance-source-inventory.json";
     public const string ApprovalPath = "docs/game-design/v27-balance-critical-approvals.json";
     public const string BaselineRecordId = "architecture:v27-whitebox-ledger-pipeline";
     public const string EvidenceBaselineRecordId =
@@ -39,7 +41,7 @@ public static class V27BalanceAudit
         "balance:v27:combat-after-equipment-quality-minimal-recalibration-v1";
     public const string DailyRoutineEvidenceBaselineRecordId =
         "balance:v27:daily-routine-post-recalibration-wu-evidence-v1";
-    private const string GeneratorVersion = "v27.8.0";
+    private const string GeneratorVersion = "v27.10.0";
     private const decimal LaborScale = 2.25m;
 
     [MenuItem("DungeonStory/V27/Generate Audit-Only Whole-Game Ledger")]
@@ -294,33 +296,48 @@ public static class V27BalanceAudit
             WriteAudit(stream, ledger, orderedAnomalies, scc, integrityFailures));
 
         string aggregateSourceDigest = HashCanonicalPairs(sourceDigests);
+        V27BalanceArtifactWriter.WriteIfDifferent(SourceInventoryPath, stream =>
+            WriteSourceInventory(stream, sourceDigests));
         string csvHash = V27BalanceArtifactWriter.ComputeSha256(
             V27BalanceCsvSerializer.ArtifactPath);
         string markdownHash = V27BalanceArtifactWriter.ComputeSha256(MarkdownPath);
         string auditHash = V27BalanceArtifactWriter.ComputeSha256(AuditPath);
         string anomalyHash = V27BalanceArtifactWriter.ComputeSha256(
             V27BalanceJsonSerializer.AnomalyArtifactPath);
+        string sourceInventoryHash = V27BalanceArtifactWriter.ComputeSha256(
+            SourceInventoryPath);
         string approvalHash = V27BalanceArtifactWriter.ComputeSha256(ApprovalPath);
+        BalanceAuthoritySnapshot authoritySnapshot = BalanceAuthoritySnapshot.Capture(
+            ledger,
+            aggregateSourceDigest,
+            sourceDigests.Count);
+        BalanceArtifactManifest artifactManifest = BalanceArtifactManifest.Capture(
+            "v27.1",
+            GeneratorVersion,
+            authoritySnapshot,
+            orderedAnomalies.Count(value => value.EmitsCiAnnotation),
+            orderedAnomalies.Count(value =>
+                value.Severity == BalanceAnomalySeverity.Critical
+                && !value.EmitsCiAnnotation),
+            approvedKeys.Length,
+            scc.Components.Count,
+            integrityFailures.Count,
+            CaptureBaselineRecordIds());
         V27BalanceArtifactWriter.WriteIfDifferent(ManifestPath, stream =>
             WriteManifest(
                 stream,
-                ledger,
-                aggregateSourceDigest,
+                artifactManifest,
                 csvHash,
                 markdownHash,
                 auditHash,
                 anomalyHash,
+                sourceInventoryHash,
                 approvalHash,
-                assetPatchDigest,
-                approvedKeys.Length,
-                orderedAnomalies,
-                scc,
-                integrityFailures));
+                assetPatchDigest));
         AssetDatabase.Refresh();
         return new V27BalanceAuditOutput(
-            ledger,
-            orderedAnomalies.Count(value => value.EmitsCiAnnotation),
-            scc.Components.Count,
+            authoritySnapshot,
+            artifactManifest,
             Array.AsReadOnly(integrityFailures.ToArray()));
     }
 
@@ -3247,27 +3264,66 @@ public static class V27BalanceAudit
         writer.Flush();
     }
 
+    private static void WriteSourceInventory(
+        Stream stream,
+        IReadOnlyDictionary<string, string> sourceDigests)
+    {
+        using StreamWriter writer = NewLfWriter(stream);
+        writer.Write("{\n");
+        WriteJsonProperty(writer, "schemaVersion", "v27.source.v2", true);
+        writer.Write("  \"entries\": [\n");
+        KeyValuePair<string, string>[] ordered = sourceDigests
+            .OrderBy(value => value.Key, StringComparer.Ordinal)
+            .ToArray();
+        for (int index = 0; index < ordered.Length; index++)
+        {
+            KeyValuePair<string, string> entry = ordered[index];
+            writer.Write("    {\"path\":");
+            V27BalanceJsonSerializer.WriteJsonString(writer, entry.Key);
+            writer.Write(",\"sha256\":");
+            V27BalanceJsonSerializer.WriteJsonString(writer, entry.Value);
+            writer.Write(index + 1 < ordered.Length ? "},\n" : "}\n");
+        }
+        writer.Write("  ]\n");
+        writer.Write("}\n");
+        writer.Flush();
+    }
+
+    private static string[] CaptureBaselineRecordIds() => new[]
+    {
+        BaselineRecordId,
+        EvidenceBaselineRecordId,
+        VerticalSliceBaselineRecordId,
+        SurvivalOutputBaselineRecordId,
+        MarketBaselineRecordId,
+        LaborFacilityBaselineRecordId,
+        ResearchScheduleBaselineRecordId,
+        LaborAuthorityBaselineRecordId,
+        LaborMatrixBaselineRecordId,
+        EquipmentReadinessBaselineRecordId,
+        CombatOutcomeBaselineRecordId,
+        DailyRoutineEvidenceBaselineRecordId
+    };
+
     private static void WriteManifest(
         Stream stream,
-        FrozenBalanceLedger ledger,
-        string sourceDigest,
+        BalanceArtifactManifest manifest,
         string csvHash,
         string markdownHash,
         string auditHash,
         string anomalyHash,
+        string sourceInventoryHash,
         string approvalHash,
-        string assetPatchDigest,
-        int approvedCount,
-        IReadOnlyList<BalanceAnomalyNode> anomalies,
-        BalanceSccAuditResult scc,
-        IReadOnlyList<string> failures)
+        string assetPatchDigest)
     {
         using StreamWriter writer = NewLfWriter(stream);
         writer.Write("{\n");
-        WriteJsonProperty(writer, "schemaVersion", "v27.1", true);
-        WriteJsonProperty(writer, "generatorVersion", GeneratorVersion, true);
-        WriteJsonProperty(writer, "sourceDigest", sourceDigest, true);
-        WriteJsonNumber(writer, "rowCount", ledger.Count, true);
+        WriteJsonProperty(writer, "schemaVersion", manifest.SchemaVersion, true);
+        WriteJsonProperty(writer, "generatorVersion", manifest.GeneratorVersion, true);
+        WriteJsonProperty(writer, "sourceDigest", manifest.Authority.SourceDigest, true);
+        WriteJsonProperty(writer, "sourceInventoryByteHash", sourceInventoryHash, true);
+        WriteJsonNumber(writer, "sourceCount", manifest.Authority.SourceCount, true);
+        WriteJsonNumber(writer, "rowCount", manifest.Authority.Ledger.Count, true);
         WriteJsonProperty(writer, "csvByteHash", csvHash, true);
         WriteJsonProperty(writer, "markdownByteHash", markdownHash, true);
         WriteJsonProperty(writer, "auditByteHash", auditHash, true);
@@ -3359,44 +3415,27 @@ public static class V27BalanceAudit
         WriteJsonProperty(writer, "approvalDigest", approvalHash, true);
         WriteJsonProperty(writer, "assetPatchDigest", assetPatchDigest, true);
         string analyzerSource = ProjectAbsolutePath(
-            "Tools/DungeonStory.BalanceAnalyzers/DungeonStoryBalanceAnalyzer.cs");
+            "tools/DungeonStory.BalanceAnalyzers/DungeonStoryBalanceAnalyzer.cs");
         string analyzerDll = ProjectAbsolutePath("Assets/Analyzers/DungeonStory.BalanceAnalyzers.dll");
         WriteJsonProperty(writer, "analyzerSourceHash",
             File.Exists(analyzerSource) ? HashFile(analyzerSource) : HashText(string.Empty), true);
         WriteJsonProperty(writer, "analyzerDllHash",
             File.Exists(analyzerDll) ? HashFile(analyzerDll) : HashText(string.Empty), true);
-        WriteJsonNumber(writer, "criticalCount",
-            anomalies.Count(value => value.EmitsCiAnnotation), true);
+        WriteJsonNumber(writer, "criticalCount", manifest.CriticalCount, true);
         WriteJsonNumber(writer, "collapsedCriticalCount",
-            anomalies.Count(value => value.Severity == BalanceAnomalySeverity.Critical
-                && !value.EmitsCiAnnotation), true);
-        WriteJsonNumber(writer, "approvedCount", approvedCount, true);
-        WriteJsonNumber(writer, "sccCount", scc.Components.Count, true);
-        WriteJsonNumber(writer, "integrityFailureCount", failures.Count, true);
+            manifest.CollapsedCriticalCount, true);
+        WriteJsonNumber(writer, "approvedCount", manifest.ApprovedCount, true);
+        WriteJsonNumber(writer, "sccCount", manifest.SccCount, true);
+        WriteJsonNumber(writer, "integrityFailureCount", manifest.IntegrityFailureCount, true);
         writer.Write("  \"balanceBaselineRecordIds\": [");
-        V27BalanceJsonSerializer.WriteJsonString(writer, BaselineRecordId);
-        writer.Write(',');
-        V27BalanceJsonSerializer.WriteJsonString(writer, EvidenceBaselineRecordId);
-        writer.Write(',');
-        V27BalanceJsonSerializer.WriteJsonString(writer, VerticalSliceBaselineRecordId);
-        writer.Write(',');
-        V27BalanceJsonSerializer.WriteJsonString(writer, SurvivalOutputBaselineRecordId);
-        writer.Write(',');
-        V27BalanceJsonSerializer.WriteJsonString(writer, MarketBaselineRecordId);
-        writer.Write(',');
-        V27BalanceJsonSerializer.WriteJsonString(writer, LaborFacilityBaselineRecordId);
-        writer.Write(',');
-        V27BalanceJsonSerializer.WriteJsonString(writer, ResearchScheduleBaselineRecordId);
-        writer.Write(',');
-        V27BalanceJsonSerializer.WriteJsonString(writer, LaborAuthorityBaselineRecordId);
-        writer.Write(',');
-        V27BalanceJsonSerializer.WriteJsonString(writer, LaborMatrixBaselineRecordId);
-        writer.Write(',');
-        V27BalanceJsonSerializer.WriteJsonString(writer, EquipmentReadinessBaselineRecordId);
-        writer.Write(',');
-        V27BalanceJsonSerializer.WriteJsonString(writer, CombatOutcomeBaselineRecordId);
-        writer.Write(',');
-        V27BalanceJsonSerializer.WriteJsonString(writer, DailyRoutineEvidenceBaselineRecordId);
+        for (int index = 0; index < manifest.BalanceBaselineRecordIds.Count; index++)
+        {
+            if (index != 0)
+                writer.Write(',');
+            V27BalanceJsonSerializer.WriteJsonString(
+                writer,
+                manifest.BalanceBaselineRecordIds[index]);
+        }
         writer.Write("]\n");
         writer.Write("}\n");
         writer.Flush();
@@ -3675,7 +3714,7 @@ public static class V27BalanceAudit
         string path = BalanceCanonicalText.ProjectRelativePath(projectRelativePath);
         if (!cache.TryGetValue(path, out string digest))
         {
-            digest = HashFile(ProjectAbsolutePath(path));
+            digest = HashCanonicalSourceFile(ProjectAbsolutePath(path));
             cache.Add(path, digest);
         }
         return digest;
@@ -3717,7 +3756,15 @@ public static class V27BalanceAudit
             "Assets/Scripts/Services/Buildings/SO/StockInfo.cs",
             "Assets/Scripts/Services/Survival/SurvivalFoodRuntime.cs",
             "Assets/Scripts/Services/Items/GameContentCatalog.cs",
-            "Tools/DungeonStory.BalanceAnalyzers/DungeonStoryBalanceAnalyzer.cs",
+            ".gitattributes",
+            ".github/workflows/v27-ledger-integrity.yml",
+            "tools/V27Balance/verify_committed_artifacts.py",
+            "tools/DungeonStory.BalanceAnalyzers/DungeonStoryBalanceAnalyzer.cs",
+            "tools/DungeonStory.BalanceAnalyzers/verify_analyzer.py",
+            "tools/DungeonStory.BalanceAnalyzers/build-analyzer.ps1",
+            "tools/DungeonStory.BalanceAnalyzers/test-analyzer.ps1",
+            "tools/DungeonStory.BalanceAnalyzers/Tests/Positive.cs",
+            "tools/DungeonStory.BalanceAnalyzers/Tests/Negative.cs",
             ApprovalPath,
             "docs/game-design/whole-game-balance-baseline.md"
         };
@@ -3765,6 +3812,29 @@ public static class V27BalanceAudit
         using FileStream stream = File.OpenRead(absolutePath);
         using SHA256 sha = SHA256.Create();
         return Hex(sha.ComputeHash(stream));
+    }
+
+    private static string HashCanonicalSourceFile(string absolutePath)
+    {
+        byte[] bytes = File.ReadAllBytes(absolutePath);
+        using MemoryStream normalized = new MemoryStream(bytes.Length);
+        for (int index = 0; index < bytes.Length; index++)
+        {
+            byte value = bytes[index];
+            if (value != (byte)'\r')
+            {
+                normalized.WriteByte(value);
+                continue;
+            }
+
+            if (index + 1 < bytes.Length && bytes[index + 1] == (byte)'\n')
+                index++;
+            normalized.WriteByte((byte)'\n');
+        }
+
+        normalized.Position = 0L;
+        using SHA256 sha = SHA256.Create();
+        return Hex(sha.ComputeHash(normalized));
     }
 
     private static string HashDirectory(string absolutePath)
@@ -4051,20 +4121,22 @@ public static class V27BalanceAudit
 public sealed class V27BalanceAuditOutput
 {
     public V27BalanceAuditOutput(
-        FrozenBalanceLedger ledger,
-        int criticalCount,
-        int sccCount,
+        BalanceAuthoritySnapshot authoritySnapshot,
+        BalanceArtifactManifest artifactManifest,
         IReadOnlyList<string> integrityFailures)
     {
-        Ledger = ledger;
-        CriticalCount = criticalCount;
-        SccCount = sccCount;
+        AuthoritySnapshot = authoritySnapshot
+            ?? throw new ArgumentNullException(nameof(authoritySnapshot));
+        ArtifactManifest = artifactManifest
+            ?? throw new ArgumentNullException(nameof(artifactManifest));
         IntegrityFailures = integrityFailures;
     }
 
-    public FrozenBalanceLedger Ledger { get; }
-    public int CriticalCount { get; }
-    public int SccCount { get; }
+    public BalanceAuthoritySnapshot AuthoritySnapshot { get; }
+    public BalanceArtifactManifest ArtifactManifest { get; }
+    public FrozenBalanceLedger Ledger => AuthoritySnapshot.Ledger;
+    public int CriticalCount => ArtifactManifest.CriticalCount;
+    public int SccCount => ArtifactManifest.SccCount;
     public IReadOnlyList<string> IntegrityFailures { get; }
 }
 #endif
