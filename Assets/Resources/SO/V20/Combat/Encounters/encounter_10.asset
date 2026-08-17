@@ -28,6 +28,12 @@ MonoBehaviour:
   maximumSiteStrength: 6
   elite: 1
   boss: 0
+  enemyHealthMultiplier: 0.503
+  enemyDamageMultiplier: 1
+  enemyAccuracyMultiplier: 1
+  additionalEnemyCount: 0
+  objectiveHealthMultiplier: 0.25
+  objectiveControlResistanceMultiplier: 1
   objective: 3
   objectiveRoundLimit: 7
   objectiveTargetId: target:war-device

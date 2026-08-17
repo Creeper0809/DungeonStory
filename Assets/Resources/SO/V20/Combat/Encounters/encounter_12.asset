@@ -28,8 +28,14 @@ MonoBehaviour:
   maximumSiteStrength: 6
   elite: 0
   boss: 1
+  enemyHealthMultiplier: 0.224
+  enemyDamageMultiplier: 0.2
+  enemyAccuracyMultiplier: 1
+  additionalEnemyCount: 0
+  objectiveHealthMultiplier: 1
+  objectiveControlResistanceMultiplier: 0.25
   objective: 5
-  objectiveRoundLimit: 7
+  objectiveRoundLimit: 8
   objectiveTargetId: enemy:inquisition-ward-knight
   battlefieldModifierIds:
   - battlefield:collapsing-ceiling

@@ -28,6 +28,12 @@ MonoBehaviour:
   maximumSiteStrength: 12
   elite: 1
   boss: 0
+  enemyHealthMultiplier: 1.8
+  enemyDamageMultiplier: 7
+  enemyAccuracyMultiplier: 8
+  additionalEnemyCount: 0
+  objectiveHealthMultiplier: 1
+  objectiveControlResistanceMultiplier: 1
   objective: 2
   objectiveRoundLimit: 8
   objectiveTargetId: target:field-medic

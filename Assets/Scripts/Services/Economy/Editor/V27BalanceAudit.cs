@@ -27,7 +27,9 @@ public static class V27BalanceAudit
         "balance:v27:item-market-asymmetric-price-authority";
     public const string LaborFacilityBaselineRecordId =
         "balance:v27:global-labor-facility-period-preserving";
-    private const string GeneratorVersion = "v27.5.0";
+    public const string CombatOutcomeBaselineRecordId =
+        "balance:v27:combat-outcome-checkpoint-calibration-applied-v1";
+    private const string GeneratorVersion = "v27.6.0";
     private const decimal LaborScale = 2.25m;
 
     [MenuItem("DungeonStory/V27/Generate Audit-Only Whole-Game Ledger")]
@@ -182,6 +184,12 @@ public static class V27BalanceAudit
             anomalies,
             sourceDigests,
             historicalBeforeValues);
+        CaptureCombatEncounterValues(
+            source.GetAll<OffenseEncounterSO>(),
+            capture,
+            anomalies,
+            sourceDigests,
+            historicalBeforeValues);
         CaptureDismantleCycles(
             source.GetAll<BuildingSO>(),
             before,
@@ -299,6 +307,225 @@ public static class V27BalanceAudit
             orderedAnomalies.Count(value => value.EmitsCiAnnotation),
             scc.Components.Count,
             Array.AsReadOnly(integrityFailures.ToArray()));
+    }
+
+    private static void CaptureCombatEncounterValues(
+        IEnumerable<OffenseEncounterSO> definitions,
+        BalanceCaptureFactory capture,
+        ICollection<BalanceAnomalyNode> anomalies,
+        IDictionary<string, string> sourceDigests,
+        IReadOnlyDictionary<string, string> historicalBeforeValues)
+    {
+        Dictionary<string, OffenseEncounterSO> byId = definitions
+            .Where(value => value != null)
+            .ToDictionary(value => value.encounterId, StringComparer.Ordinal);
+        foreach (CombatEncounterCalibration calibration in
+                 CombatBalanceCheckpointAuthority.AllEncounters)
+        {
+            if (!byId.TryGetValue(calibration.EncounterId, out OffenseEncounterSO definition))
+            {
+                throw new InvalidOperationException(
+                    $"Missing calibrated encounter authority: {calibration.EncounterId}.");
+            }
+            string path = AssetDatabase.GetAssetPath(definition);
+            CaptureCombatEncounterMetric(
+                definition, path, "enemy-health-multiplier", "enemyHealthMultiplier",
+                definition.enemyHealthMultiplier, calibration.EnemyHealthMultiplier,
+                capture, anomalies, sourceDigests, historicalBeforeValues);
+            CaptureCombatEncounterMetric(
+                definition, path, "enemy-damage-multiplier", "enemyDamageMultiplier",
+                definition.enemyDamageMultiplier, calibration.EnemyDamageMultiplier,
+                capture, anomalies, sourceDigests, historicalBeforeValues);
+            CaptureCombatEncounterMetric(
+                definition, path, "enemy-accuracy-multiplier", "enemyAccuracyMultiplier",
+                definition.enemyAccuracyMultiplier, calibration.EnemyAccuracyMultiplier,
+                capture, anomalies, sourceDigests, historicalBeforeValues);
+            CaptureCombatEncounterMetric(
+                definition, path, "objective-health-multiplier", "objectiveHealthMultiplier",
+                definition.objectiveHealthMultiplier, calibration.ObjectiveHealthMultiplier,
+                capture, anomalies, sourceDigests, historicalBeforeValues);
+            CaptureCombatEncounterMetric(
+                definition, path, "objective-control-resistance-multiplier",
+                "objectiveControlResistanceMultiplier",
+                definition.objectiveControlResistanceMultiplier,
+                calibration.ObjectiveControlResistanceMultiplier,
+                capture, anomalies, sourceDigests, historicalBeforeValues);
+            CaptureCombatEncounterMetric(
+                definition, path, "additional-enemy-count", "additionalEnemyCount",
+                definition.additionalEnemyCount, calibration.AdditionalEnemyCount,
+                capture, anomalies, sourceDigests, historicalBeforeValues);
+            CaptureCombatEncounterMetric(
+                definition, path, "objective-round-limit", "objectiveRoundLimit",
+                definition.objectiveRoundLimit,
+                definition.objective == OffenseEncounterObjective.DefeatAll
+                    ? 0
+                    : calibration.ObjectiveRoundLimit,
+                capture, anomalies, sourceDigests, historicalBeforeValues);
+        }
+    }
+
+    private static void CaptureCombatEncounterMetric(
+        OffenseEncounterSO definition,
+        string path,
+        string metric,
+        string propertyPath,
+        float currentValue,
+        float targetValue,
+        BalanceCaptureFactory capture,
+        ICollection<BalanceAnomalyNode> anomalies,
+        IDictionary<string, string> sourceDigests,
+        IReadOnlyDictionary<string, string> historicalBeforeValues)
+    {
+        CaptureCombatEncounterMetric(
+            definition,
+            path,
+            metric,
+            propertyPath,
+            BalanceCanonicalText.DecimalFromFiniteFloat(
+                currentValue,
+                definition.encounterId + ":" + propertyPath),
+            BalanceCanonicalText.DecimalFromFiniteFloat(
+                targetValue,
+                definition.encounterId + ":target:" + propertyPath),
+            capture,
+            anomalies,
+            sourceDigests,
+            historicalBeforeValues);
+    }
+
+    private static void CaptureCombatEncounterMetric(
+        OffenseEncounterSO definition,
+        string path,
+        string metric,
+        string propertyPath,
+        int currentValue,
+        int targetValue,
+        BalanceCaptureFactory capture,
+        ICollection<BalanceAnomalyNode> anomalies,
+        IDictionary<string, string> sourceDigests,
+        IReadOnlyDictionary<string, string> historicalBeforeValues) =>
+        CaptureCombatEncounterMetric(
+            definition,
+            path,
+            metric,
+            propertyPath,
+            (decimal)currentValue,
+            (decimal)targetValue,
+            capture,
+            anomalies,
+            sourceDigests,
+            historicalBeforeValues);
+
+    private static void CaptureCombatEncounterMetric(
+        OffenseEncounterSO definition,
+        string path,
+        string metric,
+        string propertyPath,
+        decimal current,
+        decimal target,
+        BalanceCaptureFactory capture,
+        ICollection<BalanceAnomalyNode> anomalies,
+        IDictionary<string, string> sourceDigests,
+        IReadOnlyDictionary<string, string> historicalBeforeValues)
+    {
+        string stableId = definition.encounterId;
+        decimal before = ResolveHistoricalAuthoredBefore(
+            stableId,
+            metric,
+            current,
+            historicalBeforeValues);
+        if (current != before && current != target)
+        {
+            throw new InvalidOperationException(
+                $"Combat encounter value drifted outside its V27 Before/After contract: "
+                + $"{stableId}:{propertyPath}; current={Token(current)}, "
+                + $"before={Token(before)}, after={Token(target)}.");
+        }
+        string afterToken = Token(target);
+        string dependencyFingerprint = HashText(
+            definition.objective + "|" + definition.elite + "|" + definition.boss
+            + "|" + definition.objectiveTargetId + "|"
+            + string.Join(",", definition.enemies.Select(value => value.enemyArchetypeId)));
+        string sourceDigest = GetEncounterApprovalSourceDigest(path);
+        decimal percent = PercentDelta(before, target);
+        BalanceAnomalySeverity severity = BalanceAnomalyDetector.ClassifyPercentDelta(
+            Math.Abs(percent));
+        const string reasonCode = "v27-combat-1000-seed-outcome-calibration";
+        capture.Capture(new BalanceMetricCaptureRequest
+        {
+            Domain = "combat",
+            DefinitionKind = "offense-encounter",
+            StableId = stableId,
+            Metric = metric,
+            Unit = propertyPath.EndsWith("Count", StringComparison.Ordinal)
+                || propertyPath.EndsWith("Limit", StringComparison.Ordinal)
+                ? "count"
+                : "multiplier",
+            Before = Token(before),
+            After = afterToken,
+            AuthoredRoundedValue = afterToken,
+            PercentDelta = Token(percent),
+            ExactFormula = "accepted production-tactics 1000-seed checkpoint",
+            BeforeBom = "N/A",
+            AfterBom = "N/A",
+            BeforeDirectWu = "N/A",
+            AfterDirectWu = "N/A",
+            BeforeBomEwu = "N/A",
+            AfterBomEwu = "N/A",
+            BeforeLaborDensity = "N/A",
+            AfterLaborDensity = "N/A",
+            UpstreamOnlyAfter = Token(before),
+            InheritedDelta = "0",
+            RawLocalDelta = Token(target - before),
+            LocalQuantizationBoundaryCount = 0,
+            DownstreamConsumerCount = "battle-runtime",
+            DependencyIds = definition.enemies
+                .Select(value => value.enemyArchetypeId)
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray(),
+            RootCauseIds = Array.Empty<string>(),
+            AnomalyDisposition = severity == BalanceAnomalySeverity.Critical
+                ? "local-critical"
+                : severity == BalanceAnomalySeverity.Warning ? "warning" : "none",
+            ReasonCode = reasonCode,
+            ReasonDetail = "Exact value accepted only after production EnemyTacticalDecisionService "
+                + "and mixed-party deterministic checkpoint passed 1,000 seeds.",
+            SourceAuthority = path,
+            SourcePropertyPath = propertyPath,
+            ExecutionRoute = "OffenseEncounterSO->EnemyEncounterFactory->OffenseBattleModel",
+            SaveAuthority = "OffenseEncounterSO",
+            VerificationEvidence = "Artifacts/QA/combat-balance-final/encounter-"
+                + stableId.Substring("encounter:".Length) + ".txt",
+            ReviewStatus = before == target ? "unchanged" : "pending",
+            ApprovalKey = before != target
+                ? BuildApprovalKey(
+                    stableId,
+                    metric,
+                    afterToken,
+                    dependencyFingerprint,
+                    sourceDigest,
+                    reasonCode,
+                    CombatOutcomeBaselineRecordId)
+                : string.Empty,
+            DependencyFingerprint = dependencyFingerprint,
+            LocalFingerprint = HashText(stableId + "|" + metric + "|" + Token(before)),
+            SourceDigest = sourceDigest,
+            SemanticHash = HashText(stableId + "|" + metric + "|" + afterToken),
+            AssetApplied = current == target ? "true" : "false",
+            BalanceBaselineRecordId = CombatOutcomeBaselineRecordId
+        });
+        if (severity != BalanceAnomalySeverity.None && before != target)
+        {
+            anomalies.Add(BalanceAnomalyNode.Capture(
+                stableId,
+                metric,
+                severity,
+                severity == BalanceAnomalySeverity.Critical
+                    ? BalanceAnomalyDisposition.LocalCritical
+                    : BalanceAnomalyDisposition.None,
+                reasonCode,
+                Array.Empty<string>()));
+        }
     }
 
     private static void CaptureLaborTargets(
@@ -2918,6 +3145,10 @@ public static class V27BalanceAudit
             V27BalanceMarketDebugScenarios.ReportPath);
         string laborFacilityEvidence = ProjectAbsolutePath(
             V27BalanceLaborFacilityDebugScenarios.ReportPath);
+        string combatOutcomeEvidence = ProjectAbsolutePath(
+            CombatOutcomeBalanceCalibrationScenario.FinalCheckpointAggregateReportPath);
+        string wholeGameCoverageEvidence = ProjectAbsolutePath(
+            V27BalanceWholeGameCoverageDebugScenarios.ReportPath);
         WriteJsonProperty(writer, "economy256EvidenceHash",
             File.Exists(economyEvidence)
                 ? HashFile(economyEvidence)
@@ -2937,6 +3168,14 @@ public static class V27BalanceAudit
         WriteJsonProperty(writer, "laborFacilityAuthorityEvidenceHash",
             File.Exists(laborFacilityEvidence)
                 ? HashFile(laborFacilityEvidence)
+                : HashText(string.Empty), true);
+        WriteJsonProperty(writer, "combatOutcome1000SeedEvidenceHash",
+            File.Exists(combatOutcomeEvidence)
+                ? HashFile(combatOutcomeEvidence)
+                : HashText(string.Empty), true);
+        WriteJsonProperty(writer, "wholeGameCoverageEvidenceHash",
+            File.Exists(wholeGameCoverageEvidence)
+                ? HashFile(wholeGameCoverageEvidence)
                 : HashText(string.Empty), true);
         WriteJsonProperty(writer, "approvalDigest", approvalHash, true);
         WriteJsonProperty(writer, "assetPatchDigest", assetPatchDigest, true);
@@ -2967,6 +3206,8 @@ public static class V27BalanceAudit
         V27BalanceJsonSerializer.WriteJsonString(writer, MarketBaselineRecordId);
         writer.Write(',');
         V27BalanceJsonSerializer.WriteJsonString(writer, LaborFacilityBaselineRecordId);
+        writer.Write(',');
+        V27BalanceJsonSerializer.WriteJsonString(writer, CombatOutcomeBaselineRecordId);
         writer.Write("]\n");
         writer.Write("}\n");
         writer.Flush();
@@ -3265,6 +3506,17 @@ public static class V27BalanceAudit
             "Assets/Scripts/Services/Economy/Editor/V27BalanceEconomySimulationDebugScenarios.cs",
             "Assets/Scripts/Services/Economy/Editor/V27BalanceMarketDebugScenarios.cs",
             "Assets/Scripts/Services/Economy/Editor/V27BalanceLaborFacilityDebugScenarios.cs",
+            "Assets/Scripts/Services/Economy/Editor/V27BalanceWholeGameCoverageDebugScenarios.cs",
+            "Assets/Scripts/Services/Economy/Editor/BranchedProductionNetworkDebugScenarios.cs",
+            "Assets/Scripts/Services/Offense/Editor/CombatOutcomeBalanceCalibrationScenario.cs",
+            "Assets/Scripts/Services/Offense/Editor/CombatBalanceCheckpointAuthority.cs",
+            "Assets/Scripts/Services/Offense/Editor/V20CombatContentAssetBuilder.cs",
+            "Assets/Scripts/Services/Offense/EnemyEncounterFactory.cs",
+            "Assets/Scripts/Services/Offense/EnemyTacticalDecisionService.cs",
+            "Assets/Scripts/Services/Offense/OffenseBattleModel.cs",
+            "Assets/Scripts/Models/Offense/Core/OffenseEncounterBalanceRules.cs",
+            "Assets/Scripts/Models/Offense/Core/OffenseEncounterSO.cs",
+            "Assets/Scripts/Models/Offense/Core/OffenseBattleContracts.cs",
             "Assets/Scripts/Services/Economy/Editor/V27BalanceVerticalSlicePlayModeVerifier.cs",
             "Assets/Scripts/Services/Economy/V27BalanceWorkCalculator.cs",
             "Assets/Scripts/Models/Buildings/Core/StockCategoryCatalog.cs",
@@ -3446,6 +3698,43 @@ public static class V27BalanceAudit
         string projectRelativePath,
         params string[] yamlFieldNames)
     {
+        return GetApprovalSourceDigestCore(
+            projectRelativePath,
+            requireExactRequestedFields: true,
+            yamlFieldNames);
+    }
+
+    private static string GetEncounterApprovalSourceDigest(string projectRelativePath)
+    {
+        string[] mutableFields =
+        {
+            "additionalEnemyCount",
+            "enemyAccuracyMultiplier",
+            "enemyDamageMultiplier",
+            "enemyHealthMultiplier",
+            "objectiveControlResistanceMultiplier",
+            "objectiveHealthMultiplier",
+            "objectiveRoundLimit"
+        };
+        HashSet<string> prefixes = mutableFields
+            .Select(value => value + ":")
+            .ToHashSet(StringComparer.Ordinal);
+        string absolutePath = ProjectAbsolutePath(projectRelativePath);
+        string[] stableLines = File.ReadAllText(absolutePath, Encoding.UTF8)
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n')
+            .Split('\n')
+            .Where(line => !prefixes.Any(prefix =>
+                line.TrimStart().StartsWith(prefix, StringComparison.Ordinal)))
+            .ToArray();
+        return HashText(string.Join("\n", stableLines));
+    }
+
+    private static string GetApprovalSourceDigestCore(
+        string projectRelativePath,
+        bool requireExactRequestedFields,
+        params string[] yamlFieldNames)
+    {
         if (yamlFieldNames == null || yamlFieldNames.Length == 0)
             throw new ArgumentException("At least one YAML field is required.", nameof(yamlFieldNames));
         string absolutePath = ProjectAbsolutePath(projectRelativePath);
@@ -3458,7 +3747,14 @@ public static class V27BalanceAudit
             .Concat(new[]
             {
                 "constructionWorkRequired",
+                "additionalEnemyCount",
+                "enemyAccuracyMultiplier",
+                "enemyDamageMultiplier",
+                "enemyHealthMultiplier",
                 "harvestWork",
+                "objectiveControlResistanceMultiplier",
+                "objectiveHealthMultiplier",
+                "objectiveRoundLimit",
                 "requiredWork",
                 "saleRate",
                 "sowWork",
@@ -3482,7 +3778,9 @@ public static class V27BalanceAudit
                     + " <v27-approved-target>";
                 matched++;
             }
-            if (required.Contains(yamlFieldName) && matched != 1)
+            if (requireExactRequestedFields
+                && required.Contains(yamlFieldName)
+                && matched != 1)
             {
                 throw new InvalidOperationException(
                     $"V27 approval digest requires exactly one YAML scalar '{yamlFieldName}' "

@@ -32,6 +32,17 @@ public static class V27BalanceAssetApplication
         "authored-harvest-wu",
         "construction-authored-wu:period-preserving"
     };
+    private static readonly HashSet<string> CombatEncounterApprovalMetrics = new(
+        StringComparer.Ordinal)
+    {
+        "enemy-health-multiplier",
+        "enemy-damage-multiplier",
+        "enemy-accuracy-multiplier",
+        "objective-health-multiplier",
+        "objective-control-resistance-multiplier",
+        "additional-enemy-count",
+        "objective-round-limit"
+    };
 
     [MenuItem("DungeonStory/V27/Apply Approved Balance Patches")]
     public static void ApplyApprovedFromMenu()
@@ -90,6 +101,52 @@ public static class V27BalanceAssetApplication
             verified,
             requireApplied: false);
         Debug.Log($"V27 exact labor/facility approvals generated: approvals={count}.");
+    }
+
+    [MenuItem("DungeonStory/V27/Generate Exact Combat Encounter Approvals")]
+    public static void GenerateCombatEncounterApprovalsFromMenu()
+    {
+        V27BalanceAuditOutput audit = V27BalanceAudit.GenerateForApprovalRefresh();
+        if (audit.IntegrityFailures.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Cannot generate combat approvals from a failing V27 audit:\n"
+                + string.Join("\n", audit.IntegrityFailures));
+        }
+        RequireFinalCombatCheckpointEvidence();
+        int count = WriteApprovals(
+            audit.Ledger,
+            record => ItemMarketApprovalMetrics.Contains(record.Metric)
+                || LaborFacilityApprovalMetrics.Contains(record.Metric)
+                || CombatEncounterApprovalMetrics.Contains(record.Metric),
+            replaceIncludedApprovals: true);
+        V27BalanceAuditOutput verified = V27BalanceAudit.Generate(
+            BalanceLedgerExecutionMode.AuditOnly);
+        if (verified.IntegrityFailures.Count > 0 || verified.CriticalCount > 0)
+        {
+            throw new InvalidOperationException(
+                "Generated combat approvals did not survive exact V27 revalidation.");
+        }
+        Debug.Log($"V27 exact combat encounter approvals generated: approvals={count}.");
+    }
+
+    private static void RequireFinalCombatCheckpointEvidence()
+    {
+        foreach (CombatEncounterCalibration value in
+                 CombatBalanceCheckpointAuthority.AllEncounters)
+        {
+            string path = Path.Combine(
+                CombatOutcomeBalanceCalibrationScenario.FinalCheckpointDirectory,
+                $"encounter-{value.EncounterNumber:00}.txt");
+            if (!File.Exists(path)
+                || File.ReadLines(path).FirstOrDefault()?.StartsWith(
+                    "RESULT=PASS; samples=1000; failures=0; stalled=0",
+                    StringComparison.Ordinal) != true)
+            {
+                throw new InvalidOperationException(
+                    $"Missing accepted 1,000-seed combat checkpoint: {path}.");
+            }
+        }
     }
 
     public static BalanceAssetApplicationResult ApplyApproved(
@@ -401,7 +458,8 @@ public static class V27BalanceAssetApplication
         HashSet<string> replaceableKeys = replaceIncludedApprovals
             ? existing.Values
                 .Where(value => ItemMarketApprovalMetrics.Contains(value.metric)
-                    || LaborFacilityApprovalMetrics.Contains(value.metric))
+                    || LaborFacilityApprovalMetrics.Contains(value.metric)
+                    || CombatEncounterApprovalMetrics.Contains(value.metric))
                 .Select(value => value.approvalKey)
                 .ToHashSet(StringComparer.Ordinal)
             : new HashSet<string>(StringComparer.Ordinal);

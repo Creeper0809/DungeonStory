@@ -88,9 +88,16 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
         OffenseEncounterSO encounter = SelectEncounter(target, context, routeNode);
         List<EnemyIndividualSaveData> created = new();
         int sequence = 0;
-        foreach (OffenseEnemyArchetypeEntry entry in encounter.enemies)
+        int entryCount = encounter.enemies.Count;
+        for (int entryIndex = 0; entryIndex < entryCount; entryIndex++)
         {
+            OffenseEnemyArchetypeEntry entry = encounter.enemies[entryIndex];
             int count = DeterministicCount(entry, context, sequence);
+            count += encounter.additionalEnemyCount / Math.Max(1, entryCount);
+            if (entryIndex < encounter.additionalEnemyCount % Math.Max(1, entryCount))
+            {
+                count++;
+            }
             for (int index = 0; index < count; index++)
             {
                 CharacterId id = CharacterId.FromStableSuffix(
@@ -104,7 +111,9 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
 
         int maximum = routeNode == null || routeNode.IsBoss
             ? created.Count
-            : Math.Min(created.Count, Math.Max(1, routeNode.Depth + 1));
+            : Math.Min(
+                created.Count,
+                Math.Max(1, routeNode.Depth + 1 + encounter.additionalEnemyCount));
         if (!target.revealsTruth && pressure.Manpower >= 40f)
         {
             maximum = Mathf.Clamp(
@@ -118,7 +127,7 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
 
         return Build(
             encounter,
-            created.Take(maximum),
+            SelectRouteIndividuals(created, maximum),
             difficulty,
             routeNode,
             pressure);
@@ -330,6 +339,37 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
                 participatesInInitiative: false));
         }
 
+        foreach (OffenseBattleCombatant enemy in combatants
+            .Where(value => value.Team == OffenseBattleTeam.Enemies))
+        {
+            OffenseEncounterBalanceRules.ScaleEnemyHealth(
+                enemy,
+                encounter.enemyHealthMultiplier);
+        }
+        if (encounter.objective is OffenseEncounterObjective.ProtectTarget
+                or OffenseEncounterObjective.SabotageTarget
+                or OffenseEncounterObjective.CaptureLeader)
+        {
+            OffenseBattleCombatant objective = combatants.FirstOrDefault(value =>
+                string.Equals(
+                    value.PersistentId,
+                    objectiveCombatantId,
+                    StringComparison.Ordinal));
+            if (objective == null)
+            {
+                throw new InvalidOperationException(
+                    $"Encounter '{encounter.encounterId}' has no objective combatant to scale.");
+            }
+            float inheritedEnemyMultiplier = objective.Team ==
+                OffenseBattleTeam.Enemies
+                ? encounter.enemyHealthMultiplier
+                : 1f;
+            OffenseEncounterBalanceRules.ScaleEnemyHealth(
+                objective,
+                encounter.objectiveHealthMultiplier
+                    / Mathf.Max(0.0001f, inheritedEnemyMultiplier));
+        }
+
         BattlefieldModifierDefinitionSO[] resolvedModifiers =
             (encounter.battlefieldModifierIds ?? new List<string>())
                 .Select(battlefieldModifiers.Require)
@@ -341,7 +381,10 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
             objectiveCombatantId,
             resolvedModifiers,
             encounter.counterTags,
-            encounter.rewardItemIds);
+            encounter.rewardItemIds,
+            encounter.enemyDamageMultiplier,
+            encounter.enemyAccuracyMultiplier,
+            encounter.objectiveControlResistanceMultiplier);
 
         return new EnemyEncounterComposition(encounter, combatants, saved, rules);
     }
@@ -414,6 +457,50 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
             $"{context}:{entry.enemyArchetypeId}:{sequence}") % (uint)span);
     }
 
+    private static IReadOnlyList<EnemyIndividualSaveData> SelectRouteIndividuals(
+        IReadOnlyList<EnemyIndividualSaveData> created,
+        int maximum)
+    {
+        if (created == null || created.Count == 0 || maximum <= 0)
+        {
+            return Array.Empty<EnemyIndividualSaveData>();
+        }
+        if (maximum >= created.Count)
+        {
+            return created.ToArray();
+        }
+
+        List<EnemyIndividualSaveData> selected = new(maximum);
+        HashSet<string> represented = new(StringComparer.Ordinal);
+        foreach (EnemyIndividualSaveData individual in created)
+        {
+            string archetypeId = individual?.enemyArchetypeId ?? string.Empty;
+            if (archetypeId.Length == 0 || !represented.Add(archetypeId))
+            {
+                continue;
+            }
+            selected.Add(individual);
+            if (selected.Count == maximum)
+            {
+                return selected;
+            }
+        }
+
+        foreach (EnemyIndividualSaveData individual in created)
+        {
+            if (selected.Contains(individual))
+            {
+                continue;
+            }
+            selected.Add(individual);
+            if (selected.Count == maximum)
+            {
+                break;
+            }
+        }
+        return selected;
+    }
+
     private static CharacterCombatAbilityDefinition ProjectAbility(
         EnemyAbilityDefinitionSO definition) =>
         new(
@@ -422,7 +509,31 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
             definition.description,
             definition.cooldownRounds,
             definition.targetRule,
-            definition.effects.Select(ProjectEffect).ToArray());
+            definition.effects.SelectMany(ProjectEffects).ToArray());
+
+    private static IEnumerable<OffenseCombatEffectModule> ProjectEffects(
+        EnemyAbilityEffectRecord effect)
+    {
+        if (effect == null)
+        {
+            throw new InvalidOperationException(
+                "Enemy ability contains a null effect record.");
+        }
+
+        if (effect.kind == EnemyAbilityEffectKind.Delay
+            && string.Equals(effect.targetTag, "backline", StringComparison.Ordinal))
+        {
+            int pulledSlots = Mathf.Clamp(
+                Mathf.RoundToInt(effect.magnitude),
+                1,
+                2);
+            yield return new OffenseRepositionEffect(-pulledSlots);
+            yield return new OffenseDelayEffect(effect.magnitude);
+            yield break;
+        }
+
+        yield return ProjectEffect(effect);
+    }
 
     private static OffenseCombatEffectModule ProjectEffect(
         EnemyAbilityEffectRecord effect) => effect.kind switch

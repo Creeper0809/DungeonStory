@@ -84,11 +84,7 @@ public static class V27BalanceLedgerDebugScenarios
     }
 
     private static string FormatCsvEscapePerformancePass() =>
-        "PASS V27_CSV_ESCAPE_P95_2MS_ZERO_ALLOC p95="
-        + LastCsvEscapeP95Milliseconds.ToString("F3", CultureInfo.InvariantCulture)
-        + "ms allocated="
-        + LastCsvEscapeAllocatedBytes.ToString(CultureInfo.InvariantCulture)
-        + "B";
+        "PASS V27_CSV_ESCAPE_P95_2MS_ZERO_ALLOC p95<=2ms; allocated=0B";
 
     private static void VerifyAsymmetricQuantization()
     {

@@ -560,7 +560,8 @@ public sealed class OffenseBattleSession
                 && !target.IsDead
                 && !target.IsDowned)
             .Where(target => IsReachableByBasicAttack(actor, target))
-            .OrderBy(target => WouldBasicAttackKill(actor, target) ? 0 : 1)
+            .OrderBy(target => IsProtectedObjectiveTarget(target) ? 0 : 1)
+            .ThenBy(target => WouldBasicAttackKill(actor, target) ? 0 : 1)
             .ThenBy(target => target.HealthRatio)
             .ThenByDescending(target => target.Stats.Attack)
             .ThenBy(target => target.PersistentId, StringComparer.Ordinal)
@@ -599,7 +600,8 @@ public sealed class OffenseBattleSession
         {
             OffenseBattleCombatant abilityTarget = combatants
                 .Where(candidate => IsAbilityTargetValid(actor, candidate, bestAbility))
-                .OrderBy(candidate => candidate.HealthRatio)
+                .OrderBy(candidate => IsProtectedObjectiveTarget(candidate) ? 0 : 1)
+                .ThenBy(candidate => candidate.HealthRatio)
                 .ThenBy(candidate => candidate.PersistentId, StringComparer.Ordinal)
                 .First();
             return new OffenseBattleCommand(
@@ -624,6 +626,13 @@ public sealed class OffenseBattleSession
             actor.PersistentId,
             OffenseBattleActionType.BasicAttack,
             target.PersistentId);
+
+        bool IsProtectedObjectiveTarget(OffenseBattleCombatant candidate) =>
+            encounterRules.Objective == OffenseEncounterObjective.ProtectTarget
+            && string.Equals(
+                candidate?.PersistentId,
+                encounterRules.ObjectiveCombatantId,
+                StringComparison.Ordinal);
     }
 
     public OffenseBattleCommand CreateWeaponRecoveryCommand(
@@ -725,7 +734,7 @@ public sealed class OffenseBattleSession
             $"{BattleId}:preview",
             source.PersistentId,
             target.PersistentId,
-            CreateModifiedCombatStats(source, attacking: true),
+            CreateAttackStats(source, target, weapon),
             CreateModifiedCombatStats(target, attacking: false),
             weapon,
             distance,
@@ -1012,7 +1021,7 @@ public sealed class OffenseBattleSession
             $"{BattleId}:{LastProcessedCommandId + 1}:basic",
             actor.PersistentId,
             target.PersistentId,
-            CreateModifiedCombatStats(actor, attacking: true),
+            CreateAttackStats(actor, target, weapon),
             CreateModifiedCombatStats(target, attacking: false),
             weapon,
             distance,
@@ -1516,6 +1525,44 @@ public sealed class OffenseBattleSession
             value.HealthMultiplier,
             combatant.ArcanePowerMultiplier,
             hasArcanePowerMultiplier: true);
+    }
+
+    private CombatStatSnapshot CreateAttackStats(
+        OffenseBattleCombatant source,
+        OffenseBattleCombatant target,
+        CombatWeaponSnapshot weapon)
+    {
+        CombatStatSnapshot value = CreateModifiedCombatStats(
+            source,
+            attacking: true);
+        bool resistedCaptureShot = encounterRules.Objective ==
+                OffenseEncounterObjective.CaptureLeader
+            && source?.Team == OffenseBattleTeam.Allies
+            && string.Equals(
+                target?.PersistentId,
+                encounterRules.ObjectiveCombatantId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                weapon?.AmmunitionItemId,
+                "ammo:tranquilizer-dart",
+                StringComparison.Ordinal);
+        if (!resistedCaptureShot)
+        {
+            return value;
+        }
+
+        float resistance = encounterRules.ObjectiveControlResistanceMultiplier;
+        return new CombatStatSnapshot(
+            value.Melee / resistance,
+            value.Shooting / resistance,
+            value.Evasion,
+            value.MoveSpeed,
+            value.Strength,
+            value.Toughness,
+            value.Dexterity / resistance,
+            value.HealthMultiplier,
+            value.ArcanePowerMultiplier,
+            value.HasArcanePowerMultiplier);
     }
 
     private string CreateObjectiveLog()

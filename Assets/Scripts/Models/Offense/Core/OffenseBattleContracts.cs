@@ -50,7 +50,10 @@ public sealed class OffenseBattleEncounterRules
         string objectiveCombatantId,
         IEnumerable<BattlefieldModifierDefinitionSO> modifiers,
         IEnumerable<string> counterTags = null,
-        IEnumerable<string> rewardItemIds = null)
+        IEnumerable<string> rewardItemIds = null,
+        float enemyDamageMultiplier = 1f,
+        float enemyAccuracyMultiplier = 1f,
+        float objectiveControlResistanceMultiplier = 1f)
     {
         Objective = objective;
         RoundLimit = objective == OffenseEncounterObjective.DefeatAll
@@ -87,6 +90,12 @@ public sealed class OffenseBattleEncounterRules
             Modifiers.Aggregate(1f, (value, modifier) => value * modifier.damageMultiplier),
             0.25f,
             2f);
+        EnemyDamageMultiplier = Mathf.Clamp(enemyDamageMultiplier, 0.1f, 8f);
+        EnemyAccuracyMultiplier = Mathf.Clamp(enemyAccuracyMultiplier, 0.1f, 8f);
+        ObjectiveControlResistanceMultiplier = Mathf.Clamp(
+            objectiveControlResistanceMultiplier,
+            0.1f,
+            4f);
     }
 
     public OffenseEncounterObjective Objective { get; }
@@ -97,6 +106,9 @@ public sealed class OffenseBattleEncounterRules
     public float MovementMultiplier { get; }
     public float AccuracyMultiplier { get; }
     public float DamageMultiplier { get; }
+    public float EnemyDamageMultiplier { get; }
+    public float EnemyAccuracyMultiplier { get; }
+    public float ObjectiveControlResistanceMultiplier { get; }
     public IReadOnlyCollection<string> AvailableCounterTags => availableCounterTags;
     public IReadOnlyCollection<string> MatchedCounterTags => matchedCounterTags;
     public IReadOnlyList<string> RewardItemIds { get; }
@@ -134,17 +146,26 @@ public sealed class OffenseBattleEncounterRules
     }
 
     public float GetMovementMultiplier(OffenseBattleTeam team) =>
-        GetTeamMultiplier(team, modifier => modifier.movementMultiplier);
+        GetTeamMultiplier(team, modifier => modifier.movementMultiplier, false);
 
-    public float GetAccuracyMultiplier(OffenseBattleTeam team) =>
-        GetTeamMultiplier(team, modifier => modifier.accuracyMultiplier);
+    public float GetAccuracyMultiplier(OffenseBattleTeam team)
+    {
+        float value = GetTeamMultiplier(
+            team,
+            modifier => modifier.accuracyMultiplier,
+            false);
+        return team == OffenseBattleTeam.Enemies
+            ? Mathf.Clamp(value * EnemyAccuracyMultiplier, 0.1f, 8f)
+            : value;
+    }
 
     public float GetDamageMultiplier(OffenseBattleTeam team) =>
-        GetTeamMultiplier(team, modifier => modifier.damageMultiplier);
+        GetTeamMultiplier(team, modifier => modifier.damageMultiplier, true);
 
     private float GetTeamMultiplier(
         OffenseBattleTeam team,
-        Func<BattlefieldModifierDefinitionSO, float> selector)
+        Func<BattlefieldModifierDefinitionSO, float> selector,
+        bool applyEnemyDamageMultiplier)
     {
         float value = 1f;
         foreach (BattlefieldModifierDefinitionSO modifier in Modifiers)
@@ -155,11 +176,18 @@ public sealed class OffenseBattleEncounterRules
             value *= countered ? 1f : selector(modifier);
         }
 
+        if (team == OffenseBattleTeam.Enemies && applyEnemyDamageMultiplier)
+        {
+            value *= EnemyDamageMultiplier;
+        }
+
         if (team == OffenseBattleTeam.Allies && matchedCounterTags.Count > 0)
         {
             value *= 1f + Mathf.Min(0.15f, matchedCounterTags.Count * 0.03f);
         }
-        return Mathf.Clamp(value, 0.25f, 2f);
+        return team == OffenseBattleTeam.Enemies && applyEnemyDamageMultiplier
+            ? Mathf.Clamp(value, 0.1f, 8f)
+            : Mathf.Clamp(value, 0.25f, 2f);
     }
 
     public void ResolveProtectedCombatant(IEnumerable<OffenseBattleCombatant> combatants)
