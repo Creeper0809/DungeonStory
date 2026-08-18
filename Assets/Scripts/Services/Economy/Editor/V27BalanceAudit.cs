@@ -4316,7 +4316,8 @@ public static class V27BalanceAudit
         PairedRunBaselineRecordId,
         PopulationCapacityBaselineRecordId,
         SixAdultClosedLoopBaselineRecordId,
-        IntegratedCapacityValidationBaselineRecordId
+        IntegratedCapacityValidationBaselineRecordId,
+        OutputContainmentBaselineRecordId
     };
 
     private static void WriteManifest(

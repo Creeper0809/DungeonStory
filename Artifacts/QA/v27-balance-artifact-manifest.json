@@ -1,15 +1,15 @@
 {
   "schemaVersion": "v27.1",
   "generatorVersion": "v27.13.1",
-  "sourceDigest": "55035afd5f5ae407799dc2f209d463d589612f08bbbccccd5bf227470ee3add1",
-  "sourceInventoryByteHash": "68dea4b29302a5aa21f7fd8298dea9b5d202b36d975cde9c8f7d0ce481e18e11",
+  "sourceDigest": "3dc74dd987409fdb196282a2c381a5f2a138c08717b9024f6e5a2aec95737d8e",
+  "sourceInventoryByteHash": "be39020f925acdb5b36e59d0a567ca5029824994d1715d7b7e8e7cc6566d6c01",
   "sourceCount": 3523,
   "rowCount": 84389,
   "csvByteHash": "c7a3d839bb43bcaee3e64d36f08a41482992118d587823aa6afbd10014fc95fd",
   "markdownByteHash": "b7bb47ac554dcf1515548686cb155096a9f2be1d2d4b0f62b4d2591d8ed7fd74",
   "auditByteHash": "6adac94459bb9d4610e087979116b609600c2d041c4093361acade773292cf45",
   "anomalyGraphByteHash": "36bdcb3909a91c237c0e69cadfaa1c932381baeafde550e337fcfa27e9740b39",
-  "economy256EvidenceHash": "76d358a3441cb48aace78c2fdad98c5f0322f6582dc61bc8d70f848e7b9df1da",
+  "economy256EvidenceHash": "334f5f0271dbe92a91e511c0730b2004757d49991759cfb66f340d5c4a9a1d59",
   "verticalSliceFullLoopEvidenceHash": "6d81a64c68cbb4659111e831b3e4ba5783fe2d6c9376cabea3a41ce3b80fe2f0",
   "assetRollbackEvidenceHash": "01baeb07f901e3efaaeae15d5fc8591f8a9b0e8b75542fa1950f1a23c206168b",
   "marketAuthorityEvidenceHash": "c2174cff66445c4241a1bf39650ff76f03fa97f18332b323d4d3940e448438ef",
@@ -47,5 +47,5 @@
   "approvedCount": 1870,
   "sccCount": 313,
   "integrityFailureCount": 0,
-  "balanceBaselineRecordIds": ["architecture:v27-whitebox-ledger-pipeline","architecture:v27-whitebox-ledger-pipeline-evidence-gate-v1","balance:v27:logging-cooking-dismantle-vertical-slice","architecture:v27-survival-cook-output-authority","balance:v27:item-market-asymmetric-price-authority","balance:v27:facility-bounded-wu-bom-redistribution-v2","balance:v27:research-effective-output-period-preserving-v1","balance:v27:existing-mining-research-dungeon-expansion-authority-v4","balance:v27:storage-bounded-dungeon-expansion-widths-v3","balance:v27:actual-effective-labor-authority-downstream-v1","balance:v27:population-technology-survival-emergency-matrix-v1","balance:v27:equipment-readiness-quality-schedule-v1","balance:v27:combat-after-equipment-quality-minimal-recalibration-v1","balance:v27:daily-routine-post-recalibration-wu-evidence-v1","balance:v27:service-continuity-nplusone","balance:v27:primitive-fallback-capital-relief","balance:v27:shared-access-spatial-union","balance:v27:floor-clutter-runtime-capacity","balance:v27:storage-overflow-containment","balance:v27:counterfactual-rng-isolation","balance:v27:paired-run-window-attribution","balance:v27:population-stage-capacity","balance:v27:six-adult-food-water-closed-loop","balance:v27:service-spatial-clutter-rng-validation-v1"]
+  "balanceBaselineRecordIds": ["architecture:v27-whitebox-ledger-pipeline","architecture:v27-whitebox-ledger-pipeline-evidence-gate-v1","balance:v27:logging-cooking-dismantle-vertical-slice","architecture:v27-survival-cook-output-authority","balance:v27:item-market-asymmetric-price-authority","balance:v27:facility-bounded-wu-bom-redistribution-v2","balance:v27:research-effective-output-period-preserving-v1","balance:v27:existing-mining-research-dungeon-expansion-authority-v4","balance:v27:storage-bounded-dungeon-expansion-widths-v3","balance:v27:actual-effective-labor-authority-downstream-v1","balance:v27:population-technology-survival-emergency-matrix-v1","balance:v27:equipment-readiness-quality-schedule-v1","balance:v27:combat-after-equipment-quality-minimal-recalibration-v1","balance:v27:daily-routine-post-recalibration-wu-evidence-v1","balance:v27:service-continuity-nplusone","balance:v27:primitive-fallback-capital-relief","balance:v27:shared-access-spatial-union","balance:v27:floor-clutter-runtime-capacity","balance:v27:storage-overflow-containment","balance:v27:counterfactual-rng-isolation","balance:v27:paired-run-window-attribution","balance:v27:population-stage-capacity","balance:v27:six-adult-food-water-closed-loop","balance:v27:service-spatial-clutter-rng-validation-v1","balance:v27:resource-output-containment-saturation-v1"]
 }
