@@ -60,19 +60,29 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
         AssetRequirement[] requirements = BuildRequirements(LoadAssets(), 6);
         long portfolio = requirements.Sum(value => ConstructionCapitalMilliUnits(
             value.Asset));
-        long avoidedDuplicate = requirements
+        AssetRequirement[] avoidedRequirements = requirements
             .Where(value => value.StableId.StartsWith(
                     "facility:food-production:", StringComparison.Ordinal)
                 || value.StableId.StartsWith(
                     "facility:water:", StringComparison.Ordinal))
+            .ToArray();
+        long avoidedDuplicate = avoidedRequirements
             .Sum(value => ConstructionCapitalMilliUnits(value.Asset));
+        long avoidedBom = avoidedRequirements
+            .Sum(value => ConstructionBomCapitalMilliUnits(value.Asset));
+        long avoidedWork = avoidedRequirements
+            .Sum(value => ConstructionWorkCapitalMilliUnits(value.Asset));
         if (portfolio <= 0 || avoidedDuplicate <= 0)
             throw new InvalidOperationException(
                 "REDUNDANCY_CAPITAL_AUTHORITY_MISSING");
         return new V27RedundancyCapitalAssessment(
             portfolio,
             actualRedundancyCapitalMilliUnits: 0L,
-            avoidedDuplicateCapitalMilliUnits: avoidedDuplicate);
+            avoidedDuplicateCapitalMilliUnits: avoidedDuplicate,
+            actualRedundancyBomMilliUnits: 0L,
+            actualRedundancyWorkMilliUnits: 0L,
+            avoidedDuplicateBomMilliUnits: avoidedBom,
+            avoidedDuplicateWorkMilliUnits: avoidedWork);
     }
 
     public static IReadOnlyList<V27AssetBackedStageCapacityAssessment>
@@ -103,7 +113,13 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
                 stage.MaximumNormalStorageUtilization,
                 stage.MaximumFaultStorageUtilization,
                 stage.FacilityCount,
-                stage.StorageCapacity));
+                stage.StorageCapacity,
+                stage.MaximumUsedCells,
+                stage.MaximumExclusiveCells,
+                stage.MaximumRawAccessCells,
+                stage.MaximumSharedAccessCells,
+                stage.MinimumAccessOverlapSavings,
+                stage.OverflowCells));
             previousWidth = stage.Width;
         }
         return values;
@@ -217,7 +233,13 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
                 successes.Max(value => value.NormalStorageUtilizationPermille),
                 successes.Max(value => value.FaultStorageUtilizationPermille),
                 requirements.Count,
-                successes.Min(value => value.StorageCapacityUnits));
+                successes.Min(value => value.StorageCapacityUnits),
+                successes.Max(value => value.UsedCells),
+                successes.Max(value => value.ExclusiveCells),
+                successes.Max(value => value.RawAccessCells),
+                successes.Max(value => value.SharedAccessCells),
+                successes.Min(value => value.AccessOverlapSavings),
+                successes.Max(value => value.OverflowCells));
         }
         throw new InvalidOperationException(
             $"DUNGEON_CAPACITY_MODEL_INVALID: population={population} exceeds "
@@ -340,6 +362,9 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
             passed,
             passed ? string.Empty : "CAPACITY_THRESHOLD_FAILED",
             used.Count,
+            exclusive.Count,
+            rawAccess,
+            sharedAccess.Count,
             headroom,
             rawAccess - sharedAccess.Count,
             normalPeak,
@@ -958,11 +983,17 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
     {
         if (asset == null)
             throw new ArgumentNullException(nameof(asset));
-        long authoredValue = checked((long)Math.Max(0, asset.GetConstructionValue()) * 1000L);
-        long directWork = checked((long)Math.Ceiling(
-            Math.Max(0f, asset.GetRequiredWork(BuiltInWorkTypeIds.Construct)) * 1000d));
-        return checked(authoredValue + directWork);
+        return checked(
+            ConstructionBomCapitalMilliUnits(asset)
+            + ConstructionWorkCapitalMilliUnits(asset));
     }
+
+    private static long ConstructionBomCapitalMilliUnits(BuildingSO asset) =>
+        checked((long)Math.Max(0, asset.GetConstructionValue()) * 1000L);
+
+    private static long ConstructionWorkCapitalMilliUnits(BuildingSO asset) =>
+        checked((long)Math.Ceiling(
+            Math.Max(0f, asset.GetRequiredWork(BuiltInWorkTypeIds.Construct)) * 1000d));
 
     private static Grid CreateGrid(int width)
     {
@@ -1062,7 +1093,7 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
     private static string BuildCsv(IEnumerable<SeedResult> source)
     {
         StringBuilder builder = new(
-            "population,width,seed,succeeded,failureCode,solverMode,usedCells,headroomPermille,accessOverlapSavings,peakNormalUtilizationPermille,peakFaultUtilizationPermille,normalStorageUtilizationPermille,faultStorageUtilizationPermille,storageCapacityUnits,normalStockUnits,faultStockUnits,placedFacilities,overflowCells\r\n");
+            "population,width,seed,succeeded,failureCode,solverMode,usedCells,exclusiveCells,rawAccessCells,sharedAccessCells,headroomPermille,accessOverlapSavings,peakNormalUtilizationPermille,peakFaultUtilizationPermille,normalStorageUtilizationPermille,faultStorageUtilizationPermille,storageCapacityUnits,normalStockUnits,faultStockUnits,placedFacilities,overflowCells\r\n");
         foreach (SeedResult value in source
                      .OrderBy(value => value.Population)
                      .ThenBy(value => value.Seed))
@@ -1071,6 +1102,9 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
                 .Append(value.Seed).Append(',').Append(value.Succeeded ? "true" : "false")
                 .Append(',').Append(value.FailureCode).Append(',').Append(value.SolverMode)
                 .Append(',').Append(value.UsedCells)
+                .Append(',').Append(value.ExclusiveCells)
+                .Append(',').Append(value.RawAccessCells)
+                .Append(',').Append(value.SharedAccessCells)
                 .Append(',').Append(value.HeadroomPermille).Append(',')
                 .Append(value.AccessOverlapSavings).Append(',')
                 .Append(value.PeakNormalUtilizationPermille).Append(',')
@@ -1400,6 +1434,9 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
             bool succeeded,
             string failureCode,
             int usedCells,
+            int exclusiveCells,
+            int rawAccessCells,
+            int sharedAccessCells,
             int headroomPermille,
             int accessOverlapSavings,
             int peakNormalUtilizationPermille,
@@ -1419,6 +1456,9 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
             Succeeded = succeeded;
             FailureCode = failureCode ?? string.Empty;
             UsedCells = usedCells;
+            ExclusiveCells = exclusiveCells;
+            RawAccessCells = rawAccessCells;
+            SharedAccessCells = sharedAccessCells;
             HeadroomPermille = headroomPermille;
             AccessOverlapSavings = accessOverlapSavings;
             PeakNormalUtilizationPermille = peakNormalUtilizationPermille;
@@ -1433,14 +1473,17 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
             SolverMode = solverMode ?? string.Empty;
         }
         internal static SeedResult Fail(int population, int width, int seed, string code) =>
-            new(population, width, seed, false, code, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, "none");
+            new(population, width, seed, false, code, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, "none");
         internal int Population { get; }
         internal int Width { get; }
         internal int Seed { get; }
         internal bool Succeeded { get; }
         internal string FailureCode { get; }
         internal int UsedCells { get; }
+        internal int ExclusiveCells { get; }
+        internal int RawAccessCells { get; }
+        internal int SharedAccessCells { get; }
         internal int HeadroomPermille { get; }
         internal int AccessOverlapSavings { get; }
         internal int PeakNormalUtilizationPermille { get; }
@@ -1467,7 +1510,13 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
             int maximumNormalStorageUtilization,
             int maximumFaultStorageUtilization,
             int facilityCount,
-            int storageCapacity)
+            int storageCapacity,
+            int maximumUsedCells,
+            int maximumExclusiveCells,
+            int maximumRawAccessCells,
+            int maximumSharedAccessCells,
+            int minimumAccessOverlapSavings,
+            int overflowCells)
         {
             Population = population;
             Width = width;
@@ -1479,6 +1528,12 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
             MaximumFaultStorageUtilization = maximumFaultStorageUtilization;
             FacilityCount = facilityCount;
             StorageCapacity = storageCapacity;
+            MaximumUsedCells = maximumUsedCells;
+            MaximumExclusiveCells = maximumExclusiveCells;
+            MaximumRawAccessCells = maximumRawAccessCells;
+            MaximumSharedAccessCells = maximumSharedAccessCells;
+            MinimumAccessOverlapSavings = minimumAccessOverlapSavings;
+            OverflowCells = overflowCells;
         }
         internal int Population { get; }
         internal int Width { get; }
@@ -1490,6 +1545,12 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
         internal int MaximumFaultStorageUtilization { get; }
         internal int FacilityCount { get; }
         internal int StorageCapacity { get; }
+        internal int MaximumUsedCells { get; }
+        internal int MaximumExclusiveCells { get; }
+        internal int MaximumRawAccessCells { get; }
+        internal int MaximumSharedAccessCells { get; }
+        internal int MinimumAccessOverlapSavings { get; }
+        internal int OverflowCells { get; }
     }
 
     private readonly struct StorageUtilization
@@ -1521,7 +1582,11 @@ public readonly struct V27RedundancyCapitalAssessment
     public V27RedundancyCapitalAssessment(
         long portfolioCapitalMilliUnits,
         long actualRedundancyCapitalMilliUnits,
-        long avoidedDuplicateCapitalMilliUnits)
+        long avoidedDuplicateCapitalMilliUnits,
+        long actualRedundancyBomMilliUnits,
+        long actualRedundancyWorkMilliUnits,
+        long avoidedDuplicateBomMilliUnits,
+        long avoidedDuplicateWorkMilliUnits)
     {
         if (portfolioCapitalMilliUnits <= 0
             || actualRedundancyCapitalMilliUnits < 0
@@ -1530,6 +1595,10 @@ public readonly struct V27RedundancyCapitalAssessment
         PortfolioCapitalMilliUnits = portfolioCapitalMilliUnits;
         ActualRedundancyCapitalMilliUnits = actualRedundancyCapitalMilliUnits;
         AvoidedDuplicateCapitalMilliUnits = avoidedDuplicateCapitalMilliUnits;
+        ActualRedundancyBomMilliUnits = actualRedundancyBomMilliUnits;
+        ActualRedundancyWorkMilliUnits = actualRedundancyWorkMilliUnits;
+        AvoidedDuplicateBomMilliUnits = avoidedDuplicateBomMilliUnits;
+        AvoidedDuplicateWorkMilliUnits = avoidedDuplicateWorkMilliUnits;
         ActualRedundancyCapitalPermille = checked((int)(
             actualRedundancyCapitalMilliUnits * 1000L
             / portfolioCapitalMilliUnits));
@@ -1538,6 +1607,10 @@ public readonly struct V27RedundancyCapitalAssessment
     public long PortfolioCapitalMilliUnits { get; }
     public long ActualRedundancyCapitalMilliUnits { get; }
     public long AvoidedDuplicateCapitalMilliUnits { get; }
+    public long ActualRedundancyBomMilliUnits { get; }
+    public long ActualRedundancyWorkMilliUnits { get; }
+    public long AvoidedDuplicateBomMilliUnits { get; }
+    public long AvoidedDuplicateWorkMilliUnits { get; }
     public int ActualRedundancyCapitalPermille { get; }
 }
 
@@ -1553,7 +1626,13 @@ public readonly struct V27AssetBackedStageCapacityAssessment
         int maximumNormalStorageUtilizationPermille,
         int maximumFaultStorageUtilizationPermille,
         int facilityRequirementCount,
-        int minimumStorageCapacityUnits)
+        int minimumStorageCapacityUnits,
+        int maximumUsedCells,
+        int maximumExclusiveCells,
+        int maximumRawAccessCells,
+        int maximumSharedAccessCells,
+        int minimumAccessOverlapSavings,
+        int overflowCells)
     {
         Population = population;
         InteriorColumns = interiorColumns;
@@ -1565,6 +1644,12 @@ public readonly struct V27AssetBackedStageCapacityAssessment
         MaximumFaultStorageUtilizationPermille = maximumFaultStorageUtilizationPermille;
         FacilityRequirementCount = facilityRequirementCount;
         MinimumStorageCapacityUnits = minimumStorageCapacityUnits;
+        MaximumUsedCells = maximumUsedCells;
+        MaximumExclusiveCells = maximumExclusiveCells;
+        MaximumRawAccessCells = maximumRawAccessCells;
+        MaximumSharedAccessCells = maximumSharedAccessCells;
+        MinimumAccessOverlapSavings = minimumAccessOverlapSavings;
+        OverflowCells = overflowCells;
     }
 
     public int Population { get; }
@@ -1577,5 +1662,11 @@ public readonly struct V27AssetBackedStageCapacityAssessment
     public int MaximumFaultStorageUtilizationPermille { get; }
     public int FacilityRequirementCount { get; }
     public int MinimumStorageCapacityUnits { get; }
+    public int MaximumUsedCells { get; }
+    public int MaximumExclusiveCells { get; }
+    public int MaximumRawAccessCells { get; }
+    public int MaximumSharedAccessCells { get; }
+    public int MinimumAccessOverlapSavings { get; }
+    public int OverflowCells { get; }
 }
 #endif

@@ -33,6 +33,10 @@ public static class CropPlotDebugScenarios
             CropPlotRuntime runtime = scope.Container.Resolve<CropPlotRuntime>();
             IWorldItemStackRuntime items =
                 scope.Container.Resolve<IWorldItemStackRuntime>();
+            IItemTransferService transfers =
+                scope.Container.Resolve<IItemTransferService>();
+            IResourceEconomyContentCatalog catalog =
+                scope.Container.Resolve<IResourceEconomyContentCatalog>();
             BlueprintResearchRuntime research = scope.Container
                 .Resolve<ProgressionSceneRuntimeReferences>()
                 .BlueprintResearch;
@@ -66,6 +70,11 @@ public static class CropPlotDebugScenarios
                 outdoorPlot.Facility.SupportsWork(BuiltInWorkTypeIds.Sow)
                 && outdoorPlot.Facility.SupportsWork(BuiltInWorkTypeIds.Harvest),
                 "P23 does not expose sow and harvest work.");
+            Require(
+                catalog.TryGetCrop(
+                    "crop:twilight-grain",
+                    out CropDefinitionSO crop),
+                "twilight grain definition is missing.");
 
             plotObject = new GameObject("CropPlot_Runtime_Verifier");
             Facility plot = plotObject.AddComponent<Facility>();
@@ -92,11 +101,13 @@ public static class CropPlotDebugScenarios
             foreach (KeyValuePair<string, int> material in waiting.RequiredMaterials)
             {
                 Require(
-                    items.SpawnItemAt(
+                    SpawnCropMaterial(
+                        items,
+                        transfers,
+                        crop,
                         material.Key,
                         material.Value,
                         plot.centerPos,
-                        WorldItemStackState.FacilityBuffer,
                         waiting.MaterialDestinationId,
                         out int spawned)
                     && spawned == material.Value,
@@ -126,7 +137,7 @@ public static class CropPlotDebugScenarios
             Require(
                 growing.phase == CropPlotPhase.Growing,
                 $"crop did not enter growing phase: {growing.phase}");
-            growing.growthHours = 999f;
+            growing.growthHours = crop.GrowthHours;
             runtime.Restore(runtime.BuildRestore(growingSave));
             runtime.Tick();
 
@@ -137,13 +148,12 @@ public static class CropPlotDebugScenarios
                     out CropPlotWorkSnapshot harvest)
                 && harvest.Available,
                 $"harvest work unavailable: {harvest.UnavailableReason}");
-            IResourceEconomyContentCatalog catalog =
-                scope.Container.Resolve<IResourceEconomyContentCatalog>();
-            Require(
-                catalog.TryGetCrop(
-                    "crop:twilight-grain",
-                    out CropDefinitionSO crop),
-                "twilight grain definition is missing.");
+            lines.Add(VerifyHarvestOutputContainmentAdmission(
+                runtime,
+                plot,
+                items,
+                crop,
+                harvest));
             int stockBefore = CountItem(items, crop.HarvestItemId);
             Require(
                 runtime.ApplyWork(
@@ -187,12 +197,22 @@ public static class CropPlotDebugScenarios
             CropPlotSnapshot indoorWaiting = runtime.Plots.Single(entry =>
                 entry.PlotId == indoor.RequirePersistentInstanceId().Value);
             const string waterItemId = "resource:clean-water";
-            const string fuelItemId = "material:low-fuel";
+            string fuelItemId = indoorWaiting.RequiredMaterials.Keys
+                .SingleOrDefault(itemId => catalog.TryGetItem(
+                        itemId,
+                        out ResourceItemDefinitionSO definition)
+                    && (definition.IngredientTags & ResourceIngredientTag.Fuel) != 0);
             Require(
                 indoorWaiting.RequiredMaterials.ContainsKey(waterItemId)
                 && indoorWaiting.RequiredMaterials.ContainsKey("material:compost")
+                && !string.IsNullOrWhiteSpace(fuelItemId)
                 && indoorWaiting.RequiredMaterials.ContainsKey(fuelItemId),
                 "Indoor crop cycle must require water, compost, and fuel.");
+            Require(
+                catalog.TryGetCrop(
+                    "crop:cave-mushroom",
+                    out CropDefinitionSO indoorCrop),
+                "cave mushroom definition is missing.");
 
             int waterRequired = indoorWaiting.RequiredMaterials[waterItemId];
             Require(
@@ -222,11 +242,13 @@ public static class CropPlotDebugScenarios
                              StringComparison.Ordinal)))
             {
                 Require(
-                    items.SpawnItemAt(
+                    SpawnCropMaterial(
+                        items,
+                        transfers,
+                        indoorCrop,
                         material.Key,
                         material.Value,
                         indoor.centerPos,
-                        WorldItemStackState.FacilityBuffer,
                         indoorWaiting.MaterialDestinationId,
                         out int indoorMaterialSpawned)
                     && indoorMaterialSpawned == material.Value,
@@ -317,6 +339,147 @@ public static class CropPlotDebugScenarios
                     itemId,
                     StringComparison.Ordinal))
             .Sum(stack => stack.Quantity);
+    }
+
+    private static bool SpawnCropMaterial(
+        IWorldItemStackRuntime items,
+        IItemTransferService transfers,
+        CropDefinitionSO crop,
+        string itemId,
+        int amount,
+        Vector2Int position,
+        string destinationId,
+        out int spawned)
+    {
+        if (!string.Equals(itemId, crop.SeedItemId, StringComparison.Ordinal))
+        {
+            return items.SpawnItemAt(
+                itemId,
+                amount,
+                position,
+                WorldItemStackState.FacilityBuffer,
+                destinationId,
+                out spawned);
+        }
+
+        spawned = 0;
+        return crop.BaseGenome != null
+            && transfers.TrySpawnItemWithComponents(
+                itemId,
+                amount,
+                position,
+                WorldItemStackState.FacilityBuffer,
+                destinationId,
+                new[]
+                {
+                    SeedLotItemStateCodec.Encode(new SeedLotState
+                    {
+                        cropId = crop.CropId,
+                        cultivarGenomeId = crop.BaseGenome.GenomeId,
+                        generation = 0,
+                        pathogenLoad = 0f
+                    })
+                },
+                out spawned);
+    }
+
+    private static string VerifyHarvestOutputContainmentAdmission(
+        CropPlotRuntime runtime,
+        Facility plot,
+        IWorldItemStackRuntime items,
+        CropDefinitionSO crop,
+        CropPlotWorkSnapshot harvest)
+    {
+        CropPlotSaveData before = runtime.Capture().plots.Single(entry =>
+            entry.buildingInstanceId == plot.RequirePersistentInstanceId().Value);
+        string[] outputItemIds = new[]
+            {
+                crop.HarvestItemId,
+                crop.SeedItemId
+            }
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        foreach (string outputItemId in outputItemIds)
+        {
+            HashSet<string> existingIds = items.GetAllStacks()
+                .Where(stack => stack != null)
+                .Select(stack => stack.StackId)
+                .ToHashSet(StringComparer.Ordinal);
+            WorldItemStackSnapshot fixture = null;
+            try
+            {
+                Require(
+                    items.SpawnItemAt(
+                        outputItemId,
+                        1,
+                        plot.centerPos,
+                        WorldItemStackState.Loose,
+                        string.Empty,
+                        out int spawned)
+                    && spawned == 1,
+                    $"Could not fill crop output containment for {outputItemId}.");
+                fixture = items.GetAllStacks().Single(stack => stack != null
+                    && !existingIds.Contains(stack.StackId)
+                    && stack.Quantity == 1
+                    && stack.State == WorldItemStackState.Loose
+                    && string.IsNullOrWhiteSpace(stack.DestinationId)
+                    && stack.Position == plot.centerPos
+                    && string.Equals(
+                        stack.ItemId,
+                        outputItemId,
+                        StringComparison.Ordinal));
+                int physicalBefore = CountItem(items, outputItemId);
+                Require(
+                    runtime.TryGetWork(
+                        plot,
+                        BuiltInWorkTypeIds.Harvest,
+                        out CropPlotWorkSnapshot blocked)
+                    && !blocked.Available
+                    && string.Equals(
+                        blocked.UnavailableReason,
+                        FailureCode.ProductionOutputSpaceUnavailable.ToString(),
+                        StringComparison.Ordinal),
+                    $"Crop harvest remained available while {outputItemId} containment was occupied.");
+                Require(
+                    !runtime.ApplyWork(
+                        plot,
+                        BuiltInWorkTypeIds.Harvest,
+                        harvest.RequiredWork,
+                        out bool completedWhileBlocked)
+                    && !completedWhileBlocked,
+                    $"Blocked crop harvest consumed work for {outputItemId}.");
+                CropPlotSaveData blockedSave = runtime.Capture().plots.Single(entry =>
+                    entry.buildingInstanceId == before.buildingInstanceId);
+                Require(
+                    blockedSave.phase == before.phase
+                    && Math.Abs(blockedSave.harvestWork - before.harvestWork) < 0.0001f,
+                    $"Output saturation mutated crop harvest state for {outputItemId}.");
+                Require(
+                    CountItem(items, outputItemId) == physicalBefore,
+                    $"Blocked crop harvest created or deleted {outputItemId}.");
+            }
+            finally
+            {
+                if (fixture != null && fixture.Quantity > 0)
+                    items.TryConsumeStackQuantity(
+                        fixture.StackId,
+                        fixture.Quantity,
+                        out _);
+            }
+
+            Require(
+                runtime.TryGetWork(
+                    plot,
+                    BuiltInWorkTypeIds.Harvest,
+                    out CropPlotWorkSnapshot recovered)
+                && recovered.Available,
+                $"Crop harvest did not recover after clearing {outputItemId} containment.");
+        }
+
+        return "PASS CROP_OUTPUT_CONTAINMENT_TYPED_BLOCK_RECOVERY "
+            + $"plot={before.buildingInstanceId};outputs="
+            + string.Join(",", outputItemIds)
+            + ";workConserved=true;quantityConserved=true";
     }
 
     private static void VerifyStrictSaveIsolation(

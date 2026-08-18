@@ -41,16 +41,19 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
     [MenuItem("DungeonStory/V27/Verify Whole-Game Ledger Coverage")]
     public static void RunFromMenu()
     {
-        string report = RunAll();
+        string report = RunAll(out V27BalanceAuditOutput audit);
         byte[] bytes = new UTF8Encoding(false, true).GetBytes(report);
         V27BalanceArtifactWriter.WriteIfDifferent(
             ReportPath,
             stream => stream.Write(bytes, 0, bytes.Length));
+        V27BalanceAudit.RefreshManifestEvidenceHashes(audit);
         AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
         Debug.Log(report);
     }
 
-    public static string RunAll()
+    public static string RunAll() => RunAll(out _);
+
+    private static string RunAll(out V27BalanceAuditOutput audit)
     {
         string laborMatrix = V27LaborAuthorityMatrixDebugScenarios.RunAll();
         string[] requiredLaborMatrixMarkers =
@@ -73,7 +76,7 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
                 + string.Join(",", missingLaborMatrixMarkers));
         }
 
-        V27BalanceAuditOutput audit = V27BalanceAudit.Generate(
+        audit = V27BalanceAudit.Generate(
             BalanceLedgerExecutionMode.AuditOnly);
         if (audit.IntegrityFailures.Count != 0 || audit.CriticalCount != 0)
         {
@@ -87,6 +90,7 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
         RequireFreshDungeonExpansionEvidence();
         CapacityEvidenceSummary capacity =
             RequireFreshCapacityAndContinuityEvidence();
+        RequireFreshOutputCapacityEvidence();
 
         IReadOnlyList<CanonicalBalanceMetricRecord> records = audit.Ledger.Records;
         string[] missingDomains = RequiredDomains
@@ -200,6 +204,8 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
             .Append("; windows=")
             .Append(capacity.PairedWindows.ToString(CultureInfo.InvariantCulture))
             .Append("; accessEgressClutter=0; rngCrossTalk=0\n");
+        report.Append("PASS V27_WHOLE_GAME_OUTPUT_CAPACITY checks=2; ")
+            .Append("typedBlock=true; workConserved=true; quantityConserved=true\n");
         foreach (string domain in RequiredDomains)
         {
             int count = records.Count(record =>
@@ -213,6 +219,34 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
         return report.ToString();
     }
 
+    private static void RequireFreshOutputCapacityEvidence()
+    {
+        string path = Path.GetFullPath(
+            V27OutputCapacityEvidenceDebugScenarios.ReportPath);
+        if (!File.Exists(path))
+            throw new InvalidOperationException(
+                "V27 output-capacity PlayMode evidence is missing.");
+        string[] lines = File.ReadAllLines(path, Encoding.UTF8);
+        string[] exactLines =
+        {
+            "RESULT=PASS; checks=2; failures=0",
+            "sourceDigest=" + V27OutputCapacityEvidenceDebugScenarios
+                .ComputeEvidenceSourceDigest()
+        };
+        if (exactLines.Any(expected =>
+                !lines.Contains(expected, StringComparer.Ordinal))
+            || !lines.Any(line => line.StartsWith(
+                "PASS OUTPUT_CONTAINMENT_TYPED_BLOCK_RECOVERY ",
+                StringComparison.Ordinal))
+            || !lines.Any(line => line.StartsWith(
+                "PASS CROP_OUTPUT_CONTAINMENT_TYPED_BLOCK_RECOVERY ",
+                StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException(
+                "V27 output-capacity PlayMode evidence is stale or incomplete.");
+        }
+    }
+
     private static (double ActualMean, double EffectiveMean)
         RequireFreshDailyRoutineEvidence()
     {
@@ -222,7 +256,11 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
             "Assets/Scripts/Models/Work/SettlementLaborAuthority.cs",
             "Assets/Scripts/Services/Character/AI/CharacterAiDecisionPipeline.cs",
             "Assets/Scripts/Services/Character/Ability/AbilityWork.cs",
-            "Assets/Scripts/Services/Character/Work/WorkTaskExecutor.cs"
+            "Assets/Scripts/Services/Character/Work/WorkTaskExecutor.cs",
+            "Assets/Scripts/Models/Economy/Content/WorldResourceRuntime.cs",
+            "Assets/Scripts/Services/Economy/ProductionItemGateway.cs",
+            "Assets/Scripts/Services/Economy/CropEcologyRuntime.cs",
+            "Assets/Scripts/Services/Economy/CropPlotRuntime.cs"
         };
         DateTime latestSource = sourcePaths
             .Select(Path.GetFullPath)

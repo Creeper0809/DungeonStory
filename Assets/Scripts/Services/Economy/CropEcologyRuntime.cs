@@ -6,6 +6,11 @@ using UnityEngine;
 
 public interface IPhysicalSeedLotGateway
 {
+    bool CanSpawnSeedLot(
+        string seedItemId,
+        int amount,
+        Vector2Int position,
+        out DomainFailure failure);
     bool RequestBestSeedLot(
         string seedItemId,
         string cropId,
@@ -36,6 +41,40 @@ public sealed class PhysicalSeedLotGateway : IPhysicalSeedLotGateway
     {
         this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
         this.transfers = transfers ?? throw new ArgumentNullException(nameof(transfers));
+    }
+
+    public bool CanSpawnSeedLot(
+        string seedItemId,
+        int amount,
+        Vector2Int position,
+        out DomainFailure failure)
+    {
+        string normalized = seedItemId?.Trim() ?? string.Empty;
+        if (amount <= 0 || string.IsNullOrWhiteSpace(normalized))
+        {
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputUnavailable,
+                normalized,
+                amount.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            return false;
+        }
+        bool occupied = stock.GetAllStacks().Any(value => value != null
+            && value.Quantity > 0
+            && value.State == WorldItemStackState.Loose
+            && string.IsNullOrWhiteSpace(value.DestinationId)
+            && value.Position == position
+            && string.Equals(value.ItemId, normalized, StringComparison.Ordinal));
+        if (occupied)
+        {
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputSpaceUnavailable,
+                normalized,
+                position.x.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                position.y.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            return false;
+        }
+        failure = DomainFailure.None;
+        return true;
     }
 
     public bool RequestBestSeedLot(

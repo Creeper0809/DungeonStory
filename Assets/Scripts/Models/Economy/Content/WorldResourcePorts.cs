@@ -102,6 +102,11 @@ public interface IWorldResourceNodeHostPort
 
 public interface IWorldResourceOutputPort
 {
+    bool CanSpawnOutput(
+        string itemId,
+        int amount,
+        Vector2Int position,
+        out DomainFailure failure);
     bool SpawnOutput(string itemId, int amount, Vector2Int position);
 }
 

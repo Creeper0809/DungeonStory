@@ -1914,6 +1914,16 @@ public static class ProductionEconomyDebugScenarios
             return true;
         }
 
+        public bool CanSpawnOutput(
+            string itemId,
+            int amount,
+            Vector2Int position,
+            out DomainFailure failure)
+        {
+            failure = DomainFailure.None;
+            return amount > 0;
+        }
+
         public int CountBufferedOutput(string itemId)
         {
             return buffered

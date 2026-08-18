@@ -3050,3 +3050,16 @@ Current authoritative evidence:
 - Final current-source audit is `RESULT=PASS; rows=84240; critical=0; collapsed=327; approved=327; scc=313; minimumMarginMilliEwu=-14364087; integrityFailures=0`.
 - Final whole-game coverage is `RESULT=PASS; rows=84240; domains=12; producerOrphans=0; consumerOrphans=0; approvedUnapplied=0`; a repeated current-source capture produced identical bytes by design.
 - Final deterministic regeneration is `ULTIMATE_NOOP_EXACT=true`; Unity is idle in EditMode and Console Warning/Error is 0/0.
+
+# 2026-08-19 strict completion re-audit (active)
+
+- [x] Re-read the attached V27 authority and compare every explicit requirement against current source and durable evidence.
+- [x] Correct the RNG manifest aggregate-row counting error (`namedIsolationTests=10`, not 11) and regenerate the EditMode artifact.
+- [x] Project every required capacity, continuity, clutter, RNG and expansion metric into the canonical V27 ledger rather than leaving it only in side reports.
+- [x] Add a production output-capacity boundary for harvest/mining so one bounded source batch is allowed, full storage+containment blocks with a typed reason, and no output is lost or duplicated.
+- [x] Add focused regressions for output saturation/recovery and regenerate the affected deterministic artifacts.
+- [x] Freeze source, compile through Unity MCP, and rerun current-source production-live fault/logistics evidence without saving or overwriting the user's dirty GameplayScene.
+- [x] Re-run final V27 audit, whole-game coverage, deterministic no-op, economy/SCC, three-seed evidence and Console 0/0.
+- [ ] Commit only task-owned changes, push a follow-up branch, obtain green CI/review evidence, merge to main, and verify remote main.
+
+Current correction: the strict gaps are now closed. Final current-source evidence is `RESULT=PASS; rows=84389; critical=0; integrityFailures=0`, all three five-day seeds pass with actual/effective means `53.277911/48.914867 WU/성인·일`, two whole-game captures are byte-identical across all 11 key artifacts, and Unity Console is `0/0`. Only Git publication, hosted CI/review, main merge, and remote-main verification remain.

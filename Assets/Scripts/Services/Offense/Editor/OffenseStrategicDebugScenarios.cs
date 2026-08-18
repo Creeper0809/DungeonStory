@@ -1987,6 +1987,16 @@ public static class OffenseStrategicDebugScenarios
             return true;
         }
 
+        public bool CanSpawnOutput(
+            string itemId,
+            int amount,
+            Vector2Int position,
+            out DomainFailure failure)
+        {
+            failure = DomainFailure.None;
+            return amount > 0;
+        }
+
         public void PrioritizeDestination(string destinationId)
         {
         }

@@ -93,9 +93,10 @@ public static class V27RandomStreamManifestDebugScenarios
             failures,
             "WILDLIFE_ACTOR_SCOPE_MISSING");
         string isolation = RandomStreamIsolationDebugScenarios.RunAll();
+        const string isolationAggregateMarker =
+            "RESULT=PASS; suite=RandomStreamIsolationDebugScenarios";
         string[] requiredIsolationMarkers =
         {
-            "RESULT=PASS; suite=RandomStreamIsolationDebugScenarios",
             "PASS RNG_ACTOR_EXTRA_DRAWS_CROSS_TALK_ZERO draws=100",
             "PASS RNG_DECISION_MOVEMENT_CROSS_TALK_ZERO draws=100",
             "PASS RNG_ACTOR_SPAWN_DESPAWN_EXISTING_STREAMS_UNCHANGED",
@@ -107,11 +108,21 @@ public static class V27RandomStreamManifestDebugScenarios
             "PASS RNG_CAUSAL_CONE_OUTSIDE_STREAMS_UNCHANGED",
             "PASS RNG_LEGACY_GLOBAL_CHARACTER_STREAMS_REJECTED"
         };
+        if (isolation.IndexOf(
+                isolationAggregateMarker,
+                StringComparison.Ordinal) < 0)
+        {
+            failures.Add(
+                "RNG_ISOLATION_MARKER_MISSING:" + isolationAggregateMarker);
+        }
         foreach (string marker in requiredIsolationMarkers)
         {
             if (isolation.IndexOf(marker, StringComparison.Ordinal) < 0)
                 failures.Add("RNG_ISOLATION_MARKER_MISSING:" + marker);
         }
+
+        RandomStreamDiagnosticSnapshot[] diagnosticSamples =
+            CaptureDeterministicDiagnosticSamples();
 
         StringBuilder builder = new();
         builder.Append("RESULT=")
@@ -137,6 +148,16 @@ public static class V27RandomStreamManifestDebugScenarios
                 .Append(consumer.HasProviderReference ? "true" : "false")
                 .Append('\n');
         }
+        foreach (RandomStreamDiagnosticSnapshot snapshot in diagnosticSamples)
+        {
+            builder.Append("SNAPSHOT\tstreamId=")
+                .Append(snapshot.StreamId)
+                .Append("\tstate=")
+                .Append(snapshot.State)
+                .Append("\tdrawCount=")
+                .Append(snapshot.DrawCount)
+                .Append('\n');
+        }
         builder.Append(isolation);
         foreach (string failure in failures.OrderBy(value => value, StringComparer.Ordinal))
             builder.Append("FAIL\t").Append(failure).Append('\n');
@@ -144,6 +165,25 @@ public static class V27RandomStreamManifestDebugScenarios
         if (failures.Count > 0)
             throw new InvalidOperationException(builder.ToString());
         return builder.ToString();
+    }
+
+    private static RandomStreamDiagnosticSnapshot[]
+        CaptureDeterministicDiagnosticSamples()
+    {
+        RandomStreamProvider provider = new(271828);
+        CharacterId actor = CharacterId.FromStableSuffix("v27-ledger-sample");
+        IRandomStream decision = provider.Get(
+            "character-ai:" + actor.Value);
+        IRandomStream movement = provider.Get(
+            "character-movement:" + actor.Value);
+        IRandomStream genetics = provider.Get("crop:genetics");
+        decision.NextInt(0, 1000);
+        decision.NextInt(0, 1000);
+        decision.NextInt(0, 1000);
+        movement.NextInt(0, 1000);
+        movement.NextInt(0, 1000);
+        genetics.NextInt(0, 1000);
+        return provider.Capture().ToArray();
     }
 
     private static string ClassifyScope(string source)

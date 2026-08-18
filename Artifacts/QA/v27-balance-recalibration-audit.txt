@@ -1,4 +1,4 @@
-RESULT=PASS; rows=84240; critical=0; collapsed=327; approved=327; scc=313; minimumMarginMilliEwu=-14364087; integrityFailures=0
+RESULT=PASS; rows=84389; critical=0; collapsed=327; approved=327; scc=313; minimumMarginMilliEwu=-14364087; integrityFailures=0
 
 APPROVED recipe:advanced-medicine metric=direct-wu reason=labor-density-drift
 

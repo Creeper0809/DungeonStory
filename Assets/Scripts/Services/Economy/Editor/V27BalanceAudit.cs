@@ -65,6 +65,8 @@ public static class V27BalanceAudit
         "balance:v27:six-adult-food-water-closed-loop";
     public const string IntegratedCapacityValidationBaselineRecordId =
         "balance:v27:service-spatial-clutter-rng-validation-v1";
+    public const string OutputContainmentBaselineRecordId =
+        "balance:v27:resource-output-containment-saturation-v1";
     private const string GeneratorVersion = "v27.13.1";
     private const decimal LaborScale = 2.25m;
 
@@ -366,7 +368,35 @@ public static class V27BalanceAudit
         return new V27BalanceAuditOutput(
             authoritySnapshot,
             artifactManifest,
+            assetPatchDigest,
             Array.AsReadOnly(integrityFailures.ToArray()));
+    }
+
+    public static void RefreshManifestEvidenceHashes(
+        V27BalanceAuditOutput output)
+    {
+        if (output == null)
+            throw new ArgumentNullException(nameof(output));
+        string csvHash = V27BalanceArtifactWriter.ComputeSha256(
+            V27BalanceCsvSerializer.ArtifactPath);
+        string markdownHash = V27BalanceArtifactWriter.ComputeSha256(MarkdownPath);
+        string auditHash = V27BalanceArtifactWriter.ComputeSha256(AuditPath);
+        string anomalyHash = V27BalanceArtifactWriter.ComputeSha256(
+            V27BalanceJsonSerializer.AnomalyArtifactPath);
+        string sourceInventoryHash = V27BalanceArtifactWriter.ComputeSha256(
+            SourceInventoryPath);
+        string approvalHash = V27BalanceArtifactWriter.ComputeSha256(ApprovalPath);
+        V27BalanceArtifactWriter.WriteIfDifferent(ManifestPath, stream =>
+            WriteManifest(
+                stream,
+                output.ArtifactManifest,
+                csvHash,
+                markdownHash,
+                auditHash,
+                anomalyHash,
+                sourceInventoryHash,
+                approvalHash,
+                output.AssetPatchDigest));
     }
 
     private static void CaptureCombatEncounterValues(
@@ -2893,6 +2923,22 @@ public static class V27BalanceAudit
                 value.NetFoodCoveragePermille, survivalSource, survivalDigest,
                 "post-loss physical nutrition / daily demand", SixAdultClosedLoopBaselineRecordId);
             CaptureInvariantMetric(capture, "survival", "population-stage", stableId,
+                "gross-food-target", "milli-nutrition/day",
+                value.GrossFoodTargetMilliNutrition, survivalSource, survivalDigest,
+                "ceil daily demand * 1.25", SixAdultClosedLoopBaselineRecordId);
+            CaptureInvariantMetric(capture, "survival", "population-stage", stableId,
+                "net-food-target", "milli-nutrition/day",
+                value.NetFoodTargetMilliNutrition, survivalSource, survivalDigest,
+                "ceil daily demand * 1.10", SixAdultClosedLoopBaselineRecordId);
+            CaptureInvariantMetric(capture, "survival", "population-stage", stableId,
+                "gross-food-produced", "milli-nutrition/day",
+                value.GrossFoodProducedMilliNutrition, survivalSource, survivalDigest,
+                "physical crop and meal throughput", SixAdultClosedLoopBaselineRecordId);
+            CaptureInvariantMetric(capture, "survival", "population-stage", stableId,
+                "net-food-produced", "milli-nutrition/day",
+                value.NetFoodProducedMilliNutrition, survivalSource, survivalDigest,
+                "gross production minus authored loss", SixAdultClosedLoopBaselineRecordId);
+            CaptureInvariantMetric(capture, "survival", "population-stage", stableId,
                 "drinking-water-demand", "milli-units/day",
                 value.DrinkingWaterDemandMilliUnitsPerDay, survivalSource, survivalDigest,
                 "population thirst / safe drink recovery", SixAdultClosedLoopBaselineRecordId);
@@ -2908,6 +2954,37 @@ public static class V27BalanceAudit
                 "recurring-survival-share", "permille",
                 value.RecurringSharePermille, survivalSource, survivalDigest,
                 "recurring work / population effective work", SixAdultClosedLoopBaselineRecordId);
+            long effectiveMilliWu = checked(population * 45000L);
+            const int logisticsReservePermille = 150;
+            const int emergencyReservePermille = 100;
+            int growthAvailablePermille = checked(
+                1000 - value.RecurringSharePermille
+                - logisticsReservePermille - emergencyReservePermille);
+            CaptureInvariantMetric(capture, "labor", "population-stage", stableId,
+                "effective-work-capacity", "mWU/day", effectiveMilliWu,
+                survivalSource, survivalDigest, "population * 45 effective WU/day",
+                SixAdultClosedLoopBaselineRecordId);
+            CaptureInvariantMetric(capture, "labor", "population-stage", stableId,
+                "crop-work", "mWU/day", value.CropMilliWuPerDay,
+                survivalSource, survivalDigest, "sow + harvest recurring work",
+                SixAdultClosedLoopBaselineRecordId);
+            CaptureInvariantMetric(capture, "labor", "population-stage", stableId,
+                "cooking-work", "mWU/day", value.CookingMilliWuPerDay,
+                survivalSource, survivalDigest, "physical meal cycles * direct work",
+                SixAdultClosedLoopBaselineRecordId);
+            CaptureInvariantMetric(capture, "labor", "population-stage", stableId,
+                "water-work", "mWU/day", value.WaterMilliWuPerDay,
+                survivalSource, survivalDigest, "clean-water cycles * direct work",
+                SixAdultClosedLoopBaselineRecordId);
+            CaptureInvariantMetric(capture, "labor", "population-stage", stableId,
+                "growth-labor-available", "permille", growthAvailablePermille,
+                survivalSource, survivalDigest,
+                "1000 - recurring - logistics(150) - emergency(100)",
+                PopulationCapacityBaselineRecordId);
+            CaptureInvariantMetric(capture, "labor", "population-stage", stableId,
+                "emergency-labor-reserve", "permille", emergencyReservePermille,
+                survivalSource, survivalDigest, "authored minimum emergency reserve",
+                PopulationCapacityBaselineRecordId);
             CaptureInvariantMetric(capture, "survival", "population-stage", stableId,
                 "immediate-meal-buffer", "units",
                 value.ImmediateMealUnits, survivalSource, survivalDigest,
@@ -2928,6 +3005,12 @@ public static class V27BalanceAudit
                 "required-crop-plots", "plots",
                 value.CropPlots, survivalSource, survivalDigest,
                 "ceil gross grain demand / daily physical crop yield", SixAdultClosedLoopBaselineRecordId);
+            CaptureInvariantMetric(capture, "space", "population-stage", stableId,
+                "expansion-tier", "tier",
+                PopulationStagePortfolioCatalog.TierForPopulation(population),
+                survivalSource, survivalDigest,
+                "authored research-gated capacity tier; developer E-key excluded",
+                PopulationCapacityBaselineRecordId);
         }
 
         IReadOnlyList<V27AssetBackedStageCapacityAssessment> spatial =
@@ -2976,6 +3059,30 @@ public static class V27BalanceAudit
                 V27PopulationStageSpatialBaseline.FixedWorldFeatureCells(value.Population),
                 spatialSource, spatialDigest,
                 "live interior resource-node cross-check authority", PopulationCapacityBaselineRecordId);
+            CaptureInvariantMetric(capture, "space", "population-stage", stableId,
+                "maximum-effective-used-cells", "cells", value.MaximumUsedCells,
+                spatialSource, spatialDigest, "exclusive U shared operational U overflow U fixed",
+                SharedAccessBaselineRecordId);
+            CaptureInvariantMetric(capture, "space", "population-stage", stableId,
+                "maximum-exclusive-footprint-cells", "cells", value.MaximumExclusiveCells,
+                spatialSource, spatialDigest, "union of authored physical footprints",
+                SharedAccessBaselineRecordId);
+            CaptureInvariantMetric(capture, "space", "population-stage", stableId,
+                "maximum-raw-access-cells", "cells", value.MaximumRawAccessCells,
+                spatialSource, spatialDigest, "sum of facility access cells before overlap",
+                SharedAccessBaselineRecordId);
+            CaptureInvariantMetric(capture, "space", "population-stage", stableId,
+                "maximum-shared-operational-union-cells", "cells", value.MaximumSharedAccessCells,
+                spatialSource, spatialDigest, "union of access, queue and shared corridor cells",
+                SharedAccessBaselineRecordId);
+            CaptureInvariantMetric(capture, "space", "population-stage", stableId,
+                "minimum-access-overlap-savings", "cells", value.MinimumAccessOverlapSavings,
+                spatialSource, spatialDigest, "raw access sum - shared operational union",
+                SharedAccessBaselineRecordId);
+            CaptureInvariantMetric(capture, "storage", "population-stage", stableId,
+                "overflow-containment-cells", "cells", value.OverflowCells,
+                spatialSource, spatialDigest, "largest single-fault production burst containment",
+                OverflowContainmentBaselineRecordId);
         }
 
         foreach (SurvivalContinuityPathSnapshot path in
@@ -3014,6 +3121,31 @@ public static class V27BalanceAudit
                 "stain-output", "milli-units", path.StainMilliUnits,
                 continuitySource, continuityDigest, "service-path authored consequence",
                 path.IsPrimitive ? PrimitiveFallbackBaselineRecordId : ServiceContinuityBaselineRecordId);
+            CaptureInvariantMetric(capture, "continuity", "service-path", stableId,
+                "primitive-fallback-role", "boolean", path.IsPrimitive ? 1 : 0,
+                continuitySource, continuityDigest,
+                "1=fallback primitive path; 0=primary facility path",
+                path.IsPrimitive ? PrimitiveFallbackBaselineRecordId : ServiceContinuityBaselineRecordId);
+        }
+
+        foreach (ServiceContinuityRequirement requirement in
+                 PopulationStagePortfolioCatalog.Capture(6).CriticalServices)
+        {
+            string stableId = "service-continuity:" + requirement.ServiceId;
+            CaptureInvariantMetric(capture, "continuity", "service-requirement", stableId,
+                "outage-coverage", "hours", requirement.OutageCoverageHours,
+                continuitySource, continuityDigest,
+                "single primary-path outage covered by an independent production fallback",
+                ServiceContinuityBaselineRecordId);
+            CaptureInvariantMetric(capture, "continuity", "service-requirement", stableId,
+                "primary-fallback-independent", "boolean",
+                string.Equals(
+                    requirement.PrimaryPathId,
+                    requirement.FallbackPathId,
+                    StringComparison.Ordinal) ? 0 : 1,
+                continuitySource, continuityDigest,
+                "primaryPathId != fallbackPathId",
+                ServiceContinuityBaselineRecordId);
         }
 
         V27RedundancyCapitalAssessment capital =
@@ -3028,8 +3160,67 @@ public static class V27BalanceAudit
             capital.AvoidedDuplicateCapitalMilliUnits, spatialSource, spatialDigest,
             "primitive N+1 avoids duplicate food-production and water facility capital",
             PrimitiveFallbackBaselineRecordId);
+        CaptureInvariantMetric(capture, "capital", "population-stage",
+            "population-stage:6", "actual-redundancy-bom", "milli-capital",
+            capital.ActualRedundancyBomMilliUnits, spatialSource, spatialDigest,
+            "construction BOM portion of installed duplicate service capacity",
+            ServiceContinuityBaselineRecordId);
+        CaptureInvariantMetric(capture, "capital", "population-stage",
+            "population-stage:6", "actual-redundancy-work", "mWU",
+            capital.ActualRedundancyWorkMilliUnits, spatialSource, spatialDigest,
+            "construction work portion of installed duplicate service capacity",
+            ServiceContinuityBaselineRecordId);
+        CaptureInvariantMetric(capture, "capital", "population-stage",
+            "population-stage:6", "avoided-duplicate-service-bom", "milli-capital",
+            capital.AvoidedDuplicateBomMilliUnits, spatialSource, spatialDigest,
+            "BOM avoided by primitive N+1 paths",
+            PrimitiveFallbackBaselineRecordId);
+        CaptureInvariantMetric(capture, "capital", "population-stage",
+            "population-stage:6", "avoided-duplicate-service-work", "mWU",
+            capital.AvoidedDuplicateWorkMilliUnits, spatialSource, spatialDigest,
+            "construction work avoided by primitive N+1 paths",
+            PrimitiveFallbackBaselineRecordId);
 
         CapturePairedRunMetrics(capture);
+        CaptureRandomStreamMetrics(capture);
+        CaptureOutputCapacityMetrics(capture);
+    }
+
+    private static void CaptureOutputCapacityMetrics(
+        BalanceCaptureFactory capture)
+    {
+        string path = V27OutputCapacityEvidenceDebugScenarios.ReportPath;
+        if (!File.Exists(path))
+            throw new InvalidOperationException(
+                "V27 output-capacity PlayMode evidence is missing.");
+        string[] lines = File.ReadAllLines(path, Encoding.UTF8);
+        string expectedSourceDigest = V27OutputCapacityEvidenceDebugScenarios
+            .ComputeEvidenceSourceDigest();
+        if (!lines.Contains("RESULT=PASS; checks=2; failures=0", StringComparer.Ordinal)
+            || !lines.Contains(
+                "sourceDigest=" + expectedSourceDigest,
+                StringComparer.Ordinal)
+            || !lines.Any(line => line.StartsWith(
+                "PASS OUTPUT_CONTAINMENT_TYPED_BLOCK_RECOVERY ",
+                StringComparison.Ordinal))
+            || !lines.Any(line => line.StartsWith(
+                "PASS CROP_OUTPUT_CONTAINMENT_TYPED_BLOCK_RECOVERY ",
+                StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException(
+                "V27 output-capacity PlayMode evidence is stale or incomplete.");
+        }
+
+        CaptureInvariantMetric(capture, "production", "output-capacity",
+            "output-capacity:world-resource", "typed-block-recovery", "boolean", 1,
+            path, expectedSourceDigest,
+            "physical source containment blocks without consuming work or resource cycles",
+            OutputContainmentBaselineRecordId);
+        CaptureInvariantMetric(capture, "agriculture", "output-capacity",
+            "output-capacity:crop-harvest", "typed-block-recovery", "boolean", 1,
+            path, expectedSourceDigest,
+            "harvest and seed-lot containment block without consuming work or quantity",
+            OutputContainmentBaselineRecordId);
     }
 
     private static void CapturePairedRunMetrics(BalanceCaptureFactory capture)
@@ -3075,6 +3266,155 @@ public static class V27BalanceAudit
             "outside-causal-cone-divergence", "streams",
             ParseKey(crossTalk, "outsideConeDivergence"), path, sourceDigest,
             "unaffected stream divergence", CounterfactualRngBaselineRecordId);
+
+        const string pairedCsvPath = "Artifacts/QA/v27-balance-paired-run-rng.csv";
+        const string floorCsvPath = "Artifacts/QA/v27-balance-floor-clutter.csv";
+        long[] dispatch = ReadIntegerCsvColumn(pairedCsvPath, "dispatchWaitMilliWu");
+        long[] reservation = ReadIntegerCsvColumn(pairedCsvPath, "reservationWaitMilliWu");
+        long[] access = ReadIntegerCsvColumn(pairedCsvPath, "facilityAccessWaitMilliWu");
+        long[] noPath = ReadIntegerCsvColumn(pairedCsvPath, "noPathMilliWu");
+        long[] replans = ReadIntegerCsvColumn(pairedCsvPath, "replanCount");
+        long[] stepAside = ReadIntegerCsvColumn(pairedCsvPath, "stepAsideCount");
+        string pairedCsvDigest = HashText(File.ReadAllText(pairedCsvPath));
+        CaptureInvariantMetric(capture, "logistics", "paired-run", "paired-run:four-arm",
+            "haul-dispatch-wait-p95", "mWU", Percentile95(dispatch),
+            pairedCsvPath, pairedCsvDigest, "p95 fixed-window haul dispatch wait",
+            PairedRunBaselineRecordId);
+        CaptureInvariantMetric(capture, "logistics", "paired-run", "paired-run:four-arm",
+            "reservation-wait-p95", "mWU", Percentile95(reservation),
+            pairedCsvPath, pairedCsvDigest, "p95 fixed-window reservation wait",
+            PairedRunBaselineRecordId);
+        CaptureInvariantMetric(capture, "logistics", "paired-run", "paired-run:four-arm",
+            "facility-access-wait-p95", "mWU", Percentile95(access),
+            pairedCsvPath, pairedCsvDigest, "p95 fixed-window facility access wait",
+            PairedRunBaselineRecordId);
+        CaptureInvariantMetric(capture, "logistics", "paired-run", "paired-run:four-arm",
+            "no-path-wait-p95", "mWU", Percentile95(noPath),
+            pairedCsvPath, pairedCsvDigest, "p95 fixed-window no-path wait",
+            PairedRunBaselineRecordId);
+        CaptureInvariantMetric(capture, "logistics", "paired-run", "paired-run:four-arm",
+            "maximum-replan-count", "events/window", replans.Max(),
+            pairedCsvPath, pairedCsvDigest, "maximum replans in one fixed game-time window",
+            PairedRunBaselineRecordId);
+        CaptureInvariantMetric(capture, "logistics", "paired-run", "paired-run:four-arm",
+            "maximum-step-aside-count", "events/window", stepAside.Max(),
+            pairedCsvPath, pairedCsvDigest, "maximum StepAside events in one fixed game-time window",
+            PairedRunBaselineRecordId);
+        CaptureInvariantMetric(capture, "rng", "paired-run", "paired-run:four-arm",
+            "clean-repeatability-exact", "boolean",
+            RequireReportLine(lines, "PASS\tPAIRED_RUN_CLEAN_REPEATABILITY_EXACT\t") != null ? 1 : 0,
+            path, sourceDigest, "cleanRepeatA and cleanRepeatB exact semantic/RNG/mWU equality",
+            CounterfactualRngBaselineRecordId);
+        CaptureInvariantMetric(capture, "logistics", "paired-run", "paired-run:four-arm",
+            "burst-quantity-conserved", "boolean",
+            RequireReportLine(lines, "PASS\tPAIRED_BURST_QUANTITY_CONSERVED\t") != null ? 1 : 0,
+            path, sourceDigest, "all burst rows conserve delivered plus outstanding quantity",
+            FloorClutterBaselineRecordId);
+
+        long[] looseStacks = ReadIntegerCsvColumn(floorCsvPath, "looseStacks");
+        long[] looseQuantity = ReadIntegerCsvColumn(floorCsvPath, "looseQuantity");
+        long[] immediateFailures = ReadIntegerCsvColumn(floorCsvPath, "immediateFailures");
+        long[] clutterSeconds = ReadIntegerCsvColumn(floorCsvPath, "clutterCellSeconds");
+        string floorCsvDigest = HashText(File.ReadAllText(floorCsvPath));
+        CaptureInvariantMetric(capture, "clutter", "paired-run", "paired-run:four-arm",
+            "maximum-loose-stack-count", "stacks", looseStacks.Max(),
+            floorCsvPath, floorCsvDigest, "maximum observed physical Loose stack count",
+            FloorClutterBaselineRecordId);
+        CaptureInvariantMetric(capture, "clutter", "paired-run", "paired-run:four-arm",
+            "maximum-loose-quantity", "units", looseQuantity.Max(),
+            floorCsvPath, floorCsvDigest, "maximum observed physical Loose quantity",
+            FloorClutterBaselineRecordId);
+        CaptureInvariantMetric(capture, "clutter", "paired-run", "paired-run:four-arm",
+            "access-egress-clutter-failures", "cells", immediateFailures.Max(),
+            floorCsvPath, floorCsvDigest, "immediate failures on access, egress or stair landing",
+            FloorClutterBaselineRecordId);
+        CaptureInvariantMetric(capture, "clutter", "paired-run", "paired-run:four-arm",
+            "maximum-clutter-cell-seconds", "cell-seconds", clutterSeconds.Max(),
+            floorCsvPath, floorCsvDigest, "maximum clutter occupancy in one fixed window",
+            FloorClutterBaselineRecordId);
+    }
+
+    private static void CaptureRandomStreamMetrics(BalanceCaptureFactory capture)
+    {
+        const string path = "Artifacts/QA/v27-balance-random-stream-manifest.txt";
+        if (!File.Exists(path))
+            throw new InvalidOperationException("V27 random-stream manifest is missing.");
+        string[] lines = File.ReadAllLines(path);
+        if (lines.Length == 0
+            || !lines[0].StartsWith("RESULT=PASS;", StringComparison.Ordinal))
+            throw new InvalidOperationException("V27 random-stream manifest is not PASS.");
+        string digest = HashText(File.ReadAllText(path));
+        string[] snapshots = lines
+            .Where(line => line.StartsWith("SNAPSHOT\t", StringComparison.Ordinal))
+            .ToArray();
+        if (snapshots.Length == 0)
+            throw new InvalidOperationException("V27 random-stream diagnostic snapshots are missing.");
+        foreach (string line in snapshots)
+        {
+            string streamId = ParseTextKey(line, "streamId");
+            ulong state = ulong.Parse(
+                ParseTextKey(line, "state"),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture);
+            long draws = long.Parse(
+                ParseTextKey(line, "drawCount"),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture);
+            string stableId = "random-stream:" + streamId;
+            CaptureInvariantMetric(capture, "rng", "random-stream", stableId,
+                "state-high32", "uint32", (long)(state >> 32),
+                path, digest, "upper 32 bits of deterministic stream state",
+                CounterfactualRngBaselineRecordId);
+            CaptureInvariantMetric(capture, "rng", "random-stream", stableId,
+                "state-low32", "uint32", (long)(state & 0xffffffffUL),
+                path, digest, "lower 32 bits of deterministic stream state",
+                CounterfactualRngBaselineRecordId);
+            CaptureInvariantMetric(capture, "rng", "random-stream", stableId,
+                "draw-count", "draws", draws,
+                path, digest, "state-advancing draws after deterministic sample schedule",
+                CounterfactualRngBaselineRecordId);
+        }
+    }
+
+    private static long[] ReadIntegerCsvColumn(string path, string column)
+    {
+        if (!File.Exists(path))
+            throw new InvalidOperationException("Missing V27 CSV evidence: " + path);
+        string[] lines = File.ReadAllLines(path);
+        if (lines.Length < 2)
+            throw new InvalidOperationException("Empty V27 CSV evidence: " + path);
+        string[] headers = lines[0].Split(',');
+        int index = Array.FindIndex(headers, value =>
+            string.Equals(value, column, StringComparison.Ordinal));
+        if (index < 0)
+            throw new InvalidOperationException($"Missing CSV column {column}: {path}");
+        return lines.Skip(1)
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .Select(line => line.Split(','))
+            .Select(values => long.Parse(
+                values[index], NumberStyles.Integer, CultureInfo.InvariantCulture))
+            .ToArray();
+    }
+
+    private static long Percentile95(IEnumerable<long> source)
+    {
+        long[] values = source.OrderBy(value => value).ToArray();
+        if (values.Length == 0)
+            throw new InvalidOperationException("Cannot compute p95 of an empty sequence.");
+        int index = checked((int)Math.Ceiling(values.Length * 0.95d) - 1);
+        return values[Math.Max(0, Math.Min(values.Length - 1, index))];
+    }
+
+    private static string ParseTextKey(string line, string key)
+    {
+        foreach (string token in line.Split(new[] { ';', '\t' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            int separator = token.IndexOf('=');
+            if (separator > 0
+                && string.Equals(token.Substring(0, separator).Trim(), key, StringComparison.Ordinal))
+                return token.Substring(separator + 1).Trim();
+        }
+        throw new InvalidOperationException("Missing text key " + key + " in " + line);
     }
 
     private static string RequireReportLine(IEnumerable<string> lines, string prefix) =>
@@ -5021,17 +5361,20 @@ public sealed class V27BalanceAuditOutput
     public V27BalanceAuditOutput(
         BalanceAuthoritySnapshot authoritySnapshot,
         BalanceArtifactManifest artifactManifest,
+        string assetPatchDigest,
         IReadOnlyList<string> integrityFailures)
     {
         AuthoritySnapshot = authoritySnapshot
             ?? throw new ArgumentNullException(nameof(authoritySnapshot));
         ArtifactManifest = artifactManifest
             ?? throw new ArgumentNullException(nameof(artifactManifest));
+        AssetPatchDigest = assetPatchDigest ?? string.Empty;
         IntegrityFailures = integrityFailures;
     }
 
     public BalanceAuthoritySnapshot AuthoritySnapshot { get; }
     public BalanceArtifactManifest ArtifactManifest { get; }
+    public string AssetPatchDigest { get; }
     public FrozenBalanceLedger Ledger => AuthoritySnapshot.Ledger;
     public int CriticalCount => ArtifactManifest.CriticalCount;
     public int SccCount => ArtifactManifest.SccCount;
