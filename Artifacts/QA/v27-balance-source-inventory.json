@@ -3523,6 +3523,6 @@
     {"path":"tools/DungeonStory.BalanceAnalyzers/build-analyzer.ps1","sha256":"d32d3810e420aef92ca24cbf0dd326046afd3ae242072aeb2600c3a10cd329a0"},
     {"path":"tools/DungeonStory.BalanceAnalyzers/test-analyzer.ps1","sha256":"0eb08c29bfed6aaa8954564fad0ca85cb84e39ec3fc180120fd3a700f3b39c0c"},
     {"path":"tools/DungeonStory.BalanceAnalyzers/verify_analyzer.py","sha256":"47d36384c1476d25edc6b8cd8acc569179ccbedf545a898391e9d8cd4ed54d87"},
-    {"path":"tools/V27Balance/verify_committed_artifacts.py","sha256":"0782ff3974780e3730c405ba10e152ec395a4dfef29024973ca7c15bfc61eb16"}
+    {"path":"tools/V27Balance/verify_committed_artifacts.py","sha256":"34baf97331e879f8afb14d96f34269f33548b9b9c3e04e4faf412cf3f45e0001"}
   ]
 }
