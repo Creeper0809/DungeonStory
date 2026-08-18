@@ -5097,3 +5097,15 @@
 - Completed the six-adult simultaneous one-day service outage and recovery with all five production primitive fallbacks, exact physical conservation, no death/down/breakdown, exact restore, and zero primitive starts after recovery.
 - Final audit and whole-game coverage pass at 84,240 rows with 0 unresolved Critical, 0 integrity failures, 0 producer/consumer orphans and 0 unapplied approvals.
 - Repeated final-source generation is byte-identical (`ULTIMATE_NOOP_EXACT=true`); Unity is idle and Console Warning/Error is 0/0.
+
+# 2026-08-19 V27 strict output-capacity and final-evidence closure
+
+- Added typed production admission for world-resource and crop outputs. Saturated source/containment blocks before work, cycle, or physical quantity mutation and becomes available again after cleanup.
+- Fresh WorldResource and CropPlot production-live regressions pass, including physical seed-lot/fuel/growth authorities and exact no-loss/no-duplication recovery markers.
+- Added deterministic durable output-capacity evidence and projected both checks into the canonical V27 ledger and whole-game coverage.
+- Regenerated the random-stream manifest after the affected source freeze: 1,363 runtime files, 43 consumers, 10 named isolation assertions, zero legacy global character streams, and zero direct runtime Unity RNG use.
+- Fixed the manifest's one-generation evidence-hash lag by refreshing the same-generation whole-game report hash after report publication.
+- Re-ran DailyRoutineWu seeds 157181/157182/157183 on current source. All three pass five observed days and diagnostics gate v3 with zero failures/captured issues; aggregate actual/effective means are 53.277911/48.914867 WU per adult-day.
+- Final audit passes at 84,389 rows, 0 Critical, 327 collapsed/approved roots, 313 SCCs, minimum margin -14,364,087 mEWU, and 0 integrity failures. Whole-game connectivity has zero producer/consumer orphans and zero unapplied approvals.
+- Ran the complete whole-game generator twice. All 11 key CSV/JSON/Markdown/evidence artifacts matched SHA-256 exactly. Unity returned to idle EditMode and final Console Warning/Error is 0/0.
+- Remaining work is publication only: stage task-owned files, commit, push, open the follow-up PR, require hosted checks/review evidence, merge to main, and verify remote main.

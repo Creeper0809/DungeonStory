@@ -114,6 +114,14 @@ public static class WorldResourceDebugScenarios
             research.State.Projects.Complete(
                 new ResearchProjectId("research:forestry:logging"));
 
+            string outputCapacityEvidence = VerifyOutputContainmentAdmission(
+                resources,
+                persistence,
+                items,
+                scope.Container.Resolve<IProductionItemGateway>(),
+                catalog);
+            lines.Add(outputCapacityEvidence);
+
             WorldResourceNode loggingNode = resources.Nodes.First(node =>
                 resources.TryGetWork(
                     node,
@@ -190,6 +198,166 @@ public static class WorldResourceDebugScenarios
                 itemId,
                 StringComparison.Ordinal))
             .Sum(stack => stack.Quantity);
+    }
+
+    private static string VerifyOutputContainmentAdmission(
+        IWorldResourceRuntime resources,
+        IWorldResourcePersistence persistence,
+        IWorldItemStackRuntime items,
+        IProductionItemGateway gateway,
+        IResourceEconomyContentCatalog catalog)
+    {
+        WorkTypeId[] workTypes =
+        {
+            BuiltInWorkTypeIds.Gather,
+            BuiltInWorkTypeIds.Logging,
+            BuiltInWorkTypeIds.Quarry
+        };
+        WorldResourceNode selectedNode = null;
+        WorldResourceWorkSnapshot selectedWork = default;
+        ProductionOutputDefinition selectedOutput = null;
+        Vector2Int selectedPosition = default;
+        DungeonWorldResourceSaveData currentState = persistence.Capture();
+        foreach (WorldResourceNode node in resources.Nodes.Where(value => value != null))
+        foreach (WorkTypeId workType in workTypes)
+        {
+            if (!resources.TryGetWork(node, workType, out WorldResourceWorkSnapshot work)
+                || !work.Available
+                || !catalog.TryGetRecipe(work.RecipeId, out ProductionRecipeSO recipe))
+            {
+                continue;
+            }
+
+            ProductionOutputDefinition output = recipe.Outputs
+                .FirstOrDefault(value => value != null
+                    && value.Probability > 0f
+                    && !string.IsNullOrWhiteSpace(value.ItemId));
+            if (output == null)
+                continue;
+            WorldResourceNodeSaveData savedNode = currentState.nodes
+                .FirstOrDefault(value => string.Equals(
+                    value.buildingInstanceId,
+                    node.NodeId,
+                    StringComparison.Ordinal));
+            if (savedNode == null)
+                continue;
+            Vector2Int position = new Vector2Int(savedNode.gridX, savedNode.gridY);
+            bool occupied = items.GetAllStacks().Any(stack => stack != null
+                && stack.Quantity > 0
+                && stack.State == WorldItemStackState.Loose
+                && string.IsNullOrWhiteSpace(stack.DestinationId)
+                && stack.Position == position
+                && string.Equals(stack.ItemId, output.ItemId, StringComparison.Ordinal));
+            if (occupied)
+                continue;
+            selectedNode = node;
+            selectedWork = work;
+            selectedOutput = output;
+            selectedPosition = position;
+            break;
+        }
+
+        Require(selectedNode != null && selectedOutput != null,
+            "No available resource output-containment fixture was found.");
+        DungeonWorldResourceSaveData before = persistence.Capture();
+        WorldResourceSourceSaveData beforeSource = FindSavedSource(
+            before,
+            selectedNode.NodeId,
+            selectedWork.WorkTypeId);
+        HashSet<string> existingIds = items.GetAllStacks()
+            .Select(stack => stack.StackId)
+            .ToHashSet(StringComparer.Ordinal);
+        List<WorldItemStackSnapshot> created = new();
+        try
+        {
+            Require(gateway.CanSpawnOutput(
+                    selectedOutput.ItemId,
+                    1,
+                    selectedPosition,
+                    out DomainFailure initialFailure)
+                && !initialFailure.IsFailure,
+                "An empty authorized source containment was rejected.");
+            Require(gateway.SpawnOutput(selectedOutput.ItemId, 1, selectedPosition),
+                "The first authorized source output batch was not materialized.");
+            created.AddRange(items.GetAllStacks().Where(stack => stack != null
+                && !existingIds.Contains(stack.StackId)
+                && stack.State == WorldItemStackState.Loose
+                && stack.Position == selectedPosition
+                && string.Equals(
+                    stack.ItemId,
+                    selectedOutput.ItemId,
+                    StringComparison.Ordinal)));
+            Require(created.Sum(stack => stack.Quantity) == 1,
+                "The containment fixture did not create exactly one physical unit.");
+            Require(!gateway.CanSpawnOutput(
+                    selectedOutput.ItemId,
+                    1,
+                    selectedPosition,
+                    out DomainFailure saturatedFailure)
+                && saturatedFailure.Code == FailureCode.ProductionOutputSpaceUnavailable,
+                "An occupied source containment did not fail with the typed capacity reason.");
+            Require(resources.TryGetWork(
+                    selectedNode,
+                    selectedWork.WorkTypeId,
+                    out WorldResourceWorkSnapshot blocked)
+                && !blocked.Available
+                && string.Equals(
+                    blocked.UnavailableReason,
+                    FailureCode.ProductionOutputSpaceUnavailable.ToString(),
+                    StringComparison.Ordinal),
+                "Resource work remained available while its source containment was occupied.");
+            Require(!resources.ApplyWork(
+                    selectedNode,
+                    selectedWork.WorkTypeId,
+                    selectedWork.RequiredWork,
+                    out bool completedWhileBlocked)
+                && !completedWhileBlocked,
+                "Blocked resource work consumed a cycle or completed output.");
+            WorldResourceSourceSaveData blockedSource = FindSavedSource(
+                persistence.Capture(),
+                selectedNode.NodeId,
+                selectedWork.WorkTypeId);
+            Require(blockedSource.remainingCycles == beforeSource.remainingCycles
+                    && Math.Abs(blockedSource.completedWork - beforeSource.completedWork) < 0.0001f,
+                "Output saturation mutated resource quantity or work progress.");
+        }
+        finally
+        {
+            foreach (WorldItemStackSnapshot stack in created)
+            {
+                if (stack != null && stack.Quantity > 0)
+                    items.TryConsumeStackQuantity(stack.StackId, stack.Quantity, out _);
+            }
+        }
+
+        Require(resources.TryGetWork(
+                selectedNode,
+                selectedWork.WorkTypeId,
+                out WorldResourceWorkSnapshot recovered)
+            && recovered.Available,
+            "Resource work did not recover after source containment was cleared.");
+        return "PASS OUTPUT_CONTAINMENT_TYPED_BLOCK_RECOVERY "
+            + $"node={selectedNode.NodeId};recipe={selectedWork.RecipeId};"
+            + $"item={selectedOutput.ItemId};quantity=1;conserved=true";
+    }
+
+    private static WorldResourceSourceSaveData FindSavedSource(
+        DungeonWorldResourceSaveData data,
+        string nodeId,
+        WorkTypeId workTypeId)
+    {
+        WorldResourceSourceSaveData source = data.nodes
+            .FirstOrDefault(node => string.Equals(
+                node.buildingInstanceId,
+                nodeId,
+                StringComparison.Ordinal))?
+            .sources
+            .FirstOrDefault(value => string.Equals(
+                value.workTypeId,
+                workTypeId.Value,
+                StringComparison.Ordinal));
+        return source ?? throw new InvalidOperationException(
+            $"World-resource save source is missing: {nodeId}/{workTypeId.Value}.");
     }
 
     private static string FormatNodeSources(WorldResourceNodeSaveData node)

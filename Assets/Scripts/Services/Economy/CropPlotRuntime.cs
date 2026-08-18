@@ -363,8 +363,21 @@ public sealed class CropPlotRuntime :
 
         if (workTypeId == BuiltInWorkTypeIds.Harvest)
         {
-            bool available = state.Phase is CropPlotPhase.ReadyToHarvest
+            bool phaseAvailable = state.Phase is CropPlotPhase.ReadyToHarvest
                 or CropPlotPhase.Harvesting;
+            DomainFailure outputFailure = DomainFailure.None;
+            bool outputAvailable = phaseAvailable
+                && items.CanSpawnOutput(
+                    crop.HarvestItemId,
+                    Mathf.Max(1, Mathf.CeilToInt(crop.Yield)),
+                    state.Building.centerPos,
+                    out outputFailure)
+                && seedLots.CanSpawnSeedLot(
+                    crop.SeedItemId,
+                    1,
+                    state.Building.centerPos,
+                    out outputFailure);
+            bool available = phaseAvailable && outputAvailable;
             snapshot = new CropPlotWorkSnapshot(
                 state.PlotId.Value,
                 workTypeId,
@@ -372,7 +385,11 @@ public sealed class CropPlotRuntime :
                 crop.HarvestWork,
                 state.HarvestWork,
                 available,
-                available ? string.Empty : ResolveUnavailableReason(state));
+                available
+                    ? string.Empty
+                    : phaseAvailable
+                        ? outputFailure.Code.ToString()
+                        : ResolveUnavailableReason(state));
             return true;
         }
 
@@ -424,6 +441,19 @@ public sealed class CropPlotRuntime :
             && state.Phase is CropPlotPhase.ReadyToHarvest
                 or CropPlotPhase.Harvesting)
         {
+            if (!items.CanSpawnOutput(
+                    crop.HarvestItemId,
+                    Mathf.Max(1, Mathf.CeilToInt(crop.Yield)),
+                    state.Building.centerPos,
+                    out _)
+                || !seedLots.CanSpawnSeedLot(
+                    crop.SeedItemId,
+                    1,
+                    state.Building.centerPos,
+                    out _))
+            {
+                return false;
+            }
             state.Phase = CropPlotPhase.Harvesting;
             state.HarvestWork = Mathf.Min(
                 crop.HarvestWork,
@@ -487,19 +517,25 @@ public sealed class CropPlotRuntime :
                         ? grandProjectBenefits.GetProductionOutputMultiplier(
                             "crop-indoor")
                         : 1f;
-                items.SpawnOutput(
-                    crop.HarvestItemId,
-                    Mathf.Max(
-                        1,
-                        Mathf.RoundToInt(crop.Yield * outputMultiplier
-                            * workerYieldMultiplier
-                            * extremeYieldMultiplier
-                            * ecologyResult.YieldMultiplier
-                            * (IsOperational(
-                                ResearchFacilityCommandKind.SoilDiagnostics)
-                                    ? 1.05f
-                                    : 1f))),
-                    state.Building.centerPos);
+                int harvestAmount = Mathf.Max(
+                    1,
+                    Mathf.RoundToInt(crop.Yield * outputMultiplier
+                        * workerYieldMultiplier
+                        * extremeYieldMultiplier
+                        * ecologyResult.YieldMultiplier
+                        * (IsOperational(
+                            ResearchFacilityCommandKind.SoilDiagnostics)
+                                ? 1.05f
+                                : 1f)));
+                if (!items.SpawnOutput(
+                        crop.HarvestItemId,
+                        harvestAmount,
+                        state.Building.centerPos))
+                {
+                    throw new InvalidOperationException(
+                        $"Crop '{crop.CropId}' failed to materialize "
+                        + $"{harvestAmount}x '{crop.HarvestItemId}' after output-capacity admission.");
+                }
                 if (!seedLots.SpawnSeedLot(
                         crop.SeedItemId,
                         Mathf.Max(0, Mathf.RoundToInt(

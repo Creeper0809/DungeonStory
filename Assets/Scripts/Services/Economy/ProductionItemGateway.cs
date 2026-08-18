@@ -19,6 +19,11 @@ public interface IProductionItemGateway
         string destinationId,
         IReadOnlyDictionary<string, int> costs,
         out string failureReason);
+    bool CanSpawnOutput(
+        string itemId,
+        int amount,
+        Vector2Int position,
+        out DomainFailure failure);
     bool SpawnOutput(string itemId, int amount, Vector2Int position);
     void PrioritizeDestination(string destinationId);
     int ReleaseDestination(string destinationId, Vector2Int releasePosition);
@@ -58,17 +63,21 @@ public sealed class ProductionItemGateway :
     private readonly IStockQuery stock;
     private readonly IItemTransferService transfers;
     private readonly IWorldItemStackRuntime worldItems;
+    private readonly IDungeonItemCatalogProvider itemCatalog;
 
     public ProductionItemGateway(
         IStockQuery stock,
         IItemTransferService transfers,
-        IWorldItemStackRuntime worldItems)
+        IWorldItemStackRuntime worldItems,
+        IDungeonItemCatalogProvider itemCatalog)
     {
         this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
         this.transfers = transfers
             ?? throw new ArgumentNullException(nameof(transfers));
         this.worldItems = worldItems
             ?? throw new ArgumentNullException(nameof(worldItems));
+        this.itemCatalog = itemCatalog
+            ?? throw new ArgumentNullException(nameof(itemCatalog));
     }
 
     public int CountDelivered(string itemId, string destinationId)
@@ -169,7 +178,50 @@ public sealed class ProductionItemGateway :
             position,
             WorldItemStackState.Loose,
             string.Empty,
-            out int spawned);
+            out int spawned)
+            && spawned == amount;
+    }
+
+    public bool CanSpawnOutput(
+        string itemId,
+        int amount,
+        Vector2Int position,
+        out DomainFailure failure)
+    {
+        string normalizedItemId = itemId?.Trim() ?? string.Empty;
+        if (amount <= 0
+            || string.IsNullOrWhiteSpace(normalizedItemId)
+            || !itemCatalog.TryGetDefinition(normalizedItemId, out _))
+        {
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputUnavailable,
+                normalizedItemId,
+                amount.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            return false;
+        }
+
+        bool sourceContainmentOccupied = stock.GetAllStacks().Any(stack =>
+            stack != null
+            && stack.Quantity > 0
+            && stack.State == WorldItemStackState.Loose
+            && string.IsNullOrWhiteSpace(stack.DestinationId)
+            && stack.Position == position
+            && string.Equals(
+                stack.ItemId,
+                normalizedItemId,
+                StringComparison.Ordinal));
+        if (sourceContainmentOccupied)
+        {
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputSpaceUnavailable,
+                normalizedItemId,
+                position.x.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                position.y.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            return false;
+        }
+
+        failure = DomainFailure.None;
+        return true;
     }
 
     public int CountBufferedOutput(string itemId, string destinationId)

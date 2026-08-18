@@ -208,14 +208,20 @@ public sealed class WorldResourceRuntime :
                 && patch.CurrentResource >= PatchHarvestAmount
             : source.RemainingCycles > 0;
         bool researchUnlocked = IsResearchUnlocked(recipe, out string researchReason);
-        bool available = hasResource && researchUnlocked;
+        bool outputAvailable = TryResolveOutputCapacity(
+            recipe,
+            nodeState.Position,
+            out string outputReason);
+        bool available = hasResource && researchUnlocked && outputAvailable;
         string reason = available
             ? string.Empty
             : !hasResource
                 ? source.IsRenewablePatch
                     ? "채집할 자원이 다시 자라는 중"
                     : "자원이 고갈됨"
-                : researchReason;
+                : !researchUnlocked
+                    ? researchReason
+                    : outputReason;
         float resourceRatio = source.IsRenewablePatch
             ? hasRenewablePatch
                 ? patch.ResourceRatio
@@ -293,12 +299,18 @@ public sealed class WorldResourceRuntime :
                 float multiplier =
                     grandProjectBenefits.GetProductionOutputMultiplier(
                         recipe.FacilityTag);
-                outputPort.SpawnOutput(
-                    output.ItemId,
-                    Mathf.Max(
-                        1,
-                        Mathf.RoundToInt(output.Amount * multiplier)),
-                    nodeState.Position);
+                int outputAmount = Mathf.Max(
+                    1,
+                    Mathf.RoundToInt(output.Amount * multiplier));
+                if (!outputPort.SpawnOutput(
+                        output.ItemId,
+                        outputAmount,
+                        nodeState.Position))
+                {
+                    throw new InvalidOperationException(
+                        $"World resource '{recipe.RecipeId}' failed to materialize "
+                        + $"{outputAmount}x '{output.ItemId}' after output-capacity admission.");
+                }
             }
         }
 
@@ -306,6 +318,32 @@ public sealed class WorldResourceRuntime :
         cycleCompleted = true;
         Version++;
         nodeHosts.MarkDynamicStateDirty();
+        return true;
+    }
+
+    private bool TryResolveOutputCapacity(
+        ProductionRecipeSO recipe,
+        Vector2Int position,
+        out string failureReason)
+    {
+        foreach (ProductionOutputDefinition output in recipe.Outputs
+                     .Where(value => value != null && value.Probability > 0f)
+                     .GroupBy(value => value.ItemId, StringComparer.Ordinal)
+                     .Select(group => group.First()))
+        {
+            int amount = Mathf.Max(1, Mathf.CeilToInt(output.Amount));
+            if (!outputPort.CanSpawnOutput(
+                    output.ItemId,
+                    amount,
+                    position,
+                    out DomainFailure failure))
+            {
+                failureReason = failure.Code.ToString();
+                return false;
+            }
+        }
+
+        failureReason = string.Empty;
         return true;
     }
 

@@ -220,6 +220,16 @@ public sealed class WorldResourceOutputPortAdapter : IWorldResourceOutputPort
             ?? throw new ArgumentNullException(nameof(itemGateway));
     }
 
+    public bool CanSpawnOutput(
+        string itemId,
+        int amount,
+        Vector2Int position,
+        out DomainFailure failure) => itemGateway.CanSpawnOutput(
+            itemId,
+            amount,
+            position,
+            out failure);
+
     public bool SpawnOutput(
         string itemId,
         int amount,

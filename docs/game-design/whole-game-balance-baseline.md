@@ -2383,3 +2383,25 @@ EWU와 목표 회수 기간: 공간 셀의 판매·철거·회수 EWU는 0이고
 검증 매트릭스와 보고서 위치: Artifacts/QA/v27-balance-expansion-editmode.txt, v27-balance-expansion-playmode.txt, v27-balance-layout-256-seed.txt, v27-balance-expansion-tiers.txt, v27-balance-before-after.csv, v27-balance-recalibration-audit.txt, 3-seed 실측, Unity Console Warning/Error 0/0
 현재 밸런스 상태: 밸런스 공식 검증 진행 중. 소스·에셋 정합화 후 Unity compile, EditMode·production PlayMode, 저장 preflight, 1,536배치, 전수 원장·SCC, 32-seed 4-arm, 3-seed 실전, 결정론적 두 번째 실행이 모두 fresh PASS하기 전에는 시뮬레이션 검증·실전 보정·완료로 승격하지 않음
 ```
+
+## V27 채집·수확 출력 containment 포화 계약 후속 기록 (2026-08-19)
+
+```text
+정의 ID: balance:v27:resource-output-containment-saturation-v1
+콘텐츠 종류: 기존 채굴·벌목·채집·작물 수확의 물리 출력 공간 admission과 포화 회복 계약
+정의·카탈로그·실행기 위치: ProductionItemGateway.CanSpawnOutput, WorldResourceOutputPortAdapter, WorldResourceRuntime.TryGetWork/ApplyWork, CropPlotRuntime.TryGetWork/ApplyWork, WorldResourceDebugScenarios
+등장 시대와 연구: 기존 자원·작물·레시피의 시대·연구·해금을 그대로 유지하며 신규 아이템·시설·연구를 추가하지 않음
+플레이어에게 주는 새 결정: 채집·수확 위치의 한 물리 출력 묶음을 먼저 운반하거나 소비한 뒤 다음 주기를 진행해야 하며, 창고·물류를 무시한 무한 바닥 적치를 선택할 수 없음
+물리 BOM·입력·출력: 기존 output item ID와 authored amount를 그대로 사용함. source position별·item별 unassigned Loose 묶음 하나를 overflow containment로 허용하고, 점유 중 두 번째 묶음 생성·삭제·복제·가상 보관은 0임
+직접 작업량과 계산 근거: 레시피 RequiredWork, crop Sow/Harvest WU, 생산량 배율은 변경하지 않음. 포화 중 작업 후보를 ProductionOutputSpaceUnavailable로 닫아 완료 WU·남은 cycle·renewable patch를 소비하지 않으며, 묶음 제거 후 같은 작업이 다시 열림
+EWU와 목표 회수 기간: BOM·직접 WU·AcquisitionCost·RecoverableValue·시장 가격·SCC potential은 불변임. 출력이 물리화되지 않은 실패 주기는 EWU credit을 만들지 않고 입력·자원도 debit하지 않으므로 차익과 손실 은폐가 없음
+공간·전력·물·연료·정비: source containment 한 묶음은 기존 OverflowContainment/AuthorizedLooseSource 공간 계약 안에서만 허용함. 전력·용수·연료·정비·창고 용량을 추가 제공하지 않으며 통로·접근칸·egress를 overflow로 승격하지 않음
+위험·실패·회복 방식: 잘못된 item/0 이하 수량은 ProductionOutputUnavailable, 이미 점유된 source containment는 ProductionOutputSpaceUnavailable로 fail-loud함. 실제 spawn이 admission 뒤 실패하면 조용히 cycle을 reset하지 않고 예외로 중단하며, 포화 해제 뒤 bounded replan으로 회복함
+사회·비가역 비용: 운반자 장애·창고 포화 시 채집자가 새 산출을 계속 쌓지 못해 성장 노동이 대기할 수 있으며, 이 비용은 paired-run Wait WU·dispatch latency·replan 지표에 귀속함. 캐릭터·시설·재고를 자동 삭제하지 않음
+기존 대안과의 장단점: Loose가 Grid traversal cost를 직접 바꾸지 않는다는 이유로 무제한 source 적치를 허용하는 안은 저장·예약·물류 livelock을 숨겨 기각함. 창고가 없으면 첫 채집조차 금지하는 안도 초기 생존을 막으므로, 물리 한 묶음의 bounded containment 후 포화 차단을 선택함
+지배 전략 방지 조건: 출력 실패 후 resource cycle 감소 0, completedWork reset 0, RNG 재굴림 0, 물리 아이템 삭제·복제 0, 두 번째 source batch 0, 통로 fallback drop 0, capacity 해제 전 작업 재개 0
+저장 권위와 실행 명령: WorldResource/Crop aggregate가 진행·cycle 권위이고 IWorldItemStackRuntime이 물리 출력 권위임. capacity는 저장하지 않는 파생 query이며 복원 뒤 실제 Loose stack에서 재계산함. 과거 세이브 변환은 범위 밖임
+자동 감사 ID와 전수 목록 포함 여부: OUTPUT_CONTAINMENT_TYPED_BLOCK_RECOVERY, ProductionOutputSpaceUnavailable, remainingCycles/completedWork unchanged, physical quantity exact, recovery available marker를 WorldResource production-live report와 V27 artifact manifest에 요구함
+검증 매트릭스와 보고서 위치: docs/implementation-reports/world-resource-runtime-latest.txt, Artifacts/QA/v27-balance-floor-clutter.csv, v27-balance-paired-run-rng.csv, v27-balance-before-after.csv, v27-balance-recalibration-audit.txt, WorldResource/Crop focused scenarios, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 밸런스 공식 검증. Unity compile과 84,387행 전수 원장 Critical 0/SCC 313/무결성 0은 통과했으나 production PlayMode의 typed block·무변이·회복과 최종 current-source no-op/3-seed/Console 0/0 전에는 시뮬레이션 검증·실전 보정·전체 완료로 승격하지 않음
+```

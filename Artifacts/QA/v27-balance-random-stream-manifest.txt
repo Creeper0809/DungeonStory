@@ -1,5 +1,5 @@
-RESULT=PASS; runtimeFiles=1363; consumers=43; failures=0; legacyCharacterStreams=0; unityRandomRuntimeUses=0; namedIsolationTests=11
-sourceDigest=929f0f2f791aaae64ec754a0ea410b0b0f1367b2a6eb42a2f8fec68016c21cc9
+RESULT=PASS; runtimeFiles=1363; consumers=43; failures=0; legacyCharacterStreams=0; unityRandomRuntimeUses=0; namedIsolationTests=10
+sourceDigest=500f4698306a88a3879da2a5edeab43f57fe1f0e1f80f0ab24d529126c6b6247
 CONSUMER	Assets/Scripts/Models/Economy/Content/ProductionOutputExecutionService.cs	scope=domain-stable	providerReference=true
 CONSUMER	Assets/Scripts/Models/Economy/Content/WorldResourceRuntime.cs	scope=domain-stable	providerReference=true
 CONSUMER	Assets/Scripts/Models/Species/Core/CharacterLifeDomain.cs	scope=domain-stable	providerReference=true
@@ -43,6 +43,9 @@ CONSUMER	Assets/Scripts/Services/Wildlife/WildlifeBehaviorRuntime.cs	scope=domai
 CONSUMER	Assets/Scripts/Services/Wildlife/WildlifeRuntime.cs	scope=domain-stable	providerReference=false
 CONSUMER	Assets/Scripts/Services/Wildlife/WildlifeRuntimeServices.cs	scope=domain-stable	providerReference=true
 CONSUMER	Assets/Scripts/Services/Wildlife/WildlifeWorldRuntime.cs	scope=domain-stable	providerReference=true
+SNAPSHOT	streamId=character-ai:character:v27-ledger-sample	state=9789668950048833053	drawCount=3
+SNAPSHOT	streamId=character-movement:character:v27-ledger-sample	state=3234101681410055759	drawCount=2
+SNAPSHOT	streamId=crop:genetics	state=10045321748400889938	drawCount=1
 RESULT=PASS; suite=RandomStreamIsolationDebugScenarios
 PASS RNG_ACTOR_EXTRA_DRAWS_CROSS_TALK_ZERO draws=100
 PASS RNG_DECISION_MOVEMENT_CROSS_TALK_ZERO draws=100
