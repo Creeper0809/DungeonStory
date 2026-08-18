@@ -10,6 +10,9 @@ using UnityEngine;
 /// </summary>
 internal static class WorldItemHaulDestinationAuthority
 {
+    private const string ManualWaterDestinationPrefix =
+        "plumbing:manual-water:";
+
     internal readonly struct Resolution
     {
         public Resolution(
@@ -157,7 +160,42 @@ internal static class WorldItemHaulDestinationAuthority
         }
         else
         {
-            if (destinationClaims.TryGetClaim(
+            if (destination.StartsWith(
+                    ManualWaterDestinationPrefix,
+                    StringComparison.Ordinal))
+            {
+                // Manual-water destinations encode the fixture's persistent
+                // building identity. Resolve that owner directly instead of
+                // inferring ownership from every FacilityData object sharing
+                // the drop cell (floors and fixtures can lawfully overlap).
+                // This identity also survives the normal save/restore path
+                // without a transient claim projection.
+                string ownerBuildingId = destination.Substring(
+                    ManualWaterDestinationPrefix.Length);
+                BuildableObject[] matchingFixtures = (world.Buildings
+                        ?? Array.Empty<BuildableObject>())
+                    .Where(candidate => candidate != null
+                        && !candidate.isDestroy
+                        && candidate.BuildingData != null
+                        && candidate.Facility != null
+                        && candidate.PersistentInstanceId.IsValid
+                        && candidate.centerPos == requestedDropPosition
+                        && string.Equals(
+                            candidate.PersistentInstanceId.Value,
+                            ownerBuildingId,
+                            StringComparison.Ordinal))
+                    .ToArray();
+                if (matchingFixtures.Length != 1)
+                {
+                    failureReason =
+                        "haul-destination-manual-water-owner-missing-or-ambiguous:"
+                        + destination;
+                    return false;
+                }
+
+                owner = matchingFixtures[0];
+            }
+            else if (destinationClaims.TryGetClaim(
                     destination,
                     requestedDropPosition,
                     out FacilityBufferDestinationClaim claim))

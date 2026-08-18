@@ -30,25 +30,25 @@ MonoBehaviour:
   unitWeight: 2.35
   maxStack: 1
   sprite: {fileID: 0}
-  unitPrice: 143
+  unitPrice: 64
   features:
-  - rid: 7737211981816660116
-  - rid: 7737211981816660117
-  - rid: 7737211981816660118
+  - rid: 7737212042857939771
+  - rid: 7737212042857939772
+  - rid: 7737212042857939773
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660116
+    - rid: 7737212042857939771
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:climate:weather-observation
-    - rid: 7737211981816660117
+    - rid: 7737212042857939772
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 512
         sharedIntermediate: 0
-    - rid: 7737211981816660118
+    - rid: 7737212042857939773
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5965547
+        saleRate: 0.5924218

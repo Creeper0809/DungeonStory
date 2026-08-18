@@ -62,9 +62,9 @@ MonoBehaviour:
     - rid: 7737211921440178668
     - rid: 7737211921440178669
     - rid: 7737211921440178670
-    - rid: 7737211981804077300
-    - rid: 7737211981804077301
     - rid: 7737211992021139769
+    - rid: 7737212042831200658
+    - rid: 7737212042831200659
   width: 2
   height: 1
   layer: 1
@@ -105,7 +105,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 1053
+        constructionWorkRequired: 312
         repairWorkRequired: 116
         cleanWorkRequired: 22
         researchWorkRequired: 6
@@ -129,7 +129,7 @@ MonoBehaviour:
         - itemId: material:stone-block
           amount: 2
         - itemId: component:rune-conductor
-          amount: 1
+          amount: 2
         - itemId: component:engineering-drawing
           amount: 1
     - rid: 7737211921440178666
@@ -182,13 +182,22 @@ MonoBehaviour:
         abilityId: BuildingProductionAbility
         outputCategory: 3
         amount: 3
-    - rid: 7737211981804077300
+    - rid: 7737211992021139769
+      type: {class: BuildingResearchCapacityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingResearchCapacityAbility
+        contributions:
+        - capability: 0
+          capacity: 1
+        - capability: 5
+          capacity: 1
+    - rid: 7737212042831200658
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:alchemy-basic
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211981804077301
+    - rid: 7737212042831200659
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -210,12 +219,3 @@ MonoBehaviour:
           capacity: 16
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211992021139769
-      type: {class: BuildingResearchCapacityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingResearchCapacityAbility
-        contributions:
-        - capability: 0
-          capacity: 1
-        - capability: 5
-          capacity: 1

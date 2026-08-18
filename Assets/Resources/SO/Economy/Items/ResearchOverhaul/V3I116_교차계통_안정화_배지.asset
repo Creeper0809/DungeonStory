@@ -30,25 +30,25 @@ MonoBehaviour:
   unitWeight: 0.55
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 195
+  unitPrice: 93
   features:
-  - rid: 7737211981816660382
-  - rid: 7737211981816660383
-  - rid: 7737211981816660384
+  - rid: 7737212042857939779
+  - rid: 7737212042857939780
+  - rid: 7737212042857939781
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660382
+    - rid: 7737212042857939779
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:genetics:cross-lineage-stabilization
-    - rid: 7737211981816660383
+    - rid: 7737212042857939780
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737211981816660384
+    - rid: 7737212042857939781
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59714353
+        saleRate: 0.59839064

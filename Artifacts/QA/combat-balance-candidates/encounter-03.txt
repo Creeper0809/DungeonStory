@@ -1,0 +1,4 @@
+COMBAT_BALANCE_CANDIDATE_CHECKPOINT_V2
+enemyDecisionAuthority=EnemyTacticalDecisionService
+encounter|objective|health|damage|accuracy|objectiveHealth|control|round|win|severe|lowHealth|failureCasualty|medianRounds|meanHealth|score|stalled
+encounter:03|ProtectTarget|0.503|0.6|1|1|1|6|0.64453125|0.0333333351|0.0333333351|0|7|0.904457033|1.3303958894880108|0

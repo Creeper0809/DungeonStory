@@ -1716,7 +1716,9 @@ internal static class CharacterAiEditorTestDependencies
             bool forceInterrupt = false) { }
         public void RequestOneHaulerToReplan(
             bool clearFailures = true,
-            bool forceInterrupt = false) { }
+            bool forceInterrupt = false,
+            CharacterId protectedCharacterId = default,
+            bool forcePriorityWakeFanout = false) { }
     }
 
     private sealed class EditorNoCharacterMedicalAccess :

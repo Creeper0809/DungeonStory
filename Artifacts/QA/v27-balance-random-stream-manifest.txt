@@ -1,0 +1,56 @@
+RESULT=PASS; runtimeFiles=1363; consumers=43; failures=0; legacyCharacterStreams=0; unityRandomRuntimeUses=0; namedIsolationTests=11
+sourceDigest=929f0f2f791aaae64ec754a0ea410b0b0f1367b2a6eb42a2f8fec68016c21cc9
+CONSUMER	Assets/Scripts/Models/Economy/Content/ProductionOutputExecutionService.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Models/Economy/Content/WorldResourceRuntime.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Models/Species/Core/CharacterLifeDomain.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Models/Survival/Core/CharacterConsumablesRuntime.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Models/Wildlife/Core/WildlifeEcosystemRuntime.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Buildings/Shop.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Captivity/CaptivityRuntimeContexts.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Captivity/WildlifeCaptureRuntime.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Character/AI/AIBrain.cs	scope=character-decision:persistent-id	providerReference=true
+CONSUMER	Assets/Scripts/Services/Character/AI/AIBrainServices.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Character/AI/SocialReputationRuntime.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Character/Ability/AbilityMove.cs	scope=character-movement:persistent-id	providerReference=true
+CONSUMER	Assets/Scripts/Services/Character/Ability/AbilityShopping.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Character/Ability/AbilityWork.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Character/CharacterLifePublicationService.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Character/CharacterSpawner.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Character/Core/StartPartyPreparationService.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Character/PopulationHealthRuntime.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Character/PopulationSocialRuntime.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Combat/CombatResolutionService.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Economy/CropEcologyRuntime.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Economy/Treasury/EquipmentOverclockRuntime.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Evolution/EvolutionCatalystDropRuntime.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Foundation/Random/RandomStreamProvider.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Infrastructure/Captivity/CircusRuntimeCompositionContracts.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Infrastructure/Core/Save/RandomStreamSaveSection.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Infrastructure/Environment/ClimateRuntime.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Infrastructure/Exterior/ExteriorActivityRuntime.cs	scope=domain-stable	providerReference=false
+CONSUMER	Assets/Scripts/Services/Infrastructure/Exterior/ExteriorActivityRuntimeServices.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Infrastructure/Registration/DungeonFoundationRegistration.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Invasion/InvasionCampaignRuntime.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Invasion/InvasionDirectorRuntime.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Invasion/InvasionIntruderSystem.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Invasion/InvasionThreatRuntime.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Medical/SurgeryRuntimeServices.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Run/RunVariableSystem.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Survival/CharacterDeprivationRuntime.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Survival/CharacterDeprivationStateStore.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Wildlife/WildlifeActor.cs	scope=wildlife-actor:persistent-id	providerReference=true
+CONSUMER	Assets/Scripts/Services/Wildlife/WildlifeBehaviorRuntime.cs	scope=domain-stable	providerReference=false
+CONSUMER	Assets/Scripts/Services/Wildlife/WildlifeRuntime.cs	scope=domain-stable	providerReference=false
+CONSUMER	Assets/Scripts/Services/Wildlife/WildlifeRuntimeServices.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Wildlife/WildlifeWorldRuntime.cs	scope=domain-stable	providerReference=true
+RESULT=PASS; suite=RandomStreamIsolationDebugScenarios
+PASS RNG_ACTOR_EXTRA_DRAWS_CROSS_TALK_ZERO draws=100
+PASS RNG_DECISION_MOVEMENT_CROSS_TALK_ZERO draws=100
+PASS RNG_ACTOR_SPAWN_DESPAWN_EXISTING_STREAMS_UNCHANGED
+PASS RNG_KEYED_EVENT_ORDER_INDEPENDENT
+PASS RNG_DUPLICATE_EVENT_KEY_REJECTED
+PASS RNG_SAVE_RESTORE_NEXT_DRAW_EXACT
+PASS RNG_DIAGNOSTIC_DRAW_COUNT_RESTORED_TO_ZERO
+PASS RNG_DUPLICATE_CHARACTER_ID_REJECTED
+PASS RNG_CAUSAL_CONE_OUTSIDE_STREAMS_UNCHANGED
+PASS RNG_LEGACY_GLOBAL_CHARACTER_STREAMS_REJECTED

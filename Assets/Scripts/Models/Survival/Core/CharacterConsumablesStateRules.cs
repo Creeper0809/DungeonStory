@@ -299,7 +299,8 @@ internal static class CharacterConsumablesStateRules
         DungeonCharacterConsumablesSaveData payload,
         DungeonGameRestoreReport report,
         ICharacterConsumablesWorldPort world,
-        ICharacterConsumablesInventoryPort inventory)
+        ICharacterConsumablesInventoryPort inventory,
+        bool requireWorldReferences = true)
     {
         if (report == null) throw new ArgumentNullException(nameof(report));
         if (world == null) throw new ArgumentNullException(nameof(world));
@@ -345,7 +346,7 @@ internal static class CharacterConsumablesStateRules
         foreach (CharacterDietPolicyState state in payload.dietPolicies)
         {
             if (state == null || !IsExactCharacterId(state.characterId, state.CharacterId)
-                || !characters.Contains(state.CharacterId)
+                || requireWorldReferences && !characters.Contains(state.CharacterId)
                 || !dietIds.Add(state.CharacterId)
                 || !Enum.IsDefined(typeof(CharacterDietPolicyKind), state.policy)
                 || !IsAfter(previous, state.characterId))
@@ -361,7 +362,7 @@ internal static class CharacterConsumablesStateRules
         {
             if (state == null
                 || !IsExactCharacterId(state.characterId, state.CharacterId)
-                || !characters.Contains(state.CharacterId)
+                || requireWorldReferences && !characters.Contains(state.CharacterId)
                 || !mealQualityIds.Add(state.CharacterId)
                 || !Enum.IsDefined(typeof(CharacterMealQualityLimit), state.maximumQuality)
                 || !IsAfter(previous, state.characterId))
@@ -380,7 +381,12 @@ internal static class CharacterConsumablesStateRules
             string orderKey = state == null ? string.Empty : state.characterId + "\n" + state.itemDefinitionId;
             if (state == null || !IsExactCharacterId(state.characterId, state.CharacterId)
                 || !IsExactValue(state.itemDefinitionId, state.ItemDefinitionId.Value)
-                || !ValidSubstance(state.CharacterId, state.ItemDefinitionId, characters, inventory)
+                || !ValidSubstance(
+                    state.CharacterId,
+                    state.ItemDefinitionId,
+                    characters,
+                    inventory,
+                    requireWorldReferences)
                 || !policyKeys.Add(key) || !Enum.IsDefined(typeof(SubstancePolicyMode), state.mode)
                 || !InRange(state.moodThreshold, 0f, 100f) || state.scheduledHour < 0
                 || state.scheduledHour > 23 || !IsAfter(previous, orderKey))
@@ -398,7 +404,12 @@ internal static class CharacterConsumablesStateRules
             string orderKey = state == null ? string.Empty : state.characterId + "\n" + state.itemDefinitionId;
             if (state == null || !IsExactCharacterId(state.characterId, state.CharacterId)
                 || !IsExactValue(state.itemDefinitionId, state.ItemDefinitionId.Value)
-                || !ValidSubstance(state.CharacterId, state.ItemDefinitionId, characters, inventory)
+                || !ValidSubstance(
+                    state.CharacterId,
+                    state.ItemDefinitionId,
+                    characters,
+                    inventory,
+                    requireWorldReferences)
                 || !stateKeys.Add(key) || !InRange(state.tolerance, 0f, 100f)
                 || !InRange(state.addiction, 0f, 100f) || !InRange(state.withdrawal, 0f, 100f)
                 || !IsFiniteNonNegative(state.activeSeconds)
@@ -428,8 +439,9 @@ internal static class CharacterConsumablesStateRules
                 || !IsExactValue(
                     delivery.itemDefinitionId,
                     delivery.ItemDefinitionId.Value)
-                || !characters.Contains(delivery.CharacterId)
-                || !facilities.Contains(delivery.BuildingInstanceId)
+                || requireWorldReferences
+                    && (!characters.Contains(delivery.CharacterId)
+                        || !facilities.Contains(delivery.BuildingInstanceId))
                 || !inventory.TryGetMeal(delivery.ItemDefinitionId, out _)
                 || !deliveryIds.Add(delivery.DeliveryId) || !deliveryRoutes.Add(route)
                 || !IsFiniteNonNegative(delivery.requestedAt)
@@ -459,7 +471,8 @@ internal static class CharacterConsumablesStateRules
                     operation.ItemDefinitionId.Value)
                 || !operation.ItemStackId.IsValid
                 || !IsExactValue(operation.itemStackId, operation.ItemStackId.Value)
-                || !characters.Contains(operation.CharacterId)
+                || requireWorldReferences
+                    && !characters.Contains(operation.CharacterId)
                 || !validItem || !operationIds.Add(operation.OperationId)
                 || !IsFiniteNonNegative(operation.completedAt)
                 || !IsAfter(previous, operation.operationId))
@@ -479,12 +492,12 @@ internal static class CharacterConsumablesStateRules
                 || !plan.OperationId.IsValid
                 || !IsExactValue(plan.planId, plan.OperationId.Value)
                 || !IsExactCharacterId(plan.characterId, plan.CharacterId)
-                || !characters.Contains(plan.CharacterId)
+                || requireWorldReferences && !characters.Contains(plan.CharacterId)
                 || !plan.FacilityId.IsValid
                 || !IsExactValue(
                     plan.facilityInstanceId,
                     plan.FacilityId.Value)
-                || !facilities.Contains(plan.FacilityId)
+                || requireWorldReferences && !facilities.Contains(plan.FacilityId)
                 || !plan.SourceStackId.IsValid
                 || !IsExactValue(plan.sourceStackId, plan.SourceStackId.Value)
                 || !plan.ItemDefinitionId.IsValid
@@ -515,7 +528,8 @@ internal static class CharacterConsumablesStateRules
         {
             if (cooldown == null
                 || !IsExactCharacterId(cooldown.characterId, cooldown.CharacterId)
-                || !characters.Contains(cooldown.CharacterId)
+                || requireWorldReferences
+                    && !characters.Contains(cooldown.CharacterId)
                 || !cooldownIds.Add(cooldown.CharacterId)
                 || !IsFiniteNonNegative(cooldown.untilGameSeconds)
                 || !IsAfter(previous, cooldown.characterId))
@@ -586,8 +600,11 @@ internal static class CharacterConsumablesStateRules
         CharacterId characterId,
         ConsumableItemDefinitionId itemId,
         ISet<CharacterId> characters,
-        ICharacterConsumablesInventoryPort inventory) =>
-        characterId.IsValid && characters.Contains(characterId) && itemId.IsValid
+        ICharacterConsumablesInventoryPort inventory,
+        bool requireWorldReferences) =>
+        characterId.IsValid
+        && (!requireWorldReferences || characters.Contains(characterId))
+        && itemId.IsValid
         && inventory.TryResolveSubstance(itemId, out _);
 
     private static bool IsAfter(string previous, string value) =>

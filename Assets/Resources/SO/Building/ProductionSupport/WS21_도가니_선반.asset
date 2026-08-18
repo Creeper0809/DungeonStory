@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211981804077236
-    - rid: 7737211981804077237
-    - rid: 7737211981804077238
-    - rid: 7737211981804077239
-    - rid: 7737211981804077240
+    - rid: 7737212042831200594
+    - rid: 7737212042831200595
+    - rid: 7737212042831200596
+    - rid: 7737212042831200597
+    - rid: 7737212042831200598
   width: 1
   height: 1
   layer: 1
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211981804077236
+    - rid: 7737212042831200594
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: WS21
-    - rid: 7737211981804077237
+    - rid: 7737212042831200595
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,12 +87,12 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7737211981804077238
+    - rid: 7737212042831200596
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 43
+        constructionWorkRequired: 67
         repairWorkRequired: 10
         cleanWorkRequired: 6.25
         researchWorkRequired: 6
@@ -110,15 +110,15 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:lumber
-          amount: 2
-    - rid: 7737211981804077239
+          amount: 3
+    - rid: 7737212042831200597
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - production-support
         - support:crucible-rack
-    - rid: 7737211981804077240
+    - rid: 7737212042831200598
       type: {class: BuildingProductionSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionSupportAbility

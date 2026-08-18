@@ -1,11 +1,11 @@
 RESULT=PASS; checks=11; failures=0
-PASS V27_SLICE_CONSTRUCTION_ORDER_EXACT expected=468; actual=468; destination=construction:1002:36:0
+PASS V27_SLICE_CONSTRUCTION_ORDER_EXACT expected=312; actual=312; destination=construction:1002:36:0
 PASS V27_SLICE_CONSTRUCTION_COMPLETED quality=Poor; expected=Poor; minimum=Normal
 PASS V27_SLICE_D03_FOOD_PHYSICAL_CONSERVATION before=24; seeded=1; cooked=1; after=25; output=survival:cooked_meal
-PASS V27_SLICE_DISMANTLE_ORDER_EXACT expected=117; actual=117; pipeline=quality:work:000001
-PASS V27_SLICE_RECOVERY_PHYSICAL_EXACT expected=material:iron-ingot=1|material:stone-block=1|material:treated-lumber=4; actual=material:iron-ingot=1|material:stone-block=1|material:treated-lumber=4
-PASS V27_SLICE_REBUILD_ORDER_EXACT expected=468; actual=468; attempt=1
-PASS V27_SLICE_REBUILD_MATERIAL_CONSERVATION recovered reused=material:iron-ingot=1|material:stone-block=1|material:treated-lumber=4; topup=material:iron-ingot=1|material:stone-block=1|material:treated-lumber=2
+PASS V27_SLICE_DISMANTLE_ORDER_EXACT expected=78; actual=78; pipeline=quality:work:000001
+PASS V27_SLICE_RECOVERY_PHYSICAL_EXACT expected=material:iron-ingot=2|material:stone-block=1|material:treated-lumber=7; actual=material:iron-ingot=2|material:stone-block=1|material:treated-lumber=7
+PASS V27_SLICE_REBUILD_ORDER_EXACT expected=312; actual=312; attempt=1
+PASS V27_SLICE_REBUILD_MATERIAL_CONSERVATION recovered reused=material:iron-ingot=2|material:stone-block=1|material:treated-lumber=7; topup=material:iron-ingot=1|material:stone-block=1|material:treated-lumber=2
 PASS V27_SLICE_REBUILD_COMPLETED stage=Paused; quality=Poor
 PASS V27_SLICE_BASELINE_RESTORED errors=; warnings=
 PASS V27_SLICE_BASELINE_BYTE_EQUIVALENT before=68; after=68

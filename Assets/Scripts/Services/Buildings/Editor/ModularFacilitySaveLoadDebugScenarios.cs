@@ -53,8 +53,8 @@ public static class ModularFacilitySaveLoadDebugScenarios
         BuildingSO ceilingFixture = RequireCode(catalog, "E03");
         BuildingSO floorOverlay = RequireCode(catalog, "E04");
 
-        Grid sourceGrid = new Grid(28, 3);
-        Grid targetGrid = new Grid(28, 3);
+        Grid sourceGrid = CreateSaveFixtureGrid();
+        Grid targetGrid = CreateSaveFixtureGrid();
         GameSessionState targetGameData = CreateGameData(1, 1, 0f, 0, 1, TimeOfDay.Morning);
 
         List<BuildableObject> sourceBuildings = new List<BuildableObject>();
@@ -242,6 +242,25 @@ public static class ModularFacilitySaveLoadDebugScenarios
     private static IGridBuildingFactory CreateInjectedFactory()
     {
         return new GridBuildingFactory(InjectBuilding);
+    }
+
+    private static Grid CreateSaveFixtureGrid()
+    {
+        Grid grid = new Grid(28, DungeonSpaceExpansionCatalog.SupportedGridHeight);
+        for (int x = 0; x < grid.width; x++)
+        {
+            for (int y = 0; y < grid.height; y++)
+            {
+                Vector2Int position = new Vector2Int(x, y);
+                GridCellAreaType area = x < DungeonSpaceExpansionCatalog.InitialInteriorColumns
+                    ? x == 0 && y == 0
+                        ? GridCellAreaType.Entrance
+                        : GridCellAreaType.DungeonInterior
+                    : GridCellAreaType.BlockedExterior;
+                grid.SetAreaType(position, area);
+            }
+        }
+        return grid;
     }
 
     private static void InjectBuilding(BuildableObject building)

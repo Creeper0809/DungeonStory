@@ -63,9 +63,9 @@ MonoBehaviour:
     - rid: 7737211921440178478
     - rid: 7737211921440178479
     - rid: 7737211921440178480
-    - rid: 7737211981804077370
-    - rid: 7737211981816660224
-    - rid: 7737211981816660225
+    - rid: 7737212033836253937
+    - rid: 7737212033836253938
+    - rid: 7737212042831200728
   width: 1
   height: 1
   layer: 1
@@ -100,7 +100,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 360
+        constructionWorkRequired: 368
         repairWorkRequired: 40
         cleanWorkRequired: 10
         researchWorkRequired: 6
@@ -118,9 +118,9 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:stone-block
-          amount: 6
+          amount: 9
         - itemId: material:iron-ingot
-          amount: 3
+          amount: 5
     - rid: 7737211921440178474
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -177,7 +177,24 @@ MonoBehaviour:
         abilityId: BuildingVentilationAbility
         hygieneRiskReduction: 10
         smokeRiskReduction: 4
-    - rid: 7737211981804077370
+    - rid: 7737212033836253937
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 6
+        maxThroughput: 20
+        normallyOpen: 1
+    - rid: 7737212033836253938
+      type: {class: BuildingWaterFixtureAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWaterFixtureAbility
+        cleanWaterPerUse: 0.15
+        wastewaterPerUse: 0.15
+        minimumQuality: 0
+        allowsManualWaterFallback: 1
+        allowsDryFallback: 0
+        manualWasteItemId: industrial:sludge
+    - rid: 7737212042831200728
       type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceHubAbility
@@ -196,20 +213,3 @@ MonoBehaviour:
         - service:bath-hygiene
         automatedRequiredFeatureTags:
         - service:auto-water-control
-    - rid: 7737211981816660224
-      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingUtilityConnectionAbility
-        channels: 6
-        maxThroughput: 20
-        normallyOpen: 1
-    - rid: 7737211981816660225
-      type: {class: BuildingWaterFixtureAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingWaterFixtureAbility
-        cleanWaterPerUse: 0.15
-        wastewaterPerUse: 0.15
-        minimumQuality: 0
-        allowsManualWaterFallback: 1
-        allowsDryFallback: 0
-        manualWasteItemId: industrial:sludge

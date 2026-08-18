@@ -527,7 +527,27 @@ public sealed class CharacterDeprivationRuntime :
             hasSelected = true;
         }
 
-        return hasSelected && selected switch
+        if (!hasSelected)
+        {
+            return false;
+        }
+
+        DeprivationKind selectedCause = selected switch
+        {
+            CharacterCondition.HUNGER => DeprivationKind.Hunger,
+            CharacterCondition.THIRST => DeprivationKind.Thirst,
+            CharacterCondition.SLEEP => DeprivationKind.Exhaustion,
+            CharacterCondition.EXCRETION => DeprivationKind.Bladder,
+            CharacterCondition.HYGIENE => DeprivationKind.Contamination,
+            _ => DeprivationKind.MentalInstability
+        };
+        if (IsCurrentActionAddressingDeprivation(actor, selectedCause))
+        {
+            status = $"진행 중인 {selected} 자기관리 행동 유지";
+            return true;
+        }
+
+        return selected switch
         {
             CharacterCondition.HUNGER =>
                 NeedsPrimitiveMeal(actor, out _)

@@ -59,8 +59,8 @@ MonoBehaviour:
     - rid: 7737211921440178873
     - rid: 7737211921440178874
     - rid: 7737211921440178875
-    - rid: 7737211981804077320
-    - rid: 7737211981804077321
+    - rid: 7737212042831200678
+    - rid: 7737212042831200679
   width: 3
   height: 1
   layer: 1
@@ -101,7 +101,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 1
-        constructionWorkRequired: 396
+        constructionWorkRequired: 585
         repairWorkRequired: 44
         cleanWorkRequired: 6
         researchWorkRequired: 6
@@ -156,13 +156,13 @@ MonoBehaviour:
           - key: Mining
             value: 2
           metrics: []
-    - rid: 7737211981804077320
+    - rid: 7737212042831200678
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:quarry
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211981804077321
+    - rid: 7737212042831200679
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility

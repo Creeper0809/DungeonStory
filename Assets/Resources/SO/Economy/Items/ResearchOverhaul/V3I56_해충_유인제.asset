@@ -29,30 +29,30 @@ MonoBehaviour:
   unitWeight: 1.15
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 34
+  unitPrice: 16
   features:
-  - rid: 7737211981804077485
-  - rid: 7737211981804077486
-  - rid: 7737211981804077487
-  - rid: 7737211981804077488
+  - rid: 7737212042857939868
+  - rid: 7737212042857939869
+  - rid: 7737212042857939870
+  - rid: 7737212042857939871
   references:
     version: 2
     RefIds:
-    - rid: 7737211981804077485
+    - rid: 7737212042857939868
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:agriculture:pest-control
-    - rid: 7737211981804077486
+    - rid: 7737212042857939869
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211981804077487
+    - rid: 7737212042857939870
       type: {class: CropTreatmentItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         treatmentKind: 0
-    - rid: 7737211981804077488
+    - rid: 7737212042857939871
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5989803
+        saleRate: 0.5627291

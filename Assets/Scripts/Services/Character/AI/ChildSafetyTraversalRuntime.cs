@@ -105,6 +105,28 @@ public sealed class WorldHazardZoneRuntime :
     IWorldHazardZoneQuery,
     IWorldHazardOverlayCommand
 {
+    private readonly struct ObservedHazardKey : IEquatable<ObservedHazardKey>
+    {
+        public ObservedHazardKey(CharacterId characterId, Vector2Int position)
+        {
+            CharacterId = characterId;
+            Position = position;
+        }
+
+        public CharacterId CharacterId { get; }
+        public Vector2Int Position { get; }
+
+        public bool Equals(ObservedHazardKey other) =>
+            CharacterId.Equals(other.CharacterId)
+            && Position.Equals(other.Position);
+
+        public override bool Equals(object obj) =>
+            obj is ObservedHazardKey other && Equals(other);
+
+        public override int GetHashCode() => unchecked(
+            CharacterId.GetHashCode() * 397 + Position.GetHashCode());
+    }
+
     private sealed class Overlay
     {
         public WorldHazardFlags Flags;
@@ -117,7 +139,12 @@ public sealed class WorldHazardZoneRuntime :
     private readonly IChildSafetyFilthQuery filth;
     private readonly Dictionary<string, Overlay> overlays =
         new(StringComparer.Ordinal);
+    private readonly Dictionary<ObservedHazardKey, WorldHazardSnapshot>
+        observedEnvironmentalHazards = new();
     private int overlayVersion = 1;
+    private int environmentalHazardVersion = 1;
+    private int observedEnvironmentVersion = int.MinValue;
+    private int observedFilthVersion = int.MinValue;
 
     public WorldHazardZoneRuntime(
         IChildSafetyEnvironmentalQuery environment,
@@ -132,8 +159,14 @@ public sealed class WorldHazardZoneRuntime :
         this.filth = filth ?? throw new ArgumentNullException(nameof(filth));
     }
 
-    public int Version => unchecked(
-        (environment.Version * 397 + filth.StateVersion) * 397 + overlayVersion);
+    public int Version
+    {
+        get
+        {
+            RefreshObservedEnvironmentalHazards();
+            return unchecked(environmentalHazardVersion * 397 + overlayVersion);
+        }
+    }
 
     public WorldHazardSnapshot GetHazard(
         CharacterId characterId,
@@ -146,7 +179,12 @@ public sealed class WorldHazardZoneRuntime :
                 nameof(characterId));
         }
 
-        WorldHazardFlags flags = WorldHazardFlags.None;
+        WorldHazardSnapshot environmental =
+            GetEnvironmentalHazard(characterId, position);
+        observedEnvironmentalHazards[
+            new ObservedHazardKey(characterId, position)] = environmental;
+
+        WorldHazardFlags flags = environmental.Flags;
         foreach (Overlay overlay in overlays.Values)
         {
             if (overlay.Cells.Contains(position))
@@ -155,6 +193,62 @@ public sealed class WorldHazardZoneRuntime :
             }
         }
 
+        WorldHazardFlags forbidden = WorldHazardFlags.Combat
+            | WorldHazardFlags.Fire
+            | WorldHazardFlags.ToxicAir
+            | WorldHazardFlags.LethalTemperature
+            | WorldHazardFlags.SevereContamination;
+        WorldHazardLevel level = (flags & forbidden) != 0
+            ? WorldHazardLevel.Forbidden
+            : environmental.Level == WorldHazardLevel.Restricted
+                || (flags & WorldHazardFlags.Industrial) != 0
+                ? WorldHazardLevel.Restricted
+                : WorldHazardLevel.Safe;
+        return new WorldHazardSnapshot(position, level, flags);
+    }
+
+    private void RefreshObservedEnvironmentalHazards()
+    {
+        int currentEnvironmentVersion = environment.Version;
+        int currentFilthVersion = filth.StateVersion;
+        if (currentEnvironmentVersion == observedEnvironmentVersion
+            && currentFilthVersion == observedFilthVersion)
+        {
+            return;
+        }
+
+        bool initialized = observedEnvironmentVersion != int.MinValue
+            || observedFilthVersion != int.MinValue;
+        observedEnvironmentVersion = currentEnvironmentVersion;
+        observedFilthVersion = currentFilthVersion;
+        bool changed = false;
+        foreach (ObservedHazardKey key
+                 in observedEnvironmentalHazards.Keys.ToArray())
+        {
+            WorldHazardSnapshot next = GetEnvironmentalHazard(
+                key.CharacterId,
+                key.Position);
+            WorldHazardSnapshot previous = observedEnvironmentalHazards[key];
+            if (next.Level != previous.Level || next.Flags != previous.Flags)
+            {
+                observedEnvironmentalHazards[key] = next;
+                changed = true;
+            }
+        }
+
+        if (initialized && changed)
+        {
+            environmentalHazardVersion = unchecked(
+                environmentalHazardVersion + 1);
+        }
+    }
+
+    private WorldHazardSnapshot GetEnvironmentalHazard(
+        CharacterId characterId,
+        Vector2Int position)
+    {
+        WorldHazardFlags flags = WorldHazardFlags.None;
+        bool restrictedAir = false;
         if (environment.TryGetCell(
                 position,
                 out EnvironmentalCellSnapshot cell))
@@ -162,6 +256,10 @@ public sealed class WorldHazardZoneRuntime :
             if (cell.AirQuality < 20f)
             {
                 flags |= WorldHazardFlags.ToxicAir;
+            }
+            else if (cell.AirQuality < 40f)
+            {
+                restrictedAir = true;
             }
 
             if (life.TryGet(characterId, out CharacterLifeRecord record))
@@ -188,17 +286,13 @@ public sealed class WorldHazardZoneRuntime :
             flags |= WorldHazardFlags.SevereContamination;
         }
 
-        WorldHazardFlags forbidden = WorldHazardFlags.Combat
-            | WorldHazardFlags.Fire
-            | WorldHazardFlags.ToxicAir
+        WorldHazardFlags forbidden = WorldHazardFlags.ToxicAir
             | WorldHazardFlags.LethalTemperature
             | WorldHazardFlags.SevereContamination;
         WorldHazardLevel level = (flags & forbidden) != 0
             ? WorldHazardLevel.Forbidden
-            : (flags & (WorldHazardFlags.Industrial
-                        | WorldHazardFlags.UncomfortableTemperature)) != 0
-                || environment.TryGetCell(position, out cell)
-                    && cell.AirQuality < 40f
+            : restrictedAir
+                || (flags & WorldHazardFlags.UncomfortableTemperature) != 0
                 ? WorldHazardLevel.Restricted
                 : WorldHazardLevel.Safe;
         return new WorldHazardSnapshot(position, level, flags);

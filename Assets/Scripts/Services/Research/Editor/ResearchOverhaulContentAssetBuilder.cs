@@ -1056,7 +1056,7 @@ public static class ResearchOverhaulContentAssetBuilder
 
     private static ItemSpec[] ItemSpecs() => new[]
     {
-        S("research:agriculture:irrigation", "resource:clean-water", "깨끗한 물", ResourceItemKind.Raw, ResourceIngredientTag.None, "workstation:v3:irrigation", 4, false, true),
+        S("research:agriculture:irrigation", "resource:clean-water", "깨끗한 물", ResourceItemKind.Raw, ResourceIngredientTag.None, "workstation:v3:irrigation", 8, false, true),
         S("research:mining:surface", "resource:sulfur", "황", ResourceItemKind.Raw, ResourceIngredientTag.Mineral, "workstation:v3:material-test", 2, false, true),
         S("research:mining:surface", "resource:lead-ore", "납광석", ResourceItemKind.Raw, ResourceIngredientTag.Mineral, "workstation:v3:material-test", 2, false, true),
         S("research:equipment:black-powder", "material:niter", "초석", ResourceItemKind.Intermediate, ResourceIngredientTag.Mineral, "workstation:v3:powder-mill", 2, true, true, A("resource:manure", 3), A("resource:clean-water", 1)),

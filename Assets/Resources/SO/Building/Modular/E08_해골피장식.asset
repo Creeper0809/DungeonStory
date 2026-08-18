@@ -91,7 +91,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 2
-        constructionWorkRequired: 72
+        constructionWorkRequired: 63
         repairWorkRequired: 8
         cleanWorkRequired: 4
         researchWorkRequired: 6
@@ -109,7 +109,7 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:stone-block
-          amount: 3
+          amount: 4
     - rid: 7737211921440179107
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:

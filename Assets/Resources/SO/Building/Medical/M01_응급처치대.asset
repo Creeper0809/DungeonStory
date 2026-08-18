@@ -63,9 +63,9 @@ MonoBehaviour:
     - rid: 7737211857806557903
     - rid: 7737211857806557904
     - rid: 7737211905666711788
-    - rid: 7737211981804077309
-    - rid: 7737211981816660038
-    - rid: 7737211981816660039
+    - rid: 7737212033836254067
+    - rid: 7737212033836254068
+    - rid: 7737212042831200660
   width: 2
   height: 1
   layer: 1
@@ -118,7 +118,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 81
+        constructionWorkRequired: 809
         repairWorkRequired: 8
         cleanWorkRequired: 8
         researchWorkRequired: 6
@@ -136,7 +136,7 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:lumber
-          amount: 3
+          amount: 5
     - rid: 7737211857806557902
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -176,7 +176,24 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 671121408
           disabledWhenDamaged: 1
-    - rid: 7737211981804077309
+    - rid: 7737212033836254067
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 6
+        maxThroughput: 20
+        normallyOpen: 1
+    - rid: 7737212033836254068
+      type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProcessFluidAbility
+        workTypeIds:
+        - work:surgery
+        cleanWaterPerCycle: 0.2
+        wastewaterPerCycle: 0.2
+        minimumQuality: 0
+        allowsManualWaterFallback: 1
+    - rid: 7737212042831200660
       type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceHubAbility
@@ -195,20 +212,3 @@ MonoBehaviour:
         - service:medical-call
         automatedRequiredFeatureTags:
         - service:queue
-    - rid: 7737211981816660038
-      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingUtilityConnectionAbility
-        channels: 6
-        maxThroughput: 20
-        normallyOpen: 1
-    - rid: 7737211981816660039
-      type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProcessFluidAbility
-        workTypeIds:
-        - work:surgery
-        cleanWaterPerCycle: 0.2
-        wastewaterPerCycle: 0.2
-        minimumQuality: 0
-        allowsManualWaterFallback: 1

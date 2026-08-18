@@ -303,7 +303,7 @@ public static class ResourceEconomyAssetBuilder
             R("recipe:incinerate-mixed", "혼합 부패물 소각", "incinerator", "work:craft", "research:survival:sanitation", 7, A("waste:mixed-rot", 1)),
             R("recipe:incinerate-forbidden", "금기 부패물 소각", "incinerator", "work:craft", "research:survival:sanitation", 9, A("waste:forbidden-rot", 1)),
 
-            R("recipe:grain-porridge", "황혼곡죽", "cookbench", "work:cook", "research:cuisine:crops", 6, A("resource:twilight-grain", 2), O("food:grain-porridge", 2)),
+            R("recipe:grain-porridge", "황혼곡죽", "cookbench", "work:cook", "research:cuisine:crops", 28, A("resource:twilight-grain", 6), O("food:grain-porridge", 6)),
             R("recipe:root-stew", "잿불뿌리 스튜", "cookbench", "work:cook", "research:cuisine:crops", 7, A("resource:ember-root", 2), O("food:root-stew", 2)),
             R("recipe:mushroom-soup", "동굴버섯국", "cookbench", "work:cook", "research:cuisine:crops", 7, A("resource:cave-mushroom", 2), O("food:mushroom-soup", 2)),
             R("recipe:garden-meal", "정원 요리", "cookbench", "work:cook", "research:cuisine:vegan", 11, A("resource:twilight-grain", 1), A("resource:ember-root", 1), A("resource:cave-mushroom", 1), O("food:garden-meal", 2)),

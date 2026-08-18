@@ -26,18 +26,23 @@ public sealed class AbilityHaul : MonoBehaviour
     private string activePathDebug = string.Empty;
     private bool haulingHarnessEquippedForCurrentRun;
     private string lastFailureReason = string.Empty;
+    private long runtimeHaulStartCount;
+    private long runtimeHaulTerminalCount;
+    private string lastTerminalDiagnostics = string.Empty;
     private readonly HashSet<string> pickedLeaseIds =
         new HashSet<string>(System.StringComparer.Ordinal);
     private readonly HashSet<string> releasedLeaseIds =
         new HashSet<string>(System.StringComparer.Ordinal);
     private System.Action haulMovementProgressCallback;
     private double nextLeaseHeartbeatAt;
+    private double haulMovementWorkStartedAt = double.NaN;
     private ICharacterProficiencyCommand proficiencyCommands;
     private IGameCalendar calendar;
     private ICharacterSpeciesCommand speciesCommands;
     private IWorkOrderQuery workOrders;
 #if UNITY_EDITOR
     public System.Action<WorldItemHaulPlan> DebugBeforeHaulRoutineStart;
+    private int diagnosticUpdateHeartbeat;
 #endif
     private IWorldItemStackRuntime ItemRuntime => actor?.WorldItemStackRuntime;
 
@@ -50,8 +55,20 @@ public sealed class AbilityHaul : MonoBehaviour
     public int RoutineHeartbeat => routineHeartbeat;
     public string ActivePathDebug => activePathDebug;
     public string LastFailureReason => lastFailureReason;
+    public long RuntimeHaulStartCount => runtimeHaulStartCount;
+    public long RuntimeHaulTerminalCount => runtimeHaulTerminalCount;
+    public string LastTerminalDiagnostics => lastTerminalDiagnostics;
     public bool HasBoundDeliveryIntent => activePlan != null
         && activePlan.IsDeliveryOnlyResume;
+#if UNITY_EDITOR
+    public bool HasHaulingRoutineForDiagnostics => haulingRoutine != null;
+    public int UpdateHeartbeatForDiagnostics => diagnosticUpdateHeartbeat;
+
+    private void Update()
+    {
+        diagnosticUpdateHeartbeat++;
+    }
+#endif
 
     public int GetInTransitQuantity(string destinationId, string itemId)
     {
@@ -231,6 +248,8 @@ public sealed class AbilityHaul : MonoBehaviour
                     reason));
             return;
         }
+        nextLeaseHeartbeatAt = actor.GameClock.Time
+            + LeaseHeartbeatIntervalSeconds;
         actor.CarryInventory?.TryPrepareHaulingHarness(
             out haulingHarnessEquippedForCurrentRun);
         unloadReason = WorldItemHaulPlanUnloadReason.None;
@@ -248,6 +267,7 @@ public sealed class AbilityHaul : MonoBehaviour
         releasedLeaseIds.Clear();
         executionStage = "운반 시작";
         routineHeartbeat = 0;
+        runtimeHaulStartCount++;
         activePathDebug = string.Empty;
         restoredDeliveryPending = false;
         haulExecutionActive = true;
@@ -306,6 +326,7 @@ public sealed class AbilityHaul : MonoBehaviour
     {
         string[] operationIds = GetActivePlanOwnerOperationIds();
         haulExecutionActive = false;
+        haulMovementWorkStartedAt = double.NaN;
         restoredDeliveryPending = false;
         if (haulingRoutine != null)
         {
@@ -702,8 +723,12 @@ public sealed class AbilityHaul : MonoBehaviour
 
             if (!pickupReached)
             {
-                lastFailureReason = $"pickup-unreachable:{pickup.PickupStandPosition}";
-                unloadReason = WorldItemHaulPlanUnloadReason.Interrupted;
+                if (unloadReason == WorldItemHaulPlanUnloadReason.None)
+                {
+                    lastFailureReason =
+                        $"pickup-unreachable:{pickup.PickupStandPosition}";
+                    unloadReason = WorldItemHaulPlanUnloadReason.Interrupted;
+                }
                 break;
             }
 
@@ -804,8 +829,12 @@ public sealed class AbilityHaul : MonoBehaviour
 
             if (!deliveryReached)
             {
-                lastFailureReason = $"delivery-unreachable:{delivery.DeliveryPosition}";
-                unloadReason = WorldItemHaulPlanUnloadReason.JobChanged;
+                if (unloadReason == WorldItemHaulPlanUnloadReason.None)
+                {
+                    lastFailureReason =
+                        $"delivery-unreachable:{delivery.DeliveryPosition}";
+                    unloadReason = WorldItemHaulPlanUnloadReason.JobChanged;
+                }
                 actor.Brain?.SetActionPhase(
                     "운반 중단",
                     null,
@@ -923,6 +952,15 @@ public sealed class AbilityHaul : MonoBehaviour
                     yield break;
                 }
 
+                if (!TryHeartbeatActivePlanLeases(out string heartbeatFailure))
+                {
+                    lastFailureReason =
+                        "path-search-lease-expired:" + heartbeatFailure;
+                    unloadReason =
+                        WorldItemHaulPlanUnloadReason.PickupReservationLost;
+                    yield break;
+                }
+
                 GridPathRequestStatus status = broker.RequestMovePathTo(
                     grid,
                     actor.GetNowXY(),
@@ -974,10 +1012,14 @@ public sealed class AbilityHaul : MonoBehaviour
                 ? actor.GameClock.Time + LeaseHeartbeatIntervalSeconds
                 : double.PositiveInfinity;
             haulMovementProgressCallback ??= OnHaulMovementProgress;
+            haulMovementWorkStartedAt = actor.GameClock != null
+                ? actor.GameClock.Time
+                : double.NaN;
             yield return move.MoveByPath(
                 path,
                 expectedAction,
                 haulMovementProgressCallback);
+            haulMovementWorkStartedAt = double.NaN;
             executionStage = "경로 이동 반환";
             routineHeartbeat++;
             if (IsActorAt(target)
@@ -1002,22 +1044,54 @@ public sealed class AbilityHaul : MonoBehaviour
 
     private void OnHaulMovementProgress()
     {
-        if (actor?.GameClock == null
-            || actor.GameClock.Time < nextLeaseHeartbeatAt)
-        {
-            return;
-        }
-
-        if (!TryRenewActivePlanLeases(out string renewalReason))
+        ApplyHaulMovementNeedDepletion();
+        if (!TryHeartbeatActivePlanLeases(out string renewalReason))
         {
             lastFailureReason = "movement-lease-expired:" + renewalReason;
             unloadReason = WorldItemHaulPlanUnloadReason.PickupReservationLost;
             move?.CancelActiveMovement();
+        }
+    }
+
+    private void ApplyHaulMovementNeedDepletion()
+    {
+        if (actor?.GameClock == null
+            || actor.Stats == null
+            || double.IsNaN(haulMovementWorkStartedAt))
+        {
             return;
         }
 
+        double now = actor.GameClock.Time;
+        float elapsedGameSeconds = Mathf.Max(
+            0f,
+            (float)(now - haulMovementWorkStartedAt));
+        haulMovementWorkStartedAt = now;
+        if (elapsedGameSeconds > 0f)
+        {
+            // Hauling is authored as work:haul/work:heavy-haul. Its physical
+            // movement must consume the same sleep, bladder and hygiene work
+            // budget as facility work; otherwise an always-busy hauler never
+            // becomes tired enough to yield to a restored primary service.
+            actor.Stats.ApplyWorkNeedDepletion(elapsedGameSeconds);
+        }
+    }
+
+    private bool TryHeartbeatActivePlanLeases(out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (actor?.GameClock == null)
+        {
+            failureReason = "game clock missing";
+            return false;
+        }
+        if (actor.GameClock.Time < nextLeaseHeartbeatAt)
+            return true;
+        if (!TryRenewActivePlanLeases(out failureReason))
+            return false;
         nextLeaseHeartbeatAt = actor.GameClock.Time
             + LeaseHeartbeatIntervalSeconds;
+        return true;
     }
 
     private AIAction GetExpectedHaulAction()
@@ -1074,6 +1148,10 @@ public sealed class AbilityHaul : MonoBehaviour
             ReturnCarriedItemsAfterInterruptedHaul(unloadReason.ToString());
         }
 
+        runtimeHaulTerminalCount++;
+        lastTerminalDiagnostics =
+            $"{unloadReason}:{lastFailureReason}:stage={executionStage}";
+
         ReleaseActivePlanReservations(
             unloadReason == WorldItemHaulPlanUnloadReason.Completed
                 ? ItemReservationReleaseReason.Completed
@@ -1085,6 +1163,7 @@ public sealed class AbilityHaul : MonoBehaviour
         activePlan = null;
         restoredDeliveryPending = false;
         haulExecutionActive = false;
+        haulMovementWorkStartedAt = double.NaN;
         haulingRoutine = null;
         foreach (string operationId in operationIds)
             ItemRuntime?.ReleaseHaulDeliveryIntent(operationId);

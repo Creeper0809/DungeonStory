@@ -1,6 +1,7 @@
 using UnityEngine.SceneManagement;
 using VContainer;
 using VContainer.Unity;
+using DungeonStory.Balance;
 
 public static class DungeonWorldSimulationRegistration
 {
@@ -44,6 +45,8 @@ public static class DungeonWorldSimulationRegistration
             .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<ResourceEconomyContentCatalog>(Lifetime.Singleton)
             .As<IResourceEconomyContentCatalog>();
+        builder.Register<SurvivalContinuityCatalogQuery>(Lifetime.Singleton)
+            .As<DungeonStory.Balance.ISurvivalContinuityCatalogQuery>();
         builder.RegisterDungeonGameContentCatalog();
         builder.Register<GameContentWasteProcessingRules>(Lifetime.Singleton)
             .As<IWasteProcessingRules>();
@@ -81,6 +84,8 @@ public static class DungeonWorldSimulationRegistration
             .As<ICharacterRuntimeTransientStateRegistry>();
         builder.Register<PhysicalStockQuery>(Lifetime.Singleton)
             .As<IStockQuery>();
+        builder.Register<FloorClutterDiagnosticsQuery>(Lifetime.Singleton)
+            .As<IFloorClutterDiagnosticsQuery>();
         builder.Register<ItemQuantityReservationService>(Lifetime.Singleton)
             .As<IItemQuantityReservationService>()
             .As<IItemQuantityLeaseMutation>()
@@ -451,7 +456,8 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<CharacterConsumablesApplicationPorts>(Lifetime.Singleton)
             .As<ICharacterConsumablesWorldPort>()
             .As<ICharacterConsumablesInventoryPort>()
-            .As<ICharacterConsumablesEventPort>();
+            .As<ICharacterConsumablesEventPort>()
+            .As<ICharacterConsumablesWorkforcePort>();
         builder.Register<CharacterConsumablesRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<ICharacterConsumablesApplication>()

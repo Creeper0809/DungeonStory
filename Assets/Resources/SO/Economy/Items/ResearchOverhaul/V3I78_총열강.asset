@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 2.15
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 291
+  unitPrice: 130
   features:
-  - rid: 7737211981804077667
-  - rid: 7737211981804077668
-  - rid: 7737211981804077669
+  - rid: 7737212042857939585
+  - rid: 7737212042857939586
+  - rid: 7737212042857939587
   references:
     version: 2
     RefIds:
-    - rid: 7737211981804077667
+    - rid: 7737212042857939585
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:pressure-barrels
-    - rid: 7737211981804077668
+    - rid: 7737212042857939586
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 512
         sharedIntermediate: 1
-    - rid: 7737211981804077669
+    - rid: 7737212042857939587
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59847194
+        saleRate: 0.5954102

@@ -30,11 +30,11 @@ MonoBehaviour:
   unitWeight: 0.25
   maxStack: 1
   sprite: {fileID: 0}
-  unitPrice: 42
+  unitPrice: 19
   features:
   - rid: 7737211905660420527
   - rid: 7737211905660420528
-  - rid: 7737211981804077976
+  - rid: 7737212042857939349
   references:
     version: 2
     RefIds:
@@ -48,7 +48,7 @@ MonoBehaviour:
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:textile:tailoring
-    - rid: 7737211981804077976
+    - rid: 7737212042857939349
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.58853173
+        saleRate: 0.578228

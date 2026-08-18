@@ -812,7 +812,8 @@ public static class EnvironmentalFieldDebugScenarios
                 new AlwaysPoweredRuntime(),
                 clock,
                 new EnvironmentalFieldAggregateStateStore(
-                    new DungeonRuntimeAggregateRootStore()));
+                    new DungeonRuntimeAggregateRootStore()),
+                new RestoreWorldCandidateIndex());
         }
 
         public Grid Grid { get; }

@@ -43,7 +43,7 @@ MonoBehaviour:
     recommendedRank: 0
     minimumRiskRank: 0
   requiredResearchId: research:agriculture:irrigation
-  requiredWork: 23
+  requiredWork: 10
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0
@@ -56,5 +56,5 @@ MonoBehaviour:
   inputs: []
   outputs:
   - itemId: resource:clean-water
-    amount: 4
+    amount: 8
     probability: 1

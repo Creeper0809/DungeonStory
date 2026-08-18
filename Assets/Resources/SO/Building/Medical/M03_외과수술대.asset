@@ -63,8 +63,8 @@ MonoBehaviour:
     - rid: 7737211857806557815
     - rid: 7737211857806557816
     - rid: 7737211905666711770
-    - rid: 7737211981816660452
-    - rid: 7737211981816660453
+    - rid: 7737212033836254033
+    - rid: 7737212033836254034
   width: 3
   height: 1
   layer: 1
@@ -117,7 +117,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 162
+        constructionWorkRequired: 971
         repairWorkRequired: 14.400001
         cleanWorkRequired: 8
         researchWorkRequired: 6
@@ -135,7 +135,7 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:lumber
-          amount: 7
+          amount: 11
     - rid: 7737211857806557814
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -175,14 +175,14 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 671121408
           disabledWhenDamaged: 1
-    - rid: 7737211981816660452
+    - rid: 7737212033836254033
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737211981816660453
+    - rid: 7737212033836254034
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility

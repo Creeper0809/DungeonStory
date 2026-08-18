@@ -253,15 +253,67 @@ public class Grid
         Grid newGrid = new Grid(newWidth, newHeight, originPos, cellWorldHeight);
         int copyHeight = Mathf.Min(height, newHeight);
         int copyWidth = Mathf.Min(width, newWidth);
+        Dictionary<IGridOccupant, Dictionary<GridLayer, List<Vector2Int>>>
+            registrations =
+            new Dictionary<IGridOccupant, Dictionary<GridLayer, List<Vector2Int>>>();
+        GridLayer[] layers = (GridLayer[])Enum.GetValues(typeof(GridLayer));
+        List<IGridOccupant> cellOccupants = new List<IGridOccupant>(4);
         for (int j = 0; j < copyHeight; j++)
         {
             for (int i = 0; i < copyWidth; i++)
             {
-                newGrid.gridArray[j, i] = GetGridCell(new Vector2Int(i, j));
+                Vector2Int position = new Vector2Int(i, j);
+                GridCell source = GetGridCell(position);
+                newGrid.SetAreaType(position, source.AreaType);
+                newGrid.SetTerrainType(position, source.TerrainType);
+
+                foreach (GridLayer layer in layers)
+                {
+                    cellOccupants.Clear();
+                    source.FillOccupantsInLayer(layer, cellOccupants);
+                    foreach (IGridOccupant occupant in cellOccupants)
+                    {
+                        if (!registrations.TryGetValue(
+                                occupant,
+                                out Dictionary<GridLayer, List<Vector2Int>> byLayer))
+                        {
+                            byLayer = new Dictionary<GridLayer, List<Vector2Int>>();
+                            registrations.Add(occupant, byLayer);
+                        }
+
+                        if (!byLayer.TryGetValue(layer, out List<Vector2Int> positions))
+                        {
+                            positions = new List<Vector2Int>();
+                            byLayer.Add(layer, positions);
+                        }
+
+                        positions.Add(position);
+                    }
+                }
             }
         }
 
-        newGrid.RebuildOccupantIndex();
+        foreach (var registration in registrations
+                     .SelectMany(occupant => occupant.Value.Select(layer => new
+                     {
+                         Occupant = occupant.Key,
+                         Layer = layer.Key,
+                         Positions = layer.Value
+                     }))
+                     .OrderBy(value => value.Layer)
+                     .ThenBy(value => value.Occupant.GridId)
+                     .ThenBy(value => value.Occupant.GetType().FullName, StringComparer.Ordinal))
+        {
+            if (!newGrid.RegisterOccupant(
+                    registration.Occupant,
+                    registration.Layer,
+                    registration.Positions,
+                    registration.Occupant.IsGridMovement))
+            {
+                return null;
+            }
+        }
+
         newGrid.RefreshTraversalHeuristicMetadata();
         return newGrid;
     }

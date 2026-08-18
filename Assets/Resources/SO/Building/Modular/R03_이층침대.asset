@@ -63,7 +63,7 @@ MonoBehaviour:
     - rid: 7737211921440178936
     - rid: 7737211921440178937
     - rid: 7737211921440178938
-    - rid: 7737211981804077228
+    - rid: 7737212042831200586
   width: 2
   height: 1
   layer: 1
@@ -98,7 +98,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 1
-        constructionWorkRequired: 378
+        constructionWorkRequired: 672
         repairWorkRequired: 42
         cleanWorkRequired: 8
         researchWorkRequired: 6
@@ -116,11 +116,11 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:lumber
-          amount: 8
+          amount: 12
         - itemId: material:cloth
-          amount: 5
+          amount: 8
         - itemId: material:iron-ingot
-          amount: 2
+          amount: 3
     - rid: 7737211921440178932
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -183,7 +183,7 @@ MonoBehaviour:
         roomTemperatureOffset: 1
         coldProtection: 4
         heatProtection: 2
-    - rid: 7737211981804077228
+    - rid: 7737212042831200586
       type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceHubAbility

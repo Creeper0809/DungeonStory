@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 2.15
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 409
+  unitPrice: 182
   features:
-  - rid: 7737211981804077612
-  - rid: 7737211981804077613
-  - rid: 7737211981804077614
+  - rid: 7737212042857939572
+  - rid: 7737212042857939573
+  - rid: 7737212042857939574
   references:
     version: 2
     RefIds:
-    - rid: 7737211981804077612
+    - rid: 7737212042857939572
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:precision-fitting
-    - rid: 7737211981804077613
+    - rid: 7737212042857939573
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 512
         sharedIntermediate: 1
-    - rid: 7737211981804077614
+    - rid: 7737212042857939574
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5995867
+        saleRate: 0.5988608

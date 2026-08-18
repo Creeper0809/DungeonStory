@@ -30,12 +30,12 @@ MonoBehaviour:
   unitWeight: 0.7
   maxStack: 40
   sprite: {fileID: 0}
-  unitPrice: 36
+  unitPrice: 16
   features:
   - rid: 7737211905666712384
   - rid: 7737211905666712385
   - rid: 7737211905666712387
-  - rid: 7737211981816660259
+  - rid: 7737212042831201091
   references:
     version: 2
     RefIds:
@@ -59,7 +59,7 @@ MonoBehaviour:
         mood: 7
         freshnessSeconds: 390
         preserved: 0
-    - rid: 7737211981816660259
+    - rid: 7737212042831201091
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5853703
+        saleRate: 0.5805

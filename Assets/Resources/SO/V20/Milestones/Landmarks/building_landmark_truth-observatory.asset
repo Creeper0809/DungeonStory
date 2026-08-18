@@ -75,7 +75,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 945
+        constructionWorkRequired: 3660
         repairWorkRequired: 90
         cleanWorkRequired: 24
         researchWorkRequired: 1
@@ -97,7 +97,7 @@ MonoBehaviour:
         - itemId: material:steel-ingot
           amount: 12
         - itemId: component:precision-parts
-          amount: 6
+          amount: 9
         - itemId: component:prototype-package
           amount: 4
     - rid: 7737211808466862457

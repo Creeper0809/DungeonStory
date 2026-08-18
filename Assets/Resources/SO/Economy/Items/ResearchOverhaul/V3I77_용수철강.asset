@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 2.15
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 197
+  unitPrice: 88
   features:
-  - rid: 7737211981816660173
-  - rid: 7737211981816660174
-  - rid: 7737211981816660175
+  - rid: 7737212042857939396
+  - rid: 7737212042857939397
+  - rid: 7737212042857939398
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660173
+    - rid: 7737212042857939396
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:metallurgy:advanced
-    - rid: 7737211981816660174
+    - rid: 7737212042857939397
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 512
         sharedIntermediate: 1
-    - rid: 7737211981816660175
+    - rid: 7737212042857939398
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59841114
+        saleRate: 0.5953939

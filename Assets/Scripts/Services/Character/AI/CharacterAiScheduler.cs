@@ -49,6 +49,9 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         new HashSet<CharacterActor>();
     private readonly HashSet<CharacterActor> missingBehaviorTreeLogged = new HashSet<CharacterActor>();
     private readonly HashSet<CharacterActor> missingExternalBehaviorLogged = new HashSet<CharacterActor>();
+    private readonly Dictionary<CharacterActor, CharacterAiDecisionTickResult>
+        lastDecisionResultsForDiagnostics =
+            new Dictionary<CharacterActor, CharacterAiDecisionTickResult>();
     private readonly CharacterAiSchedulerBudgetState budgetState =
         new CharacterAiSchedulerBudgetState();
     private readonly CharacterAiDecisionCadencePolicy cadencePolicy =
@@ -77,6 +80,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     private IPlayerStaffCommandSource playerStaffCommands;
     private IDungeonDebugRuleQuery debugRules;
     private double worldIndexMillisecondsThisFrame;
+    private bool deterministicSimulationForDiagnostics;
 
     public int RegisteredCharacterCount => actors.Count;
     public bool HasInjectedGameClock => gameClock != null;
@@ -88,6 +92,8 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     public int LastBrokerUrgentOverdraftPathSearchCount =>
         budgetState.LastBrokerUrgentOverdraftPathSearchCount;
     public int LastBrokerUnboundedPathSearchCount => budgetState.LastBrokerUnboundedPathSearchCount;
+    public IGridPathSearchBroker PathSearchBrokerForDiagnostics =>
+        pathSearchBroker;
     public int LastBrokerPathCacheHitCount => budgetState.LastBrokerPathCacheHitCount;
     public int LastBrokerPathBudgetDeferralCount => budgetState.LastBrokerPathBudgetDeferralCount;
     public double LastProcessingMilliseconds { get; private set; }
@@ -108,6 +114,20 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     public bool IsDrivingAi => enabled && driveCharacterUpdates;
     public int CurrentDecisionBudget => budgetState.CurrentDecisionBudget;
     public int MaximumDecisionsPerFrameForDiagnostics => maxDecisionsPerFrame;
+    public bool DeterministicSimulationForDiagnostics =>
+        deterministicSimulationForDiagnostics;
+    public CharacterAiDecisionTickResult GetLastDecisionResultForDiagnostics(
+        CharacterActor actor) =>
+        actor != null
+            && lastDecisionResultsForDiagnostics.TryGetValue(
+                actor,
+                out CharacterAiDecisionTickResult result)
+            ? result
+            : new CharacterAiDecisionTickResult(
+                false,
+                CharacterAiBranch.None,
+                "None",
+                "No deterministic decision has run for this actor.");
     public void ResetDecisionDeferralTelemetryForDiagnostics() =>
         budgetState.ResetMaximumObservedDecisionDeferral();
 
@@ -127,6 +147,98 @@ public sealed class CharacterAiScheduler : MonoBehaviour
             urgentDecisionRequests.Add(actor);
             DecisionSchedule.Schedule(actor, now);
         }
+    }
+
+    public void ConfigureDeterministicSimulationForDiagnostics(bool enabled)
+    {
+        if (!Application.isEditor)
+        {
+            throw new InvalidOperationException(
+                "Deterministic scheduler simulation is editor-only.");
+        }
+
+        deterministicSimulationForDiagnostics = enabled;
+        if (facilityCandidateCache is FacilityCandidateCacheStore candidates)
+        {
+            candidates.ConfigureDeterministicQueriesForDiagnostics(enabled);
+        }
+        if (pathSearchBroker is GridPathSearchBroker paths)
+        {
+            paths.ConfigureDeterministicSearchForDiagnostics(enabled);
+        }
+        IdleBehaviorRunner.ConfigureDeterministicStaticIdleForDiagnostics(enabled);
+        foreach (CharacterActor actor in actors)
+        {
+            actor?.Brain?.ConfigureDeterministicActionScoringForDiagnostics(enabled);
+        }
+        budgetState.Clear(BuildBudgetSettings(), actors.Count);
+    }
+
+    public void ResetDeterministicSimulationCheckpointForDiagnostics()
+    {
+        if (!Application.isEditor || !deterministicSimulationForDiagnostics)
+        {
+            throw new InvalidOperationException(
+                "Deterministic scheduler simulation must be enabled before resetting a checkpoint.");
+        }
+
+        if (facilityCandidateCache is FacilityCandidateCacheStore candidates)
+        {
+            candidates.ResetDeterministicCheckpointForDiagnostics();
+        }
+        RequirePathSearchBroker().Clear();
+
+        List<CharacterActor> orderedActors = new List<CharacterActor>();
+        HashSet<CharacterActor> seen = new HashSet<CharacterActor>();
+        foreach (CharacterActor actor in RequireCharacterWorld().Characters)
+        {
+            if (actor != null && seen.Add(actor))
+            {
+                orderedActors.Add(actor);
+            }
+        }
+        orderedActors.Sort((left, right) => string.CompareOrdinal(
+            left?.Identity?.PersistentId ?? string.Empty,
+            right?.Identity?.PersistentId ?? string.Empty));
+
+        actors.Clear();
+        actorSet.Clear();
+        DecisionSchedule.Clear();
+        urgentDecisionRequests.Clear();
+        missingBehaviorTreeLogged.Clear();
+        missingExternalBehaviorLogged.Clear();
+        lastDecisionResultsForDiagnostics.Clear();
+        schedulingTime = gameClock != null ? gameClock.Time : 0f;
+        manualTime = schedulingTime;
+        schedulerTickSequence = 0;
+        lastOverdraftTick = int.MinValue / 2;
+        cumulativeProcessedDecisionCount = 0L;
+        cumulativeStarvedDecisionCount = 0L;
+        cumulativeSkippedDecisionCount = 0L;
+        cumulativeLegacyFallbackCount = 0L;
+        LastProcessedDecisionCount = 0;
+        LastBehaviorTreeTickCount = 0;
+        LastLegacyFallbackCount = 0;
+        LastFairnessDecisionFloor = 0;
+        LastBudgetExhausted = false;
+        LastProcessingMilliseconds = 0.0;
+        LastAllocatedBytes = -1L;
+
+        foreach (CharacterActor actor in orderedActors)
+        {
+            actor.Brain?.ConfigureDeterministicActionScoringForDiagnostics(true);
+            RegisterInternal(actor);
+        }
+
+        DecisionSchedule.Clear();
+        urgentDecisionRequests.Clear();
+        float now = CurrentSchedulingTime;
+        foreach (CharacterActor actor in orderedActors)
+        {
+            urgentDecisionRequests.Add(actor);
+            DecisionSchedule.Schedule(actor, now);
+        }
+        budgetState.Clear(BuildBudgetSettings(), actors.Count);
     }
     public int CurrentPathSearchBudget => budgetState.GetPathSearchBudgetForFrame(
         BuildBudgetSettings(),
@@ -227,7 +339,9 @@ public sealed class CharacterAiScheduler : MonoBehaviour
             return;
         }
 
-        schedulingTime = uiClock != null
+        schedulingTime = deterministicSimulationForDiagnostics
+            ? gameClock.Time
+            : uiClock != null
             ? schedulingTime + Mathf.Max(0f, uiClock.DeltaTime)
             : gameClock.Time;
         ProcessAiBudget(schedulingTime);
@@ -305,6 +419,10 @@ public sealed class CharacterAiScheduler : MonoBehaviour
 
     public int GetMovementFrameStrideFor(CharacterActor actor)
     {
+        if (deterministicSimulationForDiagnostics)
+        {
+            return 1;
+        }
         if (!enabled
             || !driveCharacterUpdates
             || offscreenMovementFrameStride <= 1)
@@ -427,7 +545,8 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                 frameWorkBudget,
                 DecisionSchedule.Count,
                 LastOldestDecisionDeferralSeconds >= maximumDecisionDeferralSeconds,
-                LastProcessingMilliseconds);
+                LastProcessingMilliseconds,
+                useSharedFrameBudget: !deterministicSimulationForDiagnostics);
             long startTimestamp = Stopwatch.GetTimestamp();
             // Keep the AI-owned allocation counter independent from expensive
             // detailed stage profiling. Stress and release diagnostics need a
@@ -439,7 +558,8 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                     budgetSettings,
                     actors.Count,
                     gameClock.FrameCount,
-                    enabled && driveCharacterUpdates && limitPathSearches,
+                    !deterministicSimulationForDiagnostics
+                        && enabled && driveCharacterUpdates && limitPathSearches,
                     RequirePathSearchBroker());
                 worldIndexMillisecondsThisFrame = budgetState.AdvanceIncrementalWorldIndex(
                     facilityCandidateCache,
@@ -510,8 +630,8 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                     // to cross the normal wall-clock slice. The authored hard
                     // decision ceiling still caps the frame, and the loop exits
                     // immediately after the floor when the time slice is spent.
-                    bool withinTimeBudget =
-                        LastProcessedDecisionCount < guaranteedDecisionFloor
+                    bool withinTimeBudget = deterministicSimulationForDiagnostics
+                        || LastProcessedDecisionCount < guaranteedDecisionFloor
                         || elapsedBeforeDecision + predictedDecisionMilliseconds
                             <= budgetState.CurrentFrameBudgetMilliseconds;
                     // Frame pressure may reduce the normal AI slice to zero,
@@ -645,7 +765,8 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                     }
                     double elapsedMilliseconds =
                         GetElapsedMilliseconds(startTimestamp);
-                    if (LastProcessedDecisionCount >= guaranteedDecisionFloor
+                    if (!deterministicSimulationForDiagnostics
+                        && LastProcessedDecisionCount >= guaranteedDecisionFloor
                         && elapsedMilliseconds >= budgetState.CurrentFrameBudgetMilliseconds)
                     {
                         LastBudgetExhausted = true;
@@ -762,6 +883,10 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         }
 
         actor.EnsureRuntimeState();
+        if (deterministicSimulationForDiagnostics)
+        {
+            actor.Brain?.ConfigureDeterministicActionScoringForDiagnostics(true);
+        }
         actors.Add(actor);
         float now = CurrentSchedulingTime;
         DecisionSchedule.Schedule(
@@ -786,6 +911,10 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         {
             LastBehaviorTreeTickCount++;
             CharacterAiDecisionTickResult result = brain.RunDecisionTreeDirect();
+            if (deterministicSimulationForDiagnostics)
+            {
+                lastDecisionResultsForDiagnostics[actor] = result;
+            }
             if (driveBehaviorDesignerTrees)
             {
                 actor.BehaviorTree?.DungeonStoryRecordDirectTick(actor, result);
@@ -796,7 +925,17 @@ public sealed class CharacterAiScheduler : MonoBehaviour
 
         LastLegacyFallbackCount++;
         cumulativeLegacyFallbackCount++;
-        return TryRunLegacyFallbackDecision(actor, brain);
+        bool legacyHandled = TryRunLegacyFallbackDecision(actor, brain);
+        if (deterministicSimulationForDiagnostics)
+        {
+            lastDecisionResultsForDiagnostics[actor] =
+                new CharacterAiDecisionTickResult(
+                    legacyHandled,
+                    CharacterAiBranch.None,
+                    "Legacy Fallback",
+                    legacyHandled ? "Handled" : "Not handled");
+        }
+        return legacyHandled;
     }
 
     private static bool TryRunLegacyFallbackDecision(
@@ -850,7 +989,9 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         float targetFrameSeconds = Mathf.Max(
             0.001f,
             targetFrameMilliseconds / 1000f);
-        float observedFrameSeconds = uiClock != null
+        float observedFrameSeconds = deterministicSimulationForDiagnostics
+            ? targetFrameSeconds
+            : uiClock != null
             // A slow frame must not demand proportionally more AI work in
             // that same frame. Cap the service horizon at two target frames
             // so fairness catches up gradually without a positive feedback
@@ -924,6 +1065,10 @@ public sealed class CharacterAiScheduler : MonoBehaviour
 
     private float GetDecisionInterval(CharacterActor actor)
     {
+        if (deterministicSimulationForDiagnostics)
+        {
+            return Mathf.Max(0.01f, ownerDecisionInterval);
+        }
         return cadencePolicy.GetNextDecisionInterval(
             actor,
             RequireMainCameraProvider().Camera,
@@ -949,7 +1094,8 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     {
         return new CharacterAiSchedulerBudgetSettings
         {
-            AdaptBudgetsToFrameCost = adaptBudgetsToFrameCost,
+            AdaptBudgetsToFrameCost = adaptBudgetsToFrameCost
+                && !deterministicSimulationForDiagnostics,
             MaxDecisionsPerFrame = maxDecisionsPerFrame,
             MaxPathSearchesPerFrame = Mathf.Clamp(maxPathSearchesPerFrame, 1, 8),
             MinDecisionsPerFrame = Mathf.Max(1, minDecisionsPerFrame),

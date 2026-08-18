@@ -53,13 +53,13 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211981818757384
-    - rid: 7737211981818757385
-    - rid: 7737211981818757386
-    - rid: 7737211981818757387
-    - rid: 7737211981818757388
-    - rid: 7737211981818757389
-    - rid: 7737211981818757390
+    - rid: 7737212033836254003
+    - rid: 7737212033836254004
+    - rid: 7737212033836254005
+    - rid: 7737212033836254006
+    - rid: 7737212033836254007
+    - rid: 7737212033836254008
+    - rid: 7737212033836254009
   width: 2
   height: 1
   layer: 1
@@ -75,12 +75,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211981818757384
+    - rid: 7737212033836254003
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I16
-    - rid: 7737211981818757385
+    - rid: 7737212033836254004
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -89,12 +89,12 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211981818757386
+    - rid: 7737212033836254005
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 558
+        constructionWorkRequired: 355
         repairWorkRequired: 74
         cleanWorkRequired: 12
         researchWorkRequired: 6
@@ -114,30 +114,30 @@ MonoBehaviour:
         - itemId: material:stone-block
           amount: 4
         - itemId: material:iron-ingot
-          amount: 3
+          amount: 5
         - itemId: material:cloth
           amount: 1
-    - rid: 7737211981818757387
+    - rid: 7737212033836254006
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 16
         normallyOpen: 1
-    - rid: 7737211981818757388
+    - rid: 7737212033836254007
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 7
         priority: 4
         minimumSupplyFraction: 1
-    - rid: 7737211981818757389
+    - rid: 7737212033836254008
       type: {class: BuildingProductionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionAbility
         outputCategory: 1
         amount: 1
-    - rid: 7737211981818757390
+    - rid: 7737212033836254009
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

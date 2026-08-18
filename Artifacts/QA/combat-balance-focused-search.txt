@@ -1,0 +1,7 @@
+COMBAT_BALANCE_FOCUSED_SEARCH_V2
+requested=4; coarseSamples=16; roundSamples=32; confirmationSamples=256; coarseSeeds=6; finalists=4
+encounter | objective | health | damage | objective-health | round | win | severe | low-health | failure casualty | median rounds | mean health | score | stalled
+encounter:22 | SabotageTarget | 3.2 | 0.8 | 0.3 | 8 | 62.5 % | 0.0 % | 0.0 % | 0.0 % | 1.0 | 99.5 % | 27.780382 | 0
+encounter:28 | SabotageTarget | 3.2 | 0.8 | 1 | 7 | 65.6 % | 17.3 % | 16.5 % | 50.0 % | 6.0 | 71.1 % | 0.001466 | 0
+encounter:33 | ProtectTarget | 1.6 | 0.8 | 1 | 9 | 75.4 % | 49.4 % | 49.8 % | 80.0 % | 8.0 | 42.5 % | 0.002853 | 0
+encounter:34 | SabotageTarget | 3.2 | 0.8 | 1.6 | 7 | 73.8 % | 16.0 % | 17.4 % | 20.3 % | 7.0 | 74.6 % | 0.001856 | 0

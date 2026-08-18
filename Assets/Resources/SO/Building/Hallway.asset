@@ -121,7 +121,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 41
+        constructionWorkRequired: 47
         repairWorkRequired: 10
         cleanWorkRequired: 6.25
         researchWorkRequired: 6
@@ -139,4 +139,4 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:stone-block
-          amount: 1
+          amount: 2

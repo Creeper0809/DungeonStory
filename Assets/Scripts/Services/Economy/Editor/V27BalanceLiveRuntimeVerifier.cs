@@ -74,14 +74,22 @@ public static class V27BalanceLiveRuntimeVerifier
             construction,
             d03.GetConstructionMaterials(),
             100f);
+        BuildingWorkAmountAbility authoredConstruction =
+            d03.GetAbility<BuildingWorkAmountAbility>()
+            ?? throw new InvalidOperationException(
+                "D03 authored construction WU authority is missing.");
         RequireApproximately(
             construction,
-            V27BalanceWorkCalculator.ScaleRequiredWork(beforeConstruction),
-            "D03 construction");
-        RequireApproximately(
-            recipe,
-            V27BalanceWorkCalculator.ScaleRequiredWork(beforeRecipe),
-            "sawmill recipe");
+            authoredConstruction.constructionWorkRequired,
+            "D03 authored construction authority");
+        if (construction < Mathf.Ceil(beforeConstruction * 1.5f)
+            || construction > Mathf.Ceil(beforeConstruction * 2.25f))
+        {
+            throw new InvalidOperationException(
+                "D03 construction escaped the approved 1.5-2.25 WU band: "
+                + $"before={beforeConstruction}; after={construction}.");
+        }
+        RequireApproximately(recipe, sawmill.RequiredWork, "sawmill recipe");
         RequireApproximately(
             dismantle.RequiredWork,
             construction * 0.25f,
@@ -92,23 +100,24 @@ public static class V27BalanceLiveRuntimeVerifier
             dismantle.RecoveredMaterials
                 .OrderBy(value => value.ItemId, StringComparer.Ordinal)
                 .Select(value => value.ItemId + "=" + value.Amount));
-        if (!string.Equals(
-                recovered,
-                "material:iron-ingot=1|material:stone-block=1|material:treated-lumber=5",
-                StringComparison.Ordinal))
+        int inputQuantity = d03.GetConstructionMaterials().Sum(value => value.Amount);
+        int recoveredQuantity = dismantle.RecoveredMaterials.Sum(value => value.Amount);
+        if (recoveredQuantity <= 0 || recoveredQuantity >= inputQuantity)
         {
             throw new InvalidOperationException(
-                "D03 recovery changed while scaling labor: " + recovered);
+                "D03 recovery is not a strict physical loss: input="
+                + inputQuantity + "; recovered=" + recoveredQuantity
+                + "; detail=" + recovered);
         }
 
         return "RESULT=PASS; checks=4\n"
             + "PASS V27_LIVE_CONTAINER_WORK_AUTHORITY=V27BalanceWorkCalculator\n"
             + "PASS V27_LIVE_D03_CONSTRUCTION_WU=" + FloatToken(beforeConstruction)
             + "->" + FloatToken(construction) + "\n"
-            + "PASS V27_LIVE_SAWMILL_RECIPE_WU=" + FloatToken(beforeRecipe)
+            + "PASS V27_LIVE_SAWMILL_RECIPE_WU_RECURRING=" + FloatToken(beforeRecipe)
             + "->" + FloatToken(recipe) + "\n"
             + "PASS V27_LIVE_D03_DISMANTLE_WU="
-            + FloatToken(beforeConstruction * 0.25f)
+            + FloatToken(construction * 0.25f)
             + "->" + FloatToken(dismantle.RequiredWork)
             + "; recovered=" + recovered + "\n";
     }

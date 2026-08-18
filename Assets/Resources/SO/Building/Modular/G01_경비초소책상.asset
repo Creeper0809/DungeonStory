@@ -94,7 +94,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 522
+        constructionWorkRequired: 603
         repairWorkRequired: 58
         cleanWorkRequired: 10
         researchWorkRequired: 6
@@ -112,9 +112,9 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:treated-lumber
-          amount: 5
+          amount: 8
         - itemId: material:iron-ingot
-          amount: 2
+          amount: 3
     - rid: 7737211921440178444
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:

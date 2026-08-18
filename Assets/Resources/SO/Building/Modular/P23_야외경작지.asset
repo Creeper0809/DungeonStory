@@ -60,8 +60,8 @@ MonoBehaviour:
     - rid: 7737211921440178547
     - rid: 7737211921440178548
     - rid: 7737211921440178549
-    - rid: 7737211981804077196
-    - rid: 7737211981804077197
+    - rid: 7737212042831200554
+    - rid: 7737212042831200555
   width: 3
   height: 1
   layer: 5
@@ -103,7 +103,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 396
+        constructionWorkRequired: 425
         repairWorkRequired: 44
         cleanWorkRequired: 6
         researchWorkRequired: 6
@@ -125,7 +125,7 @@ MonoBehaviour:
         - itemId: material:iron-ingot
           amount: 2
         - itemId: component:machine-parts
-          amount: 1
+          amount: 2
     - rid: 7737211921440178547
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -164,13 +164,13 @@ MonoBehaviour:
         cycleSupplyInputs:
         - itemId: supply:nitrate-fertilizer
           amount: 1
-    - rid: 7737211981804077196
+    - rid: 7737212042831200554
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:crop-plot
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211981804077197
+    - rid: 7737212042831200555
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility

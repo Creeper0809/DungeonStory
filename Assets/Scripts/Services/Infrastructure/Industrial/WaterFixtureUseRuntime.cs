@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using UnityEngine;
 
 public sealed class WaterFixtureUseRuntime : IWaterFixtureUseRuntime
@@ -8,13 +9,15 @@ public sealed class WaterFixtureUseRuntime : IWaterFixtureUseRuntime
     private readonly IWorldItemStackRuntime items;
     private readonly IWorldFilthQuery filth;
     private readonly ICharacterNeedBalanceRuntime needBalance;
+    private readonly IWorkforceReplanService workforce;
 
     public WaterFixtureUseRuntime(
         IFluidInfrastructureTransaction water,
         IFluidWastewaterTransaction wastewater,
         IWorldItemStackRuntime items,
         IWorldFilthQuery filth,
-        ICharacterNeedBalanceRuntime needBalance)
+        ICharacterNeedBalanceRuntime needBalance,
+        IWorkforceReplanService workforce)
     {
         this.water = water ?? throw new ArgumentNullException(nameof(water));
         this.wastewater = wastewater
@@ -23,10 +26,13 @@ public sealed class WaterFixtureUseRuntime : IWaterFixtureUseRuntime
         this.filth = filth ?? throw new ArgumentNullException(nameof(filth));
         this.needBalance = needBalance
             ?? throw new ArgumentNullException(nameof(needBalance));
+        this.workforce = workforce
+            ?? throw new ArgumentNullException(nameof(workforce));
     }
 
     public bool TryBeginUse(
         BuildableObject fixture,
+        CharacterId protectedCharacterId,
         out WaterFixtureUseTicket ticket,
         out DomainFailure failure)
     {
@@ -66,6 +72,7 @@ public sealed class WaterFixtureUseRuntime : IWaterFixtureUseRuntime
         if (ability.allowsManualWaterFallback)
         {
             string destinationId = CreateManualDestinationId(fixtureId.Value);
+            bool routeExisted = HasRoutedManualWater(destinationId);
             if (water.TryConsumeManualContainer(
                     fixture,
                     destinationId,
@@ -79,21 +86,20 @@ public sealed class WaterFixtureUseRuntime : IWaterFixtureUseRuntime
                 return true;
             }
 
-            // A dry-capable fixture can complete this use without water. Do
-            // not earmark the settlement's loose drinking stock for an
-            // optional upgrade after the authoritative dry fallback has
-            // already been selected. Fixtures that cannot run dry still
-            // publish the physical delivery request required to unblock use.
-            if (!ability.allowsDryFallback)
+            if (!routeExisted
+                && HasRoutedManualWater(destinationId))
             {
-                items.TryRequestFacilityDelivery(
-                    StockCategory.Water,
-                    1,
-                    fixture.centerPos,
-                    destinationId,
-                    out _,
-                    out _);
+                workforce.RequestOneHaulerToReplan(
+                    clearFailures: true,
+                    forceInterrupt: true,
+                    protectedCharacterId: protectedCharacterId,
+                    forcePriorityWakeFanout: true);
             }
+
+            // TryConsumeManualContainer owns the exact missing-quantity
+            // calculation and publishes the physical delivery request. Do not
+            // request again here: repeated facility-use retries would otherwise
+            // duplicate the same manual-water commitment.
         }
 
         if (ability.allowsDryFallback)
@@ -176,4 +182,30 @@ public sealed class WaterFixtureUseRuntime : IWaterFixtureUseRuntime
 
     private static string CreateManualDestinationId(string fixtureId) =>
         $"plumbing:manual-water:{fixtureId}";
+
+    private bool HasRoutedManualWater(string destinationId)
+    {
+        string destination = destinationId?.Trim() ?? string.Empty;
+        if (destination.Length == 0)
+        {
+            return false;
+        }
+
+        string[] waterItemIds = items.CatalogProvider.All
+            .Where(definition => definition != null
+                && definition.StockCategory == StockCategory.Water)
+            .Select(definition => definition.ItemId)
+            .Where(itemId => !string.IsNullOrWhiteSpace(itemId))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        return items.GetAllStacks().Any(stack => stack != null
+                && stack.Quantity > 0
+                && waterItemIds.Contains(stack.ItemId, StringComparer.Ordinal)
+                && string.Equals(
+                    stack.DestinationId,
+                    destination,
+                    StringComparison.Ordinal))
+            || waterItemIds.Any(itemId =>
+                items.GetCommittedHaulDeliveryQuantity(destination, itemId) > 0);
+    }
 }

@@ -30,25 +30,25 @@ MonoBehaviour:
   unitWeight: 1
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 42
+  unitPrice: 19
   features:
-  - rid: 7737211981804078001
-  - rid: 7737211981804078002
-  - rid: 7737211981804078003
+  - rid: 7737212042857939350
+  - rid: 7737212042857939351
+  - rid: 7737212042857939352
   references:
     version: 2
     RefIds:
-    - rid: 7737211981804078001
+    - rid: 7737212042857939350
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:arcane:alchemy
-    - rid: 7737211981804078002
+    - rid: 7737212042857939351
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 4096
         sharedIntermediate: 0
-    - rid: 7737211981804078003
+    - rid: 7737212042857939352
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5922539
+        saleRate: 0.5800175

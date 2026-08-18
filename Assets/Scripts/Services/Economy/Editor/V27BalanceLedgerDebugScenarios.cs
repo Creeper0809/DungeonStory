@@ -298,6 +298,7 @@ public static class V27BalanceLedgerDebugScenarios
         ResourceMaterialEconomicProfileCatalog liveMaterials = new(
             liveContent);
         V23BalanceWorkCalculator liveBefore = new(liveMaterials);
+        V27BalanceWorkCalculator liveAfter = new(liveMaterials);
         BuildingSO d03 = AssetDatabase.LoadAssetAtPath<BuildingSO>(
                 "Assets/Resources/SO/Building/Modular/D03_조리손질대.asset")
             ?? throw new InvalidOperationException("D03 authority is missing.");
@@ -317,10 +318,17 @@ public static class V27BalanceLedgerDebugScenarios
                 V27BalanceWorkCalculator.ScaleRequiredWork(32f),
                 72f),
             "quarry runtime work did not preserve the 20->45 period");
+        BuildingWorkAmountAbility d03Work = d03.GetAbility<BuildingWorkAmountAbility>()
+            ?? throw new InvalidOperationException(
+                "D03 authored construction WU authority is missing.");
+        float d03RuntimeWork = liveAfter.CalculateConstruction(d03);
         Require(Mathf.Approximately(
-                V27BalanceWorkCalculator.ScaleRequiredWork(208f),
-                468f),
-            "D03 construction runtime work did not preserve the 20->45 period");
+                d03RuntimeWork,
+                d03Work.constructionWorkRequired),
+            "D03 runtime work did not use the authored redistribution authority");
+        Require(d03RuntimeWork >= Mathf.Ceil(208f * 1.5f)
+                && d03RuntimeWork <= Mathf.Ceil(208f * 2.25f),
+            "D03 authored redistribution escaped the 1.5-2.25 WU band");
         RequireThrows<ArgumentOutOfRangeException>(
             () => V27BalanceWorkCalculator.ScaleRequiredWork(0f),
             "zero runtime work was accepted by the V27 authority");
@@ -332,19 +340,13 @@ public static class V27BalanceLedgerDebugScenarios
             new V23MaterialSalvageCalculator(new FixedMaterialProfileCatalog());
         MaterialSalvageResult result = salvage.Calculate(
             DismantleTargetKind.GeneralFacility,
-            V27BalanceWorkCalculator.ScaleRequiredWork(208f),
-            new[]
-            {
-                new ItemAmountDefinition("material:iron-ingot", 2),
-                new ItemAmountDefinition("material:stone-block", 2),
-                new ItemAmountDefinition("material:treated-lumber", 6)
-            },
+            d03RuntimeWork,
+            d03.GetConstructionMaterials(),
             100f);
-        Require(Mathf.Approximately(result.RequiredWork, 117f),
-            "D03 dismantle work did not scale from 52 to 117 WU");
-        Require(result.RecoveredMaterials.Sum(value => value.Amount) == 7,
-            "D03 dismantle recovery quantity changed while scaling labor");
-        Require(result.RecoveredMaterials.Sum(value => value.Amount) < 10,
+        Require(Mathf.Approximately(result.RequiredWork, d03RuntimeWork * 0.25f),
+            "D03 dismantle work did not derive from authored construction WU");
+        Require(result.RecoveredMaterials.Sum(value => value.Amount)
+                < d03.GetConstructionMaterials().Sum(value => value.Amount),
             "D03 dismantle recovery no longer guarantees physical loss");
     }
 

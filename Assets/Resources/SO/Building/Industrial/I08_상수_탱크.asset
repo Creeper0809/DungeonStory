@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211981818757173
-    - rid: 7737211981818757174
-    - rid: 7737211981818757175
-    - rid: 7737211981818757176
-    - rid: 7737211981818757177
+    - rid: 7737212033836254122
+    - rid: 7737212033836254123
+    - rid: 7737212033836254124
+    - rid: 7737212033836254125
+    - rid: 7737212033836254126
   width: 2
   height: 1
   layer: 1
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211981818757173
+    - rid: 7737212033836254122
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I08
-    - rid: 7737211981818757174
+    - rid: 7737212033836254123
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,12 +87,12 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211981818757175
+    - rid: 7737212033836254124
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 819
+        constructionWorkRequired: 648
         repairWorkRequired: 110
         cleanWorkRequired: 18
         researchWorkRequired: 6
@@ -115,14 +115,14 @@ MonoBehaviour:
           amount: 6
         - itemId: component:machine-parts
           amount: 3
-    - rid: 7737211981818757176
+    - rid: 7737212033836254125
       type: {class: BuildingWaterStorageAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWaterStorageAbility
         channels: 2
         cleanWaterCapacity: 120
         wastewaterCapacity: 0
-    - rid: 7737211981818757177
+    - rid: 7737212033836254126
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

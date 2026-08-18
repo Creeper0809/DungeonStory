@@ -277,16 +277,39 @@ internal sealed class FluidNetworkRuntime :
                     cost,
                     out _))
             {
-                items.TryRequestFacilityDelivery(
-                    StockCategory.Water,
-                    requiredContainers,
-                    consumer.centerPos,
-                    destinationId.Trim(),
-                    out _,
-                    out _);
+                string normalizedDestination = destinationId.Trim();
+                int routedContainers = items.GetAllStacks()
+                    .Where(stack => stack != null
+                        && string.Equals(
+                            stack.ItemId,
+                            BottledCleanWaterItemId,
+                            StringComparison.Ordinal)
+                        && string.Equals(
+                            stack.DestinationId,
+                            normalizedDestination,
+                            StringComparison.Ordinal))
+                    .Sum(stack => Mathf.Max(0, stack.Quantity));
+                routedContainers = checked(
+                    routedContainers
+                    + items.GetCommittedHaulDeliveryQuantity(
+                        normalizedDestination,
+                        BottledCleanWaterItemId));
+                int missingContainers = Mathf.Max(
+                    0,
+                    requiredContainers - routedContainers);
+                if (missingContainers > 0)
+                {
+                    items.TryRequestFacilityDelivery(
+                        StockCategory.Water,
+                        missingContainers,
+                        consumer.centerPos,
+                        normalizedDestination,
+                        out _,
+                        out _);
+                }
                 failure = new DomainFailure(
                     FailureCode.FluidManualWaterUnavailable,
-                    destinationId.Trim());
+                    normalizedDestination);
                 return false;
             }
 

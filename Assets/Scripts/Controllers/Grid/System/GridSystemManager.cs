@@ -47,14 +47,38 @@ public class GridSystemManager : MonoBehaviour
     public event Action<Vector2Int> OnLastSelectedPosChanged;
 
     public bool CenterDungeonInteriorHorizontally => centerDungeonInteriorHorizontally;
-    public int ResolvedDungeonInteriorStartX => ResolveDungeonInteriorStartX(
-        grid != null ? grid.width : defaultGridWidth);
+    public int ResolvedDungeonInteriorStartX
+    {
+        get
+        {
+            if (grid != null
+                && DungeonSpaceGridLayout.TryCapture(
+                    grid,
+                    out DungeonInteriorLayoutSnapshot layout,
+                    out _))
+            {
+                return layout.StartX;
+            }
+
+            return ResolveDungeonInteriorStartX(
+                grid != null ? grid.width : defaultGridWidth);
+        }
+    }
     public int AuthoredLayoutHorizontalShift => ResolvedDungeonInteriorStartX
         - Mathf.Max(0, dungeonInteriorStartX);
     public Vector2Int ResolvedEntranceGridPosition
     {
         get
         {
+            if (grid != null
+                && DungeonSpaceGridLayout.TryCapture(
+                    grid,
+                    out DungeonInteriorLayoutSnapshot layout,
+                    out _))
+            {
+                return layout.EntrancePosition;
+            }
+
             int width = grid != null ? grid.width : Mathf.Max(1, defaultGridWidth);
             int resolvedX = Mathf.Clamp(
                 entranceGridPosition.x + AuthoredLayoutHorizontalShift,
@@ -112,7 +136,86 @@ public class GridSystemManager : MonoBehaviour
             return false;
         }
 
+        BuildableObject[] replacementBuildings = replacement
+                     .FindAllOccupants(value => value is BuildableObject)
+                     .OfType<BuildableObject>()
+                     .Distinct()
+                     .ToArray();
+        WildlifeActor[] replacementWildlife = replacement
+                     .FindAllOccupants(value => value is WildlifeActor)
+                     .OfType<WildlifeActor>()
+                     .Distinct()
+                     .Where(value => !value.IsDetachedRestoreCandidate)
+                     .OrderBy(value => value.WildlifeId, StringComparer.Ordinal)
+                     .ThenBy(value => value.GridId)
+                     .ToArray();
+        Dictionary<WildlifeActor, Vector2Int> wildlifeRelocations = new();
+        HashSet<Vector2Int> reservedRelocationCells = new();
+        foreach (WildlifeActor wildlife in replacementWildlife)
+        {
+            if (!wildlife.CanRebindGridAfterExpansion(
+                    expectedCurrent,
+                    replacement,
+                    out failureReason))
+            {
+                return false;
+            }
+
+            if (WildlifeWorldRuntime.IsValidCurrentPosition(
+                    replacement,
+                    wildlife))
+            {
+                continue;
+            }
+
+            Vector2Int origin = wildlife.GridPosition;
+            GridCell relocation = replacement.GetCells()
+                .Where(cell => cell != null
+                    && !reservedRelocationCells.Contains(cell.Position)
+                    && WildlifeWorldRuntime.CanSpawnAt(
+                        replacement,
+                        cell.Position,
+                        wildlife.CanEnterDungeon))
+                .OrderBy(cell => Mathf.Abs(cell.Position.x - origin.x)
+                    + Mathf.Abs(cell.Position.y - origin.y))
+                .ThenBy(cell => cell.Position.x)
+                .ThenBy(cell => cell.Position.y)
+                .FirstOrDefault();
+            if (relocation == null)
+            {
+                failureReason =
+                    $"Expansion cannot preserve wildlife '{wildlife.WildlifeId}': "
+                    + $"no valid relocation cell exists from {origin}.";
+                return false;
+            }
+
+            wildlifeRelocations.Add(wildlife, relocation.Position);
+            reservedRelocationCells.Add(relocation.Position);
+        }
+
         grid = replacement;
+        foreach (BuildableObject building in replacementBuildings)
+        {
+            building.SetGrid(replacement);
+        }
+        foreach (WildlifeActor wildlife in replacementWildlife)
+        {
+            if (!wildlife.TryRebindGridAfterExpansion(
+                    expectedCurrent,
+                    replacement,
+                    out failureReason))
+            {
+                grid = expectedCurrent;
+                return false;
+            }
+
+            if (wildlifeRelocations.TryGetValue(
+                    wildlife,
+                    out Vector2Int relocation))
+            {
+                wildlife.WarpTo(relocation);
+            }
+        }
         worldRegistry?.SetGrid(grid);
         failureReason = string.Empty;
         return true;
@@ -133,11 +236,33 @@ public class GridSystemManager : MonoBehaviour
 
     public void GridExpand(int x,int y)
     {
+        int interiorStart = ResolvedDungeonInteriorStartX;
+        int interiorColumns = dungeonInteriorColumnCount;
+        Vector2Int entrance = ResolvedEntranceGridPosition;
+        if (grid != null
+            && DungeonSpaceGridLayout.TryCapture(
+                grid,
+                out DungeonInteriorLayoutSnapshot layout,
+                out _))
+        {
+            interiorStart = layout.StartX;
+            interiorColumns = layout.ColumnCount;
+            entrance = layout.EntrancePosition;
+        }
+
         Grid newGrid = grid.TryExpandGrid(x,y);
         if (newGrid == null) return;
 
         grid = newGrid;
-        ApplyDefaultPhysicalWorldAreas();
+        if (configureDefaultPhysicalWorldAreas)
+        {
+            ApplyPhysicalWorldAreas(
+                grid,
+                interiorStart,
+                interiorColumns,
+                dropZoneWidth,
+                entrance);
+        }
         worldRegistry?.SetGrid(grid);
         OnGridExpand?.Invoke();
     }

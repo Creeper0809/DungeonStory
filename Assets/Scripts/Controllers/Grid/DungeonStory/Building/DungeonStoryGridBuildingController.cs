@@ -28,6 +28,7 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
     private IGameEventBus gameEventBus;
     private IGameClock gameClock;
     private IDungeonDebugRuleQuery debugRules;
+    private IDungeonDebugModeService debugMode;
     private IRunMilestoneQuery milestoneQuery;
     private GridBuildingPlacementService placementService;
     private bool initialized;
@@ -57,7 +58,8 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
         IGameEventBus gameEventBus,
         IGameClock gameClock,
         IDungeonDebugRuleQuery debugRules,
-        IRunMilestoneQuery milestoneQuery = null)
+        IRunMilestoneQuery milestoneQuery = null,
+        IDungeonDebugModeService debugMode = null)
     {
         this.gridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
@@ -91,6 +93,7 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         this.debugRules = debugRules ?? throw new ArgumentNullException(nameof(debugRules));
         this.milestoneQuery = milestoneQuery;
+        this.debugMode = debugMode;
     }
 
     private void Awake()
@@ -706,7 +709,11 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
     private void OnExpandGridInput(InputAction.CallbackContext context)
     {
         EnsureInitialized();
-        if (gridSystem == null) return;
+        if (gridSystem == null
+            || debugMode?.IsDeveloperModeEnabled != true)
+        {
+            return;
+        }
 
         gridSystem.GridExpand(2, 2);
     }

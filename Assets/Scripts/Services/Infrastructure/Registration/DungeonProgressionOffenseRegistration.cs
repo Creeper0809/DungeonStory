@@ -62,6 +62,9 @@ public static class DungeonProgressionOffenseRegistration
             .As<IBuildingResearchWorkPort>();
         builder.Register<BlueprintResearchStateService>(Lifetime.Singleton)
             .As<IBlueprintResearchStateService>();
+        builder.RegisterEntryPoint<DungeonSpaceExpansionRuntime>(Lifetime.Singleton)
+            .AsSelf()
+            .As<IDungeonSpaceExpansionQuery>();
 
         builder.Register<MetaProgressionRuntimeReader>(Lifetime.Singleton)
             .As<IMetaProgressionRuntimeReader>();

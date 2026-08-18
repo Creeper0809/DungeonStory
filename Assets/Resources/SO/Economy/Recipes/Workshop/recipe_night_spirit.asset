@@ -44,7 +44,7 @@ MonoBehaviour:
     recommendedRank: 2
     minimumRiskRank: 0
   requiredResearchId: research:cuisine:distilling-aging
-  requiredWork: 77
+  requiredWork: 34
   preparationWork: 3
   finishingWork: 2
   processingGameHours: 12

@@ -43,7 +43,7 @@ MonoBehaviour:
     recommendedRank: 2
     minimumRiskRank: 0
   requiredResearchId: research:industry:mana-power
-  requiredWork: 144
+  requiredWork: 64
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

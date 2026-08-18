@@ -540,7 +540,7 @@ public static class InstanceEvolutionDebugScenarios
         catch (InvalidOperationException exception)
         {
             Require(
-                exception.Message.Contains("V4", StringComparison.Ordinal),
+                exception.Message.Contains("V5", StringComparison.Ordinal),
                 "rejection did not identify the required facility version");
             return;
         }

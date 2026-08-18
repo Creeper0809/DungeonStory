@@ -1,0 +1,4 @@
+COMBAT_BALANCE_FOCUSED_CANDIDATE_CHECKPOINT_V2
+enemyDecisionAuthority=EnemyTacticalDecisionService
+encounter|objective|health|damage|objectiveHealth|round|win|severe|lowHealth|failureCasualty|medianRounds|meanHealth|score|stalled
+encounter:01|DefeatAll|25.6|0.2|1|0|0.8984375|0.04347826|0.07826087|1|85|0.599520564|430.66860486563735|0

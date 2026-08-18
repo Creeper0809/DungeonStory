@@ -43,7 +43,7 @@ MonoBehaviour:
     recommendedRank: 1
     minimumRiskRank: 0
   requiredResearchId: research:cuisine:crops
-  requiredWork: 63
+  requiredWork: 28
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0
@@ -55,8 +55,8 @@ MonoBehaviour:
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: resource:twilight-grain
-    amount: 2
+    amount: 6
   outputs:
   - itemId: food:grain-porridge
-    amount: 2
+    amount: 6
     probability: 1

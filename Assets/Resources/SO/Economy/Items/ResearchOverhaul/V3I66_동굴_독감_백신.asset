@@ -30,27 +30,27 @@ MonoBehaviour:
   unitWeight: 0.4
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 59
+  unitPrice: 29
   features:
-  - rid: 7737211981804077956
-  - rid: 7737211981804077957
-  - rid: 7737211981804077958
-  - rid: 7737211981804077959
-  - rid: 7737211981804077960
+  - rid: 7737212042831201065
+  - rid: 7737212042831201066
+  - rid: 7737212042831201067
+  - rid: 7737212042831201068
+  - rid: 7737212042831201069
   references:
     version: 2
     RefIds:
-    - rid: 7737211981804077956
+    - rid: 7737212042831201065
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:vaccination
-    - rid: 7737211981804077957
+    - rid: 7737212042831201066
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211981804077958
+    - rid: 7737212042831201067
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 0
@@ -58,12 +58,12 @@ MonoBehaviour:
         infectionReduction: 0
         detoxReduction: 0
         painReduction: 0
-    - rid: 7737211981804077959
+    - rid: 7737212042831201068
       type: {class: VaccineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         diseaseId: disease:cave-flu
         doses: 1
-    - rid: 7737211981804077960
+    - rid: 7737212042831201069
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59424293
+        saleRate: 0.58744824

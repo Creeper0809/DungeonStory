@@ -43,7 +43,7 @@ MonoBehaviour:
     recommendedRank: 3
     minimumRiskRank: 0
   requiredResearchId: research:equipment:standard-ammunition
-  requiredWork: 378
+  requiredWork: 168
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

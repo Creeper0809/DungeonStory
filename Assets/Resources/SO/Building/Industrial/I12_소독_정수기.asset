@@ -53,13 +53,13 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211981804077563
-    - rid: 7737211981804077564
-    - rid: 7737211981804077565
-    - rid: 7737211981804077566
-    - rid: 7737211981804077567
-    - rid: 7737211981804077568
-    - rid: 7737211981804077569
+    - rid: 7737212033836254021
+    - rid: 7737212033836254022
+    - rid: 7737212033836254023
+    - rid: 7737212033836254024
+    - rid: 7737212033836254025
+    - rid: 7737212033836254026
+    - rid: 7737212033836254027
   width: 3
   height: 1
   layer: 1
@@ -75,12 +75,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211981804077563
+    - rid: 7737212033836254021
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I12
-    - rid: 7737211981804077564
+    - rid: 7737212033836254022
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -89,12 +89,12 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211981804077565
+    - rid: 7737212033836254023
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 693
+        constructionWorkRequired: 591
         repairWorkRequired: 92
         cleanWorkRequired: 16
         researchWorkRequired: 6
@@ -114,19 +114,19 @@ MonoBehaviour:
         - itemId: material:stone-block
           amount: 5
         - itemId: material:iron-ingot
-          amount: 4
+          amount: 6
         - itemId: material:cloth
           amount: 1
         - itemId: component:machine-parts
-          amount: 1
-    - rid: 7737211981804077566
+          amount: 2
+    - rid: 7737212033836254024
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 7
         maxThroughput: 100
         normallyOpen: 1
-    - rid: 7737211981804077567
+    - rid: 7737212033836254025
       type: {class: BuildingWastewaterProcessorAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWastewaterProcessorAbility
@@ -137,14 +137,14 @@ MonoBehaviour:
         sludgeItemId: industrial:sludge
         sludgeAmount: 1
         secondsPerBatch: 8
-    - rid: 7737211981804077568
+    - rid: 7737212033836254026
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 4
         priority: 3
         minimumSupplyFraction: 1
-    - rid: 7737211981804077569
+    - rid: 7737212033836254027
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

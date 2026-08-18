@@ -35,6 +35,20 @@ public sealed class V23BalanceWorkCalculator : IBalanceWorkCalculator
             throw new ArgumentNullException(nameof(building));
         }
 
+        return CalculateConstruction(
+            building,
+            building.GetConstructionMaterials());
+    }
+
+    public float CalculateConstruction(
+        BuildingSO building,
+        IEnumerable<ItemAmountDefinition> constructionMaterials)
+    {
+        if (building == null)
+        {
+            throw new ArgumentNullException(nameof(building));
+        }
+
         ConstructionBalanceClass balanceClass = ResolveConstructionClass(building);
         float baseWork = balanceClass switch
         {
@@ -60,8 +74,7 @@ public sealed class V23BalanceWorkCalculator : IBalanceWorkCalculator
             1f + 0.10f * additionalCapabilities,
             1f,
             1.5f);
-        float materialFactor = WeightedMaterialFactor(
-            building.GetConstructionMaterials());
+        float materialFactor = WeightedMaterialFactor(constructionMaterials);
         return RoundTo(baseWork * footprint * capability * materialFactor, 4f);
     }
 

@@ -39,6 +39,12 @@ public sealed class CharacterConsumablesSaveSection :
     protected override DungeonCharacterConsumablesSaveData CapturePayload() =>
         persistence.Capture();
 
+    protected override void ValidateParsedPayload(
+        DungeonCharacterConsumablesSaveData payload) =>
+        persistence.ValidateRestorePayload(
+            payload,
+            requireWorldReferences: false);
+
     protected override void NormalizeRestorePayload(
         DungeonCharacterConsumablesSaveData payload,
         DungeonGameRestoreReport report)

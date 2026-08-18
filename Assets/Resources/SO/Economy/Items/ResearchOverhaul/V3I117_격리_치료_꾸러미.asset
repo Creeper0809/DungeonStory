@@ -30,25 +30,25 @@ MonoBehaviour:
   unitWeight: 0.5
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 120
+  unitPrice: 53
   features:
-  - rid: 7737211981804077686
-  - rid: 7737211981804077687
-  - rid: 7737211981804077688
+  - rid: 7737212042831200834
+  - rid: 7737212042831200835
+  - rid: 7737212042831200836
   references:
     version: 2
     RefIds:
-    - rid: 7737211981804077686
+    - rid: 7737212042831200834
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:isolation-medicine
-    - rid: 7737211981804077687
+    - rid: 7737212042831200835
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 128
         sharedIntermediate: 0
-    - rid: 7737211981804077688
+    - rid: 7737212042831200836
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5980361
+        saleRate: 0.5989685

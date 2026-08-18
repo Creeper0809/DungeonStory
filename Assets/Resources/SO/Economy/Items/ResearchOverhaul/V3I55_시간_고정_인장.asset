@@ -30,30 +30,30 @@ MonoBehaviour:
   unitWeight: 2.65
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 1218
+  unitPrice: 563
   features:
-  - rid: 7737211981804077997
-  - rid: 7737211981804077998
-  - rid: 7737211981804077999
-  - rid: 7737211981804078000
+  - rid: 7737212042831201240
+  - rid: 7737212042831201241
+  - rid: 7737212042831201242
+  - rid: 7737212042831201243
   references:
     version: 2
     RefIds:
-    - rid: 7737211981804077997
+    - rid: 7737212042831201240
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:temporal-stasis
-    - rid: 7737211981804077998
+    - rid: 7737212042831201241
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1536
         sharedIntermediate: 0
-    - rid: 7737211981804077999
+    - rid: 7737212042831201242
       type: {class: MedicalProcedureSupplyItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         procedureId: procedure:temporal-stasis
-    - rid: 7737211981804078000
+    - rid: 7737212042831201243
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5997561
+        saleRate: 0.5994783

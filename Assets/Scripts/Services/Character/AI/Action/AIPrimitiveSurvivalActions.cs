@@ -120,9 +120,16 @@ public abstract class AIPrimitiveSurvivalAction : AIActionSet
 
         // At routine urgency a reachable, structurally valid facility remains
         // the correct plan even while its capacity is temporarily occupied.
-        return !FacilityCandidateScorer.HasReachableQueueableCandidate(
-            actor,
-            searchResult,
-            facilityRole);
+        bool hasAuthoredPipeline = facilityRole == FacilityRole.Meal
+            ? FacilityCandidateScorer
+                .HasReachableQueueableCandidateIncludingPendingMealDelivery(
+                    actor,
+                    searchResult,
+                    facilityRole)
+            : FacilityCandidateScorer.HasReachableQueueableCandidate(
+                actor,
+                searchResult,
+                facilityRole);
+        return !hasAuthoredPipeline;
     }
 }

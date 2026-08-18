@@ -34,7 +34,7 @@ MonoBehaviour:
   features:
   - rid: 7737211673752633496
   - rid: 7737211673752633497
-  - rid: 7737211981816660987
+  - rid: 7737212042857939273
   references:
     version: 2
     RefIds:
@@ -52,7 +52,7 @@ MonoBehaviour:
         infectionReduction: 0
         detoxReduction: 0
         painReduction: 0
-    - rid: 7737211981816660987
+    - rid: 7737212042857939273
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.5890138

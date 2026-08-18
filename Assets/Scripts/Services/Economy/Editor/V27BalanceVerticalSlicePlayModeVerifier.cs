@@ -243,6 +243,15 @@ public sealed class V27BalanceVerticalSlicePlayModeRunner : MonoBehaviour
         IRunSeedProvider runSeed = container.Resolve<IRunSeedProvider>();
         IMaterialSalvageCalculator salvage =
             container.Resolve<IMaterialSalvageCalculator>();
+        IBalanceWorkCalculator balanceWork =
+            container.Resolve<IBalanceWorkCalculator>();
+
+        float expectedConstructionWork = balanceWork.CalculateConstruction(d03);
+        MaterialSalvageResult authoredDismantleEstimate = salvage.Calculate(
+            DismantleTargetKind.GeneralFacility,
+            expectedConstructionWork,
+            d03.GetConstructionMaterials(),
+            workerSkill: 50f);
 
         Grid grid = gridProvider.Grid;
         Vector2Int anchor = FindPlacementAnchor(grid, d03, items);
@@ -263,7 +272,7 @@ public sealed class V27BalanceVerticalSlicePlayModeRunner : MonoBehaviour
             "D03 construction order was not published.");
         CheckApproximately(
             construction.RequiredWork,
-            468f,
+            expectedConstructionWork,
             "V27_SLICE_CONSTRUCTION_ORDER_EXACT",
             "destination=" + construction.MaterialDestinationId);
 
@@ -341,7 +350,7 @@ public sealed class V27BalanceVerticalSlicePlayModeRunner : MonoBehaviour
             "Quality rejection did not publish a dismantle order.");
         CheckApproximately(
             dismantle.RequiredWork,
-            117f,
+            authoredDismantleEstimate.RequiredWork,
             "V27_SLICE_DISMANTLE_ORDER_EXACT",
             "pipeline=" + pipelineId);
         Require(
@@ -353,7 +362,7 @@ public sealed class V27BalanceVerticalSlicePlayModeRunner : MonoBehaviour
 
         MaterialSalvageResult expectedRecovery = salvage.Calculate(
             DismantleTargetKind.GeneralFacility,
-            468f,
+            expectedConstructionWork,
             d03.GetConstructionMaterials(),
             qualityFixture.Skill);
         Dictionary<string, int> expectedRecovered = expectedRecovery
@@ -397,7 +406,7 @@ public sealed class V27BalanceVerticalSlicePlayModeRunner : MonoBehaviour
             "Rebuild construction order was not published.");
         CheckApproximately(
             rebuild.RequiredWork,
-            468f,
+            expectedConstructionWork,
             "V27_SLICE_REBUILD_ORDER_EXACT",
             "attempt=" + rebuild.QualityAttemptIndex);
 

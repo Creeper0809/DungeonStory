@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 1.1
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 34
+  unitPrice: 15
   features:
-  - rid: 7737211981818757319
-  - rid: 7737211981818757320
-  - rid: 7737211981818757321
+  - rid: 7737212042831201151
+  - rid: 7737212042831201152
+  - rid: 7737212042831201153
   references:
     version: 2
     RefIds:
-    - rid: 7737211981818757319
+    - rid: 7737212042831201151
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:agriculture:compost
-    - rid: 7737211981818757320
+    - rid: 7737212042831201152
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211981818757321
+    - rid: 7737212042831201153
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.58962744
+        saleRate: 0.5908222

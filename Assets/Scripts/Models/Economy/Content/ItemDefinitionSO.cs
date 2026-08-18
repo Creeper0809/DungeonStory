@@ -425,7 +425,10 @@ public abstract class ItemDefinitionSO : DataScriptableObject
             Sprite,
             UnitWeight,
             MaxStack,
-            equipmentId);
+            equipmentId,
+            this is ResourceItemDefinitionSO resource
+                ? resource.Kind
+                : ResourceItemKind.Raw);
     }
 
 #if UNITY_EDITOR

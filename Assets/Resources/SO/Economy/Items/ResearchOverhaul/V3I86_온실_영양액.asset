@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 1.1
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 27
+  unitPrice: 12
   features:
-  - rid: 7737211981816660984
-  - rid: 7737211981816660985
-  - rid: 7737211981816660986
+  - rid: 7737212042831201130
+  - rid: 7737212042831201131
+  - rid: 7737212042831201132
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660984
+    - rid: 7737212042831201130
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:agriculture:greenhouse-horticulture
-    - rid: 7737211981816660985
+    - rid: 7737212042831201131
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211981816660986
+    - rid: 7737212042831201132
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5813086
+        saleRate: 0.56475

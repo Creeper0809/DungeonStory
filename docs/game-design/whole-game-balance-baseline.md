@@ -16,6 +16,204 @@ Automatic audits: CaptivityWildlifeLifecyclePlayModeVerifier must prove producti
 Balance state: numeric balance unchanged; production authority correction implemented, fresh Unity compile and CaptivityWildlifeLifecycle PlayMode rerun pending
 ```
 
+## V27 서비스 연속성 N+1 권위 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:service-continuity-nplusone
+콘텐츠 종류: 음식·식수·수면·위생·배설 주 서비스와 실제 primitive 대체 경로의 1게임일 단일 장애 연속성 계약
+정의·카탈로그·실행기 위치: ISurvivalContinuityCatalogQuery, SurvivalContinuityCatalogQuery, CharacterPrimitiveSurvivalRunner, CharacterSafeDrinkPlanner, V27PopulationCapacityDebugScenarios
+등장 시대와 연구: Tier 0부터 적용하며 연구 시설이 없는 초기에도 기존 physical meal·clean-water·floor-rest·latrine 경로만 사용함
+플레이어에게 주는 새 결정: 같은 시설을 두 개 강제하지 않고, 기분·위생·시간 손해를 감수하는 실제 저자본 primitive 경로를 N+1로 선택할 수 있음
+물리 BOM·입력·출력: field meal은 Meal 1, bucket wash는 clean-water 1을 정확히 소비하며 floor rest·latrine은 아이템을 생성하지 않음. 식수 fallback은 기존 실제 수원 또는 clean-water 권위만 사용함
+직접 작업량과 계산 근거: field meal 4초, floor rest 60초, bucket wash 6초, latrine 6초의 기존 실행 시간을 기회비용 WU로 환산하며 숨은 무료 노동을 추가하지 않음
+EWU와 목표 회수 기간: primitive는 물리 입력의 acquisition EWU와 행동 시간 비용을 모두 부담하고 신규 회수 가치를 만들지 않음. 입력 Ceil·산출 Floor·SCC tolerance 0 유지
+공간·전력·물·연료·정비: 대체 경로는 실패한 주 시설·전용 버퍼·유일 접근칸에 의존하지 않아야 하며 별도 전력·가상 저장을 생성하지 않음
+위험·실패·회복 방식: 24시간 장애 동안 생존 수요 100%, 사망·기절·breakdown·복제 0, 복구 후 primitive 지속 우선 0을 요구하고 불가능하면 typed failure
+사회·비가역 비용: floor rest mood -3·hygiene -4, latrine mood -2·hygiene -8·Waste 8·Stain 2를 그대로 부담하여 primitive 지배 전략을 막음
+기존 대안과의 장단점: 동일 시설 2개보다 초기 BOM이 적지만 서비스 질·시간·청소 비용이 나쁨. 존재가 확인되지 않은 모닥불이나 생식 경로는 인정하지 않음
+지배 전략 방지 조건: 정상 시설 사용 가능 시 primitive start 목표 0·상한 5%, 다단 fallback 0, 입력 없는 식사·식수 0, 취소 후 회복·소비 0
+저장 권위와 실행 명령: 욕구·아이템·오염은 기존 runtime/save 권위이며 continuity catalog는 파생 조회라 저장하지 않음. 과거 세이브 마이그레이션은 범위 밖임
+자동 감사 ID와 전수 목록 포함 여부: V27_SERVICE_NPLUSONE_EXACT, V27_PRIMITIVE_COSTS_EXACT, V27_PRIMITIVE_RECOVERY_ZERO_DOMINANCE를 음식·식수·수면·위생·배설 5서비스 전수 요구함
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-balance-service-continuity.csv, primitive-survival-focused-report.txt, v27-balance-six-adult-food-water-loop.txt, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 밸런스 기준 배정. 실제 1일 장애 PlayMode와 복구·물리 보존·노동 비율이 통과하기 전 시뮬레이션 검증으로 승격하지 않음
+```
+
+## V27 primitive fallback 초기 자본 완화 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:primitive-fallback-capital-relief
+콘텐츠 종류: 6인 Tier 0의 조리·식수 중복 시설 강제를 primitive 경로로 대체하는 초기 자본 보호 계약
+정의·카탈로그·실행기 위치: PopulationStagePortfolio, ServiceContinuityRequirement, SurvivalContinuityCatalogQuery, V27PopulationCapacityDebugScenarios
+등장 시대와 연구: 시작 단계 전용이며 연구가 해금되어 처리량 또는 장애 이용률 상한을 넘으면 영구 중복 시설 후보로 전환함
+플레이어에게 주는 새 결정: 성장 시설 BOM을 고갈시키지 않고 1일 비상 경로를 선택하되 낮은 편의와 기분·오염 비용을 수용함
+물리 BOM·입력·출력: 중복 시설을 짓지 않은 뒤에도 음식·식수 7일분, 다음 연구 필수 시설 BOM 100%, 주요 수리 재료 10%를 물리 재고로 남겨야 함
+직접 작업량과 계산 근거: 생존·청소·수리 25~35%, 성장 35~50%, 비상 예비 10% 이상, 총 반복 노동 90% 이하를 동시에 요구함
+EWU와 목표 회수 기간: redundancy BOM+WU가 단계 가용 자본의 15% 초과면 Warning, 25% 초과면 Critical이며 primitive는 물리 입력 비용을 면제하지 않음
+공간·전력·물·연료·정비: fallback은 별도 영구 footprint를 요구하지 않지만 안전한 접근·오염 containment·실물 저장 공간을 요구함
+위험·실패·회복 방식: fallback 24시간 미충족, 성장 노동 35% 미달, 저장 90% 초과, 복구 후 fallback 고착이면 중복 시설을 승인 후보로 올림
+사회·비가역 비용: 초기 연구·건설 지연과 기분 저하를 모두 기록하고 주민 고통을 무료 자본으로 환산하지 않음
+기존 대안과의 장단점: 두 번째 조리대·펌프보다 싸지만 처리량과 생활 질이 낮고 수동 복구 부담이 큼
+지배 전략 방지 조건: primitive가 정상 시설보다 빠르거나 싸거나 기분상 유리한 경우 0, 비상 비축 없이 N+1 통과 0
+저장 권위와 실행 명령: 시설·재고는 기존 권위이며 자본 비율은 V27 audit 파생값으로 저장하지 않음
+자동 감사 ID와 전수 목록 포함 여부: V27_REDUNDANCY_CAPITAL_RATIO, V27_TIER0_NO_UNNECESSARY_DUPLICATE, V27_FALLBACK_PHYSICAL_RESERVE_EXACT
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-balance-stage-portfolios.csv, v27-balance-service-continuity.csv, v27-balance-layout-256-seed.txt
+현재 밸런스 상태: 밸런스 기준 배정. Tier 0 production-live 24시간 장애와 성장 BOM 잔존 검증 전 완료 아님
+```
+
+## V27 공유 접근칸 공간 합집합 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:shared-access-spatial-union
+콘텐츠 종류: 시설 footprint·작업 접근칸·대기칸·공용 통로를 셀 역할 합집합으로 계산하는 공간 권위
+정의·카탈로그·실행기 위치: BuildingWorkAccessRules, SpatialCellRole, DeterministicDungeonSpaceCapacityQuery, BuildingPlacementValidator
+등장 시대와 연구: 모든 단계에 적용하며 연구 Tier가 오를 때 기존 배치를 철거하지 않는 오른쪽 확장과 함께 사용함
+플레이어에게 주는 새 결정: 실제 충돌이 없는 접근칸과 통로를 공유해 조밀 배치할 수 있지만 유일 접근·egress는 공유할 수 없음
+물리 BOM·입력·출력: 시설 BOM과 생산량은 변경하지 않으며 배치 셀만 권위 있게 합집합 계산함
+직접 작업량과 계산 근거: shared cell 방문횟수×점유초/180초로 정상 70%, 단일 장애 90% 이용률 상한을 적용함
+EWU와 목표 회수 기간: 공유 셀은 공간 비용만 줄이며 WU·BOM·EWU 비용을 삭제하지 않음
+공간·전력·물·연료·정비: effectiveUsedCells는 exclusive∪access∪corridor∪storage∪overflow∪fixed이고 usable 대비 headroom 30% 이상을 요구함
+위험·실패·회복 방식: 본체 overlap, 계단 착지, emergency egress, 동시에 필요한 두 시설의 유일 접근, 반복 StepAside·replan 배치를 실패시킴
+사회·비가역 비용: 좁은 배치의 응급 접근 지연과 작업 대기를 Wait WU로 부담함
+기존 대안과의 장단점: 단순 면적 합산보다 false-negative가 적지만 혼잡과 유일 접근 검증이 추가됨
+지배 전략 방지 조건: utility overlay로 본체 면적 삭제 0, shared-cell 이용률 초과 0, 접근 불가능 시설 배치 0
+저장 권위와 실행 명령: Grid·Building placement가 권위이고 Solver 결과는 저장하지 않음
+자동 감사 ID와 전수 목록 포함 여부: V27_SHARED_ACCESS_UNION_EXACT, V27_SHARED_CELL_70_90, V27_LAYOUT_ORACLE_NO_FALSE_NEGATIVE
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-balance-spatial-capacity.csv, v27-balance-shared-cell-congestion.txt, v27-balance-layout-256-seed.txt
+현재 밸런스 상태: 밸런스 공식 검증. 256-seed 정적 PASS이며 실제 다중 시설 PlayMode 혼잡 증거 전 시뮬레이션 완료 아님
+```
+
+## V27 Floor Clutter 런타임 용량 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:floor-clutter-runtime-capacity
+콘텐츠 종류: StorageBuffer 밖 persistent Loose item과 접근·egress 즉시 실패를 관찰하는 비변이 진단 권위
+정의·카탈로그·실행기 위치: IFloorClutterDiagnosticsQuery, FloorClutterDiagnosticsQuery, PhysicalStockQuery, WorldItemStackRuntime
+등장 시대와 연구: 모든 단계·모든 물리 아이템에 적용하며 이동 비용을 새로 발명하지 않고 실제 예약·운반·서비스 지연을 측정함
+플레이어에게 주는 새 결정: 창고를 과포화하면 생산 대기 또는 containment를 확보해야 하며 통로 바닥을 무료 창고로 쓸 수 없음
+물리 BOM·입력·출력: Loose 수량을 삭제·순간이동·가상 보관하지 않고 원래 item/quantity/destination 보존성을 요구함
+직접 작업량과 계산 근거: grace=min(0.25일,max(15초,clean p95 haul×2)); 이후 clutter cell-seconds와 Wait WU를 기록함
+EWU와 목표 회수 기간: clutter 자체가 이동 페널티 EWU를 생성하지 않으며 실제 지연 노동만 귀속함
+공간·전력·물·연료·정비: 정상 storage 70%, 장애 storage+containment 90%, runtime headroom 30%, containment 밖 clutter 0
+위험·실패·회복 방식: egress·계단·수술/구조/침상·주/fallback 유일 접근의 Loose는 grace 없이 실패함
+사회·비가역 비용: 운반자 장애와 서비스 지연을 성장 노동에서 차감하며 소실 재고는 허용하지 않음
+기존 대안과의 장단점: 정적 buffer 계산보다 실제 병목을 잡지만 숨은 path-cost 가정은 하지 않음
+지배 전략 방지 조건: 통로 fallback drop 0, capacity 초과 출력 삭제 0, orphan Loose 0
+저장 권위와 실행 명령: item repository와 physical stack save가 권위이고 clutter 평가는 파생 진단이라 저장하지 않음
+자동 감사 ID와 전수 목록 포함 여부: V27_FLOOR_CLUTTER_OUTSIDE_CONTAINMENT_ZERO, V27_ACCESS_EGRESS_CLUTTER_ZERO, V27_CLUTTER_QUANTITY_CONSERVED
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-balance-floor-clutter.csv, v27-balance-paired-run-rng.csv, PhysicalItemLogistics PlayMode
+현재 밸런스 상태: 밸런스 기준 배정. production burst·창고 90%·운반자 Downed PlayMode 전 완료 아님
+```
+
+## V27 저장·overflow containment 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:storage-overflow-containment
+콘텐츠 종류: 7일 생존 비축·정상 cycle·최대 batch·운반 복구 유입을 합산한 물리 저장/overflow 용량 계약
+정의·카탈로그·실행기 위치: StockSpaceRequirement, OverflowRequirement, PopulationStagePortfolio, DeterministicDungeonSpaceCapacityQuery
+등장 시대와 연구: 인구 1/3/6/12/18/24 및 Tier 0~3 전 단계
+플레이어에게 주는 새 결정: 창고와 안전한 overflow를 확장하거나 생산을 WaitingForOutputSpace로 멈춰야 함
+물리 BOM·입력·출력: requiredStorage=7일 비축+cycle+max batch+p95 복구 유입, overflow=max(수확·채굴·시설 batch·carry 취소·hauler 장애 순출력)
+직접 작업량과 계산 근거: 저장 포화에서 발생하는 haul/정리 노동은 물류 12~20% 밴드와 Wait WU에 포함함
+EWU와 목표 회수 기간: 저장 셀·시설 BOM·정리 노동을 비용으로 유지하며 가상 용량 크레딧 0
+공간·전력·물·연료·정비: overflow는 corridor·access·egress와 공유하지 않고 30% headroom 계산에 포함함
+위험·실패·회복 방식: 출력 공간 없으면 WaitingForOutputSpace, 불가피한 burst는 containment, 둘 다 차면 typed capacity failure
+사회·비가역 비용: 재고 부패·작업 중지·복구 시간을 생산 손실로 기록함
+기존 대안과의 장단점: 과잉 창고는 자본·공간 비용이 크고 부족 창고는 장애 시 생산 중지 위험이 큼
+지배 전략 방지 조건: 삭제·teleport·통로 저장·headroom 이중사용 0
+저장 권위와 실행 명령: physical item stacks와 warehouse authority가 유일 쓰기 권위, capacity assessment는 읽기 전용
+자동 감사 ID와 전수 목록 포함 여부: V27_STORAGE_70_90, V27_OVERFLOW_EXCLUSIVE, V27_OUTPUT_SPACE_TYPED_FAILURE
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-balance-stage-portfolios.csv, v27-balance-spatial-capacity.csv, v27-balance-floor-clutter.csv
+현재 밸런스 상태: 밸런스 기준 배정. 전 인구 production-live capacity 검증 전 완료 아님
+```
+
+## V27 counterfactual RNG 격리 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:counterfactual-rng-isolation
+콘텐츠 종류: character decision/movement actor별 stream과 key-addressed 외생 사건의 결정론 권위
+정의·카탈로그·실행기 위치: RandomStreamScopeIds, RandomStreamProvider, IRandomStreamDiagnosticsQuery, CounterfactualRandomKey, AIBrain, AbilityMove
+등장 시대와 연구: 모든 런타임·모든 인구·기술 단계에 적용, 콘텐츠 수치 변화 없음
+플레이어에게 주는 새 결정: 없음. 동일 seed 진단에서 무관 actor와 외생 사건의 나비효과를 제거함
+물리 BOM·입력·출력: 변화 없음
+직접 작업량과 계산 근거: decision=`character-ai:{persistentId}`, movement=`character-movement:{persistentId}`로 분리하고 draw count를 진단함
+EWU와 목표 회수 기간: 변화 없음. RNG 격리는 경제 결과 비교의 인과 정확성만 보장함
+공간·전력·물·연료·정비: 변화 없음
+위험·실패·회복 방식: duplicate persistent ID, global character stream, duplicate event key, save/restore sequence drift를 fail-loud 처리함
+사회·비가역 비용: 무관 actor 결과가 장애 actor의 추가 tick에 의해 변하지 않도록 보장함
+기존 대안과의 장단점: root seed만 공유하는 paired run보다 정확하지만 stream manifest·save 진단이 추가됨
+지배 전략 방지 조건: 프레임·instance ID·이름 기반 seed 0, UnityEngine.Random 직접 사용 0, actor 간 cross-talk 0
+저장 권위와 실행 명령: 기존 random stream save가 state 권위, draw count와 파생 handle은 저장하지 않음. 과거 global-stream save 마이그레이션 제외
+자동 감사 ID와 전수 목록 포함 여부: RNG_ACTOR_DECISION_ISOLATED, RNG_DECISION_MOVEMENT_ISOLATED, RNG_SAVE_RESTORE_EXACT, RNG_EVENT_KEY_ORDER_INDEPENDENT
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-balance-random-stream-manifest.txt, v27-balance-paired-run-rng.csv, RandomStreamIsolationDebugScenarios
+현재 밸런스 상태: 밸런스 공식 검증. focused 격리 회귀 PASS, 전체 4-arm PlayMode 전 시뮬레이션 완료 아님
+```
+
+## V27 paired-run window 귀속 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:paired-run-window-attribution
+콘텐츠 종류: cleanRepeatA/B·faultControl·clutterStress 4-arm의 6시간 window Wait WU 인과 귀속
+정의·카탈로그·실행기 위치: PairedRunWindowResult, PairedRunAttributionEvaluator, CounterfactualRandomKey
+등장 시대와 연구: 모든 인구 단계의 clutter stress 감사
+플레이어에게 주는 새 결정: 없음. 내부 밸런스 진단의 false-negative를 억제함
+물리 BOM·입력·출력: C/D의 동일 장애·burst 입력과 exact physical 결과를 요구함
+직접 작업량과 계산 근거: warm-up 0.5일, intervention 1일, recovery 0.5일; pureFault=C-mean(A,B), clutter=D-C
+EWU와 목표 회수 기간: Wait WU는 window별 mWU로만 귀속하고 frame count를 비용으로 사용하지 않음
+공간·전력·물·연료·정비: D만 실제 physical stock command로 storage 90%와 clutter 압력을 구성함
+위험·실패·회복 방식: A/B hash·RNG·mWU 불일치면 PAIRED_RUN_NONDETERMINISTIC_BASELINE, 64 seed도 불명확하면 POWER_INSUFFICIENT
+사회·비가역 비용: Downed 자체 영향과 clutter 영향을 분리해 과잉 공간·노동 보정을 막음
+기존 대안과의 장단점: 1:1 frame 비교보다 강건하지만 네 배 실행 비용이 듦
+지배 전략 방지 조건: 평균만 보고 극단 seed 숨김 0, causal cone 밖 RNG divergence 0, 외생 event divergence 0
+저장 권위와 실행 명령: canonical checkpoint는 기존 save 권위에서 복원하며 arm 차이는 production command만 사용
+자동 감사 ID와 전수 목록 포함 여부: V27_PAIRED_AB_EXACT, V27_PAIRED_EVENTS_EXACT, V27_CLUTTER_DELTA_MEDIAN_P95, RNG_CROSS_TALK_ZERO
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-balance-paired-run-rng.csv; 32 seed 기본·경계 시 64 seed
+현재 밸런스 상태: 밸런스 공식 검증. synthetic 32-seed 귀속 PASS, production checkpoint 4-arm 실행 전 완료 아님
+```
+
+## V27 인구 단계 공간·노동 용량 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:population-stage-capacity
+콘텐츠 종류: 인구 1/3/6/12/18/24의 생존·성장·비상·시설·저장·공간 폐쇄 루프
+정의·카탈로그·실행기 위치: PopulationStagePortfolio, IDungeonSpaceCapacityQuery, V27PopulationCapacityDebugScenarios
+등장 시대와 연구: 인구 1/3/6/12/18/24의 수용력 요구를 비교하되 특정 연구나 공간 해금과 연결하지 않음
+플레이어에게 주는 새 결정: 없음. 이 기록은 현재 정상 게임플레이가 제공하는 공간 안에 시설·비축·통로·여유가 들어가는지 진단함
+물리 BOM·입력·출력: 각 단계 7일 음식·식수, 정상 cycle, max batch, overflow, 의료·수리 재고를 실물로 요구함
+직접 작업량과 계산 근거: actual 50·effective45, 반복 90% 이하, 생존 25~35%, 물류12~20%, 성장35~50%, 비상10%
+EWU와 목표 회수 기간: 단계별 물리 자본과 반복 노동을 V27 원장에 별도 metric으로 기록함
+공간·전력·물·연료·정비: usable 셀 기준 headroom30%, normal/fault utilization70/90%, storage70/90%
+위험·실패·회복 방식: 256 순서 seed 중 243 이상, exact oracle false-negative 0, 기존 시설 철거 0
+사회·비가역 비용: 의료·경비·침입 인력 이탈과 복구 노동을 성장 여력에서 차감함
+기존 대안과의 장단점: 인구만으로 시설 수를 배수하는 방식보다 정확하지만 단계별 실제 포트폴리오 authoring이 필요함
+지배 전략 방지 조건: 개발자 E를 정식 진행으로 계상 0, 가정한 무료 확장 0, headroom 숨은 소비 0, growth/emergency 이중 계상 0
+저장 권위와 실행 명령: 시설·재고·연구는 기존 권위, portfolio/assessment는 파생 원장
+자동 감사 ID와 전수 목록 포함 여부: V27_STAGE_1_3_6_12_18_24, V27_LAYOUT_243_OF_256, V27_GROWTH_35, V27_EMERGENCY_10
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-balance-stage-portfolios.csv, v27-balance-layout-256-seed.txt, v27-balance-spatial-capacity.csv
+현재 밸런스 상태: 밸런스 기준 배정. 6인 정적 portfolio PASS, 나머지 실제 portfolio와 PlayMode 전 완료 아님
+```
+
+## V27 6인 음식·물 폐쇄 루프와 반복 작업 교정 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:six-adult-food-water-closed-loop
+콘텐츠 종류: 6인 황혼곡→곡죽·깨끗한 물의 생산·소비·비축·노동·저장 폐쇄 루프 및 recurring WU 교정
+정의·카탈로그·실행기 위치: ResourceEconomyContentCatalog, SurvivalBalanceSettingsSO, V27BalanceWorkCalculator, V27SixAdultSurvivalLoopAudit, ProductionBillRuntime, CropPlotRuntime
+등장 시대와 연구: Tier 0 음식 fallback을 우선 검증하고 grain porridge는 agriculture:field+cuisine:crops, clean water는 agriculture:irrigation 해금 상태를 명시함
+플레이어에게 주는 새 결정: 프로젝트 WU 증가와 반복 처리량을 분리하고, 7일 원곡/물 비축과 조리 1일 정지에도 버티는 12개 즉시 식사를 준비함
+물리 BOM·입력·출력: 6인 수요 food300 nutrition/일, gross375, net330, 7일2100. porridge35 nutrition으로 gross10.715개/일·net9.429이며 6개 batch 단위 즉시12개. clean-water는 thirst60/인·일, 65 회복/단위의 실제 수요5.539단위/일과 gross125% 6.924단위/일을 구분함. 작물1.05와 조리0.447을 합친 총 깨끗한 물 생산 목표는 8.421단위/일, 7일 비축은59단위. 황혼곡은 종자1/plot/cycle와 물0.35/plot/일을 별도 계상함
+직접 작업량과 계산 근거: Before current는 crop sow7+harvest14, porridge63/2개, water23/4개로 gross 생존 생산만 약419.3WU/일이라 270WU를 초과함. After는 crop3+6, porridge28의 batch를 grain6→meal6, water10의 batch를 clean-water8로 하여 crop18+cook50.008+water10.53=78.538WU/일(29.09%)로 맞춤
+EWU와 목표 회수 기간: 반복 작업은 ×2.25를 적용하지 않고 V23 공정 WU로 복귀하며 batch는 input/output 1:1을 유지함. 입력 Ceil·산출 Floor·SCC 최소 -1mEWU를 재계산함
+공간·전력·물·연료·정비: twilight grain 3 plot 기준 gross12 grain/일, 곡죽 12개/2 batch capacity, 7일 reserve는 부패 2일인 완성식 대신 원곡60+즉시 meal12+water59 물리 stack으로 저장하고 30% headroom을 유지함
+위험·실패·회복 방식: 종자·crop water·0.25 clean water/cook cycle·0.1 wastewater·부패·haul·청소를 포함하고 주 조리/식수 경로 1일 장애에는 primitive N+1을 사용함
+사회·비가역 비용: 식사 mood+2, primitive 기분/위생 손실과 운반·전환 시간을 유효 노동에서 차감함
+기존 대안과의 장단점: WU63 유지안은 물량 전부터 노동 불가능, 단순 WU6 복귀안은 공정 복잡도를 과소평가, 28WU 6개 batch는 공정 비용과 실제 throughput을 동시에 보존함
+지배 전략 방지 조건: grain:meal 비율1:1, batch 분할 비용 감소0, 7일 prepared-food 부패 무시0, seed/water/haul 누락0, primitive 정상 지배0
+저장 권위와 실행 명령: recipe/crop SO와 physical item runtime이 권위, loop audit는 파생값. ApplyApproved 전 exact Before를 재확인하고 changed asset만 Dirty/Reserialize
+자동 감사 ID와 전수 목록 포함 여부: V27_SIX_ADULT_FOOD_GROSS_125, V27_SIX_ADULT_FOOD_NET_110, V27_SIX_ADULT_WATER_GROSS_125, V27_SIX_ADULT_RECURRING_WU_35, V27_SEVEN_DAY_PHYSICAL_RESERVE
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-balance-six-adult-food-water-loop.txt, v27-balance-service-continuity.csv, v27-balance-stage-portfolios.csv, DailyRoutineWu 3 seeds
+현재 밸런스 상태: 밸런스 기준 배정. exact asset 적용·EWU/SCC·정적 storage·production-live 5일 3-seed 전 공식/시뮬레이션/실전 완료 아님
+```
+
 ## 원정 보급 ReservedTarget 목적지 권위 교정 기록 (2026-08-16)
 
 ```text
@@ -2031,4 +2229,157 @@ EWU와 목표 회수 기간: authored actual 50은 실측 평균보다 8.20% 낮
 자동 감사 ID와 전수 목록 포함 여부: observedDays=5, exact runSeed, runtimeDiagnosticsGate=ai-runtime-gate-v3, RESULT=PASS, failures=0, capturedIssues=0을 세 artifact 모두 요구하며 V27 artifact manifest와 최종 CI가 이 record ID를 참조함
 검증 매트릭스와 보고서 위치: Artifacts/QA/phase157-daily-routine-wu-seed-157181.txt, phase157-daily-routine-wu-seed-157182.txt, phase157-daily-routine-wu-seed-157183.txt, v27-labor-authority-matrix.txt, v27-balance-artifact-manifest.json, final-acceptance-report.txt, Unity Console Warning/Error 0/0
 현재 밸런스 상태: 밸런스 실전 보정 PASS. 현재 전체 재조정 소스에서 5일×3 seed가 actual 50·effective 45를 모두 안정적으로 상회하고 CV 3% 미만임. 전수 원장·SCC·256-seed 경제·수직 슬라이스·YAML no-op·FinalAcceptance·최종 manifest의 별도 게이트와 함께 완료 여부를 판정함
+```
+## V27 시설 WU·BOM 제한 재분배 교정 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:facility-bounded-wu-bom-redistribution-v2
+콘텐츠 종류: 물리 BOM이 있는 기존 시설 356개의 건설 WU·재료 수량 단일 권위 재조정
+정의·카탈로그·실행기 위치: BuildingSO, BuildingWorkAmountAbility, V23BalanceWorkCalculator, V27ConstructionRedistributionPolicy, V27BalanceWorkCalculator, WorkAmountSystem
+등장 시대와 연구: 각 시설의 기존 시대·연구·해금·기능을 유지하며 신규 시설·재료 종류·해금은 추가하지 않음
+플레이어에게 주는 새 결정: 같은 시설을 기존 재료 종류 안에서 노동 집약형 또는 재료 집약형으로 임의 전환하지 않고, 정상 AI의 기간과 초기 자본을 함께 만족하는 승인값을 지불함
+물리 BOM·입력·출력: 기존 item ID만 사용하고 각 정수 수량은 Before 이상, Ceil(Before×1.5) 이하로 제한함. 신규 희귀·전략 자원, 가상 비용, 무료 산출은 0이며 실제 ConstructionSite→AIHaul→소비 경로를 사용함
+직접 작업량과 계산 근거: frozen V23 건설 WU의 Ceil(×1.5)~Ceil(×2.25) 범위에서 선택하고, Ceil(V23×2.25)+현재 V27 BOM EWU의 총투자 목표를 ±2% 안에서 맞춤. 정상 밀도 0.80~1.25를 우선하고 경고 범위 0.67~1.50, 재료 비중 60% 이상, 1셀·BOM 2개 이하 초기 인프라만 명시적 경고 예외로 둠
+EWU와 목표 회수 기간: 입력 재료와 WU는 mEWU Ceil, 해체 회수는 RecoverableValue Floor를 사용함. 총투자 목표와 건설 기간을 동시에 보존하되 모든 해체→재건 transform은 최소 -1mEWU를 요구하고 SCC tolerance는 0임
+공간·전력·물·연료·정비: footprint·접근칸·작업자 슬롯·전력·상수·하수·연료·처리량·저장량은 변경하지 않음. 증가한 실물 BOM의 운반·버퍼·저장 면적은 물류 및 인구 공간 감사에 그대로 포함함
+위험·실패·회복 방식: optimizer 해 없음, 총투자 ±2% 초과, WU/BOM cap 초과, 원장 Before와 SO 불일치, 해체 순환 margin 비음수는 fail-loud함. 취소·시설 파괴·no-path·저장복원 시 기존 물리 수량 보존 계약을 유지함
+사회·비가역 비용: 초반 1셀 원시 인프라의 BOM을 정수 1개 더 늘려 시작 자본을 고갈시키지 않으며, 재료 비중이 이미 60% 이상인 시설에 의미 없는 재료를 추가하지 않음
+기존 대안과의 장단점: 전 시설 WU×2.25·BOM 동일은 재계산된 V27 재료 EWU와 노동밀도 괴리를 만들므로 폐기함. 전 시설 BOM×1.5는 초기 자본과 물류를 과도하게 소모하므로 폐기하고 결정론적 최소 변경 후보를 선택함
+지배 전략 방지 조건: 기존 BOM 종류 교체 0, 재료 수량 50% 초과 0, 총투자 오차 2% 초과 0, 같은 시대 대안 대비 비용·시간·공간 동시 우위 0, 철거→재건 차익 0, 승인 없는 SO 변경 0
+저장 권위와 실행 명령: BuildingWorkAmountAbility.constructionWorkRequired와 constructionMaterials가 신규 작업의 단일 authored 권위이며 V27BalanceWorkCalculator는 해당 WU를 검증해 그대로 반환함. WorkOrder는 생성 시 requiredWork와 실제 요청 재료를 저장하며 과거 세이브 변환은 범위 밖임
+자동 감사 ID와 전수 목록 포함 여부: V27_FACILITY_BOUNDED_WU_BOM_NO_CRITICAL, V27_CONSTRUCTION_WU_SINGLE_AUTHORITY, V27_CONSTRUCTION_BOM_150_CAP, V27_TOTAL_INVESTMENT_2_PERCENT, V27_FACILITY_DISMANTLE_REBUILD_STRICT_LOSS를 356개 시설과 모든 material row에 요구함
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-balance-labor-facility-authority.txt, v27-balance-before-after.csv, v27-balance-recalibration-audit.txt, D03 건설·운반·해체·재건 PlayMode, PhysicalItemLogistics, 256-seed 경제, YAML second-run diff 0, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 밸런스 기준 배정. exact approval·ApplyApproved·VerifyApplied·해체 SCC·물리 건설 PlayMode·256-seed·3-seed 실전 재검증 전에는 공식 검증·시뮬레이션 검증·실전 보정·완료로 보고하지 않음
+```
+
+## V27 연구 기반 던전 공간 확장 교정 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:research-gated-dungeon-expansion
+콘텐츠 종류: 기존 27열 던전을 35/49/63열로 단계 확장하는 신규 연구 프로젝트 3개와 오른쪽 방향 공간 출판·저장 권위
+정의·카탈로그·실행기 위치: ResearchProjectSO research:dungeon-expansion:basic-sector/supported-sector/deep-sector, ResearchProjectAssetBuilder, DungeonSpaceExpansionCatalog, DungeonSpaceExpansionRuntime, GridSystemProvider, ModularFacilityWorldSaveService V5, DungeonAggregateReferencePreflight
+등장 시대와 연구: 기초 구역 굴착(채석장+기본 숙소, Basic 연구시설), 지보 구역 공학(기초 확장+석재 가공+철제 가공, Basic+Design), 심층 구역 확장(지보 확장+심부 채굴+공장 공학/동력 공구, Basic+Design+Advanced)의 순차 선행을 요구함. 인구 6→12/12→18/18→24 구간의 권장 시점이며 인구 도달만으로 자동 해금하지 않음
+플레이어에게 주는 새 결정: 연구 노동과 연구시설·선행 기술을 지불해 생활·생존·창고·산업 포트폴리오의 30% 공간 여유를 확보할지, 현재 27/35/49열 안에서 더 밀집 운영할지 선택함. 개발자 E키 GridExpand는 연구 보상·정식 명령·저장 권위로 사용하지 않음
+물리 BOM·입력·출력: 확장 자체의 별도 물리 BOM·무료 자원 생성·가상 재고는 0이며 출력은 오른쪽 DungeonInterior 셀뿐임. 시작 27열×3=81셀, 1단계 35열(+8열=+24셀), 2단계 49열(+14열=+42셀), 3단계 63열(+14열=+42셀)이고 입구·기존 좌표·시설·아이템 점유자는 보존함
+직접 작업량과 계산 근거: V23 기간 권위 252/560/960 WU에 After=Ceil(Before×45/99)을 적용해 115/255/437 WU로 배정함. 신규 3개 합계는 Before 1,772→After 807 WU이며 전체 연구 카탈로그는 180→183개, 총 requiredWork는 138,824→140,596 Before 및 63,173→63,980 After로 확장됨
+EWU와 목표 회수 기간: 확장 연구 WU는 연구원 기회비용 입력으로 Ceil하며 공간 셀 자체를 판매·철거·회수 가능한 EWU 자산으로 만들지 않음. 115/255/437 WU는 성인 1명 effective 45 기준 약 2.56/5.67/9.71일이고 선행 연구·연구시설 구축·생존 노동은 별도 실비로 남음
+공간·전력·물·연료·정비: 인구 1/3/6은 27열, 12명은 35열, 18명은 49열, 24명은 63열 포트폴리오를 사용함. 현재 결정론적 수용력 결과는 사용 셀 25/27/42/69/97/127, headroom 69.1/66.6/48.1/34.2/34.0/32.8%, 정상/단일 장애 공유 접근칸 최고 이용률 44.0/61.6%로 30%·70%·90% 상한 안임. 확장은 전력·용수·연료·정비를 무료 제공하지 않음
+위험·실패·회복 방식: 선행 확장 없이 후기 연구 완료, 목표 셀 점유, 비연속 interior, 입구 복수·소실, 96 전체 폭 초과, 높이 3 불일치, 연구 완료 상태와 저장 폭 불일치, 그리드 publication 경쟁은 typed failure로 중단함. 실패 후보는 독립 GridCell 복사본에서 폐기해 기존 그리드·점유자를 부분 변이하지 않음
+사회·비가역 비용: 확장 연구 동안 연구자가 생존·의료·경비·생산에서 이탈하며 확장 뒤에도 새 시설 BOM·건설 WU·유틸리티·청소·운반 노동은 모두 지불함. 인구 6/12/18 도달이 무료 공간을 지급하지 않고 연구 우선순위의 기회비용을 유지함
+기존 대안과의 장단점: 고정 +2열은 12/18/24명 시설·저장·통로·overflow의 30% 여유를 충족하지 못해 기각함. 27→33→47→61 최소폭은 seed 경계 여유가 작아 각각 35/49/63을 선택함. 시작부터 63열 제공은 공간 연구와 밀집 운영 결정을 제거해 기각하고, E키 개발자 확장을 정식 기능으로 재사용하는 안도 기각함
+지배 전략 방지 조건: 연구 우회 0, 단계 건너뛰기 0, 동일 연구 반복 확장 0, 왼쪽 좌표·입구 이동 0, 기존 시설·재고 삭제 0, 확장 셀 무료 시설·유틸리티·자원 생성 0, E키 production 호출 0, 30% headroom 미달 0, 현재 폭보다 작은 저장 복원 0
+저장 권위와 실행 명령: ResearchProjectSO와 기존 Research save completedProjectIds가 완료 권위이고 live Grid가 현재 공간 권위임. BlueprintResearchRuntime의 BlueprintResearchCompletedEvent를 DungeonSpaceExpansionRuntime만 소비해 IGridSystemPublisher로 출판함. ModularFacilityWorldSaveData V5가 exact width/height/area/terrain 셀을 저장하며 별도 mutable expansionTier를 중복 저장하지 않음. 과거 V4 이하 세이브 마이그레이션은 명시적으로 범위 밖임
+자동 감사 ID와 전수 목록 포함 여부: EXPANSION_RESEARCH_ASSETS_EXACT, EXPANSION_EVENT_27_35_49_63_EXACT, EXPANSION_GRID_COPY_ATOMIC_AND_OCCUPANTS_PRESERVED, EXPANSION_SAVE_V5_LAYOUT_ROUNDTRIP_EXACT, EXPANSION_E_KEY_DEVELOPER_ONLY, RESEARCH_183_PROJECT_CATALOG_EXACT, V27_LAYOUT_ALL_1536_CASES_PASS를 요구함
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-balance-expansion-editmode.txt, v27-balance-layout-256-seed.txt, v27-balance-stage-portfolios.csv, ResearchTreeDebugScenarios, ResearchTreePlayModeVerifier, ModularFacility save/load scenarios, GameplayScene production research completion PlayMode, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 밸런스 기준 배정. 3개 SO·카탈로그·정적 확장·V5 JSON 레이아웃·1536 배치 사례는 구현 대상으로 고정했으나 production research completion PlayMode, 전체 저장 왕복, 전수 V27 원장·manifest 재생성, YAML no-op, 최종 Console 0/0이 모두 통과하기 전에는 공식 검증·시뮬레이션 검증·실전 보정 완료로 승격하지 않음. 이 기록은 앞선 180개 연구 불변 기록을 183개 카탈로그로 명시적으로 후속 교정함
+```
+
+## V27 연구 기반 던전 공간 확장 검증 완료 후속 기록 (2026-08-17)
+
+```text
+정의 ID: balance:v27:research-gated-dungeon-expansion-validated
+콘텐츠 종류: balance:v27:research-gated-dungeon-expansion의 수치 변경 없는 production·저장·공간·실전 증거 종결 기록
+정의·카탈로그·실행기 위치: ResearchProjectSO 3개, ResearchProjectAssetBuilder, DungeonSpaceExpansionCatalog, DungeonSpaceExpansionRuntime, ModularFacilityWorldSaveService V5, DungeonAggregateReferencePreflight, V27PopulationCapacityDebugScenarios
+등장 시대와 연구: 기초 구역 굴착 115 WU(채석장+기본 숙소), 지보 구역 공학 255 WU(기초 확장+석재 가공+철제 가공), 심층 구역 확장 437 WU(지보 확장+심부 채굴+공장 공학/동력 공구)의 순차 구조를 최종 유지함. 인구 12/18/24는 수용력 검증 시점일 뿐 자동 해금 조건이 아님
+플레이어에게 주는 새 결정: 연구 기회비용을 지불해 35/49/63열을 해금하거나 현재 폭에서 밀집 운영하는 선택을 유지함. 개발자 E키는 production 연구·보상·저장 명령에서 계속 제외됨
+물리 BOM·입력·출력: 신규 연구 또는 최종 검증 과정에서 물리 BOM·무료 자원·시설·유틸리티 추가 0. 오른쪽 interior 출력은 +8/+14/+14열, 3행 기준 +24/+42/+42셀로 확정함
+직접 작업량과 계산 근거: 승인된 115/255/437 WU와 50 actual/45 effective 권위를 변경하지 않음. 최종 3-seed actual/effective 평균은 51.608844/47.587889 WU·성인^-1·일^-1로 목표를 충족함
+EWU와 목표 회수 기간: 확장 셀의 판매·회수 EWU는 계속 0이며 연구 노동만 Ceil 입력 비용으로 유지함. 전수 원장 84,065행의 SCC 313개가 모두 음수이고 최저 margin은 -14,364,087 mEWU임
+공간·전력·물·연료·정비: 1/3/6/12/18/24명 × 256 seed의 1,536배치를 모두 통과함. 최소 headroom 32.8%, 정상/단일 장애 공유 접근칸 최대 이용률 44.0%/61.6%, heuristic false-negative 0이며 전력·물·연료·정비 무료 공급은 0임
+위험·실패·회복 방식: 연구 단계 건너뛰기·중복 완료·점유 셀 충돌·입구 손실·비연속 interior·잘못된 저장 폭을 fail-loud로 거부하고 후보 그리드를 원자 폐기함. EditMode와 production PlayMode에서 연구 3회·publication 3회 exact를 확인함
+사회·비가역 비용: 연구자 이탈과 확장 후 시설·청소·운반·유틸리티 비용을 그대로 부담함. 확장 연구가 6명 초기 생존 자본이나 N+1 시설을 자동 소비하지 않음
+기존 대안과의 장단점: +2열 고정·27→33→47→61 최소폭·시작 63열·E키 정식 편입은 각각 여유 부족·seed 경계 취약·진행 삭제·개발 경로 혼입 때문에 최종 기각 상태를 유지함
+지배 전략 방지 조건: 연구 우회·반복 무료 확장·자원 생성·좌표 이동·점유자 삭제·30% headroom 미달·저장 축소·E키 production 호출이 모두 0임. producer/consumer orphan과 approved-unapplied도 모두 0임
+저장 권위와 실행 명령: completedProjectIds가 연구 완료, live Grid가 현재 공간, ModularFacilityWorldSaveData V5가 exact 레이아웃의 단일 저장 권위임. 파생 expansion tier는 별도 저장하지 않으며 과거 V4 이하 세이브 마이그레이션은 범위 밖임
+자동 감사 ID와 전수 목록 포함 여부: 확장 EditMode 5 marker, PlayMode 5 marker, 1,536-layout exact marker, Research 183 프로젝트, V27 whole-game coverage, portable artifact verifier와 Final Acceptance 33/33에 포함됨
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-balance-expansion-editmode.txt, v27-balance-expansion-playmode.txt, v27-balance-layout-256-seed.txt, v27-balance-whole-game-coverage.txt, v27-balance-recalibration-audit.txt, phase157 daily seed 3개, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 밸런스 실전 보정. 연구 에셋·production event·V5 저장·1,536 공간 배치·전수 원장·3-seed 실측·결정론적 2회차 무변경·portable 검증·Console 0/0이 동일 current-source digest에서 모두 통과함
+```
+
+## V27 서비스 연속성·실제 공간·Floor Clutter·RNG 통합 검증 종결 기록 (2026-08-18)
+
+```text
+정의 ID: balance:v27:service-spatial-clutter-rng-validation-v1
+콘텐츠 종류: 인구별 음식·물 폐쇄 루프, 저자본 N+1, 실제 BuildingSO 공간 수용력, 공유 접근칸, 동적 바닥 재고, actor별 RNG 격리와 4-arm counterfactual의 통합 검증
+정의·카탈로그·실행기 위치: PopulationStagePortfolioCatalog, SurvivalContinuityCatalogQuery, V27SixAdultSurvivalLoopDebugScenarios, V27ServiceContinuityEvidenceDebugScenarios, V27AssetBackedSpatialCapacityDebugScenarios, V27PairedClutterPlayModeVerifier, WorldItemHaulPlanningService, RandomStreamProvider, DungeonSpaceExpansionRuntime
+등장 시대와 연구: 시작 인구 1/3/6명은 27열을 유지하고, 인구 12/18/24 포트폴리오의 실제 최소 필요 폭 35/45/57열을 검증함. 정식 확장은 인구 자동 보상이 아니라 기존 기초 구역 굴착 35열, 지보 구역 공학 49열, 심층 구역 확장 63열 연구 완료로만 발생하며 개발자 E키는 production 경로가 아님
+플레이어에게 주는 새 결정: 6명 초기에 동일 조리대·펌프를 두 개 강제하지 않고 실제 물리 식사·물과 원시 행동으로 하루 장애를 버티거나, 이후 자본 여유에 따라 영구 중복 시설을 선택함. 연구 확장도 검증된 최소 폭보다 0/4/6열 여유를 가진 35/49/63열을 확보할지 현재 폭에서 밀집 운영할지 선택함
+물리 BOM·입력·출력: 6명 음식은 300 nutrition/일 소비, gross 375(125%), net 330(110%), 7일 비축 2,100 nutrition을 권위로 함. grain 60·즉시 식사 12·물 59·저장 4의 실제 물리 비축을 요구하고 field meal·safe drink·bucket wash는 각각 물리 입력 1개를 소비함. 무료 생성·가상 비축·통로 순간이동은 0임
+직접 작업량과 계산 근거: 6명 effective 270 WU/일 중 반복 생존·생산 노동은 78.538 WU/일(29.1%)로 25–35% 범위이며 성장·비상 여유를 보존함. 전수 원장 84,065행은 actual 50/effective 45, 입력 Ceil·출력 Floor, SCC 313개 tolerance 0을 유지하고 최소 순환 margin은 -14,364,087 mEWU임
+EWU와 목표 회수 기간: N+1 원시 경로의 물리 입력·시간·기분·위생·오염 비용을 모두 debit으로 포함하며 동일 시설 중복 BOM을 무료 안전으로 간주하지 않음. 시설 356종 철거→재건 최대 margin은 -69,746 mEWU이고 시장 구매는 Ceil, 판매는 RecoverableValue Floor로 유지함
+공간·전력·물·연료·정비: 실제 BuildingSO와 BuildingPlacementValidator로 1/3/6/12/18/24명×256 seed=1,536배치를 모두 통과함. 실제 최소 폭은 27/27/27/35/45/57, authored 폭은 27/27/27/35/49/63, 최소 headroom은 30.3%, 정상/단일 장애 공유셀 최대 이용률은 60.0%/84.0%임. 저장·overflow·고정 셀·공유 접근 합집합을 면적에 포함하고 전력·상수·하수·연료·정비를 면제하지 않음
+위험·실패·회복 방식: 주 시설 하루 장애, 예약·입력·접근·no-path·창고 포화·운반자 장애를 typed failure로 추적함. 32-seed 4-arm의 512개 window에서 access/egress clutter 0, recovery 후 persistent clutter 0, 물리 burst 수량 보존, 외생 사건 일치, RNG causal-cone 밖 cross-talk 0을 요구함. clutter wait delta는 median 0%, p95 0%로 10% 상한을 통과했지만 단일 최악 seed는 79.1%였으며 raw seed 행을 접거나 삭제하지 않고 보존함
+사회·비가역 비용: primitive fallback은 field meal 시간, floor rest의 위생 -4·기분 -3, bucket wash의 물 1, latrine의 위생 -8·Waste 8·Stain 2·기분 -2를 그대로 부담함. 운반 장애와 clutter의 대기·재계획·StepAside 비용은 growth 노동으로 전환하지 않고 window별 mWU에 귀속함
+기존 대안과의 장단점: Tier 0에서 조리대·펌프 2개를 고정하면 초기 BOM·건설 WU를 고갈시키므로 실제 primitive 경로를 N+1로 인정함. 접근칸을 단순 합산하면 공간 거짓 실패가 생겨 walkable 공유 합집합을 사용하되 동시 유일 접근칸은 공유 금지함. clean/fault 2-arm 프레임 비교는 RNG 나비효과를 분리하지 못해 cleanRepeatA/B·faultControl·clutterStress 4-arm과 game-time window를 사용함
+지배 전략 방지 조건: 정상 시설 사용 가능 시 primitive 우선 사용 0, 물리 입력 없는 fallback 0, 중복 시설 무료 보상 0, 본체 overlap 0, egress·계단·유일 의료 접근 clutter 0, containment 밖 persistent Loose 0, actor 간 decision RNG cross-talk 0, decision→movement RNG cross-talk 0, 인구만으로 무료 확장 0, E키 production 확장 0임
+저장 권위와 실행 명령: 아이템·예약·주문·캐릭터·random stream 전체 상태는 기존 current save authority를 사용하고 actor별 stream은 persistentCharacterId로 파생함. 연구 completedProjectIds와 live Grid/ModularFacilityWorldSaveData V5가 확장 권위이며 별도 population expansion flag를 저장하지 않음. 과거 세이브 마이그레이션은 범위 밖임
+자동 감사 ID와 전수 목록 포함 여부: balance:v27:service-continuity-nplusone, primitive-fallback-capital-relief, shared-access-spatial-union, floor-clutter-runtime-capacity, storage-overflow-containment, counterfactual-rng-isolation, paired-run-window-attribution, population-stage-capacity, research-gated-dungeon-expansion, six-adult-food-water-closed-loop을 V27 manifest에 포함함. 공간 보고서는 검증기·공간 규칙·모든 BuildingSO sourceDigest와 1,536행 CSV SHA-256에 결합함
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-balance-service-continuity-playmode.txt, v27-balance-six-adult-food-water-loop.txt, v27-balance-spatial-capacity.csv, v27-balance-shared-cell-congestion.txt, v27-balance-expansion-tiers.txt, v27-balance-paired-run-rng.txt/.csv, v27-balance-floor-clutter.csv, v27-balance-random-stream-manifest.txt, v27-balance-whole-game-coverage.txt, v27-balance-artifact-manifest.json, physical-item-logistics-playmode-report.txt
+현재 밸런스 상태: 밸런스 실전 보정 PASS. 10개 서비스 경로의 production actor 실행, 6명 폐쇄 루프, 실제 에셋 1,536배치, 32-seed 4-arm clutter/RNG, 연구 27→35→49→63 production PlayMode, 전수 원장·SCC·가격·적용 권위, 5일 3-seed actual 51.608844/effective 47.587889, 핵심 artifact 두 번째 생성 SHA-256 무변경을 현재 소스에서 통과함. 단일 clutter 최악 seed 79.1%는 p95 기준 밖의 관찰값으로 원장에 계속 공개하며 향후 회귀에서 p95 10%를 넘으면 즉시 실패함
+```
+
+## V27 전 시설 포트폴리오 반영 던전 확장 폭 후속 교정 기록 (2026-08-18)
+
+```text
+정의 ID: balance:v27:full-portfolio-dungeon-expansion-widths-v2
+콘텐츠 종류: 농업·축산·발전·물 저장·폐수 처리까지 포함한 실제 BuildingSO 포트폴리오의 연구 기반 던전 목표 폭 교정
+정의·카탈로그·실행기 위치: V27AssetBackedSpatialCapacityDebugScenarios, V27SixAdultSurvivalLoopDebugScenarios, BuildingSO, BuildingPlacementValidator, DungeonSpaceExpansionCatalog, DungeonSpaceExpansionRuntime, ModularFacilityWorldSaveService V5
+등장 시대와 연구: 시작 1/3/6명은 27열을 유지함. 12명은 기초 구역 굴착 115 WU 완료 시 47열, 18명은 지보 구역 공학 255 WU 완료 시 61열, 24명은 심층 구역 확장 437 WU 완료 시 75열을 목표로 함. 인구는 검증 포트폴리오 시점일 뿐 자동 확장 트리거가 아니며 각 전용 확장 연구 완료 이벤트만 production 트리거임
+플레이어에게 주는 새 결정: 기존 35/49/63열의 표면상 여유 대신 작물 플롯·동물 우리·발전·물 저장·폐수 처리·창고·overflow·공용 접근칸까지 실제 설치한 뒤에도 30% 공간 여유를 확보함. 연구 우선순위와 밀집 운영 선택은 유지하고 개발자 E키는 정식 진행에서 계속 제외함
+물리 BOM·입력·출력: 연구·시설 BOM·레시피·소비량은 변경하지 않음. 확장 출력만 27→47(+20열, 3행 기준 +60셀)→61(+14열, +42셀)→75(+14열, +42셀)로 교정하며 시설·아이템·입구·기존 좌표를 보존함
+직접 작업량과 계산 근거: 115/255/437 연구 WU와 50 actual/45 effective 노동 권위는 불변임. 실제 생존 폐쇄 루프가 요구하는 crop plot 1/2/3/6/9/11개와 인구 단계별 8/15/21/38/52/64개 시설 요구를 256개 결정론적 건설 순서마다 배치해 최소 폭 27/27/27/47/61/75를 산출함
+EWU와 목표 회수 기간: 공간 셀은 판매·해체·회수 EWU가 없고 연구 WU만 Ceil 입력으로 남음. 시설 BOM·건설 WU·철거 회수·시장 가격·SCC 잠재값은 이번 폭 교정에서 불변이며 확장으로 무료 자원·무료 시설·가상 저장을 생성하지 않음
+공간·전력·물·연료·정비: 1/3/6/12/18/24명×256 seed=1,536건 모두 통과함. 단계별 최소 headroom은 74.0/54.3/34.5/32.6/31.1/31.5%, 정상·단일 장애 공유셀 최대 이용률은 최종 60.0/84.0%임. crop plot, animal-care, power-generation, water-storage, wastewater-treatment, storage/overflow와 고정 셀을 모두 면적에 포함함
+위험·실패·회복 방식: 필요 폭보다 작은 authored 목표, headroom 30% 미달, 정상 70%·단일 장애 90% 이용률 초과, overflow 누락, 불법 본체 중첩, 접근칸 차단, 96 전체 폭 초과, 단계 건너뛰기는 fail-loud함. 목표 전체 grid 폭은 시작 X=17 기준 64/78/92로 96 상한 안이며 실패 후보는 live Grid를 부분 변이하지 않음
+사회·비가역 비용: 넓어진 공간도 시설 BOM·건설 WU·유틸리티·청소·운반·수리 노동을 대신 지불하지 않음. 6명 초기에는 추가 연구나 중복 조리대·펌프를 강제하지 않고 27열과 primitive N+1을 유지함
+기존 대안과의 장단점: 35/49/63은 축산·발전·물 저장·폐수 처리와 실제 작물 플롯을 누락한 대표 시설 subset에서만 통과해 폐기함. 고정 +2열은 용량 근거가 없고, 시작부터 75열은 연구·밀집 운영 결정을 삭제하므로 기각함. 47/61/75는 현재 전수 포트폴리오의 최소 256-seed 통과 폭이며 추가 시설 권위가 생기면 Solver가 더 큰 폭을 요구할 수 있음
+지배 전략 방지 조건: 인구 자동 확장 0, E키 production 호출 0, 무료 BOM·유틸리티·저장 0, 시설 subset 누락 0, 본체 overlap 0, 30% headroom 미달 0, 연구 반복 무료 확장 0, 저장 축소 0, 기존 좌표·점유자 삭제 0
+저장 권위와 실행 명령: Research completedProjectIds가 연구 완료, live Grid가 현재 공간, ModularFacilityWorldSaveData V5가 exact 셀 레이아웃의 단일 저장 권위임. 별도 expansion-tier 저장 DTO를 추가하지 않고 BlueprintResearchCompletedEvent→DungeonSpaceExpansionRuntime→IGridSystemPublisher 경로만 사용함. 과거 세이브 마이그레이션은 범위 밖임
+자동 감사 ID와 전수 목록 포함 여부: EXPANSION_EVENT_27_47_61_75_EXACT, EXPANSION_LIVE_RESEARCH_BASIC_27_TO_47, EXPANSION_LIVE_RESEARCH_SUPPORTED_47_TO_61, EXPANSION_LIVE_RESEARCH_DEEP_61_TO_75, V27_ASSET_BACKED_SPATIAL_ALL_1536, V27_STAGE_PORTFOLIO_ALL_PASS를 manifest 필수 증거로 요구함
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-balance-expansion-editmode.txt, v27-balance-expansion-playmode.txt, v27-balance-spatial-capacity.csv, v27-balance-expansion-tiers.txt, v27-balance-stage-portfolios.csv, v27-balance-shared-cell-congestion.txt, v27-balance-whole-game-coverage.txt, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 밸런스 공식 검증 진행 중. 전 시설 1,536배치와 확장 EditMode는 현재 소스에서 PASS했으나 27→47→61→75 production PlayMode, V5 저장 왕복, 실제 6인 동시 서비스 장애, 최종 manifest·전수 감사·3-seed·결정론적 두 번째 실행까지 통과하기 전에는 시뮬레이션 검증·실전 보정·완료로 승격하지 않음
+```
+
+## V27 물리 비축·장애 저장 포함 던전 확장 폭 후속 교정 기록 (2026-08-18)
+
+```text
+정의 ID: balance:v27:storage-bounded-dungeon-expansion-widths-v3
+콘텐츠 종류: 7일 생존 비축·정상 저장 70%·단일 장애 저장+overflow 90%를 실제 시설 포트폴리오 공간에 포함한 연구 기반 던전 목표 폭 후속 교정
+정의·카탈로그·실행기 위치: V27AssetBackedSpatialCapacityDebugScenarios, V27PopulationStageSpatialBaseline, V27PairedClutterPlayModeVerifier, BuildingSO, BuildingPlacementValidator, DungeonSpaceExpansionCatalog, DungeonSpaceExpansionRuntime, ModularFacilityWorldSaveService V5
+등장 시대와 연구: 시작 1/3/6명은 27열을 유지함. 12명은 기초 구역 굴착 115 WU 완료 시 49열, 18명은 지보 구역 공학 255 WU 완료 시 65열, 24명은 심층 구역 확장 437 WU 완료 시 81열을 해금함. 인구는 자동 해금 조건이 아니며 각 전용 확장 연구의 production 완료 사건만 공간 출판을 요청함
+플레이어에게 주는 새 결정: 농업·축산·유틸리티 시설뿐 아니라 7일 비축과 운반자 장애 중 overflow까지 실제 셀과 물리 저장 용량으로 지불한 뒤에도 30% 자유 공간을 남길지, 연구를 미루고 현재 폭에서 밀집 운영할지 선택함. 개발자 E키의 2×2 확장은 developerMode에서만 허용하며 진행·연구·저장 권위가 아님
+물리 BOM·입력·출력: 연구·시설·아이템 BOM, 음식·물 소비, 시설 처리량은 변경하지 않음. 공간 출력만 27→49(+22열, 3행 기준 +66셀)→65(+16열, +48셀)→81(+16열, +48셀)로 교정함. 실제 전체 Grid 폭은 기존 60→66→82→98이고 왼쪽 고정 구역·입구·기존 좌표·시설·아이템을 보존함
+직접 작업량과 계산 근거: 연구 WU는 승인된 115/255/437과 actual 50/effective 45를 유지함. 인구 1/3/6/12/18/24의 256개 건설 순서마다 7일 grain·즉시 식사·식수, 정상 cycle 재고, 최대 batch, full-carry 취소와 장애 중 유입량을 포함해 27/27/27/49/65/81을 산출함
+EWU와 목표 회수 기간: 추가 공간 셀은 판매·철거·회수 가능한 EWU가 없고 연구 노동만 입력 Ceil로 남음. 시설 BOM·건설 WU·시장 가격·회수 Floor·SCC potential은 이번 폭 교정으로 변하지 않으며 무료 자원·가상 저장·통로 순간이동은 0임
+공간·전력·물·연료·정비: 1,536/1,536 실제 BuildingSO 배치가 통과함. 단계별 worst used/headroom은 21/74.0%, 37/54.3%, 56/30.8%, 101/31.2%, 135/30.7%, 166/31.6%임. 정상 저장 최고는 46.7/55.9/54.6/61.0/64.5/65.4%, 장애 저장+overflow 최고는 76.3/72.9/52.9/46.0/47.4/47.6%, 공유 접근 정상/장애 최고는 60.0/84.0%임. 전력·상수·하수·연료·정비 면제는 없음
+위험·실패·회복 방식: headroom 30% 미달, 정상 저장 70% 초과, 장애 저장+overflow 90% 초과, overflow 누락, 불법 본체 중첩, 유일 접근·egress 침범, 연구 단계 건너뛰기, 목표 전체 Grid 폭 104 초과를 fail-loud함. 실패한 후보 Grid는 출판하지 않고 기존 world와 점유자를 보존함
+사회·비가역 비용: 확장 연구자 이탈, 신규 시설 BOM·건설·청소·운반·유틸리티·수리 노동을 모두 그대로 부담함. 6명 초기에는 확장 연구와 동일 조리대·펌프 중복을 강제하지 않고 27열·물리 비축·primitive N+1을 유지함
+기존 대안과의 장단점: 47/61/75는 시설 본체와 접근칸은 수용했지만 7일 비축을 정상 70% 이하로 보관하는 실제 창고 수와 장애 overflow를 모두 포함한 현재 전수 조건에는 부족해 폐기함. 49/65/81은 각 단계의 2열 단위 첫 통과 폭이며, 추가 콘텐츠·저장 권위가 생기면 Solver가 더 큰 폭을 요구하도록 고정 상수보다 검증 결과를 우선함
+지배 전략 방지 조건: 인구 자동 확장 0, E키 production 호출 0, 무료 BOM·시설·유틸리티·가상 저장 0, 통로 overflow 0, 저장 점유율 은폐 0, 본체 overlap 0, 30% headroom 미달 0, 연구 반복 무료 확장 0, 기존 좌표·점유자 삭제 0임
+저장 권위와 실행 명령: Research completedProjectIds가 완료 권위, live Grid가 공간 권위, ModularFacilityWorldSaveData V5가 exact width/height/area/terrain 권위임. BlueprintResearchCompletedEvent→DungeonSpaceExpansionRuntime→IGridSystemPublisher 단일 경로만 사용하고 별도 population expansion flag나 과거 세이브 마이그레이션을 추가하지 않음
+자동 감사 ID와 전수 목록 포함 여부: EXPANSION_EVENT_27_49_65_81_EXACT, EXPANSION_LIVE_RESEARCH_BASIC_27_TO_49, EXPANSION_LIVE_RESEARCH_SUPPORTED_49_TO_65, EXPANSION_LIVE_RESEARCH_DEEP_65_TO_81, V27_ASSET_BACKED_SPATIAL_ALL_1536, V27_STORAGE_NORMAL_FAULT_ALL_STAGES, PAIRED_RUNTIME_HEADROOM_AT_LEAST_30_PERCENT를 manifest 필수 증거로 요구함
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-balance-expansion-editmode.txt, v27-balance-expansion-playmode.txt, v27-balance-spatial-capacity.csv, v27-balance-expansion-tiers.txt, v27-balance-shared-cell-congestion.txt, Temp/v27-balance-paired-clutter-focused.txt, v27-balance-whole-game-coverage.txt, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 밸런스 시뮬레이션 검증 진행 중. 현재 소스에서 1,536 asset placement, 27→49→65→81 EditMode·production PlayMode, focused production 4-arm의 runtime headroom 30.7%가 통과했으나 full 32-seed, exact/beam oracle, 전수 manifest·원장·3-seed·결정론적 두 번째 실행을 모두 재완료하기 전에는 실전 보정 또는 전체 완료로 승격하지 않음
+```
+
+## V27 기존 채굴 연구 던전 확장 권위 후속 교정 기록 (2026-08-18)
+
+```text
+정의 ID: balance:v27:existing-mining-research-dungeon-expansion-authority-v4
+콘텐츠 종류: 별도 확장 연구 3개를 제거하고 기존 채석장·석재 가공·심부 채굴 완료 사건에 27→49→65→81열 공간 출판을 결합하는 권위 교정
+정의·카탈로그·실행기 위치: ResearchProjectSO research:mining:quarry/stonecutting/deep, ResearchProjectAssetBuilder, DungeonSpaceExpansionCatalog, DungeonSpaceExpansionRuntime, ModularFacilityWorldSaveService V5, DungeonAggregateReferencePreflight
+등장 시대와 연구: 인구 12명 수용 폭 49열은 research:mining:quarry, 18명 수용 폭 65열은 research:mining:stonecutting, 24명 수용 폭 81열은 research:mining:deep 완료로 해금함. 인구는 검증 시점일 뿐 자동 확장 조건이 아니고 개발자 E키도 production 진행 권위가 아님
+플레이어에게 주는 새 결정: 기존 채굴 기술에 공간 확장 보상을 함께 부여하므로 같은 목적의 별도 연구를 다시 지불하지 않음. 채굴 연구를 미루고 현재 공간을 밀집 운영할지, 연구해 저장·농업·축산·유틸리티를 포함한 30% 여유 공간을 확보할지 선택함
+물리 BOM·입력·출력: 확장 전용 BOM과 신규 연구 에셋은 0. 기존 채굴 연구의 물리 입력·해금은 유지하며 출력은 오른쪽 DungeonInterior 27→49(+22열)→65(+16열)→81(+16열)뿐임. 입구·기존 좌표·시설·아이템 점유자를 보존함
+직접 작업량과 계산 근거: 별도 확장 연구의 Before 252/560/960 WU 및 After 115/255/437 WU를 폐기함. 기존 채석장·석재 가공·심부 채굴의 authored After 28/42/60 WU만 유지하며 연구 카탈로그는 183→180개, 총 FacilityThresholdWork는 140,596→138,824, 총 requiredWork는 63,980→63,173으로 복귀함
+EWU와 목표 회수 기간: 공간 셀의 판매·철거·회수 EWU는 0이고 기존 채굴 연구 노동만 입력 Ceil 비용으로 남음. 삭제한 별도 연구의 807 WU를 다른 가격·보상·BOM으로 이전하지 않으며 전수 SCC는 tolerance 0으로 재검증함
+공간·전력·물·연료·정비: 1/3/6명은 27열, 12/18/24명은 49/65/81열을 사용함. 실제 BuildingSO·7일 비축·overflow·공유 접근칸을 포함한 1,536배치의 30% headroom 요구를 폭 권위로 유지하고 전력·상수·하수·연료·정비는 무료 제공하지 않음
+위험·실패·회복 방식: 연구 완료 이벤트 순서가 저장·복원 또는 도구 실행 때문에 바뀌어도 가장 높은 완료 연구가 요구하는 폭까지 한 번에 확장하고, 뒤늦은 낮은 단계 완료는 no-op으로 처리함. 목표 셀 점유·입구 손실·비연속 interior·104 전체 폭 초과·publication 경쟁은 fail-loud함
+사회·비가역 비용: 확장 전용 중복 연구 노동을 제거하되 기존 채굴 연구자 이탈, 확장 후 시설 BOM·건설·청소·운반·유틸리티·수리 노동은 그대로 부담함. 6명 초기 자본과 N+1 비축을 확장 연구가 소비하지 않음
+기존 대안과의 장단점: 별도 research:dungeon-expansion:* 3개는 기존 채굴 연구와 동일한 진행을 이중 과금해 폐기함. 고정 +2열, 시작부터 81열, 인구 자동 확장, E키 정식 편입도 각각 수용력 근거 부족·진행 삭제·개발 경로 혼입 때문에 기각함
+지배 전략 방지 조건: 별도 연구 WU 이중 과금 0, 인구 자동 확장 0, E키 production 호출 0, 동일 연구 반복 무료 확장 0, 무료 BOM·시설·유틸리티·가상 저장 0, 기존 좌표·점유자 삭제 0, 30% headroom 미달 0
+저장 권위와 실행 명령: 기존 Research completedProjectIds가 완료 권위, live Grid가 현재 공간 권위, ModularFacilityWorldSaveData V5가 exact width/height/area/terrain 권위임. 별도 expansionTier DTO와 과거 세이브 마이그레이션은 추가하지 않으며 가장 높은 완료 채굴 연구와 저장 폭의 일치만 검증함
+자동 감사 ID와 전수 목록 포함 여부: EXPANSION_RESEARCH_ASSETS_EXACT, EXPANSION_EVENT_27_49_65_81_EXACT, EXPANSION_OUT_OF_ORDER_DEEP_IDEMPOTENT, EXPANSION_SAVE_RESEARCH_LAYOUT_AUTHORITY_EXACT, EXPANSION_LIVE_RESEARCH_QUARRY_27_TO_49, EXPANSION_LIVE_RESEARCH_STONECUTTING_49_TO_65, EXPANSION_LIVE_RESEARCH_DEEP_MINING_65_TO_81, V27_ASSET_BACKED_SPATIAL_ALL_1536을 요구함
+검증 매트릭스와 보고서 위치: Artifacts/QA/v27-balance-expansion-editmode.txt, v27-balance-expansion-playmode.txt, v27-balance-layout-256-seed.txt, v27-balance-expansion-tiers.txt, v27-balance-before-after.csv, v27-balance-recalibration-audit.txt, 3-seed 실측, Unity Console Warning/Error 0/0
+현재 밸런스 상태: 밸런스 공식 검증 진행 중. 소스·에셋 정합화 후 Unity compile, EditMode·production PlayMode, 저장 preflight, 1,536배치, 전수 원장·SCC, 32-seed 4-arm, 3-seed 실전, 결정론적 두 번째 실행이 모두 fresh PASS하기 전에는 시뮬레이션 검증·실전 보정·완료로 승격하지 않음
 ```

@@ -34,7 +34,7 @@ MonoBehaviour:
   features:
   - rid: 7737211785112453356
   - rid: 7737211785112453357
-  - rid: 7737211981816660396
+  - rid: 7737212042857939669
   references:
     version: 2
     RefIds:
@@ -48,7 +48,7 @@ MonoBehaviour:
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:herbalism
-    - rid: 7737211981816660396
+    - rid: 7737212042857939669
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0

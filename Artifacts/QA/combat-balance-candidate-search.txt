@@ -1,0 +1,39 @@
+COMBAT_BALANCE_CANDIDATE_SEARCH_V1
+broadSamples=8; refineSamples=24; confirmationSamples=256; search=monotonic-bisection-v3; damageSeeds=13
+encounter | objective | before health/damage/round | candidate health/damage/round | win | severe | low-health | score | stalled
+encounter:01 | DefeatAll | 1/1/0 | 0.336/2.2/0 | 76.6 % | 2.6 % | 2.6 % | 0.001880 | 0
+encounter:02 | SurviveRounds | 1/1/8 | 1/0.632/8 | 100.0 % | 0.0 % | 0.0 % | 0.000458 | 0
+encounter:03 | ProtectTarget | 1/1/6 | 0.503/0.6/6 | 64.5 % | 3.3 % | 3.3 % | 1.330396 | 0
+encounter:04 | SabotageTarget | 1/1/7 | 0.122/1/9 | 53.5 % | 0.0 % | 0.0 % | 586.183378 | 0
+encounter:05 | Escape | 1/1/8 | 1/1.003/8 | 100.0 % | 13.3 % | 9.4 % | 0.000003 | 0
+encounter:06 | CaptureLeader | 1/1/6 | 2.53/1/6 | 57.0 % | 0.0 % | 0.0 % | 361.878484 | 0
+encounter:07 | DefeatAll | 1/1/0 | 1.689/1.25/0 | 68.4 % | 6.9 % | 2.9 % | 0.000747 | 0
+encounter:08 | SurviveRounds | 1/1/8 | 1/1.003/8 | 100.0 % | 35.5 % | 49.0 % | 0.000003 | 0
+encounter:09 | ProtectTarget | 1/1/7 | 1.128/2.2/8 | 71.5 % | 17.2 % | 13.4 % | 0.000989 | 0
+encounter:10 | SabotageTarget | 1/1/7 | 0.503/1/7 | 6.3 % | 0.0 % | 0.0 % | 3753.907154 | 0
+encounter:11 | Escape | 1/1/7 | 1/0.632/7 | 99.6 % | 18.6 % | 8.6 % | 0.000458 | 0
+encounter:12 | CaptureLeader | 1/1/7 | 0.224/0.2/8 | 15.2 % | 1.3 % | 0.0 % | 238.421792 | 0
+encounter:13 | DefeatAll | 1/1/0 | 2.53/1/0 | 100.0 % | 2.9 % | 2.9 % | 1777.777646 | 0
+encounter:14 | SurviveRounds | 1/1/8 | 1/0.632/8 | 98.4 % | 32.7 % | 13.1 % | 0.000458 | 0
+encounter:15 | ProtectTarget | 1/1/8 | 0.503/1.25/10 | 56.6 % | 37.2 % | 31.7 % | 0.001070 | 0
+encounter:16 | SabotageTarget | 1/1/7 | 0.411/1/7 | 64.5 % | 16.4 % | 17.4 % | 1.330087 | 0
+encounter:17 | Escape | 1/1/8 | 1/0.632/8 | 100.0 % | 0.0 % | 0.0 % | 0.000458 | 0
+encounter:18 | CaptureLeader | 1/1/6 | 0.15/2.2/6 | 44.1 % | 0.9 % | 0.9 % | 0.002687 | 0
+encounter:19 | DefeatAll | 1/1/0 | 19.056/1.25/0 | 78.5 % | 27.5 % | 23.4 % | 0.003171 | 0
+encounter:20 | SurviveRounds | 1/1/8 | 1/0.632/8 | 100.0 % | 0.3 % | 0.0 % | 0.000458 | 0
+encounter:21 | ProtectTarget | 1/1/7 | 2.53/2.2/7 | 71.1 % | 4.1 % | 4.2 % | 0.001717 | 0
+encounter:22 | SabotageTarget | 1/1/7 | 1.527/0.8/7 | 80.1 % | 0.0 % | 0.0 % | 0.027772 | 0
+encounter:23 | Escape | 1/1/7 | 1/0.632/7 | 100.0 % | 0.0 % | 0.0 % | 0.000458 | 0
+encounter:24 | CaptureLeader | 1/1/6 | 2.53/2.2/6 | 36.3 % | 0.0 % | 0.0 % | 0.001717 | 0
+encounter:25 | DefeatAll | 1/1/0 | 2.53/4/0 | 53.1 % | 42.8 % | 46.5 % | 0.002314 | 0
+encounter:26 | SurviveRounds | 1/1/8 | 1/0.632/8 | 100.0 % | 7.3 % | 2.4 % | 0.000458 | 0
+encounter:27 | ProtectTarget | 1/1/7 | 15.571/3.2/7 | 74.6 % | 61.0 % | 61.3 % | 2.772541 | 0
+encounter:28 | SabotageTarget | 1/1/8 | 3.789/1.25/8 | 59.4 % | 20.4 % | 20.4 % | 140.626369 | 0
+encounter:29 | Escape | 1/1/7 | 1/0.632/7 | 100.0 % | 0.2 % | 0.2 % | 0.000458 | 0
+encounter:30 | CaptureLeader | 1/1/7 | 2.53/1/7 | 53.9 % | 0.0 % | 0.0 % | 198.304228 | 0
+encounter:31 | DefeatAll | 1/1/0 | 42.736/0.6/0 | 70.3 % | 48.8 % | 36.6 % | 0.485824 | 0
+encounter:32 | SurviveRounds | 1/1/8 | 1/0.632/8 | 100.0 % | 25.5 % | 6.3 % | 0.000458 | 0
+encounter:33 | ProtectTarget | 1/1/8 | 3.789/1.6/9 | 59.8 % | 70.6 % | 57.9 % | 1.697384 | 0
+encounter:34 | SabotageTarget | 1/1/7 | 3.789/1/7 | 68.0 % | 18.7 % | 21.7 % | 0.001332 | 0
+encounter:35 | Escape | 1/1/8 | 1/0.632/8 | 100.0 % | 0.0 % | 0.0 % | 0.000458 | 0
+encounter:36 | CaptureLeader | 1/1/6 | 2.53/1/6 | 14.5 % | 0.0 % | 0.0 % | 278.092392 | 0

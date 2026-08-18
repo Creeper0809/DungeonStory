@@ -577,6 +577,7 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
 
         Require(fixtures.TryBeginUse(
                 shower,
+                default,
                 out WaterFixtureUseTicket ticket,
                 out DomainFailure fixtureFailure),
             "샤워 시설의 실제 급수 사용을 시작하지 못했습니다: "

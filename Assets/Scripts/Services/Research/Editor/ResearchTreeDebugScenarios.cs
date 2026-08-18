@@ -50,8 +50,8 @@ public static class ResearchTreeDebugScenarios
     public static bool RunAll(bool logSuccess)
     {
         List<string> failures = new List<string>();
-        Verify("180개 프로젝트와 설계도 규칙", VerifyCatalog, failures);
-        Verify("180개 결정적 자동 배치", () => VerifyLayout(LoadProjects()), failures);
+        Verify("183개 프로젝트와 설계도 규칙", VerifyCatalog, failures);
+        Verify("183개 결정적 자동 배치", () => VerifyLayout(LoadProjects()), failures);
         Verify("100개 합성 그래프 배치", () => VerifySyntheticLayout(100), failures);
         Verify("250개 합성 그래프 배치", () => VerifySyntheticLayout(250), failures);
         Verify("선행 자동 큐와 설계도 우회", VerifyQueueRules, failures);
@@ -751,7 +751,9 @@ public static class ResearchTreeDebugScenarios
                 new FacilityCandidateCacheStore(
                     CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null),
                 new DungeonWorkforceReplanService(
-                    CharacterAiEditorTestDependencies.WorldRegistry, facilityCandidateCache: null),
+                    CharacterAiEditorTestDependencies.WorldRegistry,
+                    facilityCandidateCache: null,
+                    haulPlanningService: null),
                 new GameEventBus(),
                 itemStackRuntime: null,
                 projectCoordinator: new BlueprintResearchProjectCoordinator(

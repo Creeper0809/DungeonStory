@@ -43,9 +43,8 @@ public sealed class AIBrainExecutionServices
     {
         PathSearch = pathSearch ?? throw new ArgumentNullException(nameof(pathSearch));
         Clock = clock ?? throw new ArgumentNullException(nameof(clock));
-        ActionRandom = (randomStreams
-            ?? throw new ArgumentNullException(nameof(randomStreams)))
-            .Get("character-ai");
+        RandomStreams = randomStreams
+            ?? throw new ArgumentNullException(nameof(randomStreams));
         FacilityScoring = new FacilityScoringContext(
             reputationBias,
             roomFacilities,
@@ -54,6 +53,6 @@ public sealed class AIBrainExecutionServices
 
     public IGridPathSearchBroker PathSearch { get; }
     public IGameClock Clock { get; }
-    public IRandomStream ActionRandom { get; }
+    public IRandomStreamProvider RandomStreams { get; }
     public FacilityScoringContext FacilityScoring { get; }
 }

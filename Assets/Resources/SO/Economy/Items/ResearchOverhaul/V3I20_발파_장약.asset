@@ -29,30 +29,30 @@ MonoBehaviour:
   unitWeight: 0.15
   maxStack: 120
   sprite: {fileID: 0}
-  unitPrice: 73
+  unitPrice: 32
   features:
-  - rid: 7737211981804078017
-  - rid: 7737211981804078018
-  - rid: 7737211981804078019
-  - rid: 7737211981804078020
+  - rid: 7737212042857939147
+  - rid: 7737212042857939148
+  - rid: 7737212042857939149
+  - rid: 7737212042857939150
   references:
     version: 2
     RefIds:
-    - rid: 7737211981804078017
+    - rid: 7737212042857939147
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:blasting-charge
-    - rid: 7737211981804078018
+    - rid: 7737212042857939148
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:mining:deep
-    - rid: 7737211981804078019
+    - rid: 7737212042857939149
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 512
         sharedIntermediate: 0
-    - rid: 7737211981804078020
+    - rid: 7737212042857939150
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5952465
+        saleRate: 0.5984479

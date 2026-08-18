@@ -30,25 +30,25 @@ MonoBehaviour:
   unitWeight: 1.35
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 168
+  unitPrice: 83
   features:
-  - rid: 7737211981804078072
-  - rid: 7737211981804078073
-  - rid: 7737211981804078074
+  - rid: 7737212042857939361
+  - rid: 7737212042857939362
+  - rid: 7737212042857939363
   references:
     version: 2
     RefIds:
-    - rid: 7737211981804078072
+    - rid: 7737212042857939361
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:textile:dreamweave
-    - rid: 7737211981804078073
+    - rid: 7737212042857939362
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1152
         sharedIntermediate: 0
-    - rid: 7737211981804078074
+    - rid: 7737212042857939363
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5986567
+        saleRate: 0.5941004

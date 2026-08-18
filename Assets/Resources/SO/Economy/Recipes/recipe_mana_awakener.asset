@@ -42,7 +42,7 @@ MonoBehaviour:
     recommendedRank: 1
     minimumRiskRank: 2
   requiredResearchId: research:pharmacology:stimulants
-  requiredWork: 63
+  requiredWork: 28
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

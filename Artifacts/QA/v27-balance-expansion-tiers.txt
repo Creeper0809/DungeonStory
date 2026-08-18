@@ -1,0 +1,11 @@
+RESULT=PASS; authority=asset-backed-capacity; developerEKey=false; automaticPopulationTrigger=false; authoredColumns=27,49,65,81; maxWidth=104
+sourceDigest=566b78dcefb2c15f2a927d39d791ab4b6b5493f737ab88e026dd96f6042ef437
+spatialCsvSha256=57353cc22d5c0a8347aa3f072c66566fc784347c3af88c3201412d1738cb5ab4
+searchProof=actual-assets:exact+beam
+PASS population=1;requiredInteriorColumns=27;authoredTargetInteriorColumns=27;spareColumns=0;researchGate=start
+PASS population=3;requiredInteriorColumns=27;authoredTargetInteriorColumns=27;spareColumns=0;researchGate=start
+PASS population=6;requiredInteriorColumns=27;authoredTargetInteriorColumns=27;spareColumns=0;researchGate=start
+PASS population=12;requiredInteriorColumns=49;authoredTargetInteriorColumns=49;spareColumns=0;researchGate=research:mining:quarry
+PASS population=18;requiredInteriorColumns=65;authoredTargetInteriorColumns=65;spareColumns=0;researchGate=research:mining:stonecutting
+PASS population=24;requiredInteriorColumns=81;authoredTargetInteriorColumns=81;spareColumns=0;researchGate=research:mining:deep
+PASS FIXED_WORLD_FEATURE_SOLVER_LIVE_CONTRACT interiorReservedByStage=1:0,3:0,6:0,12:0,18:0,24:0;liveAuthority=IWorldResourceRuntime.Nodes+IWorldResourceNodeHost

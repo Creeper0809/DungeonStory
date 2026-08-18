@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 1.1
   maxStack: 1
   sprite: {fileID: 0}
-  unitPrice: 109
+  unitPrice: 48
   features:
-  - rid: 7737211981816660772
-  - rid: 7737211981816660773
-  - rid: 7737211981816660774
+  - rid: 7737212042857939955
+  - rid: 7737212042857939956
+  - rid: 7737212042857939957
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660772
+    - rid: 7737212042857939955
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:husbandry:breeding
-    - rid: 7737211981816660773
+    - rid: 7737212042857939956
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211981816660774
+    - rid: 7737212042857939957
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59956884
+        saleRate: 0.5991736

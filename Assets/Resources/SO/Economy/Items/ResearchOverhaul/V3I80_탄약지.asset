@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 0.9
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 23
+  unitPrice: 11
   features:
-  - rid: 7737211981804077535
-  - rid: 7737211981804077536
-  - rid: 7737211981804077537
+  - rid: 7737212042857939742
+  - rid: 7737212042857939743
+  - rid: 7737212042857939744
   references:
     version: 2
     RefIds:
-    - rid: 7737211981804077535
+    - rid: 7737212042857939742
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:industry:powered-tools
-    - rid: 7737211981804077536
+    - rid: 7737212042857939743
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 1
         sharedIntermediate: 1
-    - rid: 7737211981804077537
+    - rid: 7737212042857939744
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59830433
+        saleRate: 0.55209094

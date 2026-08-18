@@ -410,23 +410,13 @@ public class BuildableObject : MonoBehaviour,
         bool found = false;
         int bestCost = int.MaxValue;
         Vector2Int bestResult = default;
-        HashSet<Vector2Int> footprint = walkThroughTarget
-            ? null
-            : new HashSet<Vector2Int>(buildPoses);
-        for (int index = 0; index < buildPoses.Count; index++)
+        IReadOnlyList<Vector2Int> candidates =
+            BuildingWorkAccessRules.EnumerateCandidates(
+                buildPoses,
+                walkThroughTarget);
+        for (int index = 0; index < candidates.Count; index++)
         {
-            Vector2Int occupied = buildPoses[index];
-            if (walkThroughTarget)
-            {
-                Consider(occupied);
-                continue;
-            }
-
-            // Dungeon grid y is a floor coordinate, not a north/south tile.
-            // A non-traversable facility is therefore approached from either
-            // horizontal edge on the same floor.
-            Consider(new Vector2Int(occupied.x - 1, occupied.y));
-            Consider(new Vector2Int(occupied.x + 1, occupied.y));
+            Consider(candidates[index]);
         }
 
         result = bestResult;
@@ -435,8 +425,7 @@ public class BuildableObject : MonoBehaviour,
         void Consider(Vector2Int candidate)
         {
             if (!targetGrid.IsValidGridPos(candidate)
-                || !targetGrid.IsWalkable(candidate)
-                || (footprint != null && footprint.Contains(candidate)))
+                || !targetGrid.IsWalkable(candidate))
             {
                 return;
             }
@@ -461,21 +450,25 @@ public class BuildableObject : MonoBehaviour,
             return false;
         }
 
-        if (BuildingData?.IsGridMovement == true)
-        {
-            return ContainsGridPosition(position) && targetGrid.IsWalkable(position);
-        }
-
         if (!targetGrid.IsValidGridPos(position)
-            || !targetGrid.IsWalkable(position)
-            || ContainsGridPosition(position))
+            || !targetGrid.IsWalkable(position))
         {
             return false;
         }
 
-        return buildPoses.Any(occupied =>
-            occupied.y == position.y
-            && Mathf.Abs(occupied.x - position.x) == 1);
+        IReadOnlyList<Vector2Int> candidates =
+            BuildingWorkAccessRules.EnumerateCandidates(
+                buildPoses,
+                BuildingData?.IsGridMovement == true);
+        for (int index = 0; index < candidates.Count; index++)
+        {
+            if (candidates[index] == position)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public Vector3 GetFacilityAnchorWorldPosition(string purposeId, Vector3 fromWorld)

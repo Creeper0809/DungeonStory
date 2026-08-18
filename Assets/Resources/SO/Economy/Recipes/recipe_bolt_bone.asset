@@ -42,7 +42,7 @@ MonoBehaviour:
     recommendedRank: 3
     minimumRiskRank: 0
   requiredResearchId: research:defense:ranged-positions
-  requiredWork: 225
+  requiredWork: 100
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

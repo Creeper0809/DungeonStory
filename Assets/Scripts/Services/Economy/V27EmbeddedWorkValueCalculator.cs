@@ -383,8 +383,10 @@ namespace DungeonStory.Balance
                 crop.HarvestWork,
                 $"crop:{crop.CropId}:harvestWork");
             decimal directBefore = checked(sowWork + harvestWork);
-            EwuAmount direct = V27EwuQuantizer.QuantizeInputDebit(
-                checked(directBefore * laborScale));
+            // Crop sow/harvest are recurring throughput operations. Their WU
+            // is already expressed per physical crop cycle and must not inherit
+            // the period-preserving project multiplier.
+            EwuAmount direct = V27EwuQuantizer.QuantizeInputDebit(directBefore);
 
             decimal inputWeight = ResolveWeight(crop.SeedItemId)
                 + cleanWaterUnits * ResolveWeight(cleanWaterItemId);
@@ -394,13 +396,12 @@ namespace DungeonStory.Balance
                 + (cleanWaterUnits > 0 ? 2m : 1m) * 0.75m
                 + 2m * 0.50m
                 + DecimalSquareRoot(inputWeight + outputWeight) * 0.60m);
-            EwuAmount logistics = V27EwuQuantizer.QuantizeInputDebit(
-                checked(logisticsBefore * laborScale));
+            EwuAmount logistics = V27EwuQuantizer.QuantizeInputDebit(logisticsBefore);
 
             decimal infrastructureBefore = checked(directBefore * 0.10m
                 + growthHours * 0.25m);
             EwuAmount infrastructure = V27EwuQuantizer.QuantizeInputDebit(
-                checked(infrastructureBefore * laborScale));
+                infrastructureBefore);
             EwuAmount subtotal = inputDebit + direct + logistics + infrastructure;
             EwuAmount expectedLoss = V27EwuQuantizer.MultiplyInputDebit(subtotal, 0.05m);
             EwuAmount total = subtotal + expectedLoss;
@@ -462,17 +463,20 @@ namespace DungeonStory.Balance
                 return false;
             }
 
-            decimal directBefore = BalanceCanonicalText.DecimalFromFiniteFloat(
-                workCalculator.CalculateRecipe(recipe),
+            decimal directBefore = ResolveAuthoredBefore(
+                recipe.RecipeId,
+                "authored-required-wu",
+                recipe.RequiredWork,
                 $"recipe:{recipe.RecipeId}:directWork");
             decimal logisticsBefore = CalculateStandardLogisticsWork(recipe);
             decimal infrastructureBefore = CalculateInfrastructureWork(recipe, directBefore);
-            EwuAmount direct = V27EwuQuantizer.QuantizeInputDebit(
-                checked(directBefore * laborScale));
-            EwuAmount logistics = V27EwuQuantizer.QuantizeInputDebit(
-                checked(logisticsBefore * laborScale));
+            // Recipes are repeatable batch throughput. Apply their authored
+            // batch WU once; do not scale direct/logistics/infrastructure by
+            // the project-duration multiplier.
+            EwuAmount direct = V27EwuQuantizer.QuantizeInputDebit(directBefore);
+            EwuAmount logistics = V27EwuQuantizer.QuantizeInputDebit(logisticsBefore);
             EwuAmount infrastructure = V27EwuQuantizer.QuantizeInputDebit(
-                checked(infrastructureBefore * laborScale));
+                infrastructureBefore);
             EwuAmount subtotal = inputDebit + direct + logistics + infrastructure;
             decimal lossRate = recipe.FlowRole == ProductionFlowRole.Source
                 ? 0.01m

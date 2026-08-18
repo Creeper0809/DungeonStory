@@ -78,7 +78,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 108
+        constructionWorkRequired: 609
         repairWorkRequired: 12
         cleanWorkRequired: 8
         researchWorkRequired: 6
@@ -96,9 +96,9 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:lumber
-          amount: 4
+          amount: 6
         - itemId: material:iron-ingot
-          amount: 2
+          amount: 3
     - rid: 7737211905660420564
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:

@@ -43,7 +43,7 @@ MonoBehaviour:
     recommendedRank: 2
     minimumRiskRank: 2
   requiredResearchId: research:agriculture:crop-pathology
-  requiredWork: 90
+  requiredWork: 40
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

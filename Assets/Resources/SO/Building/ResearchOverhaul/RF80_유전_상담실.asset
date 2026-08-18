@@ -53,14 +53,14 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211981804077768
-    - rid: 7737211981804077769
-    - rid: 7737211981804077770
-    - rid: 7737211981804077771
-    - rid: 7737211981804077772
-    - rid: 7737211981804077773
-    - rid: 7737211981804077774
-    - rid: 7737211981804077775
+    - rid: 7737212042857939899
+    - rid: 7737212042857939900
+    - rid: 7737212042857939901
+    - rid: 7737212042857939902
+    - rid: 7737212042857939903
+    - rid: 7737212042857939904
+    - rid: 7737212042857939905
+    - rid: 7737212042857939906
   width: 1
   height: 1
   layer: 1
@@ -76,12 +76,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211981804077768
+    - rid: 7737212042857939899
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF80
-    - rid: 7737211981804077769
+    - rid: 7737212042857939900
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -89,13 +89,13 @@ MonoBehaviour:
         - research-overhaul
         - research:genetics:controlled-heredity
         - workstation:v19:genetic-counseling
-    - rid: 7737211981804077770
+    - rid: 7737212042857939901
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v19:genetic-counseling
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211981804077771
+    - rid: 7737212042857939902
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -103,7 +103,7 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211981804077772
+    - rid: 7737212042857939903
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -112,7 +112,7 @@ MonoBehaviour:
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211981804077773
+    - rid: 7737212042857939904
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -123,16 +123,16 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 32769
           disabledWhenDamaged: 1
-    - rid: 7737211981804077774
+    - rid: 7737212042857939905
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211981804077775
+    - rid: 7737212042857939906
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 648
+        constructionWorkRequired: 738
         repairWorkRequired: 26
         cleanWorkRequired: 12
         researchWorkRequired: 6

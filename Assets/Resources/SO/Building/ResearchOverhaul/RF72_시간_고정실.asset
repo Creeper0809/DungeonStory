@@ -53,17 +53,17 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211981816660604
-    - rid: 7737211981816660605
-    - rid: 7737211981816660606
-    - rid: 7737211981816660607
-    - rid: 7737211981816660608
-    - rid: 7737211981816660609
-    - rid: 7737211981816660610
-    - rid: 7737211981816660611
-    - rid: 7737211981816660612
-    - rid: 7737211981816660613
-    - rid: 7737211981816660614
+    - rid: 7737212042857939934
+    - rid: 7737212042857939935
+    - rid: 7737212042857939936
+    - rid: 7737212042857939937
+    - rid: 7737212042857939938
+    - rid: 7737212042857939939
+    - rid: 7737212042857939940
+    - rid: 7737212042857939941
+    - rid: 7737212042857939942
+    - rid: 7737212042857939943
+    - rid: 7737212042857939944
   width: 1
   height: 1
   layer: 1
@@ -79,12 +79,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660604
+    - rid: 7737212042857939934
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF72
-    - rid: 7737211981816660605
+    - rid: 7737212042857939935
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -92,13 +92,13 @@ MonoBehaviour:
         - research-overhaul
         - research:medical:temporal-stasis
         - workstation:v19:temporal-stasis
-    - rid: 7737211981816660606
+    - rid: 7737212042857939936
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v19:temporal-stasis
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211981816660607
+    - rid: 7737212042857939937
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -106,7 +106,7 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211981816660608
+    - rid: 7737212042857939938
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -115,7 +115,7 @@ MonoBehaviour:
         maintenance: 6
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211981816660609
+    - rid: 7737212042857939939
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -126,7 +126,24 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 671121408
           disabledWhenDamaged: 1
-    - rid: 7737211981816660610
+    - rid: 7737212042857939940
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 6
+        maxThroughput: 20
+        normallyOpen: 1
+    - rid: 7737212042857939941
+      type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProcessFluidAbility
+        workTypeIds:
+        - work:surgery
+        cleanWaterPerCycle: 0.2
+        wastewaterPerCycle: 0.2
+        minimumQuality: 0
+        allowsManualWaterFallback: 1
+    - rid: 7737212042857939942
       type: {class: BuildingSurgeryTableAbility, ns: , asm: DungeonStory.Medical}
       data:
         abilityId: BuildingSurgeryTableAbility
@@ -135,16 +152,16 @@ MonoBehaviour:
         workSpeedMultiplier: 1
         baseSterility: 0.45
         patientSlots: 1
-    - rid: 7737211981816660611
+    - rid: 7737212042857939943
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211981816660612
+    - rid: 7737212042857939944
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 306
+        constructionWorkRequired: 675
         repairWorkRequired: 52
         cleanWorkRequired: 12
         researchWorkRequired: 6
@@ -175,20 +192,3 @@ MonoBehaviour:
           amount: 4
         - itemId: component:engineering-drawing
           amount: 2
-    - rid: 7737211981816660613
-      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingUtilityConnectionAbility
-        channels: 6
-        maxThroughput: 20
-        normallyOpen: 1
-    - rid: 7737211981816660614
-      type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProcessFluidAbility
-        workTypeIds:
-        - work:surgery
-        cleanWaterPerCycle: 0.2
-        wastewaterPerCycle: 0.2
-        minimumQuality: 0
-        allowsManualWaterFallback: 1

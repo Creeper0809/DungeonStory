@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 1.2
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 563
+  unitPrice: 257
   features:
-  - rid: 7737211981816660812
-  - rid: 7737211981816660813
-  - rid: 7737211981816660814
+  - rid: 7737212042857939802
+  - rid: 7737212042857939803
+  - rid: 7737212042857939804
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660812
+    - rid: 7737212042857939802
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:mana-core-engineering
-    - rid: 7737211981816660813
+    - rid: 7737212042857939803
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737211981816660814
+    - rid: 7737212042857939804
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5991284
+        saleRate: 0.59998053

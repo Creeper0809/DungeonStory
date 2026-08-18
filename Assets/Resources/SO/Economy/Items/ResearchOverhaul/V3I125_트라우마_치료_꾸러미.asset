@@ -30,25 +30,25 @@ MonoBehaviour:
   unitWeight: 0.35
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 181
+  unitPrice: 80
   features:
-  - rid: 7737211981818757394
-  - rid: 7737211981818757395
-  - rid: 7737211981818757396
+  - rid: 7737212042857939288
+  - rid: 7737212042857939289
+  - rid: 7737212042857939290
   references:
     version: 2
     RefIds:
-    - rid: 7737211981818757394
+    - rid: 7737212042857939288
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:trauma-medicine
-    - rid: 7737211981818757395
+    - rid: 7737212042857939289
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211981818757396
+    - rid: 7737212042857939290
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59834623
+        saleRate: 0.5952791

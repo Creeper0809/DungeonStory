@@ -30,25 +30,25 @@ MonoBehaviour:
   unitWeight: 3.15
   maxStack: 1
   sprite: {fileID: 0}
-  unitPrice: 205
+  unitPrice: 91
   features:
-  - rid: 7737211981818757186
-  - rid: 7737211981818757187
-  - rid: 7737211981818757188
+  - rid: 7737212042857939714
+  - rid: 7737212042857939715
+  - rid: 7737212042857939716
   references:
     version: 2
     RefIds:
-    - rid: 7737211981818757186
+    - rid: 7737212042857939714
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:service:dining-operations
-    - rid: 7737211981818757187
+    - rid: 7737212042857939715
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 768
         sharedIntermediate: 0
-    - rid: 7737211981818757188
+    - rid: 7737212042857939716
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5974894
+        saleRate: 0.5982307

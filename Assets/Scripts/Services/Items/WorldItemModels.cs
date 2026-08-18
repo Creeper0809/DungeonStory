@@ -173,7 +173,8 @@ public sealed class WorldItemHaulPlan
         int expectedDetourCost,
         WorldItemHaulDestinationKind primaryDestination,
         string primaryDestinationId,
-        bool deliveryOnlyResume = false)
+        bool deliveryOnlyResume = false,
+        bool isPriority = false)
     {
         PickupLegs = pickupLegs ?? Array.Empty<WorldItemHaulPlanLeg>();
         DeliveryLegs = deliveryLegs ?? Array.Empty<WorldItemHaulPlanLeg>();
@@ -183,6 +184,7 @@ public sealed class WorldItemHaulPlan
         PrimaryDestination = primaryDestination;
         PrimaryDestinationId = primaryDestinationId ?? string.Empty;
         IsDeliveryOnlyResume = deliveryOnlyResume;
+        IsPriority = isPriority;
     }
 
     public IReadOnlyList<WorldItemHaulPlanLeg> PickupLegs { get; }
@@ -193,6 +195,7 @@ public sealed class WorldItemHaulPlan
     public WorldItemHaulDestinationKind PrimaryDestination { get; }
     public string PrimaryDestinationId { get; }
     public bool IsDeliveryOnlyResume { get; }
+    public bool IsPriority { get; }
     public bool IsValid => DeliveryLegs.Count > 0
         && ReservedStackQuantities.Count > 0
         && (IsDeliveryOnlyResume || PickupLegs.Count > 0);
