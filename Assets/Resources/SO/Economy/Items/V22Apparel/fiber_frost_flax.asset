@@ -30,11 +30,11 @@ MonoBehaviour:
   unitWeight: 0.08
   maxStack: 200
   sprite: {fileID: 0}
-  unitPrice: 7
+  unitPrice: 3
   features:
   - rid: 7737211836816949262
   - rid: 7737211836816949263
-  - rid: 7737211981804077824
+  - rid: 7737212042831201201
   references:
     version: 2
     RefIds:
@@ -48,7 +48,7 @@ MonoBehaviour:
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:textile:fiber
-    - rid: 7737211981804077824
+    - rid: 7737212042831201201
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5269047
+        saleRate: 0.50366664

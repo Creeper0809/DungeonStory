@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using UnityEngine;
+using DungeonStory.Balance;
 
 public interface IStockQuery : IWarehousePhysicalStockQueryPort
 {
@@ -176,5 +177,105 @@ public sealed class PhysicalStockQuery : IStockQuery
         }
 
         return (int)total;
+    }
+}
+
+/// <summary>
+/// Derived diagnostic observer for physical loose stacks. It owns only first-seen
+/// timestamps and never changes stock, destinations, walkability, or traversal cost.
+/// </summary>
+public sealed class FloorClutterDiagnosticsQuery : IFloorClutterDiagnosticsQuery
+{
+    private readonly IStockQuery stock;
+    private readonly System.Collections.Generic.Dictionary<string, Observation> observations =
+        new(System.StringComparer.Ordinal);
+
+    private readonly struct Observation
+    {
+        internal Observation(Vector2Int position, float firstSeenAt)
+        {
+            Position = position;
+            FirstSeenAt = firstSeenAt;
+        }
+
+        internal Vector2Int Position { get; }
+        internal float FirstSeenAt { get; }
+    }
+
+    public FloorClutterDiagnosticsQuery(IStockQuery stock)
+    {
+        this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
+    }
+
+    public FloorClutterAssessment Capture(
+        Grid grid,
+        DungeonSpaceLayoutSnapshot layout,
+        float currentGameTime)
+    {
+        if (grid == null)
+            throw new ArgumentNullException(nameof(grid));
+        if (layout == null)
+            throw new ArgumentNullException(nameof(layout));
+        if (currentGameTime < 0f || float.IsNaN(currentGameTime)
+            || float.IsInfinity(currentGameTime))
+            throw new ArgumentOutOfRangeException(nameof(currentGameTime));
+
+        float graceSeconds = Mathf.Min(
+            layout.GameDaySeconds * 0.25f,
+            Mathf.Max(
+                15f,
+                layout.CleanRunP95HaulDispatchAndDeliverySeconds * 2f));
+        System.Collections.Generic.HashSet<string> liveCandidates =
+            new(System.StringComparer.Ordinal);
+        System.Collections.Generic.List<FloorClutterStackAssessment> outside = new();
+        int looseStacks = 0;
+        int looseQuantity = 0;
+        foreach (WorldItemStackSnapshot stack in stock.GetAllStacks())
+        {
+            if (stack == null
+                || stack.State != WorldItemStackState.Loose
+                || stack.Quantity <= 0
+                || !string.IsNullOrEmpty(stack.DestinationId))
+                continue;
+            looseStacks++;
+            looseQuantity = checked(looseQuantity + stack.Quantity);
+            SpatialCellRole roles = layout.GetRoles(stack.Position);
+            if ((roles & (SpatialCellRole.StorageBuffer
+                    | SpatialCellRole.OverflowContainment
+                    | SpatialCellRole.AuthorizedLooseSource)) != 0)
+                continue;
+
+            liveCandidates.Add(stack.StackId);
+            if (!observations.TryGetValue(stack.StackId, out Observation observation)
+                || observation.Position != stack.Position
+                || currentGameTime < observation.FirstSeenAt)
+            {
+                observation = new Observation(stack.Position, currentGameTime);
+                observations[stack.StackId] = observation;
+            }
+            float age = currentGameTime - observation.FirstSeenAt;
+            bool immediate = (roles & SpatialCellRole.EmergencyEgress) != 0
+                || layout.IsCriticalAccess(stack.Position);
+            outside.Add(new FloorClutterStackAssessment(
+                stack.StackId,
+                stack.Position,
+                stack.Quantity,
+                age,
+                roles,
+                immediate,
+                immediate || age > graceSeconds));
+        }
+
+        foreach (string stale in observations.Keys
+                     .Where(value => !liveCandidates.Contains(value))
+                     .ToArray())
+            observations.Remove(stale);
+        outside.Sort((left, right) =>
+            string.CompareOrdinal(left.StackId, right.StackId));
+        return new FloorClutterAssessment(
+            graceSeconds,
+            looseStacks,
+            looseQuantity,
+            outside);
     }
 }

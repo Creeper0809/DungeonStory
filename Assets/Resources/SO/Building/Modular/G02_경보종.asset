@@ -94,7 +94,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 405
+        constructionWorkRequired: 424
         repairWorkRequired: 44
         cleanWorkRequired: 10
         researchWorkRequired: 6
@@ -112,7 +112,7 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:iron-ingot
-          amount: 5
+          amount: 8
         - itemId: material:lumber
           amount: 1
     - rid: 7737211921440178317

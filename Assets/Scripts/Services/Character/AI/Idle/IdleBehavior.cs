@@ -394,6 +394,20 @@ public static class IdleBehaviorRunner
     private static readonly IIdleBehavior ShelterFromWeather = new ShelterFromWeatherIdleBehavior();
     private static readonly IIdleBehavior StepAside = new StepAsideIdleBehavior();
     private static readonly IIdleBehavior MoodDrivenWander = new MoodDrivenWanderIdleBehavior();
+#if UNITY_EDITOR
+    private static bool deterministicStaticIdleForDiagnostics;
+
+    public static void ConfigureDeterministicStaticIdleForDiagnostics(bool enabled)
+    {
+        if (!Application.isEditor)
+        {
+            throw new System.InvalidOperationException(
+                "Deterministic idle selection is editor-only.");
+        }
+
+        deterministicStaticIdleForDiagnostics = enabled;
+    }
+#endif
 
     public static bool TryRunDefault(
         CharacterActor actor,
@@ -473,6 +487,16 @@ public static class IdleBehaviorRunner
 
     private static IIdleBehavior SelectBehavior(CharacterActor actor, bool allowMovement)
     {
+#if UNITY_EDITOR
+        // Counterfactual logistics runs need the production decision pipeline,
+        // but ambient wander is outside the measured causal cone. Two actors
+        // sharing a restored cell can otherwise race for the same idle move and
+        // advance different actor-scoped RNG streams before the intervention.
+        if (deterministicStaticIdleForDiagnostics)
+        {
+            return StaticWait;
+        }
+#endif
         if (!allowMovement)
         {
             return StaticWait;

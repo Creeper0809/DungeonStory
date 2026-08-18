@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211981816660700
-    - rid: 7737211981816660701
-    - rid: 7737211981816660702
-    - rid: 7737211981816660703
-    - rid: 7737211981816660704
+    - rid: 7737212033836254016
+    - rid: 7737212033836254017
+    - rid: 7737212033836254018
+    - rid: 7737212033836254019
+    - rid: 7737212033836254020
   width: 1
   height: 1
   layer: 11
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660700
+    - rid: 7737212033836254016
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: U02
-    - rid: 7737211981816660701
+    - rid: 7737212033836254017
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,12 +87,12 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211981816660702
+    - rid: 7737212033836254018
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 360
+        constructionWorkRequired: 404
         repairWorkRequired: 48
         cleanWorkRequired: 8
         researchWorkRequired: 6
@@ -110,17 +110,17 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:stone-block
-          amount: 3
+          amount: 5
         - itemId: material:iron-ingot
-          amount: 2
-    - rid: 7737211981816660703
+          amount: 3
+    - rid: 7737212033836254019
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 2
         maxThroughput: 100
         normallyOpen: 1
-    - rid: 7737211981816660704
+    - rid: 7737212033836254020
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 2.55
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 251
+  unitPrice: 126
   features:
-  - rid: 7737211981816660513
-  - rid: 7737211981816660514
-  - rid: 7737211981816660515
+  - rid: 7737212042857939206
+  - rid: 7737212042857939207
+  - rid: 7737212042857939208
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660513
+    - rid: 7737212042857939206
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:rune-module-tuning
-    - rid: 7737211981816660514
+    - rid: 7737212042857939207
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1536
         sharedIntermediate: 0
-    - rid: 7737211981816660515
+    - rid: 7737212042857939208
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59863085
+        saleRate: 0.5979206

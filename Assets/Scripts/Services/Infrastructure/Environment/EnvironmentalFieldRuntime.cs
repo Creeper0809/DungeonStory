@@ -27,6 +27,7 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
     private readonly IPowerInfrastructureQuery power;
     private readonly IGameClock clock;
     private readonly EnvironmentalFieldAggregateStateStore stateStore;
+    private readonly IRestoreWorldCandidateQuery restoreWorldCandidates;
     private readonly WeakReference<Grid> gridReference = new(null);
     private readonly List<EnvironmentalFieldSourceDescriptor> sources = new();
 
@@ -53,7 +54,8 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
         ISurvivalEnvironmentQuery survivalEnvironment,
         IPowerInfrastructureQuery power,
         IGameClock clock,
-        EnvironmentalFieldAggregateStateStore stateStore)
+        EnvironmentalFieldAggregateStateStore stateStore,
+        IRestoreWorldCandidateQuery restoreWorldCandidates)
     {
         this.gridProvider = gridProvider
             ?? throw new ArgumentNullException(nameof(gridProvider));
@@ -66,6 +68,8 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
+        this.restoreWorldCandidates = restoreWorldCandidates
+            ?? throw new ArgumentNullException(nameof(restoreWorldCandidates));
     }
 
     public int Version => State.Version;
@@ -306,16 +310,17 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
             throw new InvalidOperationException(
                 "Environmental-field payload is incomplete or has an unsupported version.");
         }
-        if (!gridProvider.TryGetGrid(out Grid loadedGrid))
+        if (source.width <= 0 || source.height <= 0)
         {
             throw new InvalidOperationException(
-                "Environmental-field restore requires a loaded grid.");
+                $"Environmental-field dimensions {source.width}x{source.height} are invalid.");
         }
-        if (source.width != loadedGrid.width
-            || source.height != loadedGrid.height)
+        if (restoreWorldCandidates.TryGetGrid(out Grid candidateGrid)
+            && (source.width != candidateGrid.width
+                || source.height != candidateGrid.height))
         {
             throw new InvalidOperationException(
-                $"Environmental-field dimensions {source.width}x{source.height} do not match the loaded grid {loadedGrid.width}x{loadedGrid.height}.");
+                $"Environmental-field dimensions {source.width}x{source.height} do not match the staged grid {candidateGrid.width}x{candidateGrid.height}.");
         }
 
         EnvironmentalFieldRestoreCandidate candidate =
@@ -361,11 +366,19 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
                     "Environmental-field payload contains a null or invalid cell record.");
             }
             Vector2Int position = new Vector2Int(cell.x, cell.y);
-            if (!loadedGrid.TryGetCellIndex(position, out int index)
-                || index <= previousCellIndex)
+            if (position.x < 0
+                || position.x >= source.width
+                || position.y < 0
+                || position.y >= source.height)
             {
                 throw new InvalidOperationException(
-                    $"Environmental-field cell {position} is outside the grid, duplicated, or unordered.");
+                    $"Environmental-field cell {position} is outside the saved dimensions.");
+            }
+            int index = checked(position.y * source.width + position.x);
+            if (index <= previousCellIndex)
+            {
+                throw new InvalidOperationException(
+                    $"Environmental-field cell {position} is duplicated or unordered.");
             }
             previousCellIndex = index;
         }
@@ -417,7 +430,8 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
     {
         EnvironmentalFieldRestoreCandidate source = candidate
             ?? throw new ArgumentNullException(nameof(candidate));
-        if (!gridProvider.TryGetGrid(out Grid loadedGrid))
+        if (!restoreWorldCandidates.TryGetGrid(out Grid loadedGrid)
+            && !gridProvider.TryGetGrid(out loadedGrid))
         {
             throw new InvalidOperationException(
                 "Environmental-field restore requires a loaded grid.");

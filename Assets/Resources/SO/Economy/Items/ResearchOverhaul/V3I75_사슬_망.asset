@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 2.1
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 58
+  unitPrice: 26
   features:
-  - rid: 7737211981816660190
-  - rid: 7737211981816660191
-  - rid: 7737211981816660192
+  - rid: 7737212042857939403
+  - rid: 7737212042857939404
+  - rid: 7737212042857939405
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660190
+    - rid: 7737212042857939403
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:mail-weaving
-    - rid: 7737211981816660191
+    - rid: 7737212042857939404
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 512
         sharedIntermediate: 1
-    - rid: 7737211981816660192
+    - rid: 7737212042857939405
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59591955
+        saleRate: 0.5908333

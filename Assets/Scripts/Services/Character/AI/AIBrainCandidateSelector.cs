@@ -18,6 +18,10 @@ internal sealed class AIBrainCandidateSelector
     // Keep one bounded continuation per active predicate instead.
     private readonly List<AIBrainActionScoringContinuation> continuations =
         new List<AIBrainActionScoringContinuation>();
+#if UNITY_EDITOR
+    private bool deterministicFullPassForDiagnostics;
+    private bool logisticsMeasurementOnlyForDiagnostics;
+#endif
 
     public AIBrainCandidateSelector(
         AIBrainActionEvaluator evaluator,
@@ -31,6 +35,23 @@ internal sealed class AIBrainCandidateSelector
     }
 
     public bool IsPending => continuations.Count > 0;
+
+#if UNITY_EDITOR
+    public void ConfigureDeterministicFullPassForDiagnostics(bool enabled)
+    {
+        deterministicFullPassForDiagnostics = enabled;
+        continuations.Clear();
+    }
+
+    public bool LogisticsMeasurementOnlyForDiagnostics =>
+        logisticsMeasurementOnlyForDiagnostics;
+
+    public void ConfigureLogisticsMeasurementForDiagnostics(bool enabled)
+    {
+        logisticsMeasurementOnlyForDiagnostics = enabled;
+        continuations.Clear();
+    }
+#endif
 
     public bool IsPendingFor(
         Predicate<AIActionSet> predicate,
@@ -133,7 +154,9 @@ internal sealed class AIBrainCandidateSelector
         while (continuation.NextActionIndex < actions.Length)
         {
             AIAction action = actions[continuation.NextActionIndex];
-            if (action?.actionset == null || !predicate(action.actionset))
+            if (action?.actionset == null
+                || !IsAllowedForDiagnostics(action.actionset)
+                || !predicate(action.actionset))
             {
                 continuation.NextActionIndex++;
                 continue;
@@ -256,7 +279,7 @@ internal sealed class AIBrainCandidateSelector
         return null;
     }
 
-    private static void SkipNonMatchingActions(
+    private void SkipNonMatchingActions(
         AIAction[] actions,
         Predicate<AIActionSet> predicate,
         AIBrainActionScoringContinuation continuation)
@@ -264,13 +287,26 @@ internal sealed class AIBrainCandidateSelector
         while (continuation.NextActionIndex < actions.Length)
         {
             AIAction action = actions[continuation.NextActionIndex];
-            if (action?.actionset != null && predicate(action.actionset))
+            if (action?.actionset != null
+                && IsAllowedForDiagnostics(action.actionset)
+                && predicate(action.actionset))
             {
                 return;
             }
 
             continuation.NextActionIndex++;
         }
+    }
+
+    private bool IsAllowedForDiagnostics(AIActionSet actionSet)
+    {
+#if UNITY_EDITOR
+        if (logisticsMeasurementOnlyForDiagnostics)
+        {
+            return actionSet is AIHaul or AIWait;
+        }
+#endif
+        return true;
     }
 
     private bool Measure(Func<bool> action)
@@ -312,8 +348,14 @@ internal sealed class AIBrainCandidateSelector
                 : string.Empty);
     }
 
-    private static bool ShouldYield(long started, double sliceMilliseconds, int processedCount)
+    private bool ShouldYield(long started, double sliceMilliseconds, int processedCount)
     {
+#if UNITY_EDITOR
+        if (deterministicFullPassForDiagnostics)
+        {
+            return false;
+        }
+#endif
         if (processedCount <= 0)
         {
             return false;

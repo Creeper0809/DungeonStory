@@ -132,6 +132,39 @@ public static class FacilityCandidateScorer
         GridPathSearchResult searchResult,
         FacilityRole role)
     {
+        return HasReachableQueueableCandidate(
+            actor,
+            searchResult,
+            role,
+            allowPendingMealDelivery: false);
+    }
+
+    /// <summary>
+    /// Returns authored meal infrastructure that is either immediately usable
+    /// or has a real physical delivery route pending. This is deliberately
+    /// narrower than <see cref="HasReachableQueueableCandidate"/>: normal
+    /// facility actions still require food already present, while the
+    /// primitive fallback gate may wait for a committed primary-service
+    /// pipeline at routine hunger.
+    /// </summary>
+    public static bool HasReachableQueueableCandidateIncludingPendingMealDelivery(
+        CharacterActor actor,
+        GridPathSearchResult searchResult,
+        FacilityRole role)
+    {
+        return HasReachableQueueableCandidate(
+            actor,
+            searchResult,
+            role,
+            allowPendingMealDelivery: role == FacilityRole.Meal);
+    }
+
+    private static bool HasReachableQueueableCandidate(
+        CharacterActor actor,
+        GridPathSearchResult searchResult,
+        FacilityRole role,
+        bool allowPendingMealDelivery)
+    {
         if (actor == null
             || searchResult == null
             || role == FacilityRole.None)
@@ -157,6 +190,7 @@ public static class FacilityCandidateScorer
                         building,
                         role,
                         scoringContext,
+                        allowPendingMealDelivery,
                         out _))
                 {
                     return true;
@@ -865,6 +899,23 @@ public static class FacilityCandidateScorer
         FacilityScoringContext scoringContext,
         out string rejectReason)
     {
+        return IsQueueableCandidate(
+            actor,
+            building,
+            role,
+            scoringContext,
+            allowPendingMealDelivery: false,
+            out rejectReason);
+    }
+
+    private static bool IsQueueableCandidate(
+        CharacterActor actor,
+        BuildableObject building,
+        FacilityRole role,
+        FacilityScoringContext scoringContext,
+        bool allowPendingMealDelivery,
+        out string rejectReason)
+    {
         rejectReason = string.Empty;
         if (building == null)
         {
@@ -889,7 +940,11 @@ public static class FacilityCandidateScorer
 
         if (role == FacilityRole.Meal
             && CharacterWorkRoleUtility.TryGetWork(actor, out _)
-            && !HasPhysicalMealAvailable(actor, building, out rejectReason))
+            && !HasPhysicalMealAvailable(
+                actor,
+                building,
+                allowPendingMealDelivery,
+                out rejectReason))
         {
             return false;
         }
@@ -907,6 +962,19 @@ public static class FacilityCandidateScorer
     private static bool HasPhysicalMealAvailable(
         CharacterActor actor,
         BuildableObject building,
+        out string rejectReason)
+    {
+        return HasPhysicalMealAvailable(
+            actor,
+            building,
+            allowPendingMealDelivery: false,
+            out rejectReason);
+    }
+
+    private static bool HasPhysicalMealAvailable(
+        CharacterActor actor,
+        BuildableObject building,
+        bool allowPendingMealDelivery,
         out string rejectReason)
     {
         bool available;
@@ -928,7 +996,9 @@ public static class FacilityCandidateScorer
         // into this fixture; it is not a meal the actor can consume now. The
         // primitive fallback must remain eligible until physical food is
         // already committed to the facility buffer.
-        available &= !failure.IsFailure;
+        available &= !failure.IsFailure
+            || allowPendingMealDelivery
+                && failure.Code == CharacterConsumablesFailureCode.DeliveryPending;
 
         rejectReason = available
             ? string.Empty

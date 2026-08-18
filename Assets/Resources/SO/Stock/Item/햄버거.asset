@@ -25,7 +25,7 @@ MonoBehaviour:
   itemName: "\uD584\uBC84\uAC70"
   itemDefinitionId: food:meat-pie
   category: 0
-  cost: 52
+  cost: 23
   itemSprite: {fileID: 21300000, guid: ca5e703cacd7ac4429c534cdfcbe3e95, type: 3}
   buyevent:
   - {fileID: 11400000, guid: 24fb677b8951acb4d90a3fe397c2dbb2, type: 2}

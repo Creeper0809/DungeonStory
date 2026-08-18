@@ -12,6 +12,7 @@ public sealed class CharacterConsumablesRuntime :
     private const float MealFollowupCooldownSeconds = 15f;
     private const float MealActionSeconds = 4f;
     private const float DeliveryRetrySeconds = 45f;
+    private const float MealDeliveryProbeSeconds = 1f;
     private const float GameHourSeconds = 60f;
     private const float MedicalUseHealthRatio = 0.82f;
     private const string FacilityInputDestinationPrefix = "facility-input:";
@@ -37,11 +38,16 @@ public sealed class CharacterConsumablesRuntime :
     private readonly IRandomStream random;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly ICharacterNeedBalanceRuntime needBalance;
+    private readonly ICharacterConsumablesWorkforcePort workforce;
     private readonly Dictionary<ConsumableOperationId, MealOperationFailureState>
         mealOperationFailures = new();
     private readonly Queue<ConsumableOperationId> mealOperationFailureOrder = new();
     private readonly HashSet<ConsumableOperationId> queuedMealOperationFailures = new();
     private const int MaximumRememberedMealOperationFailures = 64;
+    private float nextMealDeliveryProbeAt;
+    public long MealDeliveryProbeCount { get; private set; }
+    public string LastMealDeliveryProbeDetail { get; private set; } = "not-run";
+    public string LastMealDeliveryRequestFailure { get; private set; } = "not-run";
 
     private float RoutineHungerThreshold => needBalance
         .GetResponse(CharacterCondition.HUNGER)
@@ -64,7 +70,8 @@ public sealed class CharacterConsumablesRuntime :
         IGameClock clock,
         IRandomStreamProvider randomStreams,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
-        ICharacterNeedBalanceRuntime needBalance)
+        ICharacterNeedBalanceRuntime needBalance,
+        ICharacterConsumablesWorkforcePort workforce = null)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.inventory = inventory ?? throw new ArgumentNullException(nameof(inventory));
@@ -74,6 +81,7 @@ public sealed class CharacterConsumablesRuntime :
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
         this.needBalance = needBalance
             ?? throw new ArgumentNullException(nameof(needBalance));
+        this.workforce = workforce;
         random = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams)))
             .Get("character-consumables");
     }
@@ -1124,14 +1132,24 @@ public sealed class CharacterConsumablesRuntime :
         {
             RecreationalSubstanceCandidate selected = deliverable[0];
             string destinationId = GetRecreationalSubstanceDestinationId(facilityId);
-            if (HasRoutedItem(destinationId, selected.Substance.Id)
-                || inventory.TryRequestDelivery(
+            if (HasRoutedItem(destinationId, selected.Substance.Id))
+            {
+                result = CharacterConsumablesSubstanceResult.Failed(
+                    CharacterConsumablesFailureCode.DeliveryPending,
+                    characterId.Value,
+                    facilityId.Value,
+                    selected.Substance.Id.Value);
+                return false;
+            }
+            if (inventory.TryRequestDelivery(
                     selected.Substance.Id,
                     1,
                     facility.Position,
                     destinationId,
-                    out int requested) && requested > 0)
+                    out int requested,
+                    out _) && requested > 0)
             {
+                workforce?.RequestOneHaulerToReplan(characterId);
                 result = CharacterConsumablesSubstanceResult.Failed(
                     CharacterConsumablesFailureCode.DeliveryPending,
                     characterId.Value,
@@ -1383,6 +1401,7 @@ public sealed class CharacterConsumablesRuntime :
         {
             return;
         }
+        PrimeHungryActorMealDelivery();
         foreach (CharacterSubstanceState state in WriteState.SubstanceStates.Values)
         {
             state.activeSeconds = Mathf.Max(0f, state.activeSeconds - deltaTime);
@@ -1419,24 +1438,111 @@ public sealed class CharacterConsumablesRuntime :
         PruneExpiredDeliveries();
     }
 
+    private void PrimeHungryActorMealDelivery()
+    {
+        float now = clock.Time;
+        if (now < nextMealDeliveryProbeAt
+            && nextMealDeliveryProbeAt - now <= MealDeliveryProbeSeconds * 2f)
+        {
+            return;
+        }
+        nextMealDeliveryProbeAt = now + MealDeliveryProbeSeconds;
+        MealDeliveryProbeCount++;
+
+        CharacterConsumablesActorSnapshot actor = world.CharacterIds
+            .OrderBy(id => id.Value, StringComparer.Ordinal)
+            .Select(id => world.TryGetActor(id, out CharacterConsumablesActorSnapshot value)
+                ? value
+                : default)
+            .FirstOrDefault(value => value.Id.IsValid
+                && value.Active
+                && value.Hunger <= RoutineHungerThreshold
+                && !(world is ICharacterRitualFastingMealPort fasting
+                    && fasting.IsRitualFasting(value.Id)));
+        if (!actor.Id.IsValid)
+        {
+            LastMealDeliveryProbeDetail = "no-hungry-actor";
+            return;
+        }
+
+        bool emergency = actor.Hunger <= EmergencyHungerThreshold;
+        int deliveryCandidateCount = 0;
+        int reachableMealFacilityCount = 0;
+        foreach ((BuildingInstanceId facilityId, float travelSeconds) in world.FacilityIds
+                     .OrderBy(id => id.Value, StringComparer.Ordinal)
+                     .Select(id =>
+                     {
+                         if (!TryGetMealFacility(id, out CharacterConsumablesFacilitySnapshot facility)
+                             || world.GetMealRouteStatus(
+                                 actor.Id,
+                                 actor.Position,
+                                 facility.Position,
+                                 out float travelSeconds) != CharacterMealRouteStatus.Reachable)
+                         {
+                             return (id, float.PositiveInfinity);
+                         }
+                         return (id, travelSeconds);
+                     })
+                     .Where(candidate => !float.IsPositiveInfinity(candidate.Item2))
+                     .OrderBy(candidate => candidate.Item2)
+                     .ThenBy(candidate => candidate.id.Value, StringComparer.Ordinal))
+        {
+            reachableMealFacilityCount++;
+            deliveryCandidateCount += GetMealCandidates(
+                actor,
+                facilityId,
+                false,
+                emergency,
+                out _,
+                requireExactRoute: false).Count;
+            if (TryRequestMealDelivery(
+                    actor,
+                    facilityId,
+                    emergency,
+                    out _))
+            {
+                LastMealDeliveryProbeDetail =
+                    $"requested actor={actor.Id.Value};facility={facilityId.Value};"
+                    + $"hunger={actor.Hunger:0.###};emergency={emergency}";
+                return;
+            }
+        }
+
+        LastMealDeliveryProbeDetail =
+            $"no-delivery-candidate actor={actor.Id.Value};"
+            + $"hunger={actor.Hunger:0.###};emergency={emergency};"
+            + $"facilities={world.FacilityIds.Count};"
+            + $"reachableMealFacilities={reachableMealFacilityCount};"
+            + $"eligibleSources={deliveryCandidateCount};"
+            + $"lastRequestFailure={LastMealDeliveryRequestFailure}";
+    }
+
     public DungeonCharacterConsumablesSaveData Capture() =>
         CharacterConsumablesStateRules.Capture(ReadState);
 
-    public CharacterConsumablesRestoreCandidate BuildRestoreCandidate(
-        DungeonCharacterConsumablesSaveData saveData)
+    public void ValidateRestorePayload(
+        DungeonCharacterConsumablesSaveData saveData,
+        bool requireWorldReferences)
     {
         DungeonGameRestoreReport report = new();
         CharacterConsumablesStateRules.Validate(
             saveData,
             report,
             world,
-            inventory);
+            inventory,
+            requireWorldReferences);
         if (!report.Success)
         {
             throw new InvalidOperationException(
-                "Character consumables restore candidate rejected: "
+                "Character consumables restore payload rejected: "
                 + string.Join(" | ", report.Errors));
         }
+    }
+
+    public CharacterConsumablesRestoreCandidate BuildRestoreCandidate(
+        DungeonCharacterConsumablesSaveData saveData)
+    {
+        ValidateRestorePayload(saveData, requireWorldReferences: true);
         return new CharacterConsumablesRestoreCandidate(
             CharacterConsumablesStateRules.Build(saveData));
     }
@@ -1542,16 +1648,24 @@ public sealed class CharacterConsumablesRuntime :
         out bool routePending)
     {
         routePending = false;
+        LastMealDeliveryRequestFailure = "not-attempted";
         if (!TryGetMealFacility(facilityId, out CharacterConsumablesFacilitySnapshot facility))
         {
+            LastMealDeliveryRequestFailure = "meal-facility-missing";
             return false;
         }
+        // Delivery authoring only needs a valid source item and destination.
+        // A stored stack's cell can be occupied by its warehouse building, so
+        // testing that cell with the consumer actor's route authority rejects
+        // deliveries that the haul planner can lawfully service from an access
+        // stand. The warehouse request and haul planner own that route check.
         foreach (MealCandidate candidate in GetMealCandidates(
                      actor,
                      facilityId,
                      false,
                      emergency,
-                     out routePending))
+                     out routePending,
+                     requireExactRoute: false))
         {
             MealDeliveryRoute route = new(actor.Id, facilityId, candidate.Definition.Id);
             if (ReadState.DeliveryByRoute.TryGetValue(route, out ConsumableDeliveryId existingId)
@@ -1570,11 +1684,16 @@ public sealed class CharacterConsumablesRuntime :
                     1,
                     facility.Position,
                     destinationId,
-                    out int requested)
+                    out int requested,
+                    out string failureReason)
                 || requested <= 0)
             {
+                LastMealDeliveryRequestFailure = string.IsNullOrWhiteSpace(failureReason)
+                    ? "delivery-request-returned-zero"
+                    : failureReason;
                 continue;
             }
+            LastMealDeliveryRequestFailure = "none";
             CharacterMealDeliveryState delivery = new()
             {
                 deliveryId = NewDeliveryId().Value,
@@ -1586,6 +1705,7 @@ public sealed class CharacterConsumablesRuntime :
             };
             WriteState.PendingDeliveries.Add(delivery.DeliveryId, delivery);
             WriteState.DeliveryByRoute[route] = delivery.DeliveryId;
+            workforce?.RequestOneHaulerToReplan(actor.Id);
             return true;
         }
         return false;

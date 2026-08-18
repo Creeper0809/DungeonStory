@@ -43,7 +43,7 @@ MonoBehaviour:
     recommendedRank: 3
     minimumRiskRank: 0
   requiredResearchId: research:industry:powered-tools
-  requiredWork: 212
+  requiredWork: 94
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

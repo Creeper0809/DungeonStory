@@ -75,7 +75,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 2160
+        constructionWorkRequired: 3714
         repairWorkRequired: 180
         cleanWorkRequired: 24
         researchWorkRequired: 1
@@ -95,7 +95,7 @@ MonoBehaviour:
         - itemId: material:stone-block
           amount: 36
         - itemId: material:steel-ingot
-          amount: 18
+          amount: 27
         - itemId: component:rune-conductor
           amount: 12
         - itemId: resource:mana-crystal

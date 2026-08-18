@@ -630,7 +630,8 @@ public interface ICharacterConsumablesInventoryPort
         int quantity,
         Vector2Int position,
         string destinationId,
-        out int requested);
+        out int requested,
+        out string failureReason);
 
 }
 
@@ -665,6 +666,11 @@ public sealed class CharacterMealPlan
 public interface ICharacterConsumablesEventPort
 {
     void Publish(CharacterConsumablesMealConsumedEvent consumedEvent);
+}
+
+public interface ICharacterConsumablesWorkforcePort
+{
+    void RequestOneHaulerToReplan(CharacterId requestingCharacterId);
 }
 
 public interface ICharacterConsumablesApplication

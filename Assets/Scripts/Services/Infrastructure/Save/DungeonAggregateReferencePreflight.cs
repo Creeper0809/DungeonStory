@@ -917,6 +917,8 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
         DungeonOffenseAggregateSaveData offense,
         DungeonGameRestoreReport report)
     {
+        ValidateDungeonExpansionResearch(source, buildings, report);
+
         HashSet<string> regionIds = (offense?.regions?.regions
                 ?? new List<OffenseRegionState>())
             .Where(region => region != null)
@@ -946,6 +948,31 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
                 report.AddError(
                     $"Knowledge task '{task.taskId}' references missing offense region '{task.regionId}'.");
             }
+        }
+    }
+
+    private static void ValidateDungeonExpansionResearch(
+        DungeonResearchSaveData research,
+        ModularFacilityWorldSaveData facilities,
+        DungeonGameRestoreReport report)
+    {
+        if (!DungeonSpaceGridLayout.TryCapture(
+                facilities,
+                out DungeonInteriorLayoutSnapshot layout,
+                out string failureReason))
+        {
+            report.AddError(
+                $"Dungeon expansion save layout is invalid: {failureReason}");
+            return;
+        }
+
+        int expectedColumns =
+            DungeonSpaceExpansionCatalog.ResolveExpectedInteriorColumns(
+                research?.completedProjectIds);
+        if (layout.ColumnCount != expectedColumns)
+        {
+            report.AddError(
+                $"Dungeon expansion research/layout mismatch: completed tier expects {expectedColumns} interior columns, save contains {layout.ColumnCount}.");
         }
     }
 

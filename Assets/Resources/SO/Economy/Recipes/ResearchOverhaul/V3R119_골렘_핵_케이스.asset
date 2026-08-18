@@ -43,7 +43,7 @@ MonoBehaviour:
     recommendedRank: 2
     minimumRiskRank: 2
   requiredResearchId: research:medical:construct-core-engineering
-  requiredWork: 77
+  requiredWork: 34
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

@@ -92,7 +92,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 1
-        constructionWorkRequired: 360
+        constructionWorkRequired: 353
         repairWorkRequired: 40
         cleanWorkRequired: 10
         researchWorkRequired: 6
@@ -114,7 +114,7 @@ MonoBehaviour:
         - itemId: material:iron-ingot
           amount: 3
         - itemId: component:machine-parts
-          amount: 2
+          amount: 3
     - rid: 7737211921440179012
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:

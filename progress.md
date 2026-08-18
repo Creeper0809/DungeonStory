@@ -1,5 +1,18 @@
 # DungeonStory Progress
 
+## 2026-08-18 six-adult recovery priority dispatch
+
+- [x] Re-ran the six-adult outage verifier with a two-game-day physical meal-buffer bound; the exact meal remained in transit and the test stayed red, proving this was not only a one-day fixture deadline.
+- [x] Traced the mismatch to the generic workforce wake choosing an actor without consulting the prioritized production haul plan.
+- [x] Added read-only priority-plan selection to `DungeonWorkforceReplanService` and propagated `WorldItemHaulPlan.IsPriority`; direct Editor constructors explicitly pass no planner.
+- [x] The first compile exposed one short-circuit definite-assignment error for `previewPlan`; hoisted the local before the planner call instead of weakening the null planner path.
+- [x] Fresh rerun narrowed the remaining boundary to all priority previews being path-budget deferred at the wake frame (`priorityPlan=False`). Added a priority-only bounded wake fan-out so the first completed path snapshot reserves the exact routed stack.
+- [x] Unity compile passed with zero warnings/errors and the next focused run reached the exact meal buffer, but selected the hungry actor because it was the sole published priority preview; primitive fallback began before the deposit.
+- [x] Extended the bounded priority fan-out to the urgent-selected-owner boundary so non-urgent haulers are awakened instead of assigning the endangered consumer.
+- [x] Actor-level rerun proved the fan-out (`priorityPathFanout=2`) and isolated all primitive starts to Roma; the fixture's `need=40` was classified `emergency=True` by the 90-second forecast.
+- [x] Replaced the mislabeled recovery demand with the authored `routineStart` and added an explicit non-emergency/imminent-harm precondition marker.
+- [ ] Compile in Unity and rerun the focused six-adult outage verifier after the routine-demand fixture correction.
+
 ## 2026-08-16 post-AI-stabilization WU remeasurement started
 
 - Reopened the five-day labor baseline because the provisional `19.882 WU/actor-day` was captured before the AI ownership/lifecycle closure.
@@ -5048,3 +5061,39 @@
 - Completed official FinalAcceptance at 33/33 PASS, the full-loop vertical slice at 11/11 PASS, DSB001-DSB008 analyzer tests, architecture baseline verification, YAML atomic rollback/no-op, deterministic two-run artifact hash verification, and final Unity Console Warning/Error 0/0.
 - Captured the latest AI coverage manifest separately. It reports 71 stale/ContractOnly scopes due to the newer global CharacterAI behavior source; this is an explicit follow-up evidence gap and is not being relabeled as a V27 balance failure or a fresh runtime regression.
 - Published branch `codex/v27-balance-ledger` and opened ready-for-review PR #2. Added a portable GitHub-hosted V27 integrity workflow because the repository previously had no CI configuration; external review approval is still structurally unavailable with only the author as collaborator.
+# 2026-08-18 V27 통합 완료 감사 재개
+
+- `AGENT.md`, planning-with-files, Unity C# skill, 사용자 첨부 최종 계획을 다시 읽었다.
+- 현재 진행 계획을 6단계로 갱신했다: 구현 감사 → 6인 N+1 → 확장 연구 정합화 → paired clutter → 전수 증거 재생성 → 완료 감사.
+- Unity MCP 연결을 `GetActive`/`GetState`로 재확인했다. GameplayScene은 clean, EditMode, 컴파일/업데이트 없음이다.
+- 이전 fresh 증거를 복구했다: audit 84,287행/critical 0, static+asset layout 1,536/1,536, population-stage PlayMode PASS, expansion PlayMode PASS, RNG named tests 11 PASS.
+- 첫 미해결 실행 증거는 six-adult outage의 `V27_SIX_ADULT_OUTAGE_PRIMARY_AUTHORITY_PRESENT` FAIL이다. 다음 작업은 이 검증 경계를 실제 단일 주 시설 장애 계약으로 교정한 뒤 MCP로 focused rerun하는 것이다.
+- `HasUsablePrimaryAuthority`를 기존 typed `IsPrimaryAuthorityReadyForDemand` 경계로 교정했다. 이 변경은 빈 식사 버퍼의 합법적인 `DeliveryPending`만 baseline authority로 인정하며, downstream recovery의 실제 물리 배송·시설 식사·primitive 0회 조건은 완화하지 않는다.
+- 첫 재실행은 baseline false-negative를 닫았고 outage fallback 5/5, ration 24→22(physical field meal 2), water 30→28(bucket wash 1 + drink 1), no death/breakdown, exact facility restore를 PASS했다. Recovery에서는 meal delivery staging과 fallback dominance가 동시에 진행되어 primitive 8회가 stock/hauler를 오염시켰다. staging demand를 routine 값으로 안정화하고 hauler의 unrelated needs를 reset하는 fixture isolation을 추가했으며, production physical delivery 경로는 우회하지 않았다.
+- Unity MCP만으로 여러 차례 clean PlayMode focused run을 수행했다. 요청자 보호 후 fresh run에서 다른 hauler 2명의 fanout, exact FacilityBuffer 입고, physical primary meal nutrition 36, primitive start 0이 한 차례 실증됐다.
+- `WorkforceReplanService`, consumables workforce port/runtime/adapter 및 모든 editor fake를 요청자 보호 계약으로 갱신했고 Unity compilation/Console 0/0을 통과했다.
+- `CharacterDeprivationRuntime`에 동일 욕구 authored self-care ownership fence를 추가했다. verifier는 actor별 physical meal nutrition을 기록하고 recovery loop를 성공 이벤트에 맞춰 종료한다.
+- 최신 09:26 focused artifact는 meal delivery candidate가 간헐적으로 끝까지 생성되지 않아 `V27_SIX_ADULT_OUTAGE_RESULT`가 여전히 FAIL이다. 단계 2는 진행 중이며 확장/paired clutter/256-seed/최종 전수 재생성으로 넘어가지 않았다.
+- 2026-08-18 MCP 재감사에서 meal delivery liveness root를 특정하고 최소 production patch를 적용했다: consumables actor snapshot의 Active 판정을 lifecycle-only에서 `CharacterActor.CanRunAi`로 교체해 paused/inactive/detached/unpublished actor가 전역 proactive delivery 후보를 가로막지 못하게 했다. Unity compile과 fresh six-adult outage rerun은 아직 필요하다.
+- 2026-08-18 최종 focused rerun은 `Artifacts/QA/v27-six-adult-service-outage-playmode.txt`를 `13:17:45Z`에 fresh 갱신했다. 결과는 outage fallback 5/5, primary recovery 5/5, primitive recovery starts 0, exact restore, `V27_SIX_ADULT_OUTAGE_RESULT PASS`, Unity Console Warning/Error 0/0이다. 마지막 위생 liveness 결함은 exact manual-water fixture authority와 소비자/운반자 역할 격리로 닫혔다.
+# 2026-08-18 existing mining research expansion authority closed
+
+- Removed the three duplicate `research:dungeon-expansion:*` projects and restored the authored catalog to 180 projects / 63173 post-band WU.
+- Bound dungeon width to the existing `research:mining:quarry`, `research:mining:stonecutting`, and `research:mining:deep` projects at 49/65/81 columns.
+- Added direct/out-of-order completion and save research/layout authority coverage; a deep-only completed save now resolves 81 columns without requiring synthetic predecessor projects.
+- Fresh EditMode and PlayMode evidence PASS. The live run preserves entrance coordinates and all required facilities without demolition, and the E-key remains developer-only. Final Unity Console Warning/Error: 0/0.
+
+# 2026-08-18 paired clutter current-source execution and freshness correction
+
+- Completed a new 32-seed / 4-arm run: 512 windows, 640 floor rows, failures=0, consoleIssues=0.
+- Clean repeatability, key-addressed exogenous events, production burst conservation, post-pickup hauler fault, access/egress clutter zero, recovery clutter zero, runtime headroom 30.6%, and RNG causal-cone isolation all PASS.
+- The output bytes matched the prior report, so `WriteIfDifferent` correctly left the artifact mtime unchanged. The coverage gate incorrectly treated this deterministic no-op as stale because it used mtime alone.
+- Added deterministic evidence source digest plus paired/floor CSV SHA-256 values to the report and changed coverage freshness to validate those hashes. This source change requires one final rerun after Unity MCP approval is restored.
+
+# 2026-08-19 V27 integrated runtime completion
+
+- Completed the 32-seed four-arm paired clutter run with 512 windows and 640 floor rows; median/p95/max wait delta, persistent/access/egress clutter, and RNG cross-talk are all zero.
+- Completed 1,536/1,536 asset-backed layouts across populations 1/3/6/12/18/24, including unique-access rejection, fixed egress/landing protection, shared-corridor acceptance, storage/overflow and runtime headroom.
+- Completed the six-adult simultaneous one-day service outage and recovery with all five production primitive fallbacks, exact physical conservation, no death/down/breakdown, exact restore, and zero primitive starts after recovery.
+- Final audit and whole-game coverage pass at 84,240 rows with 0 unresolved Critical, 0 integrity failures, 0 producer/consumer orphans and 0 unapplied approvals.
+- Repeated final-source generation is byte-identical (`ULTIMATE_NOOP_EXACT=true`); Unity is idle and Console Warning/Error is 0/0.

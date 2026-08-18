@@ -1,0 +1,14 @@
+RESULT=PASS; authority=shared-access-union; normalLimitPermille=700; faultLimitPermille=900
+sourceDigest=566b78dcefb2c15f2a927d39d791ab4b6b5493f737ab88e026dd96f6042ef437
+spatialCsvSha256=57353cc22d5c0a8347aa3f072c66566fc784347c3af88c3201412d1738cb5ab4
+PASS ACTUAL_ASSET_EXACT_BACKTRACKING_ORACLE asset=9601;requirements=2;solution=9601@24:1|9601@24:0
+PASS ACTUAL_ASSET_DETERMINISTIC_BEAM_FALLBACK asset=9601;requirements=9;beamWidth=64;solution=9601@24:1|9601@24:0|9601@2:0|9601@4:0|9601@6:0|9601@8:0|9601@10:0|9601@12:0|9601@14:0
+PASS ACTUAL_ASSET_UNIQUE_ACCESS_ADVERSARIAL_REJECTED sameSoleStand=false;multiStandSharedCorridor=true
+PASS ACTUAL_ASSET_FIXED_EGRESS_LANDING_PROTECTED footprintOverlap=0;accessOverlap=0
+PASS ACTUAL_ASSET_HEURISTIC_FALSE_NEGATIVE_GATE value=0
+PASS population=1;width=27;normalPeak=26;faultPeak=35;normalStoragePeak=467;faultStoragePeak=763;minimumHeadroom=740
+PASS population=3;width=27;normalPeak=75;faultPeak=105;normalStoragePeak=559;faultStoragePeak=729;minimumHeadroom=543
+PASS population=6;width=27;normalPeak=150;faultPeak=210;normalStoragePeak=546;faultStoragePeak=529;minimumHeadroom=308
+PASS population=12;width=49;normalPeak=300;faultPeak=420;normalStoragePeak=610;faultStoragePeak=460;minimumHeadroom=312
+PASS population=18;width=65;normalPeak=450;faultPeak=630;normalStoragePeak=645;faultStoragePeak=474;minimumHeadroom=307
+PASS population=24;width=81;normalPeak=600;faultPeak=840;normalStoragePeak=654;faultStoragePeak=476;minimumHeadroom=316

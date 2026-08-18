@@ -722,7 +722,9 @@ public static class FacilityDebugScenarios
 
         public void RequestOneHaulerToReplan(
             bool clearFailures = true,
-            bool forceInterrupt = false)
+            bool forceInterrupt = false,
+            CharacterId protectedCharacterId = default,
+            bool forcePriorityWakeFanout = false)
         {
         }
 

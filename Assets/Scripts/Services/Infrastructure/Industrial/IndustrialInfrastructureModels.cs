@@ -434,6 +434,7 @@ public interface IWaterFixtureUseRuntime
 {
     bool TryBeginUse(
         BuildableObject fixture,
+        CharacterId protectedCharacterId,
         out WaterFixtureUseTicket ticket,
         out DomainFailure failure);
     void CompleteUse(

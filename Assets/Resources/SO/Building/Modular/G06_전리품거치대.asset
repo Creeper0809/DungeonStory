@@ -60,10 +60,10 @@ MonoBehaviour:
     - rid: 7737211921440178926
     - rid: 7737211921440178927
     - rid: 7737211921440178928
-    - rid: 7737211981818757215
-    - rid: 7737211981818757216
-    - rid: 7737211981818757217
-    - rid: 7737211981818757218
+    - rid: 7737212042831200260
+    - rid: 7737212042831200261
+    - rid: 7737212042831200262
+    - rid: 7737212042831200263
   width: 1
   height: 1
   layer: 3
@@ -104,7 +104,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 2
-        constructionWorkRequired: 72
+        constructionWorkRequired: 501
         repairWorkRequired: 8
         cleanWorkRequired: 4
         researchWorkRequired: 6
@@ -122,9 +122,9 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:lumber
-          amount: 3
+          amount: 5
         - itemId: material:iron-ingot
-          amount: 2
+          amount: 3
     - rid: 7737211921440178926
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -160,21 +160,21 @@ MonoBehaviour:
         abilityId: BuildingSecurityAbility
         maxAlarmCharges: 3
         chargesPerGuardWork: 1
-    - rid: 7737211981818757215
+    - rid: 7737212042831200260
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7737211981818757216
+    - rid: 7737212042831200261
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7737211981818757217
+    - rid: 7737212042831200262
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -185,7 +185,7 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7737211981818757218
+    - rid: 7737212042831200263
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility

@@ -13,6 +13,24 @@ internal enum CharacterPrimitiveSurvivalActionKind
     BucketWash
 }
 
+public static class PrimitiveSurvivalBalanceAuthority
+{
+    public const float FieldMealSeconds = 4f;
+    public const float FloorRestSeconds = 60f;
+    public const float LatrineSeconds = 6f;
+    public const float BucketWashSeconds = 6f;
+    public const float FloorRestRecovery = 55f;
+    public const float FloorRestHygieneDelta = -4f;
+    public const float FloorRestMoodDelta = -3f;
+    public const float LatrineRecovery = 85f;
+    public const float LatrineHygieneDelta = -8f;
+    public const float LatrineMoodDelta = -2f;
+    public const float LatrineWaste = 8f;
+    public const float LatrineStain = 2f;
+    public const float BucketWashRecovery = 50f;
+    public const string CleanWaterItemId = "resource:clean-water";
+}
+
 /// <summary>
 /// Explicit, inferior survival bridge used before proper service facilities exist.
 /// It owns transient movement/action state only; needs and physical items remain in
@@ -22,13 +40,8 @@ internal sealed class CharacterPrimitiveSurvivalRunner
 {
     private const string IntentOwnerPrefix = "survival:primitive:";
     private const int PrimitiveLatrineSearchRadius = 8;
-    private const float FieldMealSeconds = 4f;
-    private const float FloorRestSeconds = 60f;
-    private const float LatrineSeconds = 6f;
-    private const float BucketWashSeconds = 6f;
     private const float AuthoredFacilityRecheckSeconds = 1f;
     private const int MaximumFieldMealSourceChanges = 4;
-    private const string CleanWaterItemId = "resource:clean-water";
 
     private readonly CharacterBreakdownWorld world;
     private readonly CharacterEmergencyMovement movement;
@@ -95,7 +108,10 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         bool found = actor != null
             && world.TryFindBestAvailableStack(
                 actor.GetNowXY(),
-                itemId => string.Equals(itemId, CleanWaterItemId, StringComparison.Ordinal)
+                itemId => string.Equals(
+                    itemId,
+                    PrimitiveSurvivalBalanceAuthority.CleanWaterItemId,
+                    StringComparison.Ordinal)
                     ? 0
                     : int.MaxValue,
                 out WorldItemStackSnapshot stack)
@@ -328,7 +344,7 @@ internal sealed class CharacterPrimitiveSurvivalRunner
             actor,
             CharacterPrimitiveSurvivalActionKind.FieldMeal,
             intentLease,
-            FieldMealSeconds);
+            PrimitiveSurvivalBalanceAuthority.FieldMealSeconds);
         if (CanCommit(actor, intentLease)
             && !IsCurrentFieldMealSource(
                 actor,
@@ -410,7 +426,7 @@ internal sealed class CharacterPrimitiveSurvivalRunner
             actor,
             CharacterPrimitiveSurvivalActionKind.FloorRest,
             intentLease,
-            FloorRestSeconds);
+            PrimitiveSurvivalBalanceAuthority.FloorRestSeconds);
         if (!CanCommit(actor, intentLease) || !IsAliveAndNear(actor, position, 0))
         {
             yield break;
@@ -418,13 +434,15 @@ internal sealed class CharacterPrimitiveSurvivalRunner
 
         actor.Stats?.RecoverNeed(
             CharacterCondition.SLEEP,
-            55f,
+            PrimitiveSurvivalBalanceAuthority.FloorRestRecovery,
             CharacterNeedRecoverySource.Rest);
-        actor.ChangesStat(CharacterCondition.HYGIENE, -4f);
+        actor.ChangesStat(
+            CharacterCondition.HYGIENE,
+            PrimitiveSurvivalBalanceAuthority.FloorRestHygieneDelta);
         actor.ApplyMoodFactor(
             "survival:floor-rest",
             "맨바닥에서 잠",
-            -3f,
+            PrimitiveSurvivalBalanceAuthority.FloorRestMoodDelta,
             180f,
             1);
         actor.AddActivity(CharacterActivityEvent.Create(
@@ -433,9 +451,13 @@ internal sealed class CharacterPrimitiveSurvivalRunner
             "맨바닥에서 잠을 청함",
             actionId: "survival:floor-rest",
             reasonCode: "no-rest-facility",
-            value: 55f,
+            value: PrimitiveSurvivalBalanceAuthority.FloorRestRecovery,
             bubbleEligible: true));
-        PublishCompleted(actor, "survival:floor-rest", 55f, 0);
+        PublishCompleted(
+            actor,
+            "survival:floor-rest",
+            PrimitiveSurvivalBalanceAuthority.FloorRestRecovery,
+            0);
     }
 
     private IEnumerator RunLatrine(
@@ -479,7 +501,7 @@ internal sealed class CharacterPrimitiveSurvivalRunner
             actor,
             CharacterPrimitiveSurvivalActionKind.Latrine,
             intentLease,
-            LatrineSeconds);
+            PrimitiveSurvivalBalanceAuthority.LatrineSeconds);
         if (!CanCommit(actor, intentLease))
         {
             yield break;
@@ -496,24 +518,26 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         world.AddFilth(
             WorldFilthType.Waste,
             target,
-            8f,
+            PrimitiveSurvivalBalanceAuthority.LatrineWaste,
             CharacterPersistentIdentity.Require(actor).Value,
             0.35f);
         world.AddFilth(
             WorldFilthType.Stain,
             target,
-            2f,
+            PrimitiveSurvivalBalanceAuthority.LatrineStain,
             CharacterPersistentIdentity.Require(actor).Value,
             0.2f);
         actor.Stats?.RecoverNeed(
             CharacterCondition.EXCRETION,
-            85f,
+            PrimitiveSurvivalBalanceAuthority.LatrineRecovery,
             CharacterNeedRecoverySource.Toilet);
-        actor.ChangesStat(CharacterCondition.HYGIENE, -8f);
+        actor.ChangesStat(
+            CharacterCondition.HYGIENE,
+            PrimitiveSurvivalBalanceAuthority.LatrineHygieneDelta);
         actor.ApplyMoodFactor(
             "survival:primitive-latrine",
             "임시 변소를 사용함",
-            -2f,
+            PrimitiveSurvivalBalanceAuthority.LatrineMoodDelta,
             180f,
             1);
         actor.AddActivity(CharacterActivityEvent.Create(
@@ -522,9 +546,13 @@ internal sealed class CharacterPrimitiveSurvivalRunner
             "지정된 임시 변소를 사용함",
             actionId: "survival:primitive-latrine",
             reasonCode: "no-toilet-facility",
-            value: 85f,
+            value: PrimitiveSurvivalBalanceAuthority.LatrineRecovery,
             bubbleEligible: true));
-        PublishCompleted(actor, "survival:primitive-latrine", 85f, 0);
+        PublishCompleted(
+            actor,
+            "survival:primitive-latrine",
+            PrimitiveSurvivalBalanceAuthority.LatrineRecovery,
+            0);
     }
 
     private IEnumerator RunBucketWash(
@@ -543,7 +571,10 @@ internal sealed class CharacterPrimitiveSurvivalRunner
 
         if (!world.TryFindBestAvailableStack(
                 actor.GetNowXY(),
-                itemId => string.Equals(itemId, CleanWaterItemId, StringComparison.Ordinal)
+                itemId => string.Equals(
+                    itemId,
+                    PrimitiveSurvivalBalanceAuthority.CleanWaterItemId,
+                    StringComparison.Ordinal)
                     ? 0
                     : int.MaxValue,
                 out WorldItemStackSnapshot water)
@@ -569,7 +600,7 @@ internal sealed class CharacterPrimitiveSurvivalRunner
             actor,
             CharacterPrimitiveSurvivalActionKind.BucketWash,
             intentLease,
-            BucketWashSeconds);
+            PrimitiveSurvivalBalanceAuthority.BucketWashSeconds);
         if (!CanCommit(actor, intentLease)
             || !IsAliveAndNear(actor, water.Position, 1))
         {
@@ -606,7 +637,7 @@ internal sealed class CharacterPrimitiveSurvivalRunner
 
         actor.Stats?.RecoverNeed(
             CharacterCondition.HYGIENE,
-            50f,
+            PrimitiveSurvivalBalanceAuthority.BucketWashRecovery,
             CharacterNeedRecoverySource.Hygiene);
         actor.AddActivity(CharacterActivityEvent.Create(
             CharacterActivityKinds.Health,
@@ -615,9 +646,13 @@ internal sealed class CharacterPrimitiveSurvivalRunner
             actionId: "survival:bucket-wash",
             targetId: water.StackId,
             reasonCode: "no-hygiene-facility",
-            value: 50f,
+            value: PrimitiveSurvivalBalanceAuthority.BucketWashRecovery,
             bubbleEligible: true));
-        PublishCompleted(actor, "survival:bucket-wash", 50f, 1);
+        PublishCompleted(
+            actor,
+            "survival:bucket-wash",
+            PrimitiveSurvivalBalanceAuthority.BucketWashRecovery,
+            1);
     }
 
     private IEnumerator WaitGameSeconds(

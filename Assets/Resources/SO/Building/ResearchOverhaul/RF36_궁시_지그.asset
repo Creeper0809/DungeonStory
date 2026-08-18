@@ -53,18 +53,14 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211981816660671
-    - rid: 7737211981816660672
-    - rid: 7737211981816660673
-    - rid: 7737211981816660674
-    - rid: 7737211981816660675
-    - rid: 7737211981816660676
-    - rid: 7737211981816660677
-    - rid: 7737211981816660678
-    - rid: 7737211981816660679
-    - rid: 7737211981816660680
-    - rid: 7737211981816660681
-    - rid: 7737211981816660682
+    - rid: 7737212042857939238
+    - rid: 7737212042857939239
+    - rid: 7737212042857939240
+    - rid: 7737212042857939241
+    - rid: 7737212042857939242
+    - rid: 7737212042857939243
+    - rid: 7737212042857939244
+    - rid: 7737212042857939245
   width: 1
   height: 1
   layer: 1
@@ -80,12 +76,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660671
+    - rid: 7737212042857939238
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: RF36
-    - rid: 7737211981816660672
+    - rid: 7737212042857939239
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -93,13 +89,13 @@ MonoBehaviour:
         - research-overhaul
         - research:equipment:bowyery
         - workstation:v3:bow-jig
-    - rid: 7737211981816660673
+    - rid: 7737212042857939240
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v3:bow-jig
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211981816660674
+    - rid: 7737212042857939241
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -107,7 +103,7 @@ MonoBehaviour:
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211981816660675
+    - rid: 7737212042857939242
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -116,7 +112,7 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211981816660676
+    - rid: 7737212042857939243
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -127,16 +123,16 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 257
           disabledWhenDamaged: 1
-    - rid: 7737211981816660677
+    - rid: 7737212042857939244
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211981816660678
+    - rid: 7737212042857939245
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 297
+        constructionWorkRequired: 360
         repairWorkRequired: 18
         cleanWorkRequired: 8
         researchWorkRequired: 6
@@ -163,35 +159,3 @@ MonoBehaviour:
           amount: 2
         - itemId: component:engineering-drawing
           amount: 1
-    - rid: 7737211981816660679
-      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingUtilityConnectionAbility
-        channels: 1
-        maxThroughput: 25
-        normallyOpen: 1
-    - rid: 7737211981816660680
-      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingPowerConsumerAbility
-        demandPerSecond: 5
-        priority: 4
-        minimumSupplyFraction: 0.75
-    - rid: 7737211981816660681
-      type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingAutomationAbility
-        maximumMode: 2
-        assistedPowerDemand: 2
-        automaticPowerDemand: 5
-        assistedWorkMultiplier: 1.35
-        automaticWorkPerSecond: 1
-        automaticQualityCap: 0.75
-        maintenancePerGameHour: 1
-    - rid: 7737211981816660682
-      type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingConveyorPortAbility
-        mode: 2
-        destinationId: 
-        capacity: 4

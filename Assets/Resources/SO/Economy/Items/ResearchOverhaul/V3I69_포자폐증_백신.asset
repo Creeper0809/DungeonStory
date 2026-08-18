@@ -30,27 +30,27 @@ MonoBehaviour:
   unitWeight: 0.4
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 59
+  unitPrice: 29
   features:
-  - rid: 7737211981818757509
-  - rid: 7737211981818757510
-  - rid: 7737211981818757511
-  - rid: 7737211981818757512
-  - rid: 7737211981818757513
+  - rid: 7737212042857939555
+  - rid: 7737212042857939556
+  - rid: 7737212042857939557
+  - rid: 7737212042857939558
+  - rid: 7737212042857939559
   references:
     version: 2
     RefIds:
-    - rid: 7737211981818757509
+    - rid: 7737212042857939555
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:vaccination
-    - rid: 7737211981818757510
+    - rid: 7737212042857939556
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 2
         sharedIntermediate: 0
-    - rid: 7737211981818757511
+    - rid: 7737212042857939557
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 0
@@ -58,12 +58,12 @@ MonoBehaviour:
         infectionReduction: 0
         detoxReduction: 0
         painReduction: 0
-    - rid: 7737211981818757512
+    - rid: 7737212042857939558
       type: {class: VaccineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         diseaseId: disease:spore-lung
         doses: 1
-    - rid: 7737211981818757513
+    - rid: 7737212042857939559
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59424293
+        saleRate: 0.58744824

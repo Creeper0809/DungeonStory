@@ -30,25 +30,25 @@ MonoBehaviour:
   unitWeight: 2.35
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 192
+  unitPrice: 85
   features:
-  - rid: 7737211981816660711
-  - rid: 7737211981816660712
-  - rid: 7737211981816660713
+  - rid: 7737212042857939001
+  - rid: 7737212042857939002
+  - rid: 7737212042857939003
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660711
+    - rid: 7737212042857939001
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:climate:environment-control
-    - rid: 7737211981816660712
+    - rid: 7737212042857939002
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 512
         sharedIntermediate: 0
-    - rid: 7737211981816660713
+    - rid: 7737212042857939003
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59726214
+        saleRate: 0.5996117

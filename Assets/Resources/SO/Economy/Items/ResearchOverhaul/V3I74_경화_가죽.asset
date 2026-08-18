@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 0.95
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 32
+  unitPrice: 15
   features:
-  - rid: 7737211981816660622
-  - rid: 7737211981816660623
-  - rid: 7737211981816660624
+  - rid: 7737212042857938992
+  - rid: 7737212042857938993
+  - rid: 7737212042857938994
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660622
+    - rid: 7737212042857938992
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:armor-tailoring
-    - rid: 7737211981816660623
+    - rid: 7737212042857938993
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 128
         sharedIntermediate: 1
-    - rid: 7737211981816660624
+    - rid: 7737212042857938994
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59201044
+        saleRate: 0.5613333

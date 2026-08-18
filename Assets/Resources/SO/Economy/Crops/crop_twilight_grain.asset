@@ -31,8 +31,8 @@ MonoBehaviour:
   endemicDisease: 1
   requiredResearchId: research:agriculture:field
   growthHours: 36
-  sowWork: 7
-  harvestWork: 14
+  sowWork: 3
+  harvestWork: 6
   dailyWater: 0.35
   yield: 6
   indoorAllowed: 1

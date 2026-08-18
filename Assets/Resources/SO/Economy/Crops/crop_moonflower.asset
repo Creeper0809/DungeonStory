@@ -31,8 +31,8 @@ MonoBehaviour:
   endemicDisease: 3
   requiredResearchId: research:pharmacology:herbalism
   growthHours: 60
-  sowWork: 12
-  harvestWork: 21
+  sowWork: 5
+  harvestWork: 9
   dailyWater: 0.4
   yield: 3
   indoorAllowed: 1

@@ -5,6 +5,7 @@ using UnityEngine;
 
 public interface IWorldItemHaulPlanningService
 {
+    bool HasPendingPriorityWork { get; }
     bool HasAvailablePlan(CharacterActor actor);
     bool TryPreviewBestPlan(
         CharacterActor actor,
@@ -34,11 +35,19 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
     private readonly IItemQuantityReservationService reservationService;
     private readonly IFacilityBufferDestinationClaimQuery destinationClaims;
     private CharacterActor cachedAvailabilityActor;
+    private Vector2Int cachedAvailabilityActorPosition;
     private int cachedAvailabilityHaulVersion = -1;
     private int cachedAvailabilityWarehouseVersion = -1;
     private int cachedAvailabilityTraversalVersion = -1;
     private long cachedAvailabilityDestinationClaimRevision = -1;
     private bool cachedAvailability;
+
+    public bool HasPendingPriorityWork => repository.PrioritizedHaulStackIds
+        .Any(stackId => repository.RecordsById.TryGetValue(
+                stackId,
+                out WorldItemStackRecord record)
+            && record != null
+            && record.quantity > 0);
 
     public WorldItemHaulPlanningService(
         IGridSystemProvider gridSystemProvider,
@@ -78,11 +87,20 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             return false;
         }
 
+        if (!TryGetPlanningSearch(actor, grid, out GridPathSearchResult reachable))
+        {
+            // A broker deferral is not authoritative NoWork.  Do not cache it;
+            // the Brain will ask again after the shared path budget advances.
+            return false;
+        }
+
         int haulVersion = repository.HaulJobVersion;
         int warehouseVersion = worldRegistry.WarehouseVersion;
         int traversalVersion = grid.TraversalVersion;
         long destinationClaimRevision = destinationClaims.Revision;
+        Vector2Int actorPosition = actor.GetNowXY();
         if (ReferenceEquals(cachedAvailabilityActor, actor)
+            && cachedAvailabilityActorPosition == actorPosition
             && cachedAvailabilityHaulVersion == haulVersion
             && cachedAvailabilityWarehouseVersion == warehouseVersion
             && cachedAvailabilityTraversalVersion == traversalVersion
@@ -93,11 +111,12 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         }
 
         cachedAvailabilityActor = actor;
+        cachedAvailabilityActorPosition = actorPosition;
         cachedAvailabilityHaulVersion = haulVersion;
         cachedAvailabilityWarehouseVersion = warehouseVersion;
         cachedAvailabilityTraversalVersion = traversalVersion;
         cachedAvailabilityDestinationClaimRevision = destinationClaimRevision;
-        cachedAvailability = HasAvailablePlanCore(actor, grid);
+        cachedAvailability = HasAvailablePlanCore(actor, grid, reachable);
         return cachedAvailability;
     }
 
@@ -171,9 +190,14 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         }
 
         string actorId = characterIdRegistry.GetOrAssignPersistentId(actor);
+        if (!TryGetPlanningSearch(actor, grid, out GridPathSearchResult reachable))
+        {
+            failureReason = "path search deferred";
+            return false;
+        }
         HaulCandidate seed = FindSeedCandidate(
             grid,
-            null,
+            reachable,
             actor,
             inventory,
             actorId,
@@ -188,7 +212,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
 
         List<HaulCandidate> selected = SelectOpportunisticCandidates(
             grid,
-            null,
+            reachable,
             actor,
             inventory,
             actorId,
@@ -289,11 +313,15 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             plannedWeight,
             expectedDetour,
             seed.DestinationKind,
-            seed.DestinationId);
+            seed.DestinationId,
+            isPriority: seed.IsPriority);
         return true;
     }
 
-    private bool HasAvailablePlanCore(CharacterActor actor, Grid grid)
+    private bool HasAvailablePlanCore(
+        CharacterActor actor,
+        Grid grid,
+        GridPathSearchResult reachable)
     {
         CharacterCarryInventory inventory = CharacterCarryInventory.Ensure(actor);
         if (inventory == null)
@@ -316,6 +344,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                 || acceptable <= 0
                 || !TryResolvePickupStandCell(
                     grid,
+                    reachable,
                     stack.position,
                     out _))
             {
@@ -573,6 +602,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
 
         if (!TryResolvePickupStandCell(
                 grid,
+                reachable,
                 stack.position,
                 out Vector2Int pickupStand))
         {
@@ -713,7 +743,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             || stack.state != WorldItemStackState.Loose
             || destinationKind != WorldItemHaulDestinationKind.Warehouse
             || !TryGetWarehouseStockCategory(stack.itemId, out StockCategory category)
-            || category is not StockCategory.Food and not StockCategory.Water)
+            || !RequiresImmediateSurvivalReserve(stack.itemId, category))
         {
             return Mathf.Max(0, proposedQuantity);
         }
@@ -740,6 +770,18 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             new ItemStackId(stack.stackId));
         int movable = Mathf.Max(0, sourceAvailable - sourceReserve);
         return Mathf.Min(proposedQuantity, movable);
+    }
+
+    private bool RequiresImmediateSurvivalReserve(
+        string itemId,
+        StockCategory category)
+    {
+        if (category == StockCategory.Water)
+            return true;
+        return category == StockCategory.Food
+            && catalogProvider.TryGetDefinition(itemId, out DungeonItemDefinition definition)
+            && definition != null
+            && definition.ResourceKind == ResourceItemKind.Food;
     }
 
     private int CountAvailableStoredStock(StockCategory category)
@@ -783,7 +825,10 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             return false;
         }
 
+        int bestFaultSaturation = int.MaxValue;
         int bestDistance = int.MaxValue;
+        int bestUtilization = int.MaxValue;
+        string bestId = string.Empty;
         foreach (IWarehouseFacility candidate in GetWarehouses()
             .Where(candidate =>
                 candidate.HasWarehouseInventory
@@ -802,17 +847,41 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             }
 
             int distance = Manhattan(stack.position, candidateDelivery);
-            if (distance >= bestDistance)
+            int utilization = GetWarehouseUtilizationPermille(candidate.Inventory);
+            int faultSaturation = utilization >= 900 ? 1 : 0;
+            string candidateId = candidate.PersistentInstanceId.Value ?? string.Empty;
+            bool improves = faultSaturation < bestFaultSaturation
+                || faultSaturation == bestFaultSaturation && distance < bestDistance
+                || faultSaturation == bestFaultSaturation && distance == bestDistance
+                    && utilization < bestUtilization
+                || faultSaturation == bestFaultSaturation && distance == bestDistance
+                    && utilization == bestUtilization
+                    && string.CompareOrdinal(candidateId, bestId) < 0;
+            if (!improves)
             {
                 continue;
             }
 
+            bestFaultSaturation = faultSaturation;
             bestDistance = distance;
+            bestUtilization = utilization;
+            bestId = candidateId;
             warehouse = candidate;
             deliveryCell = candidateDelivery;
         }
 
         return warehouse != null;
+    }
+
+    private static int GetWarehouseUtilizationPermille(
+        IWarehouseInventoryPort inventory)
+    {
+        if (inventory == null || !inventory.HasCapacityLimit)
+            return 0;
+        int capacity = Mathf.Max(1, inventory.MaxCapacity);
+        long scaledStock = checked((long)Mathf.Max(0, inventory.TotalStock) * 1000L);
+        long roundedUp = checked((scaledStock + capacity - 1L) / capacity);
+        return checked((int)Math.Min(1000L, roundedUp));
     }
 
     private IEnumerable<IWarehouseFacility> GetWarehouses()
@@ -930,21 +999,65 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
     }
 
+    private bool TryGetPlanningSearch(
+        CharacterActor actor,
+        Grid grid,
+        out GridPathSearchResult reachable)
+    {
+        reachable = null;
+        return actor != null
+            && grid != null
+            && pathSearchBroker.TryGetSearch(
+                grid,
+                actor.GetNowXY(),
+                out reachable,
+                GridPathSearchPriority.Normal,
+                GridTraversalContext.ForCharacter(
+                    CharacterPersistentIdentity.Require(actor)));
+    }
+
     private static bool TryResolvePickupStandCell(
         Grid grid,
+        GridPathSearchResult reachable,
         Vector2Int itemPosition,
         out Vector2Int standCell)
     {
-        if (grid.IsValidGridPos(itemPosition) && grid.IsWalkable(itemPosition))
+        standCell = default;
+        if (grid == null || reachable == null)
         {
-            standCell = itemPosition;
-            return true;
+            return false;
         }
 
-        return grid.TryFindNearbyWalkablePositionOnSameFloor(
+        // Items may occupy a cell that is statically walkable but cannot be
+        // entered under the actor's traversal authority (resource nodes are a
+        // common example).  Planning and execution must agree on the exact
+        // reachable stand instead of retrying an impossible exact-cell plan.
+        Vector2Int[] candidates =
+        {
             itemPosition,
-            out standCell,
-            maxDistance: 1);
+            itemPosition + Vector2Int.left,
+            itemPosition + Vector2Int.right
+        };
+        int bestCost = int.MaxValue;
+        for (int index = 0; index < candidates.Length; index++)
+        {
+            Vector2Int candidate = candidates[index];
+            if (!grid.IsValidGridPos(candidate) || !grid.IsWalkable(candidate))
+            {
+                continue;
+            }
+
+            int moveCost = reachable.GetMoveCostTo(candidate);
+            if (moveCost == int.MaxValue || moveCost >= bestCost)
+            {
+                continue;
+            }
+
+            bestCost = moveCost;
+            standCell = candidate;
+        }
+
+        return bestCost != int.MaxValue;
     }
 
     private static bool TryResolveDeliveryCell(

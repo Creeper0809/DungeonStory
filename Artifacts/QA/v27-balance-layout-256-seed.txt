@@ -1,0 +1,1 @@
+RESULT=PASS; seedsPerStage=256; stages=6; passed=1536; successRatePermille=1000; minimumHeadroomPermille=477; maximumNormalCellUtilizationPermille=440; maximumFaultCellUtilizationPermille=616; minimumAccessOverlapSavings=5; heuristicFalseNegative=0; stageColumnsUsedHeadroom=1:27:25:691,3:27:27:666,6:27:42:481,12:49:69:530,18:65:97:502,24:81:127:477

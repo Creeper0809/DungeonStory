@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 2.1
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 181
+  unitPrice: 81
   features:
-  - rid: 7737211981804077917
-  - rid: 7737211981804077918
-  - rid: 7737211981804077919
+  - rid: 7737212042831201224
+  - rid: 7737212042831201225
+  - rid: 7737212042831201226
   references:
     version: 2
     RefIds:
-    - rid: 7737211981804077917
+    - rid: 7737212042831201224
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:articulated-plate
-    - rid: 7737211981804077918
+    - rid: 7737212042831201225
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 512
         sharedIntermediate: 1
-    - rid: 7737211981804077919
+    - rid: 7737212042831201226
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59993374
+        saleRate: 0.5958271

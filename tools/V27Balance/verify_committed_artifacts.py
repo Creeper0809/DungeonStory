@@ -13,6 +13,7 @@ import csv
 import hashlib
 import json
 from pathlib import Path
+import re
 import sys
 
 
@@ -58,6 +59,62 @@ def require_text(path: Path, markers: tuple[str, ...]) -> None:
     for marker in markers:
         if marker not in text:
             fail(f"missing marker {marker!r} in {path.relative_to(ROOT)}")
+
+
+def require_count_marker(text: str, path: Path, pattern: str) -> int:
+    match = re.search(pattern, text, flags=re.MULTILINE)
+    if match is None:
+        fail(f"missing count marker {pattern!r} in {path.relative_to(ROOT)}")
+    return int(match.group(1))
+
+
+def verify_labor_facility_report() -> None:
+    path = QA / "v27-balance-labor-facility-authority.txt"
+    require_text(path, ("RESULT=PASS; stage=applied; failures=0",))
+    text = path.read_text(encoding="utf-8-sig")
+
+    labor_counts = (
+        require_count_marker(
+            text,
+            path,
+            r"^PASS V27_RECURRING_WU_PROJECT_SCALE_REMOVED rows=(\d+); factor=1$",
+        ),
+        require_count_marker(text, path, r"^PASS V27_LABOR_BOM_UNCHANGED rows=(\d+)$"),
+        require_count_marker(text, path, r"^PASS V27_LABOR_EXACT_APPROVAL_KEYS rows=(\d+)$"),
+        require_count_marker(
+            text,
+            path,
+            r"^PASS V27_LABOR_ASSET_APPLIED_EXACT applied=(\d+); total=\d+$",
+        ),
+    )
+    labor_total = require_count_marker(
+        text,
+        path,
+        r"^PASS V27_LABOR_ASSET_APPLIED_EXACT applied=\d+; total=(\d+)$",
+    )
+    if len(set((*labor_counts, labor_total))) != 1:
+        fail(f"labor authority row counts disagree in {path.relative_to(ROOT)}: {labor_counts}; total={labor_total}")
+
+    research_rows = require_count_marker(
+        text,
+        path,
+        r"^PASS V27_RESEARCH_WU_EFFECTIVE_AUTHORITY_EXACT rows=(\d+); factor=45/99$",
+    )
+    research_applied = require_count_marker(
+        text,
+        path,
+        r"^PASS V27_RESEARCH_WU_ASSET_APPLIED_EXACT applied=(\d+); total=\d+$",
+    )
+    research_total = require_count_marker(
+        text,
+        path,
+        r"^PASS V27_RESEARCH_WU_ASSET_APPLIED_EXACT applied=\d+; total=(\d+)$",
+    )
+    if research_rows != research_applied or research_applied != research_total:
+        fail(
+            f"research authority row counts disagree in {path.relative_to(ROOT)}: "
+            f"rows={research_rows}; applied={research_applied}; total={research_total}"
+        )
 
 
 def verify_source_inventory(manifest: dict[str, object]) -> None:
@@ -308,14 +365,7 @@ def main() -> int:
         QA / "v27-balance-market-authority.txt",
         ("RESULT=PASS; failures=0", "MARKET_SALE_OUTPUT_FLOOR_EXACT"),
     )
-    require_text(
-        QA / "v27-balance-labor-facility-authority.txt",
-        (
-            "RESULT=PASS; stage=applied; failures=0",
-            "V27_LABOR_AUTHORED_WU_SCALE_EXACT rows=730",
-            "V27_RESEARCH_WU_ASSET_APPLIED_EXACT applied=180; total=180",
-        ),
-    )
+    verify_labor_facility_report()
     require_text(
         QA / "v27-labor-authority-matrix.txt",
         ("RESULT=PASS; cells=360", "PASS V27_LABOR_MATRIX_360_CELLS count=360"),

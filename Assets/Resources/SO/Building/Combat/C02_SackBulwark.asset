@@ -106,7 +106,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 77
+        constructionWorkRequired: 458
         repairWorkRequired: 11.9
         cleanWorkRequired: 4
         researchWorkRequired: 6
@@ -124,4 +124,4 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:cloth
-          amount: 4
+          amount: 6

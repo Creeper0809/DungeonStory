@@ -3,9 +3,10 @@ using UnityEngine;
 
 /// <summary>
 /// V27 runtime labor authority. The V23 calculator remains the frozen Before
-/// model; production recipes and construction pay the period-preserving
-/// 45 / 20 scale exactly once. Equipment and apparel remain on their frozen
-/// Before authority until their later vertical slices are approved.
+/// model. Construction uses the approved per-building authored WU selected by
+/// the V27 integer WU/BOM redistribution audit; recurring production uses its
+/// authored batch WU. Re-deriving either value here would create a second
+/// gameplay authority and make the ledger disagree with live work orders.
 /// </summary>
 public sealed class V27BalanceWorkCalculator : IBalanceWorkCalculator
 {
@@ -19,16 +20,30 @@ public sealed class V27BalanceWorkCalculator : IBalanceWorkCalculator
             materials ?? throw new ArgumentNullException(nameof(materials)));
     }
 
-    public float CalculateConstruction(BuildingSO building) =>
-        ScaleRequiredWork(before.CalculateConstruction(building));
+    public float CalculateConstruction(BuildingSO building)
+    {
+        if (building == null)
+            throw new ArgumentNullException(nameof(building));
+        BuildingWorkAmountAbility ability =
+            building.GetAbility<BuildingWorkAmountAbility>()
+            ?? throw new InvalidOperationException(
+                $"Building '{building.ContentDefinitionId}' has no authored construction WU authority.");
+        float work = ability.constructionWorkRequired;
+        if (float.IsNaN(work) || float.IsInfinity(work) || work <= 0f)
+        {
+            throw new InvalidOperationException(
+                $"Building '{building.ContentDefinitionId}' has invalid authored construction WU {work}.");
+        }
+        return work;
+    }
 
     public float CalculateRecipe(ProductionRecipeSO recipe) =>
-        ScaleRequiredWork(before.CalculateRecipe(recipe));
+        RequireRecurringWork(recipe);
 
     public float CalculateRecipe(
         ProductionRecipeSO recipe,
         ProductionProcessClass processClass) =>
-        ScaleRequiredWork(before.CalculateRecipe(recipe, processClass));
+        RequireRecurringWork(recipe);
 
     public float CalculateEquipment(
         CombatEquipmentDefinitionSO definition,
@@ -59,5 +74,18 @@ public sealed class V27BalanceWorkCalculator : IBalanceWorkCalculator
             throw new OverflowException("V27 labor scaling overflowed.");
         }
         return scaled;
+    }
+
+    public static float RequireRecurringWork(ProductionRecipeSO recipe)
+    {
+        if (recipe == null)
+            throw new ArgumentNullException(nameof(recipe));
+        float work = recipe.RequiredWork;
+        if (float.IsNaN(work) || float.IsInfinity(work) || work <= 0f)
+        {
+            throw new InvalidOperationException(
+                $"Recurring recipe '{recipe.RecipeId}' has invalid authored WU {work}.");
+        }
+        return work;
     }
 }

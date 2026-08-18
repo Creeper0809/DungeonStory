@@ -29,30 +29,30 @@ MonoBehaviour:
   unitWeight: 0.15
   maxStack: 120
   sprite: {fileID: 0}
-  unitPrice: 25
+  unitPrice: 11
   features:
-  - rid: 7737211981816660277
-  - rid: 7737211981816660278
-  - rid: 7737211981816660279
-  - rid: 7737211981816660280
+  - rid: 7737212042857939197
+  - rid: 7737212042857939198
+  - rid: 7737212042857939199
+  - rid: 7737212042857939200
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660277
+    - rid: 7737212042857939197
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:paper-cartridge
-    - rid: 7737211981816660278
+    - rid: 7737212042857939198
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:standard-ammunition
-    - rid: 7737211981816660279
+    - rid: 7737212042857939199
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 512
         sharedIntermediate: 0
-    - rid: 7737211981816660280
+    - rid: 7737212042857939200
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59437335
+        saleRate: 0.59918183

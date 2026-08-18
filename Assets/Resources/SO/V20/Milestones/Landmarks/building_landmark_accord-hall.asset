@@ -75,7 +75,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 945
+        constructionWorkRequired: 4121
         repairWorkRequired: 90
         cleanWorkRequired: 24
         researchWorkRequired: 1
@@ -93,11 +93,11 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:treated-lumber
-          amount: 24
+          amount: 36
         - itemId: material:stone-block
           amount: 18
         - itemId: material:steel-ingot
-          amount: 8
+          amount: 12
         - itemId: material:paper
           amount: 12
     - rid: 7737211808466862451

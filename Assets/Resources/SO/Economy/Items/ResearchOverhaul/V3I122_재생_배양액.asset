@@ -29,26 +29,26 @@ MonoBehaviour:
   unitWeight: 0.55
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 91
+  unitPrice: 40
   features:
-  - rid: 7737211981816660808
-  - rid: 7737211981816660809
-  - rid: 7737211981816660810
-  - rid: 7737211981816660811
+  - rid: 7737212042857939481
+  - rid: 7737212042857939482
+  - rid: 7737212042857939483
+  - rid: 7737212042857939484
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660808
+    - rid: 7737212042857939481
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:regenerative-culture
-    - rid: 7737211981816660809
+    - rid: 7737212042857939482
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737211981816660810
+    - rid: 7737212042857939483
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 1
@@ -56,7 +56,7 @@ MonoBehaviour:
         infectionReduction: 6
         detoxReduction: 0
         painReduction: 4
-    - rid: 7737211981816660811
+    - rid: 7737212042857939484
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5973882
+        saleRate: 0.5894833

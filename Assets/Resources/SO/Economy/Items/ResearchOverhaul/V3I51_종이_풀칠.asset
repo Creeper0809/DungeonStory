@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 1.1
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 29
+  unitPrice: 13
   features:
-  - rid: 7737211981816660708
-  - rid: 7737211981816660709
-  - rid: 7737211981816660710
+  - rid: 7737212042857939791
+  - rid: 7737212042857939792
+  - rid: 7737212042857939793
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660708
+    - rid: 7737212042857939791
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:milling
-    - rid: 7737211981816660709
+    - rid: 7737212042857939792
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211981816660710
+    - rid: 7737212042857939793
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.58237934
+        saleRate: 0.5604871

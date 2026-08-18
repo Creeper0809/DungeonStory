@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211981804077401
-    - rid: 7737211981804077402
-    - rid: 7737211981804077403
-    - rid: 7737211981804077404
-    - rid: 7737211981804077405
+    - rid: 7737212042831200759
+    - rid: 7737212042831200760
+    - rid: 7737212042831200761
+    - rid: 7737212042831200762
+    - rid: 7737212042831200763
   width: 1
   height: 1
   layer: 1
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211981804077401
+    - rid: 7737212042831200759
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: WS04
-    - rid: 7737211981804077402
+    - rid: 7737212042831200760
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,12 +87,12 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211981804077403
+    - rid: 7737212042831200761
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 44
+        constructionWorkRequired: 90
         repairWorkRequired: 10
         cleanWorkRequired: 6.25
         researchWorkRequired: 6
@@ -111,14 +111,14 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: component:machine-parts
           amount: 3
-    - rid: 7737211981804077404
+    - rid: 7737212042831200762
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - production-support
         - support:fermenter
-    - rid: 7737211981804077405
+    - rid: 7737212042831200763
       type: {class: BuildingProductionSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionSupportAbility

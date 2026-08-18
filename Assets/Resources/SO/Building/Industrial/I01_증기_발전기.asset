@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211981816659989
-    - rid: 7737211981816659990
-    - rid: 7737211981816659991
-    - rid: 7737211981816659992
-    - rid: 7737211981816659993
+    - rid: 7737212033836253932
+    - rid: 7737212033836253933
+    - rid: 7737212033836253934
+    - rid: 7737212033836253935
+    - rid: 7737212033836253936
   width: 3
   height: 1
   layer: 1
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816659989
+    - rid: 7737212033836253932
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I01
-    - rid: 7737211981816659990
+    - rid: 7737212033836253933
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,12 +87,12 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211981816659991
+    - rid: 7737212033836253934
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 1008
+        constructionWorkRequired: 792
         repairWorkRequired: 134
         cleanWorkRequired: 22
         researchWorkRequired: 6
@@ -117,7 +117,7 @@ MonoBehaviour:
           amount: 3
         - itemId: component:precision-parts
           amount: 1
-    - rid: 7737211981816659992
+    - rid: 7737212033836253935
       type: {class: BuildingPowerProducerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerProducerAbility
@@ -125,7 +125,7 @@ MonoBehaviour:
         requiresFuel: 1
         fuelItemId: material:low-fuel
         secondsPerFuel: 60
-    - rid: 7737211981816659993
+    - rid: 7737212033836253936
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

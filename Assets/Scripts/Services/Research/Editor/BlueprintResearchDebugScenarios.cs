@@ -109,7 +109,10 @@ public static class BlueprintResearchDebugScenarios
             new FixedFacilityShopUnlockStateService(state),
             new EditorFacilityShopCatalog(),
             new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null),
-            new DungeonWorkforceReplanService(CharacterAiEditorTestDependencies.WorldRegistry, facilityCandidateCache: null),
+            new DungeonWorkforceReplanService(
+                CharacterAiEditorTestDependencies.WorldRegistry,
+                facilityCandidateCache: null,
+                haulPlanningService: null),
             gameEvents,
             itemStackRuntime: null,
             projectCoordinator: new BlueprintResearchProjectCoordinator(
@@ -509,7 +512,9 @@ public static class BlueprintResearchDebugScenarios
                 new EditorFacilityShopCatalog(),
                 new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null),
                 new DungeonWorkforceReplanService(
-                    CharacterAiEditorTestDependencies.WorldRegistry, facilityCandidateCache: null),
+                    CharacterAiEditorTestDependencies.WorldRegistry,
+                    facilityCandidateCache: null,
+                    haulPlanningService: null),
                 new DungeonStory.Foundation.GameEventBus(),
                 itemStackRuntime: null,
                 projectCoordinator: new BlueprintResearchProjectCoordinator(

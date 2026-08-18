@@ -75,7 +75,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 945
+        constructionWorkRequired: 4155
         repairWorkRequired: 90
         cleanWorkRequired: 24
         researchWorkRequired: 1
@@ -93,13 +93,13 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:treated-lumber
-          amount: 30
+          amount: 45
         - itemId: material:stone-block
-          amount: 18
+          amount: 27
         - itemId: resource:clean-water
           amount: 24
         - itemId: component:machine-parts
-          amount: 6
+          amount: 9
     - rid: 7737211808466862453
       type: {class: BuildingStructuralIntegrityAbility, ns: , asm: Assembly-CSharp}
       data:

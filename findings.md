@@ -1,5 +1,15 @@
 # DungeonStory Current Findings
 
+## 2026-08-18 six-adult recovery priority dispatch
+
+- Extending the recovery buffer wait from one to two game days did not make the meal arrive. The fresh report at `2026-08-18T08:31:05Z` still had the exact ration commitment in `Carried` state and the owner midway through the 27-step delivery path, while the workforce wake selected another actor whose completed job was ordinary warehouse tidy-up.
+- The routed child stack already receives `PrioritizeDestination`, so the first incorrect authority is not request authoring. `DungeonWorkforceReplanService.RequestOneHaulerToReplan` selected only by work priority/current action and never asked the production haul planner which actor actually owned the prioritized preview plan.
+- A verifier-only larger timeout would hide this mismatch. The production wake now receives the read-only `IWorldItemHaulPlanningService`, prefers an eligible actor whose best preview plan is priority, and records the selected destination. `WorldItemHaulPlan.IsPriority` carries the planner's seed authority without reserving during preview.
+- The first priority-aware rerun reported `priorityPlan=False` even though the exact routed ration remained Loose and prioritized. Every actor preview at that frame was `path search deferred`; the generic wake therefore still fell back to one arbitrary worker. The planner now exposes only whether valid priority work exists, and the workforce uses a bounded non-emergency fan-out solely when priority work exists but all previews are deferred.
+- The next fresh rerun at `2026-08-18T08:45:53Z` proved the priority path itself now completes: the exact ration reached the authored meal `FacilityBuffer`, and the wake reported `priorityPlan=True`. It still failed because the only actor with a published priority preview at wake time was the hungry consumer; `priorityPlan` outranked the urgent-survival avoidance, so non-urgent workers with deferred previews continued unrelated work and the consumer started primitive meals before the late deposit.
+- The production fan-out boundary now also activates when the selected priority-plan owner has an urgent survival need. It wakes only non-urgent, interrupt-authorized haulers and returns before assigning the endangered consumer to haul. This preserves the physical delivery contract while preventing survival arbitration from defeating the very delivery wake it requested.
+- Actor-level diagnostics then exposed a separate verifier error: every recovery primitive start belonged to Roma, and the first event was already `emergency=True` at authored need value `40`. The 90-game-second survival forecast projects that value below the physical-harm floor, so the fixture's claimed "routine hunger" was actually an emergency fallback case. Recovery provisioning now uses the authored `routineStart` and asserts `IsEmergencyOrImminentPhysicalHarm == false` before measuring primary-service dominance.
+
 ## 2026-08-16 WU baseline remeasurement authority
 
 - The user's objection is correct: `19.882 WU/actor-day` was an intermediate AI/runtime-conflict observation and cannot remain the final live balance authority after the ownership and emergent-scenario fixes.
@@ -5547,3 +5557,28 @@
 - The final V27 audit is `rows=84143; critical=0; approved=5; scc=313; minimumMarginMilliEwu=-23643097; integrityFailures=0`. Whole-game connectivity covers 413 items, 354 recipes, 376 producer links, and 3,478 consumer links with zero producer/consumer orphans.
 - A deterministic artifact defect was found in the evidence layer, not the economy math: embedding the exact runtime CSV escape p95 in a checked-in report caused byte drift. The durable marker now records the deterministic threshold contract while the runtime test still measures and enforces p95 <=2ms and 0B allocation. Two full evidence-bound regenerations then produced identical hashes for all eleven artifacts.
 - The latest AI coverage manifest is intentionally not green: `uncovered=71` because the external CharacterAI behavior asset timestamp invalidates older per-suite artifacts. DailyRoutine is fresh LiveExecuted, and FinalAcceptance is fresh 33/33, but a full fresh AI coverage sweep was not silently inferred from those narrower proofs.
+# 2026-08-18 V27 통합 감사 재개 발견
+
+- 첨부 계획의 생산 확장 연구 권위는 `research:mining:quarry`, `research:mining:stonecutting`, `research:mining:deep`이다. 현재 `DungeonSpaceExpansionCatalog`는 별도 `research:dungeon-expansion:basic-sector/supported-sector/deep-sector`를 사용하므로 요구사항 불일치다. E키 개발자 확장은 생산 권위가 아니며 정식 경로에 포함하지 않는다.
+- 현재 확장 폭은 초기 내부 27열, 단계별 목표 49/65/81열이고 목표 인구는 12/18/24명이다. 실제 에셋 256-seed 결과가 최소 headroom 30.7%로 이 폭을 지지하므로 2열 고정 확장 모델은 사용하지 않는다.
+- fresh six-adult outage report의 첫 실패는 모든 Meal/Rest/Toilet/Hygiene/Water 시설 ID가 존재한다는 사실 자체를 실패로 처리한 `PRIMARY_AUTHORITY_PRESENT` 경계다. 보고서상 일부 primary는 unusable이고 일부는 usable이므로, 정확히 어떤 시설을 장애 대상으로 삼았는지와 fallback이 그 시설을 우회했는지를 분리해 검증해야 한다. 전체 GameplayScene의 같은 역할 시설이 하나라도 존재하면 실패하는 전역 부재 조건은 N+1 정의보다 강하고 fixture 오염 가능성이 높다.
+- 코드 대조 결과 더 정확한 직접 원인은 `HasUsablePrimaryAuthority`가 같은 파일에 이미 존재하는 `IsPrimaryAuthorityReadyForDemand`를 사용하지 않고 `FacilityCandidateScorer.IsCandidate`를 직접 호출한 것이다. Meal은 물리 배송 전 `meal unavailable: DeliveryPending`이 합법적인 pre-demand 상태인데 직접 호출 경로가 이를 거짓 음성으로 만들었다. baseline 판정만 typed helper로 통일했고, 복구 단계의 실제 haul→FacilityBuffer→primary meal 소비 증거는 그대로 유지한다.
+- 수정 후 fresh outage는 장애 중 5개 fallback, 수량 exact, 무사망·무붕괴, primary facility identity restore까지 통과했다. 새 독립 실패는 복구 meal staging 동안 routine hunger가 1게임일에 emergency까지 자연 감소해 primitive meal 8회가 source stock을 경쟁 소비하고, delivery haul이 완료되기 전에 verifier가 hauler를 정지시킨 것이다. delivery SLA와 fallback dominance가 한 창에서 서로 오염됐다. staging 동안 demand actor의 hunger를 routine 값에 고정하고 다른 hauler의 욕구를 reset해도 물리 request/reservation/pickup/move/deposit는 그대로 필요하므로, 이를 분리한 뒤 delivery 자체가 여전히 늦는지 재판정한다.
+- Meal delivery wake가 소비자 자신을 우선 운반자로 선택할 수 있었다. `ICharacterConsumablesWorkforcePort`가 요청자 CharacterId를 전달하고 workforce가 해당 주민을 보호 후보로 취급하도록 바꾸자 다른 두 주민의 priority fanout과 실제 FacilityBuffer 입고가 관측됐다.
+- 비상 deprivation tick은 이미 같은 욕구를 처리하는 authored self-care action을 보존하는 검사보다 먼저 primitive fallback을 시작할 수 있었다. 현재 실행 중인 동일 branch의 self-care를 먼저 인정하는 ownership fence를 추가했다.
+- Recovery 판정은 최종 need가 시작값을 넘는지만 보아 장거리 이동 중의 decay를 실제 물리 영양 섭취보다 우선했다. 성공한 `PhysicalMealConsumedEvent`의 actor별 nutrition delta를 회복 권위로 기록하고, 물리 회복 직후 행을 종료하도록 교정했다.
+- 최신 focused run은 seed/runtime 배치에 따라 meal delivery가 두 게임일 안에 생성되지 않는 비결정적 liveness 실패를 여전히 보인다. 따라서 six-adult N+1은 아직 완료가 아니며, proactive meal delivery candidate/route가 같은 snapshot에서 간헐적으로 0이 되는 원인을 다음 독립 production root로 추적해야 한다.
+- Unity MCP는 다시 연결됐고 활성 GameplayScene, EditMode, compile/update false를 읽기 전용으로 확인했다. 이후 Unity 실행은 MCP만 사용한다.
+- 2026-08-18 재확인에서 Unity MCP `GetState`·active scene·Console 조회가 모두 정상 동작했다. 최신 focused FAIL은 연결 문제가 아니라 `CharacterConsumablesApplicationPorts.TryGetActor`가 lifecycle Active만 보고 `gameObject.activeInHierarchy`·AI pause·detached/unpublished gate를 무시한 후보 투영 결함이다. 그 결과 paused fixture actor `character:plan-debug:v27-population-recovery-4`가 첫 hungry actor로 선택되어 reachable meal facility 0에서 proactive delivery 전체를 굶겼다. 소비·배송 런타임의 Active 권위를 `CharacterActor.CanRunAi`로 통일했다.
+- 2026-08-18 fresh six-adult PASS에서 수동 급수 목적지는 `plumbing:manual-water:{persistentBuildingId}`의 exact owner로 해석되고, 물을 요청한 위생 소비자는 같은 배송의 운반 후보에서 격리됐다. 나머지 건강한 성인이 실제 예약·픽업·이동·FacilityBuffer 입고를 수행한 뒤 소비자가 정상 위생 행동으로 회복했다. 최종 증거는 primary 5/5, primitive 0, Console 0/0이다.
+# 2026-08-18 expansion research authority finding
+
+- The separate `research:dungeon-expansion:*` projects were not part of the user-approved design and duplicated existing mining progression with 807 extra authored WU.
+- Canonical production gates are now the existing quarry/stonecutting/deep projects. The highest completed gate is authoritative, so load/order independence is preserved: none=27, quarry=49, stonecutting=65, deep=81.
+- `E -> GridExpand` is still excluded from production progression and is verified as a developer-only path.
+
+# 2026-08-18 deterministic evidence freshness finding
+
+- Artifact mtime cannot be the sole freshness authority when byte-identical deterministic generation intentionally performs no write.
+- Paired clutter evidence now carries a digest of its exact source dependency set and SHA-256 values for both CSV payloads. Coverage accepts unchanged mtimes only when all three digests match current source and files exactly.
+- The new contract preserves both requirements: source changes invalidate evidence, while a no-op rerun produces zero Git diff.

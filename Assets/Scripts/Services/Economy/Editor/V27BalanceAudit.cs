@@ -28,9 +28,13 @@ public static class V27BalanceAudit
     public const string MarketBaselineRecordId =
         "balance:v27:item-market-asymmetric-price-authority";
     public const string LaborFacilityBaselineRecordId =
-        "balance:v27:global-labor-facility-period-preserving";
+        "balance:v27:facility-bounded-wu-bom-redistribution-v2";
     public const string ResearchScheduleBaselineRecordId =
         "balance:v27:research-effective-output-period-preserving-v1";
+    public const string DungeonExpansionBaselineRecordId =
+        "balance:v27:existing-mining-research-dungeon-expansion-authority-v4";
+    public const string DungeonExpansionWidthBaselineRecordId =
+        "balance:v27:storage-bounded-dungeon-expansion-widths-v3";
     public const string LaborAuthorityBaselineRecordId =
         "balance:v27:actual-effective-labor-authority-downstream-v1";
     public const string LaborMatrixBaselineRecordId =
@@ -41,7 +45,27 @@ public static class V27BalanceAudit
         "balance:v27:combat-after-equipment-quality-minimal-recalibration-v1";
     public const string DailyRoutineEvidenceBaselineRecordId =
         "balance:v27:daily-routine-post-recalibration-wu-evidence-v1";
-    private const string GeneratorVersion = "v27.11.0";
+    public const string ServiceContinuityBaselineRecordId =
+        "balance:v27:service-continuity-nplusone";
+    public const string PrimitiveFallbackBaselineRecordId =
+        "balance:v27:primitive-fallback-capital-relief";
+    public const string SharedAccessBaselineRecordId =
+        "balance:v27:shared-access-spatial-union";
+    public const string FloorClutterBaselineRecordId =
+        "balance:v27:floor-clutter-runtime-capacity";
+    public const string OverflowContainmentBaselineRecordId =
+        "balance:v27:storage-overflow-containment";
+    public const string CounterfactualRngBaselineRecordId =
+        "balance:v27:counterfactual-rng-isolation";
+    public const string PairedRunBaselineRecordId =
+        "balance:v27:paired-run-window-attribution";
+    public const string PopulationCapacityBaselineRecordId =
+        "balance:v27:population-stage-capacity";
+    public const string SixAdultClosedLoopBaselineRecordId =
+        "balance:v27:six-adult-food-water-closed-loop";
+    public const string IntegratedCapacityValidationBaselineRecordId =
+        "balance:v27:service-spatial-clutter-rng-validation-v1";
+    private const string GeneratorVersion = "v27.13.1";
     private const decimal LaborScale = 2.25m;
 
     [MenuItem("DungeonStory/V27/Generate Audit-Only Whole-Game Ledger")]
@@ -148,6 +172,7 @@ public static class V27BalanceAudit
         BalanceCaptureFactory capture = new BalanceCaptureFactory();
         List<BalanceAnomalyNode> anomalies = new List<BalanceAnomalyNode>();
         CaptureLaborTargets(capture, anomalies, sourceDigests);
+        CaptureIntegratedCapacityMetrics(capture, sourceDigests);
         CaptureResearchScheduleTargets(
             source.GetAll<ResearchProjectSO>(),
             capture,
@@ -164,7 +189,8 @@ public static class V27BalanceAudit
             anomalies,
             sourceDigests,
             integrityFailures,
-            historicalBeforeValues);
+            historicalBeforeValues,
+            allowApprovalRefresh);
         CaptureItemMarketConsumers(
             source,
             items,
@@ -173,7 +199,8 @@ public static class V27BalanceAudit
             capture,
             sourceDigests,
             integrityFailures,
-            historicalBeforeValues);
+            historicalBeforeValues,
+            allowApprovalRefresh);
         CaptureCropValues(
             crops,
             items,
@@ -192,7 +219,8 @@ public static class V27BalanceAudit
             anomalies,
             sourceDigests,
             historicalBeforeValues);
-        CaptureBuildingCandidates(
+        IReadOnlyDictionary<string, V27ConstructionRedistributionResult>
+            constructionCandidates = CaptureBuildingCandidates(
             source.GetAll<BuildingSO>(),
             before,
             after,
@@ -211,11 +239,11 @@ public static class V27BalanceAudit
             source.GetAll<BuildingSO>(),
             before,
             after,
-            work,
             salvage,
             capture,
             anomalies,
-            sourceDigests);
+            sourceDigests,
+            constructionCandidates);
 
         BalanceTransform[] transforms = recipes
             .Where(recipe => recipe.Inputs.Count > 0
@@ -248,8 +276,8 @@ public static class V27BalanceAudit
             .Concat(BuildDismantleTransforms(
                 source.GetAll<BuildingSO>(),
                 after,
-                work,
-                salvage))
+                salvage,
+                constructionCandidates))
             .ToArray();
         BalanceSccAuditResult scc = BalanceSccAuditor.Audit(transforms);
         foreach (string violation in scc.ViolatingTransformIds)
@@ -684,6 +712,11 @@ public static class V27BalanceAudit
         foreach (ResearchProjectSO project in projects)
         {
             string stableId = project.ProjectId.Value;
+            string baselineRecordId = DungeonSpaceExpansionCatalog.TryGet(
+                stableId,
+                out _)
+                    ? DungeonExpansionWidthBaselineRecordId
+                    : ResearchScheduleBaselineRecordId;
             string path = BalanceCanonicalText.ProjectRelativePath(
                 AssetDatabase.GetAssetPath(project));
             decimal current = BalanceCanonicalText.DecimalFromFiniteFloat(
@@ -767,7 +800,14 @@ public static class V27BalanceAudit
                 SourcePropertyPath = "requiredWork",
                 ExecutionRoute = "ResearchProjectSO->ResearchWorkExecutionHandler->AIWork",
                 SaveAuthority = "ResearchProjectSO.requiredWork; active progress saves completedWork",
-                VerificationEvidence = "ResearchTreeDebugScenarios + ResearchEquipmentOverhaulDebugScenarios",
+                VerificationEvidence = string.Equals(
+                    baselineRecordId,
+                    DungeonExpansionBaselineRecordId,
+                    StringComparison.Ordinal)
+                        ? "DungeonSpaceExpansionDebugScenarios + "
+                          + "DungeonSpaceExpansionPlayModeVerifier + "
+                          + "V27PopulationCapacityDebugScenarios"
+                        : "ResearchTreeDebugScenarios + ResearchEquipmentOverhaulDebugScenarios",
                 ReviewStatus = before == after ? "unchanged" : "pending",
                 ApprovalKey = before != after
                     ? BuildApprovalKey(
@@ -777,7 +817,7 @@ public static class V27BalanceAudit
                         dependencyFingerprint,
                         sourceDigest,
                         reasonCode,
-                        ResearchScheduleBaselineRecordId)
+                        baselineRecordId)
                     : string.Empty,
                 DependencyFingerprint = dependencyFingerprint,
                 LocalFingerprint = HashText(
@@ -785,7 +825,7 @@ public static class V27BalanceAudit
                 SourceDigest = sourceDigest,
                 SemanticHash = HashText(stableId + "|" + metric + "|" + afterToken),
                 AssetApplied = current == after ? "true" : "false",
-                BalanceBaselineRecordId = ResearchScheduleBaselineRecordId
+                BalanceBaselineRecordId = baselineRecordId
             });
         }
     }
@@ -878,7 +918,8 @@ public static class V27BalanceAudit
         ICollection<BalanceAnomalyNode> anomalies,
         IDictionary<string, string> sourceDigests,
         ICollection<string> integrityFailures,
-        IReadOnlyDictionary<string, string> historicalBeforeValues)
+        IReadOnlyDictionary<string, string> historicalBeforeValues,
+        bool allowApprovalRefresh)
     {
         foreach (ItemDefinitionSO definition in definitions)
         {
@@ -929,7 +970,8 @@ public static class V27BalanceAudit
                 sourceDigest,
                 capture,
                 integrityFailures,
-                historicalBeforeValues);
+                historicalBeforeValues,
+                allowApprovalRefresh);
         }
     }
 
@@ -941,14 +983,15 @@ public static class V27BalanceAudit
         string sourceDigest,
         BalanceCaptureFactory capture,
         ICollection<string> integrityFailures,
-        IReadOnlyDictionary<string, string> historicalBeforeValues)
+        IReadOnlyDictionary<string, string> historicalBeforeValues,
+        bool allowApprovalRefresh)
     {
         const string AppraisedValuablesId = "offense:appraised-valuables";
         bool appraised = string.Equals(
             definition.ItemId,
             AppraisedValuablesId,
             StringComparison.Ordinal);
-        int beforeUnitPrice = ResolveV23MarketUnitPrice(
+        int formulaBeforeUnitPrice = ResolveV23MarketUnitPrice(
             definition.ItemId,
             beforeEwu);
         long marketSaleValue = V27EwuQuantizer.MultiplyOutputCredit(
@@ -967,13 +1010,29 @@ public static class V27BalanceAudit
 
         int afterUnitPrice = (int)afterPriceLong;
         int currentUnitPrice = definition.UnitPrice;
-        if (currentUnitPrice != beforeUnitPrice && currentUnitPrice != afterUnitPrice)
+        string stableId = RawStableId(definition, "itemId");
+        string historicalPriceKey =
+            V27BalanceAssetApplication.BuildHistoricalBeforeKey(
+                stableId,
+                "authored-unit-price-gold");
+        int beforeUnitPrice = historicalBeforeValues.TryGetValue(
+                historicalPriceKey,
+                out string historicalPriceToken)
+            ? int.Parse(
+                historicalPriceToken,
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture)
+            : allowApprovalRefresh
+                ? currentUnitPrice
+                : formulaBeforeUnitPrice;
+        if (!allowApprovalRefresh
+            && currentUnitPrice != beforeUnitPrice
+            && currentUnitPrice != afterUnitPrice)
         {
             integrityFailures.Add(
                 $"V27 unit price authority drift: {definition.ItemId}; "
-                + $"V23={beforeUnitPrice}, V27={afterUnitPrice}, current={currentUnitPrice}.");
+                + $"Before={beforeUnitPrice}, V27={afterUnitPrice}, current={currentUnitPrice}.");
         }
-        string stableId = RawStableId(definition, "itemId");
         string dependencyFingerprint = HashText(value.SelectedSourceId);
         string approvalSourceDigest = definition is ResourceItemDefinitionSO
             ? GetApprovalSourceDigest(path, "unitPrice", "saleRate")
@@ -1056,7 +1115,8 @@ public static class V27BalanceAudit
                 dependencyFingerprint,
                 capture,
                 integrityFailures,
-                historicalBeforeValues);
+                historicalBeforeValues,
+                allowApprovalRefresh);
         }
     }
 
@@ -1072,7 +1132,8 @@ public static class V27BalanceAudit
         string dependencyFingerprint,
         BalanceCaptureFactory capture,
         ICollection<string> integrityFailures,
-        IReadOnlyDictionary<string, string> historicalBeforeValues)
+        IReadOnlyDictionary<string, string> historicalBeforeValues,
+        bool allowApprovalRefresh)
     {
         bool appraised = string.Equals(
             definition.ItemId,
@@ -1101,7 +1162,8 @@ public static class V27BalanceAudit
         bool hasHistoricalBefore = historicalBeforeValues.TryGetValue(
             historicalKey,
             out string historicalBeforeToken);
-        if (!hasHistoricalBefore
+        if (!allowApprovalRefresh
+            && !hasHistoricalBefore
             && currentRate != afterRate
             && !AreSameOrAdjacentNonNegativeFloats(currentRate, formulaBeforeRate))
         {
@@ -1109,16 +1171,20 @@ public static class V27BalanceAudit
                 $"V27 V23 sale-rate reconstruction drift exceeds one float ULP: "
                 + $"{definition.ItemId}; formula={formulaBeforeToken}, current={currentToken}.");
         }
-        string beforeToken = hasHistoricalBefore
-            ? historicalBeforeToken
-            : currentRate != afterRate
-                ? currentToken
-                : formulaBeforeToken;
+        string beforeToken = allowApprovalRefresh
+            ? currentToken
+            : hasHistoricalBefore
+                ? historicalBeforeToken
+                : currentRate != afterRate
+                    ? currentToken
+                    : formulaBeforeToken;
         float beforeRate = float.Parse(
             beforeToken,
             NumberStyles.Float,
             CultureInfo.InvariantCulture);
-        if (currentRate != beforeRate && currentRate != afterRate)
+        if (!allowApprovalRefresh
+            && currentRate != beforeRate
+            && currentRate != afterRate)
         {
             integrityFailures.Add(
                 $"V27 market sale-rate authority drift: {definition.ItemId}; "
@@ -1395,7 +1461,8 @@ public static class V27BalanceAudit
         BalanceCaptureFactory capture,
         IDictionary<string, string> sourceDigests,
         ICollection<string> integrityFailures,
-        IReadOnlyDictionary<string, string> historicalBeforeValues)
+        IReadOnlyDictionary<string, string> historicalBeforeValues,
+        bool allowApprovalRefresh)
     {
         Dictionary<string, ItemDefinitionSO> itemById = items.ToDictionary(
             value => value.ItemId,
@@ -1414,7 +1481,21 @@ public static class V27BalanceAudit
             long marketSaleValue = V27EwuQuantizer.MultiplyOutputCredit(
                 afterValue.AcquisitionCost,
                 (decimal)GoldEconomyBalanceRules.TargetExternalSaleRecovery).MilliEwu;
-            beforePrices[item.ItemId] = ResolveV23MarketUnitPrice(item.ItemId, beforeEwu);
+            string stableId = RawStableId(item, "itemId");
+            string historicalKey =
+                V27BalanceAssetApplication.BuildHistoricalBeforeKey(
+                    stableId,
+                    "authored-unit-price-gold");
+            beforePrices[item.ItemId] = historicalBeforeValues.TryGetValue(
+                    historicalKey,
+                    out string historicalPriceToken)
+                ? int.Parse(
+                    historicalPriceToken,
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture)
+                : allowApprovalRefresh
+                    ? item.UnitPrice
+                    : ResolveV23MarketUnitPrice(item.ItemId, beforeEwu);
             afterPrices[item.ItemId] = checked((int)ResolveV27MarketUnitPrice(
                 item.ItemId,
                 afterValue.AcquisitionCost.MilliEwu,
@@ -1453,7 +1534,9 @@ public static class V27BalanceAudit
                 "ceil(itemUnitPrice*1.20)",
                 "v27-market-retail-input-ceil",
                 itemId,
-                "SaleItem.cost->FacilityShop purchase debit");
+                "SaleItem.cost->FacilityShop purchase debit",
+                historicalBeforeValues,
+                allowApprovalRefresh);
         }
 
         GameDomainContentCatalogSO domain = source.DomainCatalog;
@@ -1499,7 +1582,8 @@ public static class V27BalanceAudit
             bool hasHistorical = historicalBeforeValues.TryGetValue(
                 historicalKey,
                 out string historicalToken);
-            if (!hasHistorical
+            if (!allowApprovalRefresh
+                && !hasHistorical
                 && stock.dailyUnitCost != afterCost
                 && !AreSameOrAdjacentNonNegativeFloats(stock.dailyUnitCost, formulaBefore))
             {
@@ -1509,9 +1593,11 @@ public static class V27BalanceAudit
             }
             string beforeToken = hasHistorical
                 ? historicalToken
-                : stock.dailyUnitCost != afterCost
+                : allowApprovalRefresh
                     ? currentToken
-                    : formulaBeforeToken;
+                    : stock.dailyUnitCost != afterCost
+                        ? currentToken
+                        : formulaBeforeToken;
             CaptureMarketConsumerPatch(
                 capture,
                 integrityFailures,
@@ -1528,7 +1614,9 @@ public static class V27BalanceAudit
                 "ceil(AcquisitionCostEWU*0.45) at final purchase settlement",
                 "v27-market-procurement-input-ceil",
                 itemId,
-                "AuthoredStockCategoryRecord.dailyUnitCost->StockSupplyService purchase debit");
+                "AuthoredStockCategoryRecord.dailyUnitCost->StockSupplyService purchase debit",
+                historicalBeforeValues,
+                allowApprovalRefresh);
         }
 
         foreach (GuestRequestDefinitionSO request in source.GetAll<GuestRequestDefinitionSO>()
@@ -1592,7 +1680,9 @@ public static class V27BalanceAudit
                 "ceil(consumedItemInternalValue/(1-0.25))",
                 "v27-market-premium-service-input-ceil",
                 string.Join("|", consumed.Select(value => value.itemDefinitionId)),
-                "GuestRequestDefinitionSO.successEffects(Money)->campaign reward credit");
+                "GuestRequestDefinitionSO.successEffects(Money)->campaign reward credit",
+                historicalBeforeValues,
+                allowApprovalRefresh);
         }
     }
 
@@ -1612,9 +1702,20 @@ public static class V27BalanceAudit
         string formula,
         string reasonCode,
         string dependencyId,
-        string executionRoute)
+        string executionRoute,
+        IReadOnlyDictionary<string, string> historicalBeforeValues,
+        bool allowApprovalRefresh)
     {
-        if (!string.Equals(current, before, StringComparison.Ordinal)
+        if (historicalBeforeValues.TryGetValue(
+                V27BalanceAssetApplication.BuildHistoricalBeforeKey(
+                    stableId,
+                    metric),
+                out string historicalBefore))
+            before = historicalBefore;
+        else if (allowApprovalRefresh)
+            before = current;
+        if (!allowApprovalRefresh
+            && !string.Equals(current, before, StringComparison.Ordinal)
             && !string.Equals(current, after, StringComparison.Ordinal))
         {
             integrityFailures.Add(
@@ -2160,13 +2261,14 @@ public static class V27BalanceAudit
             propertyPath,
             current,
             historicalBeforeValues);
-        decimal after = decimal.Ceiling(before * LaborScale);
-        if (current != before && current != after)
+        decimal legacyScaled = decimal.Ceiling(before * LaborScale);
+        decimal after = before;
+        if (current != legacyScaled && current != after)
         {
             throw new InvalidOperationException(
-                $"Crop authored work drifted outside its V27 Before/After contract: "
+                $"Crop authored work drifted outside its recurring-throughput correction: "
                 + $"{cropId}:{propertyPath}; current={Token(current)}, "
-                + $"before={Token(before)}, after={Token(after)}.");
+                + $"legacy={Token(legacyScaled)}, after={Token(after)}.");
         }
         string afterToken = Token(after);
         string approvalSourceDigest = GetApprovalSourceDigest(
@@ -2174,8 +2276,8 @@ public static class V27BalanceAudit
             "sowWork",
             "harvestWork");
         BalanceAnomalySeverity severity = BalanceAnomalyDetector.ClassifyPercentDelta(
-            Math.Abs(PercentDelta(before, after)));
-        const string reasonCode = "v27-crop-work-duration-preserving";
+            Math.Abs(PercentDelta(legacyScaled, after)));
+        const string reasonCode = "v27-recurring-throughput-no-project-scale";
         capture.Capture(new BalanceMetricCaptureRequest
         {
             Domain = "agriculture",
@@ -2183,22 +2285,22 @@ public static class V27BalanceAudit
             StableId = cropId,
             Metric = metric,
             Unit = "WU",
-            Before = Token(before),
+            Before = Token(legacyScaled),
             After = afterToken,
             AuthoredRoundedValue = afterToken,
-            PercentDelta = Token(PercentDelta(before, after)),
-            ExactFormula = "ceil(authored crop work*2.25)",
+            PercentDelta = Token(PercentDelta(legacyScaled, after)),
+            ExactFormula = "recurring crop WU = frozen V23 authored cycle WU; no 2.25 project scale",
             BeforeBom = bom,
             AfterBom = bom,
-            BeforeDirectWu = Token(before),
+            BeforeDirectWu = Token(legacyScaled),
             AfterDirectWu = afterToken,
             BeforeBomEwu = "see:cultivated-acquisition-cost",
             AfterBomEwu = "see:cultivated-acquisition-cost",
             BeforeLaborDensity = "see:cultivated-acquisition-cost",
             AfterLaborDensity = "see:cultivated-acquisition-cost",
-            UpstreamOnlyAfter = Token(before),
+            UpstreamOnlyAfter = Token(legacyScaled),
             InheritedDelta = "0",
-            RawLocalDelta = Token(after - before),
+            RawLocalDelta = Token(after - legacyScaled),
             LocalQuantizationBoundaryCount = 1,
             DownstreamConsumerCount = "1",
             DependencyIds = dependencies,
@@ -2207,14 +2309,14 @@ public static class V27BalanceAudit
                 ? "local-critical"
                 : severity == BalanceAnomalySeverity.Warning ? "warning" : "none",
             ReasonCode = reasonCode,
-            ReasonDetail = "Authored crop work candidate; explicit exact approval required before apply.",
+            ReasonDetail = "Corrects a recurring crop cycle that was incorrectly scaled as a one-shot project.",
             SourceAuthority = path,
             SourcePropertyPath = propertyPath,
             ExecutionRoute = "CropDefinitionSO->CropPlotRuntime->AIWork",
             SaveAuthority = "CropDefinitionSO",
             VerificationEvidence = "V27 crop audit; PlayMode evidence pending",
             ReviewStatus = "pending",
-            ApprovalKey = before != after
+            ApprovalKey = legacyScaled != after
                 ? BuildApprovalKey(
                     cropId,
                     metric,
@@ -2335,9 +2437,17 @@ public static class V27BalanceAudit
             }
             string path = AssetDatabase.GetAssetPath(recipe);
             string sourceDigest = GetSourceDigest(path, sourceDigests);
-            decimal beforeWu = BalanceCanonicalText.DecimalFromFiniteFloat(
+            string approvalSourceDigest = GetApprovalSourceDigest(path, "requiredWork");
+            string stableId = RawStableId(recipe, "recipeId");
+            decimal v23DirectWu = BalanceCanonicalText.DecimalFromFiniteFloat(
                 beforeValue.DirectWork,
                 $"recipe:{recipe.RecipeId}:beforeDirectWU");
+            decimal historicalAuthoredWu = ResolveHistoricalAuthoredBefore(
+                stableId,
+                "authored-required-wu",
+                v23DirectWu,
+                historicalBeforeValues);
+            decimal beforeWu = decimal.Ceiling(historicalAuthoredWu * LaborScale);
             decimal afterWu = afterValue.DirectWorkDebit.MilliEwu / 1000m;
             long comparableBeforeInputMilli = 0L;
             foreach (ItemAmountDefinition input in recipe.Inputs)
@@ -2376,10 +2486,12 @@ public static class V27BalanceAudit
             string localFingerprint = HashText(
                 recipe.RecipeId + "|" + bom + "|" + recipe.Outputs.Count + "|"
                 + recipe.RequiredWork.ToString("R", CultureInfo.InvariantCulture));
-            string stableId = RawStableId(recipe, "recipeId");
             string dependencyFingerprint = HashText(string.Join("|", dependencies));
             string afterToken = Token(afterWu);
-            const string reasonCode = "v27-duration-preserving-first-candidate";
+            const string reasonCode = "v27-recurring-throughput-no-project-scale";
+            decimal authoredCurrent = BalanceCanonicalText.DecimalFromFiniteFloat(
+                recipe.RequiredWork,
+                $"recipe:{recipe.RecipeId}:requiredWork");
             capture.Capture(new BalanceMetricCaptureRequest
             {
                 Domain = "production",
@@ -2389,9 +2501,9 @@ public static class V27BalanceAudit
                 Unit = "WU",
                 Before = Token(beforeWu),
                 After = afterToken,
-                AuthoredRoundedValue = Token(decimal.Ceiling(beforeWu * LaborScale)),
+                AuthoredRoundedValue = afterToken,
                 PercentDelta = Token(percent),
-                ExactFormula = "ceil(V23 directWU*2.25) at input-debit boundary",
+                ExactFormula = "recurring recipe direct WU = frozen V23 batch WU; no 2.25 project scale",
                 BeforeBom = bom,
                 AfterBom = bom,
                 BeforeDirectWu = Token(beforeWu),
@@ -2415,7 +2527,7 @@ public static class V27BalanceAudit
                     ? "root-critical"
                     : severity == BalanceAnomalySeverity.Warning ? "warning" : "none",
                 ReasonCode = reasonCode,
-                ReasonDetail = "Candidate only; same-route labor-density ratio="
+                ReasonDetail = "Corrects a recurring batch that was incorrectly scaled as a one-shot project; same-route labor-density ratio="
                     + Token(densityRatio)
                     + "; crop inputs use cultivated Before acquisition while V23 item rows remain frozen.",
                 SourceAuthority = path,
@@ -2424,32 +2536,38 @@ public static class V27BalanceAudit
                 SaveAuthority = "ProductionRecipeSO",
                 VerificationEvidence = "V27 recipe graph audit",
                 ReviewStatus = severity == BalanceAnomalySeverity.Critical ? "pending" : "review",
-                ApprovalKey = string.Empty,
+                ApprovalKey = severity == BalanceAnomalySeverity.Critical
+                    ? BuildApprovalKey(
+                        stableId,
+                        "direct-wu",
+                        afterToken,
+                        dependencyFingerprint,
+                        approvalSourceDigest,
+                        reasonCode,
+                        ResolveLaborBaselineRecordId(stableId))
+                    : string.Empty,
                 DependencyFingerprint = dependencyFingerprint,
                 LocalFingerprint = localFingerprint,
-                SourceDigest = sourceDigest,
+                SourceDigest = approvalSourceDigest,
                 SemanticHash = HashText(recipe.RecipeId + "|direct-wu|" + Token(afterWu)),
-                AssetApplied = "false",
-                BalanceBaselineRecordId = ResolveBaselineRecordId(stableId)
+                AssetApplied = authoredCurrent == afterWu ? "true" : "false",
+                BalanceBaselineRecordId = ResolveLaborBaselineRecordId(stableId)
             });
-            decimal authoredCurrent = BalanceCanonicalText.DecimalFromFiniteFloat(
-                recipe.RequiredWork,
-                $"recipe:{recipe.RecipeId}:requiredWork");
             decimal authoredBefore = ResolveHistoricalAuthoredBefore(
                 stableId,
                 "authored-required-wu",
-                beforeWu,
+                historicalAuthoredWu,
                 historicalBeforeValues);
-            decimal authoredAfter = decimal.Ceiling(authoredBefore * LaborScale);
-            if (authoredCurrent != authoredBefore && authoredCurrent != authoredAfter)
+            decimal legacyAuthored = decimal.Ceiling(authoredBefore * LaborScale);
+            decimal authoredAfter = authoredBefore;
+            if (authoredCurrent != legacyAuthored && authoredCurrent != authoredAfter)
             {
                 throw new InvalidOperationException(
-                    $"Recipe authored work drifted outside its V27 Before/After contract: "
+                    $"Recipe authored work drifted outside its recurring-throughput correction: "
                     + $"{recipe.RecipeId}; current={Token(authoredCurrent)}, "
-                    + $"before={Token(authoredBefore)}, after={Token(authoredAfter)}.");
+                    + $"legacy={Token(legacyAuthored)}, after={Token(authoredAfter)}.");
             }
             string authoredAfterToken = Token(authoredAfter);
-            string approvalSourceDigest = GetApprovalSourceDigest(path, "requiredWork");
             string authoredFingerprint = HashText(
                 recipe.RecipeId + "|requiredWork|" + Token(authoredBefore));
             capture.Capture(new BalanceMetricCaptureRequest
@@ -2459,14 +2577,14 @@ public static class V27BalanceAudit
                 StableId = stableId,
                 Metric = "authored-required-wu",
                 Unit = "WU",
-                Before = Token(authoredBefore),
+                Before = Token(legacyAuthored),
                 After = authoredAfterToken,
                 AuthoredRoundedValue = authoredAfterToken,
-                PercentDelta = Token(PercentDelta(authoredBefore, authoredAfter)),
-                ExactFormula = "ceil(authored requiredWork*2.25)",
+                PercentDelta = Token(PercentDelta(legacyAuthored, authoredAfter)),
+                ExactFormula = "recurring authored batch WU = frozen V23 WU; no 2.25 project scale",
                 BeforeBom = bom,
                 AfterBom = bom,
-                BeforeDirectWu = Token(authoredBefore),
+                BeforeDirectWu = Token(legacyAuthored),
                 AfterDirectWu = authoredAfterToken,
                 BeforeBomEwu = Token(comparableBeforeInput),
                 AfterBomEwu = afterValue.InputDebit.ToCanonicalEwuToken(),
@@ -2476,16 +2594,16 @@ public static class V27BalanceAudit
                 AfterLaborDensity = afterValue.InputDebit.MilliEwu > 0L
                     ? Token(authoredAfter / (afterValue.InputDebit.MilliEwu / 1000m))
                     : "N/A",
-                UpstreamOnlyAfter = Token(authoredBefore),
+                UpstreamOnlyAfter = Token(legacyAuthored),
                 InheritedDelta = "0",
-                RawLocalDelta = Token(authoredAfter - authoredBefore),
+                RawLocalDelta = Token(authoredAfter - legacyAuthored),
                 LocalQuantizationBoundaryCount = 1,
                 DownstreamConsumerCount = recipe.Outputs.Count.ToString(CultureInfo.InvariantCulture),
                 DependencyIds = dependencies,
                 RootCauseIds = Array.Empty<string>(),
                 AnomalyDisposition = "warning",
                 ReasonCode = reasonCode,
-                ReasonDetail = "Authored integer display candidate; runtime work authority is "
+                ReasonDetail = "Recurring-throughput correction; runtime work authority is the authored batch WU through "
                     + "V27BalanceWorkCalculator. Same-route labor-density ratio="
                     + Token(densityRatio) + "; explicit exact approval required.",
                 SourceAuthority = path,
@@ -2494,7 +2612,7 @@ public static class V27BalanceAudit
                 SaveAuthority = "ProductionRecipeSO authored display + V27 runtime formula",
                 VerificationEvidence = "V27 authored work audit",
                 ReviewStatus = "pending",
-                ApprovalKey = authoredBefore != authoredAfter
+                ApprovalKey = legacyAuthored != authoredAfter
                     ? BuildApprovalKey(stableId, "authored-required-wu", authoredAfterToken,
                         dependencyFingerprint, approvalSourceDigest, reasonCode,
                         ResolveLaborBaselineRecordId(stableId))
@@ -2518,42 +2636,55 @@ public static class V27BalanceAudit
                         : BalanceAnomalyDisposition.None,
                     densitySeverity > percentSeverity
                         ? "labor-density-drift"
-                        : "v27-duration-preserving-first-candidate",
+                        : reasonCode,
                     Array.Empty<string>()));
             }
         }
     }
 
-    private static void CaptureBuildingCandidates(
+    private static IReadOnlyDictionary<string, V27ConstructionRedistributionResult>
+        CaptureBuildingCandidates(
         IEnumerable<BuildingSO> definitions,
         EmbeddedWorkValueSnapshot beforeValues,
         V27EmbeddedWorkValueSnapshot afterValues,
-        IBalanceWorkCalculator work,
+        V23BalanceWorkCalculator work,
         BalanceCaptureFactory capture,
         ICollection<BalanceAnomalyNode> anomalies,
         IDictionary<string, string> sourceDigests,
         IReadOnlyDictionary<string, string> historicalBeforeValues)
     {
+        Dictionary<string, V27ConstructionRedistributionResult> results = new(
+            StringComparer.Ordinal);
         foreach (BuildingSO building in definitions
                      .Where(value => value != null && value.id >= 0 && !value.IsDeprecatedCompatibilityAsset)
                      .OrderBy(value => value.ContentDefinitionId, StringComparer.Ordinal))
         {
             string stableId = ResolveBuildingStableId(building);
-            IReadOnlyList<ItemAmountDefinition> materials = building.GetConstructionMaterials();
-            if (materials.Count == 0)
+            IReadOnlyList<ItemAmountDefinition> currentMaterials =
+                building.GetConstructionMaterials();
+            if (currentMaterials.Count == 0)
                 continue;
+            Dictionary<string, string> amountPaths =
+                FindConstructionMaterialAmountPaths(building);
+            ItemAmountDefinition[] beforeMaterials = currentMaterials
+                .OrderBy(value => value.ItemId, StringComparer.Ordinal)
+                .Select(value => new ItemAmountDefinition(
+                    value.ItemId,
+                    ResolveHistoricalIntegerBefore(
+                        stableId,
+                        ConstructionMaterialMetric(value.ItemId),
+                        value.Amount,
+                        historicalBeforeValues)))
+                .ToArray();
             decimal beforeWu = BalanceCanonicalText.DecimalFromFiniteFloat(
-                work.CalculateConstruction(building),
+                work.CalculateConstruction(building, beforeMaterials),
                 $"building:{stableId}:constructionWU");
-            decimal afterWu = decimal.Ceiling(beforeWu * LaborScale);
-            decimal candidateRedistributedWu = decimal.Ceiling(beforeWu * 1.5m);
             decimal beforeBomEwu = 0m;
-            long afterBomMilli = 0L;
             bool resolved = true;
-            foreach (ItemAmountDefinition material in materials)
+            foreach (ItemAmountDefinition material in beforeMaterials)
             {
                 if (!beforeValues.TryGetItemWork(material.ItemId, out float oldWork)
-                    || !afterValues.Items.TryGetValue(material.ItemId, out V27ItemValue newValue))
+                    || !afterValues.Items.ContainsKey(material.ItemId))
                 {
                     resolved = false;
                     break;
@@ -2561,21 +2692,37 @@ public static class V27BalanceAudit
                 beforeBomEwu += BalanceCanonicalText.DecimalFromFiniteFloat(
                     oldWork,
                     $"building:{stableId}:bom") * material.Amount;
-                afterBomMilli = checked(
-                    afterBomMilli + newValue.AcquisitionCost.MilliEwu * material.Amount);
             }
-            if (!resolved || beforeBomEwu <= 0m || afterBomMilli <= 0L)
+            if (!resolved || beforeBomEwu <= 0m)
                 continue;
-            decimal afterBomEwu = afterBomMilli / 1000m;
+
+            V27ConstructionRedistributionResult selected =
+                V27ConstructionRedistributionPolicy.Select(
+                    stableId,
+                    building,
+                    beforeWu,
+                    beforeBomEwu,
+                    beforeMaterials,
+                    afterValues.Items);
+            if (!results.TryAdd(stableId, selected))
+                throw new InvalidOperationException($"Duplicate construction result: {stableId}.");
+
+            decimal periodWu = selected.PeriodCandidateWu;
+            decimal selectedWu = selected.AfterWu;
+            decimal originalAfterBomEwu = selected.BeforeBomMilliEwu / 1000m;
+            decimal selectedAfterBomEwu = selected.AfterBomMilliEwu / 1000m;
             decimal beforeDensity = beforeWu / beforeBomEwu;
-            decimal afterDensity = afterWu / afterBomEwu;
-            decimal densityRatio = beforeDensity == 0m ? 0m : afterDensity / beforeDensity;
-            BalanceAnomalySeverity densitySeverity =
-                BalanceAnomalyDetector.ClassifyLaborDensity(densityRatio);
+            decimal periodDensity = periodWu / originalAfterBomEwu;
+            decimal selectedDensity = selectedWu / selectedAfterBomEwu;
+            BalanceAnomalySeverity selectedSeverity = selected.Disposition
+                == V27ConstructionRedistributionDisposition.Normal
+                    ? BalanceAnomalySeverity.None
+                    : BalanceAnomalySeverity.Warning;
             string path = AssetDatabase.GetAssetPath(building);
             string sourceDigest = GetSourceDigest(path, sourceDigests);
-            string bom = FormatBom(materials);
-            string[] dependencies = materials.Select(value => value.ItemId)
+            string beforeBom = FormatBom(beforeMaterials);
+            string afterBom = FormatBom(selected.AfterMaterials);
+            string[] dependencies = beforeMaterials.Select(value => value.ItemId)
                 .OrderBy(value => value, StringComparer.Ordinal)
                 .ToArray();
             BuildingWorkAmountAbility authoredWork =
@@ -2585,113 +2732,522 @@ public static class V27BalanceAudit
                 : string.Empty;
             CaptureBuildingCandidate(
                 capture, building, stableId, path, sourceDigest, dependencies,
-                "construction-wu:period-preserving", beforeWu, afterWu, bom,
-                beforeBomEwu, afterBomEwu, beforeDensity, afterDensity,
-                densitySeverity, "WU*2.25; BOM unchanged", false,
-                "derived:V23BalanceWorkCalculator.CalculateConstruction");
+                "construction-wu:period-preserving", beforeWu, periodWu,
+                beforeBom, beforeBom,
+                beforeBomEwu, originalAfterBomEwu, beforeDensity, periodDensity,
+                BalanceAnomalyDetector.ClassifyLaborDensity(periodDensity / beforeDensity),
+                "candidate-period-preserving",
+                "ceil(V23 runtime WU*2.25); BOM unchanged",
+                false,
+                "derived:V23BalanceWorkCalculator.CalculateConstruction",
+                "candidate");
             CaptureBuildingCandidate(
                 capture, building, stableId, path, sourceDigest, dependencies,
-                "construction-wu:bom-redistribution", beforeWu, candidateRedistributedWu,
-                bom, beforeBomEwu, afterBomEwu, beforeDensity,
-                candidateRedistributedWu / afterBomEwu,
-                BalanceAnomalySeverity.Warning,
-                "REJECTED: WU*1.5 plus any BOM increase lowers labor density; "
-                + "the period-preserving unchanged-BOM candidate is the bounded minimum change.",
+                "construction-wu:bom-redistribution", beforeWu, selectedWu,
+                beforeBom, afterBom,
+                beforeBomEwu, selectedAfterBomEwu, beforeDensity, selectedDensity,
+                selectedSeverity,
+                "facility-bounded-cost-redistribution",
+                selected.SelectionReason,
                 false,
-                "derived:V23BalanceWorkCalculator.CalculateConstruction");
+                "derived:V27ConstructionRedistributionPolicy",
+                "selected");
             CaptureBuildingCandidate(
                 capture, building, stableId, path, sourceDigest, dependencies,
-                "construction-wu:min-change", beforeWu, afterWu, bom,
-                beforeBomEwu, afterBomEwu, beforeDensity, afterDensity,
-                densitySeverity,
-                "SELECTED: exact 2.25 labor scale with unchanged BOM preserves period and density.",
+                "construction-wu:min-change", beforeWu, selectedWu,
+                beforeBom, afterBom,
+                beforeBomEwu, selectedAfterBomEwu, beforeDensity, selectedDensity,
+                selectedSeverity,
+                "facility-bounded-minimum-change",
+                selected.SelectionReason + "; changedRows="
+                    + CountChangedMaterialRows(selected).ToString(CultureInfo.InvariantCulture)
+                    + "; investmentError="
+                    + selected.InvestmentErrorMilliEwu.ToString(CultureInfo.InvariantCulture)
+                    + "mEWU",
                 false,
-                "derived:V23BalanceWorkCalculator.CalculateConstruction");
+                "derived:V27ConstructionRedistributionPolicy",
+                "selected");
             CaptureBuildingCandidate(
                 capture, building, stableId, path, sourceDigest, dependencies,
-                "construction-wu:approved", beforeWu, afterWu, bom,
-                beforeBomEwu, afterBomEwu, beforeDensity, afterDensity,
-                densitySeverity,
-                "SELECTED: V27 runtime work authority uses the exact 45/20 scale.",
+                "construction-wu:approved", beforeWu, selectedWu,
+                beforeBom, afterBom,
+                beforeBomEwu, selectedAfterBomEwu, beforeDensity, selectedDensity,
+                selectedSeverity,
+                "facility-bounded-approved-authority",
+                "SELECTED: " + selected.SelectionReason,
                 false,
-                "derived:V23BalanceWorkCalculator.CalculateConstruction");
+                "BuildingWorkAmountAbility.constructionWorkRequired + constructionMaterials",
+                "selected");
             if (authoredWork != null)
             {
                 decimal authoredCurrent = BalanceCanonicalText.DecimalFromFiniteFloat(
                     authoredWork.constructionWorkRequired,
                     $"building:{stableId}:constructionWorkRequired");
-                decimal authoredBefore = ResolveBuildingAuthoredBefore(
+                decimal patchBefore = ResolveHistoricalAuthoredBefore(
                     stableId,
+                    "construction-authored-wu:redistributed",
                     authoredCurrent,
                     historicalBeforeValues);
-                decimal authoredPeriod = decimal.Ceiling(authoredBefore * LaborScale);
-                if (authoredCurrent != authoredBefore && authoredCurrent != authoredPeriod)
+                if (authoredCurrent != patchBefore && authoredCurrent != selectedWu)
                 {
                     throw new InvalidOperationException(
-                        $"Building authored work drifted outside its V27 Before/After contract: "
+                        $"Building authored construction WU drifted outside its V27 patch: "
                         + $"{stableId}; current={Token(authoredCurrent)}, "
-                        + $"before={Token(authoredBefore)}, after={Token(authoredPeriod)}.");
+                        + $"before={Token(patchBefore)}, after={Token(selectedWu)}.");
                 }
-                decimal authoredRedistributed = decimal.Ceiling(authoredBefore * 1.5m);
                 CaptureBuildingCandidate(
                     capture, building, stableId, path, sourceDigest, dependencies,
-                    "construction-authored-wu:period-preserving",
-                    authoredBefore, authoredPeriod, bom,
-                    beforeBomEwu, afterBomEwu,
-                    authoredBefore / beforeBomEwu,
-                    authoredPeriod / afterBomEwu,
-                    BalanceAnomalyDetector.ClassifyLaborDensity(
-                        (authoredPeriod / afterBomEwu) / (authoredBefore / beforeBomEwu)),
-                    "ceil(authored constructionWorkRequired*2.25); BOM unchanged",
-                    true, authoredWorkPath,
-                    authoredCurrent == authoredPeriod);
-                CaptureBuildingCandidate(
-                    capture, building, stableId, path, sourceDigest, dependencies,
-                    "construction-authored-wu:bom-redistribution",
-                    authoredBefore, authoredRedistributed, bom,
-                    beforeBomEwu, afterBomEwu,
-                    authoredBefore / beforeBomEwu,
-                    authoredRedistributed / afterBomEwu,
-                    BalanceAnomalySeverity.Warning,
-                    "REJECTED: ceil(authored constructionWorkRequired*1.5) would lower "
-                    + "labor density and adding BOM would worsen the denominator.",
-                    false, authoredWorkPath);
-                CaptureBuildingCandidate(
-                    capture, building, stableId, path, sourceDigest, dependencies,
-                    "construction-authored-wu:approved",
-                    authoredBefore, authoredPeriod, bom,
-                    beforeBomEwu, afterBomEwu,
-                    authoredBefore / beforeBomEwu,
-                    authoredPeriod / afterBomEwu,
-                    BalanceAnomalyDetector.ClassifyLaborDensity(
-                        (authoredPeriod / afterBomEwu) / (authoredBefore / beforeBomEwu)),
-                    "SELECTED: authored integer display mirrors the period-preserving candidate.",
-                    false, authoredWorkPath);
+                    "construction-authored-wu:redistributed",
+                    patchBefore, selectedWu,
+                    beforeBom, afterBom,
+                    beforeBomEwu, selectedAfterBomEwu,
+                    beforeDensity, selectedDensity,
+                    selectedSeverity,
+                    "facility-authored-runtime-wu-authority",
+                    "Approved per-building runtime WU selected by the bounded WU/BOM optimizer.",
+                    patchBefore != selectedWu,
+                    authoredWorkPath,
+                    "pending",
+                    authoredCurrent == selectedWu);
+
+                Dictionary<string, int> currentAmounts = currentMaterials
+                    .ToDictionary(value => value.ItemId, value => value.Amount, StringComparer.Ordinal);
+                Dictionary<string, int> beforeAmounts = beforeMaterials
+                    .ToDictionary(value => value.ItemId, value => value.Amount, StringComparer.Ordinal);
+                Dictionary<string, int> afterAmounts = selected.AfterMaterials
+                    .ToDictionary(value => value.ItemId, value => value.Amount, StringComparer.Ordinal);
+                foreach (string itemId in dependencies)
+                {
+                    int currentAmount = currentAmounts[itemId];
+                    int beforeAmount = beforeAmounts[itemId];
+                    int afterAmount = afterAmounts[itemId];
+                    if (currentAmount != beforeAmount && currentAmount != afterAmount)
+                    {
+                        throw new InvalidOperationException(
+                            $"Building construction BOM drifted outside its V27 patch: "
+                            + $"{stableId}:{itemId}; current={currentAmount}; "
+                            + $"before={beforeAmount}; after={afterAmount}.");
+                    }
+                    CaptureBuildingMaterialAmount(
+                        capture,
+                        stableId,
+                        path,
+                        sourceDigest,
+                        dependencies,
+                        itemId,
+                        beforeAmount,
+                        afterAmount,
+                        beforeBom,
+                        afterBom,
+                        beforeBomEwu,
+                        selectedAfterBomEwu,
+                        amountPaths[itemId],
+                        currentAmount == afterAmount);
+                }
             }
-            if (densitySeverity != BalanceAnomalySeverity.None)
+            if (selectedSeverity == BalanceAnomalySeverity.Warning)
             {
                 anomalies.Add(BalanceAnomalyNode.Capture(
                     stableId,
                     "labor-density",
-                    densitySeverity,
-                    densitySeverity == BalanceAnomalySeverity.Critical
-                        ? BalanceAnomalyDisposition.LocalCritical
-                        : BalanceAnomalyDisposition.None,
-                    "labor-density-drift",
+                    BalanceAnomalySeverity.Warning,
+                    BalanceAnomalyDisposition.None,
+                    "bounded-redistribution-warning",
                     dependencies));
             }
         }
+        return results;
+    }
+
+    private static void CaptureIntegratedCapacityMetrics(
+        BalanceCaptureFactory capture,
+        IDictionary<string, string> sourceDigests)
+    {
+        const string survivalSource =
+            "Assets/Scripts/Services/Economy/V27SurvivalClosedLoopModels.cs";
+        const string spatialSource =
+            "Assets/Scripts/Services/Economy/Editor/V27AssetBackedSpatialCapacityDebugScenarios.cs";
+        const string continuitySource =
+            "Assets/Scripts/Services/Economy/SurvivalContinuityCatalogQuery.cs";
+        string survivalDigest = GetSourceDigest(survivalSource, sourceDigests);
+        string spatialDigest = GetSourceDigest(spatialSource, sourceDigests);
+        string continuityDigest = GetSourceDigest(continuitySource, sourceDigests);
+
+        foreach (int population in PopulationStagePortfolioCatalog.PopulationStages)
+        {
+            SurvivalClosedLoopAssessment value =
+                V27SixAdultSurvivalLoopDebugScenarios.CapturePopulationStage(population);
+            if (!value.Passed)
+                throw new InvalidOperationException(value.FailureCode);
+            string stableId = "population-stage:" + Token(population);
+            CaptureInvariantMetric(capture, "survival", "population-stage", stableId,
+                "daily-food-demand", "milli-nutrition/day",
+                value.DailyFoodDemandMilliNutrition, survivalSource, survivalDigest,
+                "population * authored hunger depletion", SixAdultClosedLoopBaselineRecordId);
+            CaptureInvariantMetric(capture, "survival", "population-stage", stableId,
+                "gross-food-coverage", "permille",
+                value.GrossFoodCoveragePermille, survivalSource, survivalDigest,
+                "gross physical nutrition / daily demand", SixAdultClosedLoopBaselineRecordId);
+            CaptureInvariantMetric(capture, "survival", "population-stage", stableId,
+                "net-food-coverage", "permille",
+                value.NetFoodCoveragePermille, survivalSource, survivalDigest,
+                "post-loss physical nutrition / daily demand", SixAdultClosedLoopBaselineRecordId);
+            CaptureInvariantMetric(capture, "survival", "population-stage", stableId,
+                "drinking-water-demand", "milli-units/day",
+                value.DrinkingWaterDemandMilliUnitsPerDay, survivalSource, survivalDigest,
+                "population thirst / safe drink recovery", SixAdultClosedLoopBaselineRecordId);
+            CaptureInvariantMetric(capture, "survival", "population-stage", stableId,
+                "gross-water-coverage", "permille",
+                value.GrossDrinkingWaterCoveragePermille, survivalSource, survivalDigest,
+                "gross physical clean-water / drinking demand", SixAdultClosedLoopBaselineRecordId);
+            CaptureInvariantMetric(capture, "labor", "population-stage", stableId,
+                "recurring-survival-work", "mWU/day",
+                value.RecurringMilliWuPerDay, survivalSource, survivalDigest,
+                "crop + cooking + clean-water recurring work", SixAdultClosedLoopBaselineRecordId);
+            CaptureInvariantMetric(capture, "labor", "population-stage", stableId,
+                "recurring-survival-share", "permille",
+                value.RecurringSharePermille, survivalSource, survivalDigest,
+                "recurring work / population effective work", SixAdultClosedLoopBaselineRecordId);
+            CaptureInvariantMetric(capture, "survival", "population-stage", stableId,
+                "immediate-meal-buffer", "units",
+                value.ImmediateMealUnits, survivalSource, survivalDigest,
+                "one-day meal demand rounded to physical recipe batch", SixAdultClosedLoopBaselineRecordId);
+            CaptureInvariantMetric(capture, "storage", "population-stage", stableId,
+                "seven-day-grain-reserve", "units",
+                value.SevenDayGrainUnits, survivalSource, survivalDigest,
+                "seven-day food demand converted to physical grain", SixAdultClosedLoopBaselineRecordId);
+            CaptureInvariantMetric(capture, "storage", "population-stage", stableId,
+                "seven-day-clean-water-reserve", "units",
+                value.SevenDayWaterUnits, survivalSource, survivalDigest,
+                "seven-day total clean-water demand", SixAdultClosedLoopBaselineRecordId);
+            CaptureInvariantMetric(capture, "storage", "population-stage", stableId,
+                "required-storage-cells", "cells",
+                value.StorageCells, survivalSource, survivalDigest,
+                "ceil physical reserve quantities / authored stack capacities", OverflowContainmentBaselineRecordId);
+            CaptureInvariantMetric(capture, "agriculture", "population-stage", stableId,
+                "required-crop-plots", "plots",
+                value.CropPlots, survivalSource, survivalDigest,
+                "ceil gross grain demand / daily physical crop yield", SixAdultClosedLoopBaselineRecordId);
+        }
+
+        IReadOnlyList<V27AssetBackedStageCapacityAssessment> spatial =
+            V27AssetBackedSpatialCapacityDebugScenarios.CaptureStageCapacityAssessments();
+        foreach (V27AssetBackedStageCapacityAssessment value in spatial)
+        {
+            string stableId = "population-stage:" + Token(value.Population);
+            CaptureInvariantMetric(capture, "space", "population-stage", stableId,
+                "interior-columns", "columns", value.InteriorColumns,
+                spatialSource, spatialDigest, "minimum passing width across 256 deterministic layouts",
+                PopulationCapacityBaselineRecordId);
+            CaptureInvariantMetric(capture, "space", "population-stage", stableId,
+                "successful-layout-seeds", "seeds", value.SuccessfulSeeds,
+                spatialSource, spatialDigest, "asset-backed BuildingPlacementValidator successes",
+                PopulationCapacityBaselineRecordId);
+            CaptureInvariantMetric(capture, "space", "population-stage", stableId,
+                "minimum-headroom", "permille", value.MinimumHeadroomPermille,
+                spatialSource, spatialDigest, "usable cells minus union-accounted occupied cells",
+                SharedAccessBaselineRecordId);
+            CaptureInvariantMetric(capture, "space", "population-stage", stableId,
+                "maximum-normal-cell-utilization", "permille",
+                value.MaximumNormalCellUtilizationPermille, spatialSource, spatialDigest,
+                "maximum shared access/corridor utilization", SharedAccessBaselineRecordId);
+            CaptureInvariantMetric(capture, "space", "population-stage", stableId,
+                "maximum-fault-cell-utilization", "permille",
+                value.MaximumFaultCellUtilizationPermille, spatialSource, spatialDigest,
+                "single-fault shared access/corridor utilization", SharedAccessBaselineRecordId);
+            CaptureInvariantMetric(capture, "storage", "population-stage", stableId,
+                "maximum-normal-storage-utilization", "permille",
+                value.MaximumNormalStorageUtilizationPermille, spatialSource, spatialDigest,
+                "normal physical reserve / installed storage capacity", OverflowContainmentBaselineRecordId);
+            CaptureInvariantMetric(capture, "storage", "population-stage", stableId,
+                "maximum-fault-storage-utilization", "permille",
+                value.MaximumFaultStorageUtilizationPermille, spatialSource, spatialDigest,
+                "single-fault reserve and burst / installed storage capacity", OverflowContainmentBaselineRecordId);
+            CaptureInvariantMetric(capture, "space", "population-stage", stableId,
+                "facility-requirement-count", "requirements", value.FacilityRequirementCount,
+                spatialSource, spatialDigest, "population portfolio physical facility count",
+                PopulationCapacityBaselineRecordId);
+            CaptureInvariantMetric(capture, "storage", "population-stage", stableId,
+                "minimum-storage-capacity", "units", value.MinimumStorageCapacityUnits,
+                spatialSource, spatialDigest, "minimum installed physical stack capacity",
+                OverflowContainmentBaselineRecordId);
+            CaptureInvariantMetric(capture, "space", "population-stage", stableId,
+                "fixed-interior-world-feature-cells", "cells",
+                V27PopulationStageSpatialBaseline.FixedWorldFeatureCells(value.Population),
+                spatialSource, spatialDigest,
+                "live interior resource-node cross-check authority", PopulationCapacityBaselineRecordId);
+        }
+
+        foreach (SurvivalContinuityPathSnapshot path in
+                 V27SixAdultSurvivalLoopDebugScenarios.CaptureContinuityPaths(6))
+        {
+            string stableId = path.PathId;
+            CaptureInvariantMetric(capture, "continuity", "service-path", stableId,
+                "capacity", "permille", path.CapacityPermille,
+                continuitySource, continuityDigest, "authored production path capacity",
+                path.IsPrimitive ? PrimitiveFallbackBaselineRecordId : ServiceContinuityBaselineRecordId);
+            CaptureInvariantMetric(capture, "continuity", "service-path", stableId,
+                "recurring-work", "mWU/day", path.RecurringMilliWuPerDay,
+                continuitySource, continuityDigest, "service-path recurring work",
+                path.IsPrimitive ? PrimitiveFallbackBaselineRecordId : ServiceContinuityBaselineRecordId);
+            CaptureInvariantMetric(capture, "continuity", "service-path", stableId,
+                "action-duration", "milliseconds", path.ActionDurationMilliseconds,
+                continuitySource, continuityDigest, "production action duration",
+                path.IsPrimitive ? PrimitiveFallbackBaselineRecordId : ServiceContinuityBaselineRecordId);
+            CaptureInvariantMetric(capture, "continuity", "service-path", stableId,
+                "physical-input-quantity", "units", path.PhysicalInputQuantity,
+                continuitySource, continuityDigest, "exact physical input consumption",
+                path.IsPrimitive ? PrimitiveFallbackBaselineRecordId : ServiceContinuityBaselineRecordId);
+            CaptureInvariantMetric(capture, "continuity", "service-path", stableId,
+                "mood-delta", "milli-units", path.MoodDeltaMilliUnits,
+                continuitySource, continuityDigest, "service-path authored consequence",
+                path.IsPrimitive ? PrimitiveFallbackBaselineRecordId : ServiceContinuityBaselineRecordId);
+            CaptureInvariantMetric(capture, "continuity", "service-path", stableId,
+                "hygiene-delta", "milli-units", path.HygieneDeltaMilliUnits,
+                continuitySource, continuityDigest, "service-path authored consequence",
+                path.IsPrimitive ? PrimitiveFallbackBaselineRecordId : ServiceContinuityBaselineRecordId);
+            CaptureInvariantMetric(capture, "continuity", "service-path", stableId,
+                "waste-output", "milli-units", path.WasteMilliUnits,
+                continuitySource, continuityDigest, "service-path authored consequence",
+                path.IsPrimitive ? PrimitiveFallbackBaselineRecordId : ServiceContinuityBaselineRecordId);
+            CaptureInvariantMetric(capture, "continuity", "service-path", stableId,
+                "stain-output", "milli-units", path.StainMilliUnits,
+                continuitySource, continuityDigest, "service-path authored consequence",
+                path.IsPrimitive ? PrimitiveFallbackBaselineRecordId : ServiceContinuityBaselineRecordId);
+        }
+
+        V27RedundancyCapitalAssessment capital =
+            V27AssetBackedSpatialCapacityDebugScenarios.CaptureSixAdultRedundancyCapital();
+        CaptureInvariantMetric(capture, "capital", "population-stage",
+            "population-stage:6", "service-redundancy-capital-ratio", "permille",
+            capital.ActualRedundancyCapitalPermille, spatialSource, spatialDigest,
+            "actual duplicate service capital / total six-adult facility capital",
+            ServiceContinuityBaselineRecordId);
+        CaptureInvariantMetric(capture, "capital", "population-stage",
+            "population-stage:6", "avoided-duplicate-service-capital", "milli-capital",
+            capital.AvoidedDuplicateCapitalMilliUnits, spatialSource, spatialDigest,
+            "primitive N+1 avoids duplicate food-production and water facility capital",
+            PrimitiveFallbackBaselineRecordId);
+
+        CapturePairedRunMetrics(capture);
+    }
+
+    private static void CapturePairedRunMetrics(BalanceCaptureFactory capture)
+    {
+        const string path = "Artifacts/QA/v27-balance-paired-run-rng.txt";
+        if (!File.Exists(path))
+            throw new InvalidOperationException("V27 paired-run evidence is missing.");
+        string[] lines = File.ReadAllLines(path);
+        if (lines.Length == 0
+            || !lines[0].StartsWith("RESULT=PASS;", StringComparison.Ordinal))
+            throw new InvalidOperationException("V27 paired-run evidence is not PASS.");
+        string sourceDigest = HashText(File.ReadAllText(path));
+        CaptureInvariantMetric(capture, "chaos", "paired-run", "paired-run:four-arm",
+            "seed-count", "seeds", ParseKey(lines[0], "seeds"), path, sourceDigest,
+            "cleanRepeatA/cleanRepeatB/faultControl/clutterStress", PairedRunBaselineRecordId);
+        CaptureInvariantMetric(capture, "chaos", "paired-run", "paired-run:four-arm",
+            "window-count", "windows", ParseKey(lines[0], "windows"), path, sourceDigest,
+            "fixed game-time windows", PairedRunBaselineRecordId);
+        CaptureInvariantMetric(capture, "chaos", "paired-run", "paired-run:four-arm",
+            "floor-diagnostic-row-count", "rows", ParseKey(lines[0], "floorRows"), path, sourceDigest,
+            "per-arm per-window floor diagnostics", FloorClutterBaselineRecordId);
+        string attribution = RequireReportLine(lines, "PASS\tPAIRED_CLUTTER_ATTRIBUTION\t");
+        CaptureInvariantMetric(capture, "chaos", "paired-run", "paired-run:four-arm",
+            "wait-wu-delta-median", "permille", ParseKey(attribution, "medianPermille"),
+            path, sourceDigest, "median (clutterStress-faultControl)/faultControl wait WU",
+            PairedRunBaselineRecordId);
+        CaptureInvariantMetric(capture, "chaos", "paired-run", "paired-run:four-arm",
+            "wait-wu-delta-p95", "permille", ParseKey(attribution, "p95Permille"),
+            path, sourceDigest, "p95 (clutterStress-faultControl)/faultControl wait WU",
+            PairedRunBaselineRecordId);
+        string clutter = RequireReportLine(lines, "PASS\tFLOOR_CLUTTER_RECOVERY_ZERO\t");
+        CaptureInvariantMetric(capture, "chaos", "paired-run", "paired-run:four-arm",
+            "persistent-floor-clutter", "stacks", ParseKey(clutter, "persistent"),
+            path, sourceDigest, "persistent loose stacks outside authorized containment",
+            FloorClutterBaselineRecordId);
+        string headroom = RequireReportLine(lines, "PASS\tPAIRED_RUNTIME_HEADROOM_AT_LEAST_30_PERCENT\t");
+        CaptureInvariantMetric(capture, "chaos", "paired-run", "paired-run:four-arm",
+            "minimum-runtime-headroom", "permille", ParseKey(headroom, "minimumPermille"),
+            path, sourceDigest, "minimum runtime headroom across four arms",
+            FloorClutterBaselineRecordId);
+        string crossTalk = RequireReportLine(lines, "PASS\tRNG_CAUSAL_CONE_NO_CROSS_TALK\t");
+        CaptureInvariantMetric(capture, "rng", "paired-run", "paired-run:four-arm",
+            "outside-causal-cone-divergence", "streams",
+            ParseKey(crossTalk, "outsideConeDivergence"), path, sourceDigest,
+            "unaffected stream divergence", CounterfactualRngBaselineRecordId);
+    }
+
+    private static string RequireReportLine(IEnumerable<string> lines, string prefix) =>
+        lines.FirstOrDefault(value => value.StartsWith(prefix, StringComparison.Ordinal))
+        ?? throw new InvalidOperationException("Missing V27 evidence marker: " + prefix);
+
+    private static long ParseKey(string line, string key)
+    {
+        foreach (string token in line.Split(new[] { ';', '\t' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            int separator = token.IndexOf('=');
+            if (separator <= 0
+                || !string.Equals(token.Substring(0, separator).Trim(), key, StringComparison.Ordinal))
+                continue;
+            if (long.TryParse(token.Substring(separator + 1), NumberStyles.Integer,
+                    CultureInfo.InvariantCulture, out long value))
+                return value;
+        }
+        throw new InvalidOperationException("Missing numeric key " + key + " in " + line);
+    }
+
+    private static void CaptureInvariantMetric(
+        BalanceCaptureFactory capture,
+        string domain,
+        string definitionKind,
+        string stableId,
+        string metric,
+        string unit,
+        long value,
+        string sourceAuthority,
+        string sourceDigest,
+        string formula,
+        string baselineRecordId)
+    {
+        string token = value.ToString(CultureInfo.InvariantCulture);
+        string fingerprint = HashText(stableId + "|" + metric + "|" + token + "|" + formula);
+        capture.Capture(new BalanceMetricCaptureRequest
+        {
+            Domain = domain,
+            DefinitionKind = definitionKind,
+            StableId = stableId,
+            Metric = metric,
+            Unit = unit,
+            Before = token,
+            After = token,
+            AuthoredRoundedValue = token,
+            PercentDelta = "0",
+            ExactFormula = formula,
+            BeforeBom = "N/A",
+            AfterBom = "N/A",
+            BeforeDirectWu = "N/A",
+            AfterDirectWu = "N/A",
+            BeforeBomEwu = "N/A",
+            AfterBomEwu = "N/A",
+            BeforeLaborDensity = "N/A",
+            AfterLaborDensity = "N/A",
+            UpstreamOnlyAfter = token,
+            InheritedDelta = "0",
+            RawLocalDelta = "0",
+            LocalQuantizationBoundaryCount = 0,
+            DownstreamConsumerCount = "0",
+            DependencyIds = Array.Empty<string>(),
+            RootCauseIds = Array.Empty<string>(),
+            AnomalyDisposition = "none",
+            ReasonCode = "v27-integrated-capacity-authority",
+            ReasonDetail = "Integrated survival, continuity, spatial, clutter, and RNG capacity metric.",
+            SourceAuthority = sourceAuthority,
+            SourcePropertyPath = metric,
+            ExecutionRoute = "V27 integrated capacity audit",
+            SaveAuthority = "authored authority plus durable verifier evidence",
+            VerificationEvidence = sourceAuthority,
+            ReviewStatus = "verified",
+            ApprovalKey = string.Empty,
+            DependencyFingerprint = fingerprint,
+            LocalFingerprint = fingerprint,
+            SourceDigest = sourceDigest,
+            SemanticHash = fingerprint,
+            AssetApplied = "false",
+            BalanceBaselineRecordId = baselineRecordId
+        });
+    }
+
+    private static string ConstructionMaterialMetric(string itemId) =>
+        "construction-material-amount:"
+        + BalanceCanonicalText.StableId(itemId, "construction material metric");
+
+    private static int ResolveHistoricalIntegerBefore(
+        string stableId,
+        string metric,
+        int current,
+        IReadOnlyDictionary<string, string> historicalBeforeValues)
+    {
+        if (historicalBeforeValues != null
+            && historicalBeforeValues.TryGetValue(
+                V27BalanceAssetApplication.BuildHistoricalBeforeKey(stableId, metric),
+                out string token))
+        {
+            int value = int.Parse(token, NumberStyles.Integer, CultureInfo.InvariantCulture);
+            if (value <= 0)
+                throw new InvalidOperationException(
+                    $"Historical construction amount must be positive: {stableId}:{metric}={value}.");
+            return value;
+        }
+        return current;
+    }
+
+    private static Dictionary<string, string> FindConstructionMaterialAmountPaths(
+        BuildingSO building)
+    {
+        SerializedObject serialized = new SerializedObject(building);
+        SerializedProperty iterator = serialized.GetIterator();
+        List<string> materialPaths = new List<string>();
+        bool enterChildren = true;
+        while (iterator.Next(enterChildren))
+        {
+            enterChildren = ShouldEnterSerializedChildren(iterator);
+            if (string.Equals(iterator.name, "constructionMaterials", StringComparison.Ordinal)
+                && iterator.isArray)
+            {
+                materialPaths.Add(iterator.propertyPath);
+            }
+        }
+        string[] distinct = materialPaths.Distinct(StringComparer.Ordinal).ToArray();
+        if (distinct.Length != 1)
+        {
+            throw new InvalidOperationException(
+                $"Expected one constructionMaterials array on "
+                + $"{AssetDatabase.GetAssetPath(building)}, found {distinct.Length}.");
+        }
+
+        SerializedProperty array = serialized.FindProperty(distinct[0])
+            ?? throw new InvalidOperationException(
+                $"Construction material array disappeared: {AssetDatabase.GetAssetPath(building)}.");
+        Dictionary<string, string> result = new Dictionary<string, string>(StringComparer.Ordinal);
+        for (int index = 0; index < array.arraySize; index++)
+        {
+            SerializedProperty element = array.GetArrayElementAtIndex(index);
+            SerializedProperty item = element.FindPropertyRelative("itemId")
+                ?? throw new InvalidOperationException("Construction material itemId is missing.");
+            SerializedProperty amount = element.FindPropertyRelative("amount")
+                ?? throw new InvalidOperationException("Construction material amount is missing.");
+            string itemId = BalanceCanonicalText.StableId(
+                item.stringValue,
+                AssetDatabase.GetAssetPath(building) + ":constructionMaterials.itemId");
+            if (!result.TryAdd(itemId, amount.propertyPath))
+            {
+                throw new InvalidOperationException(
+                    $"Duplicate construction material ID on {AssetDatabase.GetAssetPath(building)}: {itemId}.");
+            }
+        }
+        return result;
+    }
+
+    private static int CountChangedMaterialRows(
+        V27ConstructionRedistributionResult result)
+    {
+        Dictionary<string, int> before = result.BeforeMaterials.ToDictionary(
+            value => value.ItemId,
+            value => value.Amount,
+            StringComparer.Ordinal);
+        return result.AfterMaterials.Count(value => before[value.ItemId] != value.Amount);
     }
 
     private static void CaptureDismantleCycles(
         IEnumerable<BuildingSO> definitions,
         EmbeddedWorkValueSnapshot beforeValues,
         V27EmbeddedWorkValueSnapshot afterValues,
-        IBalanceWorkCalculator work,
         IMaterialSalvageCalculator salvage,
         BalanceCaptureFactory capture,
         ICollection<BalanceAnomalyNode> anomalies,
-        IDictionary<string, string> sourceDigests)
+        IDictionary<string, string> sourceDigests,
+        IReadOnlyDictionary<string, V27ConstructionRedistributionResult>
+            constructionCandidates)
     {
         foreach (BuildingSO building in definitions
                      .Where(value => value != null
@@ -2699,40 +3255,57 @@ public static class V27BalanceAudit
                          && !value.IsDeprecatedCompatibilityAsset)
                      .OrderBy(value => value.ContentDefinitionId, StringComparer.Ordinal))
         {
-            ItemAmountDefinition[] materials = building.GetConstructionMaterials()
+            string stableId = ResolveBuildingStableId(building);
+            if (!constructionCandidates.TryGetValue(stableId, out
+                    V27ConstructionRedistributionResult construction))
+            {
+                continue;
+            }
+            ItemAmountDefinition[] beforeMaterials = construction.BeforeMaterials
                 .Where(value => value != null && value.Amount > 0)
                 .OrderBy(value => value.ItemId, StringComparer.Ordinal)
                 .ToArray();
-            if (materials.Length == 0
-                || materials.Any(value => !beforeValues.ItemWork.ContainsKey(value.ItemId))
-                || materials.Any(value => !afterValues.Items.ContainsKey(value.ItemId)))
+            ItemAmountDefinition[] afterMaterials = construction.AfterMaterials
+                .Where(value => value != null && value.Amount > 0)
+                .OrderBy(value => value.ItemId, StringComparer.Ordinal)
+                .ToArray();
+            if (beforeMaterials.Length == 0
+                || beforeMaterials.Any(value => !beforeValues.ItemWork.ContainsKey(value.ItemId))
+                || afterMaterials.Any(value => !afterValues.Items.ContainsKey(value.ItemId)))
             {
                 continue;
             }
 
-            string stableId = ResolveBuildingStableId(building);
-            decimal beforeConstruction = BalanceCanonicalText.DecimalFromFiniteFloat(
-                work.CalculateConstruction(building),
-                $"building:{stableId}:dismantle-construction");
-            decimal afterConstruction = decimal.Ceiling(beforeConstruction * LaborScale);
-            MaterialSalvageResult recovered = salvage.Calculate(
+            decimal beforeConstruction = construction.BeforeWu;
+            decimal afterConstruction = construction.AfterWu;
+            MaterialSalvageResult beforeSalvage = salvage.Calculate(
                 ResolveDismantleKindForAudit(building),
                 (float)beforeConstruction,
-                materials,
+                beforeMaterials,
+                100f);
+            MaterialSalvageResult afterSalvage = salvage.Calculate(
+                ResolveDismantleKindForAudit(building),
+                (float)afterConstruction,
+                afterMaterials,
                 100f);
             decimal beforeDismantle = BalanceCanonicalText.DecimalFromFiniteFloat(
-                recovered.RequiredWork,
+                beforeSalvage.RequiredWork,
                 $"building:{stableId}:dismantle-work");
-            decimal afterDismantle = decimal.Ceiling(beforeDismantle * LaborScale);
+            decimal afterDismantle = BalanceCanonicalText.DecimalFromFiniteFloat(
+                afterSalvage.RequiredWork,
+                $"building:{stableId}:v27-dismantle-work");
             long beforeBom = 0L;
             long afterBom = 0L;
-            foreach (ItemAmountDefinition material in materials)
+            foreach (ItemAmountDefinition material in beforeMaterials)
             {
                 beforeBom = checked(beforeBom + V27EwuQuantizer.QuantizeInputDebit(
                     BalanceCanonicalText.DecimalFromFiniteFloat(
                         beforeValues.ItemWork[material.ItemId],
                         $"building:{stableId}:before-bom:{material.ItemId}")
                     * material.Amount).MilliEwu);
+            }
+            foreach (ItemAmountDefinition material in afterMaterials)
+            {
                 afterBom = checked(afterBom
                     + afterValues.Items[material.ItemId].AcquisitionCost.MilliEwu
                     * material.Amount);
@@ -2741,13 +3314,16 @@ public static class V27BalanceAudit
             long beforeRecovered = 0L;
             long afterRecoveredAcquisition = 0L;
             long afterRecoveredCredit = 0L;
-            foreach (ItemAmountDefinition material in recovered.RecoveredMaterials)
+            foreach (ItemAmountDefinition material in beforeSalvage.RecoveredMaterials)
             {
                 beforeRecovered = checked(beforeRecovered + V27EwuQuantizer.QuantizeOutputCredit(
                     BalanceCanonicalText.DecimalFromFiniteFloat(
                         beforeValues.ItemWork[material.ItemId],
                         $"building:{stableId}:before-recovery:{material.ItemId}")
                     * material.Amount).MilliEwu);
+            }
+            foreach (ItemAmountDefinition material in afterSalvage.RecoveredMaterials)
+            {
                 V27ItemValue item = afterValues.Items[material.ItemId];
                 afterRecoveredAcquisition = checked(
                     afterRecoveredAcquisition + item.AcquisitionCost.MilliEwu * material.Amount);
@@ -2778,11 +3354,16 @@ public static class V27BalanceAudit
                     : BalanceAnomalySeverity.None;
             string path = AssetDatabase.GetAssetPath(building);
             string sourceDigest = GetSourceDigest(path, sourceDigests);
-            string[] dependencies = materials.Select(value => value.ItemId).ToArray();
+            string[] dependencies = beforeMaterials
+                .Select(value => value.ItemId)
+                .Concat(afterMaterials.Select(value => value.ItemId))
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray();
             string dependencyFingerprint = HashText(string.Join("|", dependencies));
             string beforeToken = beforeMargin.ToString(CultureInfo.InvariantCulture);
             string afterToken = afterMargin.ToString(CultureInfo.InvariantCulture);
-            string recoveredBom = FormatBom(recovered.RecoveredMaterials);
+            string recoveredBom = FormatBom(afterSalvage.RecoveredMaterials);
             capture.Capture(new BalanceMetricCaptureRequest
             {
                 Domain = "facilities",
@@ -2796,8 +3377,8 @@ public static class V27BalanceAudit
                 PercentDelta = Token(PercentDelta(beforeMargin, afterMargin)),
                 ExactFormula = "floor(recovered material acquisition credit)-"
                     + "(ceil(BOM acquisition)+ceil(construction WU)+ceil(dismantle WU)); must be <0",
-                BeforeBom = FormatBom(materials),
-                AfterBom = FormatBom(materials),
+                BeforeBom = FormatBom(beforeMaterials),
+                AfterBom = FormatBom(afterMaterials),
                 BeforeDirectWu = Token(beforeConstruction + beforeDismantle),
                 AfterDirectWu = Token(afterConstruction + afterDismantle),
                 BeforeBomEwu = EwuAmount.FromMilliEwu(beforeBom).ToCanonicalEwuToken(),
@@ -2842,7 +3423,8 @@ public static class V27BalanceAudit
                 ApprovalKey = string.Empty,
                 DependencyFingerprint = dependencyFingerprint,
                 LocalFingerprint = HashText(
-                    stableId + "|" + FormatBom(materials) + "|" + recoveredBom),
+                    stableId + "|" + FormatBom(beforeMaterials) + "|"
+                    + FormatBom(afterMaterials) + "|" + recoveredBom),
                 SourceDigest = sourceDigest,
                 SemanticHash = HashText(stableId + "|dismantle-rebuild-cycle-margin|" + afterToken),
                 AssetApplied = "false",
@@ -2859,8 +3441,8 @@ public static class V27BalanceAudit
                 After = Token(afterDismantle),
                 AuthoredRoundedValue = Token(afterDismantle),
                 PercentDelta = Token(PercentDelta(beforeDismantle, afterDismantle)),
-                ExactFormula = "ceil(V23 dismantle requiredWork*2.25)",
-                BeforeBom = recoveredBom,
+                ExactFormula = "V23 salvage policy applied to approved construction WU and physical BOM",
+                BeforeBom = FormatBom(beforeSalvage.RecoveredMaterials),
                 AfterBom = recoveredBom,
                 BeforeDirectWu = Token(beforeDismantle),
                 AfterDirectWu = Token(afterDismantle),
@@ -2877,7 +3459,7 @@ public static class V27BalanceAudit
                 RootCauseIds = Array.Empty<string>(),
                 AnomalyDisposition = "warning",
                 ReasonCode = "v27-dismantle-work-duration-preserving",
-                ReasonDetail = "Applied runtime authority; recovery quantities remain V23 and labor is scaled exactly once.",
+                ReasonDetail = "Dismantle work and recovery are derived from the approved authored construction WU/BOM pair.",
                 SourceAuthority = "Assets/Scripts/Services/Economy/V27BalanceWorkCalculator.cs",
                 SourcePropertyPath = "V27BalanceWorkCalculator.CalculateConstruction->V23MaterialSalvageCalculator.Calculate.requiredWork",
                 ExecutionRoute = "WorkAmountSystem->IMaterialSalvageCalculator",
@@ -2912,8 +3494,9 @@ public static class V27BalanceAudit
     private static IEnumerable<BalanceTransform> BuildDismantleTransforms(
         IEnumerable<BuildingSO> definitions,
         V27EmbeddedWorkValueSnapshot afterValues,
-        IBalanceWorkCalculator work,
-        IMaterialSalvageCalculator salvage)
+        IMaterialSalvageCalculator salvage,
+        IReadOnlyDictionary<string, V27ConstructionRedistributionResult>
+            constructionCandidates)
     {
         foreach (BuildingSO building in definitions
                      .Where(value => value != null
@@ -2921,7 +3504,14 @@ public static class V27BalanceAudit
                          && !value.IsDeprecatedCompatibilityAsset)
                      .OrderBy(value => value.ContentDefinitionId, StringComparer.Ordinal))
         {
-            ItemAmountDefinition[] materials = building.GetConstructionMaterials()
+            string stableId = ResolveBuildingStableId(building);
+            if (!constructionCandidates.TryGetValue(
+                    stableId,
+                    out V27ConstructionRedistributionResult constructionResult))
+            {
+                continue;
+            }
+            ItemAmountDefinition[] materials = constructionResult.AfterMaterials
                 .Where(value => value != null && value.Amount > 0)
                 .OrderBy(value => value.ItemId, StringComparer.Ordinal)
                 .ToArray();
@@ -2930,13 +3520,10 @@ public static class V27BalanceAudit
             {
                 continue;
             }
-            decimal construction = decimal.Ceiling(
-                BalanceCanonicalText.DecimalFromFiniteFloat(
-                    work.CalculateConstruction(building),
-                    $"building:{building.id}:scc-construction") * LaborScale);
+            decimal construction = constructionResult.AfterWu;
             MaterialSalvageResult recovered = salvage.Calculate(
                 ResolveDismantleKindForAudit(building),
-                work.CalculateConstruction(building),
+                (float)construction,
                 materials,
                 100f);
             if (recovered.RecoveredMaterials.Count == 0)
@@ -2946,10 +3533,9 @@ public static class V27BalanceAudit
                 // least one output node. The exhaustive ledger still records it.
                 continue;
             }
-            decimal dismantle = decimal.Ceiling(
-                BalanceCanonicalText.DecimalFromFiniteFloat(
-                    recovered.RequiredWork,
-                    $"building:{building.id}:scc-dismantle") * LaborScale);
+            decimal dismantle = BalanceCanonicalText.DecimalFromFiniteFloat(
+                recovered.RequiredWork,
+                $"building:{building.id}:scc-dismantle");
             long debit = checked(
                 materials.Sum(value => checked(
                     afterValues.Items[value.ItemId].AcquisitionCost.MilliEwu * value.Amount))
@@ -2958,7 +3544,7 @@ public static class V27BalanceAudit
             long credit = recovered.RecoveredMaterials.Sum(value => checked(
                 afterValues.Items[value.ItemId].RecoverableValue.MilliEwu * value.Amount));
             yield return BalanceTransform.Capture(
-                "dismantle:" + ResolveBuildingStableId(building),
+                "dismantle:" + stableId,
                 materials.Select(value => value.ItemId),
                 recovered.RecoveredMaterials.Select(value => value.ItemId),
                 debit,
@@ -2989,19 +3575,23 @@ public static class V27BalanceAudit
         string metric,
         decimal beforeWu,
         decimal afterWu,
-        string bom,
+        string beforeBom,
+        string afterBom,
         decimal beforeBomEwu,
         decimal afterBomEwu,
         decimal beforeDensity,
         decimal afterDensity,
         BalanceAnomalySeverity severity,
+        string reasonCode,
         string reason,
         bool patchable,
         string sourcePropertyPath,
+        string reviewStatus,
         bool assetApplied = false)
     {
         string fingerprint = HashText(
-            stableId + "|" + bom + "|" + building.width + "x" + building.height);
+            stableId + "|" + beforeBom + "|" + afterBom + "|"
+            + building.width + "x" + building.height);
         string dependencyFingerprint = HashText(string.Join("|", dependencies));
         string afterToken = Token(afterWu);
         string approvalSourceDigest = patchable
@@ -3010,7 +3600,6 @@ public static class V27BalanceAudit
                 sourcePropertyPath.Substring(
                     sourcePropertyPath.LastIndexOf('.') + 1))
             : sourceDigest;
-        const string reasonCode = "facility-labor-density-review";
         capture.Capture(new BalanceMetricCaptureRequest
         {
             Domain = "facilities",
@@ -3023,9 +3612,8 @@ public static class V27BalanceAudit
             AuthoredRoundedValue = Token(afterWu),
             PercentDelta = Token(PercentDelta(beforeWu, afterWu)),
             ExactFormula = reason,
-            BeforeBom = bom,
-            AfterBom = metric.Contains("bom-redistribution", StringComparison.Ordinal)
-                ? "optimizer-pending:" + bom : bom,
+            BeforeBom = beforeBom,
+            AfterBom = afterBom,
             BeforeDirectWu = Token(beforeWu),
             AfterDirectWu = Token(afterWu),
             BeforeBomEwu = Token(beforeBomEwu),
@@ -3039,9 +3627,7 @@ public static class V27BalanceAudit
             DownstreamConsumerCount = "facility-runtime",
             DependencyIds = dependencies,
             RootCauseIds = dependencies,
-            AnomalyDisposition = metric.Contains("bom-redistribution", StringComparison.Ordinal)
-                ? "rejected"
-                : severity == BalanceAnomalySeverity.Critical
+            AnomalyDisposition = severity == BalanceAnomalySeverity.Critical
                     ? "local-critical"
                     : severity == BalanceAnomalySeverity.Warning ? "warning" : "none",
             ReasonCode = reasonCode,
@@ -3051,11 +3637,7 @@ public static class V27BalanceAudit
             ExecutionRoute = "BuildingSO->ConstructionSite->AIWork",
             SaveAuthority = "BuildingSO",
             VerificationEvidence = "V27 facility candidate audit",
-            ReviewStatus = metric.Contains("bom-redistribution", StringComparison.Ordinal)
-                ? "rejected"
-                : metric.EndsWith(":approved", StringComparison.Ordinal)
-                    ? "selected"
-                    : patchable ? "pending" : "review",
+            ReviewStatus = reviewStatus,
             ApprovalKey = patchable && beforeWu != afterWu
                 ? BuildApprovalKey(stableId, metric, afterToken, dependencyFingerprint,
                     approvalSourceDigest, reasonCode, ResolveLaborBaselineRecordId(stableId))
@@ -3063,7 +3645,87 @@ public static class V27BalanceAudit
             DependencyFingerprint = dependencyFingerprint,
             LocalFingerprint = fingerprint,
             SourceDigest = approvalSourceDigest,
-            SemanticHash = HashText(stableId + "|" + metric + "|" + Token(afterWu)),
+            SemanticHash = HashText(
+                stableId + "|" + metric + "|" + Token(afterWu) + "|" + afterBom),
+            AssetApplied = assetApplied ? "true" : "false",
+            BalanceBaselineRecordId = ResolveLaborBaselineRecordId(stableId)
+        });
+    }
+
+    private static void CaptureBuildingMaterialAmount(
+        BalanceCaptureFactory capture,
+        string stableId,
+        string path,
+        string sourceDigest,
+        string[] dependencies,
+        string itemId,
+        int beforeAmount,
+        int afterAmount,
+        string beforeBom,
+        string afterBom,
+        decimal beforeBomEwu,
+        decimal afterBomEwu,
+        string sourcePropertyPath,
+        bool assetApplied)
+    {
+        string metric = ConstructionMaterialMetric(itemId);
+        string dependencyFingerprint = HashText(string.Join("|", dependencies));
+        string approvalSourceDigest =
+            GetConstructionMaterialApprovalSourceDigest(path, itemId);
+        string afterToken = afterAmount.ToString(CultureInfo.InvariantCulture);
+        const string reasonCode = "facility-bounded-bom-redistribution";
+        capture.Capture(new BalanceMetricCaptureRequest
+        {
+            Domain = "facilities",
+            DefinitionKind = "building-material",
+            StableId = stableId,
+            Metric = metric,
+            Unit = "item",
+            Before = beforeAmount.ToString(CultureInfo.InvariantCulture),
+            After = afterToken,
+            AuthoredRoundedValue = afterToken,
+            PercentDelta = Token(PercentDelta(beforeAmount, afterAmount)),
+            ExactFormula = "integer amount in [Before,ceil(Before*1.5)]; existing item IDs only",
+            BeforeBom = beforeBom,
+            AfterBom = afterBom,
+            BeforeDirectWu = "N/A",
+            AfterDirectWu = "N/A",
+            BeforeBomEwu = Token(beforeBomEwu),
+            AfterBomEwu = Token(afterBomEwu),
+            BeforeLaborDensity = "N/A",
+            AfterLaborDensity = "N/A",
+            UpstreamOnlyAfter = beforeAmount.ToString(CultureInfo.InvariantCulture),
+            InheritedDelta = "0",
+            RawLocalDelta = (afterAmount - beforeAmount).ToString(CultureInfo.InvariantCulture),
+            LocalQuantizationBoundaryCount = 1,
+            DownstreamConsumerCount = "construction-runtime",
+            DependencyIds = dependencies,
+            RootCauseIds = Array.Empty<string>(),
+            AnomalyDisposition = "none",
+            ReasonCode = reasonCode,
+            ReasonDetail = afterAmount == beforeAmount
+                ? "Existing physical BOM amount retained."
+                : "Existing physical BOM amount increased within the 50% cap; no new item type.",
+            SourceAuthority = path,
+            SourcePropertyPath = sourcePropertyPath,
+            ExecutionRoute = "BuildingSO->WorkAmountSystem.RequestMissingMaterials->AIHaul->ConstructionSite",
+            SaveAuthority = "BuildingSO + physical world-item runtime",
+            VerificationEvidence = "V27 construction redistribution + physical logistics PlayMode",
+            ReviewStatus = beforeAmount == afterAmount ? "unchanged" : "pending",
+            ApprovalKey = beforeAmount != afterAmount
+                ? BuildApprovalKey(
+                    stableId,
+                    metric,
+                    afterToken,
+                    dependencyFingerprint,
+                    approvalSourceDigest,
+                    reasonCode,
+                    ResolveLaborBaselineRecordId(stableId))
+                : string.Empty,
+            DependencyFingerprint = dependencyFingerprint,
+            LocalFingerprint = HashText(stableId + "|" + itemId + "|" + beforeAmount),
+            SourceDigest = approvalSourceDigest,
+            SemanticHash = HashText(stableId + "|" + metric + "|" + afterToken),
             AssetApplied = assetApplied ? "true" : "false",
             BalanceBaselineRecordId = ResolveLaborBaselineRecordId(stableId)
         });
@@ -3298,11 +3960,23 @@ public static class V27BalanceAudit
         MarketBaselineRecordId,
         LaborFacilityBaselineRecordId,
         ResearchScheduleBaselineRecordId,
+        DungeonExpansionBaselineRecordId,
+        DungeonExpansionWidthBaselineRecordId,
         LaborAuthorityBaselineRecordId,
         LaborMatrixBaselineRecordId,
         EquipmentReadinessBaselineRecordId,
         CombatOutcomeBaselineRecordId,
-        DailyRoutineEvidenceBaselineRecordId
+        DailyRoutineEvidenceBaselineRecordId,
+        ServiceContinuityBaselineRecordId,
+        PrimitiveFallbackBaselineRecordId,
+        SharedAccessBaselineRecordId,
+        FloorClutterBaselineRecordId,
+        OverflowContainmentBaselineRecordId,
+        CounterfactualRngBaselineRecordId,
+        PairedRunBaselineRecordId,
+        PopulationCapacityBaselineRecordId,
+        SixAdultClosedLoopBaselineRecordId,
+        IntegratedCapacityValidationBaselineRecordId
     };
 
     private static void WriteManifest(
@@ -3354,6 +4028,36 @@ public static class V27BalanceAudit
             "Artifacts/QA/phase157-daily-routine-wu-seed-157182.txt");
         string dailyRoutine157183Evidence = ProjectAbsolutePath(
             "Artifacts/QA/phase157-daily-routine-wu-seed-157183.txt");
+        string expansionEditModeEvidence = ProjectAbsolutePath(
+            "Artifacts/QA/v27-balance-expansion-editmode.txt");
+        string expansionPlayModeEvidence = ProjectAbsolutePath(
+            "Artifacts/QA/v27-balance-expansion-playmode.txt");
+        string expansionLayoutEvidence = ProjectAbsolutePath(
+            "Artifacts/QA/v27-balance-layout-256-seed.txt");
+        string stagePortfolioEvidence = ProjectAbsolutePath(
+            "Artifacts/QA/v27-balance-stage-portfolios.csv");
+        string serviceContinuityEvidence = ProjectAbsolutePath(
+            "Artifacts/QA/v27-balance-service-continuity.csv");
+        string serviceContinuityPlayModeEvidence = ProjectAbsolutePath(
+            V27ServiceContinuityEvidenceDebugScenarios.ReportPath);
+        string populationStagePlayModeEvidence = ProjectAbsolutePath(
+            PrimitiveStartSurvivalPlayModeVerifier.PopulationStageReportPath);
+        string spatialCapacityEvidence = ProjectAbsolutePath(
+            "Artifacts/QA/v27-balance-spatial-capacity.csv");
+        string floorClutterEvidence = ProjectAbsolutePath(
+            V27PairedClutterPlayModeVerifier.ClutterCsvPath);
+        string pairedRunEvidence = ProjectAbsolutePath(
+            V27PairedClutterPlayModeVerifier.PairedCsvPath);
+        string pairedRunReportEvidence = ProjectAbsolutePath(
+            V27PairedClutterPlayModeVerifier.ReportPath);
+        string randomStreamEvidence = ProjectAbsolutePath(
+            V27RandomStreamManifestDebugScenarios.ReportPath);
+        string sharedCongestionEvidence = ProjectAbsolutePath(
+            "Artifacts/QA/v27-balance-shared-cell-congestion.txt");
+        string sixAdultEvidence = ProjectAbsolutePath(
+            V27SixAdultSurvivalLoopDebugScenarios.ReportPath);
+        string expansionTierEvidence = ProjectAbsolutePath(
+            "Artifacts/QA/v27-balance-expansion-tiers.txt");
         string finalAcceptanceEvidence = ProjectAbsolutePath(
             DungeonStoryFinalAcceptanceRunner.ReportRelativePath);
         WriteJsonProperty(writer, "economy256EvidenceHash",
@@ -3408,6 +4112,30 @@ public static class V27BalanceAudit
             File.Exists(dailyRoutine157183Evidence)
                 ? HashFile(dailyRoutine157183Evidence)
                 : HashText(string.Empty), true);
+        WriteJsonProperty(writer, "dungeonExpansionEditModeEvidenceHash",
+            File.Exists(expansionEditModeEvidence)
+                ? HashFile(expansionEditModeEvidence)
+                : HashText(string.Empty), true);
+        WriteJsonProperty(writer, "dungeonExpansionPlayModeEvidenceHash",
+            File.Exists(expansionPlayModeEvidence)
+                ? HashFile(expansionPlayModeEvidence)
+                : HashText(string.Empty), true);
+        WriteJsonProperty(writer, "dungeonExpansionLayout1536EvidenceHash",
+            File.Exists(expansionLayoutEvidence)
+                ? HashFile(expansionLayoutEvidence)
+                : HashText(string.Empty), true);
+        WriteEvidenceHash(writer, "stagePortfolioEvidenceHash", stagePortfolioEvidence);
+        WriteEvidenceHash(writer, "serviceContinuityCatalogEvidenceHash", serviceContinuityEvidence);
+        WriteEvidenceHash(writer, "serviceContinuityLiveEvidenceHash", serviceContinuityPlayModeEvidence);
+        WriteEvidenceHash(writer, "populationStageLiveEvidenceHash", populationStagePlayModeEvidence);
+        WriteEvidenceHash(writer, "assetBackedSpatialCapacityEvidenceHash", spatialCapacityEvidence);
+        WriteEvidenceHash(writer, "floorClutterEvidenceHash", floorClutterEvidence);
+        WriteEvidenceHash(writer, "pairedRunWindowEvidenceHash", pairedRunEvidence);
+        WriteEvidenceHash(writer, "pairedRunAggregateEvidenceHash", pairedRunReportEvidence);
+        WriteEvidenceHash(writer, "randomStreamManifestEvidenceHash", randomStreamEvidence);
+        WriteEvidenceHash(writer, "sharedCellCongestionEvidenceHash", sharedCongestionEvidence);
+        WriteEvidenceHash(writer, "sixAdultClosedLoopEvidenceHash", sixAdultEvidence);
+        WriteEvidenceHash(writer, "expansionTierCapacityEvidenceHash", expansionTierEvidence);
         WriteJsonProperty(writer, "finalAcceptanceEvidenceHash",
             File.Exists(finalAcceptanceEvidence)
                 ? HashFile(finalAcceptanceEvidence)
@@ -3442,6 +4170,15 @@ public static class V27BalanceAudit
         writer.Write("}\n");
         writer.Flush();
     }
+
+    private static void WriteEvidenceHash(
+        StreamWriter writer,
+        string propertyName,
+        string absolutePath) => WriteJsonProperty(
+        writer,
+        propertyName,
+        File.Exists(absolutePath) ? HashFile(absolutePath) : HashText(string.Empty),
+        true);
 
     private static void WriteJsonProperty(
         StreamWriter writer,
@@ -3736,6 +4473,7 @@ public static class V27BalanceAudit
             "Assets/Scripts/Services/Economy/Editor/V27BalanceEconomySimulationDebugScenarios.cs",
             "Assets/Scripts/Services/Economy/Editor/V27BalanceMarketDebugScenarios.cs",
             "Assets/Scripts/Services/Economy/Editor/V27BalanceLaborFacilityDebugScenarios.cs",
+            "Assets/Scripts/Services/Economy/Editor/V27ConstructionRedistributionPolicy.cs",
             "Assets/Scripts/Services/Economy/Editor/V27BalanceWholeGameCoverageDebugScenarios.cs",
             "Assets/Scripts/Services/Character/Work/Editor/V27LaborAuthorityMatrixDebugScenarios.cs",
             "Assets/Scripts/Services/Character/Work/Editor/DailyRoutineWuPlayModeVerifier.cs",
@@ -3927,23 +4665,6 @@ public static class V27BalanceAudit
         };
     }
 
-    private static decimal ResolveBuildingAuthoredBefore(
-        string stableId,
-        decimal current,
-        IReadOnlyDictionary<string, string> historicalBeforeValues)
-    {
-        decimal historical = ResolveHistoricalAuthoredBefore(
-            stableId,
-            "construction-authored-wu:period-preserving",
-            current,
-            historicalBeforeValues);
-        if (historical != current || historicalBeforeValues != null)
-            return historical;
-        return string.Equals(stableId, "building:1002", StringComparison.Ordinal)
-            ? 40m
-            : current;
-    }
-
     private static decimal ResolveHistoricalAuthoredBefore(
         string stableId,
         string metric,
@@ -4009,6 +4730,126 @@ public static class V27BalanceAudit
             .Replace('\r', '\n')
             .Split('\n');
         HashSet<string> required = yamlFieldNames.ToHashSet(StringComparer.Ordinal);
+        MaskApprovalYamlScalars(
+            lines,
+            required,
+            requireExactRequestedFields,
+            projectRelativePath);
+        return HashText(string.Join("\n", lines));
+    }
+
+    private static string GetConstructionMaterialApprovalSourceDigest(
+        string projectRelativePath,
+        string itemId)
+    {
+        if (string.IsNullOrWhiteSpace(itemId))
+        {
+            throw new ArgumentException(
+                "Construction material approval requires an item ID.",
+                nameof(itemId));
+        }
+
+        string absolutePath = ProjectAbsolutePath(projectRelativePath);
+        string[] lines = File.ReadAllText(absolutePath, Encoding.UTF8)
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n')
+            .Split('\n');
+        int matched = 0;
+        for (int containerIndex = 0;
+             containerIndex < lines.Length;
+             containerIndex++)
+        {
+            string containerTrimmed = lines[containerIndex].TrimStart();
+            if (!string.Equals(
+                    containerTrimmed,
+                    "constructionMaterials:",
+                    StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            int containerIndent =
+                lines[containerIndex].Length - containerTrimmed.Length;
+            for (int itemIndex = containerIndex + 1;
+                 itemIndex < lines.Length;
+                 itemIndex++)
+            {
+                string itemTrimmed = lines[itemIndex].TrimStart();
+                int itemIndent = lines[itemIndex].Length - itemTrimmed.Length;
+                if (itemTrimmed.Length > 0
+                    && (itemIndent < containerIndent
+                        || itemIndent == containerIndent
+                        && !itemTrimmed.StartsWith("- ", StringComparison.Ordinal)))
+                {
+                    break;
+                }
+
+                const string itemPrefix = "- itemId: ";
+                if (!itemTrimmed.StartsWith(itemPrefix, StringComparison.Ordinal)
+                    || !string.Equals(
+                        itemTrimmed.Substring(itemPrefix.Length),
+                        itemId,
+                        StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                bool amountFound = false;
+                for (int amountIndex = itemIndex + 1;
+                     amountIndex < lines.Length;
+                     amountIndex++)
+                {
+                    string amountTrimmed = lines[amountIndex].TrimStart();
+                    int amountIndent =
+                        lines[amountIndex].Length - amountTrimmed.Length;
+                    if (amountTrimmed.Length > 0
+                        && amountIndent <= itemIndent)
+                    {
+                        break;
+                    }
+                    if (!amountTrimmed.StartsWith("amount:", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    lines[amountIndex] = new string(' ', amountIndent)
+                        + "amount: <v27-approved-target>";
+                    amountFound = true;
+                    matched++;
+                    break;
+                }
+
+                if (!amountFound)
+                {
+                    throw new InvalidOperationException(
+                        $"V27 approval digest found construction material '{itemId}' "
+                        + $"without an amount in {projectRelativePath}.");
+                }
+            }
+        }
+
+        if (matched != 1)
+        {
+            throw new InvalidOperationException(
+                $"V27 approval digest requires exactly one construction material "
+                + $"'{itemId}' in {projectRelativePath}; found {matched}.");
+        }
+
+        MaskApprovalYamlScalars(
+            lines,
+            new HashSet<string>(StringComparer.Ordinal),
+            requireExactRequestedFields: false,
+            projectRelativePath);
+        return HashText(string.Join("\n", lines));
+    }
+
+    private static void MaskApprovalYamlScalars(
+        string[] lines,
+        HashSet<string> required,
+        bool requireExactRequestedFields,
+        string projectRelativePath)
+    {
+        MaskConstructionMaterialAmounts(lines);
         string[] mutableBalanceFields = required
             .Concat(new[]
             {
@@ -4053,7 +4894,62 @@ public static class V27BalanceAudit
                     + $"in {projectRelativePath}; found {matched}.");
             }
         }
-        return HashText(string.Join("\n", lines));
+    }
+
+    private static int MaskConstructionMaterialAmounts(string[] lines)
+    {
+        int masked = 0;
+        for (int containerIndex = 0;
+             containerIndex < lines.Length;
+             containerIndex++)
+        {
+            string containerTrimmed = lines[containerIndex].TrimStart();
+            if (!string.Equals(
+                    containerTrimmed,
+                    "constructionMaterials:",
+                    StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            int containerIndent =
+                lines[containerIndex].Length - containerTrimmed.Length;
+            for (int itemIndex = containerIndex + 1;
+                 itemIndex < lines.Length;
+                 itemIndex++)
+            {
+                string itemTrimmed = lines[itemIndex].TrimStart();
+                int itemIndent = lines[itemIndex].Length - itemTrimmed.Length;
+                if (itemTrimmed.Length > 0
+                    && (itemIndent < containerIndent
+                        || itemIndent == containerIndent
+                        && !itemTrimmed.StartsWith("- ", StringComparison.Ordinal)))
+                {
+                    break;
+                }
+                if (!itemTrimmed.StartsWith("- itemId: ", StringComparison.Ordinal))
+                    continue;
+
+                for (int amountIndex = itemIndex + 1;
+                     amountIndex < lines.Length;
+                     amountIndex++)
+                {
+                    string amountTrimmed = lines[amountIndex].TrimStart();
+                    int amountIndent =
+                        lines[amountIndex].Length - amountTrimmed.Length;
+                    if (amountTrimmed.Length > 0 && amountIndent <= itemIndent)
+                        break;
+                    if (!amountTrimmed.StartsWith("amount:", StringComparison.Ordinal))
+                        continue;
+
+                    lines[amountIndex] = new string(' ', amountIndent)
+                        + "amount: <v27-approved-target>";
+                    masked++;
+                    break;
+                }
+            }
+        }
+        return masked;
     }
 
     private static decimal PercentDelta(decimal before, decimal after)

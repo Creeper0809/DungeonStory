@@ -103,6 +103,8 @@ public class AIBrain : CharacterAbility
     private ICharacterAiPerformanceRecorder performanceRecorder;
     private IGameClock gameClock;
     private IRandomStream actionRandom;
+    private IRandomStreamProvider randomStreamProvider;
+    private CharacterId actionRandomCharacterId;
     private AIBrainActionEvaluator actionEvaluator;
     private AIBrainCandidateSelector candidateSelector;
     private AIBrainPathSearchSession pathSearchSession;
@@ -389,6 +391,33 @@ public class AIBrain : CharacterAbility
     public bool HasResumableDecisionPipeline =>
         actor != null && decisionPipeline != null;
 
+#if UNITY_EDITOR
+    public void ConfigureDeterministicActionScoringForDiagnostics(bool enabled)
+    {
+        if (!Application.isEditor)
+        {
+            throw new InvalidOperationException(
+                "Deterministic action scoring is editor-only.");
+        }
+
+        candidateSelector?.ConfigureDeterministicFullPassForDiagnostics(enabled);
+    }
+
+    public bool LogisticsMeasurementOnlyForDiagnostics =>
+        candidateSelector?.LogisticsMeasurementOnlyForDiagnostics == true;
+
+    public void ConfigureLogisticsMeasurementForDiagnostics(bool enabled)
+    {
+        if (!Application.isEditor)
+        {
+            throw new InvalidOperationException(
+                "Logistics-only AI measurement is editor-only.");
+        }
+
+        candidateSelector?.ConfigureLogisticsMeasurementForDiagnostics(enabled);
+    }
+#endif
+
     [Inject]
     public void ConstructAIBrain(
         AIBrainDecisionServices decisions,
@@ -407,7 +436,9 @@ public class AIBrain : CharacterAbility
         performanceRecorder = requiredDecisions.Performance;
         pathSearchBroker = requiredExecution.PathSearch;
         gameClock = requiredExecution.Clock;
-        actionRandom = requiredExecution.ActionRandom;
+        randomStreamProvider = requiredExecution.RandomStreams;
+        actionRandom = null;
+        actionRandomCharacterId = default;
         facilityScoringContext = requiredExecution.FacilityScoring;
         actionEvaluator = new AIBrainActionEvaluator(gameClock, performanceRecorder);
         candidateSelector = new AIBrainCandidateSelector(
@@ -442,10 +473,20 @@ public class AIBrain : CharacterAbility
 
     private IRandomStream RequireActionRandom()
     {
-        return actionRandom
+        IRandomStreamProvider provider = randomStreamProvider
             ?? throw new InvalidOperationException(
                 $"{nameof(AIBrain)} requires "
                 + $"{nameof(IRandomStreamProvider)} injection.");
+        CacheLocalReferences();
+        CharacterId characterId = CharacterPersistentIdentity.Require(actor);
+        if (actionRandom == null || !actionRandomCharacterId.Equals(characterId))
+        {
+            actionRandom = provider.Get(
+                CharacterRandomStreamScopeIds.Decision(characterId));
+            actionRandomCharacterId = characterId;
+        }
+
+        return actionRandom;
     }
 
     private void BindActionClocks()

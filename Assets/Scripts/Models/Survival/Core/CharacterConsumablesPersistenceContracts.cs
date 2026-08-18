@@ -357,6 +357,9 @@ public sealed class CharacterConsumablesRestoreCandidate
 public interface ICharacterConsumablesPersistence
 {
     DungeonCharacterConsumablesSaveData Capture();
+    void ValidateRestorePayload(
+        DungeonCharacterConsumablesSaveData saveData,
+        bool requireWorldReferences);
     CharacterConsumablesRestoreCandidate BuildRestoreCandidate(
         DungeonCharacterConsumablesSaveData saveData);
     void PublishRestoreCandidate(

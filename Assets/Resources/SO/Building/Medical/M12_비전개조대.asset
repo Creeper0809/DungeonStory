@@ -64,8 +64,8 @@ MonoBehaviour:
     - rid: 7737211857806557846
     - rid: 7737211857806557847
     - rid: 7737211905666711795
-    - rid: 7737211981804077873
-    - rid: 7737211981804077874
+    - rid: 7737212033836253944
+    - rid: 7737212033836253945
   width: 3
   height: 1
   layer: 1
@@ -118,7 +118,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 288
+        constructionWorkRequired: 1422
         repairWorkRequired: 25.6
         cleanWorkRequired: 8
         researchWorkRequired: 6
@@ -136,7 +136,7 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: component:rune-conductor
-          amount: 16
+          amount: 20
     - rid: 7737211857806557844
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -182,14 +182,14 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 671186944
           disabledWhenDamaged: 1
-    - rid: 7737211981804077873
+    - rid: 7737212033836253944
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737211981804077874
+    - rid: 7737212033836253945
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility

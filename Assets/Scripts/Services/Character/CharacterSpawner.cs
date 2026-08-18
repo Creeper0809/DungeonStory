@@ -49,6 +49,7 @@ public class CharacterSpawner : BuildableObject,IInteractable
     private IBuildingWorldQuery buildingWorldQuery;
     private IRandomStream respawnRandomStream;
     private bool scopeTeardownStarted;
+    private bool deterministicSimulationPausedForDiagnostics;
     private long visitorExitHandoffAttemptCount;
     private long visitorExitHandoffCompletedCount;
     private string lastVisitorExitPersistentId = string.Empty;
@@ -158,6 +159,12 @@ public class CharacterSpawner : BuildableObject,IInteractable
     {
         while (!scopeTeardownStarted)
         {
+            if (deterministicSimulationPausedForDiagnostics)
+            {
+                yield return spawnDelay;
+                continue;
+            }
+
             EnsureRuntimeState();
 
             foreach (var item in characters)
@@ -177,12 +184,28 @@ public class CharacterSpawner : BuildableObject,IInteractable
         // hierarchy injection build callback. The spawner has no authoritative
         // clock until that callback completes, and it must not advance while
         // its owning scope is being torn down.
-        if (scopeTeardownStarted || !HasInjectedGameClock)
+        if (scopeTeardownStarted
+            || deterministicSimulationPausedForDiagnostics
+            || !HasInjectedGameClock)
         {
             return;
         }
 
         respawnSchedule.Advance(GameDeltaTime);
+    }
+
+    public bool DeterministicSimulationPausedForDiagnostics =>
+        deterministicSimulationPausedForDiagnostics;
+
+    public void ConfigureDeterministicSimulationForDiagnostics(bool paused)
+    {
+        if (!Application.isEditor)
+        {
+            throw new InvalidOperationException(
+                "Deterministic spawner simulation is editor-only.");
+        }
+
+        deterministicSimulationPausedForDiagnostics = paused;
     }
 
     internal void PrepareForScopeTeardown()

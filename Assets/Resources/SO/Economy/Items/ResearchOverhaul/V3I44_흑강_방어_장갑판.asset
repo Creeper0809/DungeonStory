@@ -30,25 +30,25 @@ MonoBehaviour:
   unitWeight: 2.35
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 487
+  unitPrice: 217
   features:
-  - rid: 7737211981816659984
-  - rid: 7737211981816659985
-  - rid: 7737211981816659986
+  - rid: 7737212042857939622
+  - rid: 7737212042857939623
+  - rid: 7737212042857939624
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816659984
+    - rid: 7737212042857939622
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:metallurgy:blacksteel
-    - rid: 7737211981816659985
+    - rid: 7737212042857939623
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 512
         sharedIntermediate: 0
-    - rid: 7737211981816659986
+    - rid: 7737212042857939624
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5997535
+        saleRate: 0.59777725

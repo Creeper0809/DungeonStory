@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 1.2
   maxStack: 1
   sprite: {fileID: 0}
-  unitPrice: 132
+  unitPrice: 66
   features:
-  - rid: 7737211981816660064
-  - rid: 7737211981816660065
-  - rid: 7737211981816660066
+  - rid: 7737212042831201078
+  - rid: 7737212042831201079
+  - rid: 7737212042831201080
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660064
+    - rid: 7737212042831201078
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:defense:rune-identification
-    - rid: 7737211981816660065
+    - rid: 7737212042831201079
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737211981816660066
+    - rid: 7737212042831201080
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59982073
+        saleRate: 0.5967272

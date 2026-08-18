@@ -2,6 +2,67 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+public static class BuildingWorkAccessRules
+{
+    public static bool CanShareOperationalAccess(
+        IReadOnlyList<Vector2Int> leftCandidates,
+        IReadOnlyList<Vector2Int> rightCandidates)
+    {
+        if (leftCandidates == null)
+            throw new ArgumentNullException(nameof(leftCandidates));
+        if (rightCandidates == null)
+            throw new ArgumentNullException(nameof(rightCandidates));
+
+        // Access cells are normally shared corridor space. The one unsafe case is
+        // two facilities whose sole authored work stand is the same cell: either
+        // facility can then reserve the only stand needed by the other one.
+        if (leftCandidates.Count != 1 || rightCandidates.Count != 1)
+            return true;
+        return leftCandidates[0] != rightCandidates[0];
+    }
+
+    public static IReadOnlyList<Vector2Int> EnumerateCandidates(
+        IReadOnlyList<Vector2Int> footprint,
+        bool traversableFootprint)
+    {
+        if (footprint == null || footprint.Count == 0)
+        {
+            return Array.Empty<Vector2Int>();
+        }
+
+        List<Vector2Int> ordered = new List<Vector2Int>(
+            traversableFootprint ? footprint.Count : footprint.Count * 2);
+        HashSet<Vector2Int> footprintSet = traversableFootprint
+            ? null
+            : new HashSet<Vector2Int>(footprint);
+        HashSet<Vector2Int> emitted = new HashSet<Vector2Int>();
+        for (int index = 0; index < footprint.Count; index++)
+        {
+            Vector2Int occupied = footprint[index];
+            if (traversableFootprint)
+            {
+                Add(occupied);
+                continue;
+            }
+
+            // Grid y is a dungeon floor, so work access is horizontal.
+            Add(new Vector2Int(occupied.x - 1, occupied.y));
+            Add(new Vector2Int(occupied.x + 1, occupied.y));
+        }
+
+        return ordered;
+
+        void Add(Vector2Int candidate)
+        {
+            if ((footprintSet == null || !footprintSet.Contains(candidate))
+                && emitted.Add(candidate))
+            {
+                ordered.Add(candidate);
+            }
+        }
+    }
+}
+
 internal sealed class BuildableObjectSpatialQuery
 {
     private readonly Transform transform;

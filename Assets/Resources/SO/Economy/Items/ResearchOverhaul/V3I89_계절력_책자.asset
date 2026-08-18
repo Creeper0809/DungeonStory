@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 1.1
   maxStack: 1
   sprite: {fileID: 0}
-  unitPrice: 50
+  unitPrice: 23
   features:
-  - rid: 7737211981816660429
-  - rid: 7737211981816660430
-  - rid: 7737211981816660431
+  - rid: 7737212042857939782
+  - rid: 7737212042857939783
+  - rid: 7737212042857939784
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660429
+    - rid: 7737212042857939782
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:life:seasonal-calendar
-    - rid: 7737211981816660430
+    - rid: 7737212042857939783
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211981816660431
+    - rid: 7737212042857939784
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5984466
+        saleRate: 0.5740724

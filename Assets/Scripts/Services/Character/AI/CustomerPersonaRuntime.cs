@@ -268,6 +268,14 @@ public sealed class CustomerPersonaRuntime : SerializedMonoBehaviour
 
     private void OnPersonaResult(LocalLlmResult result)
     {
+        // Save/restore can destroy a customer while an asynchronous persona
+        // request is still completing. The callback is allowed to arrive, but
+        // it must not dereference or mutate the retired Unity object.
+        if (this == null)
+        {
+            return;
+        }
+
         personaRequestInProgress = false;
         if (result.IsCancelled)
         {

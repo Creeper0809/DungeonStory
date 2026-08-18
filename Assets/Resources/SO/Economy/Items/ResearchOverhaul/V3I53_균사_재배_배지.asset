@@ -30,25 +30,25 @@ MonoBehaviour:
   unitWeight: 1.1
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 25
+  unitPrice: 11
   features:
-  - rid: 7737211981816660741
-  - rid: 7737211981816660742
-  - rid: 7737211981816660743
+  - rid: 7737212042831201119
+  - rid: 7737212042831201120
+  - rid: 7737212042831201121
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660741
+    - rid: 7737212042831201119
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:agriculture:subterranean
-    - rid: 7737211981816660742
+    - rid: 7737212042831201120
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 3
         sharedIntermediate: 0
-    - rid: 7737211981816660743
+    - rid: 7737212042831201121
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5764666
+        saleRate: 0.5787575

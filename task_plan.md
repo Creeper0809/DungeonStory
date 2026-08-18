@@ -3021,3 +3021,32 @@ Current errors:
 - [ ] Keep the AI coverage manifest's 71 stale/ContractOnly scopes explicit; do not conflate them with the V27 ledger acceptance result or claim a fresh all-AI coverage sweep.
 - Error log: GitHub had no Actions workflows and no protected-main rule. The only direct collaborator is the PR author, so a GitHub self-approval is impossible. Added a portable hosted-runner integrity gate rather than silently treating local evidence as remote CI.
 - Error log: the first hosted V27 integrity run failed because three manifest-hashed text artifacts were generated as CRLF on Windows but checked out as LF on Linux. Added exact path-level `eol=crlf` attributes; no economic value or evidence content changed.
+# 2026-08-18 V27 서비스 연속성·공간·Clutter·RNG 통합 완료 감사 (in progress)
+
+- [x] 사용자 첨부 최종 계획을 다시 읽고 완료 조건을 1:1 복구한다.
+- [x] Unity MCP 연결을 읽기 전용 상태 조회로 재확인하고 Computer Use 우회를 중단한다.
+- [x] actor별 decision/movement RNG, key-addressed 외생 사건, named isolation 회귀를 구현·정적 검증한다.
+- [x] 1/3/6/12/18/24명 포트폴리오와 실제 에셋 기반 256-seed 공간 Solver를 구현한다.
+- [x] 공유 접근칸 합집합, 유일 접근칸 충돌, fixed-world-feature, 30% headroom, redundancy capital 지표를 원장에 연결한다.
+- [x] 연구 확장 런타임의 27→49→65→81, 좌표 보존, 필수 시설 무철거 PlayMode 증거를 만든다.
+- [x] 인구별 물리 수용력 PlayMode를 fresh PASS로 갱신한다.
+- [x] 계획서 권위인 `research:mining:quarry/stonecutting/deep`와 현재 별도 `research:dungeon-expansion:*` 구현을 하나의 실제 연구 경로로 정합화한다.
+- [x] 6인 서비스 장애/N+1 PlayMode의 `PRIMARY_AUTHORITY_PRESENT` 실패를 진단하고, 정확히 한 주 시설 장애와 실제 primitive fallback을 증명하도록 수정한다.
+- [x] 6인 음식·물 폐쇄 루프와 모든 생존 서비스의 1일 장애·복구·비복제·비지배전략 계약을 fresh PASS로 갱신한다.
+- [x] 32-seed 4-arm paired clutter run을 실행하고 필요 시 64 seed로 확대하여 median/p95 <10%, causal-cone 밖 RNG divergence 0을 증명한다.
+- [x] 전수 원장, 256-seed, expansion, service continuity, SCC/economy, Analyzer DSB001–DSB008, RFC4180, YAML/no-op, 3-seed 실전을 현재 source revision으로 재생성한다.
+- [x] 요구사항별 증거 감사에서 누락 0, unresolved Critical 0, 두 번째 실행 diff 0, Console Warning/Error 0/0을 확인한 뒤에만 완료 처리한다.
+
+Current authoritative evidence:
+- V27 audit `RESULT=PASS; ledgerRows=84287; integratedRows=222; stageWidths=6; critical=0; integrity=0`.
+- Static and asset-backed layout solver `1536/1536 PASS`; minimum actual-asset headroom `30.7%`.
+- Population-stage PlayMode `RESULT=PASS` for 1/3/6/12/18/24 with gross/net/recurring/growth/emergency and fixed-world-feature exact markers.
+- Expansion PlayMode `RESULT=PASS; failures=0; liveResearchCompletions=3; publications=3`, including 27→49→65→81 and no-demolition marker.
+- Expansion EditMode is fresh after the authority correction: the existing quarry/stonecutting/deep projects are the only gates, direct deep completion resolves 81 columns, save research/layout authority is exact, and the E-key remains developer-only.
+- Expansion PlayMode is fresh after the authority correction at `2026-08-18T13:43:47Z`: all three live research completions, exact-once publication, entrance/coordinate preservation, and no-demolition markers PASS; Unity Console Warning/Error is 0/0.
+- Random stream manifest `RESULT=PASS`, named isolation tests `11`, legacy global character streams `0`, direct runtime Unity Random uses `0`.
+- Six-adult outage PlayMode is fresh green at `2026-08-18T13:17:45Z`: outage fallback 5/5, primary recovery 5/5, primitive recovery starts 0, exact facility restore, and final Console Warning/Error 0/0.
+- Final paired run is green for 32 deterministic seeds / 4 arms / 512 windows / 640 floor rows: median, p95 and max clutter wait delta are 0; access/egress clutter and RNG cross-talk are 0.
+- Final current-source audit is `RESULT=PASS; rows=84240; critical=0; collapsed=327; approved=327; scc=313; minimumMarginMilliEwu=-14364087; integrityFailures=0`.
+- Final whole-game coverage is `RESULT=PASS; rows=84240; domains=12; producerOrphans=0; consumerOrphans=0; approvedUnapplied=0`; a repeated current-source capture produced identical bytes by design.
+- Final deterministic regeneration is `ULTIMATE_NOOP_EXACT=true`; Unity is idle in EditMode and Console Warning/Error is 0/0.

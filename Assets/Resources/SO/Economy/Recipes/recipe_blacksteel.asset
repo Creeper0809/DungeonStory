@@ -42,7 +42,7 @@ MonoBehaviour:
     recommendedRank: 2
     minimumRiskRank: 0
   requiredResearchId: research:metallurgy:blacksteel
-  requiredWork: 90
+  requiredWork: 40
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

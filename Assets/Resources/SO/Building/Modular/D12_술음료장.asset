@@ -63,8 +63,8 @@ MonoBehaviour:
     - rid: 7737211921440178987
     - rid: 7737211921440178988
     - rid: 7737211921440178989
-    - rid: 7737211981804077160
-    - rid: 7737211981804077161
+    - rid: 7737212042831200520
+    - rid: 7737212042831200521
   width: 1
   height: 1
   layer: 1
@@ -105,7 +105,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 1
-        constructionWorkRequired: 288
+        constructionWorkRequired: 241
         repairWorkRequired: 32
         cleanWorkRequired: 8
         researchWorkRequired: 6
@@ -123,9 +123,9 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:treated-lumber
-          amount: 4
+          amount: 6
         - itemId: material:iron-ingot
-          amount: 1
+          amount: 2
     - rid: 7737211921440178984
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -175,13 +175,13 @@ MonoBehaviour:
         abilityId: BuildingMercenaryHiringAbility
         rolePremium: 0
         minimumCandidateSatisfaction: 65
-    - rid: 7737211981804077160
+    - rid: 7737212042831200520
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:tavern-brewery
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211981804077161
+    - rid: 7737212042831200521
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility

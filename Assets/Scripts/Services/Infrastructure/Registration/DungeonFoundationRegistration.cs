@@ -15,7 +15,8 @@ public static class DungeonFoundationRegistration
                 resolver => new RandomStreamProvider(
                     resolver.Resolve<DungeonRuntimeAggregateRootStore>()),
                 Lifetime.Singleton)
-            .As<IRandomStreamProvider>();
+            .As<IRandomStreamProvider>()
+            .As<IRandomStreamDiagnosticsQuery>();
         builder.Register<GameEventBus>(Lifetime.Singleton)
             .As<IGameEventBus>();
         builder.Register<BuildingVisitEventPublisher>(Lifetime.Singleton)

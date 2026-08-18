@@ -60,12 +60,12 @@ MonoBehaviour:
     - rid: 7737211921440179061
     - rid: 7737211921440179062
     - rid: 7737211921440179063
-    - rid: 7737211981804077247
-    - rid: 7737211981804077248
-    - rid: 7737211981804078022
-    - rid: 7737211981804078023
-    - rid: 7737211981804078024
-    - rid: 7737211981804078025
+    - rid: 7737212042831200379
+    - rid: 7737212042831200380
+    - rid: 7737212042831200381
+    - rid: 7737212042831200382
+    - rid: 7737212042831200605
+    - rid: 7737212042831200606
   width: 3
   height: 1
   layer: 1
@@ -106,7 +106,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 2
-        constructionWorkRequired: 1296
+        constructionWorkRequired: 603
         repairWorkRequired: 144
         cleanWorkRequired: 22
         researchWorkRequired: 6
@@ -167,13 +167,45 @@ MonoBehaviour:
           - key: Mana
             value: 2
           metrics: []
-    - rid: 7737211981804077247
+    - rid: 7737212042831200379
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 1
+        maxThroughput: 25
+        normallyOpen: 1
+    - rid: 7737212042831200380
+      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingPowerConsumerAbility
+        demandPerSecond: 5
+        priority: 4
+        minimumSupplyFraction: 0.75
+    - rid: 7737212042831200381
+      type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingAutomationAbility
+        maximumMode: 2
+        assistedPowerDemand: 2
+        automaticPowerDemand: 5
+        assistedWorkMultiplier: 1.35
+        automaticWorkPerSecond: 1
+        automaticQualityCap: 0.75
+        maintenancePerGameHour: 1
+    - rid: 7737212042831200382
+      type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingConveyorPortAbility
+        mode: 2
+        destinationId: 
+        capacity: 4
+    - rid: 7737212042831200605
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:arcane-forge
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211981804077248
+    - rid: 7737212042831200606
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -195,35 +227,3 @@ MonoBehaviour:
           capacity: 16
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211981804078022
-      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingUtilityConnectionAbility
-        channels: 1
-        maxThroughput: 25
-        normallyOpen: 1
-    - rid: 7737211981804078023
-      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingPowerConsumerAbility
-        demandPerSecond: 5
-        priority: 4
-        minimumSupplyFraction: 0.75
-    - rid: 7737211981804078024
-      type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingAutomationAbility
-        maximumMode: 2
-        assistedPowerDemand: 2
-        automaticPowerDemand: 5
-        assistedWorkMultiplier: 1.35
-        automaticWorkPerSecond: 1
-        automaticQualityCap: 0.75
-        maintenancePerGameHour: 1
-    - rid: 7737211981804078025
-      type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingConveyorPortAbility
-        mode: 2
-        destinationId: 
-        capacity: 4

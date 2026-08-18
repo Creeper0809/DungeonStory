@@ -42,7 +42,7 @@ MonoBehaviour:
     recommendedRank: 2
     minimumRiskRank: 2
   requiredResearchId: research:pharmacology:distillation
-  requiredWork: 113
+  requiredWork: 50
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

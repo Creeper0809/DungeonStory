@@ -9,6 +9,7 @@ public sealed class CharacterConsumablesApplicationPorts :
     ICharacterConsumablesWorldPort,
     ICharacterConsumablesInventoryPort,
     ICharacterConsumablesEventPort,
+    ICharacterConsumablesWorkforcePort,
     ICharacterRitualFastingMealPort
 {
     private readonly IItemDefinitionCatalog catalog;
@@ -23,6 +24,8 @@ public sealed class CharacterConsumablesApplicationPorts :
     private readonly ICharacterRitualFastingCommand ritualFastingCommand;
     private readonly IItemQuantityReservationService quantityReservations;
     private readonly IReservedItemTransferService reservedTransfers;
+    private readonly IWorkforceReplanService workforce;
+    private readonly IRestoreWorldCandidateQuery restoreWorldCandidates;
     private readonly Dictionary<string, HashSet<string>> mealFacilitySlotOwners =
         new(StringComparer.Ordinal);
 
@@ -38,7 +41,9 @@ public sealed class CharacterConsumablesApplicationPorts :
         ICharacterRitualFastingQuery ritualFastingQuery = null,
         ICharacterRitualFastingCommand ritualFastingCommand = null,
         IItemQuantityReservationService quantityReservations = null,
-        IReservedItemTransferService reservedTransfers = null)
+        IReservedItemTransferService reservedTransfers = null,
+        IWorkforceReplanService workforce = null,
+        IRestoreWorldCandidateQuery restoreWorldCandidates = null)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
@@ -54,19 +59,57 @@ public sealed class CharacterConsumablesApplicationPorts :
         this.ritualFastingCommand = ritualFastingCommand;
         this.quantityReservations = quantityReservations;
         this.reservedTransfers = reservedTransfers;
+        this.workforce = workforce;
+        this.restoreWorldCandidates = restoreWorldCandidates;
     }
 
-    public IReadOnlyList<CharacterId> CharacterIds => world.AllCharacters
+    public void RequestOneHaulerToReplan(CharacterId requestingCharacterId) =>
+        workforce?.RequestOneHaulerToReplan(
+            clearFailures: true,
+            // A newly authored meal/substance delivery must wake a worker even
+            // when every eligible hauler is inside an ordinary non-work idle or
+            // self-care action. The workforce service still refuses to replace
+            // externally driven/system-owned actions, so this cannot steal a
+            // visitor, captivity, rescue, or equivalent protected command.
+            forceInterrupt: true,
+            protectedCharacterId: requestingCharacterId);
+
+    public IReadOnlyList<CharacterId> CharacterIds => GetReferenceCharacters()
         .Where(actor => actor != null)
         .Select(CharacterPersistentIdentity.Require)
         .OrderBy(id => id.Value, StringComparer.Ordinal)
         .ToArray();
 
-    public IReadOnlyList<BuildingInstanceId> FacilityIds => world.Buildings
+    public IReadOnlyList<BuildingInstanceId> FacilityIds => GetReferenceBuildings()
         .Where(building => building != null)
         .Select(building => building.RequirePersistentInstanceId())
         .OrderBy(id => id.Value, StringComparer.Ordinal)
         .ToArray();
+
+    private IReadOnlyList<CharacterActor> GetReferenceCharacters()
+    {
+        if (restoreWorldCandidates != null
+            && restoreWorldCandidates.TryGetCharacters(
+                out IReadOnlyList<CharacterActor> candidates))
+        {
+            return candidates;
+        }
+
+        // Consumable execution is an active-world concern. Include the active
+        // registry as the primary authority while retaining lifetime entries
+        // for suspended/restorable actors. This also makes owner replacement
+        // atomic from the consumer's perspective when the old owner is
+        // destroyed at end-of-frame.
+        return CharacterActorCollection.DistinctByGameObject(
+            world.Characters.Concat(world.AllCharacters));
+    }
+
+    private IReadOnlyList<BuildableObject> GetReferenceBuildings() =>
+        restoreWorldCandidates != null
+        && restoreWorldCandidates.TryGetBuildings(
+            out IReadOnlyList<BuildableObject> candidates)
+            ? candidates
+            : world.Buildings;
 
     public bool TryGetActor(
         CharacterId id,
@@ -80,7 +123,7 @@ public sealed class CharacterConsumablesApplicationPorts :
         }
         snapshot = new CharacterConsumablesActorSnapshot(
             id,
-            !actor.IsDead && actor.CurrentLifecycleState == CharacterLifecycleState.Active,
+            actor.CanRunAi,
             actor.CurrentHealth,
             actor.MaxHealth,
             actor.Mood.Value,
@@ -148,29 +191,103 @@ public sealed class CharacterConsumablesApplicationPorts :
     {
         travelSeconds = 0f;
         CharacterActor actor = FindActor(characterId);
-        IGridPathSearchBroker broker = actor?.PathSearchBroker;
         if (actor == null
-            || broker == null
             || !world.TryGetGrid(out Grid grid)
             || grid == null)
         {
             return CharacterMealRouteStatus.Unreachable;
         }
 
-        GridPathRequestStatus status = broker.RequestMovePathTo(
-            grid,
-            from,
-            to,
-            out Queue<GridMoveStep> path,
-            GridPathSearchPriority.Normal);
-        if (status == GridPathRequestStatus.Reachable)
-            travelSeconds = path?.Count ?? 0f;
-        return status switch
+        BuildableObject mealFacility = world.Buildings
+            .Where(building => building != null
+                && !building.isDestroy
+                && building.centerPos == to
+                && building.SupportsFacilityRole(FacilityRole.Meal))
+            .OrderBy(
+                building => building.RequirePersistentInstanceId().Value,
+                StringComparer.Ordinal)
+            .FirstOrDefault();
+        IReadOnlyList<Vector2Int> routeTargets = mealFacility != null
+            ? BuildingWorkAccessRules.EnumerateCandidates(
+                mealFacility.buildPoses,
+                mealFacility.BuildingData?.IsGridMovement == true)
+            : new[] { to };
+
+        // Facility selection already owns a full-grid search rooted at the
+        // actor. Reuse that shared authority when this is an actor-to-service
+        // query. Starting one exact broker request per empty meal facility can
+        // continually replace/defer the actor's current request and creates a
+        // liveness cycle: no buffer -> no AIEat candidate -> no stable path ->
+        // no delivery request. Food-stack routes still use the exact broker
+        // below because their origin is not the actor.
+        if (from == actor.GetNowXY())
         {
-            GridPathRequestStatus.Pending => CharacterMealRouteStatus.Pending,
-            GridPathRequestStatus.Reachable => CharacterMealRouteStatus.Reachable,
-            _ => CharacterMealRouteStatus.Unreachable
-        };
+            GridPathSearchResult search = actor.Brain?.GetPathSearch(actor);
+            if (search == null)
+            {
+                return CharacterMealRouteStatus.Pending;
+            }
+            if (mealFacility != null)
+            {
+                int facilityDistance = search.GetMoveDistanceTo(mealFacility);
+                if (facilityDistance == int.MaxValue)
+                {
+                    return CharacterMealRouteStatus.Unreachable;
+                }
+
+                travelSeconds = facilityDistance;
+                return CharacterMealRouteStatus.Reachable;
+            }
+            foreach (Vector2Int routeTarget in routeTargets
+                         .Where(candidate => grid.IsValidGridPos(candidate)
+                             && grid.IsWalkable(candidate))
+                         .OrderBy(candidate => Mathf.Abs(candidate.x - from.x)
+                             + Mathf.Abs(candidate.y - from.y) * 1000)
+                         .ThenBy(candidate => candidate.y)
+                         .ThenBy(candidate => candidate.x))
+            {
+                int distance = search.GetMoveDistanceTo(routeTarget);
+                if (distance == int.MaxValue)
+                {
+                    continue;
+                }
+
+                travelSeconds = distance;
+                return CharacterMealRouteStatus.Reachable;
+            }
+            return CharacterMealRouteStatus.Unreachable;
+        }
+
+        IGridPathSearchBroker broker = actor.PathSearchBroker;
+        if (broker == null)
+        {
+            return CharacterMealRouteStatus.Unreachable;
+        }
+        bool pending = false;
+        foreach (Vector2Int routeTarget in routeTargets
+                     .Where(candidate => grid.IsValidGridPos(candidate)
+                         && grid.IsWalkable(candidate))
+                     .OrderBy(candidate => Mathf.Abs(candidate.x - from.x)
+                         + Mathf.Abs(candidate.y - from.y) * 1000)
+                     .ThenBy(candidate => candidate.y)
+                     .ThenBy(candidate => candidate.x))
+        {
+            GridPathRequestStatus status = broker.RequestMovePathTo(
+                grid,
+                from,
+                routeTarget,
+                out Queue<GridMoveStep> path,
+                GridPathSearchPriority.Normal);
+            if (status == GridPathRequestStatus.Reachable)
+            {
+                travelSeconds = path?.Count ?? 0f;
+                return CharacterMealRouteStatus.Reachable;
+            }
+            pending |= status == GridPathRequestStatus.Pending;
+        }
+        return pending
+            ? CharacterMealRouteStatus.Pending
+            : CharacterMealRouteStatus.Unreachable;
     }
 
     public float ProjectGameplayEffect(
@@ -596,14 +713,15 @@ public sealed class CharacterConsumablesApplicationPorts :
         int quantity,
         Vector2Int position,
         string destinationId,
-        out int requested) =>
+        out int requested,
+        out string failureReason) =>
         items.TryRequestItemDelivery(
             itemId.Value,
             quantity,
             position,
             destinationId,
             out requested,
-            out _);
+            out failureReason);
 
     public void Publish(CharacterConsumablesMealConsumedEvent consumedEvent)
     {
@@ -652,7 +770,7 @@ public sealed class CharacterConsumablesApplicationPorts :
 
     private CharacterActor FindActor(CharacterId id) =>
         id.IsValid
-            ? world.AllCharacters.FirstOrDefault(actor => actor != null
+            ? GetReferenceCharacters().FirstOrDefault(actor => actor != null
                 && CharacterPersistentIdentity.Require(actor).Equals(id))
             : null;
 

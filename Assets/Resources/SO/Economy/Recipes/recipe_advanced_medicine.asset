@@ -42,7 +42,7 @@ MonoBehaviour:
     recommendedRank: 1
     minimumRiskRank: 2
   requiredResearchId: research:pharmacology:advanced
-  requiredWork: 68
+  requiredWork: 30
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

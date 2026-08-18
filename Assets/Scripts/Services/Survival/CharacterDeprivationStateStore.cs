@@ -1096,6 +1096,7 @@ public static class CharacterDeprivationAuthorityDebugScenarios
         Run("typed_v2_round_trip", VerifyTypedRoundTrip, errors);
         Run("invalid_payload_no_mutation", VerifyInvalidPayloadNoMutation, errors);
         Run("typed_id_collision_rejected", VerifyTypedIdCollisionRejected, errors);
+        Run("duplicate_character_id_rejected", VerifyDuplicateCharacterIdRejected, errors);
         Run("unknown_world_reference_rejected", VerifyUnknownWorldReference, errors);
         Run("breakdown_side_effect_once", VerifyBreakdownSideEffectOnce, errors);
         Run("consecutive_run_scope_isolation", VerifyConsecutiveRunScopeIsolation, errors);
@@ -1166,6 +1167,15 @@ public static class CharacterDeprivationAuthorityDebugScenarios
         RequireThrows(() => store.Restore(
             new[] { CreatePayloadState(" owner ") },
             new[] { CharacterId.Owner }));
+    }
+
+    private static void VerifyDuplicateCharacterIdRejected()
+    {
+        CharacterId owner = CharacterId.Owner;
+        CharacterDeprivationStateStore store = CreateStore();
+        RequireThrows(() => store.Restore(
+            Array.Empty<CharacterDeprivationState>(),
+            new[] { owner, owner }));
     }
 
     private static void VerifyUnknownWorldReference()

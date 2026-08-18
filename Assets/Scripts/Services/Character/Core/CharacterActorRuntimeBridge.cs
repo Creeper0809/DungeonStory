@@ -260,6 +260,17 @@ public sealed class CharacterActorRuntimeBridge : MonoBehaviour
             return;
         }
 
+        // An active published actor must always be visible to lifetime-backed
+        // domain ports (consumables, population, medical, save). Reconcile the
+        // lifetime registry here as well as during composition publication so
+        // prefab reactivation and owner replacement cannot leave an actor in
+        // the scheduler/world registry but absent from those domains.
+        if (!registeredWithLifetimeRegistry && worldRegistry != null)
+        {
+            worldRegistry.RegisterCharacterLifetime(actor);
+            registeredWithLifetimeRegistry = true;
+        }
+
         if (!registeredWithWorldRegistry && worldRegistry != null)
         {
             worldRegistry.RegisterCharacter(actor);

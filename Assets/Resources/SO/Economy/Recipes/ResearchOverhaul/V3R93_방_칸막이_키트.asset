@@ -43,7 +43,7 @@ MonoBehaviour:
     recommendedRank: 1
     minimumRiskRank: 0
   requiredResearchId: research:housing:room-assignment
-  requiredWork: 68
+  requiredWork: 30
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

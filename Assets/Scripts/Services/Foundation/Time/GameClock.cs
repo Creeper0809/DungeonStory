@@ -21,12 +21,46 @@ namespace DungeonStory.Foundation
         float Scale { get; set; }
     }
 
-    public sealed class UnityGameClock : IGameClock
+    public interface IGameClockDiagnosticsControl
     {
+        bool IsDeterministicCheckpointTimeEnabled { get; }
+        void RebaseDeterministicCheckpointTime(float time, int frameCount);
+        void DisableDeterministicCheckpointTime();
+    }
+
+    public sealed class UnityGameClock : IGameClock, IGameClockDiagnosticsControl
+    {
+        private bool deterministicCheckpointTimeEnabled;
+        private float deterministicTimeOffset;
+        private int deterministicFrameOffset;
+
         public float DeltaTime => UnityEngine.Time.deltaTime;
-        public float Time => UnityEngine.Time.time;
-        public int FrameCount => UnityEngine.Time.frameCount;
+        public float Time => UnityEngine.Time.time
+            + (deterministicCheckpointTimeEnabled ? deterministicTimeOffset : 0f);
+        public int FrameCount => UnityEngine.Time.frameCount
+            + (deterministicCheckpointTimeEnabled ? deterministicFrameOffset : 0);
         public bool IsPaused => UnityEngine.Time.timeScale <= 0f;
+        public bool IsDeterministicCheckpointTimeEnabled =>
+            deterministicCheckpointTimeEnabled;
+
+        public void RebaseDeterministicCheckpointTime(float time, int frameCount)
+        {
+            if (!Application.isEditor)
+            {
+                throw new System.InvalidOperationException(
+                    "Deterministic checkpoint time is editor-only.");
+            }
+            deterministicTimeOffset = time - UnityEngine.Time.time;
+            deterministicFrameOffset = frameCount - UnityEngine.Time.frameCount;
+            deterministicCheckpointTimeEnabled = true;
+        }
+
+        public void DisableDeterministicCheckpointTime()
+        {
+            deterministicCheckpointTimeEnabled = false;
+            deterministicTimeOffset = 0f;
+            deterministicFrameOffset = 0;
+        }
     }
 
     public sealed class UnityUiClock : IUiClock

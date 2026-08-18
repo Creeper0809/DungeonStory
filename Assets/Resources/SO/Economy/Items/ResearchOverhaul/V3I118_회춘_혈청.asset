@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 0.6
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 209
+  unitPrice: 92
   features:
-  - rid: 7737211981816660885
-  - rid: 7737211981816660886
-  - rid: 7737211981816660887
+  - rid: 7737212042857939258
+  - rid: 7737212042857939259
+  - rid: 7737212042857939260
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660885
+    - rid: 7737212042857939258
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:blood-rejuvenation
-    - rid: 7737211981816660886
+    - rid: 7737212042857939259
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737211981816660887
+    - rid: 7737212042857939260
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59991384
+        saleRate: 0.5983731

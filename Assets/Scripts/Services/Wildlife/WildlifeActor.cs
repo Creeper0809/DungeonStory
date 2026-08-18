@@ -145,9 +145,10 @@ public sealed class WildlifeActor :
         randomStream = (randomStreamProvider
             ?? throw new System.InvalidOperationException(
                 "Wildlife runtime services must be configured before initialization."))
-            .Get("wildlife.actor."
-                + (string.IsNullOrWhiteSpace(WildlifeId)
-                    ? "unknown"
+            .Get(RandomStreamScopeIds.WildlifeActor(
+                string.IsNullOrWhiteSpace(WildlifeId)
+                    ? throw new System.InvalidOperationException(
+                        "Wildlife requires a persistent ID before random-stream binding.")
                     : WildlifeId));
         CurrentHealth = saveData != null ? Mathf.Clamp(saveData.health, 0, MaxHealth) : MaxHealth;
         headHealth = saveData != null && saveData.hasCombatBodyProfile
@@ -480,6 +481,56 @@ public sealed class WildlifeActor :
         nextPathRebuildAt = Now + NextRange(0.6f, 1.8f);
         Visual.RestorePose();
         RegisterAt(position);
+    }
+
+    internal bool TryRebindGridAfterExpansion(
+        Grid expectedCurrent,
+        Grid replacement,
+        out string failureReason)
+    {
+        if (!CanRebindGridAfterExpansion(
+                expectedCurrent,
+                replacement,
+                out failureReason))
+        {
+            return false;
+        }
+
+        activePath.Clear();
+        isMoving = false;
+        managedCaptiveMovement = false;
+        Visual.RestorePose();
+        grid = replacement;
+        Vector3 world = grid.GetWorldPos(gridPosition);
+        transform.position = new Vector3(world.x, world.y, transform.position.z);
+        Visual.RefreshSortingForGridPosition();
+        return true;
+    }
+
+    internal bool CanRebindGridAfterExpansion(
+        Grid expectedCurrent,
+        Grid replacement,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!ReferenceEquals(grid, expectedCurrent))
+        {
+            failureReason =
+                $"Wildlife '{WildlifeId}' is not bound to the grid being expanded.";
+            return false;
+        }
+        if (replacement == null
+            || !ReferenceEquals(
+                replacement.GetGridCell(gridPosition)
+                    ?.GetOccupant(GridLayer.Wildlife),
+                this))
+        {
+            failureReason =
+                $"Expanded grid did not preserve wildlife '{WildlifeId}' at {gridPosition}.";
+            return false;
+        }
+
+        return true;
     }
 
     public void BeginManagedCarry(Transform carrier)

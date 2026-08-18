@@ -56,6 +56,69 @@ internal readonly struct CharacterSafeDrinkPlan
 /// </summary>
 internal sealed class CharacterSafeDrinkPlanner
 {
+    private sealed class PendingExactPathTrace
+    {
+        private bool initialized;
+        private Vector2Int lastOrigin;
+        private Vector2Int lastDestination;
+        private int lastGridVersion;
+        private int lastDoorVersion;
+        private int lastCostVersion;
+
+        public int Observations { get; private set; }
+        public int SignatureChanges { get; private set; }
+        public Vector2Int FirstOrigin { get; private set; }
+        public Vector2Int LastOrigin => lastOrigin;
+        public int FirstGridVersion { get; private set; }
+        public int LastGridVersion => lastGridVersion;
+        public int FirstDoorVersion { get; private set; }
+        public int LastDoorVersion => lastDoorVersion;
+        public int FirstCostVersion { get; private set; }
+        public int LastCostVersion => lastCostVersion;
+
+        public void Observe(
+            Vector2Int origin,
+            Vector2Int destination,
+            int gridVersion,
+            int doorVersion,
+            int costVersion)
+        {
+            if (!initialized)
+            {
+                initialized = true;
+                FirstOrigin = origin;
+                FirstGridVersion = gridVersion;
+                FirstDoorVersion = doorVersion;
+                FirstCostVersion = costVersion;
+            }
+            else if (origin != lastOrigin
+                || destination != lastDestination
+                || gridVersion != lastGridVersion
+                || doorVersion != lastDoorVersion
+                || costVersion != lastCostVersion)
+            {
+                SignatureChanges++;
+            }
+
+            Observations++;
+            lastOrigin = origin;
+            lastDestination = destination;
+            lastGridVersion = gridVersion;
+            lastDoorVersion = doorVersion;
+            lastCostVersion = costVersion;
+        }
+
+        public override string ToString()
+        {
+            return $"observations={Observations};"
+                + $"signatureChanges={SignatureChanges};"
+                + $"origin={FirstOrigin}->{LastOrigin};"
+                + $"gridVersion={FirstGridVersion}->{LastGridVersion};"
+                + $"doorVersion={FirstDoorVersion}->{LastDoorVersion};"
+                + $"costVersion={FirstCostVersion}->{LastCostVersion}";
+        }
+    }
+
     private const float SafeReliefRetrySeconds = 1.25f;
     private static readonly ProfilerMarker SafeReliefPlanProfilerMarker =
         new ProfilerMarker("SafeRelief.Plan");
@@ -81,6 +144,8 @@ internal sealed class CharacterSafeDrinkPlanner
     private readonly Dictionary<string, WorldItemReservedStackQuantity>
         itemReservationByActor = new(128, StringComparer.Ordinal);
     private readonly List<WorldItemStockCandidate> stockCandidates = new(64);
+    private readonly Dictionary<string, PendingExactPathTrace>
+        pendingExactPathTraceByActor = new(32, StringComparer.Ordinal);
     private string lastStackSearchFailureDetail = string.Empty;
 
     public CharacterSafeDrinkPlanner(
@@ -115,6 +180,7 @@ internal sealed class CharacterSafeDrinkPlanner
     public void ReleaseForActor(string actorId)
     {
         string normalizedActorId = actorId?.Trim() ?? string.Empty;
+        pendingExactPathTraceByActor.Remove(normalizedActorId);
         if (approachByActor.TryGetValue(
                 normalizedActorId,
                 out Vector2Int approach))
@@ -132,6 +198,7 @@ internal sealed class CharacterSafeDrinkPlanner
         approachByActor.Clear();
         itemReservationByActor.Clear();
         stockCandidates.Clear();
+        pendingExactPathTraceByActor.Clear();
     }
     public bool TryCreatePlan(
         CharacterActor actor,
@@ -222,6 +289,10 @@ internal sealed class CharacterSafeDrinkPlanner
         if (stackSearchPending)
         {
             diagnostics.SafeReliefPlanSearchPending++;
+            diagnostics.LastSafeReliefPlanFailureDetail =
+                string.IsNullOrWhiteSpace(lastStackSearchFailureDetail)
+                    ? "safe-drink-stack-search-pending"
+                    : lastStackSearchFailureDetail;
             searchPending = true;
             return false;
         }
@@ -422,6 +493,10 @@ internal sealed class CharacterSafeDrinkPlanner
                 if (approachStatus ==
                     CharacterSafeReliefApproachSearchStatus.Pending)
                 {
+                    lastStackSearchFailureDetail =
+                        $"pending stack={selectedCandidate.StackId};"
+                        + $"position={selectedCandidate.Position};"
+                        + $"origin={origin};approach={lastApproachFailureDetail}";
                     searchPending = true;
                     return false;
                 }
@@ -651,9 +726,14 @@ internal sealed class CharacterSafeDrinkPlanner
 
         }
 
-        return temporarilyOwnedApproach
-            ? CharacterSafeReliefApproachSearchStatus.Pending
-            : CharacterSafeReliefApproachSearchStatus.Invalid;
+        if (temporarilyOwnedApproach)
+        {
+            lastApproachFailureDetail =
+                $"approach-owned-by-another actor={actorId};target={target}";
+            return CharacterSafeReliefApproachSearchStatus.Pending;
+        }
+
+        return CharacterSafeReliefApproachSearchStatus.Invalid;
     }
 
     private string lastApproachFailureDetail = string.Empty;
@@ -720,10 +800,43 @@ internal sealed class CharacterSafeDrinkPlanner
         }
         if (requestStatus == GridPathRequestStatus.Pending)
         {
+            string pendingActorId =
+                CharacterPersistentIdentity.Require(actor).Value;
+            if (!pendingExactPathTraceByActor.TryGetValue(
+                    pendingActorId,
+                    out PendingExactPathTrace pendingTrace))
+            {
+                pendingTrace = new PendingExactPathTrace();
+                pendingExactPathTraceByActor.Add(
+                    pendingActorId,
+                    pendingTrace);
+            }
+            GridPathSearchBroker traceBroker = actor.PathSearchBroker
+                as GridPathSearchBroker;
+            pendingTrace.Observe(
+                origin,
+                destination,
+                grid.TraversalVersion,
+                traceBroker?.DoorAccessVersionForDiagnostics ?? 0,
+                traceBroker?.CostPolicyVersionForDiagnostics ?? 0);
+            string brokerDetail = actor.PathSearchBroker
+                is GridPathSearchBroker concreteBroker
+                    ? concreteBroker.DescribeExactSearchForDiagnostics(
+                        grid,
+                        origin,
+                        destination,
+                        GridTraversalContext.ForCharacter(
+                            CharacterPersistentIdentity.Require(actor),
+                            movementIntent: GridMovementIntent.SafeChore))
+                    : $"broker={actor.PathSearchBroker.GetType().Name}";
             lastApproachFailureDetail =
-                $"exact-path-pending origin={origin}; destination={destination}";
+                $"exact-path-pending origin={origin}; destination={destination};"
+                + $" trace={pendingTrace}; {brokerDetail}";
             return CharacterSafeReliefApproachSearchStatus.Pending;
         }
+
+        pendingExactPathTraceByActor.Remove(
+            CharacterPersistentIdentity.Require(actor).Value);
 
         if (requestStatus != GridPathRequestStatus.Reachable
             || path == null

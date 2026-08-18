@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211981816660237
-    - rid: 7737211981816660238
-    - rid: 7737211981816660239
-    - rid: 7737211981816660240
-    - rid: 7737211981816660241
+    - rid: 7737212033836254028
+    - rid: 7737212033836254029
+    - rid: 7737212033836254030
+    - rid: 7737212033836254031
+    - rid: 7737212033836254032
   width: 2
   height: 1
   layer: 1
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660237
+    - rid: 7737212033836254028
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I06
-    - rid: 7737211981816660238
+    - rid: 7737212033836254029
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,12 +87,12 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211981816660239
+    - rid: 7737212033836254030
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 819
+        constructionWorkRequired: 117
         repairWorkRequired: 110
         cleanWorkRequired: 18
         researchWorkRequired: 6
@@ -117,13 +117,13 @@ MonoBehaviour:
           amount: 3
         - itemId: component:precision-parts
           amount: 1
-    - rid: 7737211981816660240
+    - rid: 7737212033836254031
       type: {class: BuildingCircuitBreakerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingCircuitBreakerAbility
         overloadTolerance: 1.3
         tripHeat: 130
-    - rid: 7737211981816660241
+    - rid: 7737212033836254032
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

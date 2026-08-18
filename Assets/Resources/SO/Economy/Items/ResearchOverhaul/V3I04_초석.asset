@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 2.15
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 27
+  unitPrice: 12
   features:
-  - rid: 7737211981804077754
-  - rid: 7737211981804077755
-  - rid: 7737211981804077756
+  - rid: 7737212042831201195
+  - rid: 7737212042831201196
+  - rid: 7737212042831201197
   references:
     version: 2
     RefIds:
-    - rid: 7737211981804077754
+    - rid: 7737212042831201195
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:black-powder
-    - rid: 7737211981804077755
+    - rid: 7737212042831201196
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 512
         sharedIntermediate: 1
-    - rid: 7737211981804077756
+    - rid: 7737212042831201197
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.58218515
+        saleRate: 0.5666111

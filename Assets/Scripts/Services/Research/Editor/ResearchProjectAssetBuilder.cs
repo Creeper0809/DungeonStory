@@ -153,6 +153,95 @@ public static class ResearchProjectAssetBuilder
         Debug.Log($"Research tree assets rebuilt: {projects.Count} projects.");
     }
 
+    [MenuItem("Tools/DungeonStory/Research/Validate Mining Expansion Gates")]
+    public static void EnsureDungeonExpansionProjects()
+    {
+        IReadOnlyList<Spec> allSpecs = CreateSpecs();
+        Spec[] expansionSpecs = allSpecs
+            .Where(spec => DungeonSpaceExpansionCatalog.TryGet(spec.Id, out _))
+            .OrderBy(spec => spec.NumericId)
+            .ToArray();
+        if (expansionSpecs.Length != DungeonSpaceExpansionCatalog.All.Count)
+        {
+            throw new InvalidOperationException(
+                $"Dungeon expansion research spec count {expansionSpecs.Length} does not match runtime definition count {DungeonSpaceExpansionCatalog.All.Count}.");
+        }
+
+        Dictionary<string, ResearchProjectSO> projects = AssetDatabase
+            .FindAssets("t:ResearchProjectSO", new[] { Root })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<ResearchProjectSO>)
+            .Where(project => project != null && project.ProjectId.IsValid)
+            .GroupBy(project => project.ProjectId.Value, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Single(),
+                StringComparer.Ordinal);
+
+        string[] legacyIds = projects.Keys
+            .Where(id => id.StartsWith(
+                "research:dungeon-expansion:",
+                StringComparison.Ordinal))
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+        if (legacyIds.Length > 0)
+        {
+            throw new InvalidOperationException(
+                "Legacy standalone dungeon-expansion research must not exist: "
+                + string.Join(", ", legacyIds));
+        }
+
+        foreach (Spec spec in expansionSpecs)
+        {
+            if (!projects.TryGetValue(spec.Id, out ResearchProjectSO project))
+            {
+                throw new InvalidOperationException(
+                    $"Existing mining expansion research is missing: {spec.Id}.");
+            }
+            if (project.id != spec.NumericId)
+            {
+                throw new InvalidOperationException(
+                    $"Expansion research '{spec.Id}' has numeric ID {project.id}; expected {spec.NumericId}.");
+            }
+            if (!Mathf.Approximately(project.RequiredWork, spec.Work))
+            {
+                throw new InvalidOperationException(
+                    $"Expansion research '{spec.Id}' has {project.RequiredWork:0.###} WU; expected {spec.Work:0.###}.");
+            }
+            string[] actualPrerequisites = project.Prerequisites
+                .Select(value => value.ProjectId.Value)
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray();
+            string[] expectedPrerequisites = spec.Prerequisites
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray();
+            if (!actualPrerequisites.SequenceEqual(expectedPrerequisites))
+            {
+                throw new InvalidOperationException(
+                    $"Expansion research '{spec.Id}' prerequisites are "
+                    + string.Join(",", actualPrerequisites)
+                    + "; expected "
+                    + string.Join(",", expectedPrerequisites)
+                    + ".");
+            }
+        }
+
+        ResourceResearchProjectCatalog catalog =
+            new ResourceResearchProjectCatalog(projects.Values);
+        IReadOnlyList<string> errors = catalog.Validate();
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Dungeon expansion research catalog is invalid: "
+                + string.Join(" | ", errors));
+        }
+
+        Debug.Log(
+            "Existing mining research expansion gates validated: "
+            + string.Join(", ", expansionSpecs.Select(spec =>
+                $"{spec.Id}={spec.Work:0}WU")));
+    }
+
     [MenuItem("Tools/DungeonStory/Research/Patch Q03 Archive Ability")]
     public static void PatchQ03ArchiveAbility()
     {
@@ -747,6 +836,21 @@ public static class ResearchProjectAssetBuilder
             new List<ResearchFacilityRequirement>();
         void Add(ResearchFacilityCapabilityId capability, int count = 1) =>
             requirements.Add(new ResearchFacilityRequirement(capability, count));
+
+        if (DungeonSpaceExpansionCatalog.TryGet(spec.Id, out var expansion))
+        {
+            Add(ResearchFacilityCapabilityId.Basic);
+            if (expansion.Tier >= 2)
+            {
+                Add(ResearchFacilityCapabilityId.Design);
+            }
+            if (expansion.Tier >= 3)
+            {
+                Add(ResearchFacilityCapabilityId.Advanced);
+            }
+
+            return requirements.ToArray();
+        }
 
         switch (spec.Field)
         {

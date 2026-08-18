@@ -32,28 +32,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 20
   features:
-  - rid: 7737211981816660755
-  - rid: 7737211981816660756
-  - rid: 7737211981816660757
-  - rid: 7737211981816660758
+  - rid: 7737212042831200946
+  - rid: 7737212042831200947
+  - rid: 7737212042831200948
+  - rid: 7737212042831200949
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660755
+    - rid: 7737212042831200946
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:health:pathogen-observation
-    - rid: 7737211981816660756
+    - rid: 7737212042831200947
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 2
         sharedIntermediate: 0
-    - rid: 7737211981816660757
+    - rid: 7737212042831200948
       type: {class: PathogenSampleItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         diseaseId: disease:spore-lung
-    - rid: 7737211981816660758
+    - rid: 7737212042831200949
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.5827

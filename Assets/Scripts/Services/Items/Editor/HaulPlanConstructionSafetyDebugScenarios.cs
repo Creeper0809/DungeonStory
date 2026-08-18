@@ -38,6 +38,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         Run("priority_haul_seed_beats_value", VerifyPriorityHaulSeedBeatsValue, lines, errors);
         Run("partial_heavy_stack_reservation", VerifyPartialHeavyStackReservation, lines, errors);
         Run("survival_stock_transit_reserve", VerifySurvivalStockTransitReserve, lines, errors);
+        Run("raw_food_harvest_is_haulable", VerifyRawFoodHarvestIsHaulable, lines, errors);
         Run("construction_safety_forced_warning", VerifyConstructionSafetyForcedWarning, lines, errors);
 
         File.WriteAllLines(ReportPath, lines);
@@ -461,11 +462,18 @@ public static class HaulPlanConstructionSafetyDebugScenarios
             Require(plan.PickupLegs[0].Reservation.StackId == priority.StackId,
                 $"priority stack was not the seed: {plan.PickupLegs[0].Reservation.StackId}");
 
-            string actorId = scenario.Actor.Identity.PersistentId;
             foreach (WorldItemReservedStackQuantity reservation in plan.ReservedStackQuantities)
             {
-                scenario.Items.ReleaseReservation(reservation.StackId, actorId);
+                Require(scenario.QuantityReservations.Release(
+                        reservation.LeaseId,
+                        ItemReservationReleaseReason.Cancelled),
+                    $"failed to cancel exact lease {reservation.LeaseId}");
             }
+            foreach (string ownerOperationId in plan.ReservedStackQuantities
+                         .Select(value => value.OwnerOperationId)
+                         .Where(value => !string.IsNullOrWhiteSpace(value))
+                         .Distinct(StringComparer.Ordinal))
+                scenario.Items.ReleaseHaulDeliveryIntent(ownerOperationId);
 
             Require(scenario.Items.TryReserveBestHaulPlan(
                     scenario.Actor,
@@ -537,6 +545,37 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 $"remaining serving should be haulable after warehouse reserve exists, reserved={secondReserved}");
 
             return $"firstReserved={firstReserved}; stored=9; secondReserved={secondReserved}";
+        }
+        finally
+        {
+            scenario.Dispose();
+        }
+    }
+
+    private static string VerifyRawFoodHarvestIsHaulable()
+    {
+        ScenarioRuntime scenario = ScenarioRuntime.Create(lightStockWeight: 1f);
+        try
+        {
+            const string rawFoodId = "resource:twilight-grain";
+            Require(scenario.Items.SpawnItemAt(
+                    rawFoodId,
+                    3,
+                    new Vector2Int(2, 1),
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out int spawned)
+                && spawned == 3,
+                "raw food harvest spawn failed");
+            Require(scenario.Items.TryReserveBestHaulPlan(
+                    scenario.Actor,
+                    out WorldItemHaulPlan plan,
+                    out string failureReason),
+                "raw food harvest was incorrectly transit-protected: " + failureReason);
+            int reserved = plan.ReservedStackQuantities.Sum(value => value.Quantity);
+            Require(reserved == 3,
+                $"all raw harvest must remain haulable, reserved={reserved}");
+            return $"rawFood={rawFoodId};reserved={reserved};consumerReserve=0";
         }
         finally
         {
@@ -1006,7 +1045,10 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 1,
                 null,
                 stockWeight,
-                75);
+                75,
+                resourceKind: itemId == "food:preserved-ration"
+                    ? ResourceItemKind.Food
+                    : ResourceItemKind.Raw);
         }
 
         public bool TryGetDefinition(string itemId, out DungeonItemDefinition definition)

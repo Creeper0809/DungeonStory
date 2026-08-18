@@ -43,7 +43,7 @@ MonoBehaviour:
     recommendedRank: 1
     minimumRiskRank: 0
   requiredResearchId: research:cuisine:baking
-  requiredWork: 54
+  requiredWork: 24
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

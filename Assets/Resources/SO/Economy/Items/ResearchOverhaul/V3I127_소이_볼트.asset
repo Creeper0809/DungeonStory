@@ -29,30 +29,30 @@ MonoBehaviour:
   unitWeight: 0.15
   maxStack: 120
   sprite: {fileID: 0}
-  unitPrice: 49
+  unitPrice: 22
   features:
-  - rid: 7737211981816660080
-  - rid: 7737211981816660081
-  - rid: 7737211981816660082
-  - rid: 7737211981816660083
+  - rid: 7737212042857939172
+  - rid: 7737212042857939173
+  - rid: 7737212042857939174
+  - rid: 7737212042857939175
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660080
+    - rid: 7737212042857939172
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:incendiary-bolt
-    - rid: 7737211981816660081
+    - rid: 7737212042857939173
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:black-powder
-    - rid: 7737211981816660082
+    - rid: 7737212042857939174
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 512
         sharedIntermediate: 0
-    - rid: 7737211981816660083
+    - rid: 7737212042857939175
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5924965
+        saleRate: 0.58622724

@@ -30,25 +30,25 @@ MonoBehaviour:
   unitWeight: 1.35
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 109
+  unitPrice: 49
   features:
-  - rid: 7737211981816660410
-  - rid: 7737211981816660411
-  - rid: 7737211981816660412
+  - rid: 7737212042857939930
+  - rid: 7737212042857939931
+  - rid: 7737212042857939932
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660410
+    - rid: 7737212042857939930
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:textile:rune-leather
-    - rid: 7737211981816660411
+    - rid: 7737212042857939931
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1152
         sharedIntermediate: 0
-    - rid: 7737211981816660412
+    - rid: 7737212042857939932
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5990703
+        saleRate: 0.59229255

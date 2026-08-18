@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211981804077803
-    - rid: 7737211981804077804
-    - rid: 7737211981804077805
-    - rid: 7737211981804077806
-    - rid: 7737211981804077807
+    - rid: 7737212033836253811
+    - rid: 7737212033836253812
+    - rid: 7737212033836253813
+    - rid: 7737212033836253814
+    - rid: 7737212033836253815
   width: 1
   height: 1
   layer: 11
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211981804077803
+    - rid: 7737212033836253811
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: U04
-    - rid: 7737211981804077804
+    - rid: 7737212033836253812
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,12 +87,12 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737211981804077805
+    - rid: 7737212033836253813
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 360
+        constructionWorkRequired: 353
         repairWorkRequired: 48
         cleanWorkRequired: 8
         researchWorkRequired: 6
@@ -116,15 +116,15 @@ MonoBehaviour:
         - itemId: material:cloth
           amount: 1
         - itemId: component:machine-parts
-          amount: 1
-    - rid: 7737211981804077806
+          amount: 2
+    - rid: 7737212033836253814
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 7
         maxThroughput: 100
         normallyOpen: 1
-    - rid: 7737211981804077807
+    - rid: 7737212033836253815
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

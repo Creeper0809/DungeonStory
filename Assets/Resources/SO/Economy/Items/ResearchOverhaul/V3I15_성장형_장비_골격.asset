@@ -30,25 +30,25 @@ MonoBehaviour:
   unitWeight: 3.05
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 926
+  unitPrice: 412
   features:
-  - rid: 7737211981818757273
-  - rid: 7737211981818757274
-  - rid: 7737211981818757275
+  - rid: 7737212042857939542
+  - rid: 7737212042857939543
+  - rid: 7737212042857939544
   references:
     version: 2
     RefIds:
-    - rid: 7737211981818757273
+    - rid: 7737212042857939542
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:modular-frames
-    - rid: 7737211981818757274
+    - rid: 7737212042857939543
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 768
         sharedIntermediate: 1
-    - rid: 7737211981818757275
+    - rid: 7737212042857939544
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59958315
+        saleRate: 0.5989433

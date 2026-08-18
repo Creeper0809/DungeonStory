@@ -3,6 +3,36 @@ using System.Collections.Generic;
 
 namespace DungeonStory.Foundation
 {
+    public static class RandomStreamScopeIds
+    {
+        public static string WildlifeActor(string wildlifeId) =>
+            Build("wildlife.actor:", wildlifeId, nameof(wildlifeId));
+
+        public static string Encounter(string encounterId) =>
+            Build("combat-resolution:", encounterId, nameof(encounterId));
+
+        private static string Build(
+            string prefix,
+            string persistentId,
+            string parameterName)
+        {
+            if (string.IsNullOrWhiteSpace(persistentId)
+                || !string.Equals(
+                    persistentId,
+                    persistentId.Trim(),
+                    StringComparison.Ordinal)
+                || persistentId.IndexOf('\r') >= 0
+                || persistentId.IndexOf('\n') >= 0)
+            {
+                throw new ArgumentException(
+                    "A canonical persistent ID is required for a random stream.",
+                    parameterName);
+            }
+
+            return string.Concat(prefix, persistentId);
+        }
+    }
+
     public interface IRandomStream
     {
         ulong State { get; }
@@ -25,6 +55,28 @@ namespace DungeonStory.Foundation
         void RestoreStates(
             int rootSeed,
             IEnumerable<RandomStreamStateSnapshot> snapshots);
+    }
+
+    public readonly struct RandomStreamDiagnosticSnapshot
+    {
+        public RandomStreamDiagnosticSnapshot(
+            string streamId,
+            ulong state,
+            long drawCount)
+        {
+            StreamId = streamId ?? throw new ArgumentNullException(nameof(streamId));
+            State = state;
+            DrawCount = drawCount;
+        }
+
+        public string StreamId { get; }
+        public ulong State { get; }
+        public long DrawCount { get; }
+    }
+
+    public interface IRandomStreamDiagnosticsQuery
+    {
+        IReadOnlyList<RandomStreamDiagnosticSnapshot> Capture();
     }
 
     public sealed class RandomStreamRestoreCandidate
@@ -60,12 +112,16 @@ namespace DungeonStory.Foundation
             new Dictionary<string, ulong>(StringComparer.Ordinal);
     }
 
-    public sealed class RandomStreamProvider : IRandomStreamProvider
+    public sealed class RandomStreamProvider :
+        IRandomStreamProvider,
+        IRandomStreamDiagnosticsQuery
     {
         private readonly Dictionary<string, ProviderRandomStream> handles =
             new Dictionary<string, ProviderRandomStream>(StringComparer.Ordinal);
         private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
         private readonly RandomStreamAggregateState standaloneState;
+        private readonly Dictionary<string, long> drawCounts =
+            new Dictionary<string, long>(StringComparer.Ordinal);
 
         public RandomStreamProvider()
             : this(1)
@@ -89,20 +145,15 @@ namespace DungeonStory.Foundation
 
         public IRandomStream Get(string streamId)
         {
-            if (string.IsNullOrWhiteSpace(streamId))
-            {
-                throw new ArgumentException("A random stream requires a stable, non-empty ID.", nameof(streamId));
-            }
-
-            string normalized = streamId.Trim();
-            if (handles.TryGetValue(normalized, out ProviderRandomStream stream))
+            string canonical = RequireCanonicalStreamId(streamId);
+            if (handles.TryGetValue(canonical, out ProviderRandomStream stream))
             {
                 return stream;
             }
 
-            EnsureStreamState(normalized);
-            stream = new ProviderRandomStream(this, normalized);
-            handles.Add(normalized, stream);
+            EnsureStreamState(canonical);
+            stream = new ProviderRandomStream(this, canonical);
+            handles.Add(canonical, stream);
             return stream;
         }
 
@@ -116,6 +167,27 @@ namespace DungeonStory.Foundation
                     state.RootSeed,
                     streamId);
             }
+
+            drawCounts.Clear();
+        }
+
+        public IReadOnlyList<RandomStreamDiagnosticSnapshot> Capture()
+        {
+            RandomStreamAggregateState state = State;
+            List<string> streamIds = new List<string>(state.StreamStates.Keys);
+            streamIds.Sort(StringComparer.Ordinal);
+            List<RandomStreamDiagnosticSnapshot> snapshots =
+                new List<RandomStreamDiagnosticSnapshot>(streamIds.Count);
+            for (int index = 0; index < streamIds.Count; index++)
+            {
+                string streamId = streamIds[index];
+                snapshots.Add(new RandomStreamDiagnosticSnapshot(
+                    streamId,
+                    state.StreamStates[streamId],
+                    GetDrawCount(streamId)));
+            }
+
+            return snapshots;
         }
 
         public IReadOnlyList<RandomStreamStateSnapshot> CaptureStates()
@@ -172,7 +244,7 @@ namespace DungeonStory.Foundation
                         "Random-stream restore contains a null snapshot.");
                 }
 
-                string streamId = snapshot.StreamId;
+                string streamId = RequireCanonicalStreamId(snapshot.StreamId);
                 if (!restoredIds.Add(streamId))
                 {
                     throw new InvalidOperationException(
@@ -220,6 +292,7 @@ namespace DungeonStory.Foundation
         private void RestoreState(string streamId, ulong value)
         {
             WritableState.StreamStates[streamId] = NormalizeStreamState(value);
+            drawCounts.Remove(streamId);
         }
 
         private ulong NextState(string streamId)
@@ -230,6 +303,7 @@ namespace DungeonStory.Foundation
             value ^= value << 17;
             value = NormalizeStreamState(value);
             WritableState.StreamStates[streamId] = value;
+            IncrementDrawCount(streamId);
             return value;
         }
 
@@ -246,6 +320,7 @@ namespace DungeonStory.Foundation
 
         private void ReplaceState(RandomStreamAggregateState restored)
         {
+            drawCounts.Clear();
             if (aggregateRootStore != null)
             {
                 aggregateRootStore.Replace(restored);
@@ -258,6 +333,44 @@ namespace DungeonStory.Foundation
             {
                 standaloneState.StreamStates.Add(pair.Key, pair.Value);
             }
+        }
+
+        private long GetDrawCount(string streamId) =>
+            drawCounts.TryGetValue(streamId, out long count) ? count : 0L;
+
+        private void IncrementDrawCount(string streamId)
+        {
+            long current = GetDrawCount(streamId);
+            drawCounts[streamId] = checked(current + 1L);
+        }
+
+        private static string RequireCanonicalStreamId(string streamId)
+        {
+            if (string.IsNullOrWhiteSpace(streamId))
+            {
+                throw new ArgumentException(
+                    "A random stream requires a stable, non-empty ID.",
+                    nameof(streamId));
+            }
+
+            if (!string.Equals(streamId, streamId.Trim(), StringComparison.Ordinal)
+                || streamId.IndexOf('\r') >= 0
+                || streamId.IndexOf('\n') >= 0)
+            {
+                throw new ArgumentException(
+                    $"Random stream ID '{streamId}' is not canonical.",
+                    nameof(streamId));
+            }
+
+            if (string.Equals(streamId, "character-ai", StringComparison.Ordinal)
+                || string.Equals(streamId, "character-movement", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Global character random stream '{streamId}' is forbidden; "
+                    + "use a persistent-character scoped stream ID.");
+            }
+
+            return streamId;
         }
 
         private static RandomStreamAggregateState CreateState(int rootSeed)
@@ -407,6 +520,151 @@ namespace DungeonStory.Foundation
         public void Restore(ulong state)
         {
             stream.Restore(state);
+        }
+    }
+
+    public readonly struct CounterfactualRandomKey :
+        IEquatable<CounterfactualRandomKey>
+    {
+        public CounterfactualRandomKey(
+            int rootSeed,
+            string scenarioId,
+            string eventKind,
+            string entityId,
+            int windowIndex,
+            int ordinal)
+        {
+            if (rootSeed == 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(rootSeed),
+                    "A counterfactual root seed must be non-zero.");
+            }
+            if (windowIndex < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(windowIndex));
+            }
+            if (ordinal < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(ordinal));
+            }
+
+            RootSeed = rootSeed;
+            ScenarioId = RequireCanonicalPart(scenarioId, nameof(scenarioId));
+            EventKind = RequireCanonicalPart(eventKind, nameof(eventKind));
+            EntityId = RequireCanonicalPart(entityId, nameof(entityId));
+            WindowIndex = windowIndex;
+            Ordinal = ordinal;
+        }
+
+        public int RootSeed { get; }
+        public string ScenarioId { get; }
+        public string EventKind { get; }
+        public string EntityId { get; }
+        public int WindowIndex { get; }
+        public int Ordinal { get; }
+
+        public DeterministicRandomSequence CreateSequence() =>
+            new DeterministicRandomSequence(ComputeSeed());
+
+        public bool Equals(CounterfactualRandomKey other) =>
+            RootSeed == other.RootSeed
+            && WindowIndex == other.WindowIndex
+            && Ordinal == other.Ordinal
+            && string.Equals(ScenarioId, other.ScenarioId, StringComparison.Ordinal)
+            && string.Equals(EventKind, other.EventKind, StringComparison.Ordinal)
+            && string.Equals(EntityId, other.EntityId, StringComparison.Ordinal);
+
+        public override bool Equals(object obj) =>
+            obj is CounterfactualRandomKey other && Equals(other);
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = RootSeed;
+                hash = (hash * 397) ^ WindowIndex;
+                hash = (hash * 397) ^ Ordinal;
+                hash = (hash * 397) ^ StringComparer.Ordinal.GetHashCode(ScenarioId);
+                hash = (hash * 397) ^ StringComparer.Ordinal.GetHashCode(EventKind);
+                hash = (hash * 397) ^ StringComparer.Ordinal.GetHashCode(EntityId);
+                return hash;
+            }
+        }
+
+        private int ComputeSeed()
+        {
+            unchecked
+            {
+                ulong hash = 1469598103934665603UL;
+                MixInt(ref hash, RootSeed);
+                MixString(ref hash, ScenarioId);
+                MixString(ref hash, EventKind);
+                MixString(ref hash, EntityId);
+                MixInt(ref hash, WindowIndex);
+                MixInt(ref hash, Ordinal);
+                int seed = (int)(hash ^ (hash >> 32));
+                return seed == 0 ? 1 : seed;
+            }
+        }
+
+        private static string RequireCanonicalPart(string value, string parameterName)
+        {
+            if (string.IsNullOrWhiteSpace(value)
+                || !string.Equals(value, value.Trim(), StringComparison.Ordinal)
+                || value.IndexOf('\r') >= 0
+                || value.IndexOf('\n') >= 0)
+            {
+                throw new ArgumentException(
+                    "Counterfactual random key parts must be canonical non-empty text.",
+                    parameterName);
+            }
+
+            return value;
+        }
+
+        private static void MixInt(ref ulong hash, int value)
+        {
+            unchecked
+            {
+                MixChar(ref hash, (char)value);
+                MixChar(ref hash, (char)(value >> 16));
+            }
+        }
+
+        private static void MixString(ref ulong hash, string value)
+        {
+            for (int index = 0; index < value.Length; index++)
+            {
+                MixChar(ref hash, value[index]);
+            }
+            MixChar(ref hash, '\0');
+        }
+
+        private static void MixChar(ref ulong hash, char value)
+        {
+            unchecked
+            {
+                hash ^= value;
+                hash *= 1099511628211UL;
+            }
+        }
+    }
+
+    public sealed class CounterfactualRandomKeySet
+    {
+        private readonly HashSet<CounterfactualRandomKey> keys = new();
+
+        public DeterministicRandomSequence CreateUnique(
+            CounterfactualRandomKey key)
+        {
+            if (!keys.Add(key))
+            {
+                throw new InvalidOperationException(
+                    "A counterfactual random event key was used more than once.");
+            }
+
+            return key.CreateSequence();
         }
     }
 

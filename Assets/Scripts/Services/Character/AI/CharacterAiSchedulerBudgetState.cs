@@ -110,7 +110,8 @@ internal sealed class CharacterAiSchedulerBudgetState
         IDynamicFrameWorkBudget frameWorkBudget,
         int scheduledDecisionCount,
         bool oldestDecisionIsStarved,
-        double lastProcessingMilliseconds)
+        double lastProcessingMilliseconds,
+        bool useSharedFrameBudget = true)
     {
         UpdateFrameTimeBudget(
             settings,
@@ -120,13 +121,16 @@ internal sealed class CharacterAiSchedulerBudgetState
         frameWorkBudget.SetBacklog(
             DynamicFrameWorkDomain.AiDecision,
             scheduledDecisionCount);
-        currentFrameBudgetMilliseconds = Math.Min(
-            currentFrameBudgetMilliseconds,
-            frameWorkBudget.GetSliceMilliseconds(
-                DynamicFrameWorkDomain.AiDecision,
-                settings.MinimumUsefulSliceMilliseconds,
-                settings.TargetAiMilliseconds,
-                oldestDecisionIsStarved));
+        if (useSharedFrameBudget)
+        {
+            currentFrameBudgetMilliseconds = Math.Min(
+                currentFrameBudgetMilliseconds,
+                frameWorkBudget.GetSliceMilliseconds(
+                    DynamicFrameWorkDomain.AiDecision,
+                    settings.MinimumUsefulSliceMilliseconds,
+                    settings.TargetAiMilliseconds,
+                    oldestDecisionIsStarved));
+        }
     }
 
     public void BeginPathBudgetWindow(

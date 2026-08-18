@@ -419,6 +419,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             && waterFixture != null
             && !waterFixtureUseRuntime.TryBeginUse(
                 this,
+                actor?.BuildingCharacterId ?? default,
                 out fixtureUseTicket,
                 out DomainFailure plumbingFailure))
         {

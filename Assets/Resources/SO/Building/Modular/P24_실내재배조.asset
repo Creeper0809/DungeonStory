@@ -60,8 +60,8 @@ MonoBehaviour:
     - rid: 7737211921440178956
     - rid: 7737211921440178957
     - rid: 7737211921440178958
-    - rid: 7737211981804077417
-    - rid: 7737211981804077418
+    - rid: 7737212042831200775
+    - rid: 7737212042831200776
   width: 3
   height: 1
   layer: 1
@@ -103,7 +103,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 1
-        constructionWorkRequired: 396
+        constructionWorkRequired: 384
         repairWorkRequired: 44
         cleanWorkRequired: 6
         researchWorkRequired: 6
@@ -121,9 +121,9 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:treated-lumber
-          amount: 7
+          amount: 10
         - itemId: material:iron-ingot
-          amount: 4
+          amount: 6
         - itemId: material:stone-block
           amount: 2
         - itemId: component:machine-parts
@@ -168,13 +168,13 @@ MonoBehaviour:
           amount: 1
         - itemId: supply:nitrate-fertilizer
           amount: 1
-    - rid: 7737211981804077417
+    - rid: 7737212042831200775
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:hydroponics
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211981804077418
+    - rid: 7737212042831200776
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility

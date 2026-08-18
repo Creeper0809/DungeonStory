@@ -29,30 +29,30 @@ MonoBehaviour:
   unitWeight: 0.15
   maxStack: 120
   sprite: {fileID: 0}
-  unitPrice: 36
+  unitPrice: 18
   features:
-  - rid: 7737211981804077608
-  - rid: 7737211981804077609
-  - rid: 7737211981804077610
-  - rid: 7737211981804077611
+  - rid: 7737212042857939090
+  - rid: 7737212042857939091
+  - rid: 7737212042857939092
+  - rid: 7737212042857939093
   references:
     version: 2
     RefIds:
-    - rid: 7737211981804077608
+    - rid: 7737212042857939090
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:signal-flare
-    - rid: 7737211981804077609
+    - rid: 7737212042857939091
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:defense:alliance-signals
-    - rid: 7737211981804077610
+    - rid: 7737212042857939092
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 512
         sharedIntermediate: 0
-    - rid: 7737211981804077611
+    - rid: 7737212042857939093
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5929722
+        saleRate: 0.5842037

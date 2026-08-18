@@ -200,7 +200,7 @@ public static class BuildingStatePersistenceDebugScenarios
         }
         catch (InvalidOperationException exception)
         {
-            Require(exception.Message.Contains("V4", StringComparison.Ordinal),
+            Require(exception.Message.Contains("V5", StringComparison.Ordinal),
                 "rejection did not identify the required facility save version");
             return "V1 rejected; no migration or partial state projection";
         }

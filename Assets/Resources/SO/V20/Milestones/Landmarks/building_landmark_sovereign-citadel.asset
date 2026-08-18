@@ -75,7 +75,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 945
+        constructionWorkRequired: 3654
         repairWorkRequired: 90
         cleanWorkRequired: 24
         researchWorkRequired: 1
@@ -95,7 +95,7 @@ MonoBehaviour:
         - itemId: material:stone-block
           amount: 36
         - itemId: material:steel-ingot
-          amount: 18
+          amount: 27
         - itemId: component:machine-parts
           amount: 8
         - itemId: component:prototype-package

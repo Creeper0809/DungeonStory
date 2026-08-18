@@ -110,6 +110,7 @@ public sealed class FacilityCandidateCacheStore :
     private int candidateIndexVersion;
     private int buildingScanIndex;
     private bool indexBuildComplete;
+    private bool deterministicQueriesForDiagnostics;
 
     private const double SynchronousQueryBudgetMilliseconds = 0.15;
     private const int MinimumIndexBatchSize = 16;
@@ -134,6 +135,19 @@ public sealed class FacilityCandidateCacheStore :
         {
             EnsureIndexVersion();
             return !indexBuildComplete;
+        }
+    }
+
+    public void ConfigureDeterministicQueriesForDiagnostics(bool enabled)
+    {
+        deterministicQueriesForDiagnostics = enabled;
+    }
+
+    public void ResetDeterministicCheckpointForDiagnostics()
+    {
+        Clear();
+        while (HasPendingIndexBuild && AdvanceIndex(double.MaxValue) > 0)
+        {
         }
     }
 
@@ -263,7 +277,8 @@ public sealed class FacilityCandidateCacheStore :
                     maximumCount);
             }
 
-            if (processed >= NearestCandidateMinimumBatchSize
+            if (!deterministicQueriesForDiagnostics
+                && processed >= NearestCandidateMinimumBatchSize
                 && GetElapsedMilliseconds(started) >= budget)
             {
                 break;
@@ -332,7 +347,8 @@ public sealed class FacilityCandidateCacheStore :
             IndexBuilding(buildings[buildingScanIndex]);
             buildingScanIndex++;
             processed++;
-            if (processed >= MinimumIndexBatchSize
+            if (!deterministicQueriesForDiagnostics
+                && processed >= MinimumIndexBatchSize
                 && GetElapsedMilliseconds(started) >= budgetMilliseconds)
             {
                 break;

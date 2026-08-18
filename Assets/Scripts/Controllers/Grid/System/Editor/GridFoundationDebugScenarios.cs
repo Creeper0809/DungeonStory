@@ -35,6 +35,7 @@ public static class GridFoundationDebugScenarios
         RunScenario("path broker reuses versioned searches", VerifyPathBrokerReusesVersionedSearches, errors);
         RunScenario("urgent path searches respect hard frame cap", VerifyUrgentPathSearchesRespectHardFrameCap, errors);
         RunScenario("exact path search resumes across dynamic frame slices", VerifyExactPathSearchResumesAcrossFrames, errors);
+        RunScenario("active urgent exact continuations remain fair", VerifyActiveUrgentExactContinuationFairness, errors);
         RunScenario("dynamic occupants preserve traversal version", VerifyDynamicOccupantsPreserveTraversalVersion, errors);
         RunScenario("stale walk path is blocked by a newly placed wall", VerifyStaleWalkPathBlockedByWall, errors);
         RunScenario("nearby walkable search does not scan entire floor", VerifyNearbyWalkableSearchDoesNotScanEntireFloor, errors);
@@ -271,6 +272,60 @@ public static class GridFoundationDebugScenarios
             && path.Count == cellCount - 1
             && path.Peek().From == start
             && path.Last().To == destination;
+    }
+
+    private static bool VerifyActiveUrgentExactContinuationFairness()
+    {
+        const int cellCount = 512;
+        const int requestCount = 8;
+        Grid grid = new Grid(cellCount, 1);
+        for (int x = 0; x < cellCount; x++)
+        {
+            AddHallway(grid, new Vector2Int(x, 0));
+        }
+
+        TestGameClock clock = new TestGameClock();
+        GridPathSearchBroker broker = new GridPathSearchBroker(
+            clock,
+            doorAccessQuery: null,
+            performanceRecorder: null,
+            costPolicy: null);
+        Vector2Int destination = new Vector2Int(cellCount - 1, 0);
+        Queue<GridMoveStep>[] paths = new Queue<GridMoveStep>[requestCount];
+
+        int frames = 0;
+        while (paths.Any(path => path == null) && frames < cellCount)
+        {
+            broker.BeginFrame(
+                searchBudget: 0,
+                enforceBudget: true,
+                searchTimeBudgetMilliseconds: 0.02);
+            for (int index = 0; index < requestCount; index++)
+            {
+                if (paths[index] != null)
+                {
+                    continue;
+                }
+
+                paths[index] = broker.GetMovePathTo(
+                    grid,
+                    new Vector2Int(index, 0),
+                    destination,
+                    GridPathSearchPriority.Urgent);
+            }
+
+            if (broker.SearchesThisFrame
+                > GridPathSearchBroker.MaximumUrgentContinuationOverdraft)
+            {
+                return false;
+            }
+
+            clock.FrameCountValue++;
+            frames++;
+        }
+
+        return paths.All(path => path != null)
+            && frames < cellCount;
     }
 
     private static bool VerifyDynamicOccupantsPreserveTraversalVersion()

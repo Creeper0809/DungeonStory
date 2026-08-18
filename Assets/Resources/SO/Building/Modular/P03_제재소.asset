@@ -59,12 +59,12 @@ MonoBehaviour:
     - rid: 7737211921440178348
     - rid: 7737211921440178349
     - rid: 7737211921440178350
-    - rid: 7737211981804077257
-    - rid: 7737211981804077258
-    - rid: 7737211981804078062
-    - rid: 7737211981804078063
-    - rid: 7737211981804078064
-    - rid: 7737211981804078065
+    - rid: 7737212033836253832
+    - rid: 7737212033836253833
+    - rid: 7737212033836253834
+    - rid: 7737212033836253835
+    - rid: 7737212042831200615
+    - rid: 7737212042831200616
   width: 3
   height: 1
   layer: 1
@@ -105,7 +105,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 396
+        constructionWorkRequired: 384
         repairWorkRequired: 44
         cleanWorkRequired: 6
         researchWorkRequired: 6
@@ -123,9 +123,9 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:treated-lumber
-          amount: 7
+          amount: 10
         - itemId: material:iron-ingot
-          amount: 4
+          amount: 6
         - itemId: material:stone-block
           amount: 2
         - itemId: component:machine-parts
@@ -156,13 +156,45 @@ MonoBehaviour:
           - key: Wood
             value: 2
           metrics: []
-    - rid: 7737211981804077257
+    - rid: 7737212033836253832
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 1
+        maxThroughput: 25
+        normallyOpen: 1
+    - rid: 7737212033836253833
+      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingPowerConsumerAbility
+        demandPerSecond: 5
+        priority: 4
+        minimumSupplyFraction: 0.75
+    - rid: 7737212033836253834
+      type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingAutomationAbility
+        maximumMode: 2
+        assistedPowerDemand: 2
+        automaticPowerDemand: 5
+        assistedWorkMultiplier: 1.35
+        automaticWorkPerSecond: 1
+        automaticQualityCap: 0.75
+        maintenancePerGameHour: 1
+    - rid: 7737212033836253835
+      type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingConveyorPortAbility
+        mode: 2
+        destinationId: 
+        capacity: 4
+    - rid: 7737212042831200615
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:sawmill
         stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211981804077258
+    - rid: 7737212042831200616
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
@@ -184,35 +216,3 @@ MonoBehaviour:
           capacity: 16
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
-    - rid: 7737211981804078062
-      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingUtilityConnectionAbility
-        channels: 1
-        maxThroughput: 25
-        normallyOpen: 1
-    - rid: 7737211981804078063
-      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingPowerConsumerAbility
-        demandPerSecond: 5
-        priority: 4
-        minimumSupplyFraction: 0.75
-    - rid: 7737211981804078064
-      type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingAutomationAbility
-        maximumMode: 2
-        assistedPowerDemand: 2
-        automaticPowerDemand: 5
-        assistedWorkMultiplier: 1.35
-        automaticWorkPerSecond: 1
-        automaticQualityCap: 0.75
-        maintenancePerGameHour: 1
-    - rid: 7737211981804078065
-      type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingConveyorPortAbility
-        mode: 2
-        destinationId: 
-        capacity: 4

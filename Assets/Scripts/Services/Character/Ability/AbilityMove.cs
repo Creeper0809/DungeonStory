@@ -16,6 +16,8 @@ public class AbilityMove : CharacterAbility
     private IDefenseEngagementRuntime defenseEngagementRuntime;
     private IGameClock gameClock;
     private IRandomStream movementRandom;
+    private IRandomStreamProvider randomStreamProvider;
+    private CharacterId movementRandomCharacterId;
     private CharacterIdleWanderPlanner idleWanderPlanner;
     private AbilityMoveTraversalGuard traversalGuard;
     private Coroutine enterDungeonRoutine;
@@ -36,6 +38,11 @@ public class AbilityMove : CharacterAbility
     public string LastMovementCancellationSourceForDiagnostics { get; private set; }
         = string.Empty;
     public string LastMovementOperationPreemptionForDiagnostics { get; private set; }
+    public string LastActionMovementCancellationReasonForDiagnostics
+    {
+        get;
+        private set;
+    }
         = string.Empty;
     public string LastRejectedMovementOperationOwnerForDiagnostics { get; private set; }
         = string.Empty;
@@ -56,6 +63,8 @@ public class AbilityMove : CharacterAbility
         movementOperationVersion;
     public int PathSearchDeferralLimitForDiagnostics =>
         pathSearchDeferralLimit;
+    public float GameClockTimeForDiagnostics => gameClock?.Time ?? -1f;
+    public float GameClockDeltaTimeForDiagnostics => gameClock?.DeltaTime ?? -1f;
 
 #if UNITY_EDITOR
     public int DebugReplacePathSearchDeferralLimit(int replacement)
@@ -74,9 +83,7 @@ public class AbilityMove : CharacterAbility
         IGridPathSearchBroker previous = pathSearchBroker;
         pathSearchBroker = replacement
             ?? throw new ArgumentNullException(nameof(replacement));
-        idleWanderPlanner = new CharacterIdleWanderPlanner(
-            pathSearchBroker,
-            movementRandom);
+        idleWanderPlanner = null;
         return previous;
     }
 #endif
@@ -123,12 +130,11 @@ public class AbilityMove : CharacterAbility
             ?? throw new ArgumentNullException(nameof(aiSchedulingService));
         this.pathSearchBroker = pathSearchBroker
             ?? throw new ArgumentNullException(nameof(pathSearchBroker));
-        movementRandom = (randomStreamProvider
-            ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
-            .Get("character-movement");
-        idleWanderPlanner = new CharacterIdleWanderPlanner(
-            pathSearchBroker,
-            movementRandom);
+        this.randomStreamProvider = randomStreamProvider
+            ?? throw new ArgumentNullException(nameof(randomStreamProvider));
+        movementRandom = null;
+        movementRandomCharacterId = default;
+        idleWanderPlanner = null;
         this.gameClock = gameClock
             ?? throw new ArgumentNullException(nameof(gameClock));
         this.defenseEngagementRuntime = defenseEngagementRuntime;
@@ -940,7 +946,8 @@ public class AbilityMove : CharacterAbility
     {
         bool hadActiveMovement = activeActionMovementRoutine != null
             || activeManualMoveDestination.HasValue
-            || activeSystemMoveDestination.HasValue;
+            || activeSystemMoveDestination.HasValue
+            || !string.IsNullOrWhiteSpace(activeMovementOperationOwner);
         if (hadActiveMovement)
         {
             LastMovementCancellationSourceForDiagnostics =
@@ -1286,7 +1293,7 @@ public class AbilityMove : CharacterAbility
             return false;
         }
 
-        return idleWanderPlanner.TryFind(
+        return RequireIdleWanderPlanner().TryFind(
             grid,
             actor.transform.position,
             GridTraversalContext.ForCharacter(CharacterPersistentIdentity.Require(actor)),
@@ -1294,6 +1301,29 @@ public class AbilityMove : CharacterAbility
             maxDistance,
             out path,
             out failure);
+    }
+
+    private CharacterIdleWanderPlanner RequireIdleWanderPlanner()
+    {
+        IRandomStreamProvider provider = randomStreamProvider
+            ?? throw new InvalidOperationException(
+                $"{nameof(AbilityMove)} requires "
+                + $"{nameof(IRandomStreamProvider)} injection.");
+        CacheLocalReferences();
+        CharacterId characterId = CharacterPersistentIdentity.Require(actor);
+        if (idleWanderPlanner == null
+            || movementRandom == null
+            || !movementRandomCharacterId.Equals(characterId))
+        {
+            movementRandom = provider.Get(
+                CharacterRandomStreamScopeIds.Movement(characterId));
+            movementRandomCharacterId = characterId;
+            idleWanderPlanner = new CharacterIdleWanderPlanner(
+                pathSearchBroker,
+                movementRandom);
+        }
+
+        return idleWanderPlanner;
     }
 
     private IEnumerator RetryIdleWanderAfterDeferral(
@@ -1544,11 +1574,21 @@ public class AbilityMove : CharacterAbility
 
     private bool IsActionMovementCancelled(AIAction expectedAction)
     {
-        return expectedAction != null
-            && (actor == null
-                || actor.Brain == null
-                || actor.Brain.bestAction != expectedAction
-                || actor.Brain.isBestActionEnd);
+        if (expectedAction == null)
+            return false;
+        string reason = actor == null
+            ? "actor-null"
+            : actor.Brain == null
+                ? "brain-null"
+                : actor.Brain.bestAction != expectedAction
+                    ? "best-action-replaced"
+                    : actor.Brain.isBestActionEnd
+                        ? "decision-pending"
+                        : string.Empty;
+        if (reason.Length == 0)
+            return false;
+        LastActionMovementCancellationReasonForDiagnostics = reason;
+        return true;
     }
 
     private bool TryBeginMovementOperation(
@@ -1957,6 +1997,11 @@ public class AbilityMove : CharacterAbility
             for (int i = 1; i < frameStride && timer < duration; i++)
             {
                 yield return null;
+                // Frame stride throttles presentation updates; it must not
+                // slow authoritative movement. Account for every skipped
+                // frame's game time so population size cannot stretch travel
+                // duration in proportion to the scheduler stride.
+                timer += gameClock.DeltaTime;
                 if (IsMovementOperationCancelled(
                         expectedAction,
                         operationVersion))
@@ -1973,8 +2018,6 @@ public class AbilityMove : CharacterAbility
                 {
                     yield break;
                 }
-
-                timer += gameClock.DeltaTime;
             }
             yield return null;
         }

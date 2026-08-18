@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 2.55
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 195
+  unitPrice: 93
   features:
-  - rid: 7737211981816660254
-  - rid: 7737211981816660255
-  - rid: 7737211981816660256
+  - rid: 7737212042857939415
+  - rid: 7737212042857939416
+  - rid: 7737212042857939417
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660254
+    - rid: 7737212042857939415
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:construct-core-engineering
-    - rid: 7737211981816660255
+    - rid: 7737212042857939416
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1536
         sharedIntermediate: 0
-    - rid: 7737211981816660256
+    - rid: 7737212042857939417
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5977692
+        saleRate: 0.5989713

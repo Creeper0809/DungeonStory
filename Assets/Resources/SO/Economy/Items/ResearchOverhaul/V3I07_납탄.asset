@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 2.1
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 16
+  unitPrice: 7
   features:
-  - rid: 7737211981804077713
-  - rid: 7737211981804077714
-  - rid: 7737211981804077715
+  - rid: 7737212042831200843
+  - rid: 7737212042831200844
+  - rid: 7737212042831200845
   references:
     version: 2
     RefIds:
-    - rid: 7737211981804077713
+    - rid: 7737212042831200843
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:standard-ammunition
-    - rid: 7737211981804077714
+    - rid: 7737212042831200844
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 512
         sharedIntermediate: 1
-    - rid: 7737211981804077715
+    - rid: 7737212042831200845
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5765416
+        saleRate: 0.5857142

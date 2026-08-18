@@ -43,7 +43,7 @@ MonoBehaviour:
     recommendedRank: 1
     minimumRiskRank: 0
   requiredResearchId: research:equipment:powered-armor
-  requiredWork: 45
+  requiredWork: 20
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

@@ -138,8 +138,28 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
         }
 
         public int TraversalVersion { get; }
+        public long FairnessSequence { get; set; }
+        public int LastAdvancedFrame { get; set; } = int.MinValue;
         public int LastAccessFrame { get; set; }
         public bool IsComplete => completed;
+        public int ExpandedNodeCountForDiagnostics => expandedNodeCount;
+        public int PendingNodeCountForDiagnostics => queue?.Count ?? 0;
+        public int RequestCountForDiagnostics { get; private set; }
+        public int AdvanceCountForDiagnostics { get; private set; }
+        public int SameFrameDeferralCountForDiagnostics { get; private set; }
+        public int BudgetDeferralCountForDiagnostics { get; private set; }
+
+        public void RecordRequestForDiagnostics() =>
+            RequestCountForDiagnostics++;
+
+        public void RecordAdvanceForDiagnostics() =>
+            AdvanceCountForDiagnostics++;
+
+        public void RecordSameFrameDeferralForDiagnostics() =>
+            SameFrameDeferralCountForDiagnostics++;
+
+        public void RecordBudgetDeferralForDiagnostics() =>
+            BudgetDeferralCountForDiagnostics++;
 
         public int Advance(double budgetMilliseconds)
         {
@@ -480,6 +500,8 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
     private bool enforceBudget = true;
     private double searchTimeBudgetMilliseconds = double.PositiveInfinity;
     private double searchMillisecondsThisFrame;
+    private bool deterministicSearchForDiagnostics;
+    private long nextIncrementalFairnessSequence;
 
     public GridPathSearchBroker(
         IGameClock gameClock,
@@ -501,6 +523,67 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
     public int CacheHitsThisFrame { get; private set; }
     public int BudgetDeferralsThisFrame { get; private set; }
     public double SearchMillisecondsThisFrame => searchMillisecondsThisFrame;
+    public bool DeterministicSearchForDiagnostics =>
+        deterministicSearchForDiagnostics;
+    public int IncrementalExactSearchCountForDiagnostics =>
+        incrementalExactSearches.Count;
+    public int CacheFrameForDiagnostics => cacheFrame;
+    public int DoorAccessVersionForDiagnostics =>
+        doorAccessQuery?.DoorAccessVersion ?? 0;
+    public int CostPolicyVersionForDiagnostics => costPolicy.Version;
+
+    public void ConfigureDeterministicSearchForDiagnostics(bool enabled)
+    {
+        deterministicSearchForDiagnostics = enabled;
+        Clear();
+    }
+
+    public string DescribeExactSearchForDiagnostics(
+        Grid grid,
+        Vector2Int start,
+        Vector2Int destination,
+        GridTraversalContext traversalContext)
+    {
+        int doorAccessVersion = traversalContext.HasSubject
+            ? doorAccessQuery?.DoorAccessVersion ?? 0
+            : 0;
+        PathKey key = new PathKey(
+            grid,
+            start,
+            traversalContext,
+            doorAccessVersion,
+            costPolicy.Version,
+            destination);
+        if (!incrementalExactSearches.TryGetValue(
+                key,
+                out IncrementalExactSearch search)
+            || search == null)
+        {
+            return $"continuation=missing;frame={cacheFrame};"
+                + $"gridVersion={grid?.TraversalVersion ?? -1};"
+                + $"doorVersion={doorAccessVersion};"
+                + $"searches={SearchesThisFrame};"
+                + $"urgentOverdraft={urgentOverdraftSearchesThisFrame};"
+                + $"deferrals={BudgetDeferralsThisFrame};"
+                + $"continuations={incrementalExactSearches.Count}";
+        }
+
+        return $"continuation=present;frame={cacheFrame};"
+            + $"gridVersion={grid?.TraversalVersion ?? -1};"
+            + $"doorVersion={doorAccessVersion};"
+            + $"lastAccess={search.LastAccessFrame};"
+            + $"lastAdvanced={search.LastAdvancedFrame};"
+            + $"expanded={search.ExpandedNodeCountForDiagnostics};"
+            + $"pendingNodes={search.PendingNodeCountForDiagnostics};"
+            + $"requests={search.RequestCountForDiagnostics};"
+            + $"advances={search.AdvanceCountForDiagnostics};"
+            + $"sameFrameDeferrals={search.SameFrameDeferralCountForDiagnostics};"
+            + $"budgetDeferrals={search.BudgetDeferralCountForDiagnostics};"
+            + $"searches={SearchesThisFrame};"
+            + $"urgentOverdraft={urgentOverdraftSearchesThisFrame};"
+            + $"deferrals={BudgetDeferralsThisFrame};"
+            + $"continuations={incrementalExactSearches.Count}";
+    }
 
     public void BeginFrame(
         int searchBudget,
@@ -696,21 +779,53 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
             pathCache.Remove(key);
         }
 
-        if (deferredKeys.Contains(key))
-        {
-            return false;
-        }
-
+        IncrementalExactSearch pendingExactSearch = null;
         bool hasIncrementalContinuation = destination.HasValue
             && incrementalExactSearches.TryGetValue(
                 key,
-                out IncrementalExactSearch pendingExactSearch)
+                out pendingExactSearch)
             && pendingExactSearch != null
             && pendingExactSearch.TraversalVersion == grid.TraversalVersion;
+        if (hasIncrementalContinuation)
+        {
+            // Request activity is authoritative even when this same key was
+            // already deferred earlier in the frame or the frame budget is
+            // exhausted below. Without refreshing access here, a continuously
+            // requested urgent continuation loses its next-frame fairness
+            // reservation precisely because it was starved.
+            pendingExactSearch.LastAccessFrame = cacheFrame;
+            pendingExactSearch.RecordRequestForDiagnostics();
+        }
+
+        if (deferredKeys.Contains(key))
+        {
+            pendingExactSearch?.RecordSameFrameDeferralForDiagnostics();
+            return false;
+        }
+
+        bool usesUrgentOverdraftWindow = priority == GridPathSearchPriority.Urgent
+            && SearchesThisFrame >= searchBudget;
+        bool continuationOwnsUrgentOverdraft = usesUrgentOverdraftWindow
+            && hasIncrementalContinuation
+            && IsScheduledActiveUrgentContinuation(
+                key,
+                pendingExactSearch,
+                grid.TraversalVersion);
+        bool freshUrgentMustReserveActiveContinuationCapacity =
+            usesUrgentOverdraftWindow
+            && !hasIncrementalContinuation
+            && CountRemainingUrgentOverdraftSlots()
+                <= CountActiveUnadvancedUrgentContinuations(
+                    grid.TraversalVersion);
+        bool urgentContinuationNotScheduled = usesUrgentOverdraftWindow
+            && hasIncrementalContinuation
+            && !continuationOwnsUrgentOverdraft;
         bool canResumeUrgentContinuation = priority == GridPathSearchPriority.Urgent
             && hasIncrementalContinuation
             && urgentOverdraftSearchesThisFrame
-                < MaximumUrgentContinuationOverdraft;
+                < MaximumUrgentContinuationOverdraft
+            && (!usesUrgentOverdraftWindow
+                || continuationOwnsUrgentOverdraft);
 
         int hardSearchLimit = searchBudget
             + MaximumUrgentContinuationOverdraft;
@@ -718,14 +833,18 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
             priority != GridPathSearchPriority.Urgent
             && SearchesThisFrame >= searchBudget;
         bool hardBudgetExhausted = SearchesThisFrame >= hardSearchLimit;
-        bool timeBudgetExhausted = SearchesThisFrame > 0
+        bool timeBudgetExhausted = !deterministicSearchForDiagnostics
+            && SearchesThisFrame > 0
             && searchMillisecondsThisFrame >= searchTimeBudgetMilliseconds;
         if (enforceBudget
             && (normalBudgetExhausted
                 || hardBudgetExhausted
-                || timeBudgetExhausted)
+                || timeBudgetExhausted
+                || freshUrgentMustReserveActiveContinuationCapacity
+                || urgentContinuationNotScheduled)
             && !canResumeUrgentContinuation)
         {
+            pendingExactSearch?.RecordBudgetDeferralForDiagnostics();
             // Reserve an exact urgent request even when ordinary AI scans have
             // already consumed this frame's budget. On a following frame the
             // bounded continuation allowance below can advance it ahead of
@@ -742,7 +861,10 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
                     traversalContext,
                     doorAccessQuery,
                     costPolicy,
-                    cacheFrame);
+                    cacheFrame)
+                {
+                    FairnessSequence = nextIncrementalFairnessSequence++
+                };
             }
             BudgetDeferralsThisFrame++;
             deferredKeys.Add(key);
@@ -773,15 +895,21 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
                     traversalContext,
                     doorAccessQuery,
                     costPolicy,
-                    cacheFrame);
+                    cacheFrame)
+                {
+                    FairnessSequence = nextIncrementalFairnessSequence++
+                };
                 incrementalExactSearches[key] = incremental;
             }
 
             incremental.LastAccessFrame = cacheFrame;
+            incremental.LastAdvancedFrame = cacheFrame;
+            incremental.RecordAdvanceForDiagnostics();
             using (IncrementalAdvanceProfilerMarker.Auto())
             {
-                incremental.Advance(
-                    ResolveExactSearchSliceMilliseconds(priority));
+                incremental.Advance(deterministicSearchForDiagnostics
+                    ? double.MaxValue
+                    : ResolveExactSearchSliceMilliseconds(priority));
             }
             using (IncrementalResultProfilerMarker.Auto())
             {
@@ -865,6 +993,83 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
             ? 0.85
             : 0.55;
         return Math.Clamp(remaining, 0.02, maximum);
+    }
+
+    private int CountRemainingUrgentOverdraftSlots()
+    {
+        return Math.Max(
+            0,
+            MaximumUrgentContinuationOverdraft
+                - urgentOverdraftSearchesThisFrame);
+    }
+
+    private int CountActiveUnadvancedUrgentContinuations(
+        int traversalVersion)
+    {
+        int count = 0;
+        foreach (IncrementalExactSearch search
+                 in incrementalExactSearches.Values)
+        {
+            if (IsActiveUnadvancedContinuation(search, traversalVersion))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private bool IsActiveUnadvancedContinuation(
+        IncrementalExactSearch search,
+        int traversalVersion)
+    {
+        return search != null
+            && !search.IsComplete
+            && search.TraversalVersion == traversalVersion
+            && search.LastAccessFrame >= cacheFrame - 1
+            && search.LastAdvancedFrame < cacheFrame;
+    }
+
+    private bool IsScheduledActiveUrgentContinuation(
+        PathKey key,
+        IncrementalExactSearch candidate,
+        int traversalVersion)
+    {
+        int remainingSlots = CountRemainingUrgentOverdraftSlots();
+        if (remainingSlots <= 0
+            || !IsActiveUnadvancedContinuation(
+                candidate,
+                traversalVersion))
+        {
+            return false;
+        }
+
+        int earlierCount = 0;
+        foreach (KeyValuePair<PathKey, IncrementalExactSearch> pair
+                 in incrementalExactSearches)
+        {
+            IncrementalExactSearch other = pair.Value;
+            if (pair.Key.Equals(key)
+                || !IsActiveUnadvancedContinuation(
+                    other,
+                    traversalVersion))
+            {
+                continue;
+            }
+
+            if (other.LastAdvancedFrame < candidate.LastAdvancedFrame
+                || other.LastAdvancedFrame == candidate.LastAdvancedFrame
+                    && other.FairnessSequence < candidate.FairnessSequence)
+            {
+                earlierCount++;
+                if (earlierCount >= remainingSlots)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     private static bool IsValidCachedResult(

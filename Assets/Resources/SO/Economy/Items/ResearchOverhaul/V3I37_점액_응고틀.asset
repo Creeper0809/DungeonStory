@@ -29,25 +29,25 @@ MonoBehaviour:
   unitWeight: 1.15
   maxStack: 50
   sprite: {fileID: 0}
-  unitPrice: 111
+  unitPrice: 49
   features:
-  - rid: 7737211981816660765
-  - rid: 7737211981816660766
-  - rid: 7737211981816660767
+  - rid: 7737212042831201123
+  - rid: 7737212042831201124
+  - rid: 7737212042831201125
   references:
     version: 2
     RefIds:
-    - rid: 7737211981816660765
+    - rid: 7737212042831201123
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:slime-bioengineering
-    - rid: 7737211981816660766
+    - rid: 7737212042831201124
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 128
         sharedIntermediate: 0
-    - rid: 7737211981816660767
+    - rid: 7737212042831201125
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59687984
+        saleRate: 0.5954353

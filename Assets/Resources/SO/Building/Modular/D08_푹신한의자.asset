@@ -58,7 +58,7 @@ MonoBehaviour:
     - rid: 7737211921440178834
     - rid: 7737211921440178835
     - rid: 7737211921440178836
-    - rid: 7737211981804077319
+    - rid: 7737212042831200677
   width: 1
   height: 1
   layer: 1
@@ -93,7 +93,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 1
-        constructionWorkRequired: 72
+        constructionWorkRequired: 368
         repairWorkRequired: 8
         cleanWorkRequired: 4
         researchWorkRequired: 6
@@ -111,9 +111,9 @@ MonoBehaviour:
           excludedTraitIds: []
         constructionMaterials:
         - itemId: material:lumber
-          amount: 3
+          amount: 5
         - itemId: material:cloth
-          amount: 2
+          amount: 3
     - rid: 7737211921440178835
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -138,7 +138,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingSeatingAbility
         capacity: 1
-    - rid: 7737211981804077319
+    - rid: 7737212042831200677
       type: {class: BuildingServiceSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceSupportAbility

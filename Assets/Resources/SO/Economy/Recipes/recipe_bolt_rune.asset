@@ -42,7 +42,7 @@ MonoBehaviour:
     recommendedRank: 3
     minimumRiskRank: 0
   requiredResearchId: research:arcane:advanced
-  requiredWork: 347
+  requiredWork: 154
   preparationWork: 0
   finishingWork: 0
   processingGameHours: 0

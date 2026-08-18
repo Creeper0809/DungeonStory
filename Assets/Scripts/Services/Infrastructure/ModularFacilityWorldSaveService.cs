@@ -71,7 +71,7 @@ public sealed class ModularFacilityWorldSaveService :
     IModularFacilityWorldSaveService,
     IDungeonRestoreTransactionParticipant
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
 
     private readonly Func<int, BuildingSO> findBuildingData;
     private readonly IGridBuildingObjectFactory objectFactory;
@@ -193,6 +193,12 @@ public sealed class ModularFacilityWorldSaveService :
             version = CurrentVersion,
             gridWidth = grid.width,
             gridHeight = grid.height,
+            gridCells = grid.GetCells()
+                .Where(cell => cell != null)
+                .OrderBy(cell => cell.Position.y)
+                .ThenBy(cell => cell.Position.x)
+                .Select(ModularFacilityGridCellSaveData.From)
+                .ToList(),
             buildings = grid.FindAllOccupants(null)
                 .OfType<BuildableObject>()
                 .Where(IsPersistentWorldBuilding)
@@ -428,13 +434,16 @@ public sealed class ModularFacilityWorldSaveService :
             return report;
         }
 
-        if (snapshot.gridWidth != grid.width
-            || snapshot.gridHeight != grid.height)
+        if (snapshot.gridWidth < 1
+            || snapshot.gridWidth > DungeonSpaceExpansionCatalog.MaximumSupportedGridWidth
+            || snapshot.gridHeight != DungeonSpaceExpansionCatalog.SupportedGridHeight)
         {
             report.AddError(
-                $"Saved grid is {snapshot.gridWidth}x{snapshot.gridHeight}, but the active layout is {grid.width}x{grid.height}.");
+                $"Saved grid dimensions {snapshot.gridWidth}x{snapshot.gridHeight} are invalid.");
             return report;
         }
+
+        ValidateGridLayout(snapshot, report);
 
         List<ModularFacilityBuildingSaveData> entries =
             (snapshot.buildings ?? new List<ModularFacilityBuildingSaveData>())
@@ -490,7 +499,12 @@ public sealed class ModularFacilityWorldSaveService :
             return report;
         }
 
-        Grid validationGrid = grid.CreateDetachedLayoutCopy();
+        Grid validationGrid = CreateGridFromSnapshot(grid, snapshot);
+        if (validationGrid == null)
+        {
+            report.AddError("The saved grid layout could not be materialized.");
+            return report;
+        }
         int reservationId = 1;
         foreach (ModularFacilityBuildingSaveData entry in
                  SortForRestore(snapshot.buildings))
@@ -564,6 +578,123 @@ public sealed class ModularFacilityWorldSaveService :
         }
     }
 
+    private static void ValidateGridLayout(
+        ModularFacilityWorldSaveData snapshot,
+        ModularFacilityWorldRestoreReport report)
+    {
+        List<ModularFacilityGridCellSaveData> cells =
+            snapshot.gridCells ?? new List<ModularFacilityGridCellSaveData>();
+        long expectedCount = (long)snapshot.gridWidth * snapshot.gridHeight;
+        if (cells.Count != expectedCount)
+        {
+            report.AddError(
+                $"Facility save grid layout has {cells.Count} cells; expected {expectedCount}.");
+            return;
+        }
+
+        HashSet<Vector2Int> positions = new HashSet<Vector2Int>();
+        foreach (ModularFacilityGridCellSaveData cell in cells)
+        {
+            if (cell == null)
+            {
+                report.AddError("Facility save grid layout contains a null cell.");
+                continue;
+            }
+
+            Vector2Int position = new Vector2Int(cell.x, cell.y);
+            if (cell.x < 0
+                || cell.y < 0
+                || cell.x >= snapshot.gridWidth
+                || cell.y >= snapshot.gridHeight)
+            {
+                report.AddError($"Facility save grid cell {position} is out of bounds.");
+            }
+            else if (!positions.Add(position))
+            {
+                report.AddError($"Facility save grid cell {position} is duplicated.");
+            }
+
+            if (!Enum.IsDefined(typeof(GridCellAreaType), cell.areaType))
+            {
+                report.AddError($"Facility save grid cell {position} has an unknown area type.");
+            }
+            if (!Enum.IsDefined(typeof(GridCellTerrainType), cell.terrainType))
+            {
+                report.AddError($"Facility save grid cell {position} has an unknown terrain type.");
+            }
+        }
+
+        if (report.errors.Count > 0)
+        {
+            return;
+        }
+
+        Grid validation = CreateGridFromSnapshot(
+            new Grid(
+                snapshot.gridWidth,
+                snapshot.gridHeight,
+                Vector3.zero),
+            snapshot);
+        if (!DungeonSpaceGridLayout.TryCapture(
+                validation,
+                out DungeonInteriorLayoutSnapshot layout,
+                out string layoutFailure))
+        {
+            report.AddError($"Facility save grid layout is invalid: {layoutFailure}");
+            return;
+        }
+
+        bool validColumns = layout.ColumnCount == DungeonSpaceExpansionCatalog.InitialInteriorColumns
+            || DungeonSpaceExpansionCatalog.All.Any(
+                definition => definition.TargetInteriorColumns == layout.ColumnCount);
+        if (!validColumns)
+        {
+            report.AddError(
+                $"Facility save has unsupported dungeon-interior width {layout.ColumnCount}.");
+        }
+    }
+
+    private static Grid CreateGridFromSnapshot(
+        Grid coordinateSource,
+        ModularFacilityWorldSaveData snapshot)
+    {
+        if (coordinateSource == null || snapshot == null)
+        {
+            return null;
+        }
+
+        Grid restored = new Grid(
+            snapshot.gridWidth,
+            snapshot.gridHeight,
+            coordinateSource.OriginPosition,
+            coordinateSource.CellWorldHeight);
+        foreach (ModularFacilityGridCellSaveData savedCell in
+                 snapshot.gridCells ?? new List<ModularFacilityGridCellSaveData>())
+        {
+            if (savedCell == null)
+            {
+                return null;
+            }
+
+            Vector2Int position = new Vector2Int(savedCell.x, savedCell.y);
+            if (!restored.IsValidGridPos(position))
+            {
+                return null;
+            }
+
+            if (restored.GetGridCell(position).AreaType != savedCell.areaType)
+            {
+                restored.SetAreaType(position, savedCell.areaType);
+            }
+            if (restored.GetGridCell(position).TerrainType != savedCell.terrainType)
+            {
+                restored.SetTerrainType(position, savedCell.terrainType);
+            }
+        }
+
+        return restored;
+    }
+
     private bool TryBuildDetachedCandidate(
         Grid liveGrid,
         ModularFacilityWorldSaveData snapshot,
@@ -576,7 +707,12 @@ public sealed class ModularFacilityWorldSaveService :
             return false;
         }
 
-        Grid candidateGrid = liveGrid.CreateDetachedLayoutCopy();
+        Grid candidateGrid = CreateGridFromSnapshot(liveGrid, snapshot);
+        if (candidateGrid == null)
+        {
+            report.AddError("The saved grid layout could not be materialized for restore.");
+            return false;
+        }
         List<DetachedBuildingRestoreCandidate> candidates =
             new List<DetachedBuildingRestoreCandidate>();
         foreach (ModularFacilityBuildingSaveData entry in SortForRestore(snapshot.buildings))
@@ -1035,11 +1171,38 @@ public sealed class ModularFacilityWorldSaveData
     public int version = ModularFacilityWorldSaveService.CurrentVersion;
     public int gridWidth;
     public int gridHeight;
+    public List<ModularFacilityGridCellSaveData> gridCells =
+        new List<ModularFacilityGridCellSaveData>();
 #if UNITY_EDITOR
     [NonSerialized, Obsolete("V19 session state is stored in foundation.session.")]
     public ModularFacilityGameDataSaveData gameData = new ModularFacilityGameDataSaveData();
 #endif
     public List<ModularFacilityBuildingSaveData> buildings = new List<ModularFacilityBuildingSaveData>();
+}
+
+[Serializable]
+public sealed class ModularFacilityGridCellSaveData
+{
+    public int x;
+    public int y;
+    public GridCellAreaType areaType;
+    public GridCellTerrainType terrainType;
+
+    public static ModularFacilityGridCellSaveData From(GridCell cell)
+    {
+        if (cell == null)
+        {
+            throw new ArgumentNullException(nameof(cell));
+        }
+
+        return new ModularFacilityGridCellSaveData
+        {
+            x = cell.Position.x,
+            y = cell.Position.y,
+            areaType = cell.AreaType,
+            terrainType = cell.TerrainType
+        };
+    }
 }
 
 [Serializable]

@@ -31,7 +31,19 @@ public static class V27BalanceAssetApplication
         "authored-sow-wu",
         "authored-harvest-wu",
         "authored-research-required-wu",
+        "direct-wu",
+        "construction-authored-wu:redistributed",
+        // Approval-refresh compatibility only. The live ledger no longer emits
+        // this pre-redistribution metric, but an exact refresh must be allowed
+        // to retire its old approval keys atomically.
         "construction-authored-wu:period-preserving"
+    };
+    private static readonly HashSet<string> RecurringThroughputApprovalMetrics = new(
+        StringComparer.Ordinal)
+    {
+        "authored-required-wu",
+        "authored-sow-wu",
+        "authored-harvest-wu"
     };
     private static readonly HashSet<string> CombatEncounterApprovalMetrics = new(
         StringComparer.Ordinal)
@@ -59,6 +71,28 @@ public static class V27BalanceAssetApplication
         V27BalanceAuditOutput audit = V27BalanceAudit.Generate(BalanceLedgerExecutionMode.AuditOnly);
         BalanceAssetApplicationResult result = ApplyApproved(audit.Ledger, dryRun: true);
         Debug.Log(result.Format("VerifyApplied"));
+    }
+
+    [MenuItem("DungeonStory/V27/Apply Approved Patches In Current V27 Worktree")]
+    public static void ApplyApprovedInCurrentV27WorktreeFromMenu()
+    {
+        V27BalanceAuditOutput audit = V27BalanceAudit.Generate(
+            BalanceLedgerExecutionMode.AuditOnly);
+        BalanceApprovalFileData approvalFile = LoadApprovals();
+        Dictionary<string, BalanceApprovalEntryData> approvals =
+            ValidateApprovals(approvalFile);
+        List<BalanceAssetPatch> patches = CreatePatches(audit.Ledger, approvals);
+
+        // This explicit command is reserved for the active V27 recalibration
+        // worktree. ApplyPatches still requires every approved property to equal
+        // the ledger Before, mutates only approved property paths, snapshots all
+        // target bytes, and rolls the complete target set back on any failure.
+        BalanceAssetApplicationResult result = ApplyPatches(
+            patches,
+            dryRun: false,
+            requireCleanGit: false,
+            BalanceAssetApplicationFailurePoint.None);
+        Debug.Log(result.Format("ApplyApprovedCurrentV27Worktree"));
     }
 
     [MenuItem("DungeonStory/V27/Generate Exact Item Market Approvals")]
@@ -90,18 +124,32 @@ public static class V27BalanceAssetApplication
         V27BalanceAuditOutput audit = V27BalanceAudit.GenerateForApprovalRefresh();
         V27BalanceLaborFacilityDebugScenarios.RequireIntegrity(
             audit,
-            requireApplied: false);
-        int count = WriteApprovals(
-            audit.Ledger,
-            record => ItemMarketApprovalMetrics.Contains(record.Metric)
-                || LaborFacilityApprovalMetrics.Contains(record.Metric),
-            replaceIncludedApprovals: true);
-        V27BalanceAuditOutput verified = V27BalanceAudit.Generate(
-            BalanceLedgerExecutionMode.AuditOnly);
-        V27BalanceLaborFacilityDebugScenarios.RequireIntegrity(
-            verified,
-            requireApplied: false);
-        Debug.Log($"V27 exact labor/facility approvals generated: approvals={count}.");
+            requireApplied: false,
+            allowUnapprovedCritical: true);
+        string approvalPath = ProjectAbsolutePath(V27BalanceAudit.ApprovalPath);
+        byte[] rollback = File.ReadAllBytes(approvalPath);
+        try
+        {
+            int count = WriteApprovals(
+                audit.Ledger,
+                record => ItemMarketApprovalMetrics.Contains(record.Metric)
+                    || IsLaborFacilityApprovalMetric(record.Metric),
+                replaceIncludedApprovals: true);
+            V27BalanceAuditOutput verified = V27BalanceAudit.Generate(
+                BalanceLedgerExecutionMode.AuditOnly);
+            V27BalanceLaborFacilityDebugScenarios.RequireIntegrity(
+                verified,
+                requireApplied: false);
+            Debug.Log($"V27 exact labor/facility approvals generated: approvals={count}.");
+        }
+        catch
+        {
+            File.WriteAllBytes(approvalPath, rollback);
+            AssetDatabase.ImportAsset(
+                V27BalanceAudit.ApprovalPath,
+                ImportAssetOptions.ForceUpdate);
+            throw;
+        }
     }
 
     [MenuItem("DungeonStory/V27/Generate Exact Combat Encounter Approvals")]
@@ -118,7 +166,7 @@ public static class V27BalanceAssetApplication
         int count = WriteApprovals(
             audit.Ledger,
             record => ItemMarketApprovalMetrics.Contains(record.Metric)
-                || LaborFacilityApprovalMetrics.Contains(record.Metric)
+                || IsLaborFacilityApprovalMetric(record.Metric)
                 || CombatEncounterApprovalMetrics.Contains(record.Metric),
             replaceIncludedApprovals: true);
         V27BalanceAuditOutput verified = V27BalanceAudit.Generate(
@@ -408,7 +456,22 @@ public static class V27BalanceAssetApplication
             StringComparer.Ordinal);
         foreach (BalanceApprovalEntryData entry in approvals.Values)
         {
-            if (string.IsNullOrEmpty(entry.exactBeforeValue))
+            // Market approvals must keep the exact authored Before until the
+            // approval is applied. Treating a pending market After as the new
+            // Before makes the immediately-following standard audit collapse
+            // Before==After and reject the freshly generated approval as stale.
+            //
+            // Recurring throughput is different: its approval maps an
+            // accidentally project-scaled authored value back to the frozen
+            // per-batch authority. The approved After is therefore the base
+            // used to reconstruct both the legacy scaled Before and the
+            // corrected authored After on every audit, before and after asset
+            // application.
+            string inheritedBefore = RecurringThroughputApprovalMetrics.Contains(
+                    entry.metric)
+                ? entry.exactAfterValue
+                : entry.exactBeforeValue;
+            if (string.IsNullOrEmpty(inheritedBefore))
                 continue;
             if (CombatEncounterApprovalMetrics.Contains(entry.metric)
                 && !string.Equals(
@@ -424,7 +487,7 @@ public static class V27BalanceAssetApplication
                 continue;
             }
             string key = BuildHistoricalBeforeKey(entry.rootStableId, entry.metric);
-            if (!result.TryAdd(key, entry.exactBeforeValue))
+            if (!result.TryAdd(key, inheritedBefore))
             {
                 throw new InvalidOperationException(
                     $"Duplicate historical Before authority: {entry.rootStableId}:{entry.metric}.");
@@ -472,7 +535,7 @@ public static class V27BalanceAssetApplication
         HashSet<string> replaceableKeys = replaceIncludedApprovals
             ? existing.Values
                 .Where(value => ItemMarketApprovalMetrics.Contains(value.metric)
-                    || LaborFacilityApprovalMetrics.Contains(value.metric)
+                    || IsLaborFacilityApprovalMetric(value.metric)
                     || CombatEncounterApprovalMetrics.Contains(value.metric))
                 .Select(value => value.approvalKey)
                 .ToHashSet(StringComparer.Ordinal)
@@ -512,6 +575,13 @@ public static class V27BalanceAssetApplication
         AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
         return output.approvals.Length;
     }
+
+    private static bool IsLaborFacilityApprovalMetric(string metric) =>
+        LaborFacilityApprovalMetrics.Contains(metric)
+        || (!string.IsNullOrEmpty(metric)
+            && metric.StartsWith(
+                "construction-material-amount:",
+                StringComparison.Ordinal));
 
     private static List<BalanceAssetPatch> CreatePatches(
         FrozenBalanceLedger ledger,
@@ -580,7 +650,14 @@ public static class V27BalanceAssetApplication
             || !string.Equals(approval.approvalKey, record.ApprovalKey, StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                $"Stale or mismatched V27 approval: {approval.approvalKey}");
+                $"Stale or mismatched V27 approval: {approval.approvalKey}; "
+                + $"record={record.StableId}|{record.Metric}|{record.Before}|"
+                + $"{record.After}|{record.DependencyFingerprint}|{record.SourceDigest}|"
+                + $"{record.ReasonCode}|{record.BalanceBaselineRecordId}; "
+                + $"approval={approval.rootStableId}|{approval.metric}|"
+                + $"{approval.exactBeforeValue}|{approval.exactAfterValue}|"
+                + $"{approval.dependencyFingerprint}|{approval.sourceDigest}|"
+                + $"{approval.reasonCode}|{approval.balanceBaselineRecordId}");
         }
     }
 
