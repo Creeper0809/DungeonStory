@@ -7084,3 +7084,34 @@ Implemented result: the repair order now keeps exact material Transfer provenanc
 - `sale:quality-rejected` is not a production facility capacity profile. Quality-rejected output must first publish to the facility's admitted output buffer, acknowledge its publication marker, then be relabelled through `TryRouteStackToDestination`; `ResourceStockPolicyRuntime` performs the actual drop-zone haul.
 - An acknowledged output needs a terminal replay fast path. Re-entering the publisher after its marker is acknowledged would incorrectly treat a valid physical output as a missing batch.
 - An owner-declared pending material receipt must never silently recreate the debit if the Items pending row is missing. Missing receipt is a conflict; acknowledged input is skipped on replay.
+
+## 2026-08-27 current execution authority recovery
+
+- Revision v5 section 0.1 and sections 16.1~16.8 supersede historical Phase ordering. The document's current weighted remaining estimate is `35~45%`, split across structural authority, content migration, live execution evidence, and final balance.
+- Batch A's explicit open rows remain standard-family expansion, current-revision live sawmill and surgical output routes, common migration of combat/apparel/workwear/certified-seed handlers, and a zero remaining/bypass/orphan owner manifest with the fault matrix.
+- Batch B still requires the full reachable maximum envelope, all-capable preprojection, destructive/evolution/relocation lifecycle coverage, restore/performance faults, and fresh current-revision live evidence.
+- Batch C, D/E, F, G, and H remain mandatory; no focused transaction test alone can be promoted to final balance evidence.
+
+### Apparel bounded transaction current-source confirmation
+
+- `ApparelWorkOrderRuntime.ResolveCraft` and `ResolveRejectedApparelDismantle` now call `ApparelPhysicalTransaction`; neither method directly spawns or deletes physical stacks.
+- Rejected dismantle calculates the exact recovery grams, ensures/reserves the FacilityBuffer planned-output authority before the input Transfer commit, rejects output mass above frozen input mass, publishes and commits the full batch, joins exact output rows, acknowledges publication, and only then acknowledges the input disposition.
+- The strict restore guard joins the CharacterEnvironment owner to both the pending Transfer candidate and planned-output restore batch, rejecting missing, drifted, or orphan rows.
+- The legacy `ApparelRejectedDismantleOutbox` still contains raw publication helpers, but current production resolution no longer invokes those helpers. It remains referenced for canonical ID/fingerprint/shape contracts and historical focused fixtures; removal or narrowing requires a callsite manifest rather than assuming dead code.
+- Unity MCP tool calls are not exposed in the current tool catalog. Fresh Unity execution cannot be claimed from this turn until an available editor bridge is found; the prior checkpoint's explicit PASS logs remain historical evidence only.
+
+### Exact-five orchestration gap
+
+- The existing `PreparedOutputCheckpointGcCoordinator` is a separate two-participant cleanup for Economy routing and Items exact-route authority. It cannot satisfy the destructive-drain exact-five GC contract.
+- The exact-five registry and all five participant implementations exist, but current source contains no destructive-drain coordinator, synchronous post-restore recovery runner, or reverse-DAG checkpoint collector for the journal plus five producer authorities.
+- The first serial P0 before upper orchestration is the shared Apparel/Combat craft-completion effect receipt. Both domains can still publish inspiration/quality effects directly after the physical commit, so a restore between effect and owner acknowledgement can duplicate those side effects. The receipt must persist operation/request/commit/receipt fingerprints and phase, reject drift, and prove exact-once replay before exact-five GC is wired.
+- After that receipt is closed, the next serial P0 is the exact-five upper orchestration/GC boundary rather than another lower warehouse or hauling rewrite.
+
+- The live `BuildingDestructiveLossRuntime` still uses `IProductionFacilityMutationFence.TryPrepareEmpty`; active owners are fail-closed before the exact-five journal can take custody. The new coordinator must be integrated as a staged destructive-loss candidate rather than registered as an unused background service.
+- `ProductionFacilityDestructiveDrainJournal` already permits same-phase monotonic participant advances and journal-last removal only from `WorldRemovedAwaitingCheckpointGc`. This supports effect/ack prefix persistence, but the coordinator and reverse-DAG producer collectors are absent.
+
+### Read-only Batch C/D audit delta
+
+- Batch C's current FacilityBuffer input census is `39` owner families with `3` migrated, `36` remaining, `5` direct bypasses, and `1` orphan adapter. The stored owner manifest is stale and its classification gate is partly hard-coded, so it is not current completion evidence.
+- Batch C's highest lifecycle defect is surgical-wildlife transport: cancellation clears coroutine/ID without the runtime `FailCarry` custody release, and there is no disable path. Captive-wildlife mid-carry restore can also warp the subject to the pen. A common entity-transport lease and current-cell release/restore contract remain required.
+- Batch D currently has a deterministic 414-ledger-item proposal skeleton, not the full Revision v5 generator. It does not cover the other `660` physical definitions, exact recipe branches/losses, non-recipe sinks, facility-kit origin joins, warehouse/buffer/haul impacts, or mass-root anomaly collapse. Current-revision exit gates remain open.

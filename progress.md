@@ -6919,3 +6919,13 @@ Literal plan checklist is now `681/789` checked with `108` open (`86.31%` surfac
 - Next production slice: durable exact rejected-Apparel input Transfer plus deterministic recovery output publication, save/restore joins and focused static regression.
 - First isolated Runtime compile of the new Apparel outbox failed with three CS7036 diagnostics because `GameplayInternalOnlyAttribute` requires both a reason and an allowed-caller scope. No runtime evidence was claimed. The annotations were corrected to name `ApparelWorkOrderRuntime` as the sole caller; do not repeat the one-argument form.
 - The second isolated compile exposed CS0165 because a recovery-item drift check short-circuited before assigning `inputFailure`. The item-authority check and outbox call were split into two fail-loud branches; no fallback was added.
+
+## 2026-08-27 post-main continuation baseline
+
+- Pushed the accumulated implementation checkpoint to `origin/main` at `daf6bf63695fac2a63687402b0989563b7679c00`; local and remote hashes matched after upload.
+- Preserved the user's dirty `GameplayScene`, Unity recovery scenes, and `.codex/config.toml` outside the checkpoint.
+- Re-read the Revision v5 execution authority. The authoritative plan still reports roughly `35~45%` weighted remaining work; prior conversational `82%` was an optimistic inverse estimate and is superseded by the document's four-axis status.
+- Completed three read-only parallel audits for exact-five/Apparel, Batch C, and Batch D. Unity, shared contracts, save schemas, and final plan writing remain root-serial.
+- The audits confirmed the Apparel craft/rejected-dismantle physical sub-boundary is implemented, while the next P0 is a restore-safe exact-once receipt for Apparel/Combat inspiration and quality side effects. Exact-five upper recovery/GC and live registration follow it.
+- Batch C remains `3/39` FacilityBuffer input owner families migrated with `36` remaining, `5` bypasses, and `1` orphan. Batch D remains a 414-row proposal skeleton and has not yet frozen/joined all `1,074` physical definitions, `377` facility kits, and `355` recipes.
+- A first `rg` used nonexistent Apparel directory and Windows wildcard path operands and failed before reading or changing files. Exact paths were resolved with `rg --files`; those wildcard operands will not be repeated.
